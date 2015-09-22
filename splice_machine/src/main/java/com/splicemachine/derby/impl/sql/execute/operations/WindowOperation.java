@@ -133,7 +133,6 @@ public class WindowOperation extends SpliceBaseOperation {
         dataHash = null;
         firstStepHashPrefix = null;
         secondStepHashPrefix = null;
-        startExecutionTime = System.currentTimeMillis();
     }
 
     @Override

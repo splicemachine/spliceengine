@@ -44,7 +44,6 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine_adapter_98-hdp2.1.7</artifactId>
-<<<<<<< HEAD
 			<version>2.0.0-SNAPSHOT</version>
 			<classifier>tests</classifier>
 		</dependency>
@@ -53,16 +52,6 @@
       <artifactId>sqlj-it-procs</artifactId>
       <version>1.0.2</version>
     </dependency>
-=======
-			<version>1.5.0-SNAPSHOT</version>
-			<classifier>tests</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.splicetest.sqlj</groupId>
-			<artifactId>sqlj-it-procs</artifactId>
-			<version>1.0.2</version>
-		</dependency>
->>>>>>> master
 	</dependencies>
 	<profiles>
 		<profile>

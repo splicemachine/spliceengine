@@ -132,7 +132,6 @@ public class TableScanOperation extends ScanOperation {
         super.init(context);
         this.baseColumnMap = operationInformation.getBaseColumnMap();
         this.slice = ByteSlice.empty();
-        this.startExecutionTime = System.currentTimeMillis();
         this.scan = context.getScan();
         this.txnRegion = context.getTransactionalRegion();
     }

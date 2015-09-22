@@ -72,7 +72,6 @@ public class LastIndexKeyOperation extends ScanOperation {
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
 	    this.baseColumnMap = operationInformation.getBaseColumnMap();
-        startExecutionTime = System.currentTimeMillis();
     }
 
     @Override

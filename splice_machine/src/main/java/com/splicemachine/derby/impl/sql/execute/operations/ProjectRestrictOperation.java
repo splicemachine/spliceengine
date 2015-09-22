@@ -145,8 +145,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
 						projection = new SpliceMethod<ExecRow>(projectionMethodName,activation);
-
-                startExecutionTime = System.currentTimeMillis();
 		}
 
 

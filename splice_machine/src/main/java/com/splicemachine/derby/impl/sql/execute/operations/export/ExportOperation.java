@@ -81,7 +81,6 @@ public class ExportOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
         currentTemplate = new ValueRow(0);
-        startExecutionTime = System.currentTimeMillis();
     }
 
     @Override

@@ -4,9 +4,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -18,7 +20,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
-import com.splicemachine.utils.Pair;
 import java.util.Iterator;
 
 /**
@@ -47,13 +48,16 @@ public class InsertTableWriter extends AbstractTableWriter {
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
         this.insertOperation = insertOperation;
-        destinationTable = Long.toString(heapConglom).getBytes();
+        this.destinationTable = Long.toString(heapConglom).getBytes();
     }
 
     public void open() throws StandardException {
-        try {
+          open(null,null);
+    }
 
-            writeCoordinator = SpliceDriver.driver().getTableWriter();
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
+        super.open(triggerHandler, operation);
+        try {
             writeBuffer = writeCoordinator.writeBuffer(destinationTable,
                     txn, Metrics.noOpMetricFactory());
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
@@ -74,9 +78,11 @@ public class InsertTableWriter extends AbstractTableWriter {
 
     public void insert(ExecRow execRow) throws StandardException {
         try {
+            beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
             rowsWritten++;
+            TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

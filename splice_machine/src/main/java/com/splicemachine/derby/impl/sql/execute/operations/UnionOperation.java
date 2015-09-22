@@ -115,7 +115,6 @@ public class UnionOperation extends SpliceBaseOperation {
 				super.init(context);
 				leftResultSet.init(context);
 				rightResultSet.init(context);
-				startExecutionTime = System.currentTimeMillis();
 				this.side = context.getRuntimeContext().getPathSide(resultSetNumber);
 		}
 

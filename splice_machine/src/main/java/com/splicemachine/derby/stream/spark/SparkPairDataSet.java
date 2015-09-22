@@ -21,12 +21,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
 import org.sparkproject.guava.common.collect.ArrayListMultimap;
 import org.sparkproject.guava.common.collect.Multimap;
 import scala.Tuple2;
-
 import java.util.*;
 
 /**
@@ -179,11 +177,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) {
         try {
+            operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
             JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
+            operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
@@ -195,11 +195,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) {
         try {
+            operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
             JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
+            operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
@@ -211,11 +213,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) {
         try {
+            operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeDeleteTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
             JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
+            operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));

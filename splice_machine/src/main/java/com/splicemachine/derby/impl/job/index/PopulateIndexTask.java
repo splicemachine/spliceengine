@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.job.index;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
@@ -18,7 +17,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -35,7 +33,6 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -47,23 +44,10 @@ import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SIFilterPacked;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
-import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -126,6 +110,12 @@ public class PopulateIndexTask extends ZkTask{
         this.columnOrdering = columnOrdering;
         this.format_ids = format_ids;
         this.demarcationPoint = demarcationPoint;
+    }
+
+    @Override
+    public RegionTask getClone(){
+        return new PopulateIndexTask(indexConglomId,baseConglomId,mainColToIndexPosMap,indexedColumns,isUnique,
+                isUniqueWithDuplicateNulls,jobId,descColumns,isTraced,statementId,operationId,columnOrdering,format_ids,demarcationPoint);
     }
 
     @Override
@@ -243,8 +233,6 @@ public class PopulateIndexTask extends ZkTask{
                 brs.close();
             }
 
-            reportStats(startTime,brs,writeBuffer,transformationTimer.getTime());
-
         }catch(IOException e){
             SpliceLogUtils.error(LOG,e);
             throw new ExecutionException(e);
@@ -266,36 +254,6 @@ public class PopulateIndexTask extends ZkTask{
                 :new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory,HTransactorFactory.getTransactor().getDataLib());
     }
 
-    protected void reportStats(long startTime,MeasuredRegionScanner brs,RecordingCallBuffer<KVPair> writeBuffer,TimeView manipulationTime) throws IOException{
-        if(isTraced){
-            //record some stats
-            OperationRuntimeStats stats=new OperationRuntimeStats(statementId,operationId,Bytes.toLong(taskId),region.getRegionNameAsString(),12);
-            stats.addMetric(OperationMetric.STOP_TIMESTAMP,System.currentTimeMillis());
-
-            WriteStats writeStats=writeBuffer.getWriteStats();
-            TimeView readTime=brs.getReadTime();
-            stats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
-            stats.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
-            stats.addMetric(OperationMetric.OUTPUT_ROWS,writeStats.getRowsWritten());
-            stats.addMetric(OperationMetric.TOTAL_WALL_TIME,manipulationTime.getWallClockTime()+readTime.getWallClockTime());
-            stats.addMetric(OperationMetric.TOTAL_CPU_TIME,manipulationTime.getCpuTime()+readTime.getCpuTime());
-            stats.addMetric(OperationMetric.TOTAL_USER_TIME,manipulationTime.getUserTime()+readTime.getUserTime());
-
-            stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,brs.getBytesVisited());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,brs.getRowsVisited());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTime.getWallClockTime());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
-            stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
-
-            stats.addMetric(OperationMetric.PROCESSING_WALL_TIME,manipulationTime.getWallClockTime());
-            stats.addMetric(OperationMetric.PROCESSING_CPU_TIME,manipulationTime.getCpuTime());
-            stats.addMetric(OperationMetric.PROCESSING_USER_TIME,manipulationTime.getUserTime());
-
-            OperationRuntimeStats.addWriteStats(writeStats,stats);
-
-            SpliceDriver.driver().getTaskReporter().report(stats,getTxn());
-        }
-    }
 
 		private void translateResult(List result,
 

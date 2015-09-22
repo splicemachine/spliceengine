@@ -84,7 +84,6 @@ public class CallStatementOperation extends NoRowsOperation {
                 timer = Metrics.newTimer();
 
             timer.startTiming();
-            startExecutionTime = System.currentTimeMillis();
             Object invoked = methodCall.invoke();
             ResultSet[][] dynamicResults = activation.getDynamicResults();
             if(dynamicResults==null) {
@@ -107,9 +106,6 @@ public class CallStatementOperation extends NoRowsOperation {
 								return;
                         if (1!=2)
                             return;
-						if (isTopResultSet && activation.getLanguageConnectionContext().getRunTimeStatisticsMode()
-										&& !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
-								endExecutionTime = getCurrentTimeMillis();
 
 						ResultSet[][] dynamicResults = activation.getDynamicResults();
 						if (dynamicResults != null) {
