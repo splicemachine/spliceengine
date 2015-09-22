@@ -160,6 +160,19 @@ public class Subquery_ExistsFlattening_IT {
                         "----\n" +
                         " 5 |"
         );
+        /* many redundant/identical predicates (we didn't handle this at one point DB-3885) */
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select a1 from A where " +
+                        "    a1 > 0 and a2 < 50 " +
+                        "and exists (select b1 from B join C on b1=c1 where a1 = b1) " +
+                        "and a1 > 0 and a2 < 50", ALL_FLATTENED, "" +
+                        "A1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 2 |\n" +
+                        " 3 |\n" +
+                        " 4 |"
+        );
     }
 
     @Test
