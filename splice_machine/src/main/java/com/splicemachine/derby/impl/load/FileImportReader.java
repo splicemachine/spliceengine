@@ -17,6 +17,7 @@ import org.supercsv.io.CsvListReader;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,17 +29,17 @@ public class FileImportReader implements ImportReader{
     private SpliceCsvReader csvReader;
     private InputStream stream;
 
-		private Timer timer;
-		private MeasuredReader reader;
-		private Path path;
+	private Timer timer;
+	private MeasuredReader reader;
+	private Path path;
 
-		private static final int lineBatchSize = 64;
-		private String[][] lines;
-		private int currentPosition;
-		private int mask = (lineBatchSize-1);
-		private boolean finished = false;
+    private static final int lineBatchSize = 64;
 
-		@Override
+    private String[][] lines;
+	private int currentPosition;
+	private int mask = (lineBatchSize-1);
+
+	@Override
     public void setup(FileSystem fileSystem, ImportContext ctx) throws IOException {
         path = ctx.getFilePath();
         CompressionCodecFactory cdF = new CompressionCodecFactory(SpliceUtils.config);
@@ -109,7 +110,8 @@ public class FileImportReader implements ImportReader{
 				return fileStatus.getLen() > SpliceConstants.sequentialImportThreashold;
 		}
 
-		@Override
+
+    @Override
     public void close() throws IOException {
         Closeables.closeQuietly(stream);
         Closeables.closeQuietly(csvReader);
@@ -135,10 +137,24 @@ public class FileImportReader implements ImportReader{
     					SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
     }
 
-		@Override
-		public String toString() {
-				if(path!=null)
-						return path.toString();
-				return "FileImport";
-		}
+    @Override
+	public String toString() {
+	    if(path!=null)
+			return path.toString();
+		return "FileImport";
+    }
+
+    @Override
+    public String[] getFailMessages() {
+        if (csvReader == null) {
+            return new String[0];
+        }
+
+        ArrayList<String> arr = csvReader.getFailMsg();
+        if (arr == null || arr.size() <= 0) {
+            return new String[0];
+        }
+
+        return arr.toArray(new String[arr.size()]);
+    }
 }

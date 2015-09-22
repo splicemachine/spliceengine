@@ -15,11 +15,13 @@ public interface ImportReader extends Closeable,Externalizable {
 
     void setup(FileSystem fileSystem,ImportContext ctx) throws IOException;
 
-    public String[] nextRow() throws IOException;
+    String[] nextRow() throws IOException;
 
-		public String[][] nextRowBatch() throws IOException;
+	String[][] nextRowBatch() throws IOException;
 
-		public IOStats getStats();
+	IOStats getStats();
 
-		boolean shouldParallelize(FileSystem fs, ImportContext ctx) throws IOException;
+	boolean shouldParallelize(FileSystem fs, ImportContext ctx) throws IOException;
+
+    String[] getFailMessages();
 }
