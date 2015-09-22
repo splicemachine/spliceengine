@@ -52,7 +52,6 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
 			jss[1] = new MergeSortJoinStrategy();
 			jss[2] = new BroadcastJoinStrategy();
 			jss[3] = new MergeJoinStrategy();
-//			jss[4] = new HashNestedLoopJoinStrategy();
 			joinStrategySet = jss;
 		}
 

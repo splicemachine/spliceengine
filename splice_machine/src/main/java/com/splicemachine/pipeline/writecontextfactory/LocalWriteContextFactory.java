@@ -106,7 +106,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     public WriteContext create(IndexCallBufferFactory indexSharedCallBuffer,
                                TxnView txn, TransactionalRegion rce,
                                RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, rce, env);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, rce, false, env);
         BatchConstraintChecker checker = buildConstraintChecker();
         context.addLast(new RegionWriteHandler(rce, tableWriteLatch, checker));
         addWriteHandlerFactories(1000, context);
@@ -115,9 +115,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
     @Override
     public WriteContext create(IndexCallBufferFactory indexSharedCallBuffer,
-                               TxnView txn, TransactionalRegion region, int expectedWrites,
+                               TxnView txn, TransactionalRegion region, int expectedWrites, boolean skipIndexWrites,
                                RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, env);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, skipIndexWrites, env);
         BatchConstraintChecker checker = buildConstraintChecker();
         context.addLast(new RegionWriteHandler(region, tableWriteLatch, checker));
         addWriteHandlerFactories(expectedWrites, context);
@@ -198,7 +198,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
     @Override
     public WriteContext createPassThrough(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, env);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, false, env);
         addWriteHandlerFactories(expectedWrites, context);
         return context;
     }

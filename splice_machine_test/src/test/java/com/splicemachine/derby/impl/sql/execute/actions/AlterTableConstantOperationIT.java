@@ -416,7 +416,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         TestConnection connection1 = methodWatcher.createConnection();
         connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)",tableRef));
-        connection1.createStatement().execute(String.format("insert into %s values ('Bob',19)",tableRef));
+        connection1.createStatement().execute(String.format("insert into %s values ('Bob',19)", tableRef));
         connection1.createStatement().execute(String.format("insert into %s values ('Mary',21)", tableRef));
 
         long count = connection1.count(String.format("select * from %s where name = 'Bob'",tableRef));
@@ -445,8 +445,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)", tableRef));
         connection1.createStatement().execute(String.format("insert into %s values ('Mary',21)", tableRef));
 
-        long count = connection1.count(String.format("select * from %s where name = 'Mary'",tableRef));
-        Assert.assertEquals("incorrect row count!",1,count);
+        long count = connection1.count(String.format("select * from %s where name = 'Mary'", tableRef));
+        Assert.assertEquals("incorrect row count!", 1, count);
 
         Connection connection2 = methodWatcher.createConnection();
         connection2.setAutoCommit(false);
@@ -454,7 +454,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
                                                                 "key (name)", tableRef));
 
         count = connection1.count(String.format("select * from %s where name = 'Mary'",tableRef));
-        Assert.assertEquals("incorrect row count!",1,count);
+        Assert.assertEquals("incorrect row count!", 1, count);
 
         assertSqlFails(String.format("insert into %s values ('Mary',21)",tableRef),
                 "The statement was aborted because it would have caused a duplicate key value in a unique or "+
@@ -471,7 +471,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         String tableRef = this.getTableReference(tableName);
         methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null constraint NAME_PK1 " +
                                                       "primary key, age int)", tableRef));
-        methodWatcher.getStatement().execute(String.format("alter table %s add column id int constraint uid unique", tableRef));
+        methodWatcher.getStatement().execute(String.format("alter table %s add column id int constraint uid unique",
+                                                           tableRef));
 
         // Prints the index (unique constraint) info
         ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
@@ -509,6 +510,34 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         } finally {
             conn.rollback();
         }
+    }
+
+    @Test
+    public void testAlterTableResizeVarchar() throws Exception {
+        // DB-3790: alter table resize column
+        String tableName = "resize".toUpperCase();
+        String tableRef = this.getTableReference(tableName);
+        methodWatcher.executeUpdate(String.format("create table %s (age int)", tableRef));
+        methodWatcher.getStatement().execute(String.format("alter table %s add column id varchar(10)", tableRef));
+
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null, SCHEMA, tableName, "%");
+        while (rs.next()) {
+            if (rs.getString(4).equals("ID")) {
+                assertEquals(10, rs.getInt(7));
+                break;
+            }
+        }
+
+        methodWatcher.getStatement().execute(String.format("alter table %s alter column id set data type varchar(20)", tableRef));
+
+        rs = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null, SCHEMA, tableName, "%");
+        while (rs.next()) {
+            if (rs.getString(4).equals("ID")) {
+                assertEquals(20, rs.getInt(7));
+                break;
+            }
+        }
+
     }
 
     private void assertSqlFails(String sql, String expectedException, String tableName) {

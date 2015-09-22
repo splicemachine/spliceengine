@@ -1,0 +1,1226 @@
+15/06/04 17:50:33 INFO executor.CoarseGrainedExecutorBackend: Registered signal handlers for [TERM, HUP, INT]
+15/06/04 17:50:36 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+15/06/04 17:50:36 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/04 17:50:36 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/04 17:50:36 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/04 17:50:36 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/04 17:50:36 INFO Remoting: Starting remoting
+15/06/04 17:50:37 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://driverPropsFetcher@192.168.0.61:54517]
+15/06/04 17:50:37 INFO util.Utils: Successfully started service 'driverPropsFetcher' on port 54517.
+15/06/04 17:50:37 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/04 17:50:37 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/04 17:50:37 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/04 17:50:37 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/04 17:50:37 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/04 17:50:37 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/04 17:50:37 INFO Remoting: Starting remoting
+15/06/04 17:50:37 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkExecutor@192.168.0.61:54519]
+15/06/04 17:50:37 INFO util.Utils: Successfully started service 'sparkExecutor' on port 54519.
+15/06/04 17:50:37 INFO executor.CoarseGrainedExecutorBackend: Connecting to driver: akka.tcp://sparkDriver@192.168.0.61:54513/user/CoarseGrainedScheduler
+15/06/04 17:50:37 INFO worker.WorkerWatcher: Connecting to worker akka.tcp://sparkWorker@192.168.0.61:54434/user/Worker
+15/06/04 17:50:37 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/04 17:50:37 INFO worker.WorkerWatcher: Successfully connected to akka.tcp://sparkWorker@192.168.0.61:54434/user/Worker
+15/06/04 17:50:37 INFO executor.CoarseGrainedExecutorBackend: Successfully registered with driver
+15/06/04 17:50:37 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/04 17:50:37 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/04 17:50:37 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/04 17:50:37 INFO util.AkkaUtils: Connecting to MapOutputTracker: akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker
+15/06/04 17:50:37 INFO util.AkkaUtils: Connecting to BlockManagerMaster: akka.tcp://sparkDriver@192.168.0.61:54513/user/BlockManagerMaster
+15/06/04 17:50:37 INFO storage.DiskBlockManager: Created local directory at /tmp/spark-local-20150604175037-d96a
+15/06/04 17:50:37 INFO storage.MemoryStore: MemoryStore started with capacity 706.6 MB
+15/06/04 17:50:37 INFO netty.NettyBlockTransferService: Server created on 54522
+15/06/04 17:50:37 INFO storage.BlockManagerMaster: Trying to register BlockManager
+15/06/04 17:50:37 INFO storage.BlockManagerMaster: Registered BlockManager
+15/06/04 17:50:37 INFO util.AkkaUtils: Connecting to HeartbeatReceiver: akka.tcp://sparkDriver@192.168.0.61:54513/user/HeartbeatReceiver
+15/06/04 17:50:37 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 0
+15/06/04 17:50:37 INFO executor.Executor: Running task 0.0 in stage 0.0 (TID 0)
+15/06/04 17:50:37 INFO Configuration.deprecation: hadoop.native.lib is deprecated. Instead, use io.native.lib.available
+15/06/04 17:50:38 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 1
+15/06/04 17:50:38 INFO storage.MemoryStore: ensureFreeSpace(10158) called with curMem=0, maxMem=740960501
+15/06/04 17:50:38 INFO storage.MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 9.9 KB, free 706.6 MB)
+15/06/04 17:50:38 INFO storage.BlockManagerMaster: Updated info of block broadcast_1_piece0
+15/06/04 17:50:38 INFO broadcast.TorrentBroadcast: Reading broadcast variable 1 took 211 ms
+15/06/04 17:50:38 INFO storage.MemoryStore: ensureFreeSpace(25624) called with curMem=10158, maxMem=740960501
+15/06/04 17:50:38 INFO storage.MemoryStore: Block broadcast_1 stored as values in memory (estimated size 25.0 KB, free 706.6 MB)
+15/06/04 17:50:38 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x4134b632 connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:zookeeper.version=3.4.5-cdh5.3.2--1, built on 02/24/2015 20:43 GMT
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:host.name=192.168.0.61
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.version=1.7.0_71
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.vendor=Oracle Corporation
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.home=/Library/Java/JavaVirtualMachines/jdk1.7.0_71.jdk/Contents/Home/jre
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.class.path=/Users/jleach/.m2/repository/com/splicemachine/splice_machine_adapter_98-cdh5.3.2/1.1.1-SNAPSHOT/splice_machine_adapter_98-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_machine-cdh5.3.2/1.1.1-SNAPSHOT/splice_machine-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_si_adapter_98-cdh5.3.2/1.1.1-SNAPSHOT/splice_si_adapter_98-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_si-cdh5.3.2/1.1.1-SNAPSHOT/splice_si-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_constants-cdh5.3.2/1.1.1-SNAPSHOT/splice_constants-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/googlecode/concurrentlinkedhashmap/concurrentlinkedhashmap-lru/1.4.2/concurrentlinkedhashmap-lru-1.4.2.jar:/Users/jleach/.m2/repository/joda-time/joda-time/2.3/joda-time-2.3.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-client/2.5.0-cdh5.3.2/hadoop-client-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-app/2.5.0-cdh5.3.2/hadoop-mapreduce-client-app-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-common/2.5.0-cdh5.3.2/hadoop-mapreduce-client-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-client/2.5.0-cdh5.3.2/hadoop-yarn-client-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-client/1.9/jersey-client-1.9.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-server-common/2.5.0-cdh5.3.2/hadoop-yarn-server-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-shuffle/2.5.0-cdh5.3.2/hadoop-mapreduce-client-shuffle-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-api/2.5.0-cdh5.3.2/hadoop-yarn-api-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-core/2.5.0-cdh5.3.2/hadoop-mapreduce-client-core-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-common/2.5.0-cdh5.3.2/hadoop-yarn-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-jobclient/2.5.0-cdh5.3.2/hadoop-mapreduce-client-jobclient-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-aws/2.5.0-cdh5.3.2/hadoop-aws-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.2.3/jackson-databind-2.2.3.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.2.3/jackson-core-2.2.3.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.2.3/jackson-annotations-2.2.3.jar:/Users/jleach/.m2/repository/com/amazonaws/aws-java-sdk/1.7.4/aws-java-sdk-1.7.4.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-annotations/2.5.0-cdh5.3.2/hadoop-annotations-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-common/2.5.0-cdh5.3.2/hadoop-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-math3/3.1.1/commons-math3-3.1.1.jar:/Users/jleach/.m2/repository/xmlenc/xmlenc/0.52/xmlenc-0.52.jar:/Users/jleach/.m2/repository/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar:/Users/jleach/.m2/repository/commons-codec/commons-codec/1.4/commons-codec-1.4.jar:/Users/jleach/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar:/Users/jleach/.m2/repository/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty/6.1.26.cloudera.4/jetty-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty-util/6.1.26.cloudera.4/jetty-util-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/javax/servlet/jsp/jsp-api/2.1/jsp-api-2.1.jar:/Users/jleach/.m2/repository/commons-el/commons-el/1.0/commons-el-1.0.jar:/Users/jleach/.m2/repository/net/java/dev/jets3t/jets3t/0.9.0/jets3t-0.9.0.jar:/Users/jleach/.m2/repository/com/jamesmurty/utils/java-xmlbuilder/0.4/java-xmlbuilder-0.4.jar:/Users/jleach/.m2/repository/commons-configuration/commons-configuration/1.6/commons-configuration-1.6.jar:/Users/jleach/.m2/repository/commons-digester/commons-digester/1.8/commons-digester-1.8.jar:/Users/jleach/.m2/repository/commons-beanutils/commons-beanutils/1.7.0/commons-beanutils-1.7.0.jar:/Users/jleach/.m2/repository/commons-beanutils/commons-beanutils-core/1.8.0/commons-beanutils-core-1.8.0.jar:/Users/jleach/.m2/repository/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar:/Users/jleach/.m2/repository/org/slf4j/slf4j-log4j12/1.7.5/slf4j-log4j12-1.7.5.jar:/Users/jleach/.m2/repository/org/apache/avro/avro/1.7.6-cdh5.3.2/avro-1.7.6-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/thoughtworks/paranamer/paranamer/2.3/paranamer-2.3.jar:/Users/jleach/.m2/repository/org/xerial/snappy/snappy-java/1.0.5/snappy-java-1.0.5.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-auth/2.5.0-cdh5.3.2/hadoop-auth-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/directory/server/apacheds-kerberos-codec/2.0.0-M15/apacheds-kerberos-codec-2.0.0-M15.jar:/Users/jleach/.m2/repository/org/apache/directory/server/apacheds-i18n/2.0.0-M15/apacheds-i18n-2.0.0-M15.jar:/Users/jleach/.m2/repository/org/apache/directory/api/api-asn1-api/1.0.0-M20/api-asn1-api-1.0.0-M20.jar:/Users/jleach/.m2/repository/org/apache/directory/api/api-util/1.0.0-M20/api-util-1.0.0-M20.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-framework/2.6.0/curator-framework-2.6.0.jar:/Users/jleach/.m2/repository/com/jcraft/jsch/0.1.42/jsch-0.1.42.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-client/2.6.0/curator-client-2.6.0.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-recipes/2.6.0/curator-recipes-2.6.0.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-compress/1.4.1/commons-compress-1.4.1.jar:/Users/jleach/.m2/repository/org/tukaani/xz/1.0/xz-1.0.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.5.0-cdh5.3.2/hadoop-hdfs-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/commons-daemon/commons-daemon/1.0.13/commons-daemon-1.0.13.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-client/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-client-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-common/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-common-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/cloudera/htrace/htrace-core/2.04/htrace-core-2.04.jar:/Users/jleach/.m2/repository/com/github/stephenc/findbugs/findbugs-annotations/1.3.9-1/findbugs-annotations-1.3.9-1.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-common/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-common-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-core/2.5.0-mr1-cdh5.3.2/hadoop-core-2.5.0-mr1-cdh5.3.2.jar:/Users/jleach/.m2/repository/hsqldb/hsqldb/1.8.0.10/hsqldb-1.8.0.10.jar:/Users/jleach/.m2/repository/org/eclipse/jdt/core/3.1.1/core-3.1.1.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-protocol/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-protocol-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-server/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-server-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-prefix-tree/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-prefix-tree-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop2-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop2-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/yammer/metrics/metrics-core/2.1.2/metrics-core-2.1.2.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-math/2.1/commons-math-2.1.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty-sslengine/6.1.26.cloudera.4/jetty-sslengine-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jsp-2.1/6.1.14/jsp-2.1-6.1.14.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jsp-api-2.1/6.1.14/jsp-api-2.1-6.1.14.jar:/Users/jleach/.m2/repository/org/jamon/jamon-runtime/2.3.1/jamon-runtime-2.3.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.5.0-cdh5.3.2/hadoop-hdfs-2.5.0-cdh5.3.2-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-testing-util/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-testing-util-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-server/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-server-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop2-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop2-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-minicluster/2.5.0-mr1-cdh5.3.2/hadoop-minicluster-2.5.0-mr1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-test/2.5.0-mr1-cdh5.3.2/hadoop-test-2.5.0-mr1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftplet-api/1.0.0/ftplet-api-1.0.0.jar:/Users/jleach/.m2/repository/org/apache/mina/mina-core/2.0.0-M5/mina-core-2.0.0-M5.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftpserver-core/1.0.0/ftpserver-core-1.0.0.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftpserver-deprecated/1.0.0-M2/ftpserver-deprecated-1.0.0-M2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-common/2.5.0-cdh5.3.2/hadoop-common-2.5.0-cdh5.3.2-tests.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-beeline/0.13.1-cdh5.3.2/hive-beeline-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-metastore/0.13.1-cdh5.3.2/hive-metastore-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/jolbox/bonecp/0.8.0.RELEASE/bonecp-0.8.0.RELEASE.jar:/Users/jleach/.m2/repository/org/apache/derby/derby/10.10.1.1/derby-10.10.1.1.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-api-jdo/3.2.6/datanucleus-api-jdo-3.2.6.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-core/3.2.10/datanucleus-core-3.2.10.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-rdbms/3.2.9/datanucleus-rdbms-3.2.9.jar:/Users/jleach/.m2/repository/javax/jdo/jdo-api/3.0.1/jdo-api-3.0.1.jar:/Users/jleach/.m2/repository/javax/transaction/jta/1.1/jta-1.1.jar:/Users/jleach/.m2/repository/org/antlr/antlr-runtime/3.4/antlr-runtime-3.4.jar:/Users/jleach/.m2/repository/org/antlr/stringtemplate/3.2.1/stringtemplate-3.2.1.jar:/Users/jleach/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/Users/jleach/.m2/repository/jline/jline/0.9.94/jline-0.9.94.jar:/Users/jleach/.m2/repository/org/apache/thrift/libthrift/0.9.0-cdh5-2/libthrift-0.9.0-cdh5-2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-cli/0.13.1-cdh5.3.2/hive-cli-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-serde/0.13.1-cdh5.3.2/hive-serde-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-servlet/1.14/jersey-servlet-1.14.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-exec/0.13.1-cdh5.3.2/hive-exec-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-ant/0.13.1-cdh5.3.2/hive-ant-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/velocity/velocity/1.5/velocity-1.5.jar:/Users/jleach/.m2/repository/oro/oro/2.0.8/oro-2.0.8.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-lang3/3.1/commons-lang3-3.1.jar:/Users/jleach/.m2/repository/org/antlr/ST4/4.0.4/ST4-4.0.4.jar:/Users/jleach/.m2/repository/org/apache/ant/ant/1.9.1/ant-1.9.1.jar:/Users/jleach/.m2/repository/org/apache/ant/ant-launcher/1.9.1/ant-launcher-1.9.1.jar:/Users/jleach/.m2/repository/org/codehaus/groovy/groovy-all/2.1.6/groovy-all-2.1.6.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-common/0.13.1-cdh5.3.2/hive-common-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-contrib/0.13.1-cdh5.3.2/hive-contrib-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-hbase-handler/0.13.1-cdh5.3.2/hive-hbase-handler-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-hwi/0.13.1-cdh5.3.2/hive-hwi-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-jdbc/0.13.1-cdh5.3.2/hive-jdbc-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/httpcomponents/httpclient/4.2.5/httpclient-4.2.5.jar:/Users/jleach/.m2/repository/org/apache/httpcomponents/httpcore/4.2.5/httpcore-4.2.5.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-service/0.13.1-cdh5.3.2/hive-service-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/net/sf/jpam/jpam/1.1/jpam-1.1.jar:/Users/jleach/.m2/repository/org/eclipse/jetty/aggregate/jetty-all/7.6.0.v20120127/jetty-all-7.6.0.v20120127.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-jta_1.1_spec/1.1.1/geronimo-jta_1.1_spec-1.1.1.jar:/Users/jleach/.m2/repository/javax/mail/mail/1.4.1/mail-1.4.1.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-jaspic_1.0_spec/1.0/geronimo-jaspic_1.0_spec-1.0.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-annotation_1.0_spec/1.1.1/geronimo-annotation_1.0_spec-1.1.1.jar:/Users/jleach/.m2/repository/asm/asm-commons/3.1/asm-commons-3.1.jar:/Users/jleach/.m2/repository/asm/asm-tree/3.1/asm-tree-3.1.jar:/Users/jleach/.m2/repository/org/apache/thrift/libfb303/0.9.0/libfb303-0.9.0.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-shims/0.13.1-cdh5.3.2/hive-shims-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-common/0.13.1-cdh5.3.2/hive-shims-common-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-common-secure/0.13.1-cdh5.3.2/hive-shims-common-secure-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-0.23/0.13.1-cdh5.3.2/hive-shims-0.23-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-scheduler/0.13.1-cdh5.3.2/hive-shims-scheduler-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/zookeeper/zookeeper/3.4.5-cdh5.3.2/zookeeper-3.4.5-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/spark/spark-assembly-hadoop2.5.0-cdh5.3.2/1.2.0/spark-assembly-hadoop2.5.0-cdh5.3.2-1.2.0.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_protocol-cdh5.3.2/1.1.1-SNAPSHOT/splice_protocol-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/asynchbase/1.5.5/asynchbase-1.5.5.jar:/Users/jleach/.m2/repository/com/stumbleupon/async/1.4.0/async-1.4.0.jar:/Users/jleach/.m2/repository/org/scala-lang/scala-library/2.10.4/scala-library-2.10.4.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_machine_adapter_98-cdh5.3.2/1.1.1-SNAPSHOT/splice_machine_adapter_98-cdh5.3.2-1.1.1-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/splicetest/sqlj/sqlj-it-procs/1.0.2-SNAPSHOT/sqlj-it-procs-1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar:/Users/jleach/.m2/repository/com/carrotsearch/hppc/0.5.2/hppc-0.5.2.jar:/Users/jleach/.m2/repository/com/carrotsearch/java-sizeof/0.0.4/java-sizeof-0.0.4.jar:/Users/jleach/.m2/repository/com/esotericsoftware/kryo/kryo/2.21/kryo-2.21.jar:/Users/jleach/.m2/repository/com/esotericsoftware/reflectasm/reflectasm/1.07/reflectasm-1.07-shaded.jar:/Users/jleach/.m2/repository/org/ow2/asm/asm/4.0/asm-4.0.jar:/Users/jleach/.m2/repository/com/esotericsoftware/minlog/minlog/1.2/minlog-1.2.jar:/Users/jleach/.m2/repository/org/objenesis/objenesis/1.2/objenesis-1.2.jar:/Users/jleach/.m2/repository/com/github/stephenc/high-scale-lib/high-scale-lib/1.1.1/high-scale-lib-1.1.1.jar:/Users/jleach/.m2/repository/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.jar:/Users/jleach/.m2/repository/com/google/code/gson/gson/2.2.2/gson-2.2.2.jar:/Users/jleach/.m2/repository/com/google/guava/guava/11.0.2/guava-11.0.2.jar:/Users/jleach/.m2/repository/com/lmax/disruptor/3.2.1/disruptor-3.2.1.jar:/Users/jleach/.m2/repository/com/splicemachine/utilities/1.1.2-SNAPSHOT/utilities-1.1.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/stats/1.0.0-SNAPSHOT/stats-1.0.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice-web/1.1.0-SNAPSHOT/splice-web-1.1.0-SNAPSHOT.tar.gz:/Users/jleach/.m2/repository/com/sun/jersey/jersey-core/1.8/jersey-core-1.8.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-json/1.8/jersey-json-1.8.jar:/Users/jleach/.m2/repository/org/codehaus/jettison/jettison/1.1/jettison-1.1.jar:/Users/jleach/.m2/repository/stax/stax-api/1.0.1/stax-api-1.0.1.jar:/Users/jleach/.m2/repository/com/sun/xml/bind/jaxb-impl/2.2.3-1/jaxb-impl-2.2.3-1.jar:/Users/jleach/.m2/repository/javax/xml/bind/jaxb-api/2.2.2/jaxb-api-2.2.2.jar:/Users/jleach/.m2/repository/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar:/Users/jleach/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-jaxrs/1.7.1/jackson-jaxrs-1.7.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-xc/1.7.1/jackson-xc-1.7.1.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-server/1.8/jersey-server-1.8.jar:/Users/jleach/.m2/repository/asm/asm/3.1/asm-3.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.8.8/jackson-core-asl-1.8.8.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.8.8/jackson-mapper-asl-1.8.8.jar:/Users/jleach/.m2/repository/commons-cli/commons-cli/1.2/commons-cli-1.2.jar:/Users/jleach/.m2/repository/commons-dbutils/commons-dbutils/1.5/commons-dbutils-1.5.jar:/Users/jleach/.m2/repository/commons-io/commons-io/2.1/commons-io-2.1.jar:/Users/jleach/.m2/repository/commons-lang/commons-lang/2.5/commons-lang-2.5.jar:/Users/jleach/.m2/repository/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar:/Users/jleach/.m2/repository/de/javakaffee/kryo-serializers/0.26/kryo-serializers-0.26.jar:/Users/jleach/.m2/repository/io/netty/netty/3.6.6.Final/netty-3.6.6.Final.jar:/Users/jleach/.m2/repository/net/sf/ehcache/ehcache-core/2.6.6/ehcache-core-2.6.6.jar:/Users/jleach/.m2/repository/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar:/Users/jleach/.m2/repository/net/sf/supercsv/super-csv/2.3.2-SNAPSHOT-splice/super-csv-2.3.2-SNAPSHOT-splice.jar:/Users/jleach/.m2/repository/com/splicemachine/db/1.1.1.2-SNAPSHOT/db-1.1.1.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/dbclient/1.1.1.2-SNAPSHOT/dbclient-1.1.1.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/lucene/lucene-core/4.3.1/lucene-core-4.3.1.jar:/Users/jleach/.m2/repository/org/apache/mrunit/mrunit/1.0.0/mrunit-1.0.0-hadoop2.jar:/Users/jleach/.m2/repository/org/uncommons/maths/uncommons-maths/1.2.1/uncommons-maths-1.2.1.jar:/Users/jleach/.m2/repository/org/uncommons/watchmaker/watchmaker-framework/0.7.1/watchmaker-framework-0.7.1.jar:/Users/jleach/.m2/repository/junit/junit/4.11/junit-4.11.jar:/Users/jleach/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/Users/jleach/.m2/repository/org/mockito/mockito-all/1.9.5/mockito-all-1.9.5.jar:/Users/jleach/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar:/Users/jleach/Documents/workspace/spliceengine/cdh5.3.2/splice_machine_test/target/classes
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.library.path=:/Users/jleach/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.io.tmpdir=/var/folders/01/td1fd0hx6z72c6g58vqc1tnr0000gp/T/
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:java.compiler=<NA>
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:os.name=Mac OS X
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:os.arch=x86_64
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:os.version=10.10.3
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:user.name=jleach
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:user.home=/Users/jleach
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Client environment:user.dir=/Users/jleach/Documents/workspace/spliceengine/cdh5.3.2/splice_machine_test/work/app-20150604175028-0000/0
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x4134b632, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:38 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:38 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:38 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0010, negotiated timeout = 60000
+15/06/04 17:50:38 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x7a223f56 connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:38 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x7a223f56, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:38 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:38 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 17:50:39 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:39 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:39 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0011, negotiated timeout = 60000
+15/06/04 17:50:39 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/04 17:50:39 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/04 17:50:40 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0xc21785 connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:40 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0xc21785, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:40 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:40 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 17:50:40 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/04 17:50:40 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/04 17:50:40 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:40 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:40 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0012, negotiated timeout = 60000
+15/06/04 17:50:41 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x2dbe7f57 connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:41 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x2dbe7f57, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0013, negotiated timeout = 60000
+15/06/04 17:50:41 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x6bc7612a connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:41 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x6bc7612a, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0014, negotiated timeout = 60000
+15/06/04 17:50:41 INFO temp.TempTable: Temp Table initial bucket count: 16
+15/06/04 17:50:41 INFO zookeeper.RecoverableZooKeeper: Process identifier=spliceconnection connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:41 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=spliceconnection, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0015, negotiated timeout = 60000
+15/06/04 17:50:41 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x1f2bdd12 connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:41 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x1f2bdd12, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:41 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 17:50:41 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/04 17:50:41 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:41 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0016, negotiated timeout = 60000
+15/06/04 17:50:42 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x795cb9b1 connecting to ZooKeeper ensemble=localhost:2181
+15/06/04 17:50:42 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x795cb9b1, quorum=localhost:2181, baseZNode=/hbase
+15/06/04 17:50:42 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:42 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 17:50:42 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/04 17:50:42 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/04 17:50:42 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:42 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:42 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0017, negotiated timeout = 60000
+15/06/04 17:50:43 ERROR utils.PipelineConstants: No Native Snappy Installed: Splice Machine's Write Pipeline will not compress data over the wire.
+15/06/04 17:50:43 INFO hbase.SpliceDriver: Booting the SpliceDriver
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /ddl already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /ddl/ongoingChanges already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /ddl/activeServers already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /spliceTasks already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /spliceJobs already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /conglomerates already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /conglomerates/__CONGLOM_SEQUENCE already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /derbyPropertyPath already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /conglomerates already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /transactions already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /transactions/maxReservedTimestamp already exists and this is not a retry
+15/06/04 17:50:43 INFO zookeeper.RecoverableZooKeeper: Node /transactions/minimum already exists and this is not a retry
+15/06/04 17:50:43 INFO db.SpliceDatabase: Booting the Splice Machine database
+15/06/04 17:50:43 INFO txn.SpliceTimestampSource: Creating the TimestampClient...
+15/06/04 17:50:43 INFO timestamp.TimestampClient: TimestampClient on region server successfully registered with JMX
+15/06/04 17:50:43 INFO timestamp.TimestampClient: Attempting to connect to server (host 192.168.0.61, port 60012)
+15/06/04 17:50:44 INFO timestamp.TimestampClient: Successfully connected to server
+15/06/04 17:50:44 INFO catalog.SpliceDataDictionary: Splice Software Version = 1.1.1
+15/06/04 17:50:44 INFO catalog.SpliceDataDictionary: Splice Catalog Version = 1.1.1
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Splice Engine is Running, Enabling Services
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Splice Machine Release = 1.1.1-SNAPSHOT
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Splice Machine Version Hash = e40302beb7
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Splice Machine Build Time = 2015-06-04 15:42 +0000
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Splice Machine URL = http://www.splicemachine.com
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Services successfully started, enabling JDBC connections...
+15/06/04 17:50:44 INFO hbase.SpliceDriver: Ready to accept JDBC connections on 0.0.0.0:1527
+15/06/04 17:50:44 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:50:44 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 0
+15/06/04 17:50:44 INFO storage.MemoryStore: ensureFreeSpace(22653) called with curMem=35782, maxMem=740960501
+15/06/04 17:50:44 INFO storage.MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 22.1 KB, free 706.6 MB)
+15/06/04 17:50:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_0_piece0
+15/06/04 17:50:44 INFO broadcast.TorrentBroadcast: Reading broadcast variable 0 took 10 ms
+15/06/04 17:50:44 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=58435, maxMem=740960501
+15/06/04 17:50:44 INFO storage.MemoryStore: Block broadcast_0 stored as values in memory (estimated size 380.7 KB, free 706.2 MB)
+15/06/04 17:50:44 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x78471fae connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:50:44 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x78471fae, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:50:44 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:50:44 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:50:44 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0018, negotiated timeout = 60000
+15/06/04 17:50:44 INFO hfile.CacheConfig: Allocating LruBlockCache with maximum size 1.9 G
+15/06/04 17:50:44 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:50:44 INFO util.ChecksumType: Checksum using org.apache.hadoop.util.PureJavaCrc32
+15/06/04 17:50:44 INFO util.ChecksumType: Checksum can use org.apache.hadoop.util.PureJavaCrc32C
+15/06/04 17:50:44 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:50:44 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:50:44 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+JProfiler> Protocol version 37
+JProfiler> Using JVMTI
+JProfiler> JVMTI version 1.1 detected.
+JProfiler> 64-bit library
+JProfiler> Listening on port: 31758.
+JProfiler> Hotspot compiler enabled
+JProfiler> Attach mode initialized
+JProfiler> Instrumenting native methods.
+JProfiler> Can retransform classes.
+JProfiler> Can retransform any class.
+JProfiler> Retransforming 21 base class files.
+JProfiler> Base classes instrumented.
+JProfiler> Native library initialized
+JProfiler> Using sampling (5 ms)
+JProfiler> Time measurement: elapsed time
+JProfiler> CPU profiling enabled
+JProfiler> Updating configuration.
+JProfiler> Retransforming 266 class files.
+JProfiler> Configuration updated.
+15/06/04 17:51:34 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:51:34 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f0018
+15/06/04 17:51:34 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f0018 closed
+15/06/04 17:51:34 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:51:34 INFO regionserver.HStore: Closed V
+15/06/04 17:51:34 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 17:51:34 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 17:51:34 INFO executor.Executor: Finished task 0.0 in stage 0.0 (TID 0). 2172 bytes result sent to driver
+15/06/04 17:51:34 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 1
+15/06/04 17:51:34 INFO executor.Executor: Running task 0.0 in stage 1.0 (TID 1)
+15/06/04 17:51:34 INFO spark.MapOutputTrackerWorker: Updating epoch to 1 and clearing cache
+15/06/04 17:51:34 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 2
+15/06/04 17:51:34 INFO storage.MemoryStore: ensureFreeSpace(10249) called with curMem=448230, maxMem=740960501
+15/06/04 17:51:34 INFO storage.MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 10.0 KB, free 706.2 MB)
+15/06/04 17:51:34 INFO storage.BlockManagerMaster: Updated info of block broadcast_2_piece0
+15/06/04 17:51:34 INFO broadcast.TorrentBroadcast: Reading broadcast variable 2 took 9 ms
+15/06/04 17:51:34 INFO storage.MemoryStore: ensureFreeSpace(26048) called with curMem=458479, maxMem=740960501
+15/06/04 17:51:34 INFO storage.MemoryStore: Block broadcast_2 stored as values in memory (estimated size 25.4 KB, free 706.2 MB)
+15/06/04 17:51:34 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 1, fetching them
+15/06/04 17:51:34 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:51:34 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:51:34 INFO storage.ShuffleBlockFetcherIterator: Getting 1 non-empty blocks out of 1 blocks
+15/06/04 17:51:34 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 5 ms
+15/06/04 17:51:35 INFO executor.Executor: Finished task 0.0 in stage 1.0 (TID 1). 1176 bytes result sent to driver
+15/06/04 17:51:35 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 2
+15/06/04 17:51:35 INFO executor.Executor: Running task 0.0 in stage 2.0 (TID 2)
+15/06/04 17:51:35 INFO spark.MapOutputTrackerWorker: Updating epoch to 2 and clearing cache
+15/06/04 17:51:35 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 3
+15/06/04 17:51:35 INFO storage.MemoryStore: ensureFreeSpace(9585) called with curMem=484527, maxMem=740960501
+15/06/04 17:51:35 INFO storage.MemoryStore: Block broadcast_3_piece0 stored as bytes in memory (estimated size 9.4 KB, free 706.2 MB)
+15/06/04 17:51:35 INFO storage.BlockManagerMaster: Updated info of block broadcast_3_piece0
+15/06/04 17:51:35 INFO broadcast.TorrentBroadcast: Reading broadcast variable 3 took 10 ms
+15/06/04 17:51:35 INFO storage.MemoryStore: ensureFreeSpace(21816) called with curMem=494112, maxMem=740960501
+15/06/04 17:51:35 INFO storage.MemoryStore: Block broadcast_3 stored as values in memory (estimated size 21.3 KB, free 706.1 MB)
+15/06/04 17:51:35 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 0, fetching them
+15/06/04 17:51:35 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:51:35 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:51:35 INFO storage.ShuffleBlockFetcherIterator: Getting 1 non-empty blocks out of 1 blocks
+15/06/04 17:51:35 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 1 ms
+15/06/04 17:51:35 INFO executor.Executor: Finished task 0.0 in stage 2.0 (TID 2). 1334 bytes result sent to driver
+15/06/04 17:51:45 INFO storage.BlockManager: Removing broadcast 2
+15/06/04 17:51:45 INFO storage.BlockManager: Removing block broadcast_2
+15/06/04 17:51:45 INFO storage.MemoryStore: Block broadcast_2 of size 26048 dropped from memory (free 740470621)
+15/06/04 17:51:45 INFO storage.BlockManager: Removing block broadcast_2_piece0
+15/06/04 17:51:45 INFO storage.MemoryStore: Block broadcast_2_piece0 of size 10249 dropped from memory (free 740480870)
+15/06/04 17:51:45 INFO storage.BlockManagerMaster: Updated info of block broadcast_2_piece0
+15/06/04 17:51:45 INFO storage.BlockManager: Removing broadcast 3
+15/06/04 17:51:45 INFO storage.BlockManager: Removing block broadcast_3_piece0
+15/06/04 17:51:45 INFO storage.MemoryStore: Block broadcast_3_piece0 of size 9585 dropped from memory (free 740490455)
+15/06/04 17:51:45 INFO storage.BlockManagerMaster: Updated info of block broadcast_3_piece0
+15/06/04 17:51:45 INFO storage.BlockManager: Removing block broadcast_3
+15/06/04 17:51:45 INFO storage.MemoryStore: Block broadcast_3 of size 21816 dropped from memory (free 740512271)
+15/06/04 17:52:34 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 3
+15/06/04 17:52:34 INFO executor.Executor: Running task 0.0 in stage 3.0 (TID 3)
+15/06/04 17:52:34 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 6
+15/06/04 17:52:34 INFO storage.MemoryStore: ensureFreeSpace(9664) called with curMem=448230, maxMem=740960501
+15/06/04 17:52:34 INFO storage.MemoryStore: Block broadcast_6_piece0 stored as bytes in memory (estimated size 9.4 KB, free 706.2 MB)
+15/06/04 17:52:34 INFO storage.BlockManagerMaster: Updated info of block broadcast_6_piece0
+15/06/04 17:52:34 INFO broadcast.TorrentBroadcast: Reading broadcast variable 6 took 9 ms
+15/06/04 17:52:34 INFO storage.MemoryStore: ensureFreeSpace(22120) called with curMem=457894, maxMem=740960501
+15/06/04 17:52:34 INFO storage.MemoryStore: Block broadcast_6 stored as values in memory (estimated size 21.6 KB, free 706.2 MB)
+15/06/04 17:52:34 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:52:34 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 5
+15/06/04 17:52:34 INFO storage.MemoryStore: ensureFreeSpace(22536) called with curMem=480014, maxMem=740960501
+15/06/04 17:52:34 INFO storage.MemoryStore: Block broadcast_5_piece0 stored as bytes in memory (estimated size 22.0 KB, free 706.2 MB)
+15/06/04 17:52:34 INFO storage.BlockManagerMaster: Updated info of block broadcast_5_piece0
+15/06/04 17:52:34 INFO broadcast.TorrentBroadcast: Reading broadcast variable 5 took 8 ms
+15/06/04 17:52:34 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=502550, maxMem=740960501
+15/06/04 17:52:34 INFO storage.MemoryStore: Block broadcast_5 stored as values in memory (estimated size 380.7 KB, free 705.8 MB)
+15/06/04 17:52:34 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x9b38454 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:52:34 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x9b38454, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:52:34 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:52:34 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:52:34 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0019, negotiated timeout = 60000
+15/06/04 17:52:34 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:52:34 INFO regionserver.HRegion: Onlined 15e413209c546b7076549311e3132617; next sequenceid=32
+15/06/04 17:52:34 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:52:34 INFO regionserver.HRegion: Onlined 15e413209c546b7076549311e3132617; next sequenceid=32
+15/06/04 17:52:35 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:52:35 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f0019
+15/06/04 17:52:35 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f0019 closed
+15/06/04 17:52:35 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:52:35 INFO regionserver.HStore: Closed V
+15/06/04 17:52:35 INFO regionserver.HRegion: Closed 1392,,1433432704157.15e413209c546b7076549311e3132617.
+15/06/04 17:52:35 WARN regionserver.HRegion: Region 1392,,1433432704157.15e413209c546b7076549311e3132617. already closed
+15/06/04 17:52:35 INFO executor.Executor: Finished task 0.0 in stage 3.0 (TID 3). 1329268 bytes result sent to driver
+15/06/04 17:52:36 INFO storage.BlockManager: Removing broadcast 6
+15/06/04 17:52:36 INFO storage.BlockManager: Removing block broadcast_6_piece0
+15/06/04 17:52:36 INFO storage.MemoryStore: Block broadcast_6_piece0 of size 9664 dropped from memory (free 740077820)
+15/06/04 17:52:36 INFO storage.BlockManagerMaster: Updated info of block broadcast_6_piece0
+15/06/04 17:52:36 INFO storage.BlockManager: Removing block broadcast_6
+15/06/04 17:52:36 INFO storage.MemoryStore: Block broadcast_6 of size 22120 dropped from memory (free 740099940)
+15/06/04 17:52:38 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 4
+15/06/04 17:52:38 INFO executor.Executor: Running task 0.0 in stage 4.0 (TID 4)
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 9
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(10045) called with curMem=860561, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_9_piece0 stored as bytes in memory (estimated size 9.8 KB, free 705.8 MB)
+15/06/04 17:52:38 INFO storage.BlockManagerMaster: Updated info of block broadcast_9_piece0
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Reading broadcast variable 9 took 9 ms
+15/06/04 17:52:38 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 5
+15/06/04 17:52:38 INFO executor.Executor: Running task 0.0 in stage 5.0 (TID 5)
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(22912) called with curMem=870606, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_9 stored as values in memory (estimated size 22.4 KB, free 705.8 MB)
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 10
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(10522) called with curMem=893518, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_10_piece0 stored as bytes in memory (estimated size 10.3 KB, free 705.8 MB)
+15/06/04 17:52:38 INFO storage.BlockManagerMaster: Updated info of block broadcast_10_piece0
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Reading broadcast variable 10 took 8 ms
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(25568) called with curMem=904040, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_10 stored as values in memory (estimated size 25.0 KB, free 705.7 MB)
+15/06/04 17:52:38 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 8
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(22656) called with curMem=929608, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_8_piece0 stored as bytes in memory (estimated size 22.1 KB, free 705.7 MB)
+15/06/04 17:52:38 INFO storage.BlockManagerMaster: Updated info of block broadcast_8_piece0
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Reading broadcast variable 8 took 8 ms
+15/06/04 17:52:38 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=952264, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_8 stored as values in memory (estimated size 380.7 KB, free 705.4 MB)
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 4
+15/06/04 17:52:38 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0xdd3057a connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:52:38 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0xdd3057a, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:52:38 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:52:38 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(22583) called with curMem=1342059, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_4_piece0 stored as bytes in memory (estimated size 22.1 KB, free 705.3 MB)
+15/06/04 17:52:38 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f001a, negotiated timeout = 60000
+15/06/04 17:52:38 INFO storage.BlockManagerMaster: Updated info of block broadcast_4_piece0
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Reading broadcast variable 4 took 9 ms
+15/06/04 17:52:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:52:38 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:52:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:52:38 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=1364642, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_4 stored as values in memory (estimated size 380.7 KB, free 705.0 MB)
+15/06/04 17:52:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:52:38 INFO regionserver.HRegion: Onlined 315d8e0bb95dbf50d7ab3eccc0ebdbaf; next sequenceid=307
+15/06/04 17:52:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:52:38 INFO regionserver.HRegion: Onlined 315d8e0bb95dbf50d7ab3eccc0ebdbaf; next sequenceid=307
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 7
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(99) called with curMem=1754437, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_7_piece0 stored as bytes in memory (estimated size 99.0 B, free 705.0 MB)
+15/06/04 17:52:38 INFO storage.BlockManagerMaster: Updated info of block broadcast_7_piece0
+15/06/04 17:52:38 INFO broadcast.TorrentBroadcast: Reading broadcast variable 7 took 9 ms
+15/06/04 17:52:38 INFO storage.MemoryStore: ensureFreeSpace(144) called with curMem=1754536, maxMem=740960501
+15/06/04 17:52:38 INFO storage.MemoryStore: Block broadcast_7 stored as values in memory (estimated size 144.0 B, free 705.0 MB)
+15/06/04 17:52:41 INFO regionserver.HStore: Closed V
+15/06/04 17:52:41 INFO regionserver.HRegion: Closed 1376,,1433432703848.315d8e0bb95dbf50d7ab3eccc0ebdbaf.
+15/06/04 17:52:41 WARN regionserver.HRegion: Region 1376,,1433432703848.315d8e0bb95dbf50d7ab3eccc0ebdbaf. already closed
+15/06/04 17:52:41 INFO executor.Executor: Finished task 0.0 in stage 5.0 (TID 5). 2009 bytes result sent to driver
+15/06/04 17:53:00 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:53:00 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f001a
+15/06/04 17:53:00 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f001a closed
+15/06/04 17:53:00 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:53:00 INFO regionserver.HStore: Closed V
+15/06/04 17:53:00 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 17:53:00 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 17:53:01 INFO executor.Executor: Finished task 0.0 in stage 4.0 (TID 4). 2127 bytes result sent to driver
+15/06/04 17:53:01 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 6
+15/06/04 17:53:01 INFO executor.Executor: Running task 0.0 in stage 6.0 (TID 6)
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Updating epoch to 4 and clearing cache
+15/06/04 17:53:01 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 11
+15/06/04 17:53:01 INFO storage.MemoryStore: ensureFreeSpace(10773) called with curMem=1754680, maxMem=740960501
+15/06/04 17:53:01 INFO storage.MemoryStore: Block broadcast_11_piece0 stored as bytes in memory (estimated size 10.5 KB, free 705.0 MB)
+15/06/04 17:53:01 INFO storage.BlockManagerMaster: Updated info of block broadcast_11_piece0
+15/06/04 17:53:01 INFO broadcast.TorrentBroadcast: Reading broadcast variable 11 took 8 ms
+15/06/04 17:53:01 INFO storage.MemoryStore: ensureFreeSpace(26544) called with curMem=1765453, maxMem=740960501
+15/06/04 17:53:01 INFO storage.MemoryStore: Block broadcast_11 stored as values in memory (estimated size 25.9 KB, free 704.9 MB)
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 2, fetching them
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:53:01 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:53:01 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 3, fetching them
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:53:01 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:53:01 INFO storage.ShuffleBlockFetcherIterator: Getting 1 non-empty blocks out of 1 blocks
+15/06/04 17:53:01 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:53:02 INFO storage.BlockManager: Removing broadcast 9
+15/06/04 17:53:02 INFO storage.BlockManager: Removing block broadcast_9
+15/06/04 17:53:02 INFO storage.MemoryStore: Block broadcast_9 of size 22912 dropped from memory (free 739191416)
+15/06/04 17:53:02 INFO storage.BlockManager: Removing block broadcast_9_piece0
+15/06/04 17:53:02 INFO storage.MemoryStore: Block broadcast_9_piece0 of size 10045 dropped from memory (free 739201461)
+15/06/04 17:53:02 INFO storage.BlockManagerMaster: Updated info of block broadcast_9_piece0
+15/06/04 17:53:02 INFO storage.BlockManager: Removing broadcast 10
+15/06/04 17:53:02 INFO storage.BlockManager: Removing block broadcast_10
+15/06/04 17:53:02 INFO storage.MemoryStore: Block broadcast_10 of size 25568 dropped from memory (free 739227029)
+15/06/04 17:53:02 INFO storage.BlockManager: Removing block broadcast_10_piece0
+15/06/04 17:53:02 INFO storage.MemoryStore: Block broadcast_10_piece0 of size 10522 dropped from memory (free 739237551)
+15/06/04 17:53:02 INFO storage.BlockManagerMaster: Updated info of block broadcast_10_piece0
+15/06/04 17:53:10 INFO executor.Executor: Finished task 0.0 in stage 6.0 (TID 6). 1176 bytes result sent to driver
+15/06/04 17:53:11 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 7
+15/06/04 17:53:11 INFO executor.Executor: Running task 0.0 in stage 7.0 (TID 7)
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Updating epoch to 5 and clearing cache
+15/06/04 17:53:11 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 12
+15/06/04 17:53:11 INFO storage.MemoryStore: ensureFreeSpace(10803) called with curMem=1722950, maxMem=740960501
+15/06/04 17:53:11 INFO storage.MemoryStore: Block broadcast_12_piece0 stored as bytes in memory (estimated size 10.5 KB, free 705.0 MB)
+15/06/04 17:53:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_12_piece0
+15/06/04 17:53:11 INFO broadcast.TorrentBroadcast: Reading broadcast variable 12 took 10 ms
+15/06/04 17:53:11 INFO storage.MemoryStore: ensureFreeSpace(26560) called with curMem=1733753, maxMem=740960501
+15/06/04 17:53:11 INFO storage.MemoryStore: Block broadcast_12 stored as values in memory (estimated size 25.9 KB, free 705.0 MB)
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 5, fetching them
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:53:11 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:53:11 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:53:11 INFO executor.Executor: Finished task 0.0 in stage 7.0 (TID 7). 1176 bytes result sent to driver
+15/06/04 17:53:11 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 8
+15/06/04 17:53:11 INFO executor.Executor: Running task 0.0 in stage 8.0 (TID 8)
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Updating epoch to 6 and clearing cache
+15/06/04 17:53:11 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 13
+15/06/04 17:53:11 INFO storage.MemoryStore: ensureFreeSpace(10134) called with curMem=1760313, maxMem=740960501
+15/06/04 17:53:11 INFO storage.MemoryStore: Block broadcast_13_piece0 stored as bytes in memory (estimated size 9.9 KB, free 704.9 MB)
+15/06/04 17:53:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_13_piece0
+15/06/04 17:53:11 INFO broadcast.TorrentBroadcast: Reading broadcast variable 13 took 8 ms
+15/06/04 17:53:11 INFO storage.MemoryStore: ensureFreeSpace(22328) called with curMem=1770447, maxMem=740960501
+15/06/04 17:53:11 INFO storage.MemoryStore: Block broadcast_13 stored as values in memory (estimated size 21.8 KB, free 704.9 MB)
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 4, fetching them
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:53:11 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:53:11 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:53:11 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:53:11 INFO executor.Executor: Finished task 0.0 in stage 8.0 (TID 8). 920 bytes result sent to driver
+15/06/04 17:54:05 INFO storage.BlockManager: Removing broadcast 11
+15/06/04 17:54:05 INFO storage.BlockManager: Removing block broadcast_11
+15/06/04 17:54:05 INFO storage.MemoryStore: Block broadcast_11 of size 26544 dropped from memory (free 739194270)
+15/06/04 17:54:05 INFO storage.BlockManager: Removing block broadcast_11_piece0
+15/06/04 17:54:05 INFO storage.MemoryStore: Block broadcast_11_piece0 of size 10773 dropped from memory (free 739205043)
+15/06/04 17:54:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_11_piece0
+15/06/04 17:54:05 INFO storage.BlockManager: Removing broadcast 12
+15/06/04 17:54:05 INFO storage.BlockManager: Removing block broadcast_12
+15/06/04 17:54:05 INFO storage.MemoryStore: Block broadcast_12 of size 26560 dropped from memory (free 739231603)
+15/06/04 17:54:05 INFO storage.BlockManager: Removing block broadcast_12_piece0
+15/06/04 17:54:05 INFO storage.MemoryStore: Block broadcast_12_piece0 of size 10803 dropped from memory (free 739242406)
+15/06/04 17:54:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_12_piece0
+15/06/04 17:54:05 INFO storage.BlockManager: Removing broadcast 13
+15/06/04 17:54:05 INFO storage.BlockManager: Removing block broadcast_13_piece0
+15/06/04 17:54:05 INFO storage.MemoryStore: Block broadcast_13_piece0 of size 10134 dropped from memory (free 739252540)
+15/06/04 17:54:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_13_piece0
+15/06/04 17:54:05 INFO storage.BlockManager: Removing block broadcast_13
+15/06/04 17:54:05 INFO storage.MemoryStore: Block broadcast_13 of size 22328 dropped from memory (free 739274868)
+15/06/04 17:54:07 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 9
+15/06/04 17:54:07 INFO executor.Executor: Running task 0.0 in stage 9.0 (TID 9)
+15/06/04 17:54:07 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 16
+15/06/04 17:54:07 INFO storage.MemoryStore: ensureFreeSpace(9178) called with curMem=1685633, maxMem=740960501
+15/06/04 17:54:07 INFO storage.MemoryStore: Block broadcast_16_piece0 stored as bytes in memory (estimated size 9.0 KB, free 705.0 MB)
+15/06/04 17:54:07 INFO storage.BlockManagerMaster: Updated info of block broadcast_16_piece0
+15/06/04 17:54:07 INFO broadcast.TorrentBroadcast: Reading broadcast variable 16 took 8 ms
+15/06/04 17:54:07 INFO storage.MemoryStore: ensureFreeSpace(21664) called with curMem=1694811, maxMem=740960501
+15/06/04 17:54:07 INFO storage.MemoryStore: Block broadcast_16 stored as values in memory (estimated size 21.2 KB, free 705.0 MB)
+15/06/04 17:54:07 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:54:07 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 15
+15/06/04 17:54:07 INFO storage.MemoryStore: ensureFreeSpace(22516) called with curMem=1716475, maxMem=740960501
+15/06/04 17:54:07 INFO storage.MemoryStore: Block broadcast_15_piece0 stored as bytes in memory (estimated size 22.0 KB, free 705.0 MB)
+15/06/04 17:54:07 INFO storage.BlockManagerMaster: Updated info of block broadcast_15_piece0
+15/06/04 17:54:07 INFO broadcast.TorrentBroadcast: Reading broadcast variable 15 took 8 ms
+15/06/04 17:54:07 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=1738991, maxMem=740960501
+15/06/04 17:54:07 INFO storage.MemoryStore: Block broadcast_15 stored as values in memory (estimated size 380.7 KB, free 704.6 MB)
+15/06/04 17:54:07 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x36a84e3b connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:54:07 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x36a84e3b, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:54:07 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:54:07 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:54:07 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f001b, negotiated timeout = 60000
+15/06/04 17:54:07 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:54:07 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:54:07 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:54:08 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:54:28 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:54:28 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f001b
+15/06/04 17:54:28 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f001b closed
+15/06/04 17:54:28 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:54:28 INFO regionserver.HStore: Closed V
+15/06/04 17:54:28 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 17:54:28 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 17:54:35 INFO storage.MemoryStore: ensureFreeSpace(216760115) called with curMem=2128786, maxMem=740960501
+15/06/04 17:54:35 INFO storage.MemoryStore: Block taskresult_9 stored as bytes in memory (estimated size 206.7 MB, free 497.9 MB)
+15/06/04 17:54:35 INFO storage.BlockManagerMaster: Updated info of block taskresult_9
+15/06/04 17:54:35 INFO executor.Executor: Finished task 0.0 in stage 9.0 (TID 9). 216760115 bytes result sent via BlockManager)
+15/06/04 17:54:42 INFO storage.BlockManager: Removing block taskresult_9
+15/06/04 17:54:42 INFO storage.MemoryStore: Block taskresult_9 of size 216760115 dropped from memory (free 738831715)
+15/06/04 17:54:42 INFO storage.BlockManagerMaster: Updated info of block taskresult_9
+15/06/04 17:54:44 INFO storage.BlockManager: Removing broadcast 1
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_1_piece0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_1_piece0 of size 10158 dropped from memory (free 738841873)
+15/06/04 17:54:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_1_piece0
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_1
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_1 of size 25624 dropped from memory (free 738867497)
+15/06/04 17:54:44 INFO storage.BlockManager: Removing broadcast 8
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_8
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_8 of size 389795 dropped from memory (free 739257292)
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_8_piece0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_8_piece0 of size 22656 dropped from memory (free 739279948)
+15/06/04 17:54:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_8_piece0
+15/06/04 17:54:44 INFO storage.BlockManager: Removing broadcast 5
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_5_piece0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_5_piece0 of size 22536 dropped from memory (free 739302484)
+15/06/04 17:54:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_5_piece0
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_5
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_5 of size 389795 dropped from memory (free 739692279)
+15/06/04 17:54:44 INFO storage.BlockManager: Removing broadcast 7
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_7
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_7 of size 144 dropped from memory (free 739692423)
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_7_piece0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_7_piece0 of size 99 dropped from memory (free 739692522)
+15/06/04 17:54:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_7_piece0
+15/06/04 17:54:44 INFO storage.BlockManager: Removing broadcast 0
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_0 of size 389795 dropped from memory (free 740082317)
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_0_piece0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_0_piece0 of size 22653 dropped from memory (free 740104970)
+15/06/04 17:54:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_0_piece0
+15/06/04 17:54:44 INFO storage.BlockManager: Removing broadcast 4
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_4
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_4 of size 389795 dropped from memory (free 740494765)
+15/06/04 17:54:44 INFO storage.BlockManager: Removing block broadcast_4_piece0
+15/06/04 17:54:44 INFO storage.MemoryStore: Block broadcast_4_piece0 of size 22583 dropped from memory (free 740517348)
+15/06/04 17:54:44 INFO storage.BlockManagerMaster: Updated info of block broadcast_4_piece0
+15/06/04 17:54:54 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 10
+15/06/04 17:54:54 INFO executor.Executor: Running task 0.0 in stage 10.0 (TID 10)
+15/06/04 17:54:54 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 18
+15/06/04 17:54:54 INFO storage.MemoryStore: ensureFreeSpace(9324) called with curMem=443153, maxMem=740960501
+15/06/04 17:54:54 INFO storage.MemoryStore: Block broadcast_18_piece0 stored as bytes in memory (estimated size 9.1 KB, free 706.2 MB)
+15/06/04 17:54:54 INFO storage.BlockManagerMaster: Updated info of block broadcast_18_piece0
+15/06/04 17:54:54 INFO broadcast.TorrentBroadcast: Reading broadcast variable 18 took 12 ms
+15/06/04 17:54:54 INFO storage.MemoryStore: ensureFreeSpace(20664) called with curMem=452477, maxMem=740960501
+15/06/04 17:54:54 INFO storage.MemoryStore: Block broadcast_18 stored as values in memory (estimated size 20.2 KB, free 706.2 MB)
+15/06/04 17:54:54 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:54:54 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 14
+15/06/04 17:54:54 INFO storage.MemoryStore: ensureFreeSpace(22627) called with curMem=473141, maxMem=740960501
+15/06/04 17:54:54 INFO storage.MemoryStore: Block broadcast_14_piece0 stored as bytes in memory (estimated size 22.1 KB, free 706.2 MB)
+15/06/04 17:54:54 INFO storage.BlockManagerMaster: Updated info of block broadcast_14_piece0
+15/06/04 17:54:54 INFO broadcast.TorrentBroadcast: Reading broadcast variable 14 took 11 ms
+15/06/04 17:54:54 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=495768, maxMem=740960501
+15/06/04 17:54:54 INFO storage.MemoryStore: Block broadcast_14 stored as values in memory (estimated size 380.7 KB, free 705.8 MB)
+15/06/04 17:54:54 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x5ad33003 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:54:54 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x5ad33003, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:54:54 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:54:54 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:54:54 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f001c, negotiated timeout = 60000
+15/06/04 17:54:54 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:54:54 INFO regionserver.HRegion: Onlined 315d8e0bb95dbf50d7ab3eccc0ebdbaf; next sequenceid=307
+15/06/04 17:54:54 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:54:54 INFO regionserver.HRegion: Onlined 315d8e0bb95dbf50d7ab3eccc0ebdbaf; next sequenceid=307
+15/06/04 17:54:58 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:54:58 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f001c
+15/06/04 17:54:58 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f001c closed
+15/06/04 17:54:58 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:54:58 INFO regionserver.HStore: Closed V
+15/06/04 17:54:58 INFO regionserver.HRegion: Closed 1376,,1433432703848.315d8e0bb95dbf50d7ab3eccc0ebdbaf.
+15/06/04 17:54:58 WARN regionserver.HRegion: Region 1376,,1433432703848.315d8e0bb95dbf50d7ab3eccc0ebdbaf. already closed
+15/06/04 17:54:58 INFO executor.Executor: Finished task 0.0 in stage 10.0 (TID 10). 1964 bytes result sent to driver
+15/06/04 17:54:58 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 11
+15/06/04 17:54:58 INFO executor.Executor: Running task 0.0 in stage 11.0 (TID 11)
+15/06/04 17:54:58 INFO spark.MapOutputTrackerWorker: Updating epoch to 7 and clearing cache
+15/06/04 17:54:58 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 19
+15/06/04 17:54:58 INFO storage.MemoryStore: ensureFreeSpace(10028) called with curMem=885563, maxMem=740960501
+15/06/04 17:54:58 INFO storage.MemoryStore: Block broadcast_19_piece0 stored as bytes in memory (estimated size 9.8 KB, free 705.8 MB)
+15/06/04 17:54:58 INFO storage.BlockManagerMaster: Updated info of block broadcast_19_piece0
+15/06/04 17:54:58 INFO broadcast.TorrentBroadcast: Reading broadcast variable 19 took 8 ms
+15/06/04 17:54:58 INFO storage.MemoryStore: ensureFreeSpace(23976) called with curMem=895591, maxMem=740960501
+15/06/04 17:54:58 INFO storage.MemoryStore: Block broadcast_19 stored as values in memory (estimated size 23.4 KB, free 705.8 MB)
+15/06/04 17:54:58 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 8, fetching them
+15/06/04 17:54:58 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:54:58 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:54:58 INFO storage.ShuffleBlockFetcherIterator: Getting 1 non-empty blocks out of 1 blocks
+15/06/04 17:54:58 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:54:59 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 17
+15/06/04 17:54:59 INFO storage.MemoryStore: ensureFreeSpace(99) called with curMem=919567, maxMem=740960501
+15/06/04 17:54:59 INFO storage.MemoryStore: Block broadcast_17_piece0 stored as bytes in memory (estimated size 99.0 B, free 705.8 MB)
+15/06/04 17:54:59 INFO storage.BlockManagerMaster: Updated info of block broadcast_17_piece0
+15/06/04 17:54:59 INFO broadcast.TorrentBroadcast: Reading broadcast variable 17 took 10 ms
+15/06/04 17:54:59 INFO storage.MemoryStore: ensureFreeSpace(144) called with curMem=919666, maxMem=740960501
+15/06/04 17:54:59 INFO storage.MemoryStore: Block broadcast_17 stored as values in memory (estimated size 144.0 B, free 705.8 MB)
+15/06/04 17:54:59 INFO executor.Executor: Finished task 0.0 in stage 11.0 (TID 11). 1176 bytes result sent to driver
+15/06/04 17:54:59 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 12
+15/06/04 17:54:59 INFO executor.Executor: Running task 0.0 in stage 12.0 (TID 12)
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Updating epoch to 8 and clearing cache
+15/06/04 17:54:59 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 20
+15/06/04 17:54:59 INFO storage.MemoryStore: ensureFreeSpace(9887) called with curMem=919810, maxMem=740960501
+15/06/04 17:54:59 INFO storage.MemoryStore: Block broadcast_20_piece0 stored as bytes in memory (estimated size 9.7 KB, free 705.7 MB)
+15/06/04 17:54:59 INFO storage.BlockManagerMaster: Updated info of block broadcast_20_piece0
+15/06/04 17:54:59 INFO broadcast.TorrentBroadcast: Reading broadcast variable 20 took 8 ms
+15/06/04 17:54:59 INFO storage.MemoryStore: ensureFreeSpace(23624) called with curMem=929697, maxMem=740960501
+15/06/04 17:54:59 INFO storage.MemoryStore: Block broadcast_20 stored as values in memory (estimated size 23.1 KB, free 705.7 MB)
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 7, fetching them
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:54:59 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:54:59 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:54:59 INFO executor.Executor: Finished task 0.0 in stage 12.0 (TID 12). 1176 bytes result sent to driver
+15/06/04 17:54:59 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 13
+15/06/04 17:54:59 INFO executor.Executor: Running task 0.0 in stage 13.0 (TID 13)
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Updating epoch to 9 and clearing cache
+15/06/04 17:54:59 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 21
+15/06/04 17:54:59 INFO storage.MemoryStore: ensureFreeSpace(9281) called with curMem=953321, maxMem=740960501
+15/06/04 17:54:59 INFO storage.MemoryStore: Block broadcast_21_piece0 stored as bytes in memory (estimated size 9.1 KB, free 705.7 MB)
+15/06/04 17:54:59 INFO storage.BlockManagerMaster: Updated info of block broadcast_21_piece0
+15/06/04 17:54:59 INFO broadcast.TorrentBroadcast: Reading broadcast variable 21 took 9 ms
+15/06/04 17:54:59 INFO storage.MemoryStore: ensureFreeSpace(19872) called with curMem=962602, maxMem=740960501
+15/06/04 17:54:59 INFO storage.MemoryStore: Block broadcast_21 stored as values in memory (estimated size 19.4 KB, free 705.7 MB)
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 6, fetching them
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:54:59 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:54:59 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:54:59 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:54:59 INFO executor.Executor: Finished task 0.0 in stage 13.0 (TID 13). 920 bytes result sent to driver
+15/06/04 17:55:16 INFO storage.BlockManager: Removing broadcast 20
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_20_piece0
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_20_piece0 of size 9887 dropped from memory (free 739987914)
+15/06/04 17:55:16 INFO storage.BlockManagerMaster: Updated info of block broadcast_20_piece0
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_20
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_20 of size 23624 dropped from memory (free 740011538)
+15/06/04 17:55:16 INFO storage.BlockManager: Removing broadcast 21
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_21_piece0
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_21_piece0 of size 9281 dropped from memory (free 740020819)
+15/06/04 17:55:16 INFO storage.BlockManagerMaster: Updated info of block broadcast_21_piece0
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_21
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_21 of size 19872 dropped from memory (free 740040691)
+15/06/04 17:55:16 INFO storage.BlockManager: Removing broadcast 18
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_18_piece0
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_18_piece0 of size 9324 dropped from memory (free 740050015)
+15/06/04 17:55:16 INFO storage.BlockManagerMaster: Updated info of block broadcast_18_piece0
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_18
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_18 of size 20664 dropped from memory (free 740070679)
+15/06/04 17:55:16 INFO storage.BlockManager: Removing broadcast 19
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_19
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_19 of size 23976 dropped from memory (free 740094655)
+15/06/04 17:55:16 INFO storage.BlockManager: Removing block broadcast_19_piece0
+15/06/04 17:55:16 INFO storage.MemoryStore: Block broadcast_19_piece0 of size 10028 dropped from memory (free 740104683)
+15/06/04 17:55:16 INFO storage.BlockManagerMaster: Updated info of block broadcast_19_piece0
+15/06/04 17:55:18 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 14
+15/06/04 17:55:18 INFO executor.Executor: Running task 0.0 in stage 14.0 (TID 14)
+15/06/04 17:55:18 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 24
+15/06/04 17:55:18 INFO storage.MemoryStore: ensureFreeSpace(10682) called with curMem=855818, maxMem=740960501
+15/06/04 17:55:18 INFO storage.MemoryStore: Block broadcast_24_piece0 stored as bytes in memory (estimated size 10.4 KB, free 705.8 MB)
+15/06/04 17:55:18 INFO storage.BlockManagerMaster: Updated info of block broadcast_24_piece0
+15/06/04 17:55:18 INFO broadcast.TorrentBroadcast: Reading broadcast variable 24 took 8 ms
+15/06/04 17:55:18 INFO storage.MemoryStore: ensureFreeSpace(24504) called with curMem=866500, maxMem=740960501
+15/06/04 17:55:18 INFO storage.MemoryStore: Block broadcast_24 stored as values in memory (estimated size 23.9 KB, free 705.8 MB)
+15/06/04 17:55:18 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:55:18 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 23
+15/06/04 17:55:18 INFO storage.MemoryStore: ensureFreeSpace(22484) called with curMem=891004, maxMem=740960501
+15/06/04 17:55:18 INFO storage.MemoryStore: Block broadcast_23_piece0 stored as bytes in memory (estimated size 22.0 KB, free 705.8 MB)
+15/06/04 17:55:18 INFO storage.BlockManagerMaster: Updated info of block broadcast_23_piece0
+15/06/04 17:55:18 INFO broadcast.TorrentBroadcast: Reading broadcast variable 23 took 8 ms
+15/06/04 17:55:18 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=913488, maxMem=740960501
+15/06/04 17:55:18 INFO storage.MemoryStore: Block broadcast_23 stored as values in memory (estimated size 380.7 KB, free 705.4 MB)
+15/06/04 17:55:18 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x5ba7f6c3 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:55:18 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x5ba7f6c3, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:55:18 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:55:18 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:55:18 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f001d, negotiated timeout = 60000
+15/06/04 17:55:18 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:18 INFO regionserver.HRegion: Onlined 15e413209c546b7076549311e3132617; next sequenceid=32
+15/06/04 17:55:18 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:18 INFO regionserver.HRegion: Onlined 15e413209c546b7076549311e3132617; next sequenceid=32
+15/06/04 17:55:18 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:55:18 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f001d
+15/06/04 17:55:18 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f001d closed
+15/06/04 17:55:18 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:55:18 INFO regionserver.HStore: Closed V
+15/06/04 17:55:18 INFO regionserver.HRegion: Closed 1392,,1433432704157.15e413209c546b7076549311e3132617.
+15/06/04 17:55:18 WARN regionserver.HRegion: Region 1392,,1433432704157.15e413209c546b7076549311e3132617. already closed
+15/06/04 17:55:18 INFO executor.Executor: Finished task 0.0 in stage 14.0 (TID 14). 5554012 bytes result sent to driver
+15/06/04 17:55:20 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 15
+15/06/04 17:55:20 INFO executor.Executor: Running task 0.0 in stage 15.0 (TID 15)
+15/06/04 17:55:20 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 27
+15/06/04 17:55:20 INFO storage.MemoryStore: ensureFreeSpace(10792) called with curMem=1303283, maxMem=740960501
+15/06/04 17:55:20 INFO storage.MemoryStore: Block broadcast_27_piece0 stored as bytes in memory (estimated size 10.5 KB, free 705.4 MB)
+15/06/04 17:55:20 INFO storage.BlockManagerMaster: Updated info of block broadcast_27_piece0
+15/06/04 17:55:20 INFO broadcast.TorrentBroadcast: Reading broadcast variable 27 took 9 ms
+15/06/04 17:55:20 INFO storage.MemoryStore: ensureFreeSpace(24760) called with curMem=1314075, maxMem=740960501
+15/06/04 17:55:20 INFO storage.MemoryStore: Block broadcast_27 stored as values in memory (estimated size 24.2 KB, free 705.4 MB)
+15/06/04 17:55:20 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:55:20 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 26
+15/06/04 17:55:20 INFO storage.MemoryStore: ensureFreeSpace(22519) called with curMem=1338835, maxMem=740960501
+15/06/04 17:55:20 INFO storage.MemoryStore: Block broadcast_26_piece0 stored as bytes in memory (estimated size 22.0 KB, free 705.3 MB)
+15/06/04 17:55:20 INFO storage.BlockManagerMaster: Updated info of block broadcast_26_piece0
+15/06/04 17:55:20 INFO broadcast.TorrentBroadcast: Reading broadcast variable 26 took 9 ms
+15/06/04 17:55:20 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=1361354, maxMem=740960501
+15/06/04 17:55:20 INFO storage.MemoryStore: Block broadcast_26 stored as values in memory (estimated size 380.7 KB, free 705.0 MB)
+15/06/04 17:55:20 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x232367ef connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:55:20 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x232367ef, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:55:20 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:55:20 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:55:20 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f001e, negotiated timeout = 60000
+15/06/04 17:55:20 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:20 INFO regionserver.HRegion: Onlined bd2adede4b0901d6520b6a0c2b19893d; next sequenceid=3
+15/06/04 17:55:20 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:20 INFO regionserver.HRegion: Onlined bd2adede4b0901d6520b6a0c2b19893d; next sequenceid=3
+15/06/04 17:55:20 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:55:20 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f001e
+15/06/04 17:55:20 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f001e closed
+15/06/04 17:55:20 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:55:20 INFO regionserver.HStore: Closed V
+15/06/04 17:55:20 INFO regionserver.HRegion: Closed 1472,,1433432705658.bd2adede4b0901d6520b6a0c2b19893d.
+15/06/04 17:55:20 WARN regionserver.HRegion: Region 1472,,1433432705658.bd2adede4b0901d6520b6a0c2b19893d. already closed
+15/06/04 17:55:20 INFO executor.Executor: Finished task 0.0 in stage 15.0 (TID 15). 2801 bytes result sent to driver
+15/06/04 17:55:21 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 16
+15/06/04 17:55:21 INFO executor.Executor: Running task 0.0 in stage 16.0 (TID 16)
+15/06/04 17:55:21 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 30
+15/06/04 17:55:21 INFO storage.MemoryStore: ensureFreeSpace(10890) called with curMem=1751149, maxMem=740960501
+15/06/04 17:55:21 INFO storage.MemoryStore: Block broadcast_30_piece0 stored as bytes in memory (estimated size 10.6 KB, free 705.0 MB)
+15/06/04 17:55:21 INFO storage.BlockManagerMaster: Updated info of block broadcast_30_piece0
+15/06/04 17:55:21 INFO broadcast.TorrentBroadcast: Reading broadcast variable 30 took 8 ms
+15/06/04 17:55:21 INFO storage.MemoryStore: ensureFreeSpace(25016) called with curMem=1762039, maxMem=740960501
+15/06/04 17:55:21 INFO storage.MemoryStore: Block broadcast_30 stored as values in memory (estimated size 24.4 KB, free 704.9 MB)
+15/06/04 17:55:21 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:55:21 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 29
+15/06/04 17:55:21 INFO storage.MemoryStore: ensureFreeSpace(22476) called with curMem=1787055, maxMem=740960501
+15/06/04 17:55:21 INFO storage.MemoryStore: Block broadcast_29_piece0 stored as bytes in memory (estimated size 21.9 KB, free 704.9 MB)
+15/06/04 17:55:21 INFO storage.BlockManagerMaster: Updated info of block broadcast_29_piece0
+15/06/04 17:55:21 INFO broadcast.TorrentBroadcast: Reading broadcast variable 29 took 8 ms
+15/06/04 17:55:21 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=1809531, maxMem=740960501
+15/06/04 17:55:21 INFO storage.MemoryStore: Block broadcast_29 stored as values in memory (estimated size 380.7 KB, free 704.5 MB)
+15/06/04 17:55:21 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x7ee9348a connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:55:21 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x7ee9348a, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:55:21 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:55:21 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:55:21 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f001f, negotiated timeout = 60000
+15/06/04 17:55:21 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:21 INFO regionserver.HRegion: Onlined c63b7c32518069c9ae6a4bb6b89773a2; next sequenceid=4
+15/06/04 17:55:21 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:21 INFO regionserver.HRegion: Onlined c63b7c32518069c9ae6a4bb6b89773a2; next sequenceid=4
+15/06/04 17:55:21 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:55:21 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f001f
+15/06/04 17:55:21 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f001f closed
+15/06/04 17:55:21 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:55:22 INFO regionserver.HStore: Closed V
+15/06/04 17:55:22 INFO regionserver.HRegion: Closed 1424,,1433432704791.c63b7c32518069c9ae6a4bb6b89773a2.
+15/06/04 17:55:22 WARN regionserver.HRegion: Region 1424,,1433432704791.c63b7c32518069c9ae6a4bb6b89773a2. already closed
+15/06/04 17:55:22 INFO executor.Executor: Finished task 0.0 in stage 16.0 (TID 16). 336915 bytes result sent to driver
+15/06/04 17:55:22 INFO storage.BlockManager: Removing broadcast 30
+15/06/04 17:55:22 INFO storage.BlockManager: Removing block broadcast_30_piece0
+15/06/04 17:55:22 INFO storage.MemoryStore: Block broadcast_30_piece0 of size 10890 dropped from memory (free 738772065)
+15/06/04 17:55:22 INFO storage.BlockManagerMaster: Updated info of block broadcast_30_piece0
+15/06/04 17:55:22 INFO storage.BlockManager: Removing block broadcast_30
+15/06/04 17:55:22 INFO storage.MemoryStore: Block broadcast_30 of size 25016 dropped from memory (free 738797081)
+15/06/04 17:55:22 INFO storage.BlockManager: Removing broadcast 27
+15/06/04 17:55:22 INFO storage.BlockManager: Removing block broadcast_27
+15/06/04 17:55:22 INFO storage.MemoryStore: Block broadcast_27 of size 24760 dropped from memory (free 738821841)
+15/06/04 17:55:22 INFO storage.BlockManager: Removing block broadcast_27_piece0
+15/06/04 17:55:22 INFO storage.MemoryStore: Block broadcast_27_piece0 of size 10792 dropped from memory (free 738832633)
+15/06/04 17:55:22 INFO storage.BlockManagerMaster: Updated info of block broadcast_27_piece0
+15/06/04 17:55:22 INFO storage.BlockManager: Removing broadcast 26
+15/06/04 17:55:22 INFO storage.BlockManager: Removing block broadcast_26
+15/06/04 17:55:22 INFO storage.MemoryStore: Block broadcast_26 of size 389795 dropped from memory (free 739222428)
+15/06/04 17:55:22 INFO storage.BlockManager: Removing block broadcast_26_piece0
+15/06/04 17:55:22 INFO storage.MemoryStore: Block broadcast_26_piece0 of size 22519 dropped from memory (free 739244947)
+15/06/04 17:55:22 INFO storage.BlockManagerMaster: Updated info of block broadcast_26_piece0
+15/06/04 17:55:25 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 17
+15/06/04 17:55:25 INFO executor.Executor: Running task 0.0 in stage 19.0 (TID 17)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 34
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(11313) called with curMem=1715554, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_34_piece0 stored as bytes in memory (estimated size 11.0 KB, free 705.0 MB)
+15/06/04 17:55:25 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 18
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_34_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 34 took 7 ms
+15/06/04 17:55:25 INFO executor.Executor: Running task 0.0 in stage 17.0 (TID 18)
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(26048) called with curMem=1726867, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_34 stored as values in memory (estimated size 25.4 KB, free 705.0 MB)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 35
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(11239) called with curMem=1752915, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_35_piece0 stored as bytes in memory (estimated size 11.0 KB, free 705.0 MB)
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_35_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 35 took 7 ms
+15/06/04 17:55:25 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 19
+15/06/04 17:55:25 INFO executor.Executor: Running task 0.0 in stage 18.0 (TID 19)
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(25792) called with curMem=1764154, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_35 stored as values in memory (estimated size 25.2 KB, free 704.9 MB)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 36
+15/06/04 17:55:25 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(12038) called with curMem=1789946, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_36_piece0 stored as bytes in memory (estimated size 11.8 KB, free 704.9 MB)
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_36_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 36 took 8 ms
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(33272) called with curMem=1801984, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_36 stored as values in memory (estimated size 32.5 KB, free 704.9 MB)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 33
+15/06/04 17:55:25 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(22497) called with curMem=1835256, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_33_piece0 stored as bytes in memory (estimated size 22.0 KB, free 704.9 MB)
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_33_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 33 took 7 ms
+15/06/04 17:55:25 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=1857753, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_33 stored as values in memory (estimated size 380.7 KB, free 704.5 MB)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 22
+15/06/04 17:55:25 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x189b79c3 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:55:25 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x189b79c3, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:55:25 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:55:25 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(22590) called with curMem=2247548, maxMem=740960501
+15/06/04 17:55:25 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0020, negotiated timeout = 60000
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_22_piece0 stored as bytes in memory (estimated size 22.1 KB, free 704.5 MB)
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_22_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 22 took 8 ms
+15/06/04 17:55:25 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:25 INFO regionserver.HRegion: Onlined 1740cca825c9bad83db1525610948e95; next sequenceid=3
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=2270138, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_22 stored as values in memory (estimated size 380.7 KB, free 704.1 MB)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 32
+15/06/04 17:55:25 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(22553) called with curMem=2659933, maxMem=740960501
+15/06/04 17:55:25 INFO regionserver.HRegion: Onlined 1740cca825c9bad83db1525610948e95; next sequenceid=3
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_32_piece0 stored as bytes in memory (estimated size 22.0 KB, free 704.1 MB)
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_32_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 32 took 10 ms
+15/06/04 17:55:25 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:25 INFO regionserver.HRegion: Onlined 315d8e0bb95dbf50d7ab3eccc0ebdbaf; next sequenceid=307
+15/06/04 17:55:25 INFO regionserver.HStore: Closed V
+15/06/04 17:55:25 INFO regionserver.HRegion: Closed 1456,,1433432705371.1740cca825c9bad83db1525610948e95.
+15/06/04 17:55:25 WARN regionserver.HRegion: Region 1456,,1433432705371.1740cca825c9bad83db1525610948e95. already closed
+15/06/04 17:55:25 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:25 INFO regionserver.HRegion: Onlined 315d8e0bb95dbf50d7ab3eccc0ebdbaf; next sequenceid=307
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=2682486, maxMem=740960501
+15/06/04 17:55:25 INFO executor.Executor: Finished task 0.0 in stage 19.0 (TID 17). 1959 bytes result sent to driver
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_32 stored as values in memory (estimated size 380.7 KB, free 703.7 MB)
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 25
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(99) called with curMem=3072281, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_25_piece0 stored as bytes in memory (estimated size 99.0 B, free 703.7 MB)
+15/06/04 17:55:25 INFO storage.BlockManagerMaster: Updated info of block broadcast_25_piece0
+15/06/04 17:55:25 INFO broadcast.TorrentBroadcast: Reading broadcast variable 25 took 10 ms
+15/06/04 17:55:25 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:25 INFO storage.MemoryStore: ensureFreeSpace(144) called with curMem=3072380, maxMem=740960501
+15/06/04 17:55:25 INFO storage.MemoryStore: Block broadcast_25 stored as values in memory (estimated size 144.0 B, free 703.7 MB)
+15/06/04 17:55:25 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:55:25 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:55:25 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:55:28 INFO regionserver.HStore: Closed V
+15/06/04 17:55:28 INFO regionserver.HRegion: Closed 1376,,1433432703848.315d8e0bb95dbf50d7ab3eccc0ebdbaf.
+15/06/04 17:55:28 WARN regionserver.HRegion: Region 1376,,1433432703848.315d8e0bb95dbf50d7ab3eccc0ebdbaf. already closed
+15/06/04 17:55:28 INFO executor.Executor: Finished task 0.0 in stage 18.0 (TID 19). 2099 bytes result sent to driver
+15/06/04 17:55:28 INFO storage.BlockManager: Removing broadcast 29
+15/06/04 17:55:28 INFO storage.BlockManager: Removing block broadcast_29_piece0
+15/06/04 17:55:28 INFO storage.MemoryStore: Block broadcast_29_piece0 of size 22476 dropped from memory (free 737910453)
+15/06/04 17:55:28 INFO storage.BlockManagerMaster: Updated info of block broadcast_29_piece0
+15/06/04 17:55:28 INFO storage.BlockManager: Removing block broadcast_29
+15/06/04 17:55:28 INFO storage.MemoryStore: Block broadcast_29 of size 389795 dropped from memory (free 738300248)
+15/06/04 17:55:50 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:55:50 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f0020
+15/06/04 17:55:50 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:55:50 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f0020 closed
+15/06/04 17:55:50 INFO regionserver.HStore: Closed V
+15/06/04 17:55:50 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 17:55:50 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 17:55:50 INFO executor.Executor: Finished task 0.0 in stage 17.0 (TID 18). 2127 bytes result sent to driver
+15/06/04 17:55:50 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 20
+15/06/04 17:55:50 INFO executor.Executor: Running task 0.0 in stage 20.0 (TID 20)
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Updating epoch to 12 and clearing cache
+15/06/04 17:55:50 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 37
+15/06/04 17:55:50 INFO storage.MemoryStore: ensureFreeSpace(11363) called with curMem=2660253, maxMem=740960501
+15/06/04 17:55:50 INFO storage.MemoryStore: Block broadcast_37_piece0 stored as bytes in memory (estimated size 11.1 KB, free 704.1 MB)
+15/06/04 17:55:50 INFO storage.BlockManagerMaster: Updated info of block broadcast_37_piece0
+15/06/04 17:55:50 INFO broadcast.TorrentBroadcast: Reading broadcast variable 37 took 9 ms
+15/06/04 17:55:50 INFO storage.MemoryStore: ensureFreeSpace(26464) called with curMem=2671616, maxMem=740960501
+15/06/04 17:55:50 INFO storage.MemoryStore: Block broadcast_37 stored as values in memory (estimated size 25.8 KB, free 704.1 MB)
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 9, fetching them
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:55:50 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:55:50 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 10, fetching them
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:55:50 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:55:50 INFO storage.ShuffleBlockFetcherIterator: Getting 1 non-empty blocks out of 1 blocks
+15/06/04 17:55:50 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:56:08 INFO collection.ExternalAppendOnlyMap: Thread 281 spilling in-memory map of 3.1 GB to disk (1 time so far)
+15/06/04 17:56:26 INFO storage.BlockManager: Removing broadcast 36
+15/06/04 17:56:26 INFO storage.BlockManager: Removing block broadcast_36_piece0
+15/06/04 17:56:26 INFO storage.MemoryStore: Block broadcast_36_piece0 of size 12038 dropped from memory (free 738274459)
+15/06/04 17:56:26 INFO storage.BlockManagerMaster: Updated info of block broadcast_36_piece0
+15/06/04 17:56:26 INFO storage.BlockManager: Removing block broadcast_36
+15/06/04 17:56:26 INFO storage.MemoryStore: Block broadcast_36 of size 33272 dropped from memory (free 738307731)
+15/06/04 17:56:26 INFO storage.BlockManager: Removing broadcast 35
+15/06/04 17:56:26 INFO storage.BlockManager: Removing block broadcast_35
+15/06/04 17:56:26 INFO storage.MemoryStore: Block broadcast_35 of size 25792 dropped from memory (free 738333523)
+15/06/04 17:56:26 INFO storage.BlockManager: Removing block broadcast_35_piece0
+15/06/04 17:56:26 INFO storage.MemoryStore: Block broadcast_35_piece0 of size 11239 dropped from memory (free 738344762)
+15/06/04 17:56:26 INFO storage.BlockManagerMaster: Updated info of block broadcast_35_piece0
+15/06/04 17:57:05 INFO executor.Executor: Finished task 0.0 in stage 20.0 (TID 20). 1131 bytes result sent to driver
+15/06/04 17:57:05 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 21
+15/06/04 17:57:05 INFO executor.Executor: Running task 0.0 in stage 21.0 (TID 21)
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Updating epoch to 13 and clearing cache
+15/06/04 17:57:05 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 38
+15/06/04 17:57:05 INFO storage.MemoryStore: ensureFreeSpace(12037) called with curMem=2615739, maxMem=740960501
+15/06/04 17:57:05 INFO storage.MemoryStore: Block broadcast_38_piece0 stored as bytes in memory (estimated size 11.8 KB, free 704.1 MB)
+15/06/04 17:57:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_38_piece0
+15/06/04 17:57:05 INFO broadcast.TorrentBroadcast: Reading broadcast variable 38 took 10 ms
+15/06/04 17:57:05 INFO storage.MemoryStore: ensureFreeSpace(30000) called with curMem=2627776, maxMem=740960501
+15/06/04 17:57:05 INFO storage.MemoryStore: Block broadcast_38 stored as values in memory (estimated size 29.3 KB, free 704.1 MB)
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 11, fetching them
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 12, fetching them
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Getting 1 non-empty blocks out of 1 blocks
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:57:05 INFO executor.Executor: Finished task 0.0 in stage 21.0 (TID 21). 1176 bytes result sent to driver
+15/06/04 17:57:05 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 22
+15/06/04 17:57:05 INFO executor.Executor: Running task 0.0 in stage 22.0 (TID 22)
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Updating epoch to 14 and clearing cache
+15/06/04 17:57:05 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 39
+15/06/04 17:57:05 INFO storage.MemoryStore: ensureFreeSpace(12098) called with curMem=2657776, maxMem=740960501
+15/06/04 17:57:05 INFO storage.MemoryStore: Block broadcast_39_piece0 stored as bytes in memory (estimated size 11.8 KB, free 704.1 MB)
+15/06/04 17:57:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_39_piece0
+15/06/04 17:57:05 INFO broadcast.TorrentBroadcast: Reading broadcast variable 39 took 7 ms
+15/06/04 17:57:05 INFO storage.MemoryStore: ensureFreeSpace(30008) called with curMem=2669874, maxMem=740960501
+15/06/04 17:57:05 INFO storage.MemoryStore: Block broadcast_39 stored as values in memory (estimated size 29.3 KB, free 704.1 MB)
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 14, fetching them
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:57:05 INFO executor.Executor: Finished task 0.0 in stage 22.0 (TID 22). 1176 bytes result sent to driver
+15/06/04 17:57:05 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 23
+15/06/04 17:57:05 INFO executor.Executor: Running task 0.0 in stage 23.0 (TID 23)
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Updating epoch to 15 and clearing cache
+15/06/04 17:57:05 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 40
+15/06/04 17:57:05 INFO storage.MemoryStore: ensureFreeSpace(11442) called with curMem=2699882, maxMem=740960501
+15/06/04 17:57:05 INFO storage.MemoryStore: Block broadcast_40_piece0 stored as bytes in memory (estimated size 11.2 KB, free 704.0 MB)
+15/06/04 17:57:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_40_piece0
+15/06/04 17:57:05 INFO broadcast.TorrentBroadcast: Reading broadcast variable 40 took 8 ms
+15/06/04 17:57:05 INFO storage.MemoryStore: ensureFreeSpace(25128) called with curMem=2711324, maxMem=740960501
+15/06/04 17:57:05 INFO storage.MemoryStore: Block broadcast_40 stored as values in memory (estimated size 24.5 KB, free 704.0 MB)
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 13, fetching them
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Doing the fetch; tracker actor = Actor[akka.tcp://sparkDriver@192.168.0.61:54513/user/MapOutputTracker#1259493445]
+15/06/04 17:57:05 INFO spark.MapOutputTrackerWorker: Got the output locations
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Getting 0 non-empty blocks out of 1 blocks
+15/06/04 17:57:05 INFO storage.ShuffleBlockFetcherIterator: Started 0 remote fetches in 0 ms
+15/06/04 17:57:05 INFO executor.Executor: Finished task 0.0 in stage 23.0 (TID 23). 920 bytes result sent to driver
+15/06/04 17:57:24 INFO storage.BlockManager: Removing broadcast 38
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_38_piece0
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_38_piece0 of size 12037 dropped from memory (free 738236086)
+15/06/04 17:57:24 INFO storage.BlockManagerMaster: Updated info of block broadcast_38_piece0
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_38
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_38 of size 30000 dropped from memory (free 738266086)
+15/06/04 17:57:24 INFO storage.BlockManager: Removing broadcast 37
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_37_piece0
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_37_piece0 of size 11363 dropped from memory (free 738277449)
+15/06/04 17:57:24 INFO storage.BlockManagerMaster: Updated info of block broadcast_37_piece0
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_37
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_37 of size 26464 dropped from memory (free 738303913)
+15/06/04 17:57:24 INFO storage.BlockManager: Removing broadcast 40
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_40_piece0
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_40_piece0 of size 11442 dropped from memory (free 738315355)
+15/06/04 17:57:24 INFO storage.BlockManagerMaster: Updated info of block broadcast_40_piece0
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_40
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_40 of size 25128 dropped from memory (free 738340483)
+15/06/04 17:57:24 INFO storage.BlockManager: Removing broadcast 39
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_39_piece0
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_39_piece0 of size 12098 dropped from memory (free 738352581)
+15/06/04 17:57:24 INFO storage.BlockManagerMaster: Updated info of block broadcast_39_piece0
+15/06/04 17:57:24 INFO storage.BlockManager: Removing block broadcast_39
+15/06/04 17:57:24 INFO storage.MemoryStore: Block broadcast_39 of size 30008 dropped from memory (free 738382589)
+15/06/04 17:57:53 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 24
+15/06/04 17:57:53 INFO executor.Executor: Running task 0.0 in stage 24.0 (TID 24)
+15/06/04 17:57:53 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 42
+15/06/04 17:57:53 INFO storage.MemoryStore: ensureFreeSpace(8794) called with curMem=2577912, maxMem=740960501
+15/06/04 17:57:53 INFO storage.MemoryStore: Block broadcast_42_piece0 stored as bytes in memory (estimated size 8.6 KB, free 704.2 MB)
+15/06/04 17:57:53 INFO storage.BlockManagerMaster: Updated info of block broadcast_42_piece0
+15/06/04 17:57:53 INFO broadcast.TorrentBroadcast: Reading broadcast variable 42 took 10 ms
+15/06/04 17:57:53 INFO storage.MemoryStore: ensureFreeSpace(19984) called with curMem=2586706, maxMem=740960501
+15/06/04 17:57:53 INFO storage.MemoryStore: Block broadcast_42 stored as values in memory (estimated size 19.5 KB, free 704.1 MB)
+15/06/04 17:57:53 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:57:53 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 41
+15/06/04 17:57:53 INFO storage.MemoryStore: ensureFreeSpace(22702) called with curMem=2606690, maxMem=740960501
+15/06/04 17:57:53 INFO storage.MemoryStore: Block broadcast_41_piece0 stored as bytes in memory (estimated size 22.2 KB, free 704.1 MB)
+15/06/04 17:57:53 INFO storage.BlockManagerMaster: Updated info of block broadcast_41_piece0
+15/06/04 17:57:53 INFO broadcast.TorrentBroadcast: Reading broadcast variable 41 took 7 ms
+15/06/04 17:57:53 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=2629392, maxMem=740960501
+15/06/04 17:57:53 INFO storage.MemoryStore: Block broadcast_41 stored as values in memory (estimated size 380.7 KB, free 703.8 MB)
+15/06/04 17:57:53 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x4dcb4dc connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:57:53 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x4dcb4dc, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:57:53 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:57:53 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:57:53 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0021, negotiated timeout = 60000
+15/06/04 17:57:53 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:57:53 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:57:53 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:57:53 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:58:04 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:58:04 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f0021
+15/06/04 17:58:04 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f0021 closed
+15/06/04 17:58:04 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:58:04 INFO regionserver.HStore: Closed V
+15/06/04 17:58:04 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 17:58:04 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 17:58:04 INFO executor.Executor: Finished task 0.0 in stage 24.0 (TID 24). 2024 bytes result sent to driver
+15/06/04 17:58:04 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 25
+15/06/04 17:58:04 INFO executor.Executor: Running task 0.0 in stage 25.0 (TID 25)
+15/06/04 17:58:04 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 43
+15/06/04 17:58:04 INFO storage.MemoryStore: ensureFreeSpace(8019) called with curMem=3019187, maxMem=740960501
+15/06/04 17:58:04 INFO storage.MemoryStore: Block broadcast_43_piece0 stored as bytes in memory (estimated size 7.8 KB, free 703.7 MB)
+15/06/04 17:58:04 INFO storage.BlockManagerMaster: Updated info of block broadcast_43_piece0
+15/06/04 17:58:04 INFO broadcast.TorrentBroadcast: Reading broadcast variable 43 took 8 ms
+15/06/04 17:58:04 INFO storage.MemoryStore: ensureFreeSpace(16552) called with curMem=3027206, maxMem=740960501
+15/06/04 17:58:04 INFO storage.MemoryStore: Block broadcast_43 stored as values in memory (estimated size 16.2 KB, free 703.7 MB)
+15/06/04 17:58:04 INFO executor.Executor: Finished task 0.0 in stage 25.0 (TID 25). 724 bytes result sent to driver
+15/06/04 17:58:12 INFO storage.BlockManager: Removing broadcast 43
+15/06/04 17:58:12 INFO storage.BlockManager: Removing block broadcast_43
+15/06/04 17:58:12 INFO storage.MemoryStore: Block broadcast_43 of size 16552 dropped from memory (free 737933295)
+15/06/04 17:58:12 INFO storage.BlockManager: Removing block broadcast_43_piece0
+15/06/04 17:58:12 INFO storage.MemoryStore: Block broadcast_43_piece0 of size 8019 dropped from memory (free 737941314)
+15/06/04 17:58:12 INFO storage.BlockManagerMaster: Updated info of block broadcast_43_piece0
+15/06/04 17:58:12 INFO storage.BlockManager: Removing broadcast 42
+15/06/04 17:58:12 INFO storage.BlockManager: Removing block broadcast_42
+15/06/04 17:58:12 INFO storage.MemoryStore: Block broadcast_42 of size 19984 dropped from memory (free 737961298)
+15/06/04 17:58:12 INFO storage.BlockManager: Removing block broadcast_42_piece0
+15/06/04 17:58:12 INFO storage.MemoryStore: Block broadcast_42_piece0 of size 8794 dropped from memory (free 737970092)
+15/06/04 17:58:12 INFO storage.BlockManagerMaster: Updated info of block broadcast_42_piece0
+15/06/04 17:58:12 INFO storage.BlockManager: Removing broadcast 41
+15/06/04 17:58:12 INFO storage.BlockManager: Removing block broadcast_41_piece0
+15/06/04 17:58:12 INFO storage.MemoryStore: Block broadcast_41_piece0 of size 22702 dropped from memory (free 737992794)
+15/06/04 17:58:12 INFO storage.BlockManagerMaster: Updated info of block broadcast_41_piece0
+15/06/04 17:58:12 INFO storage.BlockManager: Removing block broadcast_41
+15/06/04 17:58:12 INFO storage.MemoryStore: Block broadcast_41 of size 389795 dropped from memory (free 738382589)
+15/06/04 17:58:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 26
+15/06/04 17:58:14 INFO executor.Executor: Running task 0.0 in stage 26.0 (TID 26)
+15/06/04 17:58:14 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 45
+15/06/04 17:58:14 INFO storage.MemoryStore: ensureFreeSpace(8797) called with curMem=2577912, maxMem=740960501
+15/06/04 17:58:14 INFO storage.MemoryStore: Block broadcast_45_piece0 stored as bytes in memory (estimated size 8.6 KB, free 704.2 MB)
+15/06/04 17:58:14 INFO storage.BlockManagerMaster: Updated info of block broadcast_45_piece0
+15/06/04 17:58:14 INFO broadcast.TorrentBroadcast: Reading broadcast variable 45 took 8 ms
+15/06/04 17:58:14 INFO storage.MemoryStore: ensureFreeSpace(19984) called with curMem=2586709, maxMem=740960501
+15/06/04 17:58:14 INFO storage.MemoryStore: Block broadcast_45 stored as values in memory (estimated size 19.5 KB, free 704.1 MB)
+15/06/04 17:58:14 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 17:58:14 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 44
+15/06/04 17:58:14 INFO storage.MemoryStore: ensureFreeSpace(22703) called with curMem=2606693, maxMem=740960501
+15/06/04 17:58:14 INFO storage.MemoryStore: Block broadcast_44_piece0 stored as bytes in memory (estimated size 22.2 KB, free 704.1 MB)
+15/06/04 17:58:14 INFO storage.BlockManagerMaster: Updated info of block broadcast_44_piece0
+15/06/04 17:58:14 INFO broadcast.TorrentBroadcast: Reading broadcast variable 44 took 8 ms
+15/06/04 17:58:14 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=2629396, maxMem=740960501
+15/06/04 17:58:14 INFO storage.MemoryStore: Block broadcast_44 stored as values in memory (estimated size 380.7 KB, free 703.8 MB)
+15/06/04 17:58:14 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x1d9f1609 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 17:58:14 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x1d9f1609, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 17:58:14 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 17:58:14 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 17:58:14 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0022, negotiated timeout = 60000
+15/06/04 17:58:14 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:58:14 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:58:14 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 17:58:14 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 17:58:27 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 17:58:27 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f0022
+15/06/04 17:58:27 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f0022 closed
+15/06/04 17:58:27 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 17:58:27 INFO regionserver.HStore: Closed V
+15/06/04 17:58:27 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 17:58:27 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 17:58:27 INFO executor.Executor: Finished task 0.0 in stage 26.0 (TID 26). 2024 bytes result sent to driver
+15/06/04 17:58:27 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 27
+15/06/04 17:58:27 INFO executor.Executor: Running task 0.0 in stage 27.0 (TID 27)
+15/06/04 17:58:27 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 46
+15/06/04 17:58:27 INFO storage.MemoryStore: ensureFreeSpace(8025) called with curMem=3019191, maxMem=740960501
+15/06/04 17:58:27 INFO storage.MemoryStore: Block broadcast_46_piece0 stored as bytes in memory (estimated size 7.8 KB, free 703.7 MB)
+15/06/04 17:58:27 INFO storage.BlockManagerMaster: Updated info of block broadcast_46_piece0
+15/06/04 17:58:27 INFO broadcast.TorrentBroadcast: Reading broadcast variable 46 took 18 ms
+15/06/04 17:58:27 INFO storage.MemoryStore: ensureFreeSpace(16552) called with curMem=3027216, maxMem=740960501
+15/06/04 17:58:27 INFO storage.MemoryStore: Block broadcast_46 stored as values in memory (estimated size 16.2 KB, free 703.7 MB)
+15/06/04 17:58:27 INFO executor.Executor: Finished task 0.0 in stage 27.0 (TID 27). 724 bytes result sent to driver
+15/06/04 17:59:05 INFO storage.BlockManager: Removing broadcast 46
+15/06/04 17:59:05 INFO storage.BlockManager: Removing block broadcast_46_piece0
+15/06/04 17:59:05 INFO storage.MemoryStore: Block broadcast_46_piece0 of size 8025 dropped from memory (free 737924758)
+15/06/04 17:59:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_46_piece0
+15/06/04 17:59:05 INFO storage.BlockManager: Removing block broadcast_46
+15/06/04 17:59:05 INFO storage.MemoryStore: Block broadcast_46 of size 16552 dropped from memory (free 737941310)
+15/06/04 17:59:05 INFO storage.BlockManager: Removing broadcast 45
+15/06/04 17:59:05 INFO storage.BlockManager: Removing block broadcast_45
+15/06/04 17:59:05 INFO storage.MemoryStore: Block broadcast_45 of size 19984 dropped from memory (free 737961294)
+15/06/04 17:59:05 INFO storage.BlockManager: Removing block broadcast_45_piece0
+15/06/04 17:59:05 INFO storage.MemoryStore: Block broadcast_45_piece0 of size 8797 dropped from memory (free 737970091)
+15/06/04 17:59:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_45_piece0
+15/06/04 17:59:05 INFO storage.BlockManager: Removing broadcast 44
+15/06/04 17:59:05 INFO storage.BlockManager: Removing block broadcast_44_piece0
+15/06/04 17:59:05 INFO storage.MemoryStore: Block broadcast_44_piece0 of size 22703 dropped from memory (free 737992794)
+15/06/04 17:59:05 INFO storage.BlockManagerMaster: Updated info of block broadcast_44_piece0
+15/06/04 17:59:05 INFO storage.BlockManager: Removing block broadcast_44
+15/06/04 17:59:05 INFO storage.MemoryStore: Block broadcast_44 of size 389795 dropped from memory (free 738382589)
+15/06/04 18:00:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 28
+15/06/04 18:00:51 INFO executor.Executor: Running task 0.0 in stage 28.0 (TID 28)
+15/06/04 18:00:51 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 48
+15/06/04 18:00:51 INFO storage.MemoryStore: ensureFreeSpace(8799) called with curMem=2577912, maxMem=740960501
+15/06/04 18:00:51 INFO storage.MemoryStore: Block broadcast_48_piece0 stored as bytes in memory (estimated size 8.6 KB, free 704.2 MB)
+15/06/04 18:00:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_48_piece0
+15/06/04 18:00:51 INFO broadcast.TorrentBroadcast: Reading broadcast variable 48 took 8 ms
+15/06/04 18:00:51 INFO storage.MemoryStore: ensureFreeSpace(19984) called with curMem=2586711, maxMem=740960501
+15/06/04 18:00:51 INFO storage.MemoryStore: Block broadcast_48 stored as values in memory (estimated size 19.5 KB, free 704.1 MB)
+15/06/04 18:00:51 INFO rdd.NewHadoopRDD: Input split: 192.168.0.61:,
+15/06/04 18:00:51 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 47
+15/06/04 18:00:51 INFO storage.MemoryStore: ensureFreeSpace(22728) called with curMem=2606695, maxMem=740960501
+15/06/04 18:00:51 INFO storage.MemoryStore: Block broadcast_47_piece0 stored as bytes in memory (estimated size 22.2 KB, free 704.1 MB)
+15/06/04 18:00:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_47_piece0
+15/06/04 18:00:51 INFO broadcast.TorrentBroadcast: Reading broadcast variable 47 took 7 ms
+15/06/04 18:00:51 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=2629423, maxMem=740960501
+15/06/04 18:00:51 INFO storage.MemoryStore: Block broadcast_47 stored as values in memory (estimated size 380.7 KB, free 703.8 MB)
+15/06/04 18:00:51 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x17236f24 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/04 18:00:51 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x17236f24, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/04 18:00:51 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:00:51 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/04 18:00:51 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dc0c3371f0023, negotiated timeout = 60000
+15/06/04 18:00:51 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 18:00:51 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 18:00:51 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/04 18:00:51 INFO regionserver.HRegion: Onlined cc29f7fe9f9fd932551fa393db6be396; next sequenceid=1216
+15/06/04 18:01:03 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/04 18:01:03 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dc0c3371f0023
+15/06/04 18:01:03 INFO zookeeper.ZooKeeper: Session: 0x14dc0c3371f0023 closed
+15/06/04 18:01:03 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/04 18:01:03 INFO regionserver.HStore: Closed V
+15/06/04 18:01:03 INFO regionserver.HRegion: Closed 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396.
+15/06/04 18:01:03 WARN regionserver.HRegion: Region 1360,,1433432703382.cc29f7fe9f9fd932551fa393db6be396. already closed
+15/06/04 18:01:03 INFO executor.Executor: Finished task 0.0 in stage 28.0 (TID 28). 2024 bytes result sent to driver
+15/06/04 18:01:03 INFO storage.BlockManager: Removing broadcast 48
+15/06/04 18:01:03 INFO storage.BlockManager: Removing block broadcast_48_piece0
+15/06/04 18:01:03 INFO storage.MemoryStore: Block broadcast_48_piece0 of size 8799 dropped from memory (free 737950082)
+15/06/04 18:01:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_48_piece0
+15/06/04 18:01:03 INFO storage.BlockManager: Removing block broadcast_48
+15/06/04 18:01:03 INFO storage.MemoryStore: Block broadcast_48 of size 19984 dropped from memory (free 737970066)
+15/06/04 18:01:03 INFO storage.BlockManager: Removing broadcast 47
+15/06/04 18:01:03 INFO storage.BlockManager: Removing block broadcast_47
+15/06/04 18:01:03 INFO storage.MemoryStore: Block broadcast_47 of size 389795 dropped from memory (free 738359861)
+15/06/04 18:01:03 INFO storage.BlockManager: Removing block broadcast_47_piece0
+15/06/04 18:01:03 INFO storage.MemoryStore: Block broadcast_47_piece0 of size 22728 dropped from memory (free 738382589)
+15/06/04 18:01:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_47_piece0
+15/06/04 18:01:03 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 29
+15/06/04 18:01:03 INFO executor.Executor: Running task 0.0 in stage 29.0 (TID 29)
+15/06/04 18:01:03 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 49
+15/06/04 18:01:03 INFO storage.MemoryStore: ensureFreeSpace(8026) called with curMem=2577912, maxMem=740960501
+15/06/04 18:01:03 INFO storage.MemoryStore: Block broadcast_49_piece0 stored as bytes in memory (estimated size 7.8 KB, free 704.2 MB)
+15/06/04 18:01:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_49_piece0
+15/06/04 18:01:03 INFO broadcast.TorrentBroadcast: Reading broadcast variable 49 took 7 ms
+15/06/04 18:01:03 INFO storage.MemoryStore: ensureFreeSpace(16552) called with curMem=2585938, maxMem=740960501
+15/06/04 18:01:03 INFO storage.MemoryStore: Block broadcast_49 stored as values in memory (estimated size 16.2 KB, free 704.2 MB)
+15/06/04 18:01:03 INFO executor.Executor: Finished task 0.0 in stage 29.0 (TID 29). 724 bytes result sent to driver
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0015, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0012, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0011, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0010, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0017, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0013, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0016, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Unable to read additional data from server sessionid 0x14dc0c3371f0014, likely server has closed socket, closing socket connection and attempting reconnect
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:11 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0016 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:11 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0013 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:11 INFO storage.BlockManager: Removing broadcast 49
+15/06/04 18:02:11 INFO storage.BlockManager: Removing block broadcast_49
+15/06/04 18:02:11 INFO storage.MemoryStore: Block broadcast_49 of size 16552 dropped from memory (free 738374563)
+15/06/04 18:02:11 INFO storage.BlockManager: Removing block broadcast_49_piece0
+15/06/04 18:02:11 INFO storage.MemoryStore: Block broadcast_49_piece0 of size 8026 dropped from memory (free 738382589)
+15/06/04 18:02:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_49_piece0
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:11 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0014 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:11 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:11 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0017 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:12 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:12 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0011 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:12 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:12 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0012 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:12 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:12 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0015 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:12 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:12 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0010 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:12 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:12 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0016 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:13 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/04 18:02:13 WARN zookeeper.ClientCnxn: Session 0x14dc0c3371f0014 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/04 18:02:13 ERROR executor.CoarseGrainedExecutorBackend: RECEIVED SIGNAL 2: SIGINT

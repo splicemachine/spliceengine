@@ -85,9 +85,29 @@ public class WriteCoordinator {
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn) {
-        monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, defaultWriteConfiguration, monitor);
+        return writeBuffer(tableName,txn,noOpFlushHook);
     }
+
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, PreFlushHook preFlushHook) {
+        monitor.outstandingBuffers.incrementAndGet();
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, preFlushHook, defaultWriteConfiguration, monitor, false);
+    }
+
+    public RecordingCallBuffer<KVPair> noIndexWriteBuffer(byte[] tableName, TxnView txn, final MetricFactory metricFactory) {
+        WriteConfiguration config = defaultWriteConfiguration;
+        //if it isn't active, don't bother creating the extra object
+        if (metricFactory.isActive()) {
+            config = new ForwardingWriteConfiguration(defaultWriteConfiguration) {
+                @Override
+                public MetricFactory getMetricFactory() {
+                    return metricFactory;
+                }
+            };
+        }
+        monitor.outstandingBuffers.incrementAndGet();
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, config, monitor, true);
+   }
+
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final MetricFactory metricFactory) {
         WriteConfiguration config = defaultWriteConfiguration;
@@ -110,7 +130,7 @@ public class WriteCoordinator {
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn,
                                                    PreFlushHook flushHook, WriteConfiguration writeConfiguration) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, flushHook, writeConfiguration, monitor);
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, flushHook, writeConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final int maxEntries) {
@@ -136,14 +156,14 @@ public class WriteCoordinator {
             }
         };
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, defaultWriteConfiguration, config);
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, defaultWriteConfiguration, config, false);
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                               TxnView txn, PreFlushHook flushHook,
                                                               WriteConfiguration writeConfiguration) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, regionCache, flushHook, writeConfiguration, monitor);
+        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, regionCache, flushHook, writeConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
@@ -173,13 +193,20 @@ public class WriteCoordinator {
             }
         };
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, regionCache, flushHook, writeConfiguration, config);
+        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, regionCache, flushHook, writeConfiguration, config, false);
     }
 
     private class MonitoredPipingCallBuffer extends PipingCallBuffer {
 
-        public MonitoredPipingCallBuffer(byte[] tableName, TxnView txn, Writer writer, RegionCache regionCache, PreFlushHook preFlushHook, WriteConfiguration writeConfiguration, BufferConfiguration bufferConfiguration) {
-            super(tableName, txn, writer, regionCache, preFlushHook, writeConfiguration, bufferConfiguration);
+        public MonitoredPipingCallBuffer(byte[] tableName,
+                                         TxnView txn,
+                                         Writer writer,
+                                         RegionCache regionCache,
+                                         PreFlushHook preFlushHook,
+                                         WriteConfiguration writeConfiguration,
+                                         BufferConfiguration bufferConfiguration,
+                                         boolean skipIndexWrites) {
+            super(tableName, txn, writer, regionCache, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites);
         }
 
         @Override

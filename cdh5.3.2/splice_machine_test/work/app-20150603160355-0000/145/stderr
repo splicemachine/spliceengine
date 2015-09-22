@@ -1,0 +1,146 @@
+15/06/03 16:40:20 INFO executor.CoarseGrainedExecutorBackend: Registered signal handlers for [TERM, HUP, INT]
+15/06/03 16:40:22 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+15/06/03 16:40:22 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/03 16:40:22 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/03 16:40:22 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN util.Utils: Service 'driverPropsFetcher' could not bind on port 0. Attempting port 1.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:40:23 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:40:23 INFO Remoting: Starting remoting
+15/06/03 16:40:23 ERROR netty.NettyTransport: failed to bind to /10.0.1.14:0, shutting down Netty transport
+15/06/03 16:40:23 WARN security.UserGroupInformation: PriviledgedActionException as:jleach (auth:SIMPLE) cause:java.net.BindException: Failed to bind to: /10.0.1.14:0: Service 'driverPropsFetcher' failed after 16 retries!
+Exception in thread "main" java.net.BindException: Failed to bind to: /10.0.1.14:0: Service 'driverPropsFetcher' failed after 16 retries!
+	at org.sparkproject.jboss.netty.bootstrap.ServerBootstrap.bind(ServerBootstrap.java:272)
+	at akka.remote.transport.netty.NettyTransport$$anonfun$listen$1.apply(NettyTransport.scala:393)
+	at akka.remote.transport.netty.NettyTransport$$anonfun$listen$1.apply(NettyTransport.scala:389)
+	at scala.util.Success$$anonfun$map$1.apply(Try.scala:206)
+	at scala.util.Try$.apply(Try.scala:161)
+	at scala.util.Success.map(Try.scala:206)
+	at scala.concurrent.Future$$anonfun$map$1.apply(Future.scala:235)
+	at scala.concurrent.Future$$anonfun$map$1.apply(Future.scala:235)
+	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:32)
+	at akka.dispatch.BatchingExecutor$Batch$$anonfun$run$1.processBatch$1(BatchingExecutor.scala:67)
+	at akka.dispatch.BatchingExecutor$Batch$$anonfun$run$1.apply$mcV$sp(BatchingExecutor.scala:82)
+	at akka.dispatch.BatchingExecutor$Batch$$anonfun$run$1.apply(BatchingExecutor.scala:59)
+	at akka.dispatch.BatchingExecutor$Batch$$anonfun$run$1.apply(BatchingExecutor.scala:59)
+	at scala.concurrent.BlockContext$.withBlockContext(BlockContext.scala:72)
+	at akka.dispatch.BatchingExecutor$Batch.run(BatchingExecutor.scala:58)
+	at akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:41)
+	at akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinTask.exec(AbstractDispatcher.scala:393)
+	at scala.concurrent.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)
+	at scala.concurrent.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)
+	at scala.concurrent.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)
+	at scala.concurrent.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:40:23 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.

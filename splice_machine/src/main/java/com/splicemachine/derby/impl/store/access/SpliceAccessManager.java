@@ -83,6 +83,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         formathash = new Hashtable();
     }
 
+
     protected LockingPolicy getDefaultLockingPolicy() {
         return(system_default_locking_policy);
     }
@@ -471,18 +472,24 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         conglomCacheInvalidate();
     }
 
+    public void cancelDDLChange(String changeId){
+        DDLChange change = ongoingDDLChanges.remove(changeId);
+        cacheDisabled = ongoingDDLChanges.size()>0;
+    }
+
     public void finishDDLChange(String identifier) {
         DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
         if (ddlChange != null) {
             try {
                 TxnView txn = ddlChange.getTxn();
-                try{
-                    txn.allowsWrites();
-                }catch(RuntimeException re){
-                    if(re.getCause() instanceof ReadOnlyModificationException)
-                        throw new IOException("DDLChange "+ddlChange+" does not have a writable transaction");
-                    else throw re;
-                }
+                assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
+//                try{
+//                    txn.allowsWrites();
+//                }catch(RuntimeException re){
+//                    if(re.getCause() instanceof ReadOnlyModificationException)
+//                        throw new IOException("DDLChange "+ddlChange+" does not have a writable transaction");
+//                    else throw re;
+//                }
                 TransactionReadController txController = HTransactorFactory.getTransactionReadController();
                 DDLFilter ddlFilter = txController.newDDLFilter(ddlChange.getTxn());
                 if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {

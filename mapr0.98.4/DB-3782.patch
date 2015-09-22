@@ -1,0 +1,25 @@
+diff --git a/splice_machine/src/main/java/com/splicemachine/derby/utils/StatisticsAdmin.java b/splice_machine/src/main/java/com/splicemachine/derby/utils/StatisticsAdmin.java
+index 86af54d..56f42a4 100644
+--- a/splice_machine/src/main/java/com/splicemachine/derby/utils/StatisticsAdmin.java
++++ b/splice_machine/src/main/java/com/splicemachine/derby/utils/StatisticsAdmin.java
+@@ -63,6 +63,7 @@ import java.util.concurrent.ExecutionException;
+  */
+ public class StatisticsAdmin extends BaseAdminProcedures {
+     private static final Logger LOG=Logger.getLogger(StatisticsAdmin.class);
++    public static final String TABLEID_FROM_SCHEMA = "select tableid from sys.systables t where t.schemaid = ?";
+ 
+     @SuppressWarnings("UnusedDeclaration")
+     public static void DISABLE_COLUMN_STATISTICS(String schema,
+@@ -488,9 +489,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
+     }
+ 
+     private static List<TableDescriptor> getAllTableDescriptors(SchemaDescriptor sd,EmbedConnection conn) throws SQLException{
+-        try(Statement statement = conn.createStatement()){
+-            String sql="select tableid from sys.systables t where t.schemaid = '"+sd.getUUID().toString()+"'";
+-            try(ResultSet resultSet=statement.executeQuery(sql)){
++        try(PreparedStatement statement = conn.prepareStatement(TABLEID_FROM_SCHEMA)){
++            statement.setString(1,sd.getUUID().toString());
++            try(ResultSet resultSet=statement.executeQuery()){
+                 DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
+                 UUIDFactory uuidFactory=dd.getUUIDFactory();
+                 List<TableDescriptor> tds = new LinkedList<>();

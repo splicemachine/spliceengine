@@ -44,6 +44,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine_adapter_98-hdp2.2.4</artifactId>
+<<<<<<< HEAD
 			<version>2.0.0-SNAPSHOT</version>
 			<classifier>tests</classifier>
 		</dependency>
@@ -52,6 +53,16 @@
       <artifactId>sqlj-it-procs</artifactId>
       <version>1.0.2</version>
     </dependency>
+=======
+			<version>1.5.0-SNAPSHOT</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.splicetest.sqlj</groupId>
+			<artifactId>sqlj-it-procs</artifactId>
+			<version>1.0.2</version>
+		</dependency>
+>>>>>>> master
 	</dependencies>
 	<profiles>
 		<profile>
@@ -387,7 +398,7 @@
 								<argument>-Dderby.language.updateSystemProcs=false</argument>
 								<!-- Setting the logStatementText option to true enables logging of all statements. -->
 								<argument>-Dderby.language.logStatementText=false</argument>
-                                                                <argument>-Dderby.infolog.append=true</argument>
+								<argument>-Dderby.infolog.append=true</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>file://${project.build.directory}/hbase</argument>
 								<argument>60000</argument>

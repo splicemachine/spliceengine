@@ -1,14 +1,12 @@
 package com.splicemachine.job;
 
-import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
-import com.splicemachine.pipeline.constraint.Constraints;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.reflect.ConstructorUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.exceptions.RegionMovedException;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -123,7 +121,14 @@ public class ErrorTransport implements Externalizable {
         }
 
         try {
-            Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(args[0].toString());
+            String className = args[0].toString();
+            // Async Hbase Error Handling
+            Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(className);
+            if (className.contains("com.splicemachine.async")) {
+                if (com.splicemachine.async.RecoverableException.class.isAssignableFrom(errorClazz))
+                    errorClazz = RegionMovedException.class;
+                // Blow up
+            }
 
             /* one-arg string constructor */
             Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, String.class);

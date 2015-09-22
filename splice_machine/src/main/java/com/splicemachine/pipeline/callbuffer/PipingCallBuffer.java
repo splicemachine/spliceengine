@@ -50,6 +50,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     private final Writer writer;
     private final byte[] tableName;
+    private final boolean skipIndexWrites;
     private final TxnView txn;
     private final RegionCache regionCache;
     private long totalElementsAdded = 0l;
@@ -70,9 +71,11 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
                             RegionCache regionCache,
                             PreFlushHook preFlushHook,
                             WriteConfiguration writeConfiguration,
-                            BufferConfiguration bufferConfiguration) {
+                            BufferConfiguration bufferConfiguration,
+                            boolean skipIndexWrites) {
         this.writer = writer;
         this.tableName = tableName;
+        this.skipIndexWrites = skipIndexWrites;
         this.txn = txn;
         this.regionCache = regionCache;
         this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this); 
@@ -218,7 +221,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
                 }
 
             	// Create a new RegionCallBuffer, add it to the map, and add it to the RegionServerCallBuffer.
-                RegionCallBuffer newBuffer = new RegionCallBuffer(region, preFlushHook);
+                RegionCallBuffer newBuffer = new RegionCallBuffer(region, preFlushHook, skipIndexWrites);
                 startKeyToRegionCBMap.put(startKey, Pair.newPair(newBuffer, serverName));
                 regionServerCB.add(Pair.newPair(startKey, newBuffer));
             } else {
@@ -351,5 +354,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     @Override
     public WriteConfiguration getWriteConfiguration() {
         return writeConfiguration;
+    }
+
+    @Override
+    public TxnView getTxn() {
+        return txn;
     }
 }

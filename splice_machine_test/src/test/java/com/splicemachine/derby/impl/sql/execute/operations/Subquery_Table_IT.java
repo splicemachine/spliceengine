@@ -150,7 +150,6 @@ public class Subquery_Table_IT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    @Ignore("Bugzilla 626")
     @Test
     public void existsCorrelatedDoubleNestedNotExists() throws Exception {
         List<Object[]> expected = Collections.singletonList(o("Alice"));

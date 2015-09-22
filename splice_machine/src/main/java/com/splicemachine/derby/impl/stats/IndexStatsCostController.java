@@ -3,12 +3,15 @@ package com.splicemachine.derby.impl.stats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.ColumnStatistics;
+
 import java.util.BitSet;
 import java.util.concurrent.ExecutionException;
 
@@ -65,8 +68,35 @@ public class IndexStatsCostController extends StatsStoreCostController {
     }
 
     @Override
+    public double getSelectivity(int columnNumber,
+                                 DataValueDescriptor start,boolean includeStart,
+                                 DataValueDescriptor stop,boolean includeStop){
+        return selectivityFraction(baseTableStatistics,columnNumber,
+                start,includeStart,
+                stop,includeStop);
+    }
+
+    @Override
+    public double nullSelectivity(int columnNumber){
+        return nullSelectivityFraction(baseTableStatistics,columnNumber);
+    }
+
+    @Override
+    public long cardinality(int columnNumber){
+        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(baseTableStatistics,columnNumber);
+        if(colStats!=null)
+            return colStats.cardinality();
+        return 0;
+    }
+
+    @Override
     public long getBaseTableAvgRowWidth() {
         return baseTableStatistics.avgRowWidth();
+    }
+
+    @Override
+    public double baseRowCount() {
+        return baseTableStatistics.rowCount();
     }
 
 }

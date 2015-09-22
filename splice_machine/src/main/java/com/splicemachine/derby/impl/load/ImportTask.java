@@ -12,6 +12,8 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.pipeline.api.Code;
+import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
@@ -122,8 +124,8 @@ public class ImportTask extends ZkTask{
 								}
 
 								try{
-										boolean shouldContinue;
-										do{
+									boolean shouldContinue;
+									do{
 												SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
 												String[][] lines = reader.nextRowBatch();
 
@@ -158,19 +160,35 @@ public class ImportTask extends ZkTask{
 													shouldContinue = false;
 												}
 
-										}while(shouldContinue);
+									}while(shouldContinue);
 
-										if (importTaskPath != null) {
-											jmxStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
-											jmxStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
+                                    // check for Java exceptions during READING source
+                                    // if we had some errors there,
+                                    //        we should write additional info to main and secondary log files:
+                                    //            importStatus.log
+                                    //            _BAD_[source_name]
+                                    String[] msgs = reader.getFailMessages();
+                                    if (msgs != null) {
+                                        for (String msg : msgs) {
+                                            //LOG.trace(msg);
+                                            //System.out.println(msg);
+                                            errorReporter.reportError(msg, null);  // main file
+                                            errorLogger.report("", new WriteResult(Code.FAILED, msg)); // secondary file
+                                        }
+                                    }
+
+									if (importTaskPath != null) {
+										jmxStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
+										jmxStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
+									}
+
+                                    previouslyLoggedRowsRead = rowsRead;
+									if (LOG.isDebugEnabled()) {
+										SpliceLogUtils.debug(LOG, "Import task finished.  Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), importFilePath);
+										if (LOG.isTraceEnabled()) {
+											SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), importTaskPath);
 										}
-										previouslyLoggedRowsRead = rowsRead;
-										if (LOG.isDebugEnabled()) {
-											SpliceLogUtils.debug(LOG, "Import task finished.  Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), importFilePath);
-											if (LOG.isTraceEnabled()) {
-												SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), importTaskPath);
-											}
-										}
+									}
 								} catch (Exception e) {
 										throw new ExecutionException(e);
 								} finally{

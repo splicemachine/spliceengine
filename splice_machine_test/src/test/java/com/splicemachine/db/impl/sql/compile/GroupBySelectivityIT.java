@@ -121,4 +121,10 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
         secondRowContainsQuery("explain select count(*), c2||c2 from TS_LOW_CARDINALITY group by c2||c2", "outputRows=5", methodWatcher);
     }
 
+    @Test
+    // DB-3414
+    public void testCastSupport() throws Exception {
+        secondRowContainsQuery("explain select (cast (c1 as char(2))), count(*) from TS_LOW_CARDINALITY group by (cast (c1 as char(2)))", "outputRows=5", methodWatcher);
+    }
+
 }

@@ -7,6 +7,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
+import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.ClassRule;
@@ -334,6 +335,41 @@ public class ExportOperationIT {
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'cannot create export directory'='/ExportOperationIT/'.", e.getMessage());
+        }
+
+        // wrong replica count
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, -100, null, null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0U", e.getSQLState());
+        }
+
+        // wrong field separator
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, null, null, 10, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0X", e.getSQLState());
+            assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (10) is wrong.", e.getMessage());
+        }
+
+        // wrong quote character
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, null, null, null, 100) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0X", e.getSQLState());
+            assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (100) is wrong.", e.getMessage());
+        }
+
+        // wrong replication parameter
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, 'a', null, null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0X", e.getSQLState());
+            assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (a) is wrong.", e.getMessage());
         }
     }
 

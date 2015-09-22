@@ -12,7 +12,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -168,7 +167,7 @@ public class AddColumnTransactionIT {
 
         if(rs.next()){
             try{
-                int anInt = rs.getInt("E");
+                rs.getInt("E");
                 Assert.fail("did not fail!");
             }catch(SQLException se){
                 Assert.assertEquals("Incorrect error message!", ErrorState.COLUMN_NOT_FOUND.getSqlState(),se.getSQLState());
@@ -201,7 +200,7 @@ public class AddColumnTransactionIT {
 
         if(rs.next()){
             try{
-                int anInt = rs.getInt("F");
+                rs.getInt("F");
                 Assert.fail("did not fail!");
             }catch(SQLException se){
                 Assert.assertEquals("Incorrect error message!", ErrorState.COLUMN_NOT_FOUND.getSqlState(),se.getSQLState());
@@ -426,4 +425,87 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
+    @Test
+    public void testAddColToConstrainedTable() throws Exception {
+        // DB-3711: if UC on a col, can't update added col
+        String tableName = "fred".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s(id int unique)", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(1)", tableRef));
+        s1.execute(String.format("insert into %s values(2)", tableRef));
+
+        s1.execute(String.format("alter table %s add column loc varchar(3) default 'ZZZ'", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("update %s set loc = 'AAA'", tableRef));
+        s1.execute(String.format("update %s set loc = 'MMM' where id = 1", tableRef));
+        c1.commit();
+
+        ResultSet rs = s1.executeQuery(String.format("select id from %s where id = 1", tableRef));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertEquals("Expected id = 1", 1, rs.getInt(1));
+        }
+        Assert.assertEquals("Expected one id equal to 1", 1, count);
+
+        rs = s1.executeQuery(String.format("select * from %s where id = 1", tableRef));
+        count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertEquals("Expected id = 1", 1, rs.getInt(1));
+            Assert.assertEquals("Expected loc = 'MMM'", "MMM", rs.getString(2));
+        }
+        Assert.assertEquals("Expected one id equal to 1", 1, count);
+    }
+
+    @Test
+    public void testAddColAfterUniqueConstraint() throws Exception {
+        // DB-3711: add UC on a col, can't add another col
+        String tableName = "employees".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s(emplid INTEGER NOT NULL, lastname VARCHAR(25) NOT NULL, firstname " +
+                                     "VARCHAR(25) NOT NULL, reportsto INTEGER)", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(7725070,'Anuradha','Kottapalli',8852090)", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("alter table %s add constraint emp_uniq unique(emplid)", tableRef));
+        s1.execute(String.format("alter table %s add column foo int", tableRef));
+        c1.commit();
+
+        ResultSet rs = s1.executeQuery(String.format("select * from %s", tableRef));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertEquals("FOO col add!", 0, rs.getInt(5));
+        }
+        Assert.assertEquals("Expected one employee!", 1, count);
+
+        s1.execute(String.format("update %s set foo = 9 where emplid = 7725070", tableRef));
+        c1.commit();
+
+        rs = s1.executeQuery(String.format("select * from %s where emplid = 7725070", tableRef));
+        count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertEquals("FOO update!", 9, rs.getInt(5));
+        }
+        Assert.assertEquals("Expected one employee!", 1, count);
+    }
 }

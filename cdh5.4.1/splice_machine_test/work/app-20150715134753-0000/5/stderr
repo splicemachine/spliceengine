@@ -1,0 +1,70 @@
+15/07/15 13:54:02 INFO executor.CoarseGrainedExecutorBackend: Registered signal handlers for [TERM, HUP, INT]
+15/07/15 13:54:14 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+15/07/15 13:54:14 INFO spark.SecurityManager: Changing view acls to: jleach
+15/07/15 13:54:14 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/07/15 13:54:14 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/07/15 13:54:15 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/07/15 13:54:15 INFO Remoting: Starting remoting
+15/07/15 13:54:15 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://driverPropsFetcher@10.0.1.12:62350]
+15/07/15 13:54:15 INFO util.Utils: Successfully started service 'driverPropsFetcher' on port 62350.
+15/07/15 13:54:15 INFO spark.SecurityManager: Changing view acls to: jleach
+15/07/15 13:54:15 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/07/15 13:54:15 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/07/15 13:54:15 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/07/15 13:54:15 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/07/15 13:54:15 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/07/15 13:54:15 INFO Remoting: Starting remoting
+15/07/15 13:54:15 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkExecutor@10.0.1.12:62352]
+15/07/15 13:54:15 INFO util.Utils: Successfully started service 'sparkExecutor' on port 62352.
+15/07/15 13:54:15 INFO executor.CoarseGrainedExecutorBackend: Connecting to driver: akka.tcp://sparkDriver@10.0.1.12:62099/user/CoarseGrainedScheduler
+15/07/15 13:54:15 INFO worker.WorkerWatcher: Connecting to worker akka.tcp://sparkWorker@10.0.1.12:61945/user/Worker
+15/07/15 13:54:15 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/07/15 13:54:15 INFO worker.WorkerWatcher: Successfully connected to akka.tcp://sparkWorker@10.0.1.12:61945/user/Worker
+15/07/15 13:54:15 INFO executor.CoarseGrainedExecutorBackend: Successfully registered with driver
+15/07/15 13:54:15 INFO spark.SecurityManager: Changing view acls to: jleach
+15/07/15 13:54:15 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/07/15 13:54:15 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/07/15 13:54:15 INFO util.AkkaUtils: Connecting to MapOutputTracker: akka.tcp://sparkDriver@10.0.1.12:62099/user/MapOutputTracker
+15/07/15 13:54:15 INFO util.AkkaUtils: Connecting to BlockManagerMaster: akka.tcp://sparkDriver@10.0.1.12:62099/user/BlockManagerMaster
+15/07/15 13:54:15 INFO storage.DiskBlockManager: Created local directory at /tmp/spark-local-20150715135415-6816
+15/07/15 13:54:15 INFO storage.MemoryStore: MemoryStore started with capacity 706.6 MB
+15/07/15 13:54:15 INFO netty.NettyBlockTransferService: Server created on 62355
+15/07/15 13:54:15 INFO storage.BlockManagerMaster: Trying to register BlockManager
+15/07/15 13:54:15 INFO storage.BlockManagerMaster: Registered BlockManager
+15/07/15 13:54:15 INFO util.AkkaUtils: Connecting to HeartbeatReceiver: akka.tcp://sparkDriver@10.0.1.12:62099/user/HeartbeatReceiver
+15/07/15 13:54:15 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 24
+15/07/15 13:54:15 INFO executor.Executor: Running task 0.0 in stage 21.0 (TID 24)
+15/07/15 13:54:16 INFO spark.MapOutputTrackerWorker: Updating epoch to 5 and clearing cache
+15/07/15 13:54:16 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 23
+15/07/15 13:54:16 INFO storage.MemoryStore: ensureFreeSpace(951) called with curMem=0, maxMem=740960501
+15/07/15 13:54:16 INFO storage.MemoryStore: Block broadcast_23_piece0 stored as bytes in memory (estimated size 951.0 B, free 706.6 MB)
+15/07/15 13:54:16 INFO storage.BlockManagerMaster: Updated info of block broadcast_23_piece0
+15/07/15 13:54:16 INFO broadcast.TorrentBroadcast: Reading broadcast variable 23 took 127 ms
+15/07/15 13:54:16 INFO storage.MemoryStore: ensureFreeSpace(1392) called with curMem=951, maxMem=740960501
+15/07/15 13:54:16 INFO storage.MemoryStore: Block broadcast_23 stored as values in memory (estimated size 1392.0 B, free 706.6 MB)
+15/07/15 13:54:16 INFO executor.Executor: Finished task 0.0 in stage 21.0 (TID 24). 589 bytes result sent to driver
+15/07/15 13:54:16 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 25
+15/07/15 13:54:16 INFO executor.Executor: Running task 0.0 in stage 22.0 (TID 25)
+15/07/15 13:54:16 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 24
+15/07/15 13:54:16 INFO storage.MemoryStore: ensureFreeSpace(951) called with curMem=2343, maxMem=740960501
+15/07/15 13:54:16 INFO storage.MemoryStore: Block broadcast_24_piece0 stored as bytes in memory (estimated size 951.0 B, free 706.6 MB)
+15/07/15 13:54:16 INFO storage.BlockManagerMaster: Updated info of block broadcast_24_piece0
+15/07/15 13:54:16 INFO broadcast.TorrentBroadcast: Reading broadcast variable 24 took 9 ms
+15/07/15 13:54:16 INFO storage.MemoryStore: ensureFreeSpace(1392) called with curMem=3294, maxMem=740960501
+15/07/15 13:54:16 INFO storage.MemoryStore: Block broadcast_24 stored as values in memory (estimated size 1392.0 B, free 706.6 MB)
+15/07/15 13:54:16 INFO executor.Executor: Finished task 0.0 in stage 22.0 (TID 25). 589 bytes result sent to driver
+15/07/15 13:54:49 INFO storage.BlockManager: Removing broadcast 21
+15/07/15 13:54:49 INFO storage.BlockManager: Removing broadcast 22
+15/07/15 13:54:49 INFO storage.BlockManager: Removing broadcast 23
+15/07/15 13:54:49 INFO storage.BlockManager: Removing block broadcast_23_piece0
+15/07/15 13:54:49 INFO storage.MemoryStore: Block broadcast_23_piece0 of size 951 dropped from memory (free 740956766)
+15/07/15 13:54:49 INFO storage.BlockManagerMaster: Updated info of block broadcast_23_piece0
+15/07/15 13:54:49 INFO storage.BlockManager: Removing block broadcast_23
+15/07/15 13:54:49 INFO storage.MemoryStore: Block broadcast_23 of size 1392 dropped from memory (free 740958158)
+15/07/15 13:54:49 INFO storage.BlockManager: Removing broadcast 24
+15/07/15 13:54:49 INFO storage.BlockManager: Removing block broadcast_24_piece0
+15/07/15 13:54:49 INFO storage.MemoryStore: Block broadcast_24_piece0 of size 951 dropped from memory (free 740959109)
+15/07/15 13:54:49 INFO storage.BlockManagerMaster: Updated info of block broadcast_24_piece0
+15/07/15 13:54:49 INFO storage.BlockManager: Removing block broadcast_24
+15/07/15 13:54:49 INFO storage.MemoryStore: Block broadcast_24 of size 1392 dropped from memory (free 740960501)
+15/07/15 13:54:53 ERROR executor.CoarseGrainedExecutorBackend: RECEIVED SIGNAL 2: SIGINT

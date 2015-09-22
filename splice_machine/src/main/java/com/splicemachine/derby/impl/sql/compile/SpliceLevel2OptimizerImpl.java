@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempSortController;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
@@ -190,5 +192,19 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
             optimizerTrace = false;
         }
         return super.tracer();
+    }
+    
+    /**
+     * Overridden to check splice configuration.
+     */
+    protected long getMinTimeout() {
+    	return SpliceConstants.optimizerPlanMinimumTimeout; // milliseconds
+    }
+
+    /**
+     * Overridden to check splice configuration.
+     */
+    protected long getMaxTimeout() {
+    	return SpliceConstants.optimizerPlanMaximumTimeout; // milliseconds
     }
 }

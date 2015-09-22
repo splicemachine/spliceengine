@@ -8,13 +8,21 @@
 	<parent>
 		<artifactId>spliceengine-cdh5.4.1</artifactId>
 		<groupId>com.splicemachine</groupId>
+<<<<<<< HEAD
 		<version>2.0.0-SNAPSHOT</version>
+=======
+		<version>1.5.0-SNAPSHOT</version>
+>>>>>>> master
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_constants-cdh5.4.1</artifactId>
+<<<<<<< HEAD
 			<version>2.0.0-SNAPSHOT</version>
+=======
+			<version>1.5.0-SNAPSHOT</version>
+>>>>>>> master
 			<exclusions>
 				<exclusion>
 					<artifactId>asynchbase</artifactId>

@@ -1,0 +1,60 @@
+diff --git a/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/operations/ScanOperation.java b/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/operations/ScanOperation.java
+index bb3ed1a..814f6ed 100644
+--- a/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/operations/ScanOperation.java
++++ b/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/operations/ScanOperation.java
+@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
+ import com.google.common.base.Strings;
+ import com.splicemachine.constants.SIConstants;
+ import com.splicemachine.constants.SpliceConstants;
++import com.splicemachine.db.impl.sql.execute.BaseActivation;
+ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+ import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
+@@ -273,7 +274,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
+ 
+ 		protected Scan getScan() throws StandardException {
+ 				return scanInformation.getScan(getCurrentTransaction(),
+-                        null,getKeyDecodingMap(),null);
++                        ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),null);
+ 		}
+ 
+ 		@Override
+diff --git a/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeAntiJoinFlatMapFunction.java b/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeAntiJoinFlatMapFunction.java
+index 0a9d8f4..60ed9c0 100644
+--- a/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeAntiJoinFlatMapFunction.java
++++ b/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeAntiJoinFlatMapFunction.java
+@@ -48,7 +48,7 @@ public class MergeAntiJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJoi
+             initialized = true;
+             if (!leftPeekingIterator.hasNext())
+                 return Collections.EMPTY_LIST;
+-            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStopOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
++            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
+         }
+         return new MergeAntiJoinIterator(leftPeekingIterator,
+                 Iterators.peekingIterator(mergeJoinOperation.getRightOperation().getDataSet().toLocalIterator()),
+diff --git a/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeInnerJoinFlatMapFunction.java b/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeInnerJoinFlatMapFunction.java
+index 692a569..93ed6f5 100644
+--- a/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeInnerJoinFlatMapFunction.java
++++ b/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeInnerJoinFlatMapFunction.java
+@@ -48,7 +48,7 @@ public class MergeInnerJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJo
+             initialized = true;
+             if (!leftPeekingIterator.hasNext())
+                 return Collections.EMPTY_LIST;
+-            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStopOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
++            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
+         }
+         return new MergeInnerJoinIterator(leftPeekingIterator,
+                 Iterators.peekingIterator(mergeJoinOperation.getRightOperation().getDataSet().toLocalIterator()),
+diff --git a/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeOuterJoinFlatMapFunction.java b/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeOuterJoinFlatMapFunction.java
+index 9ce9194..7adc6b5 100644
+--- a/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeOuterJoinFlatMapFunction.java
++++ b/splice_machine/src/main/java/com/splicemachine/derby/stream/function/merge/MergeOuterJoinFlatMapFunction.java
+@@ -46,7 +46,7 @@ public class MergeOuterJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJo
+             initialized = true;
+             if (!leftPeekingIterator.hasNext())
+                 return Collections.EMPTY_LIST;
+-            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStopOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
++            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
+         }
+         return new MergeOuterJoinIterator(leftPeekingIterator,
+                 Iterators.peekingIterator(mergeJoinOperation.getRightOperation().getDataSet().toLocalIterator()),

@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -20,6 +21,12 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
@@ -60,6 +67,7 @@ public class PopulateConglomerateTask extends ZkTask {
     private byte[] scanStart;
     private byte[] scanStop;
     private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+    private KeyEncoder noPKKeyEncoder;
 
     public PopulateConglomerateTask() { }
 
@@ -111,7 +119,7 @@ public class PopulateConglomerateTask extends ZkTask {
             try (SITableScanner scanner = getTableScanner(Metrics.noOpMetricFactory())) {
                 ExecRow nextRow = scanner.next(runtimeContext);
                 while (nextRow != null) {
-                    transformResults(nextRow, getTransformer(), getWriteBuffer());
+                    getWriteBuffer().add(getTransformer(getKeyEncoder(scanner)).transform(nextRow));
                     nextRow = scanner.next(runtimeContext);
                 }
             } finally {
@@ -170,25 +178,18 @@ public class PopulateConglomerateTask extends ZkTask {
 
     }
 
-    private void transformResults(ExecRow row,
-                                  RowTransformer transformer,
-                                  CallBuffer<KVPair> writeBuffer) throws Exception {
-        KVPair pair = transformer.transform(row);
-        writeBuffer.add(pair);
-    }
-
     private RecordingCallBuffer<KVPair> getWriteBuffer() {
         if (writeBuffer == null) {
             byte[] newTableLocation = Bytes.toBytes(Long.toString(ddlChange.getTentativeDDLDesc().getConglomerateNumber()));
-            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(newTableLocation, getTxn(),
-                                                                             Metrics.noOpMetricFactory());
+            writeBuffer = SpliceDriver.driver().getTableWriter().noIndexWriteBuffer(newTableLocation, getTxn(),
+                                                                                    Metrics.noOpMetricFactory());
         }
         return writeBuffer;
     }
 
-    private RowTransformer getTransformer() throws IOException {
+    private RowTransformer getTransformer(KeyEncoder keyEncoder) throws IOException {
         if (transformer == null) {
-            transformer = ((TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc()).createRowTransformer();
+            transformer = ((TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc()).createRowTransformer(keyEncoder);
         }
         return transformer;
     }
@@ -200,7 +201,8 @@ public class PopulateConglomerateTask extends ZkTask {
 
     @Override
     protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
-        return tc.beginChildTransaction(parentTxn, Long.toString(ddlChange.getTentativeDDLDesc().getConglomerateNumber()).getBytes());
+        return tc.beginChildTransaction(parentTxn, Long.toString(ddlChange.getTentativeDDLDesc()
+                                                                          .getConglomerateNumber()).getBytes());
     }
 
     @Override
@@ -217,5 +219,35 @@ public class PopulateConglomerateTask extends ZkTask {
         expectedScanReadWidth = in.readInt();
         demarcationTimestamp = in.readLong();
         ddlChange = (DDLChange) in.readObject();
+    }
+
+    public KeyEncoder getKeyEncoder(final SITableScanner scanner) throws StandardException {
+        if (noPKKeyEncoder == null) {
+
+            DataHash hash = new DataHash<ExecRow>() {
+                @Override
+                public void setRow(ExecRow rowToEncode) {
+                    // no op
+                }
+
+                @Override
+                public byte[] encode() throws StandardException, IOException {
+                    //Slice performs byte[] copy
+                    return scanner.getCurrentRowLocation().getBytes();
+                }
+
+                @Override
+                public KeyHashDecoder getDecoder() {
+                    return NoOpKeyHashDecoder.INSTANCE;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    // No Op
+                }
+            };
+            noPKKeyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, hash, NoOpPostfix.INSTANCE);
+        }
+        return noPKKeyEncoder;
     }
 }

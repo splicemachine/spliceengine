@@ -4,6 +4,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.WriteConfiguration;
+import com.splicemachine.si.api.TxnView;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -125,4 +126,5 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
 		public WriteConfiguration getWriteConfiguration() {
 			return delegateBuffer.getWriteConfiguration();
 		}
+        @Override public TxnView getTxn() { return delegateBuffer.getTxn();}
 }

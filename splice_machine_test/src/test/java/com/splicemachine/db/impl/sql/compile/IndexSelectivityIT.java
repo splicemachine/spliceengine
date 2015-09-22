@@ -87,7 +87,6 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-3729")
     public void testCoveringIndexScan() throws Exception {
         rowContainsQuery(3,"explain select c1 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_1",methodWatcher);
         rowContainsQuery(3,"explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
@@ -100,7 +99,8 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 = 1","IndexScan[TS_HIGH_CARDINALITY_IX_1",methodWatcher);
     }
 
-    @Test
+    @Ignore("Obsoleted by testRangeIndexLookup1 and testRangeIndexLookup2")
+    // Consider re-enabling this later, otherwise permanently remove it.
     public void testRangeIndexLookup() throws Exception {
         // 10/10000
         rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 10","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
@@ -114,6 +114,106 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 2000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 5000/10000
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 5000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
+    }
+    
+    @Test
+    public void testRangeIndexLookup1() throws Exception {
+    	// Instead of running unhinted explain and asserting that a TableScan or IndexScan
+    	// is selected (which is what we used to do here), now we hint with a specific index
+    	// and assert the more specific outcome of correct outputRows for both
+    	// the IndexScan and IndexLookup.
+    	
+    	String index = "TS_HIGH_CARDINALITY_IX_1";
+    	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
+        
+    	// 10/10000
+        rowContainsQuery(new int[]{3, 3, 4, 4},
+        	format(query, index, 10),
+            methodWatcher,
+            "IndexLookup","outputRows=8",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=8");
+        
+        // 100/10000
+        rowContainsQuery(new int[]{3, 3, 4, 4},
+        	format(query, index, 100),
+            methodWatcher,
+            "IndexLookup","outputRows=98",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=98");
+        
+        // 200/10000
+        rowContainsQuery(new int[]{3, 3, 4, 4},
+        	format(query, index, 200),
+            methodWatcher,
+            "IndexLookup","outputRows=198",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=198");
+        
+        // 1000/10000
+        rowContainsQuery(new int[]{3, 3, 4, 4},
+        	format(query, index, 1000),
+            methodWatcher,
+            "IndexLookup","outputRows=998",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=998");
+        
+        // 2000/10000
+        rowContainsQuery(new int[]{3, 3, 4, 4},
+        	format(query, index, 2000),
+            methodWatcher,
+            "IndexLookup","outputRows=1998",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=1998");
+        
+        // 5000/10000
+        rowContainsQuery(new int[]{3, 3, 4, 4},
+        	format(query, index, 5000),
+            methodWatcher,
+            "IndexLookup","outputRows=4998",
+            "IndexScan[TS_HIGH_CARDINALITY_IX_1","outputRows=4998");
+    }
+
+    @Test
+    public void testRangeIndexLookup2() throws Exception {
+        // Similar to testRangeIndexLookup1 except use index 2 (TS_HIGH_CARDINALITY_IX_2)
+    	// even though we still filter by C1. This will introduce ProjectRestrict
+    	// into the plan, but it should still have the correct outputRows.
+    	// DB-3872 caused the ProjectRestrict outputRows to be incorrect.
+
+    	String index2 = "TS_HIGH_CARDINALITY_IX_2";
+    	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
+        
+    	// 10/10000
+        rowContainsQuery(new int[]{3, 3},
+        	format(query, index2, 10),
+            methodWatcher,
+            "ProjectRestrict", "outputRows=8");
+        
+        // 100/10000
+        rowContainsQuery(new int[]{3, 3},
+        	format(query, index2, 100),
+            methodWatcher,
+            "ProjectRestrict", "outputRows=98");
+        
+        // 200/10000
+        rowContainsQuery(new int[]{3, 3},
+        	format(query, index2, 200),
+            methodWatcher,
+            "ProjectRestrict", "outputRows=198");
+        
+        // 1000/10000
+        rowContainsQuery(new int[]{3, 3},
+        	format(query, index2, 1000),
+            methodWatcher,
+            "ProjectRestrict", "outputRows=998");
+        
+        // 2000/10000
+        rowContainsQuery(new int[]{3, 3},
+        	format(query, index2, 2000),
+            methodWatcher,
+            "ProjectRestrict", "outputRows=1998");
+        
+        // 5000/10000
+        rowContainsQuery(new int[]{3, 3},
+        	format(query, index2, 5000),
+            methodWatcher,
+            "ProjectRestrict", "outputRows=4998");
     }
 
     @Test

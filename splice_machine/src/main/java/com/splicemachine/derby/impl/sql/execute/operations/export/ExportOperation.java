@@ -2,11 +2,11 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.sql.compile.ExportNode;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -18,9 +18,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.supercsv.io.CsvListWriter;
-
 import java.io.*;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -59,6 +57,11 @@ public class ExportOperation extends SpliceBaseOperation {
                            String fieldSeparator,
                            String quoteCharacter) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
+
+        if (replicationCount <= 0 && replicationCount != ExportNode.DEFAULT_INT_VALUE) {
+            throw StandardException.newException(SQLState.EXPORT_PARAMETER_IS_WRONG);
+        }
+
         this.source = source;
         this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
