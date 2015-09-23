@@ -7,9 +7,9 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class Subquery_InListFlattening_IT {
+public class Subquery_Flattening_InList_IT {
 
-    private static final String SCHEMA = Subquery_InListFlattening_IT.class.getSimpleName();
+    private static final String SCHEMA = Subquery_Flattening_InList_IT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);

@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -14,8 +13,6 @@ import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 
@@ -23,9 +20,9 @@ import static org.junit.Assert.assertEquals;
  * Test for flattening where-subqueries containing aggregates. Splice added this capability. <p/> All of the tested
  * subqueries should be in the where clause and should have aggregates.
  */
-public class Subquery_AggregateFlattening_IT {
+public class Subquery_Flattening_Aggregate_IT {
 
-    private static final String SCHEMA = Subquery_AggregateFlattening_IT.class.getSimpleName();
+    private static final String SCHEMA = Subquery_Flattening_Aggregate_IT.class.getSimpleName();
 
     private static final int ALL_FLATTENED = 0;
 
@@ -56,7 +53,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_equals_columnRef() throws Exception {
+    public void equals_columnRef() throws Exception {
         String sql = "select * from A where A.a2 = (select max(b2) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3 |\n" +
@@ -71,7 +68,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_notEquals_columnRef() throws Exception {
+    public void notEquals_columnRef() throws Exception {
         String sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3  |\n" +
@@ -93,7 +90,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_notEquals_extraTopLevelPredicate() throws Exception {
+    public void notEquals_extraTopLevelPredicate() throws Exception {
         // the subquery filters out A.a1=0,2 and the top level predicate filters out A.a1=3
         String sql = "select * from A where A.a2!= 30 AND A.a2 != (select max(b2) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
@@ -106,7 +103,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_lessThan_extraPredicateInSubquery() throws Exception {
+    public void lessThan_extraPredicateInSubquery() throws Exception {
         String sql = "select * from A where A.a2  < (select sum(b2) from B where B.b1=A.a1 AND B.b2 >= 40)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3  |\n" +
@@ -118,7 +115,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_greaterThanLessThan_columnRef() throws Exception {
+    public void greaterThanLessThan_columnRef() throws Exception {
         String sql = "select * from A where A.a2  > (select max(b2) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3 |\n" +
@@ -133,7 +130,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_equals_arithmetic() throws Exception {
+    public void equals_arithmetic() throws Exception {
         String sql = "select * from A where A.a2 * 10 = (select max(b2) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3 |\n" +
@@ -143,7 +140,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_equals_constant() throws Exception {
+    public void equals_constant() throws Exception {
         String sql = "select * from A where 4444 = (select sum(b2) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3 |\n" +
@@ -157,7 +154,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_aggregateMultipliedByConstant() throws Exception {
+    public void aggregateMultipliedByConstant() throws Exception {
         String sql = "select * from A where A.a2 * 10 = (select max(b2)*0.1 from B where B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3  |\n" +
@@ -168,7 +165,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_correlatedAggregateInMiddle() throws Exception {
+    public void correlatedAggregateInMiddle() throws Exception {
         for (int i = 0; i < 20; i++) {
             List<String> preds = Arrays.asList("b1>0", "b1=a1", "b2>0", "b3<=0");
             Collections.shuffle(preds);
@@ -179,7 +176,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_unaryOperatorArithmeticNode() throws Exception {
+    public void unaryOperatorArithmeticNode() throws Exception {
         String sql = "select * from A where A.a2 = (select max(b2) from B where B.b1=A.a1 and sqrt(b1) > 1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3 |\n" +
@@ -227,7 +224,7 @@ public class Subquery_AggregateFlattening_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    public void subquery_multipleCorrelationPredicates() throws Exception {
+    public void multipleCorrelationPredicates() throws Exception {
         String sql = "select * from A where A.a2 > (select sum(b2) from B where A.a1=B.b1 AND A.a1=B.b3)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
                 "A1 |A2 |A3 |\n" +
@@ -245,7 +242,7 @@ public class Subquery_AggregateFlattening_IT {
     }
 
     @Test
-    public void subquery_multipleCorrelationPredicates_Extraneous() throws Exception {
+    public void multipleCorrelationPredicates_Extraneous() throws Exception {
         // Extraneous correlated predicates.
         String sql = "select * from A where A.a2 < (select sum(b2) from B where B.b1=A.a1 AND B.b1=A.a1 AND B.b1=A.a1)";
         assertUnorderedResult(sql, ALL_FLATTENED, "" +
@@ -412,6 +409,22 @@ public class Subquery_AggregateFlattening_IT {
                 " 5 |50 |500 |");
     }
 
+    @Test
+    public void nestedCorrelatedTwoLevels() throws Exception {
+        String sql = "select t1.* from A t1 where t1.a2 > " +
+                "              (select sum(b1) from B t2 where t2.b2 > " +
+                "                  (select sum(a1) from A t3 where t3.a2=t2.b1))";
+        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 1 |10 |10  |\n" +
+                " 2 |20 |20  |\n" +
+                " 3 |30 |30  |\n" +
+                " 4 |40 |40  |\n" +
+                " 5 |50 |500 |");
+    }
+
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // outer query has multiple tables
@@ -569,21 +582,6 @@ public class Subquery_AggregateFlattening_IT {
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 0 | 0 | 0  |\n" +
-                " 4 |40 |40  |\n" +
-                " 5 |50 |500 |");
-    }
-
-    @Test
-    public void unsupported_nestedCorrelatedTwoLevels() throws Exception {
-        String sql = "select t1.* from A t1 where t1.a2 > " +
-                "              (select sum(b1) from B t2 where t2.b2 > " +
-                "                  (select sum(a1) from A t3 where t3.a2=t2.b1))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3  |\n" +
-                "-------------\n" +
-                " 1 |10 |10  |\n" +
-                " 2 |20 |20  |\n" +
-                " 3 |30 |30  |\n" +
                 " 4 |40 |40  |\n" +
                 " 5 |50 |500 |");
     }
