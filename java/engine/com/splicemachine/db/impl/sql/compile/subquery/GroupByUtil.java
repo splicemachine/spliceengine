@@ -18,21 +18,22 @@ public class GroupByUtil {
      *       where EXISTS( select 1 from B where b1=a1);
      * </pre>
      *
-     * TO
+     * To:
+     *
      * <pre>
      *     select A.*
      *       from A
-     *       where EXISTS( select 1,b1 from B where b1=a1 group by by b1);
+     *       where EXISTS( select 1,b1 from B where b1=a1 group by by b1 );
      * </pre>
      *
-     * (actually the correlated subquery predicate is removed from the tree before we get here but I left it in the
-     * above example for clarity)
+     * (actually the correlated subquery predicate(s) are removed from the subquery tree before we get here but I left
+     * it in the above example for clarity)
      */
-    public static void addGroupByNodes(SelectNode topSelectNode,
+    public static void addGroupByNodes(SelectNode outerSelectNode,
                                        SelectNode subquerySelectNode,
                                        List<BinaryRelationalOperatorNode> correlatedSubqueryPreds) throws StandardException {
 
-        int subqueryNestingLevel = topSelectNode.getNestingLevel() + 1;
+        int subqueryNestingLevel = outerSelectNode.getNestingLevel() + 1;
 
         for (BinaryRelationalOperatorNode bro : correlatedSubqueryPreds) {
             if (PredicateUtils.isLeftColRef(bro, subqueryNestingLevel)) {

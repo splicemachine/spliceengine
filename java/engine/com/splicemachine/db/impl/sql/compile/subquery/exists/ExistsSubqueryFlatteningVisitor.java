@@ -45,7 +45,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
 
         /**
-         * Stop if this is not a select node with a BinaryOperator where
+         * Stop if this is not a select node
          */
         if (!(node instanceof SelectNode)) {
             return node;

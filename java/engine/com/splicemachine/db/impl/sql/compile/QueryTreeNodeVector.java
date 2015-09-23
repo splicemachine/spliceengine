@@ -92,7 +92,21 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
     }
 
     final void insertElementAt(T qt,int index){
-        v.add(index,qt);
+        v.add(index, qt);
+    }
+
+    /**
+     * Return TRUE if this object contains any node that is the specified node or a subclass of the specified node.
+     *
+     * EXAMPLE fromList.containsNode(UnionNode.class) will return true if the fromList contains any type of UnionNode.
+     */
+    public boolean containsNode(Class<?> testClass) {
+        for(T t: v) {
+            if(testClass.isAssignableFrom(t.getClass())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -127,7 +141,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         }
     }
 
-    public List getNodes(){
+    public List<T> getNodes(){
         return v;
     }
 }

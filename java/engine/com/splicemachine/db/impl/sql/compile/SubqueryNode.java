@@ -738,8 +738,7 @@ public class SubqueryNode extends ValueNode{
                  *    to restrict the left side of the join.
 				 */
                 else if((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
-                        ((leftOperand==null)?true:
-                                leftOperand.categorize(new JBitSet(numTables),false)) &&
+                        ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
                         select.getWherePredicates().allPushable()){
                     FromBaseTable fbt=singleFromBaseTable(select.getFromList());
 

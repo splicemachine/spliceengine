@@ -21,11 +21,11 @@ public class FromSubqueryColRefFactory {
      *     select A.*
      *       from A
      *       join (select 1,b1,sum(b2) from B where b2 > x) foo
-     *       where a > 1;
+     *       where a1 > 1;
      * </pre>
      *
      * Here we are creating a column reference that can be used in the outer query to reference foo.b1 so that we can
-     * add predicates to the outer query such as a = foo.b1
+     * add predicates to the outer query such as a1 = foo.b1
      *
      * @param outerSelectNestingLevel select node of the outer query.
      * @param newFromSubquery         the FromSubquery we are creating as part of subquery flattening.

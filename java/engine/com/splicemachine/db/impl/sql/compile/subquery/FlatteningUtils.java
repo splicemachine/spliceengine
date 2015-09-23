@@ -16,9 +16,9 @@ public class FlatteningUtils {
     /**
      * Add predicates to the outer table's where clause.
      *
-     * @node is initially the where clause of the outer query.
-     * @pred is a predicate we are moving from subquery to the outer query.  It should already have column references
-     * updated to reference the new FromSubquery table.
+     * @param node is initially the where clause of the outer query.
+     * @param pred is a predicate we are moving from subquery to the outer query.  It should already have column
+     *             references updated to reference the new FromSubquery table.
      */
     public static ValueNode addPredToTree(ValueNode node,
                                           BinaryRelationalOperatorNode pred) throws StandardException {
