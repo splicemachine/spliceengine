@@ -63,10 +63,13 @@ public class SpliceCsvReader extends CsvListReader {
 	public String[] readAsStringArray() throws IOException {
         boolean res = false;
 
-        try {
-            res = readRow();
-        } catch (Exception e) {
-            failMsg.add(e.getMessage());
+        while (!res) {
+            try {
+                res = readRow();
+                break;
+            } catch (Exception e) {
+                failMsg.add(e.getMessage());
+            }
         }
 
 		if (res) {

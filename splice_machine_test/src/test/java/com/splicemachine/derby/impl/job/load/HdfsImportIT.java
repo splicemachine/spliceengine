@@ -728,25 +728,16 @@ public class HdfsImportIT extends SpliceUnitTest {
 		 *     https://github.com/junit-team/junit/issues/714
 		 *     https://github.com/junit-team/junit/pull/778
 		 */
-		//try {
-			testMissingEndQuoteForQuotedColumn(
-					spliceSchemaWatcher.schemaName,
-					TABLE_18,
-					getResourceDirectory() + "import/missing-end-quote/employees.csv",
-					"NAME,TITLE,AGE",
-					baddir.newFolder().getCanonicalPath(),
-					0,
-					1); //6);
-//		} catch (Throwable t) {
-//			String expectedMessage1 = "unexpected end of file";
-//			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
-//			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
-//            if (! rootCauseMessage.contains("Intentional task invalidation")) {
-//                Assert.assertTrue(
-//                        String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
-//                        rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
-//            }
-//        }
+
+        // no exceptions now, just skipping wrong lines
+        testMissingEndQuoteForQuotedColumn(
+			spliceSchemaWatcher.schemaName,
+			TABLE_18,
+			getResourceDirectory() + "import/missing-end-quote/employees.csv",
+			"NAME,TITLE,AGE",
+			baddir.newFolder().getCanonicalPath(),
+			0,
+			1); //6
 	}
 
 	/**
@@ -766,26 +757,16 @@ public class HdfsImportIT extends SpliceUnitTest {
 		 *     https://github.com/junit-team/junit/issues/714
 		 *     https://github.com/junit-team/junit/pull/778
 		 */
-		//try {
-            // no exceptions now, we just skipping wrong lines
-			testMissingEndQuoteForQuotedColumn(
-					spliceSchemaWatcher.schemaName,
-					TABLE_18,
-					getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv",
-					"NAME,TITLE,AGE",
-					baddir.newFolder().getCanonicalPath(),
-					0,
-					2); //201000);
-//		} catch (Throwable t) {
-//			String expectedMessage1 = "Quoted column beginning on line";
-//			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
-//			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
-//            if (! rootCauseMessage.contains("Intentional task invalidation")) {
-//                Assert.assertTrue(
-//                        String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
-//                        rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
-//            }
-//        }
+
+        // no exceptions now, we just skipping wrong lines
+		testMissingEndQuoteForQuotedColumn(
+                spliceSchemaWatcher.schemaName,
+                TABLE_18,
+                getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv",
+                "NAME,TITLE,AGE",
+                baddir.newFolder().getCanonicalPath(),
+                0,
+                199999); //201000
 	}
 
     //DB-3685
