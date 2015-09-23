@@ -2198,7 +2198,7 @@ public class SelectNode extends ResultSetNode{
      * @param boolClause clause to normalize
      * @throws StandardException Thrown on error
      */
-    private ValueNode normExpressions(ValueNode boolClause) throws StandardException{
+    public static ValueNode normExpressions(ValueNode boolClause) throws StandardException{
 		/* For each expression tree:
 		 *	o Eliminate NOTs (eliminateNots())
 		 *	o Ensure that there is an AndNode on top of every
@@ -2328,5 +2328,18 @@ public class SelectNode extends ResultSetNode{
 
     public OrderByList getOrderByList() {
         return orderByList;
+    }
+
+    public static class SelectNodeWithSubqueryPredicate implements com.google.common.base.Predicate<Visitable> {
+        @Override
+        public boolean apply(Visitable input) {
+            return (input instanceof SelectNode) && !((SelectNode) input).getWhereSubquerys().isEmpty();
+        }
+    }
+    public static class SelectNodeNestingLevelFunction implements com.google.common.base.Function<SelectNode, Integer> {
+        @Override
+        public Integer apply(SelectNode input) {
+            return input.getNestingLevel();
+        }
     }
 }

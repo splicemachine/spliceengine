@@ -54,7 +54,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         v.add(qt);
     }
 
-    final void removeElementAt(int index){
+    public final void removeElementAt(int index){
         v.remove(index);
     }
 
@@ -66,7 +66,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         return v.remove(index);
     }
 
-    final void setElementAt(T qt,int index){
+    public final void setElementAt(T qt,int index){
         v.set(index,qt);
     }
 
@@ -80,7 +80,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         qtnv.removeAllElements();
     }
 
-    void nondestructiveAppend(QueryTreeNodeVector<T> qtnv){
+    public void nondestructiveAppend(QueryTreeNodeVector<T> qtnv){
         int qtnvSize=qtnv.size();
         for(int index=0;index<qtnvSize;index++){
             v.add(qtnv.elementAt(index));

@@ -737,7 +737,7 @@ public class SubqueryNode extends ValueNode{
                  *    FBT, otherwise the generated join condition may be used
                  *    to restrict the left side of the join.
 				 */
-                else if((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
+                else if((isIN() || isANY() || flattenableNotExists) &&
                         ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
                         select.getWherePredicates().allPushable()){
                     FromBaseTable fbt=singleFromBaseTable(select.getFromList());
@@ -2304,11 +2304,11 @@ public class SubqueryNode extends ValueNode{
         }
     }
 
-    private boolean isEXISTS(){
+    public boolean isEXISTS(){
         return subqueryType==EXISTS_SUBQUERY;
     }
 
-    private boolean isNOT_EXISTS(){
+    public boolean isNOT_EXISTS(){
         return subqueryType==NOT_EXISTS_SUBQUERY;
     }
 

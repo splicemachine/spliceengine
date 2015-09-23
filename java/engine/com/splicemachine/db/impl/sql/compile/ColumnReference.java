@@ -92,8 +92,32 @@ public class ColumnReference extends ValueNode {
 	private boolean		replacesAggregate;
 	private boolean		replacesWindowFunctionCall;
 
-	private int			nestingLevel = -1;
-	private int			sourceLevel = -1;
+    // 'nestingLevel' is the (0 indexed) level at which the column reference appears in the query.  Zero if this col ref
+    // is contained by a top level select, 1 if contained by a singly nested subquery, 2 if a doubly nested subquery, etc.
+    //
+    // 'sourceLevel' is similar to nestingLevel except that it indicates the nesting level of the referenced column.
+    // A better name for this field might have been targetNestingLevel.
+    //
+    // Note that the source level of a column reference is the same whether the result column comes from a FromBaseTable
+    // or FromSubquery.
+    //
+    // EXAMPLE
+    //<pre>
+    //
+    // select * from A left join (select * from D) foo on foo.d1 = a1 where a2 = (select max(c2) from C where c3=a3);
+    //
+    //  col ref | nesting level | source level
+    //  --------------------------------------
+    //   foo.d1 |             0 |           0
+    //       a1 |             0 |           0
+    //       a2 |             0 |           0
+    //       c2 |             1 |           1
+    //       c3 |             1 |           1
+    //       a3 |             1 |           0
+    //
+    //</pre>
+    private int nestingLevel = -1;
+    private int sourceLevel = -1;
 
 	/* Whether or not this column reference been scoped for the
 	   sake of predicate pushdown.
@@ -236,7 +260,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @return	The nesting level for this CR.
 	 */
-	int getNestingLevel()
+	public int getNestingLevel()
 	{
 		return nestingLevel;
 	}

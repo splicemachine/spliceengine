@@ -1673,5 +1673,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
     }
 
+    @Override
+    public String toHTMLString() {
+        return "" +
+                "resultSetNumber: " + getResultSetNumber() + "<br/>" +
+                "level: " + getLevel() + "<br/>" +
+                "correlationName: " + getCorrelationName() + "<br/>" +
+                "corrTableName: " + Objects.toString(corrTableName) + "<br/>" +
+                "tableNumber: " + getTableNumber() + "<br/>" +
+                super.toHTMLString();
+    }
 
 }

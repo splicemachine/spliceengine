@@ -4,10 +4,10 @@ import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelationLevelPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.IsCorrelatedPredicate;
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -104,8 +104,8 @@ class AggregateSubqueryWhereVisitor implements Visitor {
             List<ColumnReference> leftReferences = RSUtils.collectNodes(leftOperand, ColumnReference.class);
             List<ColumnReference> rightReferences = RSUtils.collectNodes(rightOperand, ColumnReference.class);
 
-            List<ColumnReference> leftReferencesCorrelated = Lists.newArrayList(filter(leftReferences, new IsCorrelatedPredicate()));
-            List<ColumnReference> rightReferencesCorrelated = Lists.newArrayList(filter(rightReferences, new IsCorrelatedPredicate()));
+            List<ColumnReference> leftReferencesCorrelated = Lists.newArrayList(filter(leftReferences, new ColumnUtils.IsCorrelatedPredicate()));
+            List<ColumnReference> rightReferencesCorrelated = Lists.newArrayList(filter(rightReferences, new ColumnUtils.IsCorrelatedPredicate()));
 
             /* GOOD: Neither side had correlated predicates at any level. */
             if (leftReferencesCorrelated.isEmpty() && rightReferencesCorrelated.isEmpty()) {
