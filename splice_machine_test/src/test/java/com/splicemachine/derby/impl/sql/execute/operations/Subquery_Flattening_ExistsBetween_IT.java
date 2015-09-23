@@ -2,11 +2,18 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
-public class SubqueryExistsFlatteningIT {
+/**
+ * Tests related to DB-3779.  At one time the existence of a between operator in a given select would prevent any exists
+ * subqueries it contained from being flattened.
+ */
+public class Subquery_Flattening_ExistsBetween_IT {
 
-    private static final String SCHEMA = SubqueryExistsFlatteningIT.class.getSimpleName();
+    private static final String SCHEMA = Subquery_Flattening_ExistsBetween_IT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
