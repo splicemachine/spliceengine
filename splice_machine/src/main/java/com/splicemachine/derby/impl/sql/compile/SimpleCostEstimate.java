@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
-import com.splicemachine.db.iapi.store.access.SortCostController;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-
+import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.iapi.error.StandardException;
 import java.text.DecimalFormat;
 
 /**
@@ -21,6 +21,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private double numRows = Double.MAX_VALUE;
     private double singleScanRowCount = Double.MAX_VALUE;
     private RowOrdering rowOrdering;
+    private OptimizablePredicateList predicateList;
     private SimpleCostEstimate baseCost;
     private boolean isRealCost=true;
     private long estimatedHeapSize;
@@ -83,6 +84,7 @@ public class SimpleCostEstimate implements CostEstimate{
         else
             this.rowOrdering = null;
 
+        setPredicateList(other.getPredicateList());
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
             this.baseCost = (SimpleCostEstimate) base.cloneMe();
@@ -141,7 +143,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+
-                ",rowOrdering="+rowOrdering+")";
+                ",rowOrdering="+rowOrdering+
+                ",predicateList="+predicateList+")";
     }
 
     @Override public void setRowCount(double outerRows){ this.numRows = outerRows;  }
@@ -156,6 +159,16 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override public RowOrdering getRowOrdering(){ return rowOrdering; }
     @Override public void setRowOrdering(RowOrdering rowOrdering){
         this.rowOrdering = rowOrdering;
+    }
+    @Override public OptimizablePredicateList getPredicateList() {return predicateList;}
+    @Override
+    public void setPredicateList(OptimizablePredicateList predicateList){
+        this.predicateList = new PredicateList();
+        if(predicateList != null) {
+            for (int i = 0; i < predicateList.size(); ++i) {
+                this.predicateList.addOptPredicate(predicateList.getOptPredicate(i));
+            }
+        }
     }
     @Override public CostEstimate getBase(){ return baseCost==null?this:baseCost; }
     @Override public void setBase(CostEstimate baseCost){ this.baseCost = (SimpleCostEstimate) baseCost; }
@@ -184,6 +197,7 @@ public class SimpleCostEstimate implements CostEstimate{
         }
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
         clone.setRowOrdering(roClone);
+        clone.setPredicateList(predicateList);
         clone.setEstimatedHeapSize(estimatedHeapSize);
         clone.setOpenCost(openCost);
         clone.setCloseCost(closeCost);

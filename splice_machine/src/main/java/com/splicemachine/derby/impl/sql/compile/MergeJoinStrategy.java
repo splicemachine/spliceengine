@@ -73,10 +73,19 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         ConglomerateDescriptor currentCd=innerTable.getCurrentAccessPath().getConglomerateDescriptor();
         if(currentCd==null) return false; //TODO -sf- this happens when over a non table scan, we should fix that
 
+        // Take into account predicates from both inner and outer tables
+        OptimizablePredicateList allPredicateList = new PredicateList();
+        if (predList != null) {
+            predList.copyPredicatesToOtherList(allPredicateList);
+        }
+        OptimizablePredicateList outerTablePredicateList = outerCost.getPredicateList();
+        if (outerTablePredicateList != null) {
+            outerTablePredicateList.copyPredicatesToOtherList(allPredicateList);
+        }
         IndexRowGenerator innerRowGen=currentCd.getIndexDescriptor();
         return innerRowGen!=null
                 && innerRowGen.getIndexDescriptor()!=null
-                && mergeable(outerRowOrdering,innerRowGen,predList,innerTable);
+                && mergeable(outerRowOrdering,innerRowGen,allPredicateList,innerTable);
     }
 
 
@@ -209,6 +218,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                 BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
                 ColumnReference innerColumn=relop.getColumnOperand(innerTable);
                 ColumnReference outerColumn=getOuterColumn(bron,innerColumn);
+                if (innerColumn == null) continue;
                 int innerColumnNumber = innerColumn.getColumnNumber();
                 if(innerColumnNumber==innerColumnPosition){
                     innerColumns.set(i);
@@ -252,13 +262,18 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
          * Find the first inner join column, make sure all columns before it appear in innerColumns. These columns
          * are referenced in equal predicates
          */
-        int first = 0;
-        while(innerToOuterJoinColumnMap[first] == -1) {
-            first++;
-        }
-        for (int i = 0; i < first; ++i) {
-            if (!innerColumns.get(i)) {
+        if (innerToOuterJoinColumnMap.length > 0) {
+            int first = 0;
+            while (first < innerToOuterJoinColumnMap.length && innerToOuterJoinColumnMap[first] == -1) {
+                first++;
+            }
+            // No inner join columns, merge join is not feasible
+            if (first >= innerToOuterJoinColumnMap.length)
                 return false;
+            for (int i = 0; i < first; ++i) {
+                if (!innerColumns.get(i)) {
+                    return false;
+                }
             }
         }
         return true;
