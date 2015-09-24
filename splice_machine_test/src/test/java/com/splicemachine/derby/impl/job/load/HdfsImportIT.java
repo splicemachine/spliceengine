@@ -1,19 +1,14 @@
 package com.splicemachine.derby.impl.job.load;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SlowTest;
 
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -27,7 +22,6 @@ import java.util.TimeZone;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HdfsImportIT extends SpliceUnitTest {
@@ -719,28 +713,25 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnEOF() throws Exception {
-		/*
-		 * PLEASE NOTE:
-		 * I do not like this test.  It is nasty to fetch the root cause's message and substring match parts of it.
-		 * However, since Derby and Splice wrap the exceptions so many times, I don't see any option to determine whether
-		 * the correct exception is being thrown.
-		 * I also do not see an expectRootCause method and the junit team has rejected the request for it a couple times:
-		 *     https://github.com/junit-team/junit/issues/714
-		 *     https://github.com/junit-team/junit/pull/778
-		 */
-
         // no exceptions now, just skipping wrong lines
+
+        String path = baddir.newFolder().getCanonicalPath();
+
         testMissingEndQuoteForQuotedColumn(
 			spliceSchemaWatcher.schemaName,
 			TABLE_18,
 			getResourceDirectory() + "import/missing-end-quote/employees.csv",
 			"NAME,TITLE,AGE",
-			baddir.newFolder().getCanonicalPath(),
+			path,
 			0,
 			1); //6
+
+        checkImportStatusLogFiles(path, "_BAD_employees.csv");
 	}
 
-	/**
+
+
+    /**
 	 * Tests an import scenario where a quoted column is missing the end quote and the
 	 * maximum number of lines in a quoted column is exceeded.
 	 *
@@ -748,25 +739,18 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnMax() throws Exception {
-		/*
-		 * PLEASE NOTE:
-		 * I do not like this test.  It is nasty to fetch the root cause's message and substring match parts of it.
-		 * However, since Derby and Splice wrap the exceptions so many times, I don't see any option to determine whether
-		 * the correct exception is being thrown.
-		 * I also do not see an expectRootCause method and the junit team has rejected the request for it a couple times:
-		 *     https://github.com/junit-team/junit/issues/714
-		 *     https://github.com/junit-team/junit/pull/778
-		 */
-
         // no exceptions now, we just skipping wrong lines
+        String path = baddir.newFolder().getCanonicalPath();
 		testMissingEndQuoteForQuotedColumn(
                 spliceSchemaWatcher.schemaName,
                 TABLE_18,
                 getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv",
                 "NAME,TITLE,AGE",
-                baddir.newFolder().getCanonicalPath(),
+                path,
                 0,
                 199999); //201000
+
+         checkImportStatusLogFiles(path, "_BAD_employeesMaxQuotedColumnLines.csv");
 	}
 
     //DB-3685
@@ -786,7 +770,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery("select count(*) from HdfsImportIT.num_dt1 --SPLICE-PROPERTIES index=idx1");
         assertTrue(rs.next());
         int c2 = rs.getInt(1);
-        assertTrue(c1==c2);
+        assertTrue(c1 == c2);
     }
 	/**
 	 * Worker method for import tests related to CSV files that are missing the end quote for a quoted column.
@@ -821,4 +805,26 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
+
+
+    private void checkImportStatusLogFiles(String path, String errorMessagesFileNamePrefix) {
+        boolean wasImportStatusFile = false;
+        boolean wasBadFile = false;
+        File dir = new File(path);
+        File[] files = dir.listFiles();
+        for (File file : files) {
+            String fileName = file.getName();
+            //System.out.println(fileName);
+            if ("importStatus.log".equals(fileName)) {
+                wasImportStatusFile = true;
+            }
+
+            if (fileName.startsWith(errorMessagesFileNamePrefix)) {
+                wasBadFile = true;
+            }
+        }
+
+        assertTrue("No import status file", wasImportStatusFile); // at least 1 error should be
+        assertTrue("No file with error messages", wasBadFile);
+    }
 }

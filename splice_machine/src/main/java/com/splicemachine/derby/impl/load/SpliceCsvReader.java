@@ -67,8 +67,17 @@ public class SpliceCsvReader extends CsvListReader {
             try {
                 res = readRow();
                 break;
-            } catch (Exception e) {
-                failMsg.add(e.getMessage());
+            } catch (SuperCsvException e) {
+                // catch exactly Quoted-exception with this message
+                // Text of message is taken from Tokenizer class of 3rd party SuperCsv library
+                // readColumns() method, line 85
+                String message = e.getMessage();
+                if (message != null && (
+                        message.contains("Quoted column beginning on line") || message.contains("unexpected end of file"))) {
+                    failMsg.add(e.getMessage());
+                } else {
+                    throw e;
+                }
             }
         }
 
