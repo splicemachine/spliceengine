@@ -49,9 +49,6 @@ public class MergeJoinIT extends SpliceUnitTest {
     protected static final String A = "A";
     protected static final String B = "B";
     protected static final String A_IDX = "A_IDX";
-    protected static final String ORDERLINE = "ORDER_LINE";
-    protected static final String STOCK = "STOCK";
-    protected static final String ORDERLINE_IDX = "ORDER_LINE_IX";
 
     protected static SpliceTableWatcher lineItemTable = new SpliceTableWatcher(LINEITEM, CLASS_NAME,
             "( L_ORDERKEY INTEGER NOT NULL,L_PARTKEY INTEGER NOT NULL, L_SUPPKEY INTEGER NOT NULL, " +
@@ -64,42 +61,6 @@ public class MergeJoinIT extends SpliceUnitTest {
                     "O_TOTALPRICE DECIMAL(15,2),O_ORDERDATE DATE, O_ORDERPRIORITY  CHAR(15), " +
                     "O_CLERK CHAR(15), O_SHIPPRIORITY INTEGER, O_COMMENT VARCHAR(79))");
 
-
-    protected static SpliceTableWatcher orderLineTable = new SpliceTableWatcher(ORDERLINE, CLASS_NAME,
-            "(ol_w_id int NOT NULL,\n" +
-                    "  ol_d_id int NOT NULL,\n" +
-                    "  ol_o_id int NOT NULL,\n" +
-                    "  ol_number int NOT NULL,\n" +
-                    "  ol_i_id int NOT NULL,\n" +
-                    "  ol_delivery_d timestamp,\n" +
-                    "  ol_amount decimal(6,2) NOT NULL,\n" +
-                    "  ol_supply_w_id int NOT NULL,\n" +
-                    "  ol_quantity decimal(2,0) NOT NULL,\n" +
-                    "  ol_dist_info char(24) NOT NULL,\n" +
-                    "  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number))");
-
-    protected static SpliceTableWatcher stockTable = new SpliceTableWatcher(STOCK, CLASS_NAME,
-            "(s_w_id int NOT NULL,\n" +
-                    "  s_i_id int NOT NULL,\n" +
-                    "  s_quantity decimal(4,0) NOT NULL,\n" +
-                    "  s_ytd decimal(8,2) NOT NULL,\n" +
-                    "  s_order_cnt int NOT NULL,\n" +
-                    "  s_remote_cnt int NOT NULL,\n" +
-                    "  s_data varchar(50) NOT NULL,\n" +
-                    "  s_dist_01 varchar(24) NOT NULL,\n" +
-                    "  s_dist_02 varchar(24) NOT NULL,\n" +
-                    "  s_dist_03 varchar(24) NOT NULL,\n" +
-                    "  s_dist_04 varchar(24) NOT NULL,\n" +
-                    "  s_dist_05 varchar(24) NOT NULL,\n" +
-                    "  s_dist_06 varchar(24) NOT NULL,\n" +
-                    "  s_dist_07 varchar(24) NOT NULL,\n" +
-                    "  s_dist_08 varchar(24) NOT NULL,\n" +
-                    "  s_dist_09 varchar(24) NOT NULL,\n" +
-                    "  s_dist_10 varchar(24) NOT NULL,\n" +
-                    "  PRIMARY KEY (s_w_id,s_i_id)\n" +
-                    ")");
-
-    protected static SpliceIndexWatcher orderLineIndex = new SpliceIndexWatcher(ORDERLINE,CLASS_NAME,ORDERLINE_IDX,CLASS_NAME,"(ol_w_id, ol_d_id, ol_i_id, ol_o_id)");
 
     protected static SpliceTableWatcher fooTable = new SpliceTableWatcher(FOO, CLASS_NAME,
             "(col1 int, col2 int, primary key (col1))");
@@ -136,19 +97,7 @@ public class MergeJoinIT extends SpliceUnitTest {
             " on test.col7 = test2.col2 and" +
             " test.col5 = test2.col1",CLASS_NAME,TEST,CLASS_NAME,TEST2);
 
-    protected static String MERGE_WITH_OUTER_TABLE_PREDICATE = format(
-            "explain SELECT COUNT(DISTINCT (s_i_id)) AS stock_count\n" +
-            "FROM --splice-properties joinOrder=fixed\n" +
-            "%s.%s --splice-properties index=%s\n" +
-            ",%s.%s --splice-properties joinStrategy=MERGE\n" +
-            "WHERE\n" +
-            "ol_w_id = 1\n" +
-            "AND ol_d_id = 1\n" +
-            "AND ol_i_id = s_i_id\n" +
-            "AND ol_w_id = s_w_id\n" +
-            "AND s_quantity < 25\n" +
-            "AND ol_o_id < 50\n" +
-            "AND ol_o_id >= 50 - 20",CLASS_NAME,ORDERLINE,ORDERLINE_IDX,CLASS_NAME,STOCK);
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceSchemaWatcher)
             .around(spliceClassWatcher)
@@ -162,17 +111,14 @@ public class MergeJoinIT extends SpliceUnitTest {
             .around(foo2Index)
             .around(testTable)
             .around(test2Table)
-            .around(orderLineTable)
-            .around(stockTable)
-            .around(orderLineIndex)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2)", CLASS_NAME, FOO));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)", CLASS_NAME, FOO2));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4,1,6,2,8)", CLASS_NAME, TEST));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4)", CLASS_NAME, TEST2));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2)",CLASS_NAME,FOO));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)",CLASS_NAME,FOO2));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4,1,6,2,8)",CLASS_NAME,TEST));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4)",CLASS_NAME,TEST2));
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -391,10 +337,6 @@ public class MergeJoinIT extends SpliceUnitTest {
         }
     }
 
-    @Test
-    public void testMergeWithPredicateFromOuterTable() throws Exception {
-        rowContainsQuery(6, MERGE_WITH_OUTER_TABLE_PREDICATE, "MergeJoin", methodWatcher);
-    }
     private static String getResource(String name) {
         return getResourceDirectory() + "tcph/data/" + name;
     }
