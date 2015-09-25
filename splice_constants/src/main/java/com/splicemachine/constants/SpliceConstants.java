@@ -41,7 +41,7 @@ public class SpliceConstants {
      * Ignore SavePts flag for experimental TPCC testing.
      */
     @Parameter public static final String IGNORE_SAVEPTS = "splice.ignore.savepts";
-    @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
+    @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = true;
     public static boolean ignoreSavePts;
 
 
@@ -877,7 +877,7 @@ public class SpliceConstants {
      *
      * We make it a power of two to make it easier to write buffers which are powers of 2.
      */
-    public static final int DEFAULT_CACHE_SIZE = (1<<10);
+    public static final int DEFAULT_CACHE_SIZE = 32;
 
 
     /*
