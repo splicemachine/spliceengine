@@ -3,10 +3,12 @@ package com.splicemachine.pipeline.impl;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
+import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.utils.PipelineUtils;
+
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -22,16 +24,16 @@ import java.io.IOException;
 public class BulkWriteChannelInvoker {
 
     private final HConnection connection;
-    private final byte[] tableName;
+    private final byte[] tableNameBytes;
 
-    public BulkWriteChannelInvoker(HConnection connection, byte[] tableName) {
+    public BulkWriteChannelInvoker(HConnection connection, byte[] tableNameBytes) {
         this.connection = connection;
-        this.tableName = tableName;
+        this.tableNameBytes = tableNameBytes;
     }
 
     public BulkWritesResult invoke(BulkWrites write) throws IOException {
         NoRetryCoprocessorRpcChannel channel
-                = new NoRetryCoprocessorRpcChannel(connection, TableName.valueOf(tableName), write.getRegionKey());
+                = new NoRetryCoprocessorRpcChannel(connection, TableName.valueOf(tableNameBytes), write.getRegionKey());
 
         try {
             SpliceMessage.SpliceIndexService service = ProtobufUtil.newServiceStub(SpliceMessage.SpliceIndexService.class, channel);
@@ -49,12 +51,17 @@ public class BulkWriteChannelInvoker {
             Throwable error = controller.getThrowable();
 
             if (error != null) {
+            	// Should we catch ConnectException (like we do in SpliceHTable for DB-3873)?
+            	// How about RegionServerStoppedException?
                 if (error instanceof IncorrectRegionException || error instanceof NotServingRegionException) {
-                    /*
+                	/*
                      * We sent it to the wrong place, so we need to resubmit it. But since we
                      * pulled it from the cache, we first invalidate that cache
                      */
-                    connection.clearRegionCache(TableName.valueOf(tableName));
+                    HBaseRegionCache.getInstance().invalidate(tableNameBytes);
+                    // HBaseRegionCache.invalidate() implicitly calls Connection.clearRegionCache,
+                	// so we no longer need to call the latter explicitly.
+                	// connection.clearRegionCache(TableName.valueOf(tableNameBytes));
                 }
                 throw Exceptions.getIOException(error);
             }

@@ -44,7 +44,9 @@ public class HBaseRegionCache implements RegionCache {
     private static final SortedSet<Pair<HRegionInfo, ServerName>> EMPTY_REGION_PAIR_SET =
             Collections.unmodifiableSortedSet(Sets.<Pair<HRegionInfo, ServerName>>newTreeSet(REGION_CACHE_COMPARATOR));
 
+    // private but passed to CacheRefreshRunnable and HBaseRegionCacheStatus
     private final ConcurrentSkipListMap<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> regionCache;
+    
     private final ScheduledExecutorService cacheUpdater;
     private final long cacheUpdatePeriod;
     private final AtomicLong cacheUpdatedTimestamp = new AtomicLong();
@@ -133,9 +135,10 @@ public class HBaseRegionCache implements RegionCache {
     }
 
     @Override
-    public void invalidate(byte[] tableName) {
-        SpliceLogUtils.debug(LOG, "invalidating region cache for table = %s ", Bytes.toString(tableName));
-        regionCache.remove(tableName);
+    public void invalidate(byte[] tableNameBytes) {
+        SpliceLogUtils.debug(LOG, "Invalidating region cache for table = %s ", Bytes.toString(tableNameBytes));
+        regionCache.remove(tableNameBytes);
+        connection.clearRegionCache(tableNameBytes);
     }
 
     @Override
