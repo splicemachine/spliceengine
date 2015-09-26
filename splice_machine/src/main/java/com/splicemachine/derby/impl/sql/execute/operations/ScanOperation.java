@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -298,7 +299,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 
 		protected Scan getScan(SpliceRuntimeContext ctx) throws StandardException {
-				return scanInformation.getScan(operationInformation.getTransaction(), ctx.getScanStartOverride(),getColumnOrdering(), ctx.getScanKeys());
+				return scanInformation.getScan(operationInformation.getTransaction(), ctx.getScanStartOverride(),getColumnOrdering(), ctx.getScanKeys(), ctx.getScanStopPrefix());
 		}
 
 		@Override
@@ -404,4 +405,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     public boolean pushedToServer() {
         return false;
     }
+
+	@Override
+	public ExecIndexRow getStartPosition() throws StandardException {
+		return scanInformation.getStartPosition();
+	}
 }

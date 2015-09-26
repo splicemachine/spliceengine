@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.spark.RDDUtils;
@@ -31,6 +33,7 @@ import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.rdd.NewHadoopPartition;
+import org.apache.tools.ant.taskdefs.Exec;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -151,6 +154,35 @@ public class MergeJoinOperation extends JoinOperation {
         return next;
     }
 
+    // Set startkey = inner scan start key + first hash column values from outer table
+    private ExecRow getStartKey(ExecRow firstLeft) throws StandardException {
+        ExecRow firstHashValue = getKeyRow(firstLeft, leftHashKeys);
+        ExecIndexRow startPosition = rightResultSet.getStartPosition();
+        int size = startPosition != null ? startPosition.nColumns():0;
+        size += firstHashValue.nColumns();
+        ExecRow v = new ValueRow(size);
+        if (startPosition != null) {
+            for (int i = 1; i <= startPosition.nColumns(); ++i) {
+                v.setColumn(i, startPosition.getColumn(i));
+            }
+        }
+        int offset = startPosition!=null?startPosition.nColumns():0;
+        for (int i = 1; i <= firstHashValue.nColumns(); ++i) {
+            v.setColumn(offset+i, firstHashValue.getColumn(i));
+        }
+        return v;
+    }
+
+    private int[] getScanKey() {
+        int[] scanKeys = new int[rightHashKeys.length+rightHashKeys[0]];
+        for (int i = 0; i < rightHashKeys[0]; ++i) {
+            scanKeys[i] = i;
+        }
+        for (int i = 0; i < rightHashKeys.length; ++i) {
+            scanKeys[rightHashKeys[0]+i] = rightHashKeys[i];
+        }
+        return scanKeys;
+    }
     private Joiner initJoiner(final SpliceRuntimeContext<ExecRow> spliceRuntimeContext)
             throws StandardException, IOException {
         StandardPushBackIterator<ExecRow> leftPushBack =
@@ -160,8 +192,9 @@ public class MergeJoinOperation extends JoinOperation {
         ctxWithOverride.unMarkAsSink();
         if (firstLeft != null) {
             firstLeft = firstLeft.getClone();
-            ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
-            ctxWithOverride.addScanKeys(rightHashKeys);
+            ctxWithOverride.addScanStartOverride(getStartKey(firstLeft));
+            ctxWithOverride.addScanKeys(getScanKey());
+            ctxWithOverride.addScanStopPrefix(rightResultSet.getStartPosition());
             leftPushBack.pushBack(firstLeft);
         }
 

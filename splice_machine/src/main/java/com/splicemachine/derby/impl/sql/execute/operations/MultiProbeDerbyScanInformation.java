@@ -56,7 +56,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		}
 
 	@Override
-	protected ExecIndexRow getStartPosition() throws StandardException {
+	public ExecIndexRow getStartPosition() throws StandardException {
 		ExecIndexRow startPosition = super.getStartPosition();
         if(sameStartStopPosition)
             startSearchOperator = ScanController.NA;

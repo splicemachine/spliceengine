@@ -6,25 +6,21 @@ import com.splicemachine.derby.test.TPCHIT;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 
+import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 
 import static com.splicemachine.homeless.TestUtils.o;
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.fail;
 
 /**
@@ -257,6 +253,52 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     public static final List<String> STRATEGIES = Arrays.asList("SORTMERGE", "NESTEDLOOP", "BROADCAST", "MERGE");
 
+    @BeforeClass
+    public static void createDataSet() throws Exception {
+        createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+    }
+    public static void createData(Connection conn, String schemaName) throws Exception {
+
+        new TableCreator(conn)
+                .withCreate("create table t1 (a int, b int, c int, d int)")
+                .withInsert("insert into t1 values(?,?,?,?)")
+                .withIndex("create index ti on t1(a, b, c)")
+                .withRows(rows(
+                        row(1, 1, 1, 10),
+                        row(1, 1, 2, 20),
+                        row(1, 2, 1, 30),
+                        row(1, 2, 2, 40),
+                        row(2, 1, 1, 50),
+                        row(2, 1, 2, 60),
+                        row(2, 2, 1, 70),
+                        row(2, 2, 2, 80)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t2 (a int, b int, c int, d int, primary key(a, b, c))")
+                .withInsert("insert into t2 values(?,?,?,?)")
+                .withRows(rows(
+                        row(1, 1, 1, 100),
+                        row(1, 1, 2, 200),
+                        row(1, 2, 1, 300),
+                        row(1, 2, 2, 400)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table tab1 (a int, b int, c int, d int)")
+                .withInsert("insert into tab1 values(?,?,?,?)")
+                .withIndex("create index tabi on tab1(a, b, c)")
+                .withRows(rows(
+                        row(1, 1, 100, 10)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table tab2 (a int, b int, c int, d int, primary key(a, b, c))")
+                .withInsert("insert into tab2 values(?,?,?,?)")
+                .withRows(rows(
+                        row(1, 100, 1, 200)))
+                .create();
+    }
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
         String query = "select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED \n" +
@@ -394,6 +436,69 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testMergeWithPredicateFromOuterTable() throws Exception {
         rowContainsQuery(6, MERGE_WITH_OUTER_TABLE_PREDICATE, "MergeJoin", methodWatcher);
+    }
+
+    @Test
+    public void GTNotFeasible() throws Exception {
+        String sql = "explain select * \n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "t1 --splice-properties index=ti\n" +
+                ",t2 --splice-properties joinStrategy=MERGE\n" +
+                "where t1.a>=1 and t2.a=1 and t1.b=t2.b";
+        try {
+            TestUtils.resultSetToArrays(methodWatcher.executeQuery(sql));
+            fail("Expected infeasible join strategy exception");
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
+    }
+
+    @Test
+    public void innerGapNotFeasible() throws Exception {
+        String sql = "explain select * \n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "t1 --splice-properties index=ti\n" +
+                ",t2 --splice-properties joinStrategy=MERGE\n" +
+                "where t1.a=t2.a and t1.b=t2.c";
+        try {
+            TestUtils.resultSetToArrays(methodWatcher.executeQuery(sql));
+            fail("Expected infeasible join strategy exception");
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
+    }
+
+    @Test
+    public void outerGapNotFeasible() throws Exception {
+        String sql = "select * \n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "t1 --splice-properties index=ti\n" +
+                ",t2 --splice-properties joinStrategy=MERGE\n" +
+                "where t1.a = 1 and t2.a=1 and t1.c=t2.b";
+        try {
+            TestUtils.resultSetToArrays(methodWatcher.executeQuery(sql));
+            fail("Expected infeasible join strategy exception");
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
+    }
+
+    @Test
+    public void testRightTableScanStartKey() throws Exception {
+        String sql ="select *\n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "tab1 --splice-properties index=tabi\n" +
+                ", tab2 --splice-properties joinStrategy=MERGE\n" +
+                "where tab1.a=1 and tab1.b=1 and tab1.c=tab2.b and tab2.a=1";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(1, count);
     }
     private static String getResource(String name) {
         return getResourceDirectory() + "tcph/data/" + name;

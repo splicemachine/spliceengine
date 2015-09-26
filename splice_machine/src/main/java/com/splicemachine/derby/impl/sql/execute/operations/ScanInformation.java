@@ -48,7 +48,7 @@ interface ScanInformation<T> {
 
     Scan getScan(TxnView txn) throws StandardException;
 
-    Scan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys) throws StandardException;
+    Scan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
@@ -67,4 +67,5 @@ interface ScanInformation<T> {
 		String getTableVersion() throws StandardException;
 
     String getTableName() throws StandardException;
+    ExecIndexRow getStartPosition() throws StandardException;
 }

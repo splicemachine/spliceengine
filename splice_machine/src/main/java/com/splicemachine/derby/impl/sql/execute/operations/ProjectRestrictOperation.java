@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -556,5 +557,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             }
         }
     }
-
+	@Override
+	public ExecIndexRow getStartPosition() throws StandardException {
+		return source.getStartPosition();
+	}
 }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
@@ -754,4 +755,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     protected void setRowsSunk(long rowsSunk) {
         this.rowsSunk = rowsSunk;
     }
+
+    @Override
+	public ExecIndexRow getStartPosition() throws StandardException {
+		throw new RuntimeException("getStartPosition not implemented");
+	}
 }
