@@ -446,7 +446,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         return stopKeyGetter == null ? null : stopKeyGetter.invoke();
     }
 
-    protected ExecIndexRow getStartPosition() throws StandardException {
+    public ExecIndexRow getStartPosition() throws StandardException {
         if (startKeyGetter == null && startKeyGetterMethodName != null)
             startKeyGetter = new SpliceMethod<>(startKeyGetterMethodName, activation);
 

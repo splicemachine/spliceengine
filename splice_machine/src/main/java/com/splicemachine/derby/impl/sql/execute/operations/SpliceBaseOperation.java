@@ -930,4 +930,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     public TriggerHandler getTriggerHandler() throws StandardException {
         return null;
     }
+
+	@Override
+	public ExecIndexRow getStartPosition() throws StandardException {
+		throw new RuntimeException("getStartPosition not implemented");
+	}
 }

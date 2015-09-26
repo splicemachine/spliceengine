@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -341,7 +342,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		}
 
 		public String printStopPosition() {
-				try {
+            try {
 						return scanInformation.printStopPosition(numOpens);
 				} catch (StandardException e) {
 						throw new RuntimeException(e);
@@ -368,5 +369,10 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         this.scan = scan;
         this.scanSet = true;
     }
+
+	@Override
+	public ExecIndexRow getStartPosition() throws StandardException {
+		return scanInformation.getStartPosition();
+	}
 
 }
