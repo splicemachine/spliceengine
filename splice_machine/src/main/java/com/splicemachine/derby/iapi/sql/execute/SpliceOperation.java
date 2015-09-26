@@ -1,5 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 
 import java.io.IOException;
@@ -258,4 +259,5 @@ public interface SpliceOperation extends StandardCloseable {
      */
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException;
 
+    public ExecIndexRow getStartPosition() throws StandardException;
 }
