@@ -25,6 +25,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 
@@ -287,5 +288,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         System.arraycopy(projectRowArray, 0, rightRowArray, 0, projectRowArray.length);
         return newRow;
     }
+
+	@Override
+	public ExecIndexRow getStartPosition() throws StandardException {
+		return source.getStartPosition();
+	}
 
 }

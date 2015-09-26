@@ -311,7 +311,7 @@ public class Scans extends SpliceUtils {
                         }
                     }
                     // for other scans we just rely on key table positions
-                    else if (!ArrayUtils.isEmpty(keyDecodingMap)) {
+                    else if (!ArrayUtils.isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0) {
                         int targetColFormatId = columnTypes[keyDecodingMap[i]];
                         if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);

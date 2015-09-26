@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 
 /**
  * 
@@ -178,5 +179,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     public void fireAfterStatementTriggers () throws StandardException;
 
     public TriggerHandler getTriggerHandler() throws StandardException;
+
+    public ExecIndexRow getStartPosition() throws StandardException;
 
 }

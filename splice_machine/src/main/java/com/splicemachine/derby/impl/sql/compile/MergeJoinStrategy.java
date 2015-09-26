@@ -113,7 +113,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         //preserve the underlying CostEstimate for the inner table
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
-        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity,outerCost.rowCount(),innerCost.rowCount());
+        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setLocalCost(SelectivityUtil.mergeJoinStrategyLocalCost(innerCost,outerCost));
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
@@ -140,62 +140,33 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
             if(pred.isJoinPredicate()) continue; //we'll deal with these later
             RelationalOperator relop=pred.getRelop();
             if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
-            if(relop.getOperator()==RelationalOperator.EQUALS_RELOP){
-                int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap,innerTable);
-                if(innerEquals>=0) innerColumns.set(innerEquals);
-                else{
+            if(relop.getOperator()==RelationalOperator.EQUALS_RELOP) {
+                int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
+                if (innerEquals >= 0) innerColumns.set(innerEquals);
+                else {
 
-                    BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
+                    BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relop;
                     ValueNode vn = bron.getLeftOperand();
-                    if(!(vn instanceof ColumnReference))
+                    if (!(vn instanceof ColumnReference))
                         vn = bron.getRightOperand();
-                    if(!(vn instanceof ColumnReference)) continue;
-                    ColumnReference outerColumn = (ColumnReference)vn;
+                    if (!(vn instanceof ColumnReference)) continue;
+                    ColumnReference outerColumn = (ColumnReference) vn;
                     /*
                      * We are still sortable if we have constant predicates on the first N keys on the outer
                      * side of the join, as long as we match the inner columns
                      */
-                    int outerTableNum=outerColumn.getTableNumber();
-                    int outerColNum=outerColumn.getColumnNumber();
+                    int outerTableNum = outerColumn.getTableNumber();
+                    int outerColNum = outerColumn.getColumnNumber();
                     //we don't care what the sort order for this column is, since it's an equals predicate anyway
-                    int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING,outerTableNum,outerColNum);
-                    if(pos>=0)
+                    int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
+                    if (pos >= 0)
                         outerColumns.set(pos);
-                    else{
-                        pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING,outerTableNum,outerColNum);
-                        if(pos>=0)
+                    else {
+                        pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING, outerTableNum, outerColNum);
+                        if (pos >= 0)
                             outerColumns.set(pos);
                     }
                 }
-            }else if(relop.getOperator()==RelationalOperator.GREATER_EQUALS_RELOP){
-                //we only care if this is on the outside, since the inside it won't work correctly
-                int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap,innerTable);
-                if(innerEquals>=0) continue;
-                assert relop instanceof BinaryRelationalOperatorNode:
-                        "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
-
-                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
-                ValueNode vn = bron.getLeftOperand();
-                if(!(vn instanceof ColumnReference))
-                    vn = bron.getRightOperand();
-                if(!(vn instanceof ColumnReference)) continue;
-                ColumnReference outerColumn = (ColumnReference)vn;
-                    /*
-                     * We are still sortable if we have constant predicates on the first N keys on the outer
-                     * side of the join, as long as we match the inner columns
-                     */
-                int outerTableNum=outerColumn.getTableNumber();
-                int outerColNum=outerColumn.getColumnNumber();
-                //we don't care what the sort order for this column is, since it's an equals predicate anyway
-                int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING,outerTableNum,outerColNum);
-                if(pos==0)
-                    outerColumns.set(pos);
-                else{
-                    pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING,outerTableNum,outerColNum);
-                    if(pos==0)
-                        outerColumns.set(pos);
-                }
-
             }
         }
 
@@ -218,7 +189,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                 BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
                 ColumnReference innerColumn=relop.getColumnOperand(innerTable);
                 ColumnReference outerColumn=getOuterColumn(bron,innerColumn);
-                if (innerColumn == null) continue;
+                if (innerColumn == null || outerColumn == null) continue;
                 int innerColumnNumber = innerColumn.getColumnNumber();
                 if(innerColumnNumber==innerColumnPosition){
                     innerColumns.set(i);
@@ -247,20 +218,31 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         if(misMatchPos==0) return false; //we are missing the first key, so that won't work
 
         /*
-         * We need to determine that the join predicates are on matched columns--i.e. that innercolumn[i+1] > innerColumn[i]
-         * for all set inner join columns
+         * We need to determine that the join predicates are on matched columns--i.e. that
+         * innerToOuterJoinColumnMap[i+1] > innerToOuterJoinColumnMap[i] and all columns between
+         * (innerToOuterJoinColumnMap[i], innerToOuterJoinColumnMap[i+1]) are in innerColumns. Same for outerColumns.
          */
         int lastOuterCol = -1;
+        int lastInnerCol = -1;
         for(int i=0;i<innerToOuterJoinColumnMap.length;i++){
             int outerCol = innerToOuterJoinColumnMap[i];
+            int innerCol = i;
             if(outerCol==-1) continue;
             if(outerCol<lastOuterCol) return false; //we have a join out of order
+            for (int j = lastOuterCol+1; j < outerCol; ++j) {
+                if (!outerColumns.get(j)) return false;
+            }
+
+            for (int j = lastInnerCol+1; j < innerCol; ++j) {
+                if (!innerColumns.get(j)) return false;
+            }
             lastOuterCol = outerCol;
+            lastInnerCol = innerCol;
         }
 
         /*
-         * Find the first inner join column, make sure all columns before it appear in innerColumns. These columns
-         * are referenced in equal predicates
+         * Find the first inner join column, make sure all columns before it appear in innerColumns and outerColumns.
+         * These columnsare referenced in equal predicates
          */
         if (innerToOuterJoinColumnMap.length > 0) {
             int first = 0;
@@ -270,8 +252,16 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
             // No inner join columns, merge join is not feasible
             if (first >= innerToOuterJoinColumnMap.length)
                 return false;
+
             for (int i = 0; i < first; ++i) {
                 if (!innerColumns.get(i)) {
+                    return false;
+                }
+            }
+
+            int outerCol = innerToOuterJoinColumnMap[first];
+            for (int i = 0; i < outerCol; i++) {
+                if (!outerColumns.get(i)) {
                     return false;
                 }
             }

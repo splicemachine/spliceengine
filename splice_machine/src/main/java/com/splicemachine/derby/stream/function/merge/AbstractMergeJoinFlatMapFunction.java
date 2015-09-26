@@ -3,7 +3,9 @@ package com.splicemachine.derby.stream.function.merge;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
@@ -61,12 +63,12 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             initialized = true;
             if (!leftPeekingIterator.hasNext())
                 return Collections.EMPTY_LIST;
-            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
+            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(getScanStartOverride(leftPeekingIterator));
         }
         final SpliceOperation rightSide = mergeJoinOperation.getRightOperation();
         DataSetProcessor dsp = StreamUtils.getLocalDataSetProcessorFromActivation(getOperation().getActivation(), rightSide);
         final Iterator<LocatedRow> rightIterator = rightSide.getDataSet(dsp).toLocalIterator();
-
+        ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
         AbstractMergeJoinIterator iterator = createMergeJoinIterator(leftPeekingIterator,
                 Iterators.peekingIterator(rightIterator),
                 mergeJoinOperation.leftHashKeys, mergeJoinOperation.rightHashKeys,
@@ -82,6 +84,29 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             }
         });
         return iterator;
+    }
+
+    protected ExecRow getScanStartOverride(PeekingIterator<LocatedRow> leftPeekingIterator) throws StandardException{
+        ExecRow firstHashRow = mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow());
+        ExecRow startPosition = mergeJoinOperation.getRightResultSet().getStartPosition();
+        return concatenate(startPosition, firstHashRow);
+    }
+
+    private ExecRow concatenate(ExecRow start, ExecRow hash) throws StandardException {
+        int size = start!=null ? start.nColumns() : 0;
+        size += hash.nColumns();
+
+        ExecRow v = new ValueRow(size);
+        if (start != null) {
+            for (int i = 1; i <= start.nColumns(); ++i) {
+                v.setColumn(i, start.getColumn(i));
+            }
+        }
+        int offset = start!=null ? start.nColumns():0;
+        for (int i = 1; i <= hash.nColumns(); ++i) {
+            v.setColumn(offset + i, hash.getColumn(i));
+        }
+        return v;
     }
 
     protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator,

@@ -67,4 +67,5 @@ public interface ScanInformation<T> {
 		String getTableVersion() throws StandardException;
 
     String getTableName() throws StandardException;
+    ExecIndexRow getStartPosition() throws StandardException;
 }
