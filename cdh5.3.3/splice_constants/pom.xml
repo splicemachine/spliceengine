@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>spliceengine-cdh5.3.3</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.5.0</version>
+		<version>1.5.1-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 			<dependency>
