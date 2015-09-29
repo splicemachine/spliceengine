@@ -2,9 +2,13 @@ package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+//import com.splicemachine.db.iapi.reference.SQLState;
+import org.apache.derby.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
 import org.supercsv.exception.SuperCsvException;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ITokenizer;
@@ -18,6 +22,7 @@ import org.supercsv.prefs.CsvPreference;
 public class SpliceCsvReader extends CsvListReader {
 
     private ArrayList<String> failMsg = new ArrayList<String>();
+    private String fileName;
 
 	/**
 	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
@@ -30,8 +35,9 @@ public class SpliceCsvReader extends CsvListReader {
 	 * @throws NullPointerException
 	 *             if reader or preferences are null
 	 */
-	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
+	public SpliceCsvReader(Reader reader, CsvPreference preferences, String fileName) {
 		super(reader, preferences);
+        this.fileName = fileName;
 	}
 
 	/**
@@ -60,25 +66,14 @@ public class SpliceCsvReader extends CsvListReader {
 	 * @throws SuperCsvException
 	 *             if there was a general exception while reading/processing
 	 */
-	public String[] readAsStringArray() throws IOException {
-        boolean res = false;
+	public String[] readAsStringArray() throws IOException, SQLException, StandardException {
+        boolean res;
 
-        while (!res) {
-            try {
-                res = readRow();
-                break;
-            } catch (SuperCsvException e) {
-                // catch exactly Quoted-exception with this message
-                // Text of message is taken from Tokenizer class of 3rd party SuperCsv library
-                // readColumns() method, line 85
-                String message = e.getMessage();
-                if (message != null && (
-                        message.contains("Quoted column beginning on line") || message.contains("unexpected end of file"))) {
-                    failMsg.add(e.getMessage());
-                } else {
-                    throw e;
-                }
-            }
+        try {
+            res = readRow();
+        } catch (Exception e) {
+            failMsg.add(e.getMessage());
+            throw StandardException.newException(SQLState.UNEXPECTED_IMPORT_READING_ERROR, this.fileName, e.getMessage());
         }
 
 		if (res) {
