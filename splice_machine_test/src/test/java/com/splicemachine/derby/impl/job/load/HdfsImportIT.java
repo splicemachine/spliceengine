@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.load;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -22,7 +23,9 @@ import java.util.TimeZone;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -713,20 +716,20 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnEOF() throws Exception {
-        // no exceptions now, just skipping wrong lines
-
         String path = baddir.newFolder().getCanonicalPath();
-
-        testMissingEndQuoteForQuotedColumn(
-			spliceSchemaWatcher.schemaName,
-			TABLE_18,
-			getResourceDirectory() + "import/missing-end-quote/employees.csv",
-			"NAME,TITLE,AGE",
-			path,
-			0,
-			1); //6
-
-        checkImportStatusLogFiles(path, "_BAD_employees.csv");
+        try {
+            testMissingEndQuoteForQuotedColumn(
+                    spliceSchemaWatcher.schemaName,
+                    TABLE_18,
+                    getResourceDirectory() + "import/missing-end-quote/employees.csv",
+                    "NAME,TITLE,AGE",
+                    path,
+                    0,
+                    1); //6
+            fail("This CSV file must raise XIE10 exception");
+        } catch (SQLException e) {
+            assertEquals("XIE10", e.getSQLState());
+        }
 	}
 
 
@@ -739,8 +742,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnMax() throws Exception {
-        // no exceptions now, we just skipping wrong lines
         String path = baddir.newFolder().getCanonicalPath();
+        try {
 		testMissingEndQuoteForQuotedColumn(
                 spliceSchemaWatcher.schemaName,
                 TABLE_18,
@@ -749,8 +752,10 @@ public class HdfsImportIT extends SpliceUnitTest {
                 path,
                 0,
                 199999); //201000
-
-         checkImportStatusLogFiles(path, "_BAD_employeesMaxQuotedColumnLines.csv");
+            fail("This CSV file must raise XIE10 exception");
+        } catch (SQLException e) {
+            assertEquals("XIE10", e.getSQLState());
+        }
 	}
 
     //DB-3685
