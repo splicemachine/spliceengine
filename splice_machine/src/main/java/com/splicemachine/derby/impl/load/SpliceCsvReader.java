@@ -6,9 +6,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-//import com.splicemachine.db.iapi.reference.SQLState;
-import org.apache.derby.shared.common.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.supercsv.exception.SuperCsvException;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ITokenizer;
@@ -66,7 +65,7 @@ public class SpliceCsvReader extends CsvListReader {
 	 * @throws SuperCsvException
 	 *             if there was a general exception while reading/processing
 	 */
-	public String[] readAsStringArray() throws IOException, SQLException, StandardException {
+	public String[] readAsStringArray() throws IOException, StandardException {
         boolean res;
 
         try {

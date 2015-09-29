@@ -17,7 +17,6 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.*;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -53,7 +52,7 @@ public class FileImportReader implements ImportReader {
     }
 
     @Override
-    public String[] nextRow() throws IOException, SQLException, StandardException {
+    public String[] nextRow() throws IOException, StandardException {
         if (currentPosition == 0) {
             if (!fillBatch()) return null;
         }
@@ -64,7 +63,7 @@ public class FileImportReader implements ImportReader {
         return next;
     }
 
-    protected boolean fillBatch() throws IOException, SQLException, StandardException {
+    protected boolean fillBatch() throws IOException, StandardException {
         String[] next;
         timer.startTiming();
         int count = 0;
@@ -92,7 +91,7 @@ public class FileImportReader implements ImportReader {
     }
 
     @Override
-    public String[][] nextRowBatch() throws IOException, SQLException, StandardException {
+    public String[][] nextRowBatch() throws IOException, StandardException {
         if (!fillBatch()) return null;
         return lines;
     }

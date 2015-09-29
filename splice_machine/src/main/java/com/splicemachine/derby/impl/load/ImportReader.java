@@ -7,7 +7,6 @@ import org.apache.hadoop.fs.FileSystem;
 import java.io.Closeable;
 import java.io.Externalizable;
 import java.io.IOException;
-import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -17,9 +16,9 @@ public interface ImportReader extends Closeable,Externalizable {
 
     void setup(FileSystem fileSystem,ImportContext ctx) throws IOException;
 
-    String[] nextRow() throws IOException, SQLException, StandardException;
+    String[] nextRow() throws IOException, StandardException;
 
-	String[][] nextRowBatch() throws IOException, SQLException, StandardException;
+	String[][] nextRowBatch() throws IOException, StandardException;
 
 	IOStats getStats();
 
