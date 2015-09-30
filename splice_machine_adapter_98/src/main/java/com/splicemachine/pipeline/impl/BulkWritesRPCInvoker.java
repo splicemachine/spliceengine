@@ -23,7 +23,6 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 
     @Override
     public BulkWritesResult invoke(final BulkWrites writes, boolean refreshCache) throws IOException {
-    	// TODO: check why refreshCache is not used
         assert writes.numEntries() != 0;
         if(!forceRemote) {
             SpliceDriver spliceDriver = SpliceDriver.driver();
