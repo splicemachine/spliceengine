@@ -1301,6 +1301,7 @@ public class SQLParser
 		case ROWNUMBER:
 		case RANK:
 		case DENSERANK:
+		case LASTVALUE:
 
 		// case PERCENT_RANK:
 		// case CUME_DIST:
@@ -2859,6 +2860,7 @@ TOKEN [IGNORE_CASE] :
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
+|	<LASTVALUE: "last_value">
 |	<LONGINT: "bigint">
 |	<LONG: "long">
 |	<LTRIM: "ltrim">
@@ -10544,6 +10546,7 @@ datetimeValueFunction() throws StandardException :
    windowOrAggregateFunctionNode() throws StandardException :
    {
        ValueNode winOrAgg;
+       ValueNode input;
        QueryTreeNode window = null;
        ValueNode[] rankColsRef = null;
    }
@@ -10619,6 +10622,18 @@ datetimeValueFunction() throws StandardException :
                C_NodeTypes.ROW_NUMBER_FUNCTION_NODE,
                RowNumberFunctionDefinition.class,
                window,
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <LASTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.LAST_VALUE_FUNCTION_NODE,
+               LastValueFunctionDefinition.class,
+               window,
+               input,
                getContextManager());
            return winOrAgg;
        }
@@ -15781,6 +15796,7 @@ nonReservedKeyword()  :
 	|   tok = <JAVA>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
+	|	tok = <LASTVALUE>
     |   tok = <LCASE>
 	|	tok = <LENGTH>
 	|	tok = <LEVEL>
