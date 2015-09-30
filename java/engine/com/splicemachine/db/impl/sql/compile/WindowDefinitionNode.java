@@ -23,7 +23,6 @@ package com.splicemachine.db.impl.sql.compile;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -74,7 +73,7 @@ public final class WindowDefinitionNode extends WindowNode
      * @throws StandardException
      */
     public void bind(SelectNode target) throws StandardException {
-        Vector aggregateVector = new Vector();
+        List<AggregateNode> aggregateVector = new ArrayList<>();
         // bind partition
         Partition partition = overClause.getPartition();
         if (partition != null) {
@@ -118,10 +117,10 @@ public final class WindowDefinitionNode extends WindowNode
     public List<OrderedColumn> getPartition() {
         Partition partition = overClause.getPartition();
         int partitionSize = (partition != null ? partition.size() : 0);
-        List<OrderedColumn> partitionList = new ArrayList<OrderedColumn>(partitionSize);
+        List<OrderedColumn> partitionList = new ArrayList<>(partitionSize);
         if (partition != null) {
             for (int i=0; i<partitionSize; i++) {
-                partitionList.add((OrderedColumn) partition.elementAt(i));
+                partitionList.add(partition.elementAt(i));
             }
         }
         return partitionList;
@@ -137,10 +136,10 @@ public final class WindowDefinitionNode extends WindowNode
     public List<OrderedColumn> getOrderByList() {
         OrderByList orderByList = overClause.getOrderByClause();
         int orderBySize = (orderByList != null ? orderByList.size() : 0);
-        List<OrderedColumn> orderedColumns = new ArrayList<OrderedColumn>(orderBySize);
+        List<OrderedColumn> orderedColumns = new ArrayList<>(orderBySize);
         if (orderByList != null) {
             for (int i=0; i<orderBySize; i++) {
-                orderedColumns.add((OrderedColumn) orderByList.elementAt(i));
+                orderedColumns.add(orderByList.elementAt(i));
             }
         }
         return orderedColumns;
@@ -182,6 +181,11 @@ public final class WindowDefinitionNode extends WindowNode
         return ("name: " + getName() + "\n" +
             "inlined: " + inlined + "\n" +
             overClause);
+    }
+
+    @Override
+    public String toHTMLString() {
+        return "Name: " + getName() + "<br/> Inlined: " + inlined + "<br/>" + overClause.toHTMLString();
     }
 
     /**

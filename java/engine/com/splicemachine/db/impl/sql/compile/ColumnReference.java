@@ -1359,6 +1359,7 @@ public class ColumnReference extends ValueNode {
         return "columnName: " + columnName + "<br>" +
                 "tableNumber: " + tableNumber + "<br>" +
                 "columnNumber: " + columnNumber + "<br>" +
+                "sourceResultSetNumber: " + (source != null ? source.getResultSetNumber() : "null") + "<br>" +
                 "replacesAggregate: " + replacesAggregate + "<br>" +
                 "replacesWindowFunctionCall: " +
                 replacesWindowFunctionCall + "<br>" +
