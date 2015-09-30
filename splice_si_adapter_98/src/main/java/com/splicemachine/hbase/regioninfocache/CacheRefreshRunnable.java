@@ -80,16 +80,7 @@ class CacheRefreshRunnable implements Runnable {
 
             Map<byte[], SortedSet<Pair<HRegionInfo, ServerName>>> newRegionInfoMap = visitor.getRegionPairMap();
             regionCache.putAll(newRegionInfoMap);
-            
-            if(updateTableName!=null)
-                connection.clearRegionCache(updateTableName);
-            else
-                connection.clearRegionCache(); // TODO: this clears server cache too - is that ok?
-            
-            if (LOG.isDebugEnabled()) {
-            	LOG.debug(String.format("Updated %s region cache entries for table %s in %s ms ",
-            		newRegionInfoMap.size(), (updateTableName == null ? "ALL" : Bytes.toString(updateTableName)), System.currentTimeMillis() - startTime));
-            }
+            debug(LOG, "updated %s cache entries in %s ms ", newRegionInfoMap.size(), System.currentTimeMillis() - startTime);
         } catch (IOException e) {
             if (e instanceof RegionServerStoppedException) {
                 HBaseRegionCache.getInstance().shutdown();
