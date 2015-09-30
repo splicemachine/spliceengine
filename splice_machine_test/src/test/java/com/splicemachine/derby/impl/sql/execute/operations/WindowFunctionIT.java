@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -27,20 +29,22 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
 
 /**
  *
  * Created by jyuan on 7/30/14.
  */
 public class WindowFunctionIT extends SpliceUnitTest {
-    private static final String CLASS_NAME = WindowFunctionIT.class.getSimpleName().toUpperCase();
+    private static final String SCHEMA = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     private static String empTabDef = "(empnum int, dept int, salary int)";
     private static final String EMPTAB = "EMPTAB";
-    private static SpliceTableWatcher empTabTableWatcher = new SpliceTableWatcher(EMPTAB,CLASS_NAME, empTabDef);
+    private static SpliceTableWatcher empTabTableWatcher = new SpliceTableWatcher(EMPTAB, SCHEMA, empTabDef);
 
     private static String[] EMPTAB_ROWS = {
         "20,1,75000",
@@ -62,7 +66,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String perchacedDef = "(item int, price double, date timestamp)";
     private static final String PURCHASED = "purchased";
-    private static SpliceTableWatcher purchacedTableWatcher = new SpliceTableWatcher(PURCHASED,CLASS_NAME, perchacedDef);
+    private static SpliceTableWatcher purchacedTableWatcher = new SpliceTableWatcher(PURCHASED, SCHEMA, perchacedDef);
 
     private static String[] PURCHASED_ROWS = {
         "1, 1.0, '2014-09-08 18:27:48.881'",
@@ -84,7 +88,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String peopleDef = "(PersonID int,FamilyID int,FirstName varchar(10),LastName varchar(25),DOB timestamp)";
     private static final String PEOPLE = "people";
-    private static SpliceTableWatcher peopleTableWatcher = new SpliceTableWatcher(PEOPLE,CLASS_NAME, peopleDef);
+    private static SpliceTableWatcher peopleTableWatcher = new SpliceTableWatcher(PEOPLE, SCHEMA, peopleDef);
 
     private static String[] PEOPLE_ROWS = {
         "1,1,'Joe','Johnson', '2000-10-23 13:00:00'",
@@ -102,7 +106,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String empDef = "(EMPNO NUMERIC(4) NOT NULL, ENAME VARCHAR(10), JOB VARCHAR(9), MGR numeric(4), HIREDATE DATE, SAL NUMERIC(7, 2), COMM numeric(7, 2), DEPTNO numeric(2))";
     private static final String EMP = "emp";
-    private static SpliceTableWatcher empTableWatcher = new SpliceTableWatcher(EMP,CLASS_NAME, empDef);
+    private static SpliceTableWatcher empTableWatcher = new SpliceTableWatcher(EMP, SCHEMA, empDef);
 
     private static String[] EMP_ROWS = {
         "7369, 'SMITH', 'CLERK',    7902, '1980-12-17', 800, NULL, 20",
@@ -123,12 +127,12 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static final String YEAR_VIEW = "YEAR_VIEW";
     private static String viewYearDef = String.format("as select to_char(hiredate,'yy') as yr,ename,hiredate from %s.%s group by hiredate,ename",
-                                                  CLASS_NAME, EMP);
-    private static SpliceViewWatcher yearView = new SpliceViewWatcher(YEAR_VIEW,CLASS_NAME, viewYearDef);
+                                                      SCHEMA, EMP);
+    private static SpliceViewWatcher yearView = new SpliceViewWatcher(YEAR_VIEW, SCHEMA, viewYearDef);
 
     private static String departmentosDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, Nome_Dep VARCHAR(200))";
     private static final String DEPARTAMENTOS = "Departamentos";
-    private static SpliceTableWatcher departmentosTableWatcher = new SpliceTableWatcher(DEPARTAMENTOS,CLASS_NAME, departmentosDef);
+    private static SpliceTableWatcher departmentosTableWatcher = new SpliceTableWatcher(DEPARTAMENTOS, SCHEMA, departmentosDef);
 
     private static String[] DEPT_ROWS = {
         "'Vendas'",
@@ -138,7 +142,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String functionariosDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, ID_Dep INT, Nome VARCHAR(200), Salario Numeric(18,2))";
     private static final String FUNCIONARIOS = "Funcionarios";
-    private static SpliceTableWatcher functionariosTableWatcher = new SpliceTableWatcher(FUNCIONARIOS,CLASS_NAME, functionariosDef);
+    private static SpliceTableWatcher functionariosTableWatcher = new SpliceTableWatcher(FUNCIONARIOS, SCHEMA, functionariosDef);
 
     private static String[] FUNC_ROWS = {
         "1, 'Fabiano', 2000",
@@ -154,7 +158,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String best_addr_freqDef = "(INDIVIDUAL_ID bigint, RESIDENCE_ID bigint, FILE_ID integer, GENERATION_QUALIFIER varchar(15), FIRST_NAME varchar(15), LAST_NAME varchar(15), US_ADDRESS_LINE_1 varchar(100), US_ADDRESS_LINE_2 varchar(100), US_ADDRESS_LINE_3 varchar(100), US_STATE varchar(100), US_CITY varchar(20), US_ZIP  varchar(10), US_ZIP4 varchar(10), BRAND integer, FREQUENCY bigint, RUS_NCOA_EFFECTIVE_DATE timestamp, RSOURCERECORD_POOL integer, RSOURCERECORD_SUM integer, SOURCE_DATE timestamp, RECORD_ID bigint, RWRNK bigint)";
     private static final String best_addr_freq_NAME = "best_addr_freq";
-    private static SpliceTableWatcher spliceTableWatcherBest_addr_freq = new SpliceTableWatcher(best_addr_freq_NAME,CLASS_NAME, best_addr_freqDef);
+    private static SpliceTableWatcher spliceTableWatcherBest_addr_freq = new SpliceTableWatcher(best_addr_freq_NAME, SCHEMA, best_addr_freqDef);
 
     private static final String best_addr_freq_insert = "insert into %s (INDIVIDUAL_ID, RESIDENCE_ID, FILE_ID, GENERATION_QUALIFIER, FIRST_NAME, LAST_NAME, US_ADDRESS_LINE_1, US_ADDRESS_LINE_2, US_ADDRESS_LINE_3, US_STATE, US_CITY, US_ZIP, US_ZIP4, BRAND, FREQUENCY, RUS_NCOA_EFFECTIVE_DATE, RSOURCERECORD_POOL, RSOURCERECORD_SUM, SOURCE_DATE, RECORD_ID, RWRNK) values (%s)";
     private static String[] best_addr_freqRows = {
@@ -172,7 +176,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String best_ids_poolDef = "(INDIVIDUAL_ID bigint, RESIDENCE_ID bigint, HOUSEHOLD_ID bigint, FILE_ID integer, BUSINESS_IND boolean, CREATED_BY varchar(100), CREATED_DATE timestamp, JOB_ID integer, BRAND integer, GENERATION_QUALIFIER varchar(15), FIRST_NAME varchar(25), LAST_NAME varchar(25), RSOURCERECORD_POOL integer, RSOURCERECORD_SUM integer, SOURCE_DATE timestamp, RECORD_ID bigint, US_ADDRESS_LINE_1 varchar(100), US_ADDRESS_LINE_2 varchar(100), US_ADDRESS_LINE_3 varchar(100), US_STATE varchar(100), US_CITY varchar(20), US_ZIP  varchar(10), US_ZIP4 varchar(10), RUS_NCOA_EFFECTIVE_DATE timestamp, RUS_NCOA_MOVE_CODE integer, RADDRESS_QUALITY integer, RPRIORITY integer, RINVALID_MOVE_IND integer, ROWRANK bigint)";
     private static final String best_ids_pool_NAME = "best_ids_pool";
-    private static SpliceTableWatcher spliceTableWatcherBest_ids_pool = new SpliceTableWatcher(best_ids_pool_NAME,CLASS_NAME, best_ids_poolDef);
+    private static SpliceTableWatcher spliceTableWatcherBest_ids_pool = new SpliceTableWatcher(best_ids_pool_NAME, SCHEMA, best_ids_poolDef);
 
     private static final String best_ids_pool_insert = "insert into %s (INDIVIDUAL_ID ,RESIDENCE_ID ,HOUSEHOLD_ID ,FILE_ID ,BUSINESS_IND ,CREATED_BY ,CREATED_DATE ,JOB_ID ,BRAND ,GENERATION_QUALIFIER ,FIRST_NAME ,LAST_NAME ,RSOURCERECORD_POOL ,RSOURCERECORD_SUM ,SOURCE_DATE ,RECORD_ID ,US_ADDRESS_LINE_1 ,US_ADDRESS_LINE_2 ,US_ADDRESS_LINE_3 ,US_STATE ,US_CITY ,US_ZIP ,US_ZIP4 ,RUS_NCOA_EFFECTIVE_DATE ,RUS_NCOA_MOVE_CODE ,RADDRESS_QUALITY ,RPRIORITY ,RINVALID_MOVE_IND ,ROWRANK ) values (%s)";
     private static String[] best_ids_poolDefRows = {
@@ -190,7 +194,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String empTabHireDateDef = "(empnum int, dept int, salary int, hiredate date)";
     private static final String EMPTAB_HIRE_DATE = "EMPTAB_HIRE_DATE";
-    private static SpliceTableWatcher empTabHireDateTableWatcher = new SpliceTableWatcher(EMPTAB_HIRE_DATE,CLASS_NAME, empTabHireDateDef);
+    private static SpliceTableWatcher empTabHireDateTableWatcher = new SpliceTableWatcher(EMPTAB_HIRE_DATE, SCHEMA, empTabHireDateDef);
 
     private static String[] EMPTAB_HIRE_DATE_ROWS = {
         "20,1,75000,'2012-11-11'",
@@ -211,7 +215,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     };
 
     private static final String EMPTAB_NULLS = "EMPTAB_NULLS";
-    private static SpliceTableWatcher empTabNullsTableWatcher = new SpliceTableWatcher(EMPTAB_NULLS,CLASS_NAME, empTabHireDateDef);
+    private static SpliceTableWatcher empTabNullsTableWatcher = new SpliceTableWatcher(EMPTAB_NULLS, SCHEMA, empTabHireDateDef);
 
     private static String[] EMPTAB_ROWS_NULL = {
         "20,1,75000,'2012-11-11'",
@@ -235,7 +239,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String txnDetailDef = "(SOURCE_SALES_INSTANCE_ID BIGINT, TRANSACTION_DT DATE NOT NULL, ORIGINAL_SKU_CATEGORY_ID INTEGER, SALES_AMT DECIMAL(9,2), CUSTOMER_MASTER_ID BIGINT)";
     private static final String TXN_DETAIL = "TXN_DETAIL";
-    private static SpliceTableWatcher txnDetailTableWatcher = new SpliceTableWatcher(TXN_DETAIL,CLASS_NAME, txnDetailDef);
+    private static SpliceTableWatcher txnDetailTableWatcher = new SpliceTableWatcher(TXN_DETAIL, SCHEMA, txnDetailDef);
 
     private static String[] TXN_DETAIL_ROWS = {
         "0,'2013-05-12',44871,329.18,74065939",
@@ -250,7 +254,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     private static String allSalesDef = "(years INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount NUMERIC(8, 2))";
     private static final String ALL_SALES = "ALL_SALES";
-    private static SpliceTableWatcher allSalesTableWatcher = new SpliceTableWatcher(ALL_SALES,CLASS_NAME, allSalesDef);
+    private static SpliceTableWatcher allSalesTableWatcher = new SpliceTableWatcher(ALL_SALES, SCHEMA, allSalesDef);
 
     private static String[] ALL_SALES_ROWS = {
         "2006,1,1,21,16034.84",
@@ -2245,6 +2249,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // Results too large
         assertNotNull("\n" + sqlText + "\n", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void testLastValueFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp2";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                          row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(32, "Betty", 7300, 4),
+                          row(14, "Benjamin", 7500, 1), row(17, "Robert", 9500, 2), row(24, "Mark", 7200, 4)))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, last_value(salary) over(partition by deptno order by " +
+                                    "salary asc range between current row and unbounded following) as last_val from " +
+                                    "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        System.out.println("\n" + sqlText + "\n" + TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        // TODO: validate
     }
 
     //==================================================================================================================
