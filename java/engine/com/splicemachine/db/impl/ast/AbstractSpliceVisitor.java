@@ -386,6 +386,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(FirstLastValueFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(FKConstraintDefinitionNode node) throws StandardException {
         return defaultVisit(node);
     }
