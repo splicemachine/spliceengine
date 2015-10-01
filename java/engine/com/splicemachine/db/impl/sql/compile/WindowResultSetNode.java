@@ -817,6 +817,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns());
             windowInfoList.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
+                windowFunctionNode.isIgnoreNulls(),
                 windowFunctionNode.getAggregatorClassName(),
                 inputVColIDs,       // windowFunctionNode input columns
                 aggResultVColId,    // the windowFunctionNode result column

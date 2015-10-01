@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 public abstract class WindowFunctionNode extends AggregateNode {
 
     private WindowNode window; // definition or reference
+    private boolean ignoreNulls;
 
     /**
      * Initializer. AggregateNode override.
@@ -50,8 +51,16 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * @param arg3 function name
      * @param arg4 isDistinct
      * @param arg5 The window definition or reference
+     * @param arg6 Respect or ignore nulls in function arguments
      * @throws StandardException
      */
+    public void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) throws StandardException {
+        super.init(arg1, arg2, arg3, arg4);
+        this.window = (WindowNode)arg5;
+        this.ignoreNulls = (boolean) arg6;
+    }
+
+    // TODO: JC- remove if "initialize*()" works
     public void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) throws StandardException {
         super.init(arg1, arg2, arg3, arg4);
         this.window = (WindowNode)arg5;
@@ -500,4 +509,8 @@ public abstract class WindowFunctionNode extends AggregateNode {
     }
 
     protected abstract void setOperands(ValueNode[] operands) throws StandardException;
+
+    public boolean isIgnoreNulls() {
+        return ignoreNulls;
+    }
 }

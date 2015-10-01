@@ -28,7 +28,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 /**
  * Class that represents a call to the LAST_VALUE() window function.
  */
-public final class LastValueFunctionNode extends WindowFunctionNode {
+public final class FirstLastValueFunctionNode extends WindowFunctionNode {
 
     /**
      * Initializer. QueryTreeNode override.
@@ -36,9 +36,10 @@ public final class LastValueFunctionNode extends WindowFunctionNode {
      * @param arg1 The function's definition class
      * @param arg2 The window definition or reference
      * @param arg3 The window input operator
-//     * @throws StandardException
+     * @param arg4 Ignore nulls
+     * @throws StandardException
      */
-    public void init(Object arg1, Object arg2, Object arg3) {  // throws StandardException {
+    public void init(Object arg1, Object arg2, Object arg3, Object arg4) throws StandardException {
 
         // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
         // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
@@ -50,15 +51,9 @@ public final class LastValueFunctionNode extends WindowFunctionNode {
         if (arg3 == null) {
             SanityManager.THROWASSERT("Missing required input operand for LAST_VALUE window function.");
         }
-
-        try {
-            super.init(arg3, arg1, Boolean.FALSE, "LAST_VALUE", arg2);
-
-            // TODO: JC - return type is same as input type
-            setType(this.operand.getTypeServices());
-        } catch (StandardException e) {
-           throw new RuntimeException("LAST_VALUE init: "+ e.getLocalizedMessage());
-        }
+        // TODO: For FIRST_VALUE, "LAST_VALUE" argument below should be pushed in by the parser
+        super.init(arg3, arg1, Boolean.FALSE, "LAST_VALUE", arg2, arg4);
+        setType(this.operand.getTypeServices());
     }
 
     @Override
@@ -82,40 +77,4 @@ public final class LastValueFunctionNode extends WindowFunctionNode {
             this.operand = operands[0];
         }
     }
-
-// TODO: JC - commented code below will be needed when we support aggregate functions as arguments to LAST_VALUE(x)
-//    @Override
-//    public ValueNode replaceAggregatesWithColumnReferences(ResultColumnList rcl,
-//                                                           int tableNumber) throws StandardException {
-//        return aggregateFunction.replaceAggregatesWithColumnReferences(rcl, tableNumber);
-//    }
-//
-//    @Override
-//    public ValueNode bindExpression(FromList fromList,
-//                                    SubqueryList subqueryList,
-//                                    List<AggregateNode> aggregateVector) throws StandardException {
-//        // DB-2086 - Vector.remove() calls node1.isEquivalent(node2), not node1.equals(node2), which
-//        // returns true for identical aggregate nodes removing the first aggregate, not necessarily
-//        // this one. We need to create a tmp Vector and add all Agg nodes found but this delegate by
-//        // checking for object identity (==)
-//        List<AggregateNode> tmp = new ArrayList<AggregateNode>();
-//        aggregateFunction.bindExpression(fromList,subqueryList,tmp);
-//
-//        // We don't want to be in this aggregateVector - we add all aggs found during bind except
-//        // this delegate.
-//        // We want to bind the wrapped aggregate (and operand, etc) but we don't want to show up
-//        // in this list as an aggregate. The list will be handed to GroupByNode, which we don't
-//        // want doing the work.  Window function code will handle the window function aggregates
-//        for (AggregateNode aggFn : tmp) {
-//            if (aggregateFunction != aggFn) {
-//                aggregateVector.add(aggFn);
-//            }
-//        }
-//
-//        // Now that delegate is bound, set some required fields on this
-//        // TODO: What all is required?
-//        this.operator = aggregateFunction.operator;
-//        return this;
-//    }
-
 }

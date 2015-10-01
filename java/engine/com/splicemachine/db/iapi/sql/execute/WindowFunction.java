@@ -20,11 +20,12 @@ public interface WindowFunction extends ExecAggregator, Formatable {
      @param  classFactory Database-specific class factory.
      @param  windowFunctionName  For builtin functions, this is a SQL name like RANK.
      @param  returnDataType  The type returned by the getResult() method.
-
+     @param ignoreNulls whether null values should be respected (false) or ignored (true)
      */
-    public ExecAggregator setup(ClassFactory classFactory,
-                                String windowFunctionName,
-                                DataTypeDescriptor returnDataType );
+    WindowFunction setup(ClassFactory classFactory,
+                        String windowFunctionName,
+                        DataTypeDescriptor returnDataType,
+                        boolean ignoreNulls);
 
 
     /**
@@ -56,7 +57,7 @@ public interface WindowFunction extends ExecAggregator, Formatable {
     /**
      * Factory method to create a new instance of the particular splice-side
      * window function.  Assumes
-     * {@link #setup(com.splicemachine.db.iapi.services.loader.ClassFactory, String, com.splicemachine.db.iapi.types.DataTypeDescriptor) setup}
+     * {@link #setup(com.splicemachine.db.iapi.services.loader.ClassFactory, String, com.splicemachine.db.iapi.types.DataTypeDescriptor, boolean) setup}
      * has been called first.
      * @return a configured new instance of this instance.
      */

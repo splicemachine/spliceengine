@@ -306,7 +306,7 @@ public interface C_NodeNames
 	static final String ROW_NUMBER_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.RowNumberFunctionNode";
 	static final String RANK_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.RankFunctionNode";
 	static final String DENSE_RANK_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.DenseRankFunctionNode";
-	static final String LAST_VALUE_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.LastValueFunctionNode";
+	static final String FIRST_LAST_VALUE_FUNCTION_NAME = "com.splicemachine.db.impl.sql.compile.FirstLastValueFunctionNode";
 	static final String WINDOW_DEFINITION_NAME = "com.splicemachine.db.impl.sql.compile.WindowDefinitionNode";
 	static final String WINDOW_REFERENCE_NAME = "com.splicemachine.db.impl.sql.compile.WindowReferenceNode";
 	static final String WINDOW_RESULTSET_NODE_NAME = "com.splicemachine.db.impl.sql.compile.WindowResultSetNode";

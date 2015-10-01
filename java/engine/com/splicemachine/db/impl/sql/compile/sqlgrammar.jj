@@ -2763,6 +2763,7 @@ TOKEN [IGNORE_CASE] :
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
+|	<IGNORE: "ignore">
 |	<INCREMENT: "increment">
 |	<INITIAL: "initial">
 |   <INOUT: "inout">
@@ -10549,6 +10550,7 @@ datetimeValueFunction() throws StandardException :
        ValueNode input;
        QueryTreeNode window = null;
        ValueNode[] rankColsRef = null;
+       Boolean ignoreNulls = Boolean.FALSE;
    }
    {
        <COUNT> <LEFT_PAREN>
@@ -10625,19 +10627,36 @@ datetimeValueFunction() throws StandardException :
                getContextManager());
            return winOrAgg;
        }
-   |
-       <LASTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) <RIGHT_PAREN> window = overClause()
+   | // FIRST_VALUE, add to grammar here and push string name argument to FIRST_LAST_VALUE_FUNCTION_NODE
+       <LASTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) ignoreNulls = ignoreNulls() <RIGHT_PAREN> window = overClause()
        {
            setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
            winOrAgg = (ValueNode) nodeFactory.getNode(
-               C_NodeTypes.LAST_VALUE_FUNCTION_NODE,
-               LastValueFunctionDefinition.class,
+               C_NodeTypes.FIRST_LAST_VALUE_FUNCTION_NODE,
+               FirstLastValueFunctionDefinition.class,
                window,
                input,
+               ignoreNulls,
                getContextManager());
            return winOrAgg;
        }
    }
+
+Boolean
+ignoreNulls() :
+{}
+{
+    LOOKAHEAD ( { getToken(1).kind == IGNORE && getToken(2).kind == NULLS } )
+    ( <IGNORE> <NULLS>
+        {
+            return Boolean.TRUE;
+        }
+    )
+|
+    {
+        return Boolean.FALSE;
+    }
+}
 
 
 QueryTreeNode
@@ -15787,6 +15806,7 @@ nonReservedKeyword()  :
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
 	|	tok = <IDENTITY_VAL_LOCAL>
+	|	tok = <IGNORE>
 	|	tok = <INCREMENT>
 	|	tok = <INDEX>
 	|	tok = <INITIAL>

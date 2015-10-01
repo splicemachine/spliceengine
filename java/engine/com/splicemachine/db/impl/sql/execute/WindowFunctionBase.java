@@ -23,14 +23,17 @@ public abstract class WindowFunctionBase implements WindowFunction {
     protected ClassFactory classFactory;
     protected String windowFunctionName;
     protected DataTypeDescriptor returnDataType;
+    protected boolean ignoreNulls;
 
     @Override
-    public ExecAggregator setup(ClassFactory classFactory,
+    public WindowFunction setup(ClassFactory classFactory,
                                 String windowFunctionName,
-                                DataTypeDescriptor returnDataType) {
+                                DataTypeDescriptor returnDataType,
+                                boolean ignoreNulls) {
         this.classFactory = classFactory;
         this.windowFunctionName = windowFunctionName;
         this.returnDataType = returnDataType;
+        this.ignoreNulls = ignoreNulls;
         return this;
     }
 
@@ -41,10 +44,11 @@ public abstract class WindowFunctionBase implements WindowFunction {
             Object newInstance = windowFunctionClass.newInstance();
             windowFunctionInstance = (WindowFunction)newInstance;
             // the splice-side instance is invoked here
-            windowFunctionInstance = (WindowFunction) windowFunctionInstance.setup(
+            windowFunctionInstance = windowFunctionInstance.setup(
                 classFactory,
                 windowFunctionName,
-                returnDataType
+                returnDataType,
+                ignoreNulls
             );
         }catch(Exception e){
             throw new RuntimeException(e);
@@ -108,4 +112,8 @@ public abstract class WindowFunctionBase implements WindowFunction {
         return 0;
     }
 
+    @Override
+    public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        return null;
+    }
 }

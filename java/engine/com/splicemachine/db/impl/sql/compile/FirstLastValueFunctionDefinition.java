@@ -12,16 +12,15 @@ import com.splicemachine.db.iapi.types.TypeId;
  * @author Jeff Cunningham
  *         Date: 9/30/15
  */
-public class LastValueFunctionDefinition implements AggregateDefinition {
+public class FirstLastValueFunctionDefinition implements AggregateDefinition {
     @Override
     public DataTypeDescriptor getAggregator(DataTypeDescriptor inputType, StringBuffer aggregatorClassName) throws StandardException {
-        aggregatorClassName.append(ClassName.LastValueFunction);
+        aggregatorClassName.append(ClassName.FirstLastValueFunction);
         LanguageConnectionContext lcc = (LanguageConnectionContext)
             ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
 
         /*
-        ** LastValue returns same as its input
-        * TODO: JC - Verify
+        ** First/LastValue returns same as its input
         */
         DataTypeDescriptor dts = inputType.getNullabilityType(true);
         TypeId compType = dts.getTypeId();

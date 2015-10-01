@@ -15,8 +15,9 @@ public class RowNumberFunction extends WindowFunctionBase implements WindowFunct
     @Override
     public WindowFunction setup(ClassFactory classFactory,
                                 String functionName,
-                                DataTypeDescriptor returnDataType) {
-        super.setup(classFactory, functionName, returnDataType);
+                                DataTypeDescriptor returnDataType,
+                                boolean ignoreNulls) {
+        super.setup(classFactory, functionName, returnDataType, ignoreNulls);
         return this;
     }
 

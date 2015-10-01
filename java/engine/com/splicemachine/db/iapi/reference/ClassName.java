@@ -116,7 +116,7 @@ public interface ClassName
     String RowNumberFunction = "com.splicemachine.db.impl.sql.execute.RowNumberFunction";
     String DenseRankFunction = "com.splicemachine.db.impl.sql.execute.DenseRankFunction";
     String RankFunction = "com.splicemachine.db.impl.sql.execute.RankFunction";
-    String LastValueFunction = "com.splicemachine.db.impl.sql.execute.LastValueFunction";
+    String FirstLastValueFunction = "com.splicemachine.db.impl.sql.execute.FirstLastValueFunction";
     // TODO: There's no need to reference spliceengine functions and all the baggage they bring in Derby. See impls of RowNumberFunction, RankFunction and DenseRankFunction
     String WindowMaxMinAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.function.MaxMinAggregator";
     String WindowSumAggregator = "com.splicemachine.derby.impl.sql.execute.operations.window.function.SumAggregator";

@@ -63,6 +63,7 @@ public class WindowFunctionInfo implements Formatable
 	** See the constructor for the meaning of these fields
 	*/
 	String	functionName;
+    boolean ignoreNulls;
 	int[] operandColNums;
 	int		outputColumn;
 	int		aggregatorColumn;
@@ -84,6 +85,7 @@ public class WindowFunctionInfo implements Formatable
 	 * @param functionName	the name of the window function.  Not
  	 *		actually used anywhere except diagnostics.  Should
 	 *		be the names as found in the language (e.g. RANK).
+     * @param ignoreNulls are we to respect or ignore null function arguments?
 	 * @param functionClassName	the name of the class
 	 *		used to process this function.  Function class expected
 	 *		to have a no-arg constructor and implement
@@ -95,6 +97,7 @@ public class WindowFunctionInfo implements Formatable
 	 *
 	 */
 	public WindowFunctionInfo(String functionName,
+                              boolean ignoreNulls,
                               String functionClassName,
                               int[] operandColNumns,
                               int outputColNum,
@@ -105,6 +108,7 @@ public class WindowFunctionInfo implements Formatable
                               FormatableArrayHolder keyInfo,
                               FormatableHashtable frameInfo) {
 		this.functionName	= functionName;
+        this.ignoreNulls = ignoreNulls;
 		this.functionClassName = functionClassName;
 		this.operandColNums = operandColNumns;
 		this.outputColumn	= outputColNum;
@@ -125,6 +129,15 @@ public class WindowFunctionInfo implements Formatable
 	{
 		return functionName;
 	}
+
+    /**
+     * Do we respect or ignore null function arguments.
+     *
+     * @return true if we are to ignore null function arguments.
+     */
+    public boolean isIgnoreNulls() {
+        return this.ignoreNulls;
+    }
 
 	/**
 	 * Get the name of the class that implements the user
@@ -228,6 +241,7 @@ public class WindowFunctionInfo implements Formatable
 
     public String toHTMLString() {
         return "Name: "+ functionName + "<br/>" +
+            "IgnoreNulls: " + ignoreNulls + "<br/>" +
             "PartCols: " + (partitionInfo != null ? getColumnNumString(partitionInfo) : "()" ) + "<br/>" +
             "OrderByCols: " + (orderByInfo != null ? getColumnNumString(orderByInfo) : "()") + "<br/>" +
             "KeyCols: " + (keyInfo != null ? getColumnNumString(keyInfo) : "()") + "<br/>" +
@@ -275,7 +289,7 @@ public class WindowFunctionInfo implements Formatable
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
 		out.writeObject(functionName);
-
+        out.writeBoolean(ignoreNulls);
         int length = operandColNums.length;
         out.writeInt( length );
         for (int inputColumn : operandColNums) { out.writeInt(inputColumn); }
@@ -302,7 +316,7 @@ public class WindowFunctionInfo implements Formatable
 		throws IOException, ClassNotFoundException
 	{
 		functionName = (String)in.readObject();
-
+        ignoreNulls = in.readBoolean();
         int length = in.readInt();
         operandColNums = new int[ length ];
         for ( int i = 0; i < length; i++ ) { operandColNums[ i ] = in.readInt(); }
