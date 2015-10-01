@@ -34,7 +34,7 @@ public class RankFunction extends SpliceGenericWindowFunction implements WindowF
     private long rank;
 
     @Override
-    public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+    public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType, boolean ignoreNulls) {
         super.setup( classFactory, aggregateName, returnDataType );
         return this;
     }
