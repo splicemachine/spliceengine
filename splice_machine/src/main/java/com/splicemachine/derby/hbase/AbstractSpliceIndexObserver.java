@@ -153,6 +153,11 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     
     @Override
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, false)));
+            break;
+        }
         recordRegionSplitForBackup(e, l, r);
     }
     
