@@ -23,6 +23,4 @@ public interface ImportReader extends Closeable,Externalizable {
 	IOStats getStats();
 
 	boolean shouldParallelize(FileSystem fs, ImportContext ctx) throws IOException;
-
-    String[] getFailMessages();
 }

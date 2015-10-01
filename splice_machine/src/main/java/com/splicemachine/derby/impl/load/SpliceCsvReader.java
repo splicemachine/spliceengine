@@ -20,7 +20,6 @@ import org.supercsv.prefs.CsvPreference;
  */
 public class SpliceCsvReader extends CsvListReader {
 
-    private ArrayList<String> failMsg = new ArrayList<String>();
     private String fileName;
 
 	/**
@@ -66,27 +65,18 @@ public class SpliceCsvReader extends CsvListReader {
 	 *             if there was a general exception while reading/processing
 	 */
 	public String[] readAsStringArray() throws IOException, StandardException {
-        boolean res;
-
         try {
-            res = readRow();
+            if (readRow()) {
+                List<String> rowAsList = getColumns();
+                String[] row = new String[rowAsList.size()];
+                rowAsList.toArray(row);
+                return row;
+            }
         } catch (Exception e) {
-            failMsg.add(e.getMessage());
             throw StandardException.newException(SQLState.UNEXPECTED_IMPORT_READING_ERROR, this.fileName, e.getMessage());
         }
-
-		if (res) {
-			List<String> rowAsList = getColumns();
-			String[] row = new String[rowAsList.size()];
-			rowAsList.toArray(row);
-			return row;
-		}
 		
 		return null; // EOF
 	}
 
-
-    public ArrayList<String> getFailMsg() {
-        return failMsg;
-    }
 }
