@@ -716,19 +716,16 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnEOF() throws Exception {
-        String path = baddir.newFolder().getCanonicalPath();
+        String badDirPath = baddir.newFolder().getCanonicalPath();
+        String csvPath = getResourceDirectory() + "import/missing-end-quote/employees.csv";
         try {
-            testMissingEndQuoteForQuotedColumn(
-                    spliceSchemaWatcher.schemaName,
-                    TABLE_18,
-                    getResourceDirectory() + "import/missing-end-quote/employees.csv",
-                    "NAME,TITLE,AGE",
-                    path,
-                    0,
-                    1); //6
+            testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE", badDirPath, 0, 1);
             fail("This CSV file must raise XIE10 exception");
         } catch (SQLException e) {
             assertEquals("XIE10", e.getSQLState());
+            String errMsg = e.getMessage();
+            assertTrue(errMsg.contains(csvPath));
+            assertTrue(errMsg.contains("unexpected end of file"));
         }
 	}
 
@@ -742,19 +739,16 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnMax() throws Exception {
-        String path = baddir.newFolder().getCanonicalPath();
+        String badDirPath = baddir.newFolder().getCanonicalPath();
+        String csvPath = getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv";
         try {
-		testMissingEndQuoteForQuotedColumn(
-                spliceSchemaWatcher.schemaName,
-                TABLE_18,
-                getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv",
-                "NAME,TITLE,AGE",
-                path,
-                0,
-                199999); //201000
+		    testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE", badDirPath, 0, 199999);
             fail("This CSV file must raise XIE10 exception");
         } catch (SQLException e) {
             assertEquals("XIE10", e.getSQLState());
+            String errMsg = e.getMessage();
+            assertTrue(errMsg.contains(csvPath));
+            assertTrue(errMsg.contains("Quoted column beginning"));
         }
 	}
 
@@ -811,25 +805,4 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
 
-
-    private void checkImportStatusLogFiles(String path, String errorMessagesFileNamePrefix) {
-        boolean wasImportStatusFile = false;
-        boolean wasBadFile = false;
-        File dir = new File(path);
-        File[] files = dir.listFiles();
-        for (File file : files) {
-            String fileName = file.getName();
-            //System.out.println(fileName);
-            if ("importStatus.log".equals(fileName)) {
-                wasImportStatusFile = true;
-            }
-
-            if (fileName.startsWith(errorMessagesFileNamePrefix)) {
-                wasBadFile = true;
-            }
-        }
-
-        assertTrue("No import status file", wasImportStatusFile); // at least 1 error should be
-        assertTrue("No file with error messages", wasBadFile);
-    }
 }

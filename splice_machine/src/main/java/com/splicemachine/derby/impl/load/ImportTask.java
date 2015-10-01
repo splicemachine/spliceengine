@@ -167,22 +167,7 @@ public class ImportTask extends ZkTask{
 													shouldContinue = false;
 												}
 
-									}while(shouldContinue);
-
-                                    // check for Java exceptions during READING source
-                                    // if we had some errors there,
-                                    //        we should write additional info to main and secondary log files:
-                                    //            importStatus.log
-                                    //            _BAD_[source_name]
-                                    String[] msgs = reader.getFailMessages();
-                                    if (msgs != null) {
-                                        for (String msg : msgs) {
-                                            //LOG.trace(msg);
-                                            //System.out.println(msg);
-                                            errorReporter.reportError(msg, null);  // main file
-                                            errorLogger.report("", new WriteResult(Code.FAILED, msg)); // secondary file
-                                        }
-                                    }
+									} while (shouldContinue);
 
 									if (importTaskPath != null) {
 										jmxStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());

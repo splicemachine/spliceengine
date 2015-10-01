@@ -146,17 +146,4 @@ public class FileImportReader implements ImportReader {
         return "FileImport";
     }
 
-    @Override
-    public String[] getFailMessages() {
-        if (csvReader == null) {
-            return new String[0];
-        }
-
-        ArrayList<String> arr = csvReader.getFailMsg();
-        if (arr == null || arr.size() <= 0) {
-            return new String[0];
-        }
-
-        return arr.toArray(new String[arr.size()]);
-    }
 }
