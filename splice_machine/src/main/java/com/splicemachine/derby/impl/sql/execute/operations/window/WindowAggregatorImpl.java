@@ -24,6 +24,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 	private final int resultColumnId;
     private final String functionName;
     private final FrameDefinition frameDefinition;
+    private final boolean ignoreNulls;
 
     private final ClassFactory cf;
     private final String functionClassName;
@@ -42,6 +43,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 		this.inputColumnIds = windowInfo.getInputColNums();
 		this.resultColumnId = windowInfo.getOutputColNum();
         this.functionName = windowInfo.getFunctionName();
+        this.ignoreNulls = windowInfo.isIgnoreNulls();
         this.functionClassName = windowInfo.getWindowFunctionClassName();
         this.resultColumnDesc = windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
 
@@ -110,6 +112,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
         this.functionClassName = cachedAggregator.toString();
         this.frameDefinition = frameDefinition;
         this.resultColumnDesc = null;
+        this.ignoreNulls = false;
     }
 
     @Override
@@ -203,8 +206,9 @@ public class WindowAggregatorImpl implements WindowAggregator {
                 Class aggClass = cf.loadApplicationClass(this.functionClassName);
                 WindowFunction function = (WindowFunction) aggClass.newInstance();
                 function.setup(cf,
-                        this.functionName,
-                        this.resultColumnDesc
+                               this.functionName,
+                               this.resultColumnDesc,
+                               this.ignoreNulls
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;

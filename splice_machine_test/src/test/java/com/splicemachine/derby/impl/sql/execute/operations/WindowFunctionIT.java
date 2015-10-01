@@ -2360,8 +2360,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .withCreate(String.format("create table %s %s", tableRef, tableDef))
             .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
             .withRows(rows(
-                row(null, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
-                row(null, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
                 row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
                 row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
                 row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
@@ -2369,7 +2369,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .create();
 
         String sqlText = format("select empno, salary, deptno, " +
-                                "last_value((CASE WHEN empno IS NOT NULL THEN 0 WHEN empno IS NULL THEN 1 END)) " +
+                                "last_value((CASE WHEN empno < 17 THEN 0 WHEN empno >= 17 THEN 1 END)) " +
                                 "over(partition by deptno order by salary asc range between current row and unbounded following) as last_val from " +
                                 "%s order by empno asc", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -2377,21 +2377,94 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
             "EMPNO |SALARY |DEPTNO |LAST_VAL |\n" +
                 "----------------------------------\n" +
-                " NULL  | 12000 |   5   |    1    |\n" +
-                " NULL  | 9000  |   1   |    1    |\n" +
-                "  11   | 10000 |   5   |    1    |\n" +
-                "  12   | 10000 |   5   |    1    |\n" +
-                "  14   | 7500  |   1   |    1    |\n" +
-                "  15   | 7600  |   1   |    1    |\n" +
-                "  16   | 8500  |   2   |    0    |\n" +
-                "  17   | 9500  |   2   |    0    |\n" +
-                "  18   | 7700  |   2   |    0    |\n" +
-                "  19   | 8500  |   3   |    0    |\n" +
-                "  20   | 6900  |   3   |    0    |\n" +
-                "  21   | 7500  |   3   |    0    |\n" +
-                "  22   | 6500  |   4   |    0    |\n" +
-                "  23   | 7800  |   4   |    0    |\n" +
-                "  24   | 7200  |   4   |    0    |";
+                "  10   | 12000 |   5   |    0    |\n" +
+                "  11   | 10000 |   5   |    0    |\n" +
+                "  12   | 10000 |   5   |    0    |\n" +
+                "  13   | 9000  |   1   |    0    |\n" +
+                "  14   | 7500  |   1   |    0    |\n" +
+                "  15   | 7600  |   1   |    0    |\n" +
+                "  16   | 8500  |   2   |    1    |\n" +
+                "  17   | 9500  |   2   |    1    |\n" +
+                "  18   | 7700  |   2   |    1    |\n" +
+                "  19   | 8500  |   3   |    1    |\n" +
+                "  20   | 6900  |   3   |    1    |\n" +
+                "  21   | 7500  |   3   |    1    |\n" +
+                "  22   | 6500  |   4   |    1    |\n" +
+                "  23   | 7800  |   4   |    1    |\n" +
+                "  24   | 7200  |   4   |    1    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueFunctionWithIgnoreNulls() throws Exception {
+        // DB-3920
+        String tableName = "employees";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(employee_id int, employee_name varchar(10), salary int, department varchar(10), commission int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s values (?,?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(101, "Emp A", 10000, "Sales", null),
+                row(102, "Emp B", 20000, "IT", 20),
+                row(103, "Emp C", 28000, "IT", 20),
+                row(104, "Emp D", 30000, "Support", 5),
+                row(105, "Emp E", 32000, "Sales", 10),
+                row(106, "Emp F", 20000, "Sales", 5),
+                row(107, "Emp G", 12000, "Sales", null),
+                row(108, "Emp H", 12000, "Support", null)
+            ))
+            .create();
+
+        // IGNORE NULLS
+        String sqlText = format("SELECT employee_id\n" +
+                                    "       ,employee_name\n" +
+                                    "       ,department\n" +
+                                    "       ,LAST_VALUE(commission IGNORE NULLS) OVER (PARTITION BY department\n" +
+                                    "                   ORDER BY employee_id DESC\n" +
+                                    "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
+                                    "Minimum_Commission\n" +
+                                    "FROM %s", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
+        String expected =
+            "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
+                "--------------------------------------------------------------\n" +
+                "     107     |     Emp G     |   Sales   |        10         |\n" +
+                "     106     |     Emp F     |   Sales   |        10         |\n" +
+                "     105     |     Emp E     |   Sales   |        10         |\n" +
+                "     101     |     Emp A     |   Sales   |        10         |\n" +
+                "     108     |     Emp H     |  Support  |         5         |\n" +
+                "     104     |     Emp D     |  Support  |         5         |\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     102     |     Emp B     |    IT     |        20         |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        // RESPECT NULLS
+        sqlText = format("SELECT employee_id\n" +
+                                    "       ,employee_name\n" +
+                                    "       ,department\n" +
+                                    "       ,LAST_VALUE(commission) OVER (PARTITION BY department\n" +
+                                    "                   ORDER BY employee_id DESC\n" +
+                                    "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
+                                    "Minimum_Commission\n" +
+                                    "FROM %s", tableRef);
+        rs = methodWatcher.executeQuery(sqlText);
+        // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
+        expected =
+            "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
+                "--------------------------------------------------------------\n" +
+                "     107     |     Emp G     |   Sales   |       NULL        |\n" +
+                "     106     |     Emp F     |   Sales   |       NULL        |\n" +
+                "     105     |     Emp E     |   Sales   |       NULL        |\n" +
+                "     101     |     Emp A     |   Sales   |       NULL        |\n" +
+                "     108     |     Emp H     |  Support  |         5         |\n" +
+                "     104     |     Emp D     |  Support  |         5         |\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     102     |     Emp B     |    IT     |        20         |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }

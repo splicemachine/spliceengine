@@ -573,8 +573,8 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.DENSERANK_FUNCTION_NODE:
                 return C_NodeNames.DENSE_RANK_FUNCTION_NAME;
 
-            case C_NodeTypes.LAST_VALUE_FUNCTION_NODE:
-                return C_NodeNames.LAST_VALUE_FUNCTION_NAME;
+            case C_NodeTypes.FIRST_LAST_VALUE_FUNCTION_NODE:
+                return C_NodeNames.FIRST_LAST_VALUE_FUNCTION_NAME;
 
             case C_NodeTypes.RANK_FUNCTION_NODE:
                 return C_NodeNames.RANK_FUNCTION_NAME;

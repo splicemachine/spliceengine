@@ -16,7 +16,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 public class MaxMinAggregator extends SpliceGenericWindowFunction {
     private boolean isMax;
 
-    public WindowFunction setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
+    public WindowFunction setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType, boolean ignoreNulls ) {
         super.setup( cf, aggregateName, returnType );
         isMax = aggregateName.equals("MAX");
         return this;

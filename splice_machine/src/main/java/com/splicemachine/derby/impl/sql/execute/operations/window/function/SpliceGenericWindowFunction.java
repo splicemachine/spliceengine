@@ -30,8 +30,13 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     }
 
     @Override
-    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType)
-    {
+    public WindowFunction setup(ClassFactory classFactory, String windowFunctionName, DataTypeDescriptor
+        returnDataType, boolean ignoreNulls) {
+        return this;
+    }
+
+    @Override
+    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
         return this;
     }
 
@@ -118,7 +123,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     public void reset() {
         WindowChunk chunk = new WindowChunk();
         first = last = chunk;
-        chunks = new ArrayList<WindowChunk>();
+        chunks = new ArrayList<>();
         chunks.add(chunk);
     }
 

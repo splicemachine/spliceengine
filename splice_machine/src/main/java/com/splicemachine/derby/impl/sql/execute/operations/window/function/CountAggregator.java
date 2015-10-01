@@ -11,7 +11,7 @@ import com.splicemachine.db.iapi.types.SQLLongint;
  * Created by jyuan on 7/31/14.
  */
 public class CountAggregator extends SpliceGenericWindowFunction {
-    public WindowFunction setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
+    public WindowFunction setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType, boolean ignoreNulls ) {
         super.setup( cf, aggregateName, returnType );
         return this;
     }

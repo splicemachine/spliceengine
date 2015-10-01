@@ -10,13 +10,15 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  * @author Jeff Cunningham
  *         Date: 9/30/15
  */
-public class LastValueFunction extends SpliceGenericWindowFunction {
+public class FirstLastValueFunction extends SpliceGenericWindowFunction {
     // TODO: JC - implementing FIRST_VALUE is trivial.
-    boolean lastValue;
+    boolean isLastValue;
+    boolean ignoreNulls;
 
-    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
-        super.setup( cf, aggregateName, returnType );
-        lastValue = aggregateName.equals("LAST_VALUE");
+    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnType, boolean ignoreNulls) {
+        super.setup(cf, aggregateName, returnType);
+        this.isLastValue = aggregateName.equals("LAST_VALUE");
+        this.ignoreNulls = ignoreNulls;
         return this;
     }
 
@@ -32,7 +34,8 @@ public class LastValueFunction extends SpliceGenericWindowFunction {
             chunk.setResult(dvds[0].cloneValue(false));
         } else {
             DataValueDescriptor input = dvds[0];
-            if (input != null && !input.isNull()) {
+            // If we specify ignoreNulls, we don't include them in results. If we're respecting nulls, include them.
+            if (! (ignoreNulls && (input == null || input.isNull()))) {
                 chunk.setResult(input);
             }
         }
@@ -52,6 +55,6 @@ public class LastValueFunction extends SpliceGenericWindowFunction {
 
     @Override
     public WindowFunction newWindowFunction() {
-        return new LastValueFunction();
+        return new FirstLastValueFunction();
     }
 }
