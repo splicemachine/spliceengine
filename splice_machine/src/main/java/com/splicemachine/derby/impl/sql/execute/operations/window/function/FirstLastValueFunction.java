@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.FirstLastValueFunctionDefinition;
 
 /**
  * @author Jeff Cunningham
@@ -14,10 +16,12 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
     boolean isLastValue;
     boolean ignoreNulls;
 
-    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnType, boolean ignoreNulls) {
+    @Override
+    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnType,
+                                FormatableHashtable functionSpecificArgs) {
         super.setup(cf, aggregateName, returnType);
         this.isLastValue = aggregateName.equals("LAST_VALUE");
-        this.ignoreNulls = ignoreNulls;
+        this.ignoreNulls = (boolean) functionSpecificArgs.get(FirstLastValueFunctionDefinition.IGNORE_NULLS);
         return this;
     }
 
@@ -47,8 +51,9 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
 
     @Override
     public DataValueDescriptor getResult() throws StandardException {
-        WindowChunk last = chunks.get(chunks.size()-1);
-        return last.getResult();
+        int index = (isLastValue ? chunks.size()-1 : 0);
+        WindowChunk first = chunks.get(index);
+        return first.getResult();
     }
 
     @Override

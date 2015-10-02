@@ -5,18 +5,22 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
+ *
  * Created by jyuan on 7/22/14.
  */
 public class MaxMinAggregator extends SpliceGenericWindowFunction {
     private boolean isMax;
 
-    public WindowFunction setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType, boolean ignoreNulls ) {
+    @Override
+    public WindowFunction setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType,
+                                 FormatableHashtable functionSpecificArgs) {
         super.setup( cf, aggregateName, returnType );
         isMax = aggregateName.equals("MAX");
         return this;

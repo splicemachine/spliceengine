@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 import java.util.Arrays;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
@@ -24,11 +25,11 @@ public class WindowAggregatorImpl implements WindowAggregator {
 	private final int resultColumnId;
     private final String functionName;
     private final FrameDefinition frameDefinition;
-    private final boolean ignoreNulls;
 
     private final ClassFactory cf;
     private final String functionClassName;
     private final DataTypeDescriptor resultColumnDesc;
+    private final FormatableHashtable functionSpecificArgs;
 
     private SpliceGenericWindowFunction cachedAggregator;
     private int[] partitionColumns;
@@ -43,7 +44,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 		this.inputColumnIds = windowInfo.getInputColNums();
 		this.resultColumnId = windowInfo.getOutputColNum();
         this.functionName = windowInfo.getFunctionName();
-        this.ignoreNulls = windowInfo.isIgnoreNulls();
+        this.functionSpecificArgs = windowInfo.getFunctionSpecificArgs();
         this.functionClassName = windowInfo.getWindowFunctionClassName();
         this.resultColumnDesc = windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
 
@@ -112,7 +113,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
         this.functionClassName = cachedAggregator.toString();
         this.frameDefinition = frameDefinition;
         this.resultColumnDesc = null;
-        this.ignoreNulls = false;
+        this.functionSpecificArgs = new FormatableHashtable();
     }
 
     @Override
@@ -208,7 +209,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
                 function.setup(cf,
                                this.functionName,
                                this.resultColumnDesc,
-                               this.ignoreNulls
+                               this.functionSpecificArgs
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;
