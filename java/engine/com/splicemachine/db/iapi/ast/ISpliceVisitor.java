@@ -105,6 +105,7 @@ public interface ISpliceVisitor {
     public Visitable visit(IsNode node) throws StandardException;
     public Visitable visit(IsNullNode node) throws StandardException;
     public Visitable visit(JavaToSQLValueNode node) throws StandardException;
+    public Visitable visit(LeadLagFunctionNode node) throws StandardException;
     public Visitable visit(LengthOperatorNode node) throws StandardException;
     public Visitable visit(LikeEscapeOperatorNode node) throws StandardException;
     public Visitable visit(LockTableNode node) throws StandardException;

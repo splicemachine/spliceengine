@@ -1303,6 +1303,8 @@ public class SQLParser
 		case DENSERANK:
 		case LASTVALUE:
 		case FIRSTVALUE:
+		case LEAD:
+		case LAG:
 
 		// case PERCENT_RANK:
 		// case CUME_DIST:
@@ -2863,7 +2865,9 @@ TOKEN [IGNORE_CASE] :
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
 |	<FIRSTVALUE: "first_value">
+|	<LAG: "lag">
 |	<LASTVALUE: "last_value">
+|	<LEAD: "lead">
 |	<LONGINT: "bigint">
 |	<LONG: "long">
 |	<LTRIM: "ltrim">
@@ -10553,6 +10557,8 @@ datetimeValueFunction() throws StandardException :
        QueryTreeNode window = null;
        ValueNode[] rankColsRef = null;
        Boolean ignoreNulls = Boolean.FALSE;
+       Integer offset = 1;
+       ValueNode defaultValue = null;
    }
    {
        <COUNT> <LEFT_PAREN>
@@ -10654,6 +10660,36 @@ datetimeValueFunction() throws StandardException :
                input,
                ignoreNulls,
                "FIRST_VALUE",
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <LEAD> <LEFT_PAREN> input = additiveExpression(null, 0) [ <COMMA> offset = scale() [ <COMMA> defaultValue = literal() ] ] <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.LEAD_LAG_FUNCTION_NODE,
+               LeadLagFunctionDefinition.class,
+               window,
+               input,
+               "LEAD",
+               offset,
+               defaultValue,    // optional default value TODO:
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <LAG> <LEFT_PAREN> input = additiveExpression(null, 0) [ <COMMA> offset = scale() [ <COMMA> defaultValue = literal() ] ] <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.LEAD_LAG_FUNCTION_NODE,
+               LeadLagFunctionDefinition.class,
+               window,
+               input,
+               "LAG",
+               offset,
+               defaultValue,    // optional default value TODO:
                getContextManager());
            return winOrAgg;
        }
@@ -15832,10 +15868,12 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <INTERVAL>
 	|   tok = <JAVA>
+	|	tok = <LAG>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
 	|	tok = <LASTVALUE>
     |   tok = <LCASE>
+	|	tok = <LEAD>
 	|	tok = <LENGTH>
 	|	tok = <LEVEL>
     |   tok = <LIMIT>
