@@ -2395,7 +2395,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test
+    @Test @Ignore("DB-3920: found possible frame processing problem while implementing first_value()")
     public void testFirstValueWithAggregateArgument() throws Exception {
         // DB-3920
         String tableName = "all_sales3";
