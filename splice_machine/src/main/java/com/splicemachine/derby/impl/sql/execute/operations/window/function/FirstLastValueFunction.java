@@ -11,7 +11,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  *         Date: 9/30/15
  */
 public class FirstLastValueFunction extends SpliceGenericWindowFunction {
-    // TODO: JC - implementing FIRST_VALUE is trivial.
     boolean isLastValue;
     boolean ignoreNulls;
 
@@ -32,7 +31,7 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
         DataValueDescriptor result = chunk.getResult();
         if (result == null || result.isNull()) {
             chunk.setResult(dvds[0].cloneValue(false));
-        } else {
+        } else if (isLastValue) {   // We keep setting results if we're calc'ing LAST_VALUE. If FIRST_VALUE, stop on first result.
             DataValueDescriptor input = dvds[0];
             // If we specify ignoreNulls, we don't include them in results. If we're respecting nulls, include them.
             if (! (ignoreNulls && (input == null || input.isNull()))) {
@@ -48,7 +47,6 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
 
     @Override
     public DataValueDescriptor getResult() throws StandardException {
-        // for LAST_VALUE(), we just get the last result. For FIRST_VALUE(), it's the first.
         WindowChunk last = chunks.get(chunks.size()-1);
         return last.getResult();
     }
