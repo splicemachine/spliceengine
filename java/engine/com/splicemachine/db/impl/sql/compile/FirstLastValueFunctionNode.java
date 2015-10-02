@@ -37,9 +37,10 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
      * @param arg2 The window definition or reference
      * @param arg3 The window input operator
      * @param arg4 Ignore nulls
+     * @param arg5 Function name ("LAST_VALUE" or "FIRST_VALUE")
      * @throws StandardException
      */
-    public void init(Object arg1, Object arg2, Object arg3, Object arg4) throws StandardException {
+    public void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) throws StandardException {
 
         // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
         // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
@@ -51,8 +52,7 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
         if (arg3 == null) {
             SanityManager.THROWASSERT("Missing required input operand for LAST_VALUE window function.");
         }
-        // TODO: For FIRST_VALUE, "LAST_VALUE" argument below should be pushed in by the parser
-        super.init(arg3, arg1, Boolean.FALSE, "LAST_VALUE", arg2, arg4);
+        super.init(arg3, arg1, Boolean.FALSE, arg5, arg2, arg4);
         setType(this.operand.getTypeServices());
     }
 

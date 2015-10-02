@@ -1302,6 +1302,7 @@ public class SQLParser
 		case RANK:
 		case DENSERANK:
 		case LASTVALUE:
+		case FIRSTVALUE:
 
 		// case PERCENT_RANK:
 		// case CUME_DIST:
@@ -2861,6 +2862,7 @@ TOKEN [IGNORE_CASE] :
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
+|	<FIRSTVALUE: "first_value">
 |	<LASTVALUE: "last_value">
 |	<LONGINT: "bigint">
 |	<LONG: "long">
@@ -10627,7 +10629,7 @@ datetimeValueFunction() throws StandardException :
                getContextManager());
            return winOrAgg;
        }
-   | // FIRST_VALUE, add to grammar here and push string name argument to FIRST_LAST_VALUE_FUNCTION_NODE
+   |
        <LASTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) ignoreNulls = ignoreNulls() <RIGHT_PAREN> window = overClause()
        {
            setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
@@ -10637,6 +10639,21 @@ datetimeValueFunction() throws StandardException :
                window,
                input,
                ignoreNulls,
+               "LAST_VALUE",
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <FIRSTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) ignoreNulls = ignoreNulls() <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.FIRST_LAST_VALUE_FUNCTION_NODE,
+               FirstLastValueFunctionDefinition.class,
+               window,
+               input,
+               ignoreNulls,
+               "FIRST_VALUE",
                getContextManager());
            return winOrAgg;
        }
@@ -15802,6 +15819,7 @@ nonReservedKeyword()  :
 	|	tok = <EMPTY>
 	|	tok = <EXCLUSIVE>
 	|	tok = <EXTRACT>
+	|	tok = <FIRSTVALUE>
 	|	tok = <FN>
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
