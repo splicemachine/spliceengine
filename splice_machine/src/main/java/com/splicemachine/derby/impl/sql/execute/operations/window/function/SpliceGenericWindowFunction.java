@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
@@ -31,7 +32,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
 
     @Override
     public WindowFunction setup(ClassFactory classFactory, String windowFunctionName, DataTypeDescriptor
-        returnDataType, boolean ignoreNulls) {
+        returnDataType, FormatableHashtable functionSpecificArgs) {
         return this;
     }
 
