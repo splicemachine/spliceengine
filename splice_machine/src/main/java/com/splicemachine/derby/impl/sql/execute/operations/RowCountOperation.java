@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.hbase.SpliceBaseOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -46,14 +45,7 @@ public class RowCountOperation extends SpliceBaseOperation {
     private SpliceOperation source;
     private long offset;
     private long fetchLimit;
-    private boolean runTimeStatsOn;
-    private boolean firstTime;
-    private long rowsFetched;
-    private SpliceBaseOperationRegionScanner spliceScanner;
-    private long rowsSkipped;
-    /* If true then we do not implement offsets (row skipping) on each region, in the nextRow() method of this class, but
-     * instead expect the reduce row provider to implement the offset. */
-    private boolean parallelReduceScan;
+
 
     protected static final String NAME = RowCountOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -79,9 +71,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         this.fetchFirstMethodName = (fetchFirstMethod == null) ? null : fetchFirstMethod.getMethodName();
         this.hasJDBCLimitClause = hasJDBCLimitClause;
         this.source = source;
-        firstTime = true;
-        rowsFetched = 0;
-        runTimeStatsOn = activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
         try {
             init(SpliceOperationContext.newContext(activation));
         } catch (IOException e) {
@@ -106,10 +95,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         if (fetchFirstMethodName != null) {
             fetchFirstMethod = new SpliceMethod<>(fetchFirstMethodName, activation);
         }
-        firstTime = true;
-        rowsFetched = 0;
-        //determine our offset
-        this.spliceScanner = context.getSpliceRegionScanner();
     }
 
 
@@ -119,9 +104,7 @@ public class RowCountOperation extends SpliceBaseOperation {
             if (offVal.isNotNull().getBoolean()) {
                 offset = offVal.getLong();
             }
-
         }
-
         return offset;
     }
 
@@ -169,20 +152,13 @@ public class RowCountOperation extends SpliceBaseOperation {
         return source;
     }
 
-    public void setRowsSkipped(long rowsSkipped) {
-        this.rowsSkipped = rowsSkipped;
-    }
-
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         source = (SpliceOperation) in.readObject();
         offsetMethodName = readNullableString(in);
         fetchFirstMethodName = readNullableString(in);
-        runTimeStatsOn = in.readBoolean();
         hasJDBCLimitClause = in.readBoolean();
-        rowsSkipped = in.readLong();
-        parallelReduceScan = in.readBoolean();
     }
 
     @Override
@@ -191,10 +167,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         out.writeObject(source);
         writeNullableString(offsetMethodName, out);
         writeNullableString(fetchFirstMethodName, out);
-        out.writeBoolean(runTimeStatsOn);
         out.writeBoolean(hasJDBCLimitClause);
-        out.writeLong(rowsSkipped);
-        out.writeBoolean(parallelReduceScan);
     }
 
     @Override
