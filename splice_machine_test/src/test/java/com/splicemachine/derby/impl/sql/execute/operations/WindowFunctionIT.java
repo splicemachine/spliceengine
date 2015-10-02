@@ -2299,7 +2299,54 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testLastValueWithAggregateArguemnt() throws Exception {
+    public void testFirstValueFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+        .create();
+
+        String sqlText = format("select empno, salary, deptno, first_value(empno) over(partition by deptno order by " +
+                                    "salary asc rows unbounded preceding) as first_value from " +
+                                    "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO | FIRST_VALUE |\n" +
+                "--------------------------------------\n" +
+                "  10   | 12000 |   5   |     11      |\n" +
+                "  11   | 10000 |   5   |     11      |\n" +
+                "  12   | 10000 |   5   |     11      |\n" +
+                "  13   | 9000  |   1   |     14      |\n" +
+                "  14   | 7500  |   1   |     14      |\n" +
+                "  15   | 7600  |   1   |     14      |\n" +
+                "  16   | 8500  |   2   |     18      |\n" +
+                "  17   | 9500  |   2   |     18      |\n" +
+                "  18   | 7700  |   2   |     18      |\n" +
+                "  19   | 8500  |   3   |     20      |\n" +
+                "  20   | 6900  |   3   |     20      |\n" +
+                "  21   | 7500  |   3   |     20      |\n" +
+                "  22   | 6500  |   4   |     22      |\n" +
+                "  23   | 7800  |   4   |     22      |\n" +
+                "  24   | 7200  |   4   |     22      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueWithAggregateArgument() throws Exception {
         // DB-3920
         String tableName = "all_sales2";
         String tableRef = SCHEMA+"."+tableName;
@@ -2349,9 +2396,59 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testFirstValueWithAggregateArgument() throws Exception {
+        // DB-3920
+        String tableName = "all_sales3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(yr INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount decimal(8, 2))";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (yr,MONTH,PRD_TYPE_ID,EMP_ID,AMOUNT) values (?,?,?,?,?)",
+                                      tableRef))
+            .withRows(rows(
+                row(2006, 1, 1, 21, 16034.84), row(2006, 2, 1, 21, 15644.65), row(2006, 3, 2, 21, 20167.83),
+                row(2006, 4, 2, 21, 25056.45), row(2006, 5, 2, 21, null), row(2006, 6, 1, 21, 15564.66),
+                row(2006, 7, 1, 21, 15644.65), row(2006, 8, 1, 21, 16434.82), row(2006, 9, 1, 21, 19654.57),
+                row(2006, 10, 1, 21, 21764.19), row(2006, 11, 1, 21, 13026.73), row(2006, 12, 2, 21, 10034.64),
+                row(2005, 1, 2, 22, 16634.84), row(2005, 1, 2, 21, 26034.84), row(2005, 2, 1, 21, 12644.65),
+                row(2005, 3, 1, 21, null), row(2005, 4, 1, 21, 25026.45), row(2005, 5, 1, 21, 17212.66),
+                row(2005, 6, 1, 21, 15564.26), row(2005, 7, 2, 21, 62654.82), row(2005, 8, 2, 21, 26434.82),
+                row(2005, 9, 2, 21, 15644.65), row(2005, 10, 2, 21, 21264.19), row(2005, 11, 1, 21, 13026.73),
+                row(2005, 12, 1, 21, 10032.64)
+            ))
+            .create();
+
+        String sqlText = format("SELECT month, SUM(amount) AS month_amount, " +
+                                    "FIRST_VALUE(SUM(amount)) OVER (ORDER BY month ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) " +
+                                    "AS prev_month_amount FROM %s GROUP BY month ORDER BY month", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "MONTH |MONTH_AMOUNT | PREV_MONTH_AMOUNT |\n" +
+                "------------------------------------------\n" +
+                "   1   |  58704.52   |     58704.52      |\n" +
+                "   2   |  28289.30   |     58704.52      |\n" +
+                "   3   |  20167.83   |     28289.30      |\n" +
+                "   4   |  50082.90   |     20167.83      |\n" +
+                "   5   |  17212.66   |     50082.90      |\n" +
+                "   6   |  31128.92   |     17212.66      |\n" +
+                "   7   |  78299.47   |     31128.92      |\n" +
+                "   8   |  42869.64   |     78299.47      |\n" +
+                "   9   |  35299.22   |     42869.64      |\n" +
+                "  10   |  43028.38   |     35299.22      |\n" +
+                "  11   |  26053.46   |     43028.38      |\n" +
+                "  12   |  20067.28   |     26053.46      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
     public void testLastValueFunctionWithCaseArgument() throws Exception {
         // DB-3920
-        String tableName = "emp3";
+        String tableName = "emp4";
         String tableRef = SCHEMA+"."+tableName;
         String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
@@ -2392,6 +2489,54 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  22   | 6500  |   4   |    1    |\n" +
                 "  23   | 7800  |   4   |    1    |\n" +
                 "  24   | 7200  |   4   |    1    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFirstValueFunctionWithCaseArgument() throws Exception {
+        // DB-3920
+        String tableName = "emp5";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, " +
+                                "first_value((CASE WHEN empno < 17 THEN 1 WHEN empno >= 17 THEN 0 END)) " +
+                                "over(partition by deptno order by salary asc rows unbounded preceding) as first_val from " +
+                                "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO | FIRST_VAL |\n" +
+                "------------------------------------\n" +
+                "  10   | 12000 |   5   |     1     |\n" +
+                "  11   | 10000 |   5   |     1     |\n" +
+                "  12   | 10000 |   5   |     1     |\n" +
+                "  13   | 9000  |   1   |     1     |\n" +
+                "  14   | 7500  |   1   |     1     |\n" +
+                "  15   | 7600  |   1   |     1     |\n" +
+                "  16   | 8500  |   2   |     0     |\n" +
+                "  17   | 9500  |   2   |     0     |\n" +
+                "  18   | 7700  |   2   |     0     |\n" +
+                "  19   | 8500  |   3   |     0     |\n" +
+                "  20   | 6900  |   3   |     0     |\n" +
+                "  21   | 7500  |   3   |     0     |\n" +
+                "  22   | 6500  |   4   |     0     |\n" +
+                "  23   | 7800  |   4   |     0     |\n" +
+                "  24   | 7200  |   4   |     0     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
