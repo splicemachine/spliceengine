@@ -63,16 +63,16 @@ public class WindowFunctionInfo implements Formatable
 	** See the constructor for the meaning of these fields
 	*/
 	String	functionName;
-    boolean ignoreNulls;
 	int[] operandColNums;
 	int		outputColumn;
 	int		aggregatorColumn;
 	String	functionClassName;
-	ResultDescription	rd;
+	ResultDescription resultDescription;
     FormatableArrayHolder partitionInfo;
     FormatableArrayHolder orderByInfo;
     FormatableArrayHolder keyInfo;
     FormatableHashtable frameInfo;
+    FormatableHashtable functionSpecificArgs;
 
     /**
 	 * Niladic constructor for Formattable
@@ -85,7 +85,6 @@ public class WindowFunctionInfo implements Formatable
 	 * @param functionName	the name of the window function.  Not
  	 *		actually used anywhere except diagnostics.  Should
 	 *		be the names as found in the language (e.g. RANK).
-     * @param ignoreNulls are we to respect or ignore null function arguments?
 	 * @param functionClassName	the name of the class
 	 *		used to process this function.  Function class expected
 	 *		to have a no-arg constructor and implement
@@ -93,31 +92,31 @@ public class WindowFunctionInfo implements Formatable
 	 * @param operandColNumns the function operand column numbers
 	 * @param outputColNum	the output column number
 	 * @param aggregatorColNum the column number in which the window function class is stored.
-	 * @param rd	the result description
+	 * @param resultDescription	the result description
 	 *
 	 */
 	public WindowFunctionInfo(String functionName,
-                              boolean ignoreNulls,
                               String functionClassName,
                               int[] operandColNumns,
                               int outputColNum,
                               int aggregatorColNum,
-                              ResultDescription rd,
+                              ResultDescription resultDescription,
                               FormatableArrayHolder partitionInfo,
                               FormatableArrayHolder orderByInfo,
                               FormatableArrayHolder keyInfo,
-                              FormatableHashtable frameInfo) {
+                              FormatableHashtable frameInfo,
+                              FormatableHashtable functionSpecificArgs) {
 		this.functionName	= functionName;
-        this.ignoreNulls = ignoreNulls;
 		this.functionClassName = functionClassName;
 		this.operandColNums = operandColNumns;
 		this.outputColumn	= outputColNum;
 		this.aggregatorColumn = aggregatorColNum;
-		this.rd 			= rd;
+		this.resultDescription = resultDescription;
         this.partitionInfo = partitionInfo;
         this.orderByInfo = orderByInfo;
         this.keyInfo = keyInfo;
         this.frameInfo = frameInfo;
+        this.functionSpecificArgs = functionSpecificArgs;
 	}
 
 	/**
@@ -129,15 +128,6 @@ public class WindowFunctionInfo implements Formatable
 	{
 		return functionName;
 	}
-
-    /**
-     * Do we respect or ignore null function arguments.
-     *
-     * @return true if we are to ignore null function arguments.
-     */
-    public boolean isIgnoreNulls() {
-        return this.ignoreNulls;
-    }
 
 	/**
 	 * Get the name of the class that implements the user
@@ -188,11 +178,11 @@ public class WindowFunctionInfo implements Formatable
 	 * Get the result description for the input value
 	 * to this aggregate.
 	 *
-	 * @return the rd
+	 * @return the resultDescription
 	 */
 	public ResultDescription getResultDescription()
 	{
-		return rd;
+		return resultDescription;
 	}
 
     public ColumnOrdering[] getPartitionInfo() {
@@ -239,9 +229,16 @@ public class WindowFunctionInfo implements Formatable
         this.frameInfo = frameInfo;
     }
 
+    public FormatableHashtable getFunctionSpecificArgs() {
+        return functionSpecificArgs;
+    }
+
+    public void setFunctionSpecificArgs(FormatableHashtable functionSpecificArgs) {
+        this.functionSpecificArgs = functionSpecificArgs;
+    }
+
     public String toHTMLString() {
         return "Name: "+ functionName + "<br/>" +
-            "IgnoreNulls: " + ignoreNulls + "<br/>" +
             "PartCols: " + (partitionInfo != null ? getColumnNumString(partitionInfo) : "()" ) + "<br/>" +
             "OrderByCols: " + (orderByInfo != null ? getColumnNumString(orderByInfo) : "()") + "<br/>" +
             "KeyCols: " + (keyInfo != null ? getColumnNumString(keyInfo) : "()") + "<br/>" +
@@ -289,7 +286,6 @@ public class WindowFunctionInfo implements Formatable
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
 		out.writeObject(functionName);
-        out.writeBoolean(ignoreNulls);
         int length = operandColNums.length;
         out.writeInt( length );
         for (int inputColumn : operandColNums) { out.writeInt(inputColumn); }
@@ -297,11 +293,12 @@ public class WindowFunctionInfo implements Formatable
 		out.writeInt(outputColumn);
 		out.writeInt(aggregatorColumn);
 		out.writeObject(functionClassName);
-		out.writeObject(rd);
+		out.writeObject(resultDescription);
         out.writeObject(partitionInfo);
         out.writeObject(orderByInfo);
         out.writeObject(keyInfo);
         out.writeObject(frameInfo);
+        out.writeObject(functionSpecificArgs);
 	}
 
 	/**
@@ -316,7 +313,6 @@ public class WindowFunctionInfo implements Formatable
 		throws IOException, ClassNotFoundException
 	{
 		functionName = (String)in.readObject();
-        ignoreNulls = in.readBoolean();
         int length = in.readInt();
         operandColNums = new int[ length ];
         for ( int i = 0; i < length; i++ ) { operandColNums[ i ] = in.readInt(); }
@@ -324,11 +320,12 @@ public class WindowFunctionInfo implements Formatable
         outputColumn = in.readInt();
 		aggregatorColumn = in.readInt();
 		functionClassName = (String)in.readObject();
-		rd = (ResultDescription)in.readObject();
+		resultDescription = (ResultDescription)in.readObject();
         partitionInfo = (FormatableArrayHolder) in.readObject();
         orderByInfo = (FormatableArrayHolder) in.readObject();
         keyInfo = (FormatableArrayHolder) in.readObject();
         frameInfo = (FormatableHashtable) in.readObject();
+        functionSpecificArgs = (FormatableHashtable) in.readObject();
 	}
 	
 	/**

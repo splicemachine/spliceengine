@@ -13,6 +13,10 @@ import com.splicemachine.db.iapi.types.TypeId;
  *         Date: 9/30/15
  */
 public class FirstLastValueFunctionDefinition implements AggregateDefinition {
+
+    /** */
+    public static final String IGNORE_NULLS = "IGNORE_NULLS";
+
     @Override
     public DataTypeDescriptor getAggregator(DataTypeDescriptor inputType, StringBuffer aggregatorClassName) throws StandardException {
         aggregatorClassName.append(ClassName.FirstLastValueFunction);

@@ -23,10 +23,11 @@ package com.splicemachine.db.impl.sql.compile;
 import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
- * Class that represents a call to the LAST_VALUE() window function.
+ * Class that represents a call to the FIRST_VALUE() and LAST_VALUE() window functions.
  */
 public final class FirstLastValueFunctionNode extends WindowFunctionNode {
 
@@ -76,5 +77,12 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
         if (operands != null && operands.length > 0) {
             this.operand = operands[0];
         }
+    }
+
+    @Override
+    public FormatableHashtable getFunctionSpecificArgs() {
+        FormatableHashtable container = new FormatableHashtable();
+        container.put(FirstLastValueFunctionDefinition.IGNORE_NULLS, this.isIgnoreNulls());
+        return container;
     }
 }

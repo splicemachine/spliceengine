@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
@@ -23,17 +24,17 @@ public abstract class WindowFunctionBase implements WindowFunction {
     protected ClassFactory classFactory;
     protected String windowFunctionName;
     protected DataTypeDescriptor returnDataType;
-    protected boolean ignoreNulls;
+    protected FormatableHashtable functionSpecificArgs;
 
     @Override
     public WindowFunction setup(ClassFactory classFactory,
                                 String windowFunctionName,
                                 DataTypeDescriptor returnDataType,
-                                boolean ignoreNulls) {
+                                FormatableHashtable functionSpecificArgs) {
         this.classFactory = classFactory;
         this.windowFunctionName = windowFunctionName;
         this.returnDataType = returnDataType;
-        this.ignoreNulls = ignoreNulls;
+        this.functionSpecificArgs = functionSpecificArgs;
         return this;
     }
 
@@ -48,7 +49,7 @@ public abstract class WindowFunctionBase implements WindowFunction {
                 classFactory,
                 windowFunctionName,
                 returnDataType,
-                ignoreNulls
+                functionSpecificArgs
             );
         }catch(Exception e){
             throw new RuntimeException(e);

@@ -1,5 +1,6 @@
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -16,8 +17,8 @@ public class FirstLastValueFunction extends WindowFunctionBase implements Window
     public WindowFunction setup(ClassFactory classFactory,
                                 String functionName,
                                 DataTypeDescriptor returnDataType,
-                                boolean ignoreNulls) {
-        super.setup(classFactory, functionName, returnDataType, ignoreNulls);
+                                FormatableHashtable functionSpecificArgs) {
+        super.setup(classFactory, functionName, returnDataType, functionSpecificArgs);
         return this;
     }
 

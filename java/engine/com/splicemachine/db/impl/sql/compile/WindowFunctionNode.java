@@ -25,6 +25,7 @@ import java.util.List;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -512,5 +513,14 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
     public boolean isIgnoreNulls() {
         return ignoreNulls;
+    }
+
+    /**
+     * Override this method to provide window function specific generic set of arguments
+     * to the Splice-side window function.
+     * @return a map of argName -> argument in which a specific function is interested.
+     */
+    public FormatableHashtable getFunctionSpecificArgs() {
+        return new FormatableHashtable();
     }
 }

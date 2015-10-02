@@ -817,7 +817,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns());
             windowInfoList.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
-                windowFunctionNode.isIgnoreNulls(),
                 windowFunctionNode.getAggregatorClassName(),
                 inputVColIDs,       // windowFunctionNode input columns
                 aggResultVColId,    // the windowFunctionNode result column
@@ -826,7 +825,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 partitionCols,      // window function partition
                 orderByCols,        // window function order by
                 keyCols,            // deduplicated set of partition and order by cols that will be row key
-                windowFunctionNode.getWindow().getFrameExtent().toMap()
+                windowFunctionNode.getWindow().getFrameExtent().toMap(),
+                windowFunctionNode.getFunctionSpecificArgs()
             ));
         }
     }
