@@ -22,7 +22,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -344,14 +343,6 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     public void setRowOrdering(RowOrdering rowOrdering) {
-        throw new RuntimeException("Not Supported");
-    }
-
-    public OptimizablePredicateList getPredicateList() {
-        throw new RuntimeException("Not Supported");
-    }
-
-    public void setPredicateList(OptimizablePredicateList predicateList) {
         throw new RuntimeException("Not Supported");
     }
 

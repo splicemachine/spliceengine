@@ -205,6 +205,22 @@ public interface StoreCostController extends RowCountable{
 
     /**
      *
+     * Currently a static factor representing the cost of opening a scan.
+     *
+     * @return
+     */
+    double getOpenLatency();
+
+    /**
+     *
+     * Currently a static factor representing the cost of closing a scan.
+     *
+     * @return
+     */
+    double getCloseLatency();
+
+    /**
+     *
      * Number of partitions involved.  TODO: JL Need a better way of determining number of partitions involved in a query.
      *
      * @return

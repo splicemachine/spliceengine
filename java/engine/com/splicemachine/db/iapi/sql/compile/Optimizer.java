@@ -270,6 +270,21 @@ public interface Optimizer{
      */
     void setOuterRowOrdering(RowOrdering rowOrdering);
 
+
+    /**
+     *
+     * Transfer current outer cost to the optimizers current outer cost.
+     *
+     */
+    void transferOuterCost(CostEstimate currentOuterCostEstimate);
+
+    /**
+     *
+     * Set on the outer information to mark as an outer join for cost estimates.
+     *
+     * @param isOuterJoin
+     */
+
     void setIsOuterJoin(boolean isOuterJoin);
 
     /**

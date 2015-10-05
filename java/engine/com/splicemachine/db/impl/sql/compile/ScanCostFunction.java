@@ -175,7 +175,6 @@ public class ScanCostFunction{
         scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
 
-
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
         double colSizeFactor = scc.getBaseTableAvgRowWidth()*scc.baseTableColumnSizeFactor(totalColumns);
         // Heap Size is the avg row width of the columns for the base table*total rows
@@ -183,18 +182,17 @@ public class ScanCostFunction{
         // This should be the same for every conglomerate path
         scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*scc.getRemoteLatency()*colSizeFactor));
+        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*totalSelectivity*scc.getRemoteLatency()*(1+colSizeFactor/100)));
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-       // double congColSizeFactor = congAverageWidth*scc.conglomerateColumnSizeFactor(scanColumns);
-        double baseCost = totalRowCount*baseTableSelectivity*scc.getLocalLatency()*scc.getConglomerateAvgRowWidth()*1d/1000d;
+        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*baseTableSelectivity*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100));
         scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
         double lookupCost;
         if (lookupColumns == null)
             lookupCost = 0.0d;
         else {
-            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth()*1d/1000d;;
+            lookupCost = totalRowCount*filterBaseTableSelectivity*(scc.getOpenLatency()+scc.getCloseLatency());
             scanCost.setIndexLookupRows(filterBaseTableSelectivity*totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }

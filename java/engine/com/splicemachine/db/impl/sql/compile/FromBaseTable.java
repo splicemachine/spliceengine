@@ -745,7 +745,6 @@ public class FromBaseTable extends FromTable {
         StoreCostController scc=getStoreCostController(cd);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
-        costEstimate.setPredicateList(baseTableRestrictionList);
 
         //get a BitSet representing the column positions of interest
         BitSet scanColumnList = null;

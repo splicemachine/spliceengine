@@ -168,10 +168,6 @@ public interface CostEstimate extends StoreCostResult {
 
     void setRowOrdering(RowOrdering rowOrdering);
 
-    OptimizablePredicateList getPredicateList();
-
-    void setPredicateList(OptimizablePredicateList predList);
-
     CostEstimate getBase();
 
     void setBase(CostEstimate baseCost);

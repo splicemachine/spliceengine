@@ -1246,6 +1246,13 @@ public class OptimizerImpl implements Optimizer{
 
     @Override public void setOuterRowOrdering(RowOrdering rowOrdering){ outermostCostEstimate.setRowOrdering(rowOrdering); }
 
+
+    public void transferOuterCost(CostEstimate currentOuterCostEstimate) {
+        outermostCostEstimate.setCost(currentOuterCostEstimate);
+    }
+
+
+
     /**
      * Set whether it is participating in an outer join.
      *
