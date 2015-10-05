@@ -63,6 +63,7 @@ public abstract class SpliceBaseOperationRegionScanner<Data> implements RegionSc
 
     public SpliceBaseOperationRegionScanner(final RegionScanner regionScanner, final Scan scan, final HRegion region,
                                         TransactionalRegion txnRegion) throws IOException {
+                assert 1==2:"Do not use";
 				SpliceLogUtils.trace(LOG, "instantiated with %s, and scan %s",regionScanner,scan);
 				this.regionScanner = regionScanner;
 				boolean prepared = false;
@@ -78,7 +79,7 @@ public abstract class SpliceBaseOperationRegionScanner<Data> implements RegionSc
 						context = new SpliceOperationContext(regionScanner,
 										region,txnRegion,scan, activation, statement, impl.getLcc(),false,topOperation,null,
 										soi.getTxn());
-						context.setSpliceRegionScanner(this);
+		//				context.setSpliceRegionScanner(this);
 						topOperation.init(context);
 				} catch (Exception e) {
 						ErrorReporter.get().reportError(SpliceBaseOperationRegionScanner.class,e);

@@ -37,7 +37,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 		this.connection = connection;
 		this.table = table;
 		this.row = row;
-		this.rpcFactory = SpliceRetryingCallerFactory.instantiate(connection.getConfiguration(),(ClusterConnection) this.connection);
+		this.rpcFactory = SpliceRetryingCallerFactory.instantiate(connection.getConfiguration());
 	}
 
 	@Override

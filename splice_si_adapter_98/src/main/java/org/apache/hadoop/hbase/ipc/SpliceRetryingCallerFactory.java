@@ -38,11 +38,20 @@ public class SpliceRetryingCallerFactory  {
     private final int retries;
     private final int socketTimeout;
 
-    public SpliceRetryingCallerFactory(Configuration conf, ClusterConnection clusterConnection) {
+    public SpliceRetryingCallerFactory(Configuration conf) {
         this.conf = conf;
-        pause = clusterConnection.getTableConfiguration().getPause();
-        retries = clusterConnection.getTableConfiguration().getRetriesNumber();
-        socketTimeout = clusterConnection.getTableConfiguration().getOperationTimeout();
+        /*
+            Blocks all over cluster: Major Performance issue
+            pause = clusterConnection.getTableConfiguration().getPause();
+            retries = clusterConnection.getTableConfiguration().getRetriesNumber();
+            socketTimeout = clusterConnection.getTableConfiguration().getOperationTimeout();
+        */
+
+        pause = conf.getLong(HConstants.HBASE_CLIENT_PAUSE,
+                HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
+        retries = conf.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
+                HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+        socketTimeout = getSocketTimeout(conf);
     }
 
     public <T> SpliceRpcRetryingCaller<T> newCaller() {
@@ -51,8 +60,8 @@ public class SpliceRetryingCallerFactory  {
         return new SpliceRpcRetryingCaller<T>(pause, retries,socketTimeout);
     }
 
-    public static SpliceRetryingCallerFactory instantiate(Configuration configuration, ClusterConnection clusterConnection) {
-        return new SpliceRetryingCallerFactory(configuration,clusterConnection);
+    public static SpliceRetryingCallerFactory instantiate(Configuration configuration) {
+        return new SpliceRetryingCallerFactory(configuration);
     }
 
     public static class SpliceRpcRetryingCaller<T>  {
