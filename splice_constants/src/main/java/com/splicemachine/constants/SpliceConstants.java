@@ -41,7 +41,7 @@ public class SpliceConstants {
      * Ignore SavePts flag for experimental TPCC testing.
      */
     @Parameter public static final String IGNORE_SAVEPTS = "splice.ignore.savepts";
-    @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = true;
+    @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
     public static boolean ignoreSavePts;
 
 
