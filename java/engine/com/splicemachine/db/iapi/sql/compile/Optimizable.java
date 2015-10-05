@@ -24,11 +24,8 @@ package com.splicemachine.db.iapi.sql.compile;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.util.JBitSet;
-
 import java.util.Properties;
 
 /**
@@ -332,12 +329,6 @@ public interface Optimizable {
 	/** Return true if this is the target table of an update */
 	boolean forUpdate();
 
-	/** Return the initial capacity of the hash table, for hash join strategy */
-	int initialCapacity();
-
-	/** Return the load factor of the hash table, for hash join strategy */
-	float loadFactor();
-
 	/** Return the hash key column numbers, for hash join strategy */
 	int[] hashKeyColumns();
 
@@ -361,24 +352,6 @@ public interface Optimizable {
 								 Optimizer optimizer,
 								 CostEstimate outerCost) throws StandardException;
 
-    /**
-     * @param rowCount
-     * @param maxMemoryPerTable
-     * @return true if the memory usage of the proposed access path is OK, false if not.
-     *
-     * @exception StandardException standard error policy
-     */
-	boolean memoryUsageOK(double rowCount,int maxMemoryPerTable) throws StandardException;
-
-	/**
-     * Return the maximum capacity of the hash table, for hash join strategy
-     *
-     * @param maxMemoryPerTable The maximum number of bytes to be used. Ignored if the user has set a maximum
-     *                          number of rows for the Optimizable.
-     *
-     * @exception StandardException Standard error policy
-     */
-	int maxCapacity(JoinStrategy joinStrategy,int maxMemoryPerTable) throws StandardException;
 
 	/**
 	 * Can this Optimizable appear at the current location in the join order.

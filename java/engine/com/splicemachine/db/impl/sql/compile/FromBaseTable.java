@@ -599,59 +599,7 @@ public class FromBaseTable extends FromTable {
                 }
             }else if(key.equals("joinStrategy")){
                 userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
-            }else if(key.equals("hashInitialCapacity")){
-                initialCapacity=getIntProperty(value,key);
-
-                // verify that the specified value is valid
-                if(initialCapacity<=0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY,String.valueOf(initialCapacity));
-                }
-            }else if(key.equals("hashLoadFactor")){
-                try{
-                    loadFactor=Float.parseFloat(value);
-                }catch(NumberFormatException nfe){
-                    throw StandardException.newException(SQLState.LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE, value,key);
-                }
-
-                // verify that the specified value is valid
-                if(loadFactor<=0.0 || loadFactor>1.0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_LOAD_FACTOR, value);
-                }
-            }else if(key.equals("hashMaxCapacity")){
-                maxCapacity=getIntProperty(value,key);
-
-                // verify that the specified value is valid
-                if(maxCapacity<=0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_MAX_CAPACITY,String.valueOf(maxCapacity));
-                }
-                break;
-            }else if(key.equals("bulkFetch")){
-                bulkFetch=getIntProperty(value,key);
-
-                // verify that the specified value is valid
-                if(bulkFetch<=0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE,String.valueOf(bulkFetch));
-                }
-
-                // no bulk fetch on updatable scans
-                if(forUpdate()){
-                    throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_UPDATEABLE);
-                }
-                break;
-            }else if(key.equals("sortStrategy")){
-                if(!value.equalsIgnoreCase("internal") && !value.equalsIgnoreCase("external"))
-                    throw StandardException.newException(SQLState.LANG_INVALID_SORT_STRATEGY,value);
-                break;
-            }else if(key.equals("joinSide")){
-                if(!(value.equalsIgnoreCase("control") || value.equalsIgnoreCase("region"))){
-                    //TODO -sf- put a better error message here
-                    throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY,value);
-                }
-                break;
-            }else if(key.equals("scanStrategy")){
-                if(!value.equalsIgnoreCase("useNewApi") && !value.equalsIgnoreCase("useOldApi"))
-                    throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,"useNewApi,useOldApi");
-            }else{
+            } else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
                         "index, constraint, joinStrategy");
@@ -896,14 +844,7 @@ public class FromBaseTable extends FromTable {
         return (updateOrDelete!=0) || cursorTargetTable || getUpdateLocks;
     }
 
-    @Override public int initialCapacity(){ return initialCapacity; }
-    @Override public float loadFactor(){ return loadFactor; }
     @Override public boolean isTargetTable(){ return (updateOrDelete!=0); }
-
-    @Override
-    public boolean memoryUsageOK(double rowCount,int maxMemoryPerTable) throws StandardException{
-        return super.memoryUsageOK(singleScanRowCount,maxMemoryPerTable);
-    }
 
     public double uniqueJoin(OptimizablePredicateList predList) throws StandardException{
         double retval=-1.0;

@@ -368,8 +368,6 @@ public class HashTableNode extends SingleChildResultSetNode
 		mb.push(hashKeyItem);
 		mb.push(false);
 		mb.push(-1L);
-		mb.push(initialCapacity);
-		mb.push(loadFactor);
 		mb.push(costEstimate.singleScanRowCount());
 		mb.push(costEstimate.getEstimatedCost());
 

@@ -1080,24 +1080,7 @@ public class OptimizerImpl implements Optimizer{
         // this class.
         optimizable.getCurrentAccessPath().setCostEstimate(estimatedCost);
 
-		/*
-		** Skip this access path if it takes too much memory.
-		**
-		** NOTE: The default assumption here is that the number of rows in
-		** a single scan is the total number of rows divided by the number
-		** of outer rows.  The optimizable may over-ride this assumption.
-		*/
-
-        // RESOLVE: The following call to memoryUsageOK does not behave
-        // correctly if outerCost.rowCount() is POSITIVE_INFINITY; see
-        // DERBY-1259.
         double rowCount=estimatedCost.rowCount()/outerCost.rowCount();
-        if(maxMemoryPerTable!=-1 && !optimizable.memoryUsageOK(rowCount,maxMemoryPerTable)){
-            if(optimizerTrace){
-                tracer().trace(OptimizerFlag.SKIPPING_DUE_TO_EXCESS_MEMORY,0,0,0.0,null);
-            }
-            return;
-        }
 
 		/* Pick the cheapest cost for this particular optimizable.
 		 * NOTE: Originally, the code only chose the new access path if
@@ -2257,23 +2240,6 @@ public class OptimizerImpl implements Optimizer{
         // That check is performed in getNextDecoratedPermutation() of
         // this class.
         optimizable.getCurrentAccessPath().setCostEstimate(estimatedCost);
-
-		/*
-		** Skip this access path if it takes too much memory.
-		**
-		** NOTE: The default assumption here is that the number of rows in
-		** a single scan is the total number of rows divided by the number
-		** of outer rows.  The optimizable may over-ride this assumption.
-		*/
-        // RESOLVE: The following call to memoryUsageOK does not behave
-        // correctly if outerCost.rowCount() is POSITIVE_INFINITY; see
-        // DERBY-1259.
-        if(maxMemoryPerTable>0 && !optimizable.memoryUsageOK(estimatedCost.rowCount()/outerCost.rowCount(),maxMemoryPerTable)){
-            if(optimizerTrace){
-                tracer().trace(OptimizerFlag.SKIPPING_DUE_TO_EXCESS_MEMORY,0,0,0.0,null);
-            }
-            return;
-        }
 
 		/* Pick the cheapest cost for this particular optimizable. */
         AccessPath ap=optimizable.getBestAccessPath();

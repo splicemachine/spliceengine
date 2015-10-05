@@ -33,8 +33,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.sql.execute.HashScanResultSet;
-
 import java.util.*;
 
 /**
@@ -57,11 +55,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     int level;
     // hashKeyColumns are 0-based column #s within the row returned by the store for hash scans
     int[] hashKeyColumns;
-
-    // overrides for hash join
-    int initialCapacity=HashScanResultSet.DEFAULT_INITIAL_CAPACITY;
-    float loadFactor=HashScanResultSet.DEFAULT_LOADFACTOR;
-    int maxCapacity=HashScanResultSet.DEFAULT_MAX_CAPACITY;
 
     AccessPath currentAccessPath;
     AccessPath bestAccessPath;
@@ -341,35 +334,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 case "joinStrategy":
                     userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
                     break;
-                case "hashInitialCapacity":
-                    initialCapacity=getIntProperty(value,key);
-
-                    // verify that the specified value is valid
-                    if(initialCapacity<=0){
-                        throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY,
-                                String.valueOf(initialCapacity));
-                    }
-                    break;
-                case "hashLoadFactor":
-                    try{
-                        loadFactor=Float.parseFloat(value);
-                    }catch(NumberFormatException nfe){
-                        throw StandardException.newException(SQLState.LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE, value,key);
-                    }
-
-                    // verify that the specified value is valid
-                    if(loadFactor<=0.0 || loadFactor>1.0){
-                        throw StandardException.newException(SQLState.LANG_INVALID_HASH_LOAD_FACTOR, value);
-                    }
-                    break;
-                case "hashMaxCapacity":
-                    maxCapacity=getIntProperty(value,key);
-
-                    // verify that the specified value is valid
-                    if(maxCapacity<=0){
-                        throw StandardException.newException(SQLState.LANG_INVALID_HASH_MAX_CAPACITY, String.valueOf(maxCapacity));
-                    }
-                    break;
                 default:
                     // No other "legal" values at this time
                     throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key, "joinStrategy");
@@ -643,29 +607,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
-    @Override
-    public int initialCapacity(){
-        if(SanityManager.DEBUG){
-            SanityManager.THROWASSERT("Not expected to be called");
-        }
-
-        return 0;
-    }
-
-    @Override
-    public float loadFactor(){
-        if(SanityManager.DEBUG){
-            SanityManager.THROWASSERT("Not expected to be called");
-        }
-
-        return 0.0F;
-    }
-
-    @Override
-    public int maxCapacity(JoinStrategy joinStrategy,int maxMemoryPerTable) throws StandardException{
-        return joinStrategy.maxCapacity(maxCapacity,maxMemoryPerTable,getPerRowUsage());
-    }
-
     private double getPerRowUsage() throws StandardException{
         if(perRowUsage<0){
             // Do not use getRefCols() because the cached refCols may no longer be valid.
@@ -718,19 +659,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public boolean feasibleJoinStrategy(OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException{
         AccessPath currentAccessPath=getCurrentAccessPath();
         return currentAccessPath.getJoinStrategy().feasible(this,predList,optimizer,outerCost,currentAccessPath.isHintedJoinStrategy());
-    }
-
-    @Override
-    public boolean memoryUsageOK(double rowCount,int maxMemoryPerTable) throws StandardException{
-		/*
-		** Don't enforce maximum memory usage for a user-specified join
-		** strategy.
-		*/
-        if(userSpecifiedJoinStrategy!=null)
-            return true;
-
-        int intRowCount=(rowCount>Integer.MAX_VALUE)?Integer.MAX_VALUE:(int)rowCount;
-        return intRowCount<=maxCapacity(getCurrentAccessPath().getJoinStrategy(),maxMemoryPerTable);
     }
 
     /**
