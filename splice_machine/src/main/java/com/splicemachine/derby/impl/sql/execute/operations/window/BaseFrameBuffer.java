@@ -6,12 +6,12 @@ import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
 
 /**
+ *
  * Created by jyuan on 9/15/14.
  */
 abstract public class BaseFrameBuffer implements WindowFrameBuffer{
@@ -24,7 +24,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected int start;
     protected int end;
     protected int current;
-    protected ArrayList<ExecRow> rows;
+    protected List<ExecRow> rows;
     protected PartitionAwarePushBackIterator<ExecRow> source;
     protected byte[] partition;
     protected boolean endOfPartition;
@@ -68,7 +68,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         // The frame definition will not change over the life of this frame buffer
         this.frameStart = frameDefinition.getFrameStart().getValue();
         this.frameEnd = frameDefinition.getFrameEnd().getValue();
-        this.rows = new ArrayList<ExecRow>();
+        this.rows = new ArrayList<>();
     }
 
     @Override
@@ -127,7 +127,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     }
 
     protected void reset() throws StandardException, IOException {
-        rows = new ArrayList<ExecRow>();
+        rows = new ArrayList<>();
 
         // Initialize window functions
         for (WindowAggregator aggregator : this.aggregators) {

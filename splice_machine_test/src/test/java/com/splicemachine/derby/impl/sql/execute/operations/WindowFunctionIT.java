@@ -2446,7 +2446,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test @Ignore("Frame buffer problem - only seeing one row at a time in frame.")
-    public void testLagFunction() throws Exception {
+    public void testLeadFunction() throws Exception {
         // DB-3920
         String tableName = "emp3";
         String tableRef = SCHEMA+"."+tableName;
@@ -2488,6 +2488,53 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  10   | 12000 |   5   |     10000    |\n" +
                 "  11   | 10000 |   5   |     10000    |\n" +
                 "  12   | 10000 |   5   |     NULL     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test @Ignore("Frame buffer problem - only seeing one row at a time in frame.")
+    public void testLagFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, " +
+                                    "LAG(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC) NEXT_LOWER_SAL from " +
+                                    "%s order by deptno, SALARY DESC", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO |NEXT_LOWER_SAL |\n" +
+                "----------------------------------------\n" +
+                "  13   | 9000  |   1   |     NULL      |\n" +
+                "  15   | 7600  |   1   |     9000      |\n" +
+                "  14   | 7500  |   1   |     7600      |\n" +
+                "  17   | 9500  |   2   |     NULL      |\n" +
+                "  16   | 8500  |   2   |     9500      |\n" +
+                "  18   | 7700  |   2   |     8500      |\n" +
+                "  19   | 8500  |   3   |     NULL      |\n" +
+                "  21   | 7500  |   3   |     8500      |\n" +
+                "  20   | 6900  |   3   |     7500      |\n" +
+                "  23   | 7800  |   4   |     NULL      |\n" +
+                "  24   | 7200  |   4   |     7800      |\n" +
+                "  22   | 6500  |   4   |     7200      |\n" +
+                "  10   | 12000 |   5   |     NULL      |\n" +
+                "  11   | 10000 |   5   |     12000     |\n" +
+                "  12   | 10000 |   5   |     10000     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
