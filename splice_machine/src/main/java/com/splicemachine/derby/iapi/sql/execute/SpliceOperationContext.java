@@ -1,7 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceBaseOperationRegionScanner;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
@@ -41,7 +40,6 @@ public class SpliceOperationContext {
     private LanguageConnectionContext lcc;
     private boolean isSink;
     private SpliceOperation topOperation;
-    private SpliceBaseOperationRegionScanner spliceRegionScanner;
     private boolean cacheBlocks = true;
     private SpliceRuntimeContext spliceRuntimeContext;
 
@@ -97,10 +95,6 @@ public class SpliceOperationContext {
 				this.txn = txn;
     }
 
-
-    public void setSpliceRegionScanner(SpliceBaseOperationRegionScanner sors){
-        this.spliceRegionScanner = sors;
-    }
 
     public HRegion getRegion(){
         return region;
@@ -203,10 +197,6 @@ public class SpliceOperationContext {
 
     public Scan getScan() {
         return scan;
-    }
-
-    public SpliceBaseOperationRegionScanner getSpliceRegionScanner(){
-        return spliceRegionScanner;
     }
 
     public void setCacheBlocks(boolean cacheBlocks) {
