@@ -6,10 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.client.RetryingCallable;
-import org.apache.hadoop.hbase.client.RpcRetryingCaller;
-import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.ExceptionUtil;
 import org.apache.hadoop.hbase.util.ReflectionUtils;
 import org.apache.hadoop.ipc.RemoteException;
@@ -41,14 +38,11 @@ public class SpliceRetryingCallerFactory  {
     private final int retries;
     private final int socketTimeout;
 
-    public SpliceRetryingCallerFactory(Configuration conf) {
+    public SpliceRetryingCallerFactory(Configuration conf, ClusterConnection clusterConnection) {
         this.conf = conf;
-
-        pause = conf.getLong(HConstants.HBASE_CLIENT_PAUSE,
-                HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
-        retries = conf.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
-                HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-        socketTimeout = getSocketTimeout(conf);
+        pause = clusterConnection.getTableConfiguration().getPause();
+        retries = clusterConnection.getTableConfiguration().getRetriesNumber();
+        socketTimeout = clusterConnection.getTableConfiguration().getOperationTimeout();
     }
 
     public <T> SpliceRpcRetryingCaller<T> newCaller() {
@@ -57,12 +51,8 @@ public class SpliceRetryingCallerFactory  {
         return new SpliceRpcRetryingCaller<T>(pause, retries,socketTimeout);
     }
 
-    public static SpliceRetryingCallerFactory instantiate(Configuration configuration) {
-        String rpcCallerFactoryClazz =
-                configuration.get(RpcRetryingCallerFactory.CUSTOM_CALLER_CONF_KEY,
-                        SpliceRetryingCallerFactory.class.getName());
-        return ReflectionUtils.instantiateWithCustomCtor(rpcCallerFactoryClazz,
-                new Class[]{Configuration.class}, new Object[]{configuration});
+    public static SpliceRetryingCallerFactory instantiate(Configuration configuration, ClusterConnection clusterConnection) {
+        return new SpliceRetryingCallerFactory(configuration,clusterConnection);
     }
 
     public static class SpliceRpcRetryingCaller<T>  {
