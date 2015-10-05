@@ -80,6 +80,9 @@ public class InsertTableWriterBuilder implements Externalizable {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         try {
+            out.writeBoolean(insertOperation!=null);
+            if (insertOperation!=null)
+                out.writeObject(insertOperation);
             TransactionOperations.getOperationFactory().writeTxn(txn, out);
             ArrayUtil.writeIntArray(out, pkCols);
             out.writeUTF(tableVersion);
@@ -100,6 +103,8 @@ public class InsertTableWriterBuilder implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean())
+            insertOperation = (InsertOperation) in.readObject();
         txn = TransactionOperations.getOperationFactory().readTxn(in);
         pkCols = ArrayUtil.readIntArray(in);
         tableVersion = in.readUTF();

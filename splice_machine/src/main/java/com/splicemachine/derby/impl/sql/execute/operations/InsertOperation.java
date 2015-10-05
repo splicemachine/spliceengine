@@ -206,6 +206,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
         InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
+                .insertOperation(this)
                 .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                 .execRowDefinition(getExecRowDefinition())
                 .execRowTypeFormatIds(execRowTypeFormatIds)
