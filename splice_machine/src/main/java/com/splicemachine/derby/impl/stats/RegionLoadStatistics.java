@@ -50,8 +50,8 @@ public class RegionLoadStatistics{
                     0l,
                     StatsConstants.fallbackLocalLatency*numRows,
                     perRowRemoteLatency*numRows,
-                    perRowRemoteLatency,1l,
-                    perRowRemoteLatency,1l,
+                    StatsConstants.fallbackOpenCloseLatency,1l,
+                    StatsConstants.fallbackOpenCloseLatency,1l,
                     Collections.<ColumnStatistics>emptyList()));
         }
         return new GlobalStatistics(table,partitionStats);
