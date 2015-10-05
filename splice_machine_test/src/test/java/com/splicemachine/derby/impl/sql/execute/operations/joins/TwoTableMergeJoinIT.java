@@ -205,6 +205,7 @@ public class TwoTableMergeJoinIT{
     }
 
     @Test
+    @Ignore("Ignore until we can pass the outer predicates to the join strategy as well as inner preds")
     public void testMatchingFirstPredicateAndEqualsOuterFirstColumn() throws Exception{
         /*
          * predicates: a.c2 = b.c3 and a.c1 = 1
@@ -215,6 +216,7 @@ public class TwoTableMergeJoinIT{
     }
 
     @Test
+    @Ignore("Ignore until we can pass the outer predicates to the join strategy as well as inner preds")
     public void testMatchingFirstPredicateAndGreaterEqualsOuterFirstColumn() throws Exception{
         /*
          * predicates: a.c2 = b.c3 and a.c1 = 1

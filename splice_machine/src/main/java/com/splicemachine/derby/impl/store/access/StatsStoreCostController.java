@@ -350,4 +350,14 @@ public class StatsStoreCostController extends GenericController implements Store
     public double baseRowCount() {
         return conglomerateStatistics.rowCount();
     }
+
+    @Override
+    public double getOpenLatency() {
+        return StatsConstants.fallbackOpenCloseLatency;
+    }
+
+    @Override
+    public double getCloseLatency() {
+        return StatsConstants.fallbackOpenCloseLatency;
+    }
 }
