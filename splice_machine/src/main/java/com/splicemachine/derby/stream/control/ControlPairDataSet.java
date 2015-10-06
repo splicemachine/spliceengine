@@ -119,10 +119,10 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
 
-        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<? extends Tuple2<K, Tuple2<V, Optional<W>>>>>() {
+        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, Optional<W>>>>>() {
             @Nullable
             @Override
-            public Iterable<? extends Tuple2<K, Tuple2<V, Optional<W>>>> apply(@Nullable Tuple2<K, V> t) {
+            public Iterable<Tuple2<K, Tuple2<V, Optional<W>>>> apply(@Nullable Tuple2<K, V> t) {
                 List result = new ArrayList();
                 K key = t._1();
                 V value = t._2();
@@ -143,10 +143,10 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         final Multimap<K, V> leftSide = multimapFromIterable(source);
 
 
-        return new ControlPairDataSet<>(FluentIterable.from(((ControlPairDataSet<K,W>) rightDataSet).source).transformAndConcat(new Function<Tuple2<K, W>, Iterable<? extends Tuple2<K, Tuple2<Optional<V>, W>>>>() {
+        return new ControlPairDataSet<>(FluentIterable.from(((ControlPairDataSet<K,W>) rightDataSet).source).transformAndConcat(new Function<Tuple2<K, W>, Iterable<Tuple2<K, Tuple2<Optional<V>, W>>>>() {
             @Nullable
             @Override
-            public Iterable<? extends Tuple2<K, Tuple2<Optional<V>, W>>> apply(@Nullable Tuple2<K, W> t) {
+            public Iterable<Tuple2<K, Tuple2<Optional<V>, W>>> apply(@Nullable Tuple2<K, W> t) {
                 List result = new ArrayList();
                 K key = t._1();
                 W value = t._2();
@@ -165,10 +165,10 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
-        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<? extends Tuple2<K, Tuple2<V, W>>>>() {
+        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
-            public Iterable<? extends Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
+            public Iterable<Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
                 List result = new ArrayList();
                 K key = t._1();
                 V value = t._2();
