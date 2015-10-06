@@ -45,23 +45,12 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * A DMLStatement for a table modification: to wit, INSERT
@@ -889,14 +878,19 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	}
 
     private void generatePKInfo(TableDescriptor td) throws StandardException {
-        ConstraintDescriptorList cdl = td.getConstraintDescriptorList();
+        pkColumns = getPrimaryKeyInfo(td);
+        return;
+    }
+
+    public static int[] getPrimaryKeyInfo(TableDescriptor td) throws StandardException {
+        ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
         for(int i=0;i<cdl.size();i++){
-            ConstraintDescriptor cd = cdl.elementAt(i);
-            if(cd.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
-                pkColumns = cd.getReferencedColumns();
-                return;
+            ConglomerateDescriptor cd = cdl.get(i);
+            if(cd.isPrimaryKey()){
+                return cd.getIndexDescriptor().baseColumnPositions();
             }
         }
+        return null;
     }
 
 	/**
@@ -1765,6 +1759,8 @@ abstract class DMLModStatementNode extends DMLStatementNode
 		long[] distinctConglomNums = new long[cds.length - 1];
 		int distinctCount = 0;
 
+        int[] primaryKeyColumns = getPrimaryKeyInfo(baseTable);
+
 		for (int index = 0; index < cds.length; index++)
 		{
 			ConglomerateDescriptor cd = cds[index];
@@ -1798,11 +1794,13 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			IndexRowGenerator ixd = cd.getIndexDescriptor();
 			int[] cols = ixd.baseColumnPositions(); 
 
+
 			if (colBitSet != null)
 			{
-				for (int i = 0; i < cols.length; i++)
-				{
-					colBitSet.set(cols[i]);
+				for (int i = 0; i < cols.length; i++) {
+                    // Do not Add Primary Keys, we have them in the rowKey (BaseTable) or in the RowLocation (IndexTable)
+                    if (!ArrayUtils.contains(primaryKeyColumns,cols[i]))
+    					colBitSet.set(cols[i]);
 				}
 			}	// end IF
 		}		// end loop through conglomerates
