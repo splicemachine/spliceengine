@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -25,7 +26,7 @@ import org.apache.hadoop.hbase.util.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.common.collect.ArrayListMultimap;
+import com.google.common.collect.ArrayListMultimap;
 import scala.Tuple2;
 
 import java.io.BufferedInputStream;

@@ -3,7 +3,7 @@ package com.splicemachine.derby.stream.iterator.merge;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.common.collect.PeekingIterator;
+import com.google.common.collect.PeekingIterator;
 import java.util.Iterator;
 
 public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
@@ -26,7 +26,7 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
     }
 
     @Override
-    public boolean hasNext() {
+    public boolean internalHasNext() {
         try {
             while (leftRS.hasNext()) {
                 left = leftRS.next();
