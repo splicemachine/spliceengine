@@ -15,11 +15,11 @@ import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.sparkproject.guava.common.base.Function;
-import org.sparkproject.guava.common.collect.Iterables;
-import org.sparkproject.guava.common.collect.Multimaps;
-import org.sparkproject.guava.common.collect.Sets;
-import org.sparkproject.guava.common.collect.FluentIterable;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
+import com.google.common.collect.FluentIterable;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;

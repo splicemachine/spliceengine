@@ -207,24 +207,27 @@ public class TableScanOperation extends ScanOperation {
         @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             assert currentTemplate != null: "Current Template Cannot Be Null";
-            TxnView txn = getCurrentTransaction();
-            TableScannerBuilder tsb = new TableScannerBuilder()
-                    .transaction(txn)
-                    .scan(getNonSIScan())
-                    .template(currentTemplate)
-                    .tableVersion(scanInformation.getTableVersion())
-                    .indexName(indexName)
-					.reuseRowLocation(false)
-                    .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
-                    .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-                    .keyColumnTypes(getKeyFormatIds())
-                    .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
-                    .accessedKeyColumns(scanInformation.getAccessedPkColumns())
-                    .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(baseColumnMap);
-            return dsp.getTableScanner(this,tsb,tableName);
+			TableScannerBuilder tsb = getTableScannerBuilder();
+			return dsp.getTableScanner(this,tsb,tableName);
         }
 
+		public TableScannerBuilder getTableScannerBuilder() throws StandardException {
+            TxnView txn = getCurrentTransaction();
+			return new TableScannerBuilder()
+							.transaction(txn)
+							.scan(getNonSIScan())
+							.template(currentTemplate)
+							.tableVersion(scanInformation.getTableVersion())
+							.indexName(indexName)
+							.reuseRowLocation(false)
+							.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+							.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+							.keyColumnTypes(getKeyFormatIds())
+							.execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
+							.accessedKeyColumns(scanInformation.getAccessedPkColumns())
+							.keyDecodingMap(getKeyDecodingMap())
+							.rowDecodingMap(baseColumnMap);
+		}
 
 
 }

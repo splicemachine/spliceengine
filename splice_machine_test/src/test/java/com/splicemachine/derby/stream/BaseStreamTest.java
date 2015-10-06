@@ -1,7 +1,5 @@
 package com.splicemachine.derby.stream;
 
-import org.sparkproject.guava.common.collect.ArrayListMultimap;
-import org.sparkproject.guava.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

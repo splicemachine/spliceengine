@@ -4,7 +4,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.common.collect.PeekingIterator;
+import com.google.common.collect.PeekingIterator;
 import java.util.Iterator;
 
 public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
@@ -27,7 +27,7 @@ public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
     }
 
     @Override
-    public boolean hasNext() {
+    public boolean internalHasNext() {
         try {
             if (left != null) {
                 while (currentRightIterator.hasNext()) {

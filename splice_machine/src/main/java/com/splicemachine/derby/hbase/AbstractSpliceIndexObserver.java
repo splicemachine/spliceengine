@@ -618,9 +618,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 	@Override
 	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e)
 			throws IOException {
-		SpliceLogUtils.trace(LOG, "postFlush called");
-		super.postFlush(e);
-	}
+        while (true) {
+            MemstoreAware latest = memstoreAware.get();
+            if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementFlushCount(latest)));
+            break;
+        }
+    }
 
 	@Override
 	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,

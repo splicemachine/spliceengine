@@ -2,8 +2,8 @@ package com.splicemachine.derby.stream.function.broadcast;
 
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
-import org.sparkproject.guava.common.base.Function;
-import org.sparkproject.guava.common.collect.Multimap;
+import com.google.common.base.Function;
+import com.google.common.collect.Multimap;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.io.Serializable;
