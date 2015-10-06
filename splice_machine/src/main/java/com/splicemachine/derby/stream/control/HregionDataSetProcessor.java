@@ -52,14 +52,22 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
 
         try {
             SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan, htable);
-            HRegion hregion = splitRegionScanner.getRegion();
+            final HRegion hregion = splitRegionScanner.getRegion();
             SimpleMeasuredRegionScanner mrs = new SimpleMeasuredRegionScanner(splitRegionScanner, Metrics.noOpMetricFactory());
             ExecRow template = SMSQLUtil.getExecRow(siTableBuilder.getExecRowTypeFormatIds());
             siTableBuilder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());
+            spliceOperation.registerCloseable(new AutoCloseable() {
+                @Override
+                public void close() throws Exception {
+                    hregion.close();
+                }
+            });
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
 
-        return new ControlDataSet(new TableScannerIterator(siTableBuilder, spliceOperation));
+        TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder, spliceOperation);
+        spliceOperation.registerCloseable(tableScannerIterator);
+        return new ControlDataSet(tableScannerIterator);
     }
 }

@@ -51,7 +51,9 @@ public class ControlDataSetProcessor implements DataSetProcessor {
                 siTableBuilder
                         .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),siTableBuilder.getScan()))
                         .region(localRegion);
-        return new ControlDataSet(new TableScannerIterator(siTableBuilder,spliceOperation));
+        TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,spliceOperation);
+        spliceOperation.registerCloseable(tableScannerIterator);
+        return new ControlDataSet(tableScannerIterator);
     }
 
     @Override
