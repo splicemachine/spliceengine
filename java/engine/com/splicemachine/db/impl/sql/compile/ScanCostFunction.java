@@ -200,8 +200,7 @@ public class ScanCostFunction{
         if (projectionSelectivity == 1.0d)
             projectionCost = 0.0d;
         else {
-            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor*1d/1000d;;
-            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth()*1d/1000d;;
+            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor*1d/1000d;
             scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
