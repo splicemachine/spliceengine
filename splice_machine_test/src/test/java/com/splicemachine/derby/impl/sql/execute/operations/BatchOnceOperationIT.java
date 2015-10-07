@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
@@ -77,13 +78,15 @@ public class BatchOnceOperationIT {
             doUpdate(true, 0, "update A set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL");
             fail();
         } catch (SQLException e) {
-            assertEquals(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION, e.getSQLState());
+            Throwable cause = Throwables.getRootCause(e);
+            String errMsg = cause.getMessage();
+            assertTrue(errMsg.contains("Scalar subquery is only allowed to return a single row"));
         }
     }
 
     @Test
     public void update() throws Exception {
-        doUpdate(true, 9, "update A set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL");
+        doUpdate(true, 6, "update A set A.name = (select B.name from B where A.id = B.id) where A.name IS NULL");
 
         ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
 
@@ -107,7 +110,7 @@ public class BatchOnceOperationIT {
     /* Same test as above but position of column refs in subquery where clause is reversed. */
     @Test
     public void updateReverseSubqueryColumnReferences() throws Exception {
-        doUpdate(true, 9, "update A set A.name = (select B.name from B where B.id = A.id) where A.name IS NULL");
+        doUpdate(true, 6, "update A set A.name = (select B.name from B where B.id = A.id) where A.name IS NULL");
 
         ResultSet rs = methodWatcher.executeQuery("select A.id,A.name from A");
 
@@ -130,7 +133,7 @@ public class BatchOnceOperationIT {
 
     @Test
     public void updateAlternateColumns() throws Exception {
-        doUpdate(true, 9, "update A set A.name2 = (select B.name2 from B where A.id2 = B.id2) where A.name2 IS NULL");
+        doUpdate(true, 6, "update A set A.name2 = (select B.name2 from B where A.id2 = B.id2) where A.name2 IS NULL");
 
         ResultSet rs = methodWatcher.executeQuery("select * from A");
 

@@ -1,34 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute.operations.batchonce;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.*;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLRef;
-import com.splicemachine.db.impl.sql.execute.BaseActivation;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.BatchOnceFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -55,20 +42,10 @@ import java.util.*;
 public class BatchOnceOperation extends SpliceBaseOperation {
 
     private static final Logger LOG = Logger.getLogger(BatchOnceOperation.class);
-    private static final int BATCH_SIZE = SpliceConstants.batchOnceBatchSize;
 
-    /* Constants for the ExecRow this operation emits. */
-    private static final int OLD_COL = 1;
-    private static final int NEW_COL = 2;
-    private static final int ROW_LOC_COL = 3;
-
-    /* Collection of ExecRows we have read from the source and updated with results from the subquery but
-     * not yet returned to the operation above us. */
-    private final Queue<ExecRow> rowQueue = Lists.newLinkedList();
 
     private SpliceOperation source;
     private SpliceOperation subquerySource;
-    private CursorResultSet cursorResultSet;
     /* Name of the activation field that contains the Update result set. Used to get currentRowLocation */
     private String updateResultSetFieldName;
 
@@ -101,6 +78,7 @@ public class BatchOnceOperation extends SpliceBaseOperation {
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         source.init(context);
+        subquerySource.init(context);
     }
 
     @Override
@@ -129,11 +107,6 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         return "BatchOnceOperation:" + indent
                 + "resultSetNumber:" + resultSetNumber + indent
                 + "source:" + source.prettyPrint(indentLevel + 1);
-    }
-
-    @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        throw new UnsupportedOperationException("BatchOnceOp");
     }
 
     @Override
@@ -181,117 +154,27 @@ public class BatchOnceOperation extends SpliceBaseOperation {
         out.writeInt(this.subqueryCorrelatedColumnPosition);
     }
 
-    // - - - - - - - - - - - - - - - - - - -
-    // private / non-interface methods
-    // - - - - - - - - - - - - - - - - - - -
-
-    /*
-     * Read up to BATCH_SIZE rows from the source, transform them to the format expected by the update operation
-     * above us [old value, new value, rowLocation], and populate the new value with results from subquery.
-     *
-     * Possible future optimization: fill queue in background.
-     */
-    /*
-    private void fillQueueIfPossible(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        //
-        // STEP 1: Read BATCH_SIZE rows from the source
-        //
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-        // for quickly finding source rows with a given key
-        Multimap<DataValueDescriptor, ExecRow> sourceRowsMap = ArrayListMultimap.create(BATCH_SIZE, 1);
-        DataValueDescriptor nullValue = this.source.getExecRowDefinition().cloneColumn(1).getNewNull();
-
-        ExecRow sourceRow;
-        ExecRow newRow;
-        while ((sourceRow = source.nextRow(spliceRuntimeContext)) != null && rowQueue.size() < BATCH_SIZE) {
-            sourceRow = sourceRow.getClone();
-            DataValueDescriptor sourceKey = sourceRow.getColumn(sourceCorrelatedColumnPosition);
-            DataValueDescriptor sourceOldValue = sourceRow.getColumn(sourceCorrelatedColumnPosition == 1 ? 2 : 1);
-
-            newRow = new ValueRow(3);
-            //
-            // old value from source
-            //
-            newRow.setColumn(OLD_COL, sourceOldValue);
-            //
-            // new value will (possibly) come from subquery (subquery could return null, or return no row)
-            //
-            newRow.setColumn(NEW_COL, nullValue);
-            //
-            // row location
-            //
-            HBaseRowLocation currentRowLocation;
-            if(sourceRowLocationColumnPosition >= 1) {
-                /* When the source operation is scanning the target table we can get the current row location
-                 * from our activation.  When the source operation is sinking (a sinking join for example) we
-                 * instead get the current row location from the source row. *
-                SQLRef roLocCol = (SQLRef) sourceRow.getColumn(sourceRowLocationColumnPosition);
-                currentRowLocation = (HBaseRowLocation) roLocCol.getObject();
-            }
-            else {
-                HBaseRowLocation rowLocationFromActivation = getRowLocationFromActivation();
-                currentRowLocation = HBaseRowLocation.deepClone(rowLocationFromActivation);
-            }
-            newRow.setColumn(ROW_LOC_COL, new SQLRef(currentRowLocation));
-
-            sourceRowsMap.put(sourceKey, newRow);
-            rowQueue.add(newRow);
-        }
-
-        /* Don't execute the subquery again if there were no more source rows. *
-        if (rowQueue.isEmpty()) {
-            return;
-        }
-
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        //
-        // STEP 2: Populate source row columns with values from subquery.  This will read the entire subquery
-        // table every time.  Even if all rows for the batch are found quickly at the beginning of the subquery's scan
-        // we must scan the entire table to throw LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION if appropriate.
-        //
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-        OperationResultSet operationResultSet = new OperationResultSet(activation, subquerySource);
-        try {
-            operationResultSet.openCore();
-            ExecRow nextRowCore;
-            Set<DataValueDescriptor> uniqueKeySet = Sets.newHashSetWithExpectedSize(BATCH_SIZE);
-            while ((nextRowCore = operationResultSet.getNextRowCore()) != null) {
-                nextRowCore = nextRowCore.getClone();
-                DataValueDescriptor keyColumn = nextRowCore.getColumn(subqueryCorrelatedColumnPosition);
-                Collection<ExecRow> correspondingSourceRows = sourceRowsMap.get(keyColumn);
-                for (ExecRow correspondingSourceRow : correspondingSourceRows) {
-                    correspondingSourceRow.setColumn(NEW_COL, nextRowCore.getColumn(subqueryCorrelatedColumnPosition == 1 ? 2 : 1));
-                }
-                if (!uniqueKeySet.add(keyColumn)) {
-                    throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-                }
-            }
-        } finally {
-            operationResultSet.close();
-        }
+    public SpliceOperation getSubquerySource() {
+        return subquerySource;
     }
 
-
-    private HBaseRowLocation getRowLocationFromActivation() throws StandardException {
-        BaseActivation activation = (BaseActivation) this.getActivation();
-        try {
-            return (HBaseRowLocation) getCursorResultSet(activation).getRowLocation();
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+    public int getSourceCorrelatedColumnPosition() {
+        return sourceCorrelatedColumnPosition;
     }
 
-    private CursorResultSet getCursorResultSet(BaseActivation activation) throws NoSuchFieldException, IllegalAccessException {
-        if (cursorResultSet == null) {
-            Field field = activation.getClass().getDeclaredField(updateResultSetFieldName);
-            field.setAccessible(true);
-            cursorResultSet = (CursorResultSet) field.get(activation);
-        }
-        return cursorResultSet;
+    public int getSubqueryCorrelatedColumnPosition() {
+        return subqueryCorrelatedColumnPosition;
     }
-    */
+
+    public SpliceOperation getSource() {
+        return source;
+    }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        DataSet set = source.getDataSet();
+        OperationContext<BatchOnceOperation> operationContext = dsp.createOperationContext(this);
+        return set.mapPartitions(new BatchOnceFunction(operationContext));
+    }
+
 }
