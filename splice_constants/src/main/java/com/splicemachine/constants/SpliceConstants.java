@@ -608,6 +608,14 @@ public class SpliceConstants {
     public static int broadcastRegionMBThreshold;
 
     /**
+     * Threshold in rows for the broadcast join region size.  Default is 5 Million Rows
+     *
+     */
+    @Parameter private static final String BROADCAST_REGION_ROW_THRESHOLD = "splice.optimizer.broadcastRegionRowThreshold";
+    @DefaultValue(BROADCAST_REGION_ROW_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 1000000;
+    public static int broadcastRegionRowThreshold;
+
+    /**
      * Estimate of the number of rows in a region.
      *
      */
@@ -1159,6 +1167,7 @@ public class SpliceConstants {
         regionMaxFileSize = (long) (( (float) SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,1024 * 1024 * 1024L))/( (float)1024*1024));
         hbaseRegionRowEstimate = SpliceConstants.config.getLong(HBASE_REGION_ROWS_ESTIMATE, DEFAULT_HBASE_REGION_ROWS_ESTIMATE);
         broadcastRegionMBThreshold = SpliceConstants.config.getInt(BROADCAST_REGION_MB_THRESHOLD,DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
+        broadcastRegionRowThreshold = SpliceConstants.config.getInt(BROADCAST_REGION_ROW_THRESHOLD,DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         indexPerRowCost = SpliceConstants.config.getFloat(INDEX_PER_ROW_COST, (float)DEFAULT_INDEX_PER_ROW_COST);
         optimizerHashCost = SpliceConstants.config.getFloat(OPTIMIZER_HASH_COST, (float)DEFAULT_OPTIMIZER_HASH_COST);
         extraQualifierMultiplier = SpliceConstants.config.getFloat(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, (float) DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
