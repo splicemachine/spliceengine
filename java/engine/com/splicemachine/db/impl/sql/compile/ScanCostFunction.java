@@ -174,18 +174,20 @@ public class ScanCostFunction{
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
-
+        double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
+        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(totalColumns);
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
-        double colSizeFactor = scc.getBaseTableAvgRowWidth()*scc.baseTableColumnSizeFactor(totalColumns);
+        double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
+
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
         // This should be the same for every conglomerate path
         scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*totalSelectivity*scc.getRemoteLatency()*(1+colSizeFactor/100)));
+        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*totalSelectivity*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*baseTableSelectivity*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100));
+        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*baseTableSelectivity*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
         scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
         double lookupCost;
@@ -200,8 +202,7 @@ public class ScanCostFunction{
         if (projectionSelectivity == 1.0d)
             projectionCost = 0.0d;
         else {
-            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor*1d/1000d;;
-            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth()*1d/1000d;;
+            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor*1d/1000d;
             scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
