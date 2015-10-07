@@ -7,12 +7,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.junit.Assert;
 import org.junit.runner.Description;
 
 import com.splicemachine.utils.Pair;
 
 public class SpliceUnitTest {
+
+    private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
+
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
 		if (enclosingClass != null)
@@ -150,6 +156,13 @@ public class SpliceUnitTest {
                 resultSet.next();
             Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(p.getSecond()));
         }
+    }
+
+
+    public static double parseTotalCost(String planMessage) {
+        Matcher m1 = overallCostP.matcher(planMessage);
+        Assert.assertTrue("No Overall cost found!", m1.find());
+        return Double.parseDouble(m1.group().substring("totalCost=".length()));
     }
 
     public static class Contains {
