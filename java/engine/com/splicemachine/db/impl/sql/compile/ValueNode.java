@@ -22,6 +22,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1483,9 +1484,7 @@ public abstract class ValueNode extends QueryTreeNode
 
     @Override
     public String toHTMLString() {
-            return "dataTypeServices: " +
-                    ( ( dataTypeServices != null) ?
-                            dataTypeServices.toString() : "null" ) + "<br>";
+            return "dataTypeServices: " + Objects.toString(dataTypeServices) + "<br>";
     }
 
     public long nonZeroCardinality(long numberOfRows) throws StandardException {

@@ -33,8 +33,8 @@ public class SubqueryNodeFactory {
     /**
      * IsNullNode
      */
-    public IsNullNode buildIsNullNode(ValueNode joinClause) throws StandardException {
-        IsNullNode node = (IsNullNode) nodeFactory.getNode(C_NodeTypes.IS_NULL_NODE, joinClause, contextManager);
+    public IsNullNode buildIsNullNode(ColumnReference columnReference) throws StandardException {
+        IsNullNode node = (IsNullNode) nodeFactory.getNode(C_NodeTypes.IS_NULL_NODE, columnReference, contextManager);
         node.bindComparisonOperator();
         return node;
     }
@@ -55,18 +55,18 @@ public class SubqueryNodeFactory {
                                               SubqueryNode subqueryNode,
                                               ResultSetNode subqueryResultSet,
                                               ResultColumnList newRcl,
-                                              String getSubqueryAlias) throws StandardException {
+                                              String subqueryAlias) throws StandardException {
         FromSubquery fromSubquery = (FromSubquery) nodeFactory.getNode(C_NodeTypes.FROM_SUBQUERY,
                 subqueryResultSet,
                 subqueryNode.getOrderByList(),
                 subqueryNode.getOffset(),
                 subqueryNode.getFetchFirst(),
                 subqueryNode.hasJDBClimitClause(),
-                getSubqueryAlias,
+                subqueryAlias,
                 newRcl,
                 null,
                 contextManager);
-        fromSubquery.changeTableNumber(outerSelectNode.getCompilerContext().getNextTableNumber());
+        fromSubquery.setTableNumber(outerSelectNode.getCompilerContext().getNextTableNumber());
         return fromSubquery;
     }
 
@@ -78,17 +78,18 @@ public class SubqueryNodeFactory {
                                                 ValueNode joinClause) throws StandardException {
         /* Currently we only attempt not-exist flattening if the outer table has one table. */
         assert outerFromList.size() == 1 : "expected only one FromList element at this point";
+        QueryTreeNode outerTable = outerFromList.getNodes().get(0);
 
         HalfOuterJoinNode outerJoinNode = (HalfOuterJoinNode) nodeFactory.getNode(
                 C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                outerFromList.getNodes().get(0),                // left side  - will be outer tables
-                fromSubquery,                                   // right side - will be FromSubquery
-                joinClause,                                     // join clause
-                null,                                           // using clause
-                Boolean.FALSE,                                  // right join
-                null,                                           // table props
+                outerTable,                          // left side  - will be outer table(s)
+                fromSubquery,                        // right side - will be FromSubquery
+                joinClause,                          // join clause
+                null,                                // using clause
+                Boolean.FALSE,                       // is right join
+                null,                                // table props
                 contextManager);
-        outerJoinNode.changeTableNumber(fromSubquery.getCompilerContext().getNextTableNumber());
+        outerJoinNode.setTableNumber(fromSubquery.getCompilerContext().getNextTableNumber());
         outerJoinNode.LOJ_bindResultColumns(true);
         return outerJoinNode;
     }

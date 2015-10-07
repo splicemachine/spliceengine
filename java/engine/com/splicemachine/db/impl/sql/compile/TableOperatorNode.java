@@ -197,6 +197,11 @@ public abstract class TableOperatorNode extends FromTable{
         }
     }
 
+    @Override
+    public String toHTMLString() {
+        return "nestedInParens: " + false + "<br/>" + super.toHTMLString();
+    }
+
     /**
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.

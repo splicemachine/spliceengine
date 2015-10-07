@@ -271,20 +271,20 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             ValueNode joinClause = nf.buildAndNode();
             if (correlatedSubqueryPredsD.isEmpty()) {
                 /*
-                 * Add to join clause -- in uncorrelated case is left join (from subquery) on TRUE
+                 * Join clause -- in uncorrelated case is left join (from subquery) on TRUE
                  */
                 joinClause = nf.buildBooleanTrue();
-                ColumnReference joinColRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery, 0, nodeFactory, contextManager);
                 /*
                  * Add right-side IS NULL predicate to outer query.
                  */
-                IsNullNode rightIsNull = nf.buildIsNullNode(joinColRef);
+                ColumnReference isNullColRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery, 0, nodeFactory, contextManager);
+                IsNullNode rightIsNull = nf.buildIsNullNode(isNullColRef);
                 outerSelectNode.setWhereClause(FlatteningUtils.addPredToTree(outerSelectNode.getWhereClause(), rightIsNull));
 
             } else {
                 for (int i = 0; i < correlatedSubqueryPredsD.size(); i++) {
                     /*
-                     * Add to join clause for each correlated predicate.
+                     * Join clause -- add to join clause for each correlated predicate.
                      */
                     BinaryRelationalOperatorNode pred = correlatedSubqueryPredsD.get(i);
                     ColumnReference joinColRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery, i, nodeFactory, contextManager);

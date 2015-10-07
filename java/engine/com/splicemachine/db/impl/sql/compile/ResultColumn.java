@@ -666,7 +666,32 @@ public class ResultColumn extends ValueNode
 		}
 	}
 
-	/**
+    @Override
+    public String toHTMLString() {
+        return "" +
+                "exposedName: " + exposedName + "<br>" +
+                "name: " + name + "<br>" +
+                "tableName: " + tableName + "<br>" +
+                "isDefaultColumn: " + defaultColumn + "<br>" +
+                "wasDefaultColumn: " + wasDefault + "<br>" +
+                "isNameGenerated: " + isNameGenerated + "<br>" +
+                "sourceTableName: " + sourceTableName + "<br>" +
+                "columnDescriptor: " + columnDescriptor + "<br>" +
+                "isGenerated: " + isGenerated + "<br>" +
+                "isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "<br>" +
+                "isGroupingColumn: " + isGroupingColumn + "<br>" +
+                "isReferenced: " + isReferenced + "<br>" +
+                "isRedundant: " + isRedundant + "<br>" +
+                "rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "<br>" +
+                "joinResultSet: " + joinResultSet + "<br>" +
+                "virtualColumnId: " + virtualColumnId + "<br>" +
+                "resultSetNumber: " + resultSetNumber + "<br>" +
+                "identityHashCode: " + System.identityHashCode(this) + "<br>" +
+                super.toHTMLString();
+    }
+
+
+    /**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
 	 * how tree printing is supposed to work.
 	 *
@@ -1955,29 +1980,6 @@ public class ResultColumn extends ValueNode
         long c = cardinality();
         return c> 0? c : expression.nonZeroCardinality(numberOfRows);
     }
-
-    @Override
-    public String toHTMLString() {
-        return "exposedName: " + exposedName + "<br>" +
-                "name: " + name + "<br>" +
-                "tableName: " + tableName + "<br>" +
-                "isDefaultColumn: " + defaultColumn + "<br>" +
-                "wasDefaultColumn: " + wasDefault + "<br>" +
-                "isNameGenerated: " + isNameGenerated + "<br>" +
-                "sourceTableName: " + sourceTableName + "<br>" +
-                "type: " + getTypeServices() + "\n" +
-                "columnDescriptor: " + columnDescriptor + "<br>" +
-                "isGenerated: " + isGenerated + "<br>" +
-                "isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "<br>" +
-                "isGroupingColumn: " + isGroupingColumn + "<br>" +
-                "isReferenced: " + isReferenced + "<br>" +
-                "isRedundant: " + isRedundant + "<br>" +
-                "rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "<br>" +
-                "joinResultSet: " + joinResultSet + "<br>" +
-                "virtualColumnId: " + virtualColumnId + "<br>" +
-                "resultSetNumber: " + resultSetNumber + "<br>";
-    }
-
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
         return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();

@@ -3440,11 +3440,10 @@ public class FromBaseTable extends FromTable {
     @Override
     public String toHTMLString() {
         return "tableName: " +  Objects.toString(tableName) + "<br/>" +
-                "tableNumber: " + getTableNumber() + "<br/>" +
-                "tableDescriptor: " + Objects.toString(getTableDescriptor()) + "<br/>" +
                 "updateOrDelete: " + updateOrDelete + "<br/>" +
                 "tableProperties: " + Objects.toString(tableProperties) + "<br/>" +
                 "existsBaseTable: " + existsBaseTable + "<br/>" +
-                "dependencyMap: " + Objects.toString(dependencyMap);
+                "dependencyMap: " + Objects.toString(dependencyMap) +
+                super.toHTMLString();
     }
 }

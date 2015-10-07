@@ -3668,6 +3668,17 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    @Override
+    public String toHTMLString() {
+        return "" +
+                "conglomerateId: " + conglomerateId + "<br/>" +
+                "indexRow: " + indexRow + "<br/>" +
+                "orderBySelect: " + orderBySelect + "<br/>" +
+                "forUpdate: " + forUpdate + "<br/>" +
+                "countMismatchAllowed: " + countMismatchAllowed + "<br/>" +
+                "initialListSize: " + initialListSize + "<br/>" +
+                super.toHTMLString();
+    }
 
     private static boolean streamableType(ResultColumn rc){
         DataTypeDescriptor dtd=rc.getType();

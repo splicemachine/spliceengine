@@ -58,7 +58,7 @@ public class GroupByUtil {
          * </pre>
          */
         else {
-            ValueNode one = (ValueNode) subquerySelectNode.getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 0, subquerySelectNode.getContextManager());
+            ConstantNode one = (ConstantNode) subquerySelectNode.getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 1, subquerySelectNode.getContextManager());
             addGroupByNodes(subquerySelectNode, one);
         }
 
@@ -88,9 +88,10 @@ public class GroupByUtil {
             rc.setName("subqueryGroupByCol");
             rc.setNameGenerated(true);
         }
+        rc.setReferenced();
         rc.markAsGroupingColumn();
-        rc.setVirtualColumnId(subquerySelectNode.getResultColumns().size() + 1);
-        subquerySelectNode.getResultColumns().addElement(rc);
+        rc.setResultSetNumber(subquerySelectNode.getResultSetNumber());
+        subquerySelectNode.getResultColumns().addResultColumn(rc);
 
         //
         // PART 2: Add the GroupByList and GroupByColumn

@@ -40,10 +40,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A ResultSetNode represents a result set, that is, a set of rows.  It is
@@ -114,6 +111,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
         }else{
             return "";
         }
+    }
+
+    @Override
+    public String toHTMLString() {
+        return "resultSetNumber: " + resultSetNumber + "<br/>" +
+                "referencedTableMap: " + Objects.toString(referencedTableMap) + "<br/>" +
+                "statementResultSet: " + statementResultSet + "<br/>";
     }
 
     /**

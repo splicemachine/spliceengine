@@ -433,6 +433,8 @@ public class GenericStatement implements Statement{
              */
             Timestamp endTimestamp=generate(lcc,timestamps,cc,qt);
 
+            saveTree(qt, CompilationPhase.AFTER_GENERATE);
+
             if(lcc.getRunTimeStatisticsMode()){
                 preparedStmt.setCompileTimeMillis(
                         timestamps[1]-timestamps[0], //parse time
@@ -706,11 +708,12 @@ public class GenericStatement implements Statement{
 
     /**
      * Saves AST tree as JSON in files (in working directory for now) for each phase.  This is of course intended to be
-     * used ONLY by splice developers.  Enable using system property 'splice.save-ast-tree-as-json'.
+     * used only by splice developers.
      *
      * AFTER_PARSE.json
      * AFTER_BIND.json
      * AFTER_OPTIMIZE.json
+     * AFTER_GENERATE.json
      *
      * View using ast-visualization.html
      */
