@@ -1524,10 +1524,7 @@ public class ResultColumn extends ValueNode
 	 * Make a copy of this ResultColumn in a new ResultColumn
 	 *
 	 * @return	A new ResultColumn with the same contents as this one
-	 *
-	 * @exception StandardException		Thrown on error
 	 */
-        // Splice fork: changed to public from package protected
 	public ResultColumn cloneMe() throws StandardException
 	{
 		ResultColumn	newResultColumn;
@@ -1540,9 +1537,9 @@ public class ResultColumn extends ValueNode
 		 * The SELECT generated for the HAVING needs its own copy
 		 * of the ColumnReferences.
 		 */
-		if (expression instanceof ColumnReference)
+		if (expression instanceof ColumnReference || expression instanceof CurrentRowLocationNode)
 		{
-			cloneExpr = ((ColumnReference) expression).getClone();
+			cloneExpr = expression.getClone();
 		}
 		else
 		{

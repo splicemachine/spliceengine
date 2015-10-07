@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -34,7 +35,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * The CurrentRowLocation operator is used by DELETE and UPDATE to get the
@@ -45,7 +45,6 @@ import java.util.Vector;
 
 public class CurrentRowLocationNode extends ValueNode
 {
-    private boolean generated = false;
 	/**
 	 * Binding this expression means setting the result DataTypeServices.
 	 * In this case, the result type is always the same.
@@ -153,12 +152,23 @@ public class CurrentRowLocationNode extends ValueNode
 		mbex.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, mb.getName(), ClassName.DataValueDescriptor, 0);
 	}
 	
-	protected boolean isEquivalent(ValueNode o)
+	@Override
+    protected boolean isEquivalent(ValueNode o)
 	{
 		return this == o;
 	}
 
-	public List getChildren() {
+	@Override
+    public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
+
+    @Override
+    public CurrentRowLocationNode getClone() throws StandardException {
+        CurrentRowLocationNode currentRowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
+                C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                getContextManager());
+        currentRowLocationNode.bindExpression(null, null, null);
+        return currentRowLocationNode;
+    }
 }
