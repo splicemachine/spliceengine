@@ -585,13 +585,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testSumRows1Preceding1Following() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding and 1 following) as sumsal from %s",
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding and 1 following) as sumsal from %s " +
+                            "order by dept, salary, sumsal, empnum",
                           this.getTableReference(TABLE_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
                 "------------------------------\n" +
+                "  10   |  1  | 50000 |102000 |\n" +
+                "  50   |  1  | 52000 |154000 |\n" +
+                "  55   |  1  | 52000 |157000 |\n" +
+                "  110  |  1  | 53000 |180000 |\n" +
+                "  20   |  1  | 75000 |204000 |\n" +
+                "  70   |  1  | 76000 |229000 |\n" +
+                "  60   |  1  | 78000 |154000 |\n" +
                 "  90   |  2  | 51000 |103000 |\n" +
                 "  40   |  2  | 52000 |155000 |\n" +
                 "  44   |  2  | 52000 |157000 |\n" +
@@ -599,14 +607,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  100  |  3  | 55000 |130000 |\n" +
                 "  120  |  3  | 75000 |209000 |\n" +
                 "  80   |  3  | 79000 |238000 |\n" +
-                "  30   |  3  | 84000 |163000 |\n" +
-                "  10   |  1  | 50000 |102000 |\n" +
-                "  50   |  1  | 52000 |154000 |\n" +
-                "  55   |  1  | 52000 |157000 |\n" +
-                "  110  |  1  | 53000 |180000 |\n" +
-                "  20   |  1  | 75000 |204000 |\n" +
-                "  70   |  1  | 76000 |229000 |\n" +
-                "  60   |  1  | 78000 |154000 |";
+                "  30   |  3  | 84000 |163000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -678,21 +679,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as countsal " +
-                              "from %s",
+                              "from %s order by dept desc, countsal desc",
                           this.getTableReference(TABLE_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "EMPNUM |DEPT |SALARY |COUNTSAL |\n" +
                 "--------------------------------\n" +
-                "  90   |  2  | 51000 |    4    |\n" +
-                "  40   |  2  | 52000 |    3    |\n" +
-                "  44   |  2  | 52000 |    2    |\n" +
-                "  49   |  2  | 53000 |    1    |\n" +
                 "  100  |  3  | 55000 |    4    |\n" +
                 "  120  |  3  | 75000 |    3    |\n" +
                 "  80   |  3  | 79000 |    2    |\n" +
                 "  30   |  3  | 84000 |    1    |\n" +
+                "  90   |  2  | 51000 |    4    |\n" +
+                "  40   |  2  | 52000 |    3    |\n" +
+                "  44   |  2  | 52000 |    2    |\n" +
+                "  49   |  2  | 53000 |    1    |\n" +
                 "  10   |  1  | 50000 |    7    |\n" +
                 "  50   |  1  | 52000 |    6    |\n" +
                 "  55   |  1  | 52000 |    5    |\n" +
@@ -1228,6 +1229,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Xplain trace not supported in Spark datase")
     public void testXPlainTrace() throws Exception {
         SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
         TestConnection conn = methodWatcher.getOrCreateConnection();
@@ -1828,7 +1830,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
                                            "%1$s INNER JOIN %2$s " +
-                                           "ON %2$s.ID_Dep = %1$s.ID",
+                                           "ON %2$s.ID_Dep = %1$s.ID " +
+                                           "order by %1$s.Nome_Dep, %2$s.Id",
                                        this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
@@ -1836,15 +1839,15 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String expected=
                 "Diferença de Salário |\n"+
                     "----------------------\n"+
+                    "     -3499.6666      |\n"+
+                    "     -2999.6666      |\n"+
+                    "      6499.3333      |\n"+
                     "     -9166.3333      |\n"+
                     "      9333.6666      |\n"+
                     "      -167.3333      |\n"+
                     "     -2500.0000      |\n"+
                     "     -2000.0000      |\n"+
-                    "      4500.0000      |\n"+
-                    "     -3499.6666      |\n"+
-                    "     -2999.6666      |\n"+
-                    "      6499.3333      |";
+                    "      4500.0000      |";
             assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
