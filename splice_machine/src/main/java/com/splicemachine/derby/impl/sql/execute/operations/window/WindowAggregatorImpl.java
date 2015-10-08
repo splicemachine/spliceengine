@@ -191,6 +191,11 @@ public class WindowAggregatorImpl implements WindowAggregator {
         return functionName;
     }
 
+    @Override
+    public SpliceGenericWindowFunction getCachedAggregator() {
+        return this.cachedAggregator;
+    }
+
     private void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol, DataValueDescriptor outputCol)
             throws StandardException{
         WindowFunction ua = (WindowFunction)aggCol.getObject();

@@ -147,7 +147,6 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
         }
     }
 
-
     protected class WindowChunk {
         DataValueDescriptor result;
         DataValueDescriptor[] previous;
@@ -225,5 +224,9 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     @Override
     public boolean didEliminateNulls() {
         return false;
+    }
+
+    public void finishFrame() throws StandardException {
+        // override/implement if function needs the entire frame
     }
 }
