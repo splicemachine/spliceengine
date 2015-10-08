@@ -185,7 +185,7 @@ public class SortOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet dataSet = source.getDataSet();
+        DataSet dataSet = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         if (distinct) {
             operationContext.pushScope("Sort Distinct");

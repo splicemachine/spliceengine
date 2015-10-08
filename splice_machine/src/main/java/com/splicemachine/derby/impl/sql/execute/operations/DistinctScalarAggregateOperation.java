@@ -110,7 +110,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     }
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> dataSet = source.getDataSet();
+        DataSet<LocatedRow> dataSet = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
                 .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext)).values()

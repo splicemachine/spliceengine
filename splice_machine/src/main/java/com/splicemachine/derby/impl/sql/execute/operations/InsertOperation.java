@@ -199,7 +199,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet set = source.getDataSet();
+        DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
         ExecRow execRow = getExecRowDefinition();

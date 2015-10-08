@@ -84,7 +84,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> left = leftResultSet.getDataSet();
+        DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
         if (isOuterJoin)

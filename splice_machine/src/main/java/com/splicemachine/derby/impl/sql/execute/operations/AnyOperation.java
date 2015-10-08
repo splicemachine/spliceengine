@@ -146,7 +146,7 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        Iterator<LocatedRow> iterator = source.getDataSet().toLocalIterator();
+        Iterator<LocatedRow> iterator = source.getDataSet(dsp).toLocalIterator();
         if (iterator.hasNext())
                 return dsp.singleRowDataSet(new LocatedRow(iterator.next().getRow()));
         return dsp.singleRowDataSet(new LocatedRow(getRowWithNulls()));

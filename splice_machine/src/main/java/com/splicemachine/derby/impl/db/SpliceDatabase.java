@@ -52,7 +52,7 @@ public class SpliceDatabase extends BasicDatabase{
       //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         if(DatabaseConstants.logStatementContext)
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
-        if(DatabaseConstants.dumpClassFile)
+        //if(DatabaseConstants.dumpClassFile)
             SanityManager.DEBUG_SET("DumpClassFile");
         if(DatabaseConstants.dumpBindTree)
             SanityManager.DEBUG_SET("DumpBindTree");

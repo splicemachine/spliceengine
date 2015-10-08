@@ -158,7 +158,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return leftResultSet.getDataSet().union(rightResultSet.getDataSet())
+        return leftResultSet.getDataSet(dsp).union(rightResultSet.getDataSet(dsp))
                 .map(new SetCurrentLocatedRowFunction<SpliceOperation>(dsp.createOperationContext(this)));
     }
 }

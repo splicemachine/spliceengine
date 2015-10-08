@@ -174,7 +174,7 @@ public class RowCountOperation extends SpliceBaseOperation {
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         final long fetchLimit = getFetchLimit();
         final long offset = getTotalOffset();
-        return source.getDataSet().fetchWithOffset((int)offset,fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE);
+        return source.getDataSet(dsp).fetchWithOffset((int)offset,fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE);
     }
 
 }

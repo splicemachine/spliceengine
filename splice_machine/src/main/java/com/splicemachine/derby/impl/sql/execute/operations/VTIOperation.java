@@ -3,10 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -17,7 +14,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
@@ -25,8 +21,13 @@ import com.splicemachine.db.vti.IFastPath;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,8 +44,11 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 
     private boolean next;
 	private ClassInspector classInspector;
-    private GeneratedMethod row;
-    private GeneratedMethod constructor;
+    private SpliceMethod<ExecRow> row;
+    private String rowMethodName;
+    private SpliceMethod<ResultSet> constructor;
+    private String constructorMethodName;
+
 	private PreparedStatement userPS;
 	private ResultSet userVTI;
 	private ExecRow allocatedRow;
@@ -108,13 +112,13 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	{
 		super(activation, resultSetNumber, 
 			  optimizerEstimatedRowCount, optimizerEstimatedCost);
-        this.row = row;
-		this.constructor = constructor;
+        this.rowMethodName = row.getMethodName();
+		this.constructorMethodName = constructor.getMethodName();
 		this.javaClassName = javaClassName;
 		this.version2 = version2;
 		this.reuseablePs = reuseablePs;
 		this.isTarget = isTarget;
-//		this.pushedQualifiers = pushedQualifiers;
+	//	this.pushedQualifiers = pushedQualifiers;
 		this.scanIsolationLevel = scanIsolationLevel;
 		this.isDerbyStyleTableFunction = isDerbyStyleTableFunction;
 
@@ -142,10 +146,26 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 
     }
 
-	//
-	// ResultSet interface (leftover from NoPutResultSet)
-	//
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        this.activation = context.getActivation();
+        this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
+        this.constructor = (constructorMethodName==null)? null: new SpliceMethod<ResultSet>(constructorMethodName,activation);
+    }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        rowMethodName = in.readUTF();
+        constructorMethodName = in.readUTF();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(rowMethodName);
+        out.writeUTF(constructorMethodName);
+    }
 
     /**
      * Clone the restriction for a Restricted VTI, filling in parameter values
@@ -237,101 +257,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 		return runtimeNullableColumn = nullableColumn;
 	}
 
-	/**
-	 * If the VTI is a version2 vti that does not
-	 * need to be instantiated multiple times then
-	 * we simply close the current ResultSet and 
-	 * create a new one via a call to 
-	 * PreparedStatement.executeQuery().
-	 *
-	 * @see NoPutResultSet#openCore
-	 * @exception StandardException thrown if cursor finished.
-	 */
-	public void reopenCore() throws StandardException {
-		if (reuseablePs)
-		{
-			/* close the user ResultSet.
-			 */
-			if (userVTI != null)
-			{
-				try
-				{
-					userVTI.close();
-					userVTI = userPS.executeQuery();
-
-					/* Save off the target VTI */
-					if (isTarget)
-					{
-						activation.setTargetVTI(userVTI);
-					}
-				} catch (SQLException se)
-				{
-					throw StandardException.unexpectedUserException(se);
-				}
-			}
-		}
-		else
-		{
-			close();
-            open();
-		}
-	}
-
-	/**
-	 * @exception StandardException thrown on error
-	 */
-	public void	close() throws StandardException
-	{
-        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
-	}
-
-	public void finish() throws StandardException {
-        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
-	}
-
-	//
-	// CursorResultSet interface
-	//
-
-	/**
-	 * This is not operating against a stored table,
-	 * so it has no row location to report.
-	 *
-	 * @see CursorResultSet
-	 *
-	 * @return a null.
-	 */
-	public RowLocation getRowLocation() {
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT("RowResultSet used in positioned update/delete");
-		return null;
-	}
-
-	/**
-	 * This is not used in positioned update and delete,
-	 * so just return a null.
-	 *
-	 * @see CursorResultSet
-	 *
-	 * @return a null.
-	 */
-	public ExecRow getCurrentRow() {
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT("RowResultSet used in positioned update/delete");
-		return null;
-	}
-
-	// Class implementation
-
-	/**
-	 * Return the GeneratedMethod for instantiating the VTI.
-	 *
-	 * @return The  GeneratedMethod for instantiating the VTI.
-	 */
-	GeneratedMethod getVTIConstructor()
-	{
-		return constructor;
-	}
 
 	boolean isReuseablePs() {
 		return reuseablePs;
@@ -345,18 +270,27 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	 *
 	 * @exception StandardException thrown on failure.
 	 */
-	private ExecRow getAllocatedRow()
-		throws StandardException
-	{
+	private ExecRow getAllocatedRow() throws StandardException {
 		if (allocatedRow == null)
-		{
-			allocatedRow = (ExecRow) row.invoke(activation);
-		}
-
+			allocatedRow = (ExecRow) row.invoke();
 		return allocatedRow;
 	}
 
-	private int[] getProjectedColList() {
+    /**
+     * Cache the ExecRow for this result set.
+     *
+     * @return The cached ExecRow for this ResultSet
+     *
+     * @exception StandardException thrown on failure.
+     */
+    private ResultSet getResultSet() throws StandardException {
+        if (userVTI == null)
+            userVTI = constructor.invoke();
+        return userVTI;
+    }
+
+
+    private int[] getProjectedColList() {
 
 		FormatableBitSet refs = referencedColumns;
 		int size = refs.size();
@@ -374,64 +308,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 		}
 
 		return colList;
-	}
-	/**
-	 * @exception StandardException thrown on failure to open
-	 */
-	public void populateFromResultSet(ExecRow row)
-		throws StandardException
-	{
-		try
-		{
-            DataTypeDescriptor[]    columnTypes = null;
-            if ( isDerbyStyleTableFunction )
-            {
-                    columnTypes = getReturnColumnTypes();
-            }
-
-			boolean[] nullableColumn = setNullableColumnList();
-			DataValueDescriptor[] columns = row.getRowArray();
-			// ExecRows are 0-based, ResultSets are 1-based
-			int rsColNumber = 1;
-			for (int index = 0; index < columns.length; index++)
-			{
-				// Skip over unreferenced columns
-				if (referencedColumns != null && (! referencedColumns.get(index)))
-				{
-					if (!pushedProjection)
-						rsColNumber++;
-
-					continue;
-				}
-
-				columns[index].setValueFromResultSet(
-									userVTI, rsColNumber, 
-									/* last parameter is whether or
-									 * not the column is nullable
-									 */
-									nullableColumn[rsColNumber]);
-				rsColNumber++;
-
-                // for Derby-style table functions, coerce the value coming out
-                // of the ResultSet to the declared SQL type of the return
-                // column
-                if ( isDerbyStyleTableFunction )
-                {
-                    DataTypeDescriptor  dtd = columnTypes[ index ];
-                    DataValueDescriptor dvd = columns[ index ];
-
-                    cast( dtd, dvd );
-                }
-
-            }
-
-		} catch (StandardException se) {
-			throw se;
-		}
-		catch (Throwable t)
-		{
-			throw StandardException.unexpectedUserException(t);
-		}
 	}
 
 	public final int getScanIsolationLevel() {
@@ -621,6 +497,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("VTI Not Supported");
+        return ((SpliceBaseOperation) getResultSet()).getDataSet();
     }
 }

@@ -271,7 +271,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		}
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return source.getDataSet().
+        return source.getDataSet(dsp).
                 map(new NormalizeSparkFunction(dsp.createOperationContext(this)));
     }
 

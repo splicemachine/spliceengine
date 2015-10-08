@@ -17,6 +17,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 
@@ -28,7 +29,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
  *
  */
 
-public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet {
+public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet, DatasetProvider {
 
     RowLocation getCurrentRowLocation();
 
@@ -162,10 +163,6 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     double getEstimatedCost();
 
     double getEstimatedRowCount();
-
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException;
-
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
 
     public TxnView getCurrentTransaction() throws StandardException;
 

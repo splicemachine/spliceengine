@@ -145,12 +145,12 @@ public class SetOpOperation extends SpliceBaseOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
-            return leftSource.getDataSet().intersect(
-                    rightSource.getDataSet());
+            return leftSource.getDataSet(dsp).intersect(
+                    rightSource.getDataSet(dsp));
         }
         else if (this.opType==IntersectOrExceptNode.EXCEPT_OP) {
-            return leftSource.getDataSet().subtract(
-                    rightSource.getDataSet());
+            return leftSource.getDataSet(dsp).subtract(
+                    rightSource.getDataSet(dsp));
         } else {
             throw new RuntimeException("Operation Type not Supported "+opType);
         }
