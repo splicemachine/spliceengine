@@ -73,6 +73,14 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
 
     @Override
     public ExecRow next(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
+        while (! this.resultBuffer.isFinished()) {
+            processFrame(runtimeContext);
+        }
+        return this.resultBuffer.next();
+    }
+
+
+    private ExecRow processFrame(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
 
         ExecRow row = this.next();
 
@@ -123,8 +131,8 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
             int resultColumnId = aggregator.getResultColumnId();
             SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
             row.setColumn(resultColumnId, function.getResult().cloneValue(false));
-            this.resultBuffer.bufferResult(row);
         }
+        this.resultBuffer.bufferResult(row);
         return row;
     }
 
@@ -190,7 +198,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
 
         @Override
         public ExecRow next() {
-            if (resultItr == null) {
+            if (resultItr == null || ! resultItr.hasNext()) {
                 return null;
             }
             return resultItr.next();
