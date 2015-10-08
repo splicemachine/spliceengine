@@ -18,26 +18,41 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.vti.IFastPath;
-import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.vti.iapi.DatasetProvider;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.ResultSetMetaData;
+import java.util.Collections;
 import java.util.List;
 
+/*
+
+create function hmm()
+returns table
+(
+    id int,
+    taxPayerID varchar( 50 ),
+    firstName varchar( 50 ),
+    lastName varchar( 50 )
+)
+language java
+parameter style SPLICE_JDBC_RESULT_SET
+no sql
+external name 'com.splicemachine.derby.vti.SpliceTestVTI.getSpliceTestVTI'
+ */
 
 /**
  */
-public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment {
+public class VTIOperation extends SpliceBaseOperation {
 	/* Run time statistics variables */
 	public int rowsReturned;
 	public String javaClassName;
@@ -46,15 +61,13 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	private ClassInspector classInspector;
     private SpliceMethod<ExecRow> row;
     private String rowMethodName;
-    private SpliceMethod<ResultSet> constructor;
+    private SpliceMethod<DatasetProvider> constructor;
     private String constructorMethodName;
 
 	private PreparedStatement userPS;
-	private ResultSet userVTI;
+	private DatasetProvider userVTI;
 	private ExecRow allocatedRow;
 	private FormatableBitSet referencedColumns;
-	private boolean version2;
-	private boolean reuseablePs;
 	private boolean isTarget;
 	private FormatableHashtable compileTimeConstants;
 	private int ctcNumber;
@@ -97,7 +110,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 				 String javaClassName,
 				 String pushedQualifiers,
 				 int erdNumber,
-				 boolean version2, boolean reuseablePs,
 				 int ctcNumber,
 				 boolean isTarget,
 				 int scanIsolationLevel,
@@ -115,8 +127,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
         this.rowMethodName = row.getMethodName();
 		this.constructorMethodName = constructor.getMethodName();
 		this.javaClassName = javaClassName;
-		this.version2 = version2;
-		this.reuseablePs = reuseablePs;
 		this.isTarget = isTarget;
 	//	this.pushedQualifiers = pushedQualifiers;
 		this.scanIsolationLevel = scanIsolationLevel;
@@ -143,14 +153,14 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 		this.ctcNumber = ctcNumber;
 		compileTimeConstants = (FormatableHashtable) (activation.getPreparedStatement().
 								getSavedObject(ctcNumber));
-
+        init(SpliceOperationContext.newContext(activation));
     }
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
         this.activation = context.getActivation();
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
-        this.constructor = (constructorMethodName==null)? null: new SpliceMethod<ResultSet>(constructorMethodName,activation);
+        this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);
     }
 
     @Override
@@ -247,19 +257,14 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 
 		if (userVTI == null)
 			return null;
-
+/*
 		ResultSetMetaData rsmd = userVTI.getMetaData();
 		boolean[] nullableColumn = new boolean[rsmd.getColumnCount() + 1];
 		for (int i = 1; i <  nullableColumn.length; i++) {
 			nullableColumn[i] = rsmd.isNullable(i) != ResultSetMetaData.columnNoNulls;
 		}
-
-		return runtimeNullableColumn = nullableColumn;
-	}
-
-
-	boolean isReuseablePs() {
-		return reuseablePs;
+*/
+		return new boolean[0];
 	}
 
 
@@ -283,7 +288,7 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
      *
      * @exception StandardException thrown on failure.
      */
-    private ResultSet getResultSet() throws StandardException {
+    private DatasetProvider getDataSetProvider() throws StandardException {
         if (userVTI == null)
             userVTI = constructor.invoke();
         return userVTI;
@@ -470,11 +475,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     }
 
 	@Override
-	public List<SpliceOperation> getSubOperations() {
-		throw new UnsupportedOperationException(StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName()));
-	}
-
-	@Override
     public int[] getRootAccessedCols(long tableNumber) {
         return null;
     }
@@ -497,6 +497,11 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return ((SpliceBaseOperation) getResultSet()).getDataSet();
+        return getDataSetProvider().getDataSet(dsp);
+    }
+
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        return Collections.EMPTY_LIST;
     }
 }

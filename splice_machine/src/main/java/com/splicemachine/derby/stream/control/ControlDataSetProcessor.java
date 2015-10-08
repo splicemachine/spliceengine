@@ -104,7 +104,6 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     public PairDataSet<String, InputStream> readTextFile(String s) {
         Path path = new Path(s);
         InputStream rawStream = null;
-        GZIPInputStream unzippedStream;
         try {
             CompressionCodecFactory factory = new CompressionCodecFactory(SpliceConstants.config);
             CompressionCodec codec = factory.getCodec(path);
