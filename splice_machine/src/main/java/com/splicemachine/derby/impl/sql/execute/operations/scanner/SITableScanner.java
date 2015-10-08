@@ -249,7 +249,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     public long getRowsFiltered(){
-        return 0;
+        return filterCounter.getTotal();
     }
 
     public long getRowsVisited() {
