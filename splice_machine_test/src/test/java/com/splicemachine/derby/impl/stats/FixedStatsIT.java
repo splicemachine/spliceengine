@@ -150,7 +150,7 @@ public class FixedStatsIT{
     // regression for DB-3606
     @Test
     public void testBetweenBeforeStats() throws Exception {
-        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3", intDecimalBetween);
+        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3 order by i", intDecimalBetween);
         Statement statement = conn.createStatement();
         try(ResultSet resultSet = statement.executeQuery(queryInt)) {
             assertThat("", resultSet.next(),is(true));
@@ -161,7 +161,7 @@ public class FixedStatsIT{
             fail(String.format("SQL query: [%s] failed with: %s", queryInt, e.getMessage()));
         }
 
-        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3", intDecimalBetween);
+        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3 order by i", intDecimalBetween);
         try(ResultSet resultSet = statement.executeQuery(queryDecimal)) {
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getInt(1), is(1));
@@ -178,7 +178,7 @@ public class FixedStatsIT{
 
         conn.collectStats(schema.schemaName, null);
 
-        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3", intDecimalBetween);
+        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3 order by i", intDecimalBetween);
         Statement statement = conn.createStatement();
         try(ResultSet resultSet = statement.executeQuery(queryInt)) {
             assertThat(resultSet.next(),is(true));
@@ -189,7 +189,7 @@ public class FixedStatsIT{
             fail(String.format("SQL query: [%s] failed with: %s", queryInt, e.getMessage()));
         }
 
-        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3", intDecimalBetween);
+        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3 order by i", intDecimalBetween);
         try(ResultSet resultSet = statement.executeQuery(queryDecimal)) {
             assertThat(resultSet.next(),is(true));
             assertThat(resultSet.getInt(1), is(1));
@@ -206,7 +206,7 @@ public class FixedStatsIT{
 
         conn.collectStats(schema.schemaName, intDecimalBetween.tableName);
 
-        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3", intDecimalBetween);
+        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3 order by i", intDecimalBetween);
         Statement statement = conn.createStatement();
         try(ResultSet resultSet = statement.executeQuery(queryInt)) {
             assertThat("", resultSet.next(),is(true));
@@ -217,7 +217,7 @@ public class FixedStatsIT{
             fail(String.format("SQL query: [%s] failed with: %s", queryInt, e.getMessage()));
         }
 
-        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3", intDecimalBetween);
+        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3 order by i", intDecimalBetween);
         try(ResultSet resultSet = statement.executeQuery(queryDecimal)) {
             assertThat(resultSet.next(),is(true));
             assertThat(resultSet.getInt(1), is(1));
