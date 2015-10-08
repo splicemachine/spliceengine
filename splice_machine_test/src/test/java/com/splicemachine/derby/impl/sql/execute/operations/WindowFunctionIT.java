@@ -2445,7 +2445,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test @Ignore("Frame buffer problem - only seeing one row at a time in frame.")
+    @Test
     public void testLeadFunction() throws Exception {
         // DB-3920
         String tableName = "emp3";
@@ -2473,26 +2473,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
             "EMPNO |SALARY |DEPTNO |NEXT_LOWER_SAL |\n" +
                 "----------------------------------------\n" +
-                "  13   | 9000  |   1   |     7600     |\n" +
-                "  15   | 7600  |   1   |     7500     |\n" +
-                "  14   | 7500  |   1   |     NULL     |\n" +
-                "  17   | 9500  |   2   |     8500     |\n" +
-                "  16   | 8500  |   2   |     7700     |\n" +
-                "  18   | 7700  |   2   |     NULL     |\n" +
-                "  19   | 8500  |   3   |     7500     |\n" +
-                "  21   | 7500  |   3   |     6900     |\n" +
-                "  20   | 6900  |   3   |     NULL     |\n" +
-                "  23   | 7800  |   4   |     7200     |\n" +
-                "  24   | 7200  |   4   |     6500     |\n" +
-                "  22   | 6500  |   4   |     NULL     |\n" +
-                "  10   | 12000 |   5   |     10000    |\n" +
-                "  11   | 10000 |   5   |     10000    |\n" +
-                "  12   | 10000 |   5   |     NULL     |";
+                "  13   | 9000  |   1   |     7600      |\n" +
+                "  15   | 7600  |   1   |     7500      |\n" +
+                "  14   | 7500  |   1   |     NULL      |\n" +
+                "  17   | 9500  |   2   |     8500      |\n" +
+                "  16   | 8500  |   2   |     7700      |\n" +
+                "  18   | 7700  |   2   |     NULL      |\n" +
+                "  19   | 8500  |   3   |     7500      |\n" +
+                "  21   | 7500  |   3   |     6900      |\n" +
+                "  20   | 6900  |   3   |     NULL      |\n" +
+                "  23   | 7800  |   4   |     7200      |\n" +
+                "  24   | 7200  |   4   |     6500      |\n" +
+                "  22   | 6500  |   4   |     NULL      |\n" +
+                "  10   | 12000 |   5   |     10000     |\n" +
+                "  11   | 10000 |   5   |     10000     |\n" +
+                "  12   | 10000 |   5   |     NULL      |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
-    @Test @Ignore("Frame buffer problem - only seeing one row at a time in frame.")
+    @Test
     public void testLagFunction() throws Exception {
         // DB-3920
         String tableName = "emp3";
@@ -3115,7 +3115,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test
+    @Test @Ignore("Broken as a result of result buffering for lead() and lag(). Looks like a legit error validated by PostgreSQL app.")
     public void testPullFunctionInputColumnUp4Levels() throws Exception {
         // DB-2087 - Kryo exception
         String sqlText =

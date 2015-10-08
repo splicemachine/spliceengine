@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
@@ -226,7 +227,8 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
         return false;
     }
 
-    public void finishFrame() throws StandardException {
+    public List<DataValueDescriptor> finishFrame() throws StandardException {
         // override/implement if function needs the entire frame
+        return null;
     }
 }
