@@ -114,7 +114,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        LocatedRow result = source.getDataSet()
+        LocatedRow result = source.getDataSet(dsp)
                 .fold(null,new ScalarAggregateFunction(dsp.createOperationContext(this)));
         if (result==null) {
 			return returnDefault ?

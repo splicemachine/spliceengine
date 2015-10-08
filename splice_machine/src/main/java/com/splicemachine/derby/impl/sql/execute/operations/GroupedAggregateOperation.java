@@ -160,7 +160,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
-        DataSet set = source.getDataSet().map(new CountReadFunction(operationContext));
+        DataSet set = source.getDataSet(dsp).map(new CountReadFunction(operationContext));
         if (groupedAggregateContext.getNonGroupedUniqueColumns() != null &&
                 groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             // Distinct Aggregate Path

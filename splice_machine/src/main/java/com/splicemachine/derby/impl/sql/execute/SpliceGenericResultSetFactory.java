@@ -622,7 +622,23 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                                           double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
                                           int returnTypeNumber, int vtiProjectionNumber,
                                           int vtiRestrictionNumber) throws StandardException {
-            throw new UnsupportedOperationException("VTIResultSet operation is not implemented");
+
+
+        return new VTIOperation(activation, row, resultSetNumber,
+                constructor,
+                javaClassName,
+                pushedQualifiersField,
+                erdNumber,
+                version2, reuseablePs,
+                ctcNumber,
+                isTarget,
+                scanIsolationLevel,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost,
+                isDerbyStyleTableFunction,
+                returnTypeNumber,
+                vtiProjectionNumber,
+                vtiRestrictionNumber);
     }
 
     @Override

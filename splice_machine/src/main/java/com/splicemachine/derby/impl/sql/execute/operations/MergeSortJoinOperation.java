@@ -29,7 +29,7 @@ import java.io.ObjectOutput;
  *
  * Before determining the different paths, each operation retrieves its left and right datasets and keys them by a Keyer Function.
  *
- * @see com.splicemachine.derby.iapi.sql.execute.SpliceOperation#getDataSet()
+ * @see com.splicemachine.derby.iapi.sql.execute.SpliceOperation#getDataSet(com.splicemachine.derby.stream.iapi.DataSetProcessor)
  * @see com.splicemachine.derby.stream.iapi.DataSet
  * @see DataSet#keyBy(com.splicemachine.derby.stream.function.SpliceFunction)
  * @see com.splicemachine.derby.stream.function.KeyerFunction
@@ -169,8 +169,8 @@ public class MergeSortJoinOperation extends JoinOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().map(new CountJoinedLeftFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp).map(new CountJoinedLeftFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp).map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
