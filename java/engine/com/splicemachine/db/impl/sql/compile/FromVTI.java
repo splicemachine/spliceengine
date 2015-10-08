@@ -22,14 +22,10 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
-
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
@@ -38,40 +34,31 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-
 import com.splicemachine.db.vti.DeferModification;
 import com.splicemachine.db.vti.RestrictedVTI;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
-
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -98,7 +85,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 	boolean				isTarget;
 	boolean				isDerbyStyleTableFunction;
 	boolean				isRestrictedTableFunction;
-	ResultSet			rs;
 
 	private	FormatableHashtable	compileTimeConstants;
 
@@ -128,12 +114,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 	double estimatedRowCount = VTICosting.defaultEstimatedRowCount;
 	boolean supportsMultipleInstantiations = true;
 	boolean vtiCosted;
-
 	/* Version 1 or 2 VTI*/
 	protected boolean			version2;
 	private boolean				implementsPushable;
-	private PreparedStatement	ps;
-
     private JavaValueNode[] methodParms;
     
     private boolean controlsDeferral;
@@ -219,23 +202,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 		 * Otherwise we use the defaults.
 		 * NOTE: We only cost the VTI once.
 		 */
-		if (implementsVTICosting && ! vtiCosted)
-		{
-			try
-			{
+		if (implementsVTICosting && ! vtiCosted) {
+			try {
 				VTICosting vtic = getVTICosting();
 				estimatedCost = vtic.getEstimatedCostPerInstantiation(this);
 				estimatedRowCount = vtic.getEstimatedRowCount(this);
 				supportsMultipleInstantiations = vtic.supportsMultipleInstantiations(this);
-
-				if (ps != null) {
-					ps.close();
-					ps = null;
-				}
-				if (rs != null) {
-					rs.close();
-					rs = null;
-				}
 			}
 			catch (SQLException sqle)
 			{
@@ -341,22 +313,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException
-	{
-		/* Close the rs if one was instantiated */
-		if (rs != null)
-		{
-			try
-			{
-				rs.close();
-				rs = null;
-			}
-			catch(Throwable t)
-			{
-				throw StandardException.unexpectedUserException(t);
-			}
-		}
-
+	public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException {
 		return super.modifyAccessPath(outerTables);
 	}
 
@@ -639,35 +596,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 			if ( isDerbyStyleTableFunction ) {
 			    createResultColumnsForTableFunction( routineInfo.getReturnType() );
 			}
-			else
-			{
-            
-			    ResultSetMetaData rsmd = getResultSetMetaData();
-	
-			    /* Wouldn't it be nice if we knew that the class/object would never
-			     * return a null ResultSetMetaData.
-			     */
-			    if (rsmd == null)
-			    {
-				throw StandardException.newException(SQLState.LANG_NULL_RESULT_SET_META_DATA, 
-											getVTIName());
-			    }
-	
-			    // Remember how many columns VTI returns for partial row calculation
-			    try
-			    {
-				numVTICols = rsmd.getColumnCount();
-			    }
-			    catch (SQLException sqle)
-			    {
-				numVTICols = 0;
-			    }
-
-			    resultColumns.createListFromResultSetMetaData(rsmd, exposedName, 
-														  getVTIName() );
-			}
-		}
-		numVTICols = resultColumns.size();
+    		numVTICols = resultColumns.size();
 	
 		/* Propagate the name info from the derived column list */
 		if (derivedRCL != null)
@@ -678,78 +607,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 		return this;
 	}
 
-	/**
-	 * Get the ResultSetMetaData for the class/object.  We first look for 
-	 * the optional static method which has the same signature as the constructor.
-	 * If it doesn't exist, then we instantiate an object and get the ResultSetMetaData
-	 * from that object.
-	 *
-	 * @return The ResultSetMetaData from the class/object.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public ResultSetMetaData getResultSetMetaData() 
-		throws StandardException
-	{
-		// Get the actual 
-		ResultSetMetaData rsmd = null;
-
-		try
-		{	
-			if (version2)
-			{
-				ps = (PreparedStatement) getNewInstance();
-
-				if (ps.getResultSetConcurrency() != ResultSet.CONCUR_UPDATABLE)
-				{
-					throw StandardException.newException(SQLState.LANG_UPDATABLE_VTI_NON_UPDATABLE_RS, 
-														 getVTIName());
-				}
-
-				rsmd = ps.getMetaData();
-
-                controlsDeferral = (ps instanceof DeferModification);
-
-                /* See if the result set is known to be insensitive or not.
-                 *
-                 * Some older VTI implementations do not implement getResultSetType(). UpdatableVTITemplate
-                 * does not implement it at all. UpdatableVTITemplate.getResultSetType throws an
-                 * exception. In either of these cases make the conservative assumption that the result set is sensitive.
-                 */
-                try
-                {
-                    resultSetType = ps.getResultSetType();
-                }
-                catch( SQLException sqle){}
-                catch( java.lang.AbstractMethodError ame){}
-                catch( java.lang.NoSuchMethodError nsme){}
-                isInsensitive = (resultSetType == ResultSet.TYPE_SCROLL_INSENSITIVE);
-
-				if (!implementsVTICosting) {
-					ps.close();
-					ps = null;
-				}
-
-			}
-			else
-			{
-				rs = (ResultSet) getNewInstance();
-
-				rsmd = rs.getMetaData();
-
-				if (!implementsVTICosting) {
-					rs.close();
-					rs = null;
-				}
-			}
-		}
-		catch(Throwable t)
-		{
-			throw StandardException.unexpectedUserException(t);
-		}
-
-		return rsmd;
-	}
 
     private Object getNewInstance()
         throws StandardException
