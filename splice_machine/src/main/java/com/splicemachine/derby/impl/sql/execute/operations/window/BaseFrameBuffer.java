@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
@@ -159,7 +160,11 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         for (WindowAggregator aggregator : aggregators) {
             SpliceGenericWindowFunction cachedAggregator = aggregator.getCachedAggregator();
             if (cachedAggregator != null) {
-                cachedAggregator.finishFrame();
+                List<DataValueDescriptor> results = cachedAggregator.finishFrame();
+                if (results != null) {
+                    int resultColumnId = aggregator.getResultColumnId();
+                    resultBuffer.setColumnResults(resultColumnId, results);
+                }
             }
         }
         resultBuffer.setFinished();
@@ -207,6 +212,13 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         @Override
         public void remove() {
             // not implemented
+        }
+
+        public void setColumnResults(int resultColumnId, List<DataValueDescriptor> columnResults) {
+            for (int i = 0; i < results.size(); i++) {
+                ExecRow row = results.get(i);
+                row.setColumn(resultColumnId, columnResults.get(i));
+            }
         }
     }
 }

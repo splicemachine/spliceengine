@@ -63,7 +63,7 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
     }
 
     @Override
-    public void finishFrame() throws StandardException {
+    public List<DataValueDescriptor> finishFrame() throws StandardException {
         List<DataValueDescriptor> leadLag = buffer.terminate();
         buffer.initialize(offset);
         for(WindowChunk chunk : chunks) {
@@ -71,6 +71,7 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
                 chunk.setResult(chunk.values[i][0]);
             }
         }
+        return leadLag;
     }
 
     @Override
