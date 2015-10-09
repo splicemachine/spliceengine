@@ -1030,11 +1030,13 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
     @Override
     public NoPutResultSet getInsertResultSet(NoPutResultSet source,
-                                             GeneratedMethod generationClauses, GeneratedMethod checkGM)
+                                             GeneratedMethod generationClauses, GeneratedMethod checkGM,
+                                             String insertMode, String statusDirectory, int failBadRecordCount)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM);
+            SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
+                    statusDirectory, failBadRecordCount);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             return top;
