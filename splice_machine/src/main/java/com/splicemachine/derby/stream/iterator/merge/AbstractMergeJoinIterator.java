@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.MergeOuterJoinIterator;
 import org.apache.log4j.Logger;
 import com.google.common.collect.PeekingIterator;
@@ -20,6 +21,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     final Iterator<LocatedRow> leftRS;
     final PeekingIterator<LocatedRow> rightRS;
     final int[] joinKeys;
+    protected final OperationContext<?> operationContext;
     protected List<ExecRow> currentRights = new ArrayList<ExecRow>();
     protected LocatedRow left;
     protected Iterator<ExecRow> currentRightIterator;
@@ -32,16 +34,16 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
      * MergeJoinRows constructor. Note that keys for left & right sides
      * are the join keys on which each side is sorted (not all of the
      * join keys).
-     *
-     * @param leftRS        Iterator for left side rows
+     *  @param leftRS        Iterator for left side rows
      * @param rightRS       Iterator for right side rows
      * @param leftKeys      Join key(s) on which left side is sorted
      * @param rightKeys     Join Key(s) on which right side is sorted
+     * @param operationContext
      */
     public AbstractMergeJoinIterator(Iterator<LocatedRow> leftRS,
                                      PeekingIterator<LocatedRow> rightRS,
                                      int[] leftKeys, int[] rightKeys,
-                                     MergeJoinOperation mergeJoinOperation) {
+                                     MergeJoinOperation mergeJoinOperation, OperationContext<?> operationContext) {
         this.mergeJoinOperation = mergeJoinOperation;
         this.leftRS = leftRS;
         this.rightRS = rightRS;
@@ -53,6 +55,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
             joinKeys[i * 2] = leftKeys[i] + 1;
             joinKeys[i * 2 + 1] = rightKeys[i] + 1;
         }
+        this.operationContext = operationContext;
     }
 
     private int compare(ExecRow left, ExecRow right) throws StandardException {
@@ -95,6 +98,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     @Override
     public final boolean hasNext() {
         boolean result = internalHasNext();
+        if (result) operationContext.recordProduced();
         if (!result && !closed) {
             close();
         }

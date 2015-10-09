@@ -20,10 +20,10 @@ public class MergeInnerJoinFlatMapFunction extends AbstractMergeJoinFlatMapFunct
     }
 
     @Override
-    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator, PeekingIterator<LocatedRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, MergeJoinOperation mergeJoinOperation) {
+    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator, PeekingIterator<LocatedRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, MergeJoinOperation mergeJoinOperation, OperationContext<MergeJoinOperation> operationContext) {
         return new MergeInnerJoinIterator(leftPeekingIterator,
                 rightPeekingIterator,
                 mergeJoinOperation.leftHashKeys, mergeJoinOperation.rightHashKeys,
-                mergeJoinOperation);
+                mergeJoinOperation, operationContext);
     }
 }

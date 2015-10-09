@@ -45,6 +45,7 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
                 LocatedRow lr = new LocatedRow(leftRow.getRowLocation(),mergedRow);
                 returnRows.add(lr);
             }
+            operationContext.recordFilter();
         }
         if (returnRows.size() ==0) {
             mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),

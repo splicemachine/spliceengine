@@ -154,42 +154,41 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().map(new CountJoinedLeftFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+        DataSet<LocatedRow> result;
         if (isOuterJoin) { // Outer Join with and without restriction
-                    return leftDataSet.broadcastCogroup(rightDataSet)
+                    result = leftDataSet.broadcastCogroup(rightDataSet)
                             .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                             .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                    result = leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
                             .flatmap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
+                    result = leftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
 
                 if (isOneRowRightSide()) {
-                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                    result = leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
                             .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
-                }
-
-                if (restriction !=null) { // with restriction
-                        return leftDataSet.broadcastJoin(rightDataSet)
-                                .map(new InnerJoinFunction<SpliceOperation>(operationContext))
-                                .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
-
-                } else { // No Restriction
-                    return leftDataSet.broadcastJoin(rightDataSet)
+                } else {
+                    result = leftDataSet.broadcastJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+
+                    if (restriction !=null) { // with restriction
+                        result = result.filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
+                    }
                 }
             }
         }
+        return result.map(new CountProducedFunction(operationContext));
     }
 }

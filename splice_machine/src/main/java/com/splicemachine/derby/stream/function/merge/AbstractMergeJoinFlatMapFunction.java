@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
+import com.splicemachine.derby.stream.function.CountReadFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -67,12 +68,18 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         }
         final SpliceOperation rightSide = mergeJoinOperation.getRightOperation();
         DataSetProcessor dsp = StreamUtils.getLocalDataSetProcessorFromActivation(getOperation().getActivation(), rightSide);
-        final Iterator<LocatedRow> rightIterator = rightSide.getDataSet(dsp).toLocalIterator();
+        final Iterator<LocatedRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<LocatedRow, LocatedRow>() {
+            @Override
+            public LocatedRow apply(@Nullable LocatedRow locatedRow) {
+                operationContext.recordJoinedRight();
+                return locatedRow;
+            }
+        });
         ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
         AbstractMergeJoinIterator iterator = createMergeJoinIterator(leftPeekingIterator,
                 Iterators.peekingIterator(rightIterator),
                 mergeJoinOperation.leftHashKeys, mergeJoinOperation.rightHashKeys,
-                mergeJoinOperation);
+                mergeJoinOperation, operationContext);
         iterator.registerCloseable(new Closeable() {
             @Override
             public void close() throws IOException {
@@ -111,5 +118,5 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 
     protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator,
                                                                          PeekingIterator<LocatedRow> rightPeekingIterator,
-                                                                         int[] leftHashKeys, int[] rightHashKeys, MergeJoinOperation mergeJoinOperation);
+                                                                         int[] leftHashKeys, int[] rightHashKeys, MergeJoinOperation mergeJoinOperation, OperationContext<MergeJoinOperation> operationContext);
 }
