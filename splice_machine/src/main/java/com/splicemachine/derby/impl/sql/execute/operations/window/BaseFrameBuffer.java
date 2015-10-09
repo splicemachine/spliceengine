@@ -108,6 +108,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
 
     protected void add(ExecRow row) throws StandardException{
         for(WindowAggregator aggregator : aggregators) {
+            // this applies the function given the current row
             aggregator.accumulate(row, templateRow);
         }
     }
@@ -117,6 +118,10 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
             int aggregatorColumnId = aggregator.getFunctionColumnId();
             SpliceGenericWindowFunction windowFunction =
                     (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
+            // This applies a "negative transition function" to the previously calculated result
+            // when the window frame is advanced within the partition and rows are dropping off the end.
+            // This is required by "running aggregates" (sum, count, etc) so that the whole frame doesn't
+            // have to be recalculated every time we advance a row.
             windowFunction.remove();
         }
     }
@@ -127,7 +132,8 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         }
         ExecRow row = rows.get(current);
         for (WindowAggregator aggregator : aggregators) {
-            // For current row  and window, evaluate the window function
+            // This set the current row's result after it's been calculated.
+            // Currently, this is called right after add(), so at every application of the function on the current row.
             int aggregatorColumnId = aggregator.getFunctionColumnId();
             int resultColumnId = aggregator.getResultColumnId();
             SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
@@ -148,9 +154,6 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
             windowFunction.reset();
             aggregator.initialize(templateRow);
         }
-
-        // reset result buffer
-        this.resultBuffer.reset();
 
         // initializes frame buffer
         loadFrame();
@@ -196,6 +199,10 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
             resultItr = results.iterator();
         }
 
+        public int size() {
+            return results.size();
+        }
+
         @Override
         public boolean hasNext() {
             return (resultItr != null && resultItr.hasNext());
@@ -203,10 +210,14 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
 
         @Override
         public ExecRow next() {
-            if (resultItr == null || ! resultItr.hasNext()) {
+            if (! finished || resultItr == null || ! resultItr.hasNext()) {
                 return null;
             }
-            return resultItr.next();
+            ExecRow resultRow = resultItr.next();
+            if (! hasNext()) {
+                reset();
+            }
+            return resultRow;
         }
 
         @Override
