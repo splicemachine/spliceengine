@@ -765,7 +765,7 @@ abstract class MethodCallNode extends JavaValueNode
 				    ( routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET )
 				)
 				{
-				    requiredType = ResultSet.class.getName();
+				    requiredType = FromVTI.DATASET_PROVIDER;
 				}
                 else if ( returnType.getTypeId().userType() )
                 {

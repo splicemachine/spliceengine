@@ -23,7 +23,6 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
@@ -59,13 +58,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-
 import java.util.*;
-
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 
 /**
@@ -73,7 +68,7 @@ import com.splicemachine.db.iapi.services.io.FormatableHashtable;
  *
  */
 public class FromVTI extends FromTable implements VTIEnvironment {
-
+    public static final String DATASET_PROVIDER = "com.splicemachine.derby.vti.iapi.DatasetProvider";
 	JBitSet				correlationMap;
 	JBitSet				dependencyMap;
 	MethodCallNode	methodCall;
@@ -114,8 +109,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 	double estimatedRowCount = VTICosting.defaultEstimatedRowCount;
 	boolean supportsMultipleInstantiations = true;
 	boolean vtiCosted;
-	/* Version 1 or 2 VTI*/
-	protected boolean			version2;
 	private boolean				implementsPushable;
     private JavaValueNode[] methodParms;
     
@@ -430,10 +423,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 	/**
 	 * Mark this VTI as the target of a delete or update.
 	 */
-	void setTarget()
-	{
+	void setTarget() {
 		isTarget = true;
-		version2 = true;
 	}
 
 
@@ -512,11 +503,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             isDerbyStyleTableFunction = true;
         }
 
-        if ( isDerbyStyleTableFunction )
-        {
+        if ( isDerbyStyleTableFunction ) {
             Method boundMethod = (Method) methodCall.getResolvedMethod();
-
             isRestrictedTableFunction = RestrictedVTI.class.isAssignableFrom( boundMethod.getReturnType() );
+            implementsVTICosting = implementsDerbyStyleVTICosting( methodCall.getJavaClassName() );
         }
 
 		/* If we have a valid constructor, does class implement the correct interface? 
@@ -525,45 +515,15 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 		 * PreparedStatement first.)
 		 */
 
-		if ( isConstructor() )
-		{
+		if ( isConstructor() ) {
 		    NewInvocationNode   constructor = (NewInvocationNode) methodCall;
                 
-		    if (!constructor.assignableTo("java.sql.PreparedStatement"))
-		    {
-			if (version2)
-			{
+		    if (!constructor.assignableTo(DATASET_PROVIDER))
 				throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT, 
-										getVTIName(),
-										"java.sql.PreparedStatement");
-			}
-			else if (! constructor.assignableTo("java.sql.ResultSet"))
-			{
-				throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT, 
-										getVTIName(),
-										"java.sql.ResultSet");
-			}
-		    }
-		    else
-		    {
-			    version2 = true;
-		    }
-        
-		    /* If this is a version 2 VTI */
-		    if (version2)
-		    {
-			// Does it support predicates
-			implementsPushable = constructor.assignableTo("com.splicemachine.db.vti.IQualifyable");
-		    }
-		    // Remember whether or not the VTI implements the VTICosting interface
+										getVTIName(),DATASET_PROVIDER);
 		    implementsVTICosting = constructor.assignableTo(ClassName.VTICosting);
 		}
 
-        if ( isDerbyStyleTableFunction )
-        {
-            implementsVTICosting = implementsDerbyStyleVTICosting( methodCall.getJavaClassName() );
-        }
-            
 
 		/* Build the RCL for this VTI.  We instantiate an object in order
 		 * to get the ResultSetMetaData.
@@ -584,26 +544,24 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 			estimatedRowCount = 5d;
 			supportsMultipleInstantiations = true;
 		}
-		else
-		{	
-			resultColumns = (ResultColumnList) getNodeFactory().getNode(
-												C_NodeTypes.RESULT_COLUMN_LIST,
-												getContextManager());
+		else {
+            resultColumns = (ResultColumnList) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN_LIST,
+                    getContextManager());
 
-			// if this is a Derby-style Table Function, then build the result
-			// column list from the RowMultiSetImpl return datatype
+            // if this is a Derby-style Table Function, then build the result
+            // column list from the RowMultiSetImpl return datatype
 
-			if ( isDerbyStyleTableFunction ) {
-			    createResultColumnsForTableFunction( routineInfo.getReturnType() );
-			}
-    		numVTICols = resultColumns.size();
+            if (isDerbyStyleTableFunction) {
+                createResultColumnsForTableFunction(routineInfo.getReturnType());
+            }
+            numVTICols = resultColumns.size();
 	
 		/* Propagate the name info from the derived column list */
-		if (derivedRCL != null)
-		{
-			 resultColumns.propagateDCLInfo(derivedRCL, correlationName);
-		}
-
+            if (derivedRCL != null) {
+                resultColumns.propagateDCLInfo(derivedRCL, correlationName);
+            }
+        }
 		return this;
 	}
 
@@ -1411,27 +1369,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         // get a function to allocate scan rows of the right shape and size
 		resultColumns.generateHolder(acb, mb); // arg 2
 
-		// For a Version 2 VTI we never maintain the java.sql.PreparedStatement
-		// from compile time to execute time. This would rquire the PreparedStatement
-		// to be shareable across multiple connections, which is not the model for
-		// java.sql.PreparedStatement.
-
-		// For a Version 2 VTI we do pass onto the ResultSet the re-useability
-		// of the java.sql.PreparedStatement at runtime. The java.sql.PreparedStatement
-		// is re-uesable if
-		//
-		// o  No ? or ColumnReferences in parameters
-
-		boolean reuseablePs = version2 &&
-			(getNodesFromParameters(ParameterNode.class).size() == 0) &&
-			(getNodesFromParameters(ColumnReference.class).size() == 0);
-
-
-
 		mb.push(resultSetNumber); // arg 3
 
 		// The generated method for the constructor
-		generateConstructor(acb, mb, reuseablePs); // arg 4
+		generateConstructor(acb, mb); // arg 4
 
 		// Pass in the class name
 		mb.push(methodCall.getJavaClassName()); // arg 5
@@ -1444,11 +1385,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
 		// Pass in the erdNumber for the referenced column FormatableBitSet
 		mb.push(erdNumber); // arg 6
-
-		// Whether or not this is a version 2 VTI
-		mb.push(version2);
-
-		mb.push(reuseablePs);
 
 		mb.push(ctcNumber);
 
@@ -1479,7 +1415,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         mb.push( storeObjectInPS( acb, projectedColumnNames ) );
         mb.push( storeObjectInPS( acb, vtiRestriction ) );        
 
-		return 18;
+		return 16;
 	}
     /** Store an object in the prepared statement.  Returns -1 if the object is
      * null. Otherwise returns the object's retrieval handle.
@@ -1491,45 +1427,18 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     }
 
 	private void generateConstructor(ActivationClassBuilder acb,
-										   MethodBuilder mb, boolean reuseablePs)
-		throws StandardException
-	{
+										   MethodBuilder mb) throws StandardException {
         
-        String vtiType = version2 ?
-                "java.sql.PreparedStatement" : "java.sql.ResultSet";
 		// this sets up the method and the static field.
 		// generates:
 		// 	java.sql.ResultSet userExprFun { }
 		MethodBuilder userExprFun = acb.newGeneratedFun(
-                vtiType, Modifier.PUBLIC);
+                DATASET_PROVIDER, Modifier.PUBLIC);
 		userExprFun.addThrownException("java.lang.Exception");
 
-
-		// If it's a re-useable PreparedStatement then hold onto it.
-		LocalField psHolder = reuseablePs ? acb.newFieldDeclaration(Modifier.PRIVATE, "java.sql.PreparedStatement") : null;
-
-		if (reuseablePs) {
-
-			userExprFun.getField(psHolder);
-			userExprFun.conditionalIfNull();
-		}
-
 		methodCall.generateExpression(acb, userExprFun);
-        userExprFun.upCast(vtiType);
-
-		if (reuseablePs) {
-
-			userExprFun.putField(psHolder);
-
-			userExprFun.startElseCode();
-
-			userExprFun.getField(psHolder);
-
-			userExprFun.completeConditional();
-		}
-
+        userExprFun.upCast(DATASET_PROVIDER);
 		userExprFun.methodReturn();
-
 
 
 		// methodCall knows it is returning its value;
@@ -1547,26 +1456,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 		// which is the static field that "points" to the userExprFun
 		// that evaluates the where clause.
 		acb.pushMethodReference(mb, userExprFun);
-
-
-		// now add in code to close the reusable PreparedStatement when
-		// the activation is closed.
-		if (reuseablePs) {
-			MethodBuilder closeActivationMethod = acb.getCloseActivationMethod();
-
-			closeActivationMethod.getField(psHolder);
-			closeActivationMethod.conditionalIfNull();
-			  // do nothing
-			  closeActivationMethod.push(0); // work around for no support for real if statements
-			closeActivationMethod.startElseCode(); 
-			  closeActivationMethod.getField(psHolder);
-			  closeActivationMethod.callMethod(VMOpcode.INVOKEINTERFACE, "java.sql.Statement",
-				  "close", "void", 0);
-			  closeActivationMethod.push(0);
-
-			closeActivationMethod.completeConditional();
-			closeActivationMethod.endStatement();
-		}
 
 	}
 
@@ -1808,10 +1697,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * Get the VTICosting implementation for this optimizable VTI.
      */
     private VTICosting  getVTICosting()
-        throws StandardException
-    {
-        if ( !isDerbyStyleTableFunction ) { return (version2) ? (VTICosting) ps : (VTICosting) rs; }
-        
+        throws StandardException {
+
         String              className = methodCall.getJavaClassName();
         Class               vtiClass = lookupClass( className );
         
