@@ -113,7 +113,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         //preserve the underlying CostEstimate for the inner table
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
-        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
+        double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList);
+        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setLocalCost(SelectivityUtil.mergeJoinStrategyLocalCost(innerCost,outerCost));
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
