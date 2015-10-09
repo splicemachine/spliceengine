@@ -50,6 +50,45 @@ no sql
 external name 'com.splicemachine.derby.vti.SpliceTestVTI.getSpliceTestVTI'
  */
 
+/*
+create function hmm(filename varchar(32672))
+        returns table
+        (
+        row varchar(32672)
+        )
+        language java
+        parameter style SPLICE_JDBC_RESULT_SET
+        no sql
+        external name 'com.splicemachine.derby.vti.SpliceFileVTI.getSpliceFileVTI';
+        */
+
+/*
+create function hmm2(filename varchar(32672), characterDelimiter varchar(1), columnDelimiter varchar(1), numberofColumns int)
+        returns table
+        (
+        col1 varchar(50),
+        col2 varchar(50),
+        col3 varchar(50)
+        )
+        language java
+        parameter style SPLICE_JDBC_RESULT_SET
+        no sql
+        external name 'com.splicemachine.derby.vti.SpliceFileVTI.getSpliceFileVTI';
+
+        */
+
+
+/*
+
+
+
+String fileName, String characterDelimiter, String columnDelimiter, int numberOfColumns
+
+ */
+
+
+
+
 /**
  */
 public class VTIOperation extends SpliceBaseOperation {
@@ -497,7 +536,7 @@ public class VTIOperation extends SpliceBaseOperation {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return getDataSetProvider().getDataSet(dsp);
+        return getDataSetProvider().getDataSet(dsp,getAllocatedRow());
     }
 
     @Override

@@ -29,13 +29,16 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
  *
  */
 
-public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet, DatasetProvider {
+public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet {
 
     RowLocation getCurrentRowLocation();
 
     void setCurrentRowLocation(RowLocation rowLocation);
 
     void setCurrentLocatedRow(LocatedRow locatedRow);
+
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
+
 
     /**
      * @return a descriptive name for this operation. Used for reporting information.

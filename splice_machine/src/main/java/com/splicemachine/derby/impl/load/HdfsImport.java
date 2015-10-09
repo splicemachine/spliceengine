@@ -577,7 +577,7 @@ public class HdfsImport {
                             PairDataSet<String, InputStream> combinedDataset = dsp.getEmptyPair();
 
                             for (Path p : file.getPaths()) {
-                                PairDataSet<String, InputStream> dataSet = dsp.readTextFile(p.toString());
+                                PairDataSet<String, InputStream> dataSet = dsp.readWholeTextFile(p.toString());
                                 combinedDataset = combinedDataset.union(dataSet);
                             }
                             ImportResult importResult = combinedDataset

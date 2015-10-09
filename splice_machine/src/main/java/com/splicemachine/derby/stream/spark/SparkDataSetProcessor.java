@@ -130,11 +130,17 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
-    public PairDataSet<String, InputStream> readTextFile(String path) {
+    public PairDataSet<String, InputStream> readWholeTextFile(String path) {
         return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config
         ));
     }
+
+    @Override
+    public DataSet<String> readTextFile(String path) {
+        return new SparkDataSet<String>(SpliceSpark.getContext().textFile(path));
+    }
+
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
@@ -148,9 +154,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
-
-        SpliceSpark.getContext().
-
         return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));
     }
 }
