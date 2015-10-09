@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -101,7 +103,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public PairDataSet<String, InputStream> readTextFile(String s) {
+    public PairDataSet<String, InputStream> readWholeTextFile(String s) {
         Path path = new Path(s);
         InputStream rawStream = null;
         try {
@@ -128,6 +130,43 @@ public class ControlDataSetProcessor implements DataSetProcessor {
             }
         }
     }
+
+    @Override
+    public DataSet<String> readTextFile(String s) {
+        Path path = new Path(s);
+        InputStream rawStream = null;
+        try {
+            CompressionCodecFactory factory = new CompressionCodecFactory(SpliceConstants.config);
+            CompressionCodec codec = factory.getCodec(path);
+            FileSystem fs = FileSystem.get(SpliceConstants.config);
+            FSDataInputStream fileIn = fs.open(path);
+            final InputStream value;
+            if (codec != null) {
+                value = codec.createInputStream(fileIn);
+            } else {
+                value = fileIn;
+            }
+            Iterable iterable;
+
+            return new ControlDataSet<String>(new Iterable<String>() {
+                @Override
+                public Iterator<String> iterator() {
+                    return new Scanner(value);
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (rawStream != null) {
+                try {
+                    rawStream.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
+    }
+
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
