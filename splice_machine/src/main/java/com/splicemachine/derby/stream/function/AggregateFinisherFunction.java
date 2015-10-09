@@ -47,6 +47,7 @@ public class AggregateFinisherFunction extends SpliceFunction<GroupedAggregateOp
                 aggregator.finish(locatedRow.getRow());
             }
             op.setCurrentLocatedRow(locatedRow);
+            operationContext.recordProduced();
             return locatedRow;
         }
 }

@@ -17,6 +17,9 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void recordRead();
     void recordFilter();
     void recordWrite();
+    void recordJoinedLeft();
+    void recordJoinedRight();
+    void recordProduced();
     long getRecordsRead();
     long getRecordsFiltered();
     long getRecordsWritten();

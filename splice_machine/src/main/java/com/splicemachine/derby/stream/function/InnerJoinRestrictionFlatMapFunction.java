@@ -42,6 +42,7 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
                 op.setCurrentLocatedRow(lr);
                 return Collections.singletonList(lr);
             }
+            operationContext.recordFilter();
         }
         return Collections.EMPTY_LIST;
     }

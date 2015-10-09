@@ -37,8 +37,10 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
                     rightRow.getRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
             op.setCurrentRow(mergedRow);
-            if (op.getRestriction().apply(mergedRow)) // Has Row, abandon
+            if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
+                operationContext.recordFilter();
                 return Collections.EMPTY_LIST;
+            }
         }
         // No Rows Matched...
         LocatedRow returnRow = new LocatedRow(leftRow.getRowLocation(),JoinUtils.getMergedRow(leftRow.getRow(),

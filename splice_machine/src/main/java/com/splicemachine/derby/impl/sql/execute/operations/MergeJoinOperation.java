@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
+import com.splicemachine.derby.stream.function.CountReadFunction;
 import com.splicemachine.derby.stream.function.merge.MergeAntiJoinFlatMapFunction;
 import com.splicemachine.derby.stream.function.merge.MergeInnerJoinFlatMapFunction;
 import com.splicemachine.derby.stream.function.merge.MergeOuterJoinFlatMapFunction;
@@ -138,8 +140,8 @@ public class MergeJoinOperation extends JoinOperation {
 */
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> left = leftResultSet.getDataSet();
         OperationContext<MergeJoinOperation> operationContext = dsp.createOperationContext(this);
+        DataSet<LocatedRow> left = leftResultSet.getDataSet().map(new CountJoinedLeftFunction(operationContext));
         if (isOuterJoin)
             return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
         else {
@@ -147,13 +149,6 @@ public class MergeJoinOperation extends JoinOperation {
                 return left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
             else {
                 return left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
-
-                /*
-                if (oneRowRightSide)
-                    return left.mapPartitions(new MergeOuterJoinFlatMapFunction<SpliceOperation>(operationContext));
-                else
-                    return left.mapPartitions(new MergeOuterJoinFlatMapFunction<SpliceOperation>(operationContext));
-                    */
             }
         }
     }

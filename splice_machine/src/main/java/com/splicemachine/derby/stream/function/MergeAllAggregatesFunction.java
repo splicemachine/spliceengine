@@ -45,7 +45,8 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
             aggregates = op.aggregates;
             initialized = true;
         }
-        if (locatedRow1 == null) return locatedRow2;
+        operationContext.recordRead();
+        if (locatedRow1 == null) return locatedRow2.getClone();
         if (locatedRow2 == null) return locatedRow1;
         ExecRow r1 = locatedRow1.getRow();
         ExecRow r2 = locatedRow2.getRow();

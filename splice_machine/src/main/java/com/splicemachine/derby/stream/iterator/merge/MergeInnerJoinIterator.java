@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.iterator.merge;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import com.google.common.collect.PeekingIterator;
 import java.util.Iterator;
@@ -13,17 +14,17 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
      * MergeJoinRows constructor. Note that keys for left & right sides
      * are the join keys on which each side is sorted (not all of the
      * join keys).
-     *
-     * @param leftRS        Iterator for left side rows
+     *  @param leftRS        Iterator for left side rows
      * @param rightRS       Iterator for right side rows
      * @param leftKeys      Join key(s) on which left side is sorted
      * @param rightKeys     Join Key(s) on which right side is sorted
+     * @param operationContext
      */
     public MergeInnerJoinIterator(Iterator<LocatedRow> leftRS,
                                   PeekingIterator<LocatedRow> rightRS,
                                   int[] leftKeys, int[] rightKeys,
-                                  MergeJoinOperation mergeJoinOperation) {
-        super(leftRS,rightRS,leftKeys,rightKeys,mergeJoinOperation);
+                                  MergeJoinOperation mergeJoinOperation, OperationContext<MergeJoinOperation> operationContext) {
+        super(leftRS,rightRS,leftKeys,rightKeys,mergeJoinOperation, operationContext);
     }
 
     @Override
@@ -36,6 +37,7 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                     if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
                         return true;
                     }
+                    operationContext.recordFilter();
                 }
             }
             while (leftRS.hasNext()) {
@@ -49,6 +51,7 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                         }
                         return true;
                     }
+                    operationContext.recordFilter();
                 }
             }
             return false;

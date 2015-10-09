@@ -23,6 +23,9 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         long rowsRead;
         long rowsFiltered;
         long rowsWritten;
+        long rowsJoinedLeft;
+        long rowsJoinedRight;
+        long rowsProduced;
         public SpliceObserverInstructions soi;
         public SpliceTransactionResourceImpl impl;
         public Activation activation;
@@ -130,6 +133,21 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public void recordWrite() {
         rowsWritten++;
+    }
+
+    @Override
+    public void recordJoinedLeft() {
+        rowsJoinedLeft++;
+    }
+
+    @Override
+    public void recordJoinedRight() {
+        rowsJoinedRight++;
+    }
+
+    @Override
+    public void recordProduced() {
+        rowsProduced++;
     }
 
     @Override

@@ -28,8 +28,10 @@ public class JoinRestrictionPredicateFunction<Op extends SpliceOperation> extend
             initialized = true;
         }
         try {
-            if (!joinOp.getRestriction().apply(locatedRow.getRow()))
-                 return false;
+            if (!joinOp.getRestriction().apply(locatedRow.getRow())) {
+                operationContext.recordFilter();
+                return false;
+            }
             joinOp.setCurrentLocatedRow(locatedRow);
             return true;
         } catch (Exception e) {

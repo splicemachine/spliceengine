@@ -49,6 +49,7 @@ public class OuterJoinFunction<Op extends SpliceOperation> extends SpliceJoinFun
             lr = new LocatedRow(JoinUtils.getMergedRow(tuple._1.getRow(),
                     op.getEmptyRow(), op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns)));
             op.setCurrentLocatedRow(lr);
+            operationContext.recordFilter();
         }
         return lr;
     }

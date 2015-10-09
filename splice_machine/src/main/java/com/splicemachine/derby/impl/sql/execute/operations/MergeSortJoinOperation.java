@@ -169,11 +169,15 @@ public class MergeSortJoinOperation extends JoinOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().map(new CountJoinedLeftFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+        return getJoinedDataset(operationContext, leftDataSet, rightDataSet).map(new CountProducedFunction(operationContext));
+    }
+
+    private DataSet<LocatedRow> getJoinedDataset(OperationContext operationContext, PairDataSet<ExecRow, LocatedRow> leftDataSet, PairDataSet<ExecRow, LocatedRow> rightDataSet) {
         if (isOuterJoin) { // Outer Join
                 return leftDataSet.cogroup(rightDataSet)
                         .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))

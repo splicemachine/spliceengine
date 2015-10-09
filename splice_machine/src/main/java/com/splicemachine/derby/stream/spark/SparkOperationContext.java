@@ -29,6 +29,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public Op op;
         public TxnView txn;
         public Accumulator<Integer> rowsRead;
+        public Accumulator<Integer> rowsJoinedLeft;
+        public Accumulator<Integer> rowsJoinedRight;
+        public Accumulator<Integer> rowsProduced;
         public Accumulator<Integer> rowsFiltered;
         public Accumulator<Integer> rowsWritten;
 
@@ -44,9 +47,13 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             } catch (StandardException se) {
                 throw new RuntimeException(se);
             }
-            this.rowsRead = SpliceSpark.getContext().accumulator(0, op.getName()+" rows read");
-            this.rowsFiltered = SpliceSpark.getContext().accumulator(0, op.getName()+" rows filtered");
-            this.rowsWritten = SpliceSpark.getContext().accumulator(0, op.getName()+" rows written");
+            String baseName = op.getName() + " (" + op.resultSetNumber() + ")";
+            this.rowsRead = SpliceSpark.getContext().accumulator(0, baseName + " rows read");
+            this.rowsFiltered = SpliceSpark.getContext().accumulator(0, baseName + " rows filtered");
+            this.rowsWritten = SpliceSpark.getContext().accumulator(0, baseName + " rows written");
+            this.rowsJoinedLeft = SpliceSpark.getContext().accumulator(0, baseName + " rows joined left");
+            this.rowsJoinedRight = SpliceSpark.getContext().accumulator(0, baseName + " rows joined right");
+            this.rowsProduced= SpliceSpark.getContext().accumulator(0, baseName + " rows produced");
         }
 
         public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
@@ -62,6 +69,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             out.writeObject(rowsRead);
             out.writeObject(rowsFiltered);
             out.writeObject(rowsWritten);
+            out.writeObject(rowsJoinedLeft);
+            out.writeObject(rowsJoinedRight);
+            out.writeObject(rowsProduced);
         }
 
         @Override
@@ -74,6 +84,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             rowsRead = (Accumulator) in.readObject();
             rowsFiltered = (Accumulator) in.readObject();
             rowsWritten = (Accumulator) in.readObject();
+            rowsJoinedLeft = (Accumulator<Integer>) in.readObject();
+            rowsJoinedRight = (Accumulator<Integer>) in .readObject();
+            rowsProduced = (Accumulator<Integer>) in.readObject();
             boolean prepared = false;
             try {
                 impl = new SpliceTransactionResourceImpl();
@@ -131,6 +144,21 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void recordWrite() {
         rowsWritten.add(1);
+    }
+
+    @Override
+    public void recordJoinedLeft() {
+        rowsJoinedLeft.add(1);
+    }
+
+    @Override
+    public void recordJoinedRight() {
+        rowsJoinedRight.add(1);
+    }
+
+    @Override
+    public void recordProduced() {
+        rowsProduced.add(1);
     }
 
     @Override
