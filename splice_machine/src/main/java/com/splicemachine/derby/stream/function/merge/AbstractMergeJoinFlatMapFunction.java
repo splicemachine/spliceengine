@@ -101,7 +101,11 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 
     private ExecRow concatenate(ExecRow start, ExecRow hash) throws StandardException {
         int size = start!=null ? start.nColumns() : 0;
-        size += hash.nColumns();
+        int len = 1;
+        int col = mergeJoinOperation.rightHashKeys[0];
+        while(len <mergeJoinOperation.rightHashKeys.length && col+1 == mergeJoinOperation.rightHashKeys[len])
+            col = mergeJoinOperation.rightHashKeys[len++];
+        size += len;
 
         ExecRow v = new ValueRow(size);
         if (start != null) {
@@ -110,7 +114,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             }
         }
         int offset = start!=null ? start.nColumns():0;
-        for (int i = 1; i <= hash.nColumns(); ++i) {
+        for (int i = 1; i <= len; ++i) {
             v.setColumn(offset + i, hash.getColumn(i));
         }
         return v;

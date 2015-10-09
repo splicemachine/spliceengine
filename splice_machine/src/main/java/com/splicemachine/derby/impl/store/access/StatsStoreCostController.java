@@ -92,7 +92,7 @@ public class StatsStoreCostController extends GenericController implements Store
     @Override
     public double conglomerateColumnSizeFactor(BitSet validColumns) {
         return columnSizeFactor(conglomerateStatistics,
-                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                ((SpliceConglomerate) baseConglomerate.getConglomerate()).getFormat_ids().length,
                 validColumns);
     }
 
@@ -145,7 +145,7 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override
     public double nullSelectivity(int columnNumber){
-        return nullSelectivityFraction(conglomerateStatistics,columnNumber);
+        return nullSelectivityFraction(conglomerateStatistics, columnNumber);
     }
 
     @Override
@@ -154,6 +154,22 @@ public class StatsStoreCostController extends GenericController implements Store
         if(colStats!=null)
             return colStats.cardinality();
         return 0;
+    }
+
+    @Override
+    public DataValueDescriptor minValue(int columnNumber) {
+        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(conglomerateStatistics,columnNumber);
+        if (colStats!=null)
+            return colStats.minValue();
+        return null;
+    }
+
+    @Override
+    public DataValueDescriptor maxValue(int columnNumber) {
+        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(conglomerateStatistics,columnNumber);
+        if (colStats!=null)
+            return colStats.maxValue();
+        return null;
     }
 
     protected static ColumnStatistics<DataValueDescriptor> getColumnStats(OverheadManagedTableStatistics stats,int columnNumber){
