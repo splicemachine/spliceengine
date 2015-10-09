@@ -112,7 +112,7 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the insert
 	 */
 	ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-								 GeneratedMethod checkGM)
+								 GeneratedMethod checkGM, String insertMode, String statusDirectory, int failBadRecordCount)
         throws StandardException;
 
 	/**

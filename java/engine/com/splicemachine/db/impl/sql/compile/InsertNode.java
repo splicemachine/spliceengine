@@ -21,46 +21,31 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.collect.Sets;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
-
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-
 import com.splicemachine.db.iapi.reference.ClassName;
-
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexLister;
-
 import com.splicemachine.db.iapi.sql.StatementType;
-
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.RowLocation;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.vti.DeferModification;
-
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.util.StringUtil;
-
 import com.splicemachine.db.catalog.UUID;
-
 import com.splicemachine.db.impl.sql.execute.FKInfo;
-
 import java.util.Properties;
-
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
@@ -86,19 +71,28 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
  * <p>
  * After optimizing, ...
  */
-public final class InsertNode extends DMLModStatementNode
-{
+public final class InsertNode extends DMLModStatementNode {
+    public enum InsertMode {INSERT,UPSERT};
+    public InsertMode insertMode = InsertMode.INSERT;
+
+    public static final String INSERT_MODE = "insertMode";
+    public static final String STATUS_DIRECTORY = "statusDirectory";
+    public static final String FAIL_BAD_RECORD_COUNT = "failBadRecordCount";
+    public static final String INSERT = "INSERT";
+
+
 	public		ResultColumnList	targetColumnList;
 	public 		boolean				deferred;
 	public		ValueNode			checkConstraints;
 	public		Properties			targetProperties;
 	public		FKInfo				fkInfo;
-	protected	boolean				bulkInsert;
-	private 	boolean				bulkInsertReplace;
 	private     OrderByList         orderByList;
     private     ValueNode           offset;
     private     ValueNode           fetchFirst;
     private     boolean           hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
+    private     String              statusDirectory;
+    private     int              failBadRecordCount = -1;
+
 
 	protected   RowLocation[] 		autoincRowLocation;
 	/**
@@ -488,20 +482,8 @@ public final class InsertNode extends DMLModStatementNode
 			*/
 			if (resultSet.referencesTarget(
 									targetTableDescriptor.getName(), true) ||
-				 requiresDeferredProcessing())
-			{
+				 requiresDeferredProcessing()) {
 				deferred = true;
-
-				/* Disallow bulk insert replace when target table
-				 * is also a source table.
-				 */
-				if (bulkInsertReplace &&
-					resultSet.referencesTarget(
-									targetTableDescriptor.getName(), true))
-				{
-					throw StandardException.newException(SQLState.LANG_INVALID_BULK_INSERT_REPLACE, 
-									targetTableDescriptor.getQualifiedName());
-				}
 			}
 
 			/* Get the list of indexes on the table being inserted into */
@@ -648,51 +630,34 @@ public final class InsertNode extends DMLModStatementNode
 		throws StandardException
 	{
 		// The only property that we're currently interested in is insertMode
-		String insertMode = targetProperties.getProperty("insertMode");
-		if (insertMode != null)
-		{
-			String upperValue = StringUtil.SQLToUpperCase(insertMode);
-			if (! upperValue.equals("BULKINSERT") &&
-				! upperValue.equals("REPLACE"))
-			{
-				throw StandardException.newException(SQLState.LANG_INVALID_INSERT_MODE, 
-								insertMode,
-								targetTableName);
-			}
-			else
-			{
-				/* Turn off bulkInsert if it is on and we can't support it. */
-				if (! verifyBulkInsert(dd, upperValue))
-				{
-					targetProperties.remove("insertMode");
-				}
-				else
-				{
-					/* Now we know we're doing bulk insert */
-					bulkInsert = true;
+		String insertModeString = targetProperties.getProperty(INSERT_MODE);
+        String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
+        String failBadRecordCountString = targetProperties.getProperty(FAIL_BAD_RECORD_COUNT);
 
-					if (upperValue.equals("REPLACE"))
-					{
-						bulkInsertReplace = true;
-					}
+		if (insertMode != null) {
+            String upperValue = StringUtil.SQLToUpperCase(insertModeString);
+            if (!Sets.newHashSet(InsertMode.values()).contains(upperValue))
+                throw StandardException.newException(SQLState.LANG_INVALID_INSERT_MODE,
+                        insertMode,
+                        targetTableName);
+            insertMode = InsertMode.valueOf(upperValue);
+        }
 
-					// Validate the bulkFetch property if specified
-					String bulkFetchStr = targetProperties.getProperty("bulkFetch");
-					if (bulkFetchStr != null)
-					{
-						int bulkFetch = getIntProperty(bulkFetchStr, "bulkFetch");
+        if (failBadRecordCountString != null) {
+            failBadRecordCount = getIntProperty(failBadRecordCountString, "bulkFetch");
+            if (failBadRecordCount <= 0) {
+                throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE,
+                        String.valueOf(failBadRecordCount));
+            }
+        }
 
-						// verify that the specified value is valid
-						if (bulkFetch <= 0)
-						{
-							throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE,
-									String.valueOf(bulkFetch));
-						}
-					}
-				}
-			}
-		}
-	}
+        if (statusDirectoryString != null) {
+            statusDirectory = statusDirectoryString;
+            // Need to Validate Directory is valid, I think I will have to do this on execution side unfortunately.
+        }
+
+
+    }
 
 	/**
 	 * Do the bind time checks to see if bulkInsert is allowed on
@@ -736,23 +701,8 @@ public final class InsertNode extends DMLModStatementNode
 			StaticCompiledOpenConglomInfo[] indexSCOCIs = 
 				new StaticCompiledOpenConglomInfo[numIndexes];
 
-			for (int index = 0; index < numIndexes; index++)
-			{
+			for (int index = 0; index < numIndexes; index++) {
 				indexSCOCIs[index] = tc.getStaticCompiledConglomInfo(indexConglomerateNumbers[index]);
-			}
-
-
-			/*
-			** If we're doing bulk insert, do table locking regardless of
-			** what the optimizer decided.  This is because bulk insert is
-			** generally done with a large number of rows into an empty table.
-			** We also do table locking if the table's lock granularity is
-			** set to table.
-			*/
-			if (bulkInsert ||
-				targetTableDescriptor.getLockGranularity() == TableDescriptor.TABLE_LOCK_GRANULARITY)
-			{
-				lockMode = TransactionController.MODE_TABLE;
 			}
 
 			return	getGenericConstantActionFactory().getInsertConstantAction
@@ -919,8 +869,14 @@ public final class InsertNode extends DMLModStatementNode
 
 			// arg 3 generate code to evaluate CHECK CONSTRAINTS
 			generateCheckConstraints( checkConstraints, acb, mb );
+            mb.push(insertMode.toString());
+            if (statusDirectory==null)
+                mb.pushNull("java.lang.String");
+            else
+                mb.push(statusDirectory);
+            mb.push(failBadRecordCount);
 
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 3);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 6);
 		}
 		else
 		{

@@ -65,7 +65,7 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 	}
 
     @Override
-	public abstract ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM) throws StandardException;
+	public abstract ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM,String insertMode, String statusDirectory, int failBadRecordCount) throws StandardException;
 
 	/**
 		@see ResultSetFactory#getInsertVTIResultSet
