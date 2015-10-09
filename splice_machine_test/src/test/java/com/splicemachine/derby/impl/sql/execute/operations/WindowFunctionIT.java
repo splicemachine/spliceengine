@@ -3115,7 +3115,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test @Ignore("Broken as a result of result buffering for lead() and lag(). Looks like a legit error validated by PostgreSQL app.")
+    @Test
     public void testPullFunctionInputColumnUp4Levels() throws Exception {
         // DB-2087 - Kryo exception
         String sqlText =
