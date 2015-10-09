@@ -237,6 +237,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
+    public double scanSelectivity(Optimizable innerTable) throws StandardException{
+        return andNode.getLeftOperand().scanSelectivity(innerTable);
+    }
+
+    @Override
     public int getIndexPosition(){
         return indexPosition;
     }

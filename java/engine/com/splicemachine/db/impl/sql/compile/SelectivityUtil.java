@@ -63,6 +63,21 @@ public class SelectivityUtil {
         return selectivity;
     };
 
+    public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
+        double selectivity = 1d;
+        if (innerTable == null) {
+            return selectivity;
+        }
+        for (int i = 0; i < predList.size(); i++) {
+            Predicate p = (Predicate) predList.getOptPredicate(i);
+            if (!p.isJoinPredicate()) continue;
+            selectivity *= p.scanSelectivity(innerTable);
+        }
+
+
+        return selectivity;
+    }
+
     public static boolean isOneRowResultSet(Optimizable innerTable, ConglomerateDescriptor cd,
                                      OptimizablePredicateList predList) throws StandardException{
         if(predList==null || cd == null ){

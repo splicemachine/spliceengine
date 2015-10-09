@@ -250,4 +250,7 @@ public interface StoreCostController extends RowCountable{
      */
     double baseRowCount();
 
+    DataValueDescriptor minValue(int columnNumber);
+
+    DataValueDescriptor maxValue(int columnNumber) ;
 }

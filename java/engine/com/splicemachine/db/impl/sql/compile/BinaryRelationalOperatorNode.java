@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -724,7 +725,7 @@ public class BinaryRelationalOperatorNode
         qualMethod.complete();
 
 		/* push an expression that evaluates to the GeneratedMethod */
-        acb.pushMethodReference(mb,qualMethod);
+        acb.pushMethodReference(mb, qualMethod);
     }
 
     /**
@@ -1389,6 +1390,81 @@ public class BinaryRelationalOperatorNode
         return retval;
     }
 
+    @Override
+    public double scanSelectivity(Optimizable innerTable) throws StandardException {
+        double selectivity = 1.0d;
+        ColumnReference innerColumn = null;
+        ColumnReference outerColumn = null;
+        if (leftOperand instanceof ColumnReference) {
+            ColumnReference cr = (ColumnReference) leftOperand;
+            if (cr.getTableNumber() == innerTable.getTableNumber()) {
+                innerColumn = cr;
+            }
+            else {
+                outerColumn = cr;
+            }
+        }
+        else return selectivity;
+
+        if (rightOperand instanceof ColumnReference) {
+            ColumnReference cr = (ColumnReference) rightOperand;
+            if (cr.getTableNumber() == innerTable.getTableNumber()) {
+                innerColumn = cr;
+            }
+            else {
+                outerColumn = cr;
+            }
+        }
+        else return selectivity;
+
+        StoreCostController innerTableCostController = getStoreCostController(innerColumn);
+        StoreCostController outerTableCostController = getStoreCostController(outerColumn);
+
+        DataValueDescriptor minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
+        DataValueDescriptor maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
+        DataValueDescriptor minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
+        DataValueDescriptor maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+
+        DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
+        DataValueDescriptor endKey = getKeyBoundary(maxInnerColumn, maxOuterColumn, false);
+
+        if (startKey!= null && startKey.compare(minInnerColumn) > 0 ||
+                endKey!= null && endKey.compare(maxInnerColumn)< 0) {
+            selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
+                    startKey, true, endKey, true);
+        }
+
+        return selectivity;
+    }
+
+    private DataValueDescriptor getKeyBoundary(DataValueDescriptor d1, DataValueDescriptor d2, boolean isStartKey) throws StandardException{
+
+        if (d1 == null || d1.isNull()) {
+            if (d2 == null || d2.isNull()) {
+                return null;
+            }
+            else return d2;
+        }
+        else {
+            if (d2 == null || d2.isNull()) {
+                return d1;
+            }
+            else if (d1.compare(d2) > 0) {
+                if (isStartKey) return d1;
+                else return d2;
+            }
+            else {
+                if (isStartKey) return d2;
+                return d1;
+            }
+        }
+    }
+
+
+    private StoreCostController getStoreCostController(ColumnReference cr) throws StandardException{
+        ConglomerateDescriptor outercCD = cr.getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+        return getCompilerContext().getStoreCostController(outercCD);
+    }
     @Override
     public boolean isRelationalOperator(){
 		/* If this rel op is for a probe predicate then we do not call

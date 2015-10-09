@@ -152,6 +152,7 @@ public interface OptimizablePredicate
      */
 	double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException;
 
+	double scanSelectivity(Optimizable innerTable) throws StandardException;
 	/**
 	 * Get the position of the index column that this predicate restricts.
 	 * NOTE: This assumes that this predicate is part of an
