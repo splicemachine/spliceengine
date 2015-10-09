@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -36,14 +37,11 @@ import java.io.ObjectOutput;
 
 /**
  *
+ * Operation that handles inserts into Splice Machine.
+ *
  * @author Scott Fines
  *
- * TODO:
- * 	1. Basic Inserts (insert 1 row, insert multiple small rows) - Done SF
- *  2. Insert with subselect (e.g. insert into t (name) select name from a) - Done SF
- *  3. Triggers (do with Coprocessors)
- *  4. Primary Keys (do with Coprocessors)
- *  5. Secondary Indices (do with Coprocessors)
+ *
  */
 public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		private static final long serialVersionUID = 1l;
@@ -57,6 +55,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 	    protected static final String NAME = InsertOperation.class.getSimpleName().replaceAll("Operation","");
         public InsertTableWriter tableWriter;
         public Pair<Long,Long>[] defaultAutoIncrementValues;
+        public InsertNode.InsertMode insertMode;
+        public String statusDirectory;
+        public int failBadRecordCount;
 
 
     @Override
@@ -69,8 +70,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 		public InsertOperation(SpliceOperation source,
 													 GeneratedMethod generationClauses,
-													 GeneratedMethod checkGM) throws StandardException{
+													 GeneratedMethod checkGM,String insertMode, String statusDirectory, int failBadRecordCount) throws StandardException{
 				super(source, generationClauses, checkGM, source.getActivation());
+                this.insertMode = InsertNode.InsertMode.valueOf(insertMode);
+                this.statusDirectory = statusDirectory;
+                this.failBadRecordCount = failBadRecordCount;
             try {
                 init(SpliceOperationContext.newContext(activation));
             } catch (IOException ioe) {
@@ -184,7 +188,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 			for (int i = 0; i < autoIncrementRowLocationArray.length; i++) {
 				autoIncrementRowLocationArray[i] = (HBaseRowLocation) in.readObject(); 
 			}
-			
+            insertMode = InsertNode.InsertMode.valueOf(in.readUTF());
+            if (in.readBoolean())
+                statusDirectory = in.readUTF();
+            failBadRecordCount = in.readInt();
 		}
 
 		@Override
@@ -195,6 +202,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 			for (int i = 0; i < length; i++) {
 				out.writeObject(autoIncrementRowLocationArray[i]);
 			}
+            out.writeUTF(insertMode.toString());
+            out.writeBoolean(statusDirectory!=null);
+            if (statusDirectory!=null)
+                out.writeUTF(statusDirectory);
+            out.writeInt(failBadRecordCount);
 		}
 
     @Override
