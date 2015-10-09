@@ -11,7 +11,6 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.*;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +66,7 @@ import java.util.List;
  */
 public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor implements Visitor {
 
-    private static Logger LOG = Logger.getLogger(ExistsSubqueryFlatteningVisitor.class);
+    public static final String EXISTS_TABLE_ALIAS_PREFIX = "ExistsFlatSubquery-";
 
     private final int originalNestingLevel;
     private int flattenedCount = 0;
@@ -321,7 +320,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
     }
 
     private String getSubqueryAlias() {
-        return String.format("ExistsFlatSub-%s-%s", originalNestingLevel, ++flattenedCount);
+        return String.format(EXISTS_TABLE_ALIAS_PREFIX + "%s-%s", originalNestingLevel, ++flattenedCount);
     }
 
 }
