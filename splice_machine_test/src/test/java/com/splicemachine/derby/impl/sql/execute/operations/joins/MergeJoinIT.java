@@ -289,14 +289,14 @@ public class MergeJoinIT extends SpliceUnitTest {
                 .withInsert("insert into tab1 values(?,?,?,?)")
                 .withIndex("create index tabi on tab1(a, b, c)")
                 .withRows(rows(
-                        row(1, 1, 100, 10)))
+                        row(1, 1, 0, 10)))
                 .create();
 
         new TableCreator(conn)
                 .withCreate("create table tab2 (a int, b int, c int, d int, primary key(a, b, c))")
                 .withInsert("insert into tab2 values(?,?,?,?)")
                 .withRows(rows(
-                        row(1, 100, 1, 200)))
+                        row(1, 0, 1, 200)))
                 .create();
     }
     @Test
@@ -493,6 +493,21 @@ public class MergeJoinIT extends SpliceUnitTest {
                 "tab1 --splice-properties index=tabi\n" +
                 ", tab2 --splice-properties joinStrategy=MERGE\n" +
                 "where tab1.a=1 and tab1.b=1 and tab1.c=tab2.b and tab2.a=1";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(1, count);
+    }
+
+    @Test
+    public void testRightTableScanStartKey2() throws Exception {
+        String sql ="select *\n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "tab1 --splice-properties index=tabi\n" +
+                ", tab2 --splice-properties joinStrategy=MERGE\n" +
+                "where tab1.a=tab2.a and tab2.b=0 and tab1.b=tab2.c";
         ResultSet rs = methodWatcher.executeQuery(sql);
         int count = 0;
         while (rs.next()) {

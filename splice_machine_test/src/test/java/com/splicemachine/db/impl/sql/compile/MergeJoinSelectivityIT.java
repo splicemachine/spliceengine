@@ -58,7 +58,14 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
         rowContainsQuery(
                 new int[] {1,3},
                 "explain select * from ts_10_spk --splice-properties joinStrategy=MERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","MergeRightOuterJoin");
+                "rows=5","MergeRightOuterJoin");
     }
 
+    @Test
+    public void testInnerJoinWithStartEndKey() throws Exception {
+        rowContainsQuery(
+                new int[] {1,3},
+                "explain select * from --splice-properties joinOrder=fixed\n ts_3_spk, ts_10_spk --splice-properties joinStrategy=MERGE\n where ts_10_spk.c1 = ts_3_spk.c1",methodWatcher,
+                "rows=3","MergeJoin");
+    }
 }
