@@ -113,7 +113,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         //preserve the underlying CostEstimate for the inner table
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
-        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
+        double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList);
+        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setLocalCost(SelectivityUtil.mergeJoinStrategyLocalCost(innerCost,outerCost));
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
@@ -218,29 +219,26 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         if(misMatchPos==0) return false; //we are missing the first key, so that won't work
 
         /*
-         * We need to determine that the join predicates are on matched columns--i.e. that innercolumn[i+1]=innerColumn[i]+1
-         * for all set inner join columns
+         * We need to determine that the join predicates are on matched columns--i.e. that
+         * innerToOuterJoinColumnMap[i+1] > innerToOuterJoinColumnMap[i] and all columns between
+         * (innerToOuterJoinColumnMap[i], innerToOuterJoinColumnMap[i+1]) are in innerColumns. Same for outerColumns.
          */
-        int start = 0;
-        for (int i = 0; i < innerToOuterJoinColumnMap.length;i++) {
-            if (innerToOuterJoinColumnMap[i] > -1)
-                break;
-            start++;
-        }
-        int end = innerToOuterJoinColumnMap.length-1;
-        for (int i = end; i >=0; --i) {
-            if (innerToOuterJoinColumnMap[i] > -1)
-                break;
-            end--;
-        }
-
-        int lastCol = -1;
-        for(int i=start;i<=end;i++){
-            int col = innerToOuterJoinColumnMap[i];
-            if (i!=start && col != lastCol+1) {
-                return false;
+        int lastOuterCol = -1;
+        int lastInnerCol = -1;
+        for(int i=0;i<innerToOuterJoinColumnMap.length;i++){
+            int outerCol = innerToOuterJoinColumnMap[i];
+            int innerCol = i;
+            if(outerCol==-1) continue;
+            if(outerCol<lastOuterCol) return false; //we have a join out of order
+            for (int j = lastOuterCol+1; j < outerCol; ++j) {
+                if (!outerColumns.get(j)) return false;
             }
-            lastCol = col;
+
+            for (int j = lastInnerCol+1; j < innerCol; ++j) {
+                if (!innerColumns.get(j)) return false;
+            }
+            lastOuterCol = outerCol;
+            lastInnerCol = innerCol;
         }
 
         /*

@@ -159,7 +159,12 @@ public class MergeJoinOperation extends JoinOperation {
         ExecRow firstHashValue = getKeyRow(firstLeft, leftHashKeys);
         ExecIndexRow startPosition = rightResultSet.getStartPosition();
         int size = startPosition != null ? startPosition.nColumns():0;
-        size += firstHashValue.nColumns();
+        int len = 1;
+        int col = rightHashKeys[0];
+        while(len <rightHashKeys.length && col+1 == rightHashKeys[len])
+            col = rightHashKeys[len++];
+        size += len;
+
         ExecRow v = new ValueRow(size);
         if (startPosition != null) {
             for (int i = 1; i <= startPosition.nColumns(); ++i) {
@@ -167,7 +172,7 @@ public class MergeJoinOperation extends JoinOperation {
             }
         }
         int offset = startPosition!=null?startPosition.nColumns():0;
-        for (int i = 1; i <= firstHashValue.nColumns(); ++i) {
+        for (int i = 1; i <= len; ++i) {
             v.setColumn(offset+i, firstHashValue.getColumn(i));
         }
         return v;
