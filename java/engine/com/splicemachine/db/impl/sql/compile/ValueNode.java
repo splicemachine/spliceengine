@@ -1041,6 +1041,9 @@ public abstract class ValueNode extends QueryTreeNode
         return selectivity;
 	}
 
+    public double scanSelectivity(Optimizable innerTable) throws StandardException{
+        return 0.5d;
+    }
 	/**
 	 * Update the array of columns in = conditions with expressions without
 	 * column references from the same table.  This is useful when doing
