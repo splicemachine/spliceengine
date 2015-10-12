@@ -536,7 +536,7 @@ public class VTIOperation extends SpliceBaseOperation {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return getDataSetProvider().getDataSet(dsp,getAllocatedRow());
+        return getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
     }
 
     @Override
