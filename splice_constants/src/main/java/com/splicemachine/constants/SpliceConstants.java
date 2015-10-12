@@ -1083,6 +1083,10 @@ public class SpliceConstants {
     @DefaultValue(TEMP_TABLE_BUCKET_COUNT) public static int DEFAULT_TEMP_TABLE_BUCKET_COUNT = 16;
     public static int tempTableBucketCount;
 
+    @Parameter public static final String ENABLE_IMPORT_STATUS_LOGGING = "splice.import.enableStatusLogging";
+    @DefaultValue(ENABLE_IMPORT_STATUS_LOGGING) public static final boolean DEFAULT_ENABLE_IMPORT_STATUS_LOGGING = false;
+    public static boolean enableImportStatusLogging;
+
     public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
     public static int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
     public static int batchOnceBatchSize;
@@ -1309,6 +1313,8 @@ public class SpliceConstants {
         regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
 
         batchOnceBatchSize = config.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
+
+        enableImportStatusLogging = config.getBoolean(ENABLE_IMPORT_STATUS_LOGGING,DEFAULT_ENABLE_IMPORT_STATUS_LOGGING);
     }
 
     public static void reloadConfiguration(Configuration configuration) {
