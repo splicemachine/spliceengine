@@ -388,8 +388,8 @@ public class SQLParser
 	private void checkInternalFeature(String feature) throws StandardException
 	{
 		CompilerContext cc = getCompilerContext();
-		if ((cc.getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
-			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, feature);
+//		if ((cc.getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
+//			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, feature);
 	}
 
 	/**
