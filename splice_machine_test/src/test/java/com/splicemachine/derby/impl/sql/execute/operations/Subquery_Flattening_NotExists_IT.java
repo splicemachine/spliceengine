@@ -25,7 +25,7 @@ public class Subquery_Flattening_NotExists_IT {
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
-        classWatcher.executeUpdate("create table EMPTY_TABLE(a1 int, a2 int)");
+        classWatcher.executeUpdate("create table EMPTY_TABLE(e1 int, e2 int)");
         classWatcher.executeUpdate("create table A(a1 int, a2 int)");
         classWatcher.executeUpdate("create table B(b1 int, b2 int)");
         classWatcher.executeUpdate("create table C(c1 int, c2 int)");
@@ -54,15 +54,15 @@ public class Subquery_Flattening_NotExists_IT {
         );
         // empty table
         assertUnorderedResult(conn(), "select * from A where NOT exists (select 1 from EMPTY_TABLE)", ALL_FLATTENED, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 0 | 0 |\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |\n" +
-                        " 7 |70 |"
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                " 1 |10 |\n" +
+                " 2 |20 |\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |\n" +
+                " 5 |50 |\n" +
+                " 7 |70 |"
         );
         // two exists
         assertUnorderedResult(conn(),
@@ -270,14 +270,14 @@ public class Subquery_Flattening_NotExists_IT {
     @Test
     public void correlated_withCorrelatedColumnRefComparedToConstant() throws Exception {
         assertUnorderedResult(conn(), "select a1 from A where NOT exists (select 1 from B where a1=3)", 1, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 0 |\n" +
-                        " 1 |\n" +
-                        " 2 |\n" +
-                        " 4 |\n" +
-                        " 5 |\n" +
-                        " 7 |"
+                "A1 |\n" +
+                "----\n" +
+                " 0 |\n" +
+                " 1 |\n" +
+                " 2 |\n" +
+                " 4 |\n" +
+                " 5 |\n" +
+                " 7 |"
         );
         assertUnorderedResult(conn(), "select a1 from A where NOT exists (select 1 from B where a1=4 and a1=b1)", 1, "" +
                 "A1 |\n" +
@@ -473,14 +473,14 @@ public class Subquery_Flattening_NotExists_IT {
                 "select 1 from B where a1=b1 and NOT exists(" +
                 "select 1 from C where b1=c1" + "))";
         assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |\n" +
-                        " 7 |70 |"
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 1 |10 |\n" +
+                " 2 |20 |\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |\n" +
+                " 5 |50 |\n" +
+                " 7 |70 |"
         );
     }
 
@@ -510,6 +510,81 @@ public class Subquery_Flattening_NotExists_IT {
                 " 4 |40 |\n" +
                 " 7 |70 |");
     }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // union
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void union_unCorrelated() throws Exception {
+        // union of empty tables
+        String sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from EMPTY_TABLE)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                " 1 |10 |\n" +
+                " 2 |20 |\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |\n" +
+                " 5 |50 |\n" +
+                " 7 |70 |");
+
+        // union one non-empty first subquery
+        sql = "select count(*) from A where NOT exists(select 1 from C union select 1 from EMPTY_TABLE)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // union one non-empty second subquery
+        sql = "select count(*) from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from C)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+    }
+
+    @Test
+    public void union_correlated() throws Exception {
+        // union of empty tables
+        String sql = "select count(*) from A where NOT exists(select 1 from EMPTY_TABLE where e1=a1 union select 1 from EMPTY_TABLE where e1=a1)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                        "1 |\n" +
+                        "----\n" +
+                        " 7 |");
+
+        // union one non-empty first subquery
+        sql = "select * from A where NOT exists(select 1 from C where c1=a1 union select 1 from EMPTY_TABLE where e1=a1)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                " 7 |70 |");
+
+        // union one non-empty second subquery
+        sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE where e1=a1 union select 1 from C where c1=a1)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                " 7 |70 |");
+
+        // union no non-empty
+        sql = "select * from A where NOT exists(select 1 from D where d1=a1 union select 1 from C where c1=a1)";
+        assertUnorderedResult(conn(), sql, 1, "");
+
+        // union same table
+        sql = "select * from A where NOT exists(select 1 from D where d1=a1 union select 1 from D where d2=a2)";
+        assertUnorderedResult(conn(), sql, 1, "" +
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 2 |20 |\n" +
+                " 4 |40 |");
+    }
+
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -644,32 +719,32 @@ public class Subquery_Flattening_NotExists_IT {
     @Test
     public void mixedExistsAndNotExists() throws Exception {
         assertUnorderedResult(conn(), "" +
-                        "select a1 from A where " +
-                        "exists (select b1 from B where a1=b1 and b1 in (3,5))" +
-                        "and " +
-                        "NOT exists (select b1 from B where a1=b1 and b2 = 50)", ALL_FLATTENED, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 3 |"
+                "select a1 from A where " +
+                "exists (select b1 from B where a1=b1 and b1 in (3,5))" +
+                "and " +
+                "NOT exists (select b1 from B where a1=b1 and b2 = 50)", ALL_FLATTENED, "" +
+                "A1 |\n" +
+                "----\n" +
+                " 3 |"
         );
     }
 
     @Test
     public void mixedExistsAndNotExists_nested() throws Exception {
         assertUnorderedResult(conn(), "" +
-                        "select a1 from A where exists (select 1 from B where a1=b1 and NOT exists (select 1 from C where c1=b1))" +
-                        "", ALL_FLATTENED, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 0 |"
+                "select a1 from A where exists (select 1 from B where a1=b1 and NOT exists (select 1 from C where c1=b1))" +
+                "", ALL_FLATTENED, "" +
+                "A1 |\n" +
+                "----\n" +
+                " 0 |"
         );
         assertUnorderedResult(conn(), "" +
-                        "select a1 from A where NOT exists (select 1 from B where a1=b1 and exists (select 1 from C where c1=b1))" +
-                        "", ALL_FLATTENED, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 0 |\n" +
-                        " 7 |"
+                "select a1 from A where NOT exists (select 1 from B where a1=b1 and exists (select 1 from C where c1=b1))" +
+                "", ALL_FLATTENED, "" +
+                "A1 |\n" +
+                "----\n" +
+                " 0 |\n" +
+                " 7 |"
         );
     }
 
