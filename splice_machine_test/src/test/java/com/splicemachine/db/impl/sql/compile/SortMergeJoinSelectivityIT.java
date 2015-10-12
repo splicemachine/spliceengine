@@ -38,14 +38,6 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
     }
 
     @Test
-    public void antiJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,4},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=SORTMERGE\n where ts_10_spk.c1 = ts_5_spk.c1)",methodWatcher,
-                "rows=8","MergeSortAntiJoin");
-    }
-
-    @Test
     public void leftOuterJoin() throws Exception {
         rowContainsQuery(
                 new int[] {1,3},

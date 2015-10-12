@@ -108,13 +108,8 @@ public class DeleteOperationIT {
     // you probably need to make a similar change to UpdateOperationIT.
 
     @Test
-    public void testDeleteOverBroadcastJoin() throws Exception {
-        doTestDeleteOverJoin("BROADCAST", "customer1");
-    }
-
-    @Test
-    public void testDeleteOverMergeSortJoin() throws Exception {
-        doTestDeleteOverJoin("SORTMERGE", "customer2");
+    public void testDeleteOverNestedLoopJoin() throws Exception {
+        doTestDeleteOverJoin("NESTEDLOOP", "customer1");
     }
 
     private void doTestDeleteOverJoin(String hint, String customerTable) throws Exception {

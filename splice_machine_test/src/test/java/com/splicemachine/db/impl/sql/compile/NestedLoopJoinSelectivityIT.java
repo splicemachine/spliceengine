@@ -40,9 +40,9 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
     @Test
     public void antiJoin() throws Exception {
         rowContainsQuery(
-                new int[] {1,4},
+                new int[] {1,5},
                 "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1)",methodWatcher,
-                "rows=10","NestedLoopAntiJoin");
+                "rows=8","MergeSortLeftOuterJoin");
     }
 
     @Test
