@@ -12,6 +12,7 @@ import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -22,12 +23,14 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RegionCoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
+import org.apache.hadoop.hbase.ipc.RpcClient.FailedServerException;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -384,7 +387,10 @@ public class SpliceHTable extends HTable {
             exception = ((RemoteWithExtrasException) exception).unwrapRemoteException();
 //            exception = Throwables.getRootCause(exception);
         }
-        if (exception instanceof IncorrectRegionException || exception instanceof NotServingRegionException) {
+        if (exception instanceof IncorrectRegionException ||
+        	exception instanceof NotServingRegionException ||
+        	exception instanceof ConnectException ||
+        	exception instanceof FailedServerException) {
             return exception;
         }
         Throwable cause = exception.getCause();
