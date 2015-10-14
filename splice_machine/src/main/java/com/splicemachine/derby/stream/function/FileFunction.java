@@ -45,8 +45,8 @@ import java.io.StringReader;
         public LocatedRow call(String s) throws Exception {
                 StringReader stringReader = new StringReader(s);
                 SpliceCsvReader spliceCsvReader = new SpliceCsvReader(stringReader, new CsvPreference.Builder(
-                        characterDelimiter.charAt(0),
-                        columnDelimiter.charAt(0),
+                        characterDelimiter!=null && characterDelimiter.length()>0?characterDelimiter.charAt(0):'\'',
+                        columnDelimiter!=null && columnDelimiter.length()>0?columnDelimiter.charAt(0):',',
                         "\n",
                         SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
                 String[] values = spliceCsvReader.readAsStringArray();

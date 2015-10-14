@@ -27,19 +27,12 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     public SpliceFileVTI(String fileName) {
         this.fileName = fileName;
     }
+
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter) {
         this.fileName = fileName;
         this.characterDelimiter = characterDelimiter;
         this.columnDelimiter = columnDelimiter;
     }
-
-    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int numberOfColumns) {
-        this.fileName = fileName;
-        this.characterDelimiter = characterDelimiter;
-        this.columnDelimiter = columnDelimiter;
-        this.numberOfColumns = numberOfColumns;
-    }
-
 
     public static DatasetProvider getSpliceFileVTI(String fileName) {
         return new SpliceFileVTI(fileName);
@@ -47,10 +40,6 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
 
     public static DatasetProvider getSpliceFileVTI(String fileName, String characterDelimiter, String columnDelimiter) {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter);
-    }
-
-    public static DatasetProvider getSpliceFileVTI(String fileName, String characterDelimiter, String columnDelimiter, int numberOfColumns) {
-        return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter,numberOfColumns);
     }
 
     @Override
@@ -76,9 +65,6 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         // Non-Table Function Definition of File...
-
-
-
         throw new SQLException("not supported");
     }
 

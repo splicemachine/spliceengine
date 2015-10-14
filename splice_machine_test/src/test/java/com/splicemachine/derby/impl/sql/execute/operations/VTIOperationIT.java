@@ -98,4 +98,16 @@ public class VTIOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals(2, count);
     }
+
+    @Test
+    public void testFileVTI() throws Exception {
+        String location = getResourceDirectory()+"importTest.in";
+        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b (c1 varchar(128), c2 varchar(128), c3 int)", location);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(5, count);
+    }
 }
