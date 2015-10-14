@@ -797,11 +797,18 @@ public class HalfOuterJoinNode extends JoinNode{
                 .append(",").append(getFinalCostEstimate().prettyProcessingString());
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
-            if (joinPreds != null && joinPreds.size() > 0) //add
+            if (!joinPreds.isEmpty()) {
                 sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+            }
         }
         sb.append(")");
         return sb.toString();
     }
 
+    @Override
+    public String toHTMLString() {
+        return "rightOuterJoin: " + rightOuterJoin + "<br/>" +
+                "transformed: " + transformed + "<br/>" +
+                super.toHTMLString();
+    }
 }

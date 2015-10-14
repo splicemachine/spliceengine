@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.types.SqlXmlUtil;
  * Abstract base-class for the various operator nodes: UnaryOperatorNode,
  * BinaryOperatorNode and TernarnyOperatorNode.
  */
-abstract class OperatorNode extends ValueNode {
+public abstract class OperatorNode extends ValueNode {
 
     /**
      * <p>

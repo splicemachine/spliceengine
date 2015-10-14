@@ -24,99 +24,88 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
-import java.util.List;
 import java.util.Vector;
 
 /**
- * Collect all nodes of the designated type to be returned
- * in a vector.
- * <p>
- * Can find any type of node -- the class or class name
- * of the target node is passed in as a constructor
- * parameter.
- *
+ * Collect all nodes of the designated type to be returned in a vector. <p> Can find any type of node -- the class or
+ * class name of the target node is passed in as a constructor parameter.
  */
 public class CollectNodesVisitor implements Visitor {
-	private Vector	nodeList;
-	private Class 	nodeClass;
-	private Class	skipOverClass;
-	/**
-	 * Construct a visitor
-	 *
-	 * @param nodeClass the class of the node that 
-	 * 	we are looking for.
-	 */
-	public CollectNodesVisitor(Class nodeClass) {
-		this.nodeClass = nodeClass;
-		nodeList = new Vector();
-	}
 
-	/**
-	 * Construct a visitor
-	 *
-	 * @param nodeClass the class of the node that 
-	 * 	we are looking for.
-	 * @param skipOverClass do not go below this
-	 * node when searching for nodeClass.
-	 */
-	public CollectNodesVisitor(Class nodeClass, Class skipOverClass)
-	{
-		this(nodeClass);
-		this.skipOverClass = skipOverClass;
-	}
+    private Vector nodeList;
+    private Class nodeClass;
+    private Class skipOverClass;
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    /**
+     * Construct a visitor
+     *
+     * @param nodeClass the class of the node that we are looking for.
+     */
+    public CollectNodesVisitor(Class nodeClass) {
+        this.nodeClass = nodeClass;
+        nodeList = new Vector();
+    }
 
-	public boolean stopTraversal()
-	{
-		return false;
-	}
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
+    /**
+     * Construct a visitor
+     *
+     * @param nodeClass     the class of the node that we are looking for.
+     * @param skipOverClass do not go below this node when searching for nodeClass.
+     */
+    public CollectNodesVisitor(Class nodeClass, Class skipOverClass) {
+        this(nodeClass);
+        this.skipOverClass = skipOverClass;
+    }
 
-	/**
-	 * If we have found the target node, we are done.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 */
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent)
-	{
-		if (nodeClass.isInstance(node))
-		{
-			nodeList.add(node);
-		}
-		return node;
-	}
+    public boolean visitChildrenFirst(Visitable node) {
+        return false;
+    }
 
-	/**
-	 * Don't visit childen under the skipOverClass
-	 * node, if it isn't null.
-	 *
-	 * @return true/false
-	 */
-	public boolean skipChildren(Visitable node) {
-		return (skipOverClass == null) ? false: skipOverClass.isInstance(node);
-	}
+    @Override
+    public boolean stopTraversal() {
+        return false;
+    }
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
 
-	////////////////////////////////////////////////
-	//
-	// CLASS INTERFACE
-	//
-	////////////////////////////////////////////////
-	/**
-	 * Return the list of matching nodes.
-	 *
-	 */
-	public Vector getList() {
-		return nodeList;
-	}
+    /**
+     * If we have found the target node, we are done.
+     *
+     * @param node the node to process
+     * @return me
+     */
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) {
+        if (nodeClass.isInstance(node)) {
+            nodeList.add(node);
+        }
+        return node;
+    }
+
+    /**
+     * Don't visit childen under the skipOverClass node, if it isn't null.
+     *
+     * @return true/false
+     */
+    @Override
+    public boolean skipChildren(Visitable node) {
+        return (skipOverClass != null) && skipOverClass.isInstance(node);
+    }
+
+    ////////////////////////////////////////////////
+    //
+    // CLASS INTERFACE
+    //
+    ////////////////////////////////////////////////
+
+    /**
+     * Return the list of matching nodes.
+     */
+    public Vector getList() {
+        return nodeList;
+    }
 }

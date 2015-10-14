@@ -54,7 +54,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         v.add(qt);
     }
 
-    final void removeElementAt(int index){
+    public final void removeElementAt(int index){
         v.remove(index);
     }
 
@@ -66,7 +66,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         return v.remove(index);
     }
 
-    final void setElementAt(T qt,int index){
+    public final void setElementAt(T qt,int index){
         v.set(index,qt);
     }
 
@@ -80,7 +80,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         qtnv.removeAllElements();
     }
 
-    void nondestructiveAppend(QueryTreeNodeVector<T> qtnv){
+    public void nondestructiveAppend(QueryTreeNodeVector<T> qtnv){
         int qtnvSize=qtnv.size();
         for(int index=0;index<qtnvSize;index++){
             v.add(qtnv.elementAt(index));
@@ -92,7 +92,21 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
     }
 
     final void insertElementAt(T qt,int index){
-        v.add(index,qt);
+        v.add(index, qt);
+    }
+
+    /**
+     * Return TRUE if this object contains any node that is the specified node or a subclass of the specified node.
+     *
+     * EXAMPLE fromList.containsNode(UnionNode.class) will return true if the fromList contains any type of UnionNode.
+     */
+    public boolean containsNode(Class<?> testClass) {
+        for(T t: v) {
+            if(testClass.isAssignableFrom(t.getClass())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -127,7 +141,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         }
     }
 
-    public List getNodes(){
+    public List<T> getNodes(){
         return v;
     }
 }

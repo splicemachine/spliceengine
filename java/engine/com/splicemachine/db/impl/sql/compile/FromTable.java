@@ -798,6 +798,16 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         }
     }
 
+    @Override
+    public String toHTMLString() {
+        return "" +
+                "tableNumber: " + tableNumber + "<br/>" +
+                "level: " + level + "<br/>" +
+                "correlationName: " + correlationName + "<br/>" +
+                "corrTableName: " + Objects.toString(corrTableName) + "<br/>" +
+                super.toHTMLString();
+    }
+
     /**
      * Return a ResultColumnList with all of the columns in this table.
      * (Used in expanding '*'s.)
@@ -908,10 +918,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public void setTableNumber(int tableNumber){
 		/* This should only be called if the tableNumber has not been set yet */
         assert this.tableNumber==-1: "tableNumber is not expected to be already set";
-        this.tableNumber=tableNumber;
-    }
-
-    public void changeTableNumber(int tableNumber){
         this.tableNumber=tableNumber;
     }
 

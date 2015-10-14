@@ -15,11 +15,11 @@ import com.splicemachine.db.impl.sql.compile.RelationalOperator;
  * Where ONLY one of the CR is correlated with a nesting level equal to that specified in the constructor. This can be
  * used to find correlated equality predicates in a subquery that are referencing one level up.
  */
-public class CorrelatedEqualityPredicate implements com.google.common.base.Predicate<BinaryRelationalOperatorNode> {
+public class CorrelatedEqualityBronPredicate implements com.google.common.base.Predicate<BinaryRelationalOperatorNode> {
 
     private int sourceLevel;
 
-    public CorrelatedEqualityPredicate(int sourceLevel) {
+    public CorrelatedEqualityBronPredicate(int sourceLevel) {
         this.sourceLevel = sourceLevel;
     }
 

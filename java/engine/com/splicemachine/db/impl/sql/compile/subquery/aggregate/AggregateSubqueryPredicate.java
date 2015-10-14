@@ -25,10 +25,8 @@ class AggregateSubqueryPredicate implements com.google.common.base.Predicate<Sub
         ResultSetNode subqueryResultSet = subqueryNode.getResultSet();
 
         /* subquery cannot contain a union */
-        for (Object fromNodeList : subqueryResultSet.getFromList().getNodes()) {
-            if (fromNodeList instanceof UnionNode) {
-                return false;
-            }
+        if(subqueryResultSet.getFromList().containsNode(UnionNode.class)) {
+            return false;
         }
 
         /* subquery must be a select node */
@@ -45,17 +43,17 @@ class AggregateSubqueryPredicate implements com.google.common.base.Predicate<Sub
         if (resultColumns.size() != 1) {
             return false;
         }
-        /* subquery aggregation operand must be a column reference or column reference arithmetic.  That is sum(b2) or
-         * 5*sum(b2) not sum(5*b2) or sum(b2)*avg(b3).  This is arbitrary, the real restriction is that none of the
-         * aggregate columns can be referenced by the subquery's correlated predicates because these get moved to the
-         * outer query which cannot reference columns that get aggregated. We could possibly loosen this restriction
-         * in the future.*/
+        /* Make a modest attempt to find AggregateNode nodes so that can enforce restrictions on which columns their
+         * ColumnReference operands can reference.  This code currently supports expressions like: sum(b1), 5*sum(b1),
+         * sum(b1)*5, but otherwise gives up and returns false meaning we won't attempt flattening.  On second thought
+         * I should have used RSUtils or similar to just traverse the ResultColumns and find all AggregateNodes here.
+         * If we ever need to support flattening something like sum(b1)*sum(b2) we will have to do that. */
         ResultColumn resultColumn = resultColumns.elementAt(0);
         ValueNode expression = resultColumn.getExpression();
         AggregateNode aggregateNode;
         if (expression instanceof AggregateNode) {
             aggregateNode = (AggregateNode) expression;
-        } else {
+        } else if (expression instanceof BinaryArithmeticOperatorNode ) {
             BinaryArithmeticOperatorNode bao = (BinaryArithmeticOperatorNode) expression;
             if ((bao.getLeftOperand() instanceof AggregateNode) && (bao.getRightOperand() instanceof ConstantNode)) {
                 aggregateNode = (AggregateNode) bao.getLeftOperand();
@@ -64,6 +62,9 @@ class AggregateSubqueryPredicate implements com.google.common.base.Predicate<Sub
             } else {
                 return false;
             }
+        } else {
+            /* Don't know how to find the ColumnReference inside of AggregateNode for use in checks below. */
+            return false;
         }
         ValueNode aggregateNodeOperand = aggregateNode.getOperand();
         if (!(aggregateNodeOperand instanceof ColumnReference)) {

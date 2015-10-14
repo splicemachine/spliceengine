@@ -26,19 +26,12 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
-import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
+import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A DMLStatementNode represents any type of DML statement: a cursor declaration, an INSERT statement, and UPDATE
@@ -129,11 +122,8 @@ public abstract class DMLStatementNode extends StatementNode {
     @Override
     public void optimizeStatement() throws StandardException {
 
-        AggregateSubqueryFlatteningVisitor subqueryAggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor();
-        resultSet.accept(subqueryAggregateFlatteningVisitor);
-
-        ExistsSubqueryFlatteningVisitor existsAggregateFlatteningVisitor = new ExistsSubqueryFlatteningVisitor();
-        resultSet.accept(existsAggregateFlatteningVisitor);
+        /* Perform subquery flattening if applicable. */
+        SubqueryFlattening.flatten(this);
 
         resultSet = resultSet.preprocess(getCompilerContext().getNumTables(), null, null);
         // Evaluate expressions with constant operands here to simplify the

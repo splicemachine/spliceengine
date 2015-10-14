@@ -25,9 +25,9 @@ public class SubqueryReplacement {
      * @param fsq   the new FromSubquery that is created in the context of flattening
      * @param level the nesting level of the outer query
      */
-    public static ValueNode replace(ValueNode node,
-                                    FromSubquery fsq,
-                                    int level) throws StandardException {
+    public static ValueNode replaceSubqueryWithColRef(ValueNode node,
+                                                      FromSubquery fsq,
+                                                      int level) throws StandardException {
 
         if (node instanceof BinaryOperatorNode) {
             BinaryOperatorNode root = (BinaryOperatorNode) node;
@@ -42,8 +42,8 @@ public class SubqueryReplacement {
                 root.setRightOperand(colRef);
                 return root;
             } else {
-                left = replace(left, fsq, level);
-                right = replace(right, fsq, level);
+                left = replaceSubqueryWithColRef(left, fsq, level);
+                right = replaceSubqueryWithColRef(right, fsq, level);
                 root.setLeftOperand(left);
                 root.setRightOperand(right);
                 return root;
@@ -58,7 +58,7 @@ public class SubqueryReplacement {
      * Same logic as above, except here the subquery is replaced with a boolean constant TRUE. Intended to be used to
      * replace EXISTS subqueries.
      */
-    public static ValueNode replace(ValueNode node, FromSubquery fsq) throws StandardException {
+    public static ValueNode replaceSubqueryWithTrue(ValueNode node, FromSubquery fsq) throws StandardException {
         /* For EXISTS subqueries only it is possible for the entire where clause of the outer query to == the exist subquery. */
         if (node instanceof SubqueryNode && ((SubqueryNode) node).getResultSet() == fsq.getSubquery()) {
             return newBooleanTrue(fsq);
@@ -73,8 +73,8 @@ public class SubqueryReplacement {
                 root.setRightOperand(newBooleanTrue(fsq));
                 return root;
             } else {
-                left = replace(left, fsq);
-                right = replace(right, fsq);
+                left = replaceSubqueryWithTrue(left, fsq);
+                right = replaceSubqueryWithTrue(right, fsq);
                 root.setLeftOperand(left);
                 root.setRightOperand(right);
                 return root;

@@ -1,6 +1,8 @@
 package com.splicemachine.db.impl.ast;
 
+import com.google.common.collect.Iterables;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
@@ -13,6 +15,16 @@ import java.util.Map;
  * Date: 7/29/13
  */
 public class ColumnUtils {
+
+    public static class IsCorrelatedPredicate implements com.google.common.base.Predicate<ColumnReference> {
+
+        public static final IsCorrelatedPredicate INSTANCE = new IsCorrelatedPredicate();
+
+        @Override
+        public boolean apply(ColumnReference columnReference) {
+            return columnReference.getCorrelated();
+        }
+    }
 
     /**
      * For a given ResultColumnList, return a map from
@@ -81,4 +93,13 @@ public class ColumnUtils {
         }
         return Pair.of(resultColumn.getResultSetNumber(), resultColumn.getVirtualColumnId());
     }
+
+    /**
+     * TRUE if the node parameter or any of its descendants are a correlated ColumnReference.
+     */
+    public static boolean isSubtreeCorrelated(Visitable node) throws StandardException {
+        List<ColumnReference> columnReferences = CollectNodes.collector(ColumnReference.class).collect(node);
+        return Iterables.any(columnReferences, IsCorrelatedPredicate.INSTANCE);
+    }
+
 }

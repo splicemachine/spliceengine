@@ -90,23 +90,23 @@ public class PredicateUtils {
     /**
      * TRUE if the left operation is a ColumnReference with the specified nesting level.
      */
-    public static boolean isLeftColRef(BinaryRelationalOperatorNode pred, int atNestingLevel) {
+    public static boolean isLeftColRef(BinaryRelationalOperatorNode pred, int atSourceLevel) {
         if (!(pred.getLeftOperand() instanceof ColumnReference)) {
             return false;
         }
         ColumnReference left = (ColumnReference) pred.getLeftOperand();
-        return left.getSourceLevel() == atNestingLevel;
+        return left.getSourceLevel() == atSourceLevel;
     }
 
     /**
      * TRUE if the right operation is a ColumnReference with the specified nesting level.
      */
-    public static boolean isRightColRef(BinaryRelationalOperatorNode pred, int atNestingLevel) {
+    public static boolean isRightColRef(BinaryRelationalOperatorNode pred, int atSourceLevel) {
         if (!(pred.getRightOperand() instanceof ColumnReference)) {
             return false;
         }
         ColumnReference right = (ColumnReference) pred.getRightOperand();
-        return right.getSourceLevel() == atNestingLevel;
+        return right.getSourceLevel() == atSourceLevel;
     }
 
 

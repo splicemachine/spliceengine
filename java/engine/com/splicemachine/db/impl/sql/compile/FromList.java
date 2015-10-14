@@ -1325,4 +1325,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public WindowList getWindows(){
         return windows;
     }
+
+    public Properties getProperties() {
+        return properties;
+    }
 }

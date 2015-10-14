@@ -16,20 +16,22 @@ import java.util.List;
  * @author P Trolard
  *         Date: 31/10/2013
  */
-
 public class CollectNodes<T> implements Visitor {
+
     private final List<T> nodeList;
     private final Predicate<? super Visitable> pred;
 
     public CollectNodes(Predicate<? super Visitable> pred) {
         this.pred = pred;
-        nodeList = new LinkedList<T>();
+        this.nodeList = new LinkedList<>();
     }
 
+    @Override
     public boolean visitChildrenFirst(Visitable node) {
         return false;
     }
 
+    @Override
     public boolean stopTraversal() {
         return false;
     }
@@ -42,6 +44,7 @@ public class CollectNodes<T> implements Visitor {
         return node;
     }
 
+    @Override
     public boolean skipChildren(Visitable node) {
         return false;
     }

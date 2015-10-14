@@ -62,7 +62,7 @@ public class FromSubquery extends FromTable
 	private SchemaDescriptor origCompilationSchema = null;
 
 	/**
-	 * Intializer for a table in a FROM list.
+	 * Initializer for a table in a FROM list.
 	 *
 	 * @param subquery		The subquery
 	 * @param orderByList   ORDER BY list if any, or null
@@ -73,6 +73,7 @@ public class FromSubquery extends FromTable
 	 * @param derivedRCL		The derived column list
 	 * @param tableProperties	Properties list associated with the table
 	 */
+    @Override
 	public void init(
 					Object subquery,
 					Object orderByList,
@@ -88,7 +89,7 @@ public class FromSubquery extends FromTable
 		this.orderByList = (OrderByList)orderByList;
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
-        this.hasJDBClimitClause = (hasJDBClimitClause == null) ? false : ((Boolean) hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause = (hasJDBClimitClause != null) && (Boolean) hasJDBClimitClause;
 		resultColumns = (ResultColumnList) derivedRCL;
 	}
 
@@ -650,7 +651,7 @@ public class FromSubquery extends FromTable
 
 		for (int index = 0; index < rclSize; index++)
 		{
-			ResultColumn resultColumn = (ResultColumn) resultColumns.elementAt(index);
+			ResultColumn resultColumn = resultColumns.elementAt(index);
 			ValueNode		 valueNode;
 			String			 columnName;
 

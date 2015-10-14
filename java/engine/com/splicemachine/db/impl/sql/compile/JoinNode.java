@@ -1372,69 +1372,49 @@ public class JoinNode extends TableOperatorNode{
     }
 
     /**
-     * Build the RCL for this node.  We propagate the RCLs up from the
-     * children and splice them to form this node's RCL.
-     *
-     * @throws StandardException Thrown on error
+     * Build the RCL for this node.  We propagate the RCLs up from the children and splice them to form this node's RCL.
      */
-
     private void buildRCL() throws StandardException{
-		/* NOTE - we only need to build this list if it does not already
-		 * exist.  This can happen in the degenerate case of an insert
-		 * select with a join expression in a derived table within the select.
-		 */
+		/* NOTE - we only need to build this list if it does not already exist.  This can happen in the degenerate case
+		 * of an insert select with a join expression in a derived table within the select. */
         if(resultColumns!=null){
             return;
         }
 
-        ResultColumnList leftRCL;
-        ResultColumnList rightRCL;
-        ResultColumnList tmpRCL;
-
-		/* We get a shallow copy of the left's ResultColumnList and its
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+		/* We get a shallow copy of the left's ResultColumnList and its ResultColumns. (Copy maintains
+		   ResultColumn.expression for now.) */
         resultColumns=leftResultSet.getResultColumns();
-        leftRCL=resultColumns.copyListAndObjects();
+        ResultColumnList leftRCL=resultColumns.copyListAndObjects();
         leftResultSet.setResultColumns(leftRCL);
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 */
+		/* Replace ResultColumn.expression with new VirtualColumnNodes in the ProjectRestrictNode's ResultColumnList.
+		   (VirtualColumnNodes include pointers to source ResultSetNode, this, and source ResultColumn.) */
         resultColumns.genVirtualColumnNodes(leftResultSet,leftRCL,false);
 
-		/*
-		** If this is a right outer join, we can get nulls on the left side,
-		** so change the types of the left result set to be nullable.
-		*/
+		/* If this is a right outer join, we can get nulls on the left side, so change the types of the left result set
+		   to be nullable. */
         if(this instanceof HalfOuterJoinNode && ((HalfOuterJoinNode)this).isRightOuterJoin()){
             resultColumns.setNullability(true);
         }
 
 		/* Now, repeat the process with the right's RCL */
-        tmpRCL=rightResultSet.getResultColumns();
-        rightRCL=tmpRCL.copyListAndObjects();
+        ResultColumnList tmpRCL=rightResultSet.getResultColumns();
+        ResultColumnList rightRCL=tmpRCL.copyListAndObjects();
         rightResultSet.setResultColumns(rightRCL);
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
+		/* Replace ResultColumn.expression with new VirtualColumnNodes in the ProjectRestrictNode's ResultColumnList.
+		 * (VirtualColumnNodes include pointers to source ResultSetNode, this, and source ResultColumn.)
 		 */
         tmpRCL.genVirtualColumnNodes(rightResultSet,rightRCL,false);
         tmpRCL.adjustVirtualColumnIds(resultColumns.size());
 
-		/*
-		** If this is a left outer join, we can get nulls on the right side,
-		** so change the types of the right result set to be nullable.
-		*/
+	   /* If this is a left outer join, we can get nulls on the right side, so change the types of the right result set
+		* to be nullable. */
         if(this instanceof HalfOuterJoinNode && !((HalfOuterJoinNode)this).isRightOuterJoin()){
             tmpRCL.setNullability(true);
         }
 
-		/* Now we append the propagated RCL from the right to the one from
-		 * the left and call it our own.
-		 */
+		/* Now we append the propagated RCL from the right to the one from the left and call it our own. */
         resultColumns.nondestructiveAppend(tmpRCL);
     }
 

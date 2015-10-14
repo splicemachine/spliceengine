@@ -8,7 +8,6 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
-import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.*;
 
@@ -33,7 +32,13 @@ import java.util.List;
  */
 public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor implements Visitor {
 
-    private int flattenedSubquery = 1;
+    private final int originalNestingLevel;
+    private int flattenedCount = 0;
+    private SubqueryNodeFactory nf;
+
+    public AggregateSubqueryFlatteningVisitor(int originalNestingLevel) {
+        this.originalNestingLevel = originalNestingLevel;
+    }
 
     @Override
     public boolean stopTraversal() {
@@ -83,6 +88,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
          */
         CompilerContext cpt = topSelectNode.getCompilerContext();
         cpt.setNumTables(cpt.getNumTables() + handledSubqueryList.size());
+        nf = new SubqueryNodeFactory(topSelectNode.getContextManager(), topSelectNode.getNodeFactory());
 
         for (SubqueryNode subqueryNode : handledSubqueryList) {
             flatten(topSelectNode, subqueryNode);
@@ -112,7 +118,10 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
          */
         ValueNode subqueryWhereClause = subquerySelectNode.getWhereClause();
         List<BinaryRelationalOperatorNode> correlatedSubqueryPreds = new ArrayList<>();
-        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPreds, topSelectNode.getNestingLevel());
+        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
+                subqueryWhereClause,
+                correlatedSubqueryPreds,
+                new CorrelatedEqualityBronPredicate(topSelectNode.getNestingLevel()));
         subquerySelectNode.setWhereClause(subqueryWhereClause);
         subquerySelectNode.setOriginalWhereClause(subqueryWhereClause);
 
@@ -124,27 +133,16 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         ResultColumnList newRcl = subquerySelectNode.getResultColumns().copyListAndObjects();
         newRcl.genVirtualColumnNodes(subquerySelectNode, subquerySelectNode.getResultColumns());
 
-        FromSubquery fromSubquery = (FromSubquery) subquerySelectNode.getNodeFactory().getNode(C_NodeTypes.FROM_SUBQUERY,
-                subqueryResultSet,
-                subqueryNode.getOrderByList(),
-                subqueryNode.getOffset(),
-                subqueryNode.getFetchFirst(),
-                subqueryNode.hasJDBClimitClause(),
-                getSubqueryAlias(),
-                newRcl,
-                null,
-                topSelectNode.getContextManager());
-
         /*
          * Insert the new FromSubquery into to origSelectNode's From list.
          */
-        fromSubquery.changeTableNumber(topSelectNode.getCompilerContext().getNextTableNumber());
+        FromSubquery fromSubquery = nf.buildFromSubqueryNode(topSelectNode, subqueryNode, subqueryResultSet, newRcl, getSubqueryAlias());
         topSelectNode.getFromList().addFromTable(fromSubquery);
 
         /*
          * Add correlated predicates from subquery to outer query where clause.
          */
-        ValueNode newTopWhereClause = SubqueryReplacement.replace(topSelectNode.getWhereClause(), fromSubquery, topSelectNode.getNestingLevel());
+        ValueNode newTopWhereClause = SubqueryReplacement.replaceSubqueryWithColRef(topSelectNode.getWhereClause(), fromSubquery, topSelectNode.getNestingLevel());
         for (int i = 0; i < correlatedSubqueryPreds.size(); i++) {
             BinaryRelationalOperatorNode pred = correlatedSubqueryPreds.get(i);
 
@@ -152,19 +150,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
             ColumnReference colRef = FromSubqueryColRefFactory.build(topSelectNode.getNestingLevel(), fromSubquery,
                     fromSubqueryColIndex, topSelectNode.getNodeFactory(), topSelectNode.getContextManager());
 
-            /*
-             * Modify one side of the predicate to contain the new FromSubquery ref.
-             */
-            ColumnReference leftOperand = (ColumnReference) pred.getLeftOperand();
-            int subqueryNestingLevel = topSelectNode.getNestingLevel() + 1;
-            if (PredicateUtils.isLeftColRef(pred, subqueryNestingLevel)) {
-                pred.setLeftOperand(pred.getRightOperand());
-                leftOperand.setNestingLevel(leftOperand.getSourceLevel());
-                pred.setRightOperand(colRef);
-            } else if (PredicateUtils.isRightColRef(pred, subqueryNestingLevel)) {
-                leftOperand.setNestingLevel(leftOperand.getSourceLevel());
-                pred.setRightOperand(colRef);
-            }
+            FromSubqueryColRefFactory.replace(pred, colRef, topSelectNode.getNestingLevel() + 1);
 
             /*
              * Finally add the predicate to the outer query.
@@ -177,7 +163,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
     }
 
     private String getSubqueryAlias() {
-        return "AggFlattenedSubquery" + flattenedSubquery++;
+        return String.format("AggFlatSub-%s-%s", originalNestingLevel, ++flattenedCount);
     }
 
 }
