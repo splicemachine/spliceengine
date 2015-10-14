@@ -10053,6 +10053,7 @@ FromTable tableFactor() throws StandardException :
 	Object[]			optionalTableClauses = new Object[OPTIONAL_TABLE_CLAUSES_SIZE];
 	Properties			tableProperties = null;
 	SubqueryNode		derivedTable;
+	TypeDescriptor typeDescriptor = null;
 }
 {
 	/* NOTE: this rule has to come first in order to avoid making NEW
@@ -10063,7 +10064,10 @@ FromTable tableFactor() throws StandardException :
 	| javaToSQLNode = vtiTableConstruct()
 	)
 		[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-		[ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
+		[ <LEFT_PAREN>
+		  (LOOKAHEAD( { getToken( 2 ).kind == COMMA } ) derivedRCL = derivedColumnList()
+		  | typeDescriptor = VTITableDefinition())
+		<RIGHT_PAREN> ]
 		[ optionalTableClauses = optionalTableProperties() ]
 	{
 		fromTable = (FromTable) nodeFactory.getNode(
@@ -10074,6 +10078,7 @@ FromTable tableFactor() throws StandardException :
 								((optionalTableClauses != null) ? 
 									(Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
 									(Properties) null),
+								typeDescriptor,
 								getContextManager()); 
 		return fromTable;
 	}
@@ -10143,7 +10148,39 @@ FromTable tableFactor() throws StandardException :
 		return fromTable;
 	}
 }
+TypeDescriptor
+VTITableDefinition() throws StandardException :
+{
+	ArrayList                       names = new ArrayList();
+	ArrayList                         types = new ArrayList();
+	String[]                          nameArray;
+	TypeDescriptor[]        typeArray;
+	int                                     columnCount;
+}
+{
+	    functionTableReturnColumn( names, types )
+	    ( <COMMA> functionTableReturnColumn( names, types ) ) *
+	{
+		columnCount = names.size();
+		nameArray = new String[ columnCount ];
+		names.toArray( nameArray );
+		typeArray = new TypeDescriptor[ columnCount ];
+		types.toArray( typeArray );
 
+		//
+		// We do not allow XML as a column datatype because
+		// Derby does not yet support the streaming JDBC4
+		// interfaces to XML values.
+		//
+		for ( int i = 0; i < columnCount; i++ )
+		{
+		    if ( typeArray[ i ].getJDBCTypeId() == JDBC40Translation.SQLXML )
+		    { throw StandardException.newException( SQLState.LANG_XML_NOT_ALLOWED_DJRS ); }
+		}
+
+		return DataTypeDescriptor.getRowMultiSet( nameArray, typeArray );
+	}
+}
 /*
  * <A NAME="derivedColumnList">derivedColumnList</A>
  */
