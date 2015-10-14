@@ -2802,6 +2802,7 @@ TOKEN [IGNORE_CASE] :
 |	<RELEASE: "release">
 |	<QUARTER: "quarter">
 |	<REPEATABLE: "repeatable">
+|	<RESPECT: "respect">
 |	<RESTART: "restart">
 |	<RETURNS: "returns">
 |	<ROLLUP: "rollup">
@@ -10706,6 +10707,13 @@ ignoreNulls() :
         }
     )
 |
+    LOOKAHEAD ( { getToken(1).kind == RESPECT && getToken(2).kind == NULLS } )
+    ( <RESPECT> <NULLS>
+        {
+            return Boolean.FALSE;
+        }
+    )
+|
     {
         return Boolean.FALSE;
     }
@@ -15931,6 +15939,7 @@ nonReservedKeyword()  :
 	|	tok = <REPEATABLE>
 	|	tok = <REFERENCING>
 	|	tok = <RESET>
+	|	tok = <RESPECT>
 	|	tok = <RESTART>
 	|	tok = <RESULT>
 	|	tok = <RETAIN>

@@ -20,11 +20,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
  * Class that represents a call to the FIRST_VALUE() and LAST_VALUE() window functions.
@@ -43,15 +41,11 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
      */
     public void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) throws StandardException {
 
-        // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
-        // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
-        // the columns with which to create the ranking function node.
-        List<OrderedColumn> orderByList = ((WindowDefinitionNode)arg2).getOrderByList();
-        if (orderByList == null || orderByList.isEmpty()) {
-            SanityManager.THROWASSERT("Missing required ORDER BY clause for LAST_VALUE window function.");
-        }
+        // first/last_value() is only deterministic when the window definition has an ORDER BY clause, that is, we want
+        // column values relative to the current row in some ordered set.  However, we're not making the restriction here
+        // to require an ORDER BY clause.  See DB-3976
         if (arg3 == null) {
-            SanityManager.THROWASSERT("Missing required input operand for LAST_VALUE window function.");
+            throw StandardException.newException(SQLState.LANG_MISSING_FIRST_LAST_VALUE_ARG);
         }
         super.init(arg3, arg1, Boolean.FALSE, arg5, arg2, arg4);
         setType(this.operand.getTypeServices());

@@ -25,6 +25,7 @@ import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
  * Class that represents a call to the LEAD() and LAG() window functions.
@@ -48,24 +49,24 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
      */
     public void init(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) throws StandardException {
 
-        // Ranking window functions get their operand columns from from the ORDER BY clause.<br/>
-        // Here, we inspect and validate the window ORDER BY clause (within OVER clause) to find
-        // the columns with which to create the ranking function node.
-        List<OrderedColumn> orderByList = ((WindowDefinitionNode)arg2).getOrderByList();
-        if (orderByList == null || orderByList.isEmpty()) {
-            SanityManager.THROWASSERT("Missing required ORDER BY clause for LEAD, LAG window functions.");
-        }
+        // Lead/Lag is only deterministic when the window definition has an ORDER BY clause, that is, we want column
+        // values relative to the current row in some ordered set.  However, we're not making the restriction here
+        // to require an ORDER BY clause.  See DB-3976
         if (arg3 == null) {
-            SanityManager.THROWASSERT("Missing required input operand for LEAD, LAG window functionS.");
+            throw StandardException.newException(SQLState.LANG_MISSING_LEAD_LAG_ARG);
         }
         super.init(arg3, arg1, Boolean.FALSE, arg4, arg2, false);
         setType(this.operand.getTypeServices());
         if (arg5 != null) {
             this.offset = (int) arg5;
+            if (offset <= 0 || offset >= Integer.MAX_VALUE) {
+                throw StandardException.newException(SQLState.LANG_INVALID_LEAD_LAG_OFFSET, Long.toString(offset));
+            }
         }
         if (arg6 != null) {
             // TODO: test to make sure given default value is same type as operand. Has to be after bind time?
             this.defaultValue = (ValueNode) arg6;
+            throw StandardException.newException(SQLState.LANG_MISSING_LEAD_LAG_DEFAULT);
         } else {
 //            this.defaultValue = this.operand.getTypeServices().getNullabilityType(true);
         }
