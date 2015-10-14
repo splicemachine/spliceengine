@@ -5,6 +5,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -2706,6 +2707,102 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "     102     |     Emp B     |    IT     |        20         |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void testLeadLagOffsetExtrema() throws Exception {
+        // DB-3977, DB-3980 - offset extrema
+        String tableName = "twoints";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(a int, b int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (a, b) values (?,?)", tableRef))
+            .withRows(rows(
+                row(1, null), row(1,15), row(1, 10), row(1, null), row(2, 25), row(2, 10)
+            ))
+            .create();
+
+        String sqlText = format("SELECT a, Lead(b,0) OVER(partition by a order by b) FROM %s", tableRef);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            fail("Expected exception because lead(b,0) - offset < 1");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("2201Y", e.getSQLState());
+        }
+
+        sqlText = format("SELECT a, Lead(b,%s) OVER(partition by a order by b) FROM %s", Integer.MAX_VALUE, tableRef);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            fail("Expected exception because lead(b,0) - offset >= Integer.MAX_VALUE");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("2201Y", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testLeadLagFirstValueLastValueNoOrderBy() throws Exception {
+        // DB-3976 - no order by
+        String tableName = "twoints";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(a int, b int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (a, b) values (?,?)", tableRef))
+            .withRows(rows(
+                row(1, null), row(1,15), row(1, 10), row(1, null), row(2, 25), row(2, 10)
+            ))
+            .create();
+
+        String sqlText = format("SELECT a, first_value(b) OVER(partition by a) FROM %s", tableRef);
+        methodWatcher.executeQuery(sqlText);
+
+        sqlText = format("SELECT a, lag(b) OVER(partition by a) FROM %s", tableRef);
+        methodWatcher.executeQuery(sqlText);
+
+        // since it row are returned in arbitrary order when no ORDER BY is specified, the best we can do
+        // here is to test that we don't get an exception
+//        String expected =
+//            "A | 2 |\n" +
+//                "--------\n" +
+//                " 2 |25 |\n" +
+//                " 2 |25 |\n" +
+//                " 1 |15 |\n" +
+//                " 1 |15 |\n" +
+//                " 1 |15 |\n" +
+//                " 1 |15 |";
+//        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+    }
+
+    @Test
+    public void testLeadLagDefaultValue() throws Exception {
+        // DB-3982 - default not implemented
+        String tableName = "twoints";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(a int, b int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (a, b) values (?,?)", tableRef))
+            .withRows(rows(
+                row(1, null), row(1,15), row(1, 10), row(1, null), row(2, 25), row(2, 10)
+            ))
+            .create();
+
+        String sqlText = format("SELECT a, lag(b, 2, 13) OVER(partition by a order by b) FROM %s", tableRef);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            fail("Expected exception \"default\" value not implemented.");
+        } catch (SQLException e) {
+            assertEquals("2202C", e.getSQLState());
+        }
     }
 
     //==================================================================================================================
