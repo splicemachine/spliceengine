@@ -151,7 +151,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
             return new ControlDataSet<String>(new Iterable<String>() {
                 @Override
                 public Iterator<String> iterator() {
-                    return new Scanner(value);
+                    return new TextFileIterator(value);
                 }
             });
         } catch (IOException e) {
@@ -176,5 +176,26 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     @Override
     public <V> DataSet<V> createDataSet(Iterable<V> value) {
         return new ControlDataSet<>(value);
+    }
+
+    private class TextFileIterator implements Iterator<String>{
+
+        Scanner scanner;
+        public TextFileIterator(InputStream inputStream) {
+            this.scanner = new Scanner(inputStream);
+        }
+
+        @Override
+        public void remove() {}
+
+        @Override
+        public String next () {
+            return scanner.nextLine();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return scanner.hasNextLine();
+        }
     }
 }
