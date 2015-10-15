@@ -401,25 +401,12 @@ public class UpdateOperationIT {
     // you probably need to make a similar change to DeleteOperationIT.
 
     @Test
-    public void testUpdateOverBroadcastJoin() throws Exception {
+    public void testUpdateOverNestedLoopJoin() throws Exception {
         TestConnection conn = methodWatcher.getOrCreateConnection();
         boolean oldAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
         try {
-            doTestUpdateOverJoin("BROADCAST", conn);
-        } finally {
-            conn.rollback();
-            conn.setAutoCommit(oldAutoCommit);
-        }
-    }
-
-    @Test
-    public void testUpdateOverMergeSortJoin() throws Exception {
-        TestConnection conn = methodWatcher.getOrCreateConnection();
-        boolean oldAutoCommit = conn.getAutoCommit();
-        conn.setAutoCommit(false);
-        try {
-            doTestUpdateOverJoin("SORTMERGE", conn);
+            doTestUpdateOverJoin("NESTEDLOOP", conn);
         } finally {
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);

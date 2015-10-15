@@ -35,14 +35,6 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     }
 
     @Test
-    public void antiJoin() throws Exception {
-        rowContainsQuery(
-                new int[] {1,4},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk where not exists (select * from  ts_5_npk --splice-properties joinStrategy=BROADCAST\n where ts_10_npk.c1 = ts_5_npk.c1)",methodWatcher,
-                "rows=8","BroadcastAntiJoin");
-    }
-
-    @Test
     public void leftOuterJoin() throws Exception {
         rowContainsQuery(
                 new int[] {1,3},

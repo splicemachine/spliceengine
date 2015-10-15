@@ -297,11 +297,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public Scan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null, null, null);
+        return getScan(txn, null, null, null, null);
     }
 
     @Override
-    public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys) throws StandardException {
+    public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -322,11 +322,14 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
             startSearchOperator = ScanController.GE;
         }
 
+        if (stopPosition == null && stopKeyPrefix!=null) {
+            stopSearchOperator = ScanController.NA;
+        }
         /* Below populateQualifiers can mutate underlying DataValueDescriptors in some cases, clone them for use in
            start/stop keys first. */
         DataValueDescriptor[] startKeyValues = overriddenStartPos == null ? null : overriddenStartPos.getClone().getRowArray();
         DataValueDescriptor[] stopKeyValues = stopPosition == null ? null : stopPosition.getClone().getRowArray();
-
+        DataValueDescriptor[] stopPrefixValues = stopKeyPrefix == null ? null : stopKeyPrefix.getClone().getRowArray();
         Qualifier[][] qualifiers = populateQualifiers();
 
         getConglomerate();
@@ -335,6 +338,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 startKeyValues,
                 startSearchOperator,
                 stopKeyValues,
+                stopPrefixValues,
                 stopSearchOperator,
                 qualifiers,
                 conglomerate.getAscDescInfo(),
@@ -446,6 +450,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         return stopKeyGetter == null ? null : stopKeyGetter.invoke();
     }
 
+    @Override
     public ExecIndexRow getStartPosition() throws StandardException {
         if (startKeyGetter == null && startKeyGetterMethodName != null)
             startKeyGetter = new SpliceMethod<>(startKeyGetterMethodName, activation);

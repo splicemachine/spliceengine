@@ -126,7 +126,7 @@ public class Scans extends SpliceUtils {
      * filters aas specified by {@code qualifiers}
      */
     public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                 DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
                                  Qualifier[][] qualifiers,
                                  boolean[] sortOrder,
                                  FormatableBitSet scanColumnList,
@@ -158,7 +158,7 @@ public class Scans extends SpliceUtils {
                 }
             }
             attachScanKeys(scan, startKeyValue, startSearchOperator,
-                    stopKeyValue, stopSearchOperator,
+                    stopKeyValue, stopKeyPrefix, stopSearchOperator,
                     sortOrder, formatIds, startScanKeys, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
 
             if (!rowIdKey) {
@@ -186,7 +186,7 @@ public class Scans extends SpliceUtils {
                                  DataValueFactory dataValueFactory,
                                  String tableVersion,
                                  boolean rowIdKey) throws StandardException {
-        return setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifiers,
+        return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
                 keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
     }
@@ -279,7 +279,8 @@ public class Scans extends SpliceUtils {
 
     private static void attachScanKeys(Scan scan,
                                        DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                       DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                       DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
+                                       int stopSearchOperator,
                                        boolean[] sortOrder,
                                        int[] columnTypes, //the types of the column in the ENTIRE Row
                                        int[] startScanKeys,
@@ -319,10 +320,13 @@ public class Scans extends SpliceUtils {
                     }
                 }
             }
-            if (stopKeyValue != null) {
+            DataValueDescriptor[] stop = stopKeyValue;
+            if (stop == null)
+                stop = stopKeyPrefix;
+            if (stop != null) {
                 generateStopKey = true;
-                for (int i = 0; i < stopKeyValue.length; i++) {
-                    DataValueDescriptor stopDesc = stopKeyValue[i];
+                for (int i = 0; i < stop.length; i++) {
+                    DataValueDescriptor stopDesc = stop[i];
                     if (stopDesc == null || stopDesc.isNull()) {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;
@@ -332,14 +336,14 @@ public class Scans extends SpliceUtils {
                     if(!ArrayUtils.isEmpty(startScanKeys) && !ArrayUtils.isEmpty(keyTablePositionMap)) {
                         int targetColFormatId = columnTypes[keyTablePositionMap[startScanKeys[i]]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
-                            stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
+                            stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
                         }
                     }
                     // for other scans we just rely on key table positions
                     else if (!ArrayUtils.isEmpty(keyDecodingMap)) {
                         int targetColFormatId = columnTypes[keyDecodingMap[i]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
-                            stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
+                            stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
                         }
                     }
                 }
@@ -352,7 +356,10 @@ public class Scans extends SpliceUtils {
                     scan.setStartRow(HConstants.EMPTY_START_ROW);
             }
             if (generateStopKey) {
-                byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                if (stopKeyPrefix != null) {
+                    stopRow = BytesUtil.unsignedCopyAndIncrement(stopRow);
+                }
                 scan.setStopRow(stopRow);
                 if (stopRow == null)
                     scan.setStopRow(HConstants.EMPTY_END_ROW);

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
+import com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
@@ -11,7 +12,9 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.*;
+import java.util.List;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -227,9 +230,9 @@ public class IndexIT extends SpliceUnitTest {
             try(ResultSet rs = s.executeQuery(query)){
                 Assert.assertTrue("No row returned!",rs.next());
                 String b = rs.getString("b");
-                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertFalse("Returned null!", rs.wasNull());
                 Assert.assertEquals("Incorrect returned value!","EFGH",b);
-                Assert.assertFalse("More than one row returned!",rs.next());
+                Assert.assertFalse("More than one row returned!", rs.next());
             }
         }
     }
@@ -535,7 +538,7 @@ public class IndexIT extends SpliceUnitTest {
     @Test
     public void testInsertNewOrder() throws Exception {
         int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
-                SCHEMA_NAME,NewOrderTable.TABLE_NAME, "1,1,2001"));
+                SCHEMA_NAME, NewOrderTable.TABLE_NAME, "1,1,2001"));
         Assert.assertEquals(1, nCols);
     }
 
@@ -543,14 +546,14 @@ public class IndexIT extends SpliceUnitTest {
     public void testInsertNewOrderWithIndex() throws Exception {
             SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, NewOrderTable.TABLE_NAME, NewOrderTable.INDEX_NAME, NewOrderTable.INDEX_ORDER_DEF, false);
             int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
-                    SCHEMA_NAME,NewOrderTable.TABLE_NAME, "1,2,2001"));
+                    SCHEMA_NAME, NewOrderTable.TABLE_NAME, "1,2,2001"));
             Assert.assertEquals(1, nCols);
     }
 
     @Test
     public void testInsertOrder() throws Exception {
         int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
-                SCHEMA_NAME,OrderTable.TABLE_NAME, "3001,1,1,1268,10,6,1,'2013-08-01 10:33:44.813'"));
+                SCHEMA_NAME, OrderTable.TABLE_NAME, "3001,1,1,1268,10,6,1,'2013-08-01 10:33:44.813'"));
         Assert.assertEquals(1, nCols);
     }
 
@@ -563,7 +566,7 @@ public class IndexIT extends SpliceUnitTest {
         Assert.assertEquals(0, resultSetSize(rs));
 
         int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
-                SCHEMA_NAME,CustomerTable.TABLE_NAME, CUST_INSERT1));
+                SCHEMA_NAME, CustomerTable.TABLE_NAME, CUST_INSERT1));
         // C_LAST: CUNNINGHAM
         // C_FIRST: Jeff
         // C_SINCE: 2013-08-01 10:33:44.813
@@ -637,5 +640,52 @@ public class IndexIT extends SpliceUnitTest {
 
             rs = methodWatcher.executeQuery(query);
             Assert.assertEquals(1, resultSetSize(rs));
+    }
+
+
+    @Test
+    public void testCost() throws Exception {
+        methodWatcher.execute("drop table if exists address");
+        methodWatcher.execute("create table ADDRESS (addr_id int, std_state_provence varchar(5))");
+        methodWatcher.execute("drop table if exists person_address");
+        methodWatcher.execute("create table person_address (pid int, addr_id int)");
+
+        methodWatcher.execute("insert into address values (1,'CA'),(2,'CO'),(3,'FL'),(4,'IL'),(5,'IL'),(6,'IA'),(7,'WI'),(8,'WY'),(9,'IA'),(10,'WI')");
+        methodWatcher.execute("insert into person_address values (1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9),(10,10)");
+
+        methodWatcher.execute("create index address_ix on address(addr_id)");
+        methodWatcher.execute("create index address_ix4 on address(addr_id,std_state_provence)");
+        methodWatcher.execute("create index b_idx1 on person_address(pid, addr_id)");
+
+        //methodWatcher.executeQuery("elapsedtime on");
+
+        // should have higher cost - needs index to base row lookup
+        String sql1 = "explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n" +
+                " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n" +
+                " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX \n" +
+                " ON a4.ADDR_ID = a5.ADDR_ID \n" +
+                " WHERE  a5.STD_STATE_PROVENCE IN ('IA', 'WI', 'IL')";
+
+        List<String> arr1 = methodWatcher.queryList(sql1);
+
+        // should have lower cost
+        String sql2 = "explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n" +
+                " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n" +
+                " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX4 \n" +
+                " ON a4.ADDR_ID = a5.ADDR_ID \n" +
+                " WHERE  a5.STD_STATE_PROVENCE IN ('IA', 'WI', 'IL')";
+
+        List<String> arr2 = methodWatcher.queryList(sql2);
+
+        assertTrue("Plan #1 has small size", arr1.size() == 10);
+        assertTrue("Plan #1 must be longer that plan #2", arr1.size() > arr2.size());
+
+        String messages = Joiner.on("").join(arr1);
+        assertTrue("IndexLookup cannot appear anywhere in the plan.", messages.contains("IndexLookup"));
+
+        // check for total cost
+        double cost1 = SpliceUnitTest.parseTotalCost(arr1.get(1));
+        double cost2 = SpliceUnitTest.parseTotalCost(arr2.get(1));
+        assertTrue("Cost #1 must be bigger than cost #2", Double.compare(cost1, cost2) > 0);
     }
 }
