@@ -84,7 +84,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 for(int i=0;i<procedures.size();i++){
                     Procedure sysProc = procedures.get(i);
                     if(IMPORT_DATA_NAME.equalsIgnoreCase(sysProc.getName())){
-                        Procedure newImport = Procedure.newBuilder().name("SYSCS_IMPORT_DATA")
+                        /*Procedure newImport = Procedure.newBuilder().name("SYSCS_IMPORT_DATA")
                                 .numOutputParams(0).numResultSets(0).ownerClass(HdfsImport.class.getCanonicalName())
                                 .catalog("schemaName")
                                 .catalog("tableName")
@@ -96,7 +96,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672).build();
-                        procedures.set(i,newImport);
+                        procedures.set(i,newImport);*/
 
                         Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
                                 .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
