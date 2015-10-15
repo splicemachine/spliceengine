@@ -1514,15 +1514,14 @@ public class SystemProcedures  {
 	String  fileName,
 	String  columnDelimiter,
 	String  characterDelimiter,
-	String  codeset,
-	short   replace)
+	String  columnDefinitions)
         throws SQLException
     {
 		Connection conn = getDefaultConn();
 		try{
 			Import.importTable(conn, schemaName , tableName , fileName ,
-                               columnDelimiter , characterDelimiter, codeset, 
-                               replace, false);
+                               columnDelimiter , characterDelimiter,
+                               columnDefinitions, false);
 		}catch(SQLException se)
 		{
 			rollBackAndThrowSQLException(conn, se);
@@ -1564,15 +1563,14 @@ public class SystemProcedures  {
     String  fileName,
     String  columnDelimiter,
     String  characterDelimiter,
-    String  codeset,
-    short   replace)
+    String  columnDefinitions)
         throws SQLException
     {
         Connection conn = getDefaultConn();
         try{
             Import.importTable(conn, schemaName , tableName , fileName ,
                                columnDelimiter , characterDelimiter, 
-                               codeset, replace, 
+                               columnDefinitions,
                                true //lobs in external file
                                );
         }catch(SQLException se)
@@ -1606,18 +1604,16 @@ public class SystemProcedures  {
 	String  fileName,
 	String  columnDelimiter,
 	String  characterDelimiter,
-    String codeset,
-    short replace
+    String  columnDefinitions
 			)
-        throws SQLException
+        throws SQLException, StandardException
     {
+
 		Connection conn = getDefaultConn();
-		try{
-//			HdfsImport.importData(conn,schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,timestampFormat);
+        try{
 			Import.importData(conn, schemaName , tableName ,
 					insertColumnList, columnIndexes, fileName,
-					columnDelimiter, characterDelimiter,
-					codeset, replace, false);
+					columnDelimiter, characterDelimiter, columnDefinitions, false);
 		}catch(SQLException se)
 		{
 		    rollBackAndThrowSQLException(conn, se);
@@ -1654,8 +1650,8 @@ public class SystemProcedures  {
     String  fileName,
     String  columnDelimiter,
     String  characterDelimiter,
-    String  codeset,
-    short   replace)
+    String  columnDefinitions
+	)
         throws SQLException
     {
         Connection conn = getDefaultConn();
@@ -1663,7 +1659,7 @@ public class SystemProcedures  {
             Import.importData(conn, schemaName , tableName ,
                               insertColumnList, columnIndexes, fileName,
                               columnDelimiter, characterDelimiter, 
-                              codeset, replace, true);
+                              columnDefinitions, true);
         }catch(SQLException se)
         {
             rollBackAndThrowSQLException(conn, se);

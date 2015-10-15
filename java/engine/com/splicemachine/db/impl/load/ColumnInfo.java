@@ -29,6 +29,8 @@ import java.sql.SQLException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 
 /**
@@ -65,7 +67,7 @@ class ColumnInfo {
 	 * @param tName - table Name
 	 * @param insertColumnList - comma seperared insert statement column list 
 	 * @param  vtiColumnIndexes - Indexes in the file
-	 * @param  vtiColumnPrefix - Prefix to use to generate column names to select from VTI
+	 * @param  columnDefinitions - column definitions for data in external file
 	 * @exception Exception on error 
 	 */
 	public ColumnInfo(Connection conn,
@@ -73,7 +75,7 @@ class ColumnInfo {
 					  String tName,
 					  String insertColumnList, 
 					  String vtiColumnIndexes,
-					  String vtiColumnPrefix)
+					  String columnDefinitions)
 		throws SQLException 
 	{
 
@@ -123,38 +125,49 @@ class ColumnInfo {
 				throw LoadError.tableNotFound(entityName);
 			}
 		}
-		
-				
+
+		ArrayList allVtiColumnNames = getAllVtiColumnNames(columnDefinitions);
+
 		//break the comma seperated column indexes for import file give by the user
 		//eg: "1, 3, 5, 7"
 		if(vtiColumnIndexes !=null)
 		{
-			
 			StringTokenizer st = new StringTokenizer(vtiColumnIndexes, ",");
 			while (st.hasMoreTokens()) 
 			{
 				String columnIndex  = (st.nextToken()).trim();
-				vtiColumnNames.add(vtiColumnPrefix + columnIndex);
 				int cIndex = (new Integer(columnIndex )).intValue();
-				if(cIndex > expectedNumberOfCols )
-					expectedNumberOfCols= cIndex ;
+				vtiColumnNames.add(allVtiColumnNames.get(cIndex-1));
 			}
 
 		}
 
-
 		//if column indexes are not specified  ; create names for all collumns requested
 		if(vtiColumnNames.size() < 1)
 		{
-			for(int index = 1 ; index <= noOfColumns; index++)
+			for(int index = 0 ; index < noOfColumns; index++)
 			{
-				vtiColumnNames.add(vtiColumnPrefix + index);
+				vtiColumnNames.add(allVtiColumnNames.get(index));
 			}
 			expectedNumberOfCols = noOfColumns ;
 		}
 	}
 
 
+	private ArrayList getAllVtiColumnNames(String columnDefinitions) {
+		ArrayList vtiColumnNames = new ArrayList(1);
+		if (columnDefinitions != null) {
+			Pattern p = Pattern.compile("[_a-zA-Z][_a-zA-Z0-9]{0,128}");
+			Matcher matcher = p.matcher(columnDefinitions);
+			while (matcher.find()) {
+				String columnName = matcher.group();
+				vtiColumnNames.add(columnName);
+				matcher.find();
+			}
+		}
+
+		return vtiColumnNames;
+	}
 	private boolean initializeColumnInfo(String columnPattern)
 		throws SQLException
 	{

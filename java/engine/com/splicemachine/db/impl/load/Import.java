@@ -107,26 +107,24 @@ public class Import extends ImportAbstract{
 	 * @param inputFileName Name of the file from which data has to be imported.
 	 * @param columnDelimiter  Delimiter that seperates columns in the file
 	 * @param characterDelimiter  Delimiter that is used to quiote non-numeric types
-	 * @param codeset           Codeset of the data in the file
-	 * @param replace          Indicates whether the data in table has to be replaced or
-	 *                         appended.(0 - append , > 0 Replace the data)
-     * @param lobsInExtFile true, if the lobs data is stored in an external file,
+	 * @param tableDefinition     table definition for the data in the file
+	 * @param lobsInExtFile true, if the lobs data is stored in an external file,
      *                      and the reference to it is stored in the main import file.
- 	 * @exception SQL Exception on errors
+ 	 * @exception SQLException on errors
 	 */
 
 	public static void importTable(Connection connection, String schemaName, 
                                    String tableName, String inputFileName,  
                                    String columnDelimiter, 
-                                   String characterDelimiter,String codeset, 
-                                   short replace, boolean lobsInExtFile)
+                                   String characterDelimiter,String tableDefinition,
+                                   boolean lobsInExtFile)
 		throws SQLException {
 
 
 		performImport(connection,  schemaName,  null, //No columnList 
 					  null , //No column indexes
 					  tableName, inputFileName, columnDelimiter, 
-					  characterDelimiter, codeset, replace, lobsInExtFile);
+					  characterDelimiter, tableDefinition, lobsInExtFile);
 	}
 
 
@@ -145,27 +143,25 @@ public class Import extends ImportAbstract{
 	 * @param inputFileName Name of the file from which data has to be imported.
 	 * @param columnDelimiter  Delimiter that seperates columns in the file
 	 * @param characterDelimiter  Delimiter that is used to quiote non-numeric types
-	 * @param codeset           Codeset of the data in the file
-	 * @param replace          Indicates whether the data in table has to be replaced or
-	 *                         appended.(0 - append , > 0 Replace the data)
-     * @param lobsInExtFile true, if the lobs data is stored in an external file,
+	 * @param tableDefinition     table definition for the data in the file
+	 * @param lobsInExtFile true, if the lobs data is stored in an external file,
      *                      and the reference is stored in the main import file.
- 	 * @exception SQL Exception on errors
+ 	 * @exception SQLException on errors
 	 */
 	public static void importData(Connection connection, String schemaName,
                                   String tableName, String insertColumnList, 
                                   String columnIndexes, String inputFileName, 
                                   String columnDelimiter, 
                                   String characterDelimiter,
-                                  String codeset, short replace, 
+                                  String tableDefinition,
                                   boolean lobsInExtFile)
 		throws SQLException 
 	{
 		
 
-			performImport(connection,  schemaName,  insertColumnList,columnIndexes, 
-						  tableName, inputFileName, columnDelimiter, 
-						  characterDelimiter, codeset, replace, lobsInExtFile);
+			performImport(connection, schemaName, insertColumnList, columnIndexes,
+                    tableName, inputFileName, columnDelimiter,
+                    characterDelimiter, tableDefinition, lobsInExtFile);
 	}
 
 
@@ -186,8 +182,7 @@ public class Import extends ImportAbstract{
          String inputFileName,  
          String  columnDelimiter, 
          String characterDelimiter, 
-         String codeset, 
-         short replace, 
+         String columnDefinitions,
          boolean lobsInExtFile)
         throws SQLException 
     {
@@ -205,7 +200,7 @@ public class Import extends ImportAbstract{
             
             ColumnInfo columnInfo = new ColumnInfo(connection , schemaName ,
                                                    tableName, insertColumnList, 
-                                                   columnIndexes, COLUMNNAMEPREFIX);
+                                                   columnIndexes, columnDefinitions);
 
             String columnTypeNames = null;
             String udtClassNames = null;
@@ -219,28 +214,13 @@ public class Import extends ImportAbstract{
             }
 
             StringBuffer sb = new StringBuffer("new ");
-            sb.append("com.splicemachine.db.impl.load.Import");
+            sb.append("com.splicemachine.derby.vti.SpliceFileVTI");
             sb.append("(") ;
             sb.append(quoteStringArgument(inputFileName));
             sb.append(",") ;
-            sb.append(quoteStringArgument(columnDelimiter));
-            sb.append(",") ;
             sb.append(quoteStringArgument(characterDelimiter));
             sb.append(",") ;
-            sb.append(quoteStringArgument(codeset));
-            sb.append(", ");
-            sb.append( columnInfo.getExpectedNumberOfColumnsInFile());
-            sb.append(", ");
-            sb.append(quoteStringArgument(
-                    columnInfo.getExpectedVtiColumnTypesAsString()));
-            sb.append(", ");
-            sb.append(lobsInExtFile);
-            sb.append(", ");
-            sb.append( importCounter.intValue() );
-            sb.append(", ");
-            sb.append(quoteStringArgument( columnTypeNames ) );
-            sb.append(", ");
-            sb.append(quoteStringArgument( udtClassNames ) );
+            sb.append(quoteStringArgument(columnDelimiter));
             sb.append(" )") ;
             
             String importvti = sb.toString();
@@ -257,12 +237,7 @@ public class Import extends ImportAbstract{
             
             String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
             
-            String insertModeValue;
-            if(replace > 0)
-                insertModeValue = "replace";
-            else
-                insertModeValue = "bulkInsert";
-            
+
             String cNamesWithCasts = columnInfo.getColumnNamesWithCasts();
             String insertColumnNames = columnInfo.getInsertColumnNames();
             if(insertColumnNames !=null)
@@ -270,9 +245,8 @@ public class Import extends ImportAbstract{
             else
                 insertColumnNames = "";
             String insertSql = "INSERT INTO " + entityName +  insertColumnNames + 
-                " --DERBY-PROPERTIES insertMode=" + insertModeValue + "\n" +
-                " SELECT " + cNamesWithCasts + " from " + 
-                importvti + " AS importvti" ;
+                " SELECT " + cNamesWithCasts + " from " +
+                importvti + " AS importvti (" + columnDefinitions +")";
             
             //prepare the import statement to hit any errors before locking the table
             PreparedStatement ips = connection.prepareStatement(insertSql);
@@ -280,19 +254,20 @@ public class Import extends ImportAbstract{
             //lock the table before perfoming import, because there may 
             //huge number of lockes aquired that might have affect on performance 
             //and some possible dead lock scenarios.
-            Statement statement = connection.createStatement();
-            String lockSql = "LOCK TABLE " + entityName + " IN EXCLUSIVE MODE";
-            statement.executeUpdate(lockSql);
+            //Statement statement = connection.createStatement();
+            //String lockSql = "LOCK TABLE " + entityName + " IN EXCLUSIVE MODE";
+            //statement.executeUpdate(lockSql);
             
             //execute the import operaton.
+            int n = 0;
             try {
-                ips.executeUpdate();
+                n = ips.executeUpdate();
             }
             catch (Throwable t)
             {
                 throw formatImportError( (Import) _importers.get( importCounter ), inputFileName, t );
             }
-            statement.close();
+            //statement.close();
             ips.close();
         }
         finally
