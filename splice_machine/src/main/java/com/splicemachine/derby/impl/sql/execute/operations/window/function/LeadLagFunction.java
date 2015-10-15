@@ -83,11 +83,33 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
         return new LeadLagFunction();
     }
 
+    /**
+     * Add, evaluate and determine lead/lag values and buffer the the results for a given
+     * window frame.
+     */
     interface LeadLagBuffer {
-        void initialize(int leadAmt);
+        /**
+         * Call this after {@link #terminate()} to remove prior collected values.
+         * @param leadLagAmt the lead/lage offset
+         */
+        void initialize(int leadLagAmt);
 
+        /**
+         * Add the current value for this row and the default value. The default value
+         * will be set to the lead/lag row's current value if/when we get there.
+         * @param leadExprValue the current row's value
+         * @param defaultValue the default lead/lag value in case we don't get to the
+         *                     offset row
+         */
         void addRow(DataValueDescriptor leadExprValue, DataValueDescriptor defaultValue);
 
+        /**
+         * Call this when you're finished with the frame to get the lead/lag values.
+         * <b>NOTE</b>: This does <b>not</b> clear any values or reset in any way. You'll
+         * need to do that when moving to a new frame before adding new rows. This is for
+         * performance reasons - we don't attempt to anticipate what you want to do.
+         * @return the lead/lag result values evaluated in a frame.
+         */
         List<DataValueDescriptor> terminate();
 
     }
@@ -101,9 +123,12 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
         int lastRowIdx;
 
         public void initialize(int leadAmt) {
+            if (leadAmt < 0) {
+                throw new RuntimeException("LEAD() offset must be positive.");
+            }
             this.leadAmt = leadAmt;
             values = new ArrayList<>();
-            leadWindow = new DataValueDescriptor[leadAmt];
+            leadWindow = new DataValueDescriptor[(leadAmt > 0 ? leadAmt : 1)];
             nextPosInWindow = 0;
             lastRowIdx = -1;
         }
@@ -115,11 +140,14 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
                 values.add(leadExprValue);
             }
             leadWindow[nextPosInWindow] = defaultValue;
-            nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
+            nextPosInWindow = (nextPosInWindow + 1) % (leadAmt > 0 ? leadAmt : 1);
             lastRowIdx++;
         }
 
         public List<DataValueDescriptor> terminate() {
+            if (values == null) {
+                return new ArrayList<>(0);
+            }
           /*
            * if there are fewer than leadAmt values in leadWindow; start reading from the first position.
            * Otherwise the window starts from nextPosInWindow.
@@ -128,7 +156,10 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
                 nextPosInWindow = 0;
             }
             for(int i=0; i < leadAmt; i++) {
-                values.add(leadWindow[nextPosInWindow]);
+                DataValueDescriptor value = leadWindow[nextPosInWindow];
+                if (value != null) {
+                    values.add(value);
+                }
                 nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
             }
             return values;
@@ -143,6 +174,9 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
         int lastRowIdx;
 
         public void initialize(int lagAmt) {
+            if (lagAmt < 0) {
+                throw new RuntimeException("LAG() offset must be positive.");
+            }
             this.lagAmt = lagAmt;
             lagValues = new ArrayList<>(lagAmt);
             values = new ArrayList<>();
@@ -163,17 +197,20 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
            * if partition is smaller than the lagAmt;
            * the entire partition is in lagValues.
            */
-            if ( values.size() < lagAmt ) {
-                values = lagValues;
-                return lagValues;
-            }
+            if (values != null) {
+                if ( values.size() < lagAmt ) {
+                    values = lagValues;
+                    return lagValues;
+                }
 
-            int lastIdx = values.size() - 1;
-            for(int i = 0; i < lagAmt; i++) {
-                values.remove(lastIdx - i);
+                int lastIdx = values.size() - 1;
+                for(int i = 0; i < lagAmt; i++) {
+                    values.remove(lastIdx - i);
+                }
+                values.addAll(0, lagValues);
+                return values;
             }
-            values.addAll(0, lagValues);
-            return values;
+            return new ArrayList<>(0);
         }
     }
 

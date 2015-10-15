@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.test.framework;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.junit.Test;
 
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.RowNumberFunction;
 
 /**
@@ -40,7 +41,7 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
         ExpectedResultsFunction expectedResultsFunction = new RowNumberFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -82,7 +83,7 @@ public class RowNumberWindowFunctionTest extends WindowTestingFramework {
         ExpectedResultsFunction expectedResultsFunction = new RowNumberFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),

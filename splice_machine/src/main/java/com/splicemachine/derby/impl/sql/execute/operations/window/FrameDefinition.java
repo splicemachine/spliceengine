@@ -58,7 +58,7 @@ public class FrameDefinition {
      * @param frameStart start of the window frame
      * @param frameEnd end of the window frame
      */
-    FrameDefinition(int frameMode, int frameStart, long frameStartRows, int frameEnd, long frameEndRows) {
+    public FrameDefinition(int frameMode, int frameStart, long frameStartRows, int frameEnd, long frameEndRows) {
         // default access to allow testing
         this.frameMode = FrameMode.values()[frameMode];
         switch (Frame.values()[frameStart]) {

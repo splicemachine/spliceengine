@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.test.framework;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,6 +14,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SumAggregator;
 
 /**
@@ -39,7 +40,7 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
         int[] inputColIDs = new int[] {2};   // 1-based
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -63,7 +64,7 @@ public class SumWindowFunctionTest extends WindowTestingFramework {
     public void testDoubleColumn() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),

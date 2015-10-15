@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.test.framework;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.junit.Test;
 
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.RankFunction;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 
@@ -35,8 +36,8 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
         int[] orderByColIDs = new int[] {2};
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
-            Arrays.asList(new TestColumnDefinition[] {
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
+            Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
                 new VarcharColumnDefinition(7).setVariant(5),
@@ -72,7 +73,7 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
         ExpectedResultsFunction expectedResultsFunction = new RankFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new VarcharColumnDefinition(7).setVariant(5)}));
@@ -122,7 +123,7 @@ public class RankWindowFunctionTest extends WindowTestingFramework {
         ExpectedResultsFunction expectedResultsFunction = new RankFunct(partitionColIDs, orderByColIDs);
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
