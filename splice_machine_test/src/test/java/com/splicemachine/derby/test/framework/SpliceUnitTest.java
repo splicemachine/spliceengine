@@ -7,12 +7,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.junit.Assert;
 import org.junit.runner.Description;
 
 import com.splicemachine.utils.Pair;
 
 public class SpliceUnitTest {
+
+    private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
+
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
 		if (enclosingClass != null)
@@ -121,11 +127,15 @@ public class SpliceUnitTest {
         }
     }
 
-    protected void rowContainsQuery(int level, String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+    protected void rowContainsQuery(int level, String query, String contains, SpliceWatcher methodWatcher) throws Exception {
         ResultSet resultSet = methodWatcher.executeQuery(query);
-        for (int i = 0; i< level;i++)
+        for (int i = 0; i< level;i++) {
             resultSet.next();
-        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+        }
+        String actualString = resultSet.getString(1);
+        String failMessage = String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
+                query, contains, level, actualString);
+        Assert.assertTrue(failMessage, actualString.contains(contains));
     }
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
@@ -150,6 +160,13 @@ public class SpliceUnitTest {
                 resultSet.next();
             Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(p.getSecond()));
         }
+    }
+
+
+    public static double parseTotalCost(String planMessage) {
+        Matcher m1 = overallCostP.matcher(planMessage);
+        Assert.assertTrue("No Overall cost found!", m1.find());
+        return Double.parseDouble(m1.group().substring("totalCost=".length()));
     }
 
     public static class Contains {

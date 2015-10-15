@@ -51,6 +51,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_16 = "P";	
 	protected static String TABLE_17 = "Q";	
 	protected static String TABLE_18 = "R";
+    protected static String TABLE_19 = "S";
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -80,10 +81,11 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"(id int, description varchar(1000), name varchar(10))");
 	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int,PRIMARY KEY(name))");
 	protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher(TABLE_18,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableWatcher19 = new SpliceTableWatcher(TABLE_19,spliceSchemaWatcher.schemaName,""+
+            "(EMPNO CHAR(6) NOT NULL CONSTRAINT EMP_PK PRIMARY KEY,"+
+            "SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000)," +
+            "BONUS DECIMAL(9,2),TAX DECIMAL(9,2),CONSTRAINT BONUS_CK CHECK (BONUS > TAX))");
 
-
-	
-	
 	
 		protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,spliceSchemaWatcher.schemaName,"(i int generated always as identity, j int)");
 
@@ -107,7 +109,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher15)
 						.around(spliceTableWatcher16)
 						.around(spliceTableWatcher17)
-						.around(spliceTableWatcher18)
+                        .around(spliceTableWatcher18)
+                        .around(spliceTableWatcher19)
 						.around(autoIncTableWatcher);
 
     @Rule
@@ -840,4 +843,10 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
+
+    @Test
+    public void testCheckContstraintLoad() throws Exception{
+        testImport(spliceSchemaWatcher.schemaName, TABLE_19, getResourceDirectory() + "test_data/salary_check_constraint.csv", "EMPNO,SALARY,BONUS,TAX");
+    }
+
 }

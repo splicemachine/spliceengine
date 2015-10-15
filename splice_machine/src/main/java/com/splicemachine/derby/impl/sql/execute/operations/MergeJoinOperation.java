@@ -1,5 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
 import com.splicemachine.derby.stream.function.CountReadFunction;
@@ -17,6 +21,13 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
+import org.apache.spark.Partition;
+import org.apache.spark.Partitioner;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.rdd.NewHadoopPartition;
+import org.apache.tools.ant.taskdefs.Exec;
+
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

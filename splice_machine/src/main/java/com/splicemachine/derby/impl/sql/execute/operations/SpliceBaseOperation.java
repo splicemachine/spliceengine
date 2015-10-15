@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
@@ -931,7 +932,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return null;
     }
 
-	@Override
+    @Override
 	public ExecIndexRow getStartPosition() throws StandardException {
 		throw new RuntimeException("getStartPosition not implemented");
 	}

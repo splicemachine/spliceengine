@@ -2,6 +2,9 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
