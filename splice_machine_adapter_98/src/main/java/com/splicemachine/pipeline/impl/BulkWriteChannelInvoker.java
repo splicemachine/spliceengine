@@ -3,9 +3,7 @@ package com.splicemachine.pipeline.impl;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.table.IncorrectRegionException;
-import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.utils.PipelineUtils;
@@ -15,7 +13,6 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.ipc.RpcClient.FailedServerException;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -75,7 +72,7 @@ public class BulkWriteChannelInvoker {
         if (e instanceof IncorrectRegionException ||
             e instanceof NotServingRegionException ||
             e instanceof ConnectException ||
-            e instanceof FailedServerException) {
+            isFailedServerException(e)) {
             /*
              * We sent it to the wrong place, so we need to resubmit it. But since we
              * pulled it from the cache, we first invalidate that cache
@@ -88,4 +85,13 @@ public class BulkWriteChannelInvoker {
         return false;
     }
     
+    private static boolean isFailedServerException(Throwable t) {
+    	// Unfortunately we can not call ExceptionTranslator.isFailedServerException()
+    	// which is explicitly for this purpose. Other places in the code call it,
+    	// but SpliceHTabe is already in splice_si_adapter_98 so we can not use
+    	// the generic DerbyFactory capability without a bunch of refactoring.
+    	// We'll come back to this later.
+    	return t.getClass().getName().contains("FailedServerException");
+    }
+
 }

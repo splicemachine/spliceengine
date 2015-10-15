@@ -23,7 +23,6 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RegionCoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.ipc.RpcClient.FailedServerException;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -390,7 +389,7 @@ public class SpliceHTable extends HTable {
         if (exception instanceof IncorrectRegionException ||
         	exception instanceof NotServingRegionException ||
         	exception instanceof ConnectException ||
-        	exception instanceof FailedServerException) {
+        	isFailedServerException(exception)) {
             return exception;
         }
         Throwable cause = exception.getCause();
@@ -407,6 +406,15 @@ public class SpliceHTable extends HTable {
         return null;
     }
 
+    private static boolean isFailedServerException(Throwable t) {
+    	// Unfortunately we can not call ExceptionTranslator.isFailedServerException()
+    	// which is explicitly for this purpose. Other places in the code call it,
+    	// but SpliceHTabe is already in splice_si_adapter_98 so we can not use
+    	// the generic DerbyFactory capability without a bunch of refactoring.
+    	// We'll come back to this later.
+    	return t.getClass().getName().contains("FailedServerException");
+    }
+    
     private static void logAndThrowCause(Exception ee) throws Throwable {
         if (ee.getCause() != null) {
             SpliceLogUtils.logAndThrow(LOG, "The Cause:", ee.getCause());
