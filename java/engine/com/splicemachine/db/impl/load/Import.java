@@ -251,23 +251,14 @@ public class Import extends ImportAbstract{
             //prepare the import statement to hit any errors before locking the table
             PreparedStatement ips = connection.prepareStatement(insertSql);
             
-            //lock the table before perfoming import, because there may 
-            //huge number of lockes aquired that might have affect on performance 
-            //and some possible dead lock scenarios.
-            //Statement statement = connection.createStatement();
-            //String lockSql = "LOCK TABLE " + entityName + " IN EXCLUSIVE MODE";
-            //statement.executeUpdate(lockSql);
-            
             //execute the import operaton.
-            int n = 0;
             try {
-                n = ips.executeUpdate();
+                ips.executeUpdate();
             }
             catch (Throwable t)
             {
                 throw formatImportError( (Import) _importers.get( importCounter ), inputFileName, t );
             }
-            //statement.close();
             ips.close();
         }
         finally

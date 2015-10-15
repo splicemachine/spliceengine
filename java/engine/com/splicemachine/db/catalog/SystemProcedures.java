@@ -30,12 +30,14 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.CacheManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.load.Export;
@@ -1608,19 +1610,10 @@ public class SystemProcedures  {
 			)
         throws SQLException, StandardException
     {
-
 		Connection conn = getDefaultConn();
-        try{
-			Import.importData(conn, schemaName , tableName ,
-					insertColumnList, columnIndexes, fileName,
-					columnDelimiter, characterDelimiter, columnDefinitions, false);
-		}catch(SQLException se)
-		{
-		    rollBackAndThrowSQLException(conn, se);
-		}
-
-		//import finished successfull, commit it.
-		conn.commit();
+		Import.importData(conn, schemaName, tableName,
+				insertColumnList, columnIndexes, fileName,
+				columnDelimiter, characterDelimiter, columnDefinitions, false);
 	}
 
 
