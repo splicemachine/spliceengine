@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -11,7 +11,6 @@ import org.junit.Test;
 
 import java.sql.ResultSet;
 
-import static com.splicemachine.derby.impl.sql.execute.operations.SubqueryITUtil.assertUnorderedResult;
 import static org.junit.Assert.assertEquals;
 
 public class Subquery_Flattening_Exists_IT {
@@ -45,27 +44,27 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void uncorrelated_oneSubqueryTable() throws Exception {
         // subquery reads different table
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select count(*) from A where exists (select b1 from B where b2 > 20)", ALL_FLATTENED, "" +
                         "1 |\n" +
                         "----\n" +
                         " 6 |"
         );
         // subquery reads same table
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select count(*) from A where exists (select a1 from A ai where ai.a2 > 20)", ALL_FLATTENED, "" +
                         "1 |\n" +
                         "----\n" +
                         " 6 |"
         );
         // empty table
-        assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from EMPTY_TABLE)", ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from EMPTY_TABLE)", ALL_FLATTENED, "" +
                 "1 |\n" +
                 "----\n" +
                 " 0 |"
         );
         // two exists
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select count(*) from A where " +
                         "exists (select b1 from B where b2 > 20)" +
                         " and " +
@@ -75,7 +74,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 6 |"
         );
         // two exists, different rows
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select count(*) from A where " +
                         "exists (select b1 from B where b2 > 20)" +
                         " and " +
@@ -89,7 +88,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void uncorrelated_twoSubqueryTables() throws Exception {
         // subquery reads different table
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select A.* from A where exists (select b1 from B join D on b1=d1 where b2 > 20)", ALL_FLATTENED, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
@@ -101,7 +100,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |50 |"
         );
         // subquery reads same table
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select A.* from A where exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ALL_FLATTENED, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
@@ -113,7 +112,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |50 |"
         );
         // two exists
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select A.* from A where " +
                         "exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
@@ -128,7 +127,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |50 |"
         );
         // two exists, one of which excludes all rows
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select count(*) from A where " +
                         "exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
@@ -141,7 +140,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void uncorrelated_threeSubqueryTables() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select A.* from A where exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ALL_FLATTENED, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
@@ -157,7 +156,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_oneSubqueryTable() throws Exception {
         /* simple case */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1 from D where a1 = d1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -167,7 +166,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* subquery selects constant */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -175,7 +174,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* subquery selects b1 */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -183,7 +182,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* subquery selects b1 multiple times */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1,b1,b1 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -191,7 +190,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* subquery selects constant multiple times */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1,2,3 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -199,7 +198,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* subquery selects all */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select * from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -211,7 +210,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_twoSubqueryTables() throws Exception {
         /* no extra predicates */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -222,7 +221,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* restriction on C */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and c1 in (3,5))", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -230,14 +229,14 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         /* restriction on B and C */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and b2 = 50)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 5 |"
         );
         /* many redundant/identical predicates (we didn't handle this at one point DB-3885) */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "    a1 > 0 and a2 < 50 " +
                         "and exists (select b1 from B join C on b1=c1 where a1 = b1) " +
@@ -253,7 +252,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void correlated_threeSubqueryTables() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1 = b1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -265,7 +264,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void correlated_withMultipleCorrelationPredicates() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1 from D where a1=d1 and a2=d2)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -279,12 +278,12 @@ public class Subquery_Flattening_Exists_IT {
      * can simply be moved up (de-correlated).  We have to do this before moving the subquery to a FromSubquery.  */
     @Test
     public void correlated_withCorrelatedColumnRefComparedToConstant() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1 from B where a1=3)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |");
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select 1 from B where a1=4 and a1=b1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -300,7 +299,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void multipleExistsSubqueries_oneTablePerSubquery() throws Exception {
         // one tables in 2 subqueries
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "exists (select 1 from B where a1=b1 and b1 in (3,5))" +
                         " and " +
@@ -311,7 +310,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         // one tables in 3 subqueries
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "exists (select 1 from B where a1=b1)" +
                         " and " +
@@ -328,7 +327,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void multipleExistsSubqueries_twoTablesPerSubquery() throws Exception {
         // one tables in 2 subqueries
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "exists (select 1 from B join C on b1=c1 where a1=b1 and b1 in (3,5))" +
                         " and " +
@@ -339,7 +338,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 5 |"
         );
         // one tables in 3 subqueries
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "exists (select 1 from B where a1=b1)" +
                         " and " +
@@ -362,7 +361,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void correlated_rightJoinInSubquery() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select * from C right join D on c1=d1 where a1=c1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -374,7 +373,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void correlated_leftJoinInSubquery() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select * from C left join D on c1=d1 where a1=c1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -398,7 +397,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select * from A " +
                 "join (select * from B" +
                 "      where b1 > 0 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 |B1 |B2 |\n" +
                 "----------------\n" +
                 " 1 |10 | 1 |10 |\n" +
@@ -419,7 +418,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select * from A " +
                 "left join (select * from B" +
                 "      where b1 > 0 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 | B1  | B2  |\n" +
                 "--------------------\n" +
                 " 0 | 0 |NULL |NULL |\n" +
@@ -441,7 +440,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select * from A " +
                 "right join (select * from B" +
                 "      where b1 > 3 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 |B1 |B2 |\n" +
                 "----------------\n" +
                 " 4 |40 | 4 |40 |\n" +
@@ -463,7 +462,7 @@ public class Subquery_Flattening_Exists_IT {
                 "                 inner join C on b1=c1" +
                 "                 where exists (select 1 from D where c1=d1 and c2 = 30)" +
                 "                 and b1 > 0)  AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 | B1  |colAlias |\n" +
                 "------------------------\n" +
                 " 0 | 0 |NULL |   NN    |\n" +
@@ -488,7 +487,7 @@ public class Subquery_Flattening_Exists_IT {
         String sql = "select A.* from A where exists(" +
                 "select 1 from B where a1=b1 and exists(" +
                 "select 1 from C where b1=c1" + "))";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 1 |10 |\n" +
@@ -504,7 +503,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select 1 from B where a1=b1 and exists(" +
                 "select 1 from C where b1=c1 and exists(" +
                 "select 1 from D where d1=c1" + ")))";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 1 |10 |\n" +
@@ -514,7 +513,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select 1 from B where a1=b1 and a1=5 and exists(" +
                 "select 1 from C where b1=c1 and b1=5 and exists(" +
                 "select 1 from D where d1=c1 and d1=5" + ")))";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 5 |50 |");
@@ -530,18 +529,18 @@ public class Subquery_Flattening_Exists_IT {
     public void union_unCorrelated() throws Exception {
         // union of empty tables
         String sql = "select * from A where exists(select 1 from EMPTY_TABLE union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, 1, "");
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "");
 
         // union one non-empty first subquery
         sql = "select count(*) from A where exists(select 1 from C union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "" +
                 "1 |\n" +
                 "----\n" +
                 " 6 |");
 
         // union one non-empty second subquery
         sql = "select count(*) from A where exists(select 1 from EMPTY_TABLE union select 1 from C )";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "" +
                 "1 |\n" +
                 "----\n" +
                 " 6 |");
@@ -551,11 +550,11 @@ public class Subquery_Flattening_Exists_IT {
     public void union_correlated() throws Exception {
         // union of empty tables
         String sql = "select * from A where exists(select 1 from EMPTY_TABLE where e1=a1 union select 1 from EMPTY_TABLE e where e1=a1)";
-        assertUnorderedResult(conn(), sql, 1, "");
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "");
 
         // union one non-empty first subquery
         sql = "select * from A where exists(select 1 from C where c1=a1 union select 1 from EMPTY_TABLE where e1=a1)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 1 |10 |\n" +
@@ -566,7 +565,7 @@ public class Subquery_Flattening_Exists_IT {
 
         // union one non-empty second subquery
         sql = "select * from A where exists(select 1 from EMPTY_TABLE where e1=a1 union select 1 from C where c1=a1)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 1 |10 |\n" +
@@ -577,7 +576,7 @@ public class Subquery_Flattening_Exists_IT {
 
         // union no non-empty
         sql = "select * from A where exists(select 1 from D where d1=a1 union select 1 from C where c1=a1)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 0 | 0 |\n" +
@@ -589,7 +588,7 @@ public class Subquery_Flattening_Exists_IT {
 
         // union same table
         sql = "select * from A where exists(select 1 from D where d1=a1 union select 1 from D where d2=a2)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        SubqueryITUtil.assertUnorderedResult(conn(), sql, 1, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 0 | 0 |\n" +
@@ -625,14 +624,14 @@ public class Subquery_Flattening_Exists_IT {
         methodWatcher.executeUpdate("insert into CC values(1),(2)");
 
         /* correlated */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from AA where exists(select 1 from BB join CC on b2=c1 where b1=a1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
                         " 2 |");
         /* uncorrelated */
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from AA where exists(select 1 from BB join CC on b2=c1)", ALL_FLATTENED, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -691,7 +690,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void notFlattened_or() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "exists (select b1 from B where a1=b1 and b1 in (3,5))" +
                         "or " +
@@ -702,7 +701,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 3 |\n" +
                         " 5 |"
         );
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1 from B where a1=b1 and b1 < 3) or a1=5", 1, "" +
                         "A1 |\n" +
                         "----\n" +
@@ -716,7 +715,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void notFlattened_havingSubquery() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select b1, sum(b2) " +
                         "from B " +
                         "where b1 > 1 " +
@@ -729,7 +728,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 4 |80  |\n" +
                         " 5 |100 |"
         );
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select b1, sum(b2) " +
                         "from B " +
                         "where b1 > 1 " +
@@ -746,7 +745,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void notFlattened_multiLevelCorrelationPredicate() throws Exception {
-        assertUnorderedResult(conn(),
+        SubqueryITUtil.assertUnorderedResult(conn(),
                 "select A.* from A where " +
                         "exists(select 1 from B where a1=b1 and " +
                         "exists(select 1 from C where c1=a1))", 2, "" +

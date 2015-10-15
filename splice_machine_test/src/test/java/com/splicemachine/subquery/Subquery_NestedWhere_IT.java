@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -9,7 +9,6 @@ import org.junit.Test;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static com.splicemachine.derby.impl.sql.execute.operations.SubqueryITUtil.assertUnorderedResult;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -126,7 +125,7 @@ public class Subquery_NestedWhere_IT {
                 "  13   |  102  |\n" +
                 "  14   |  103  |\n" +
                 "  15   |  103  |";
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
 
 		/* A variation of the above WHERE EXISTS but using IN should return the same rows */
         sb = new StringBuilder();
@@ -145,7 +144,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("         and unbound_e.empid = this_employees_e.empid) ");
         sb.append("     )");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
 
 		/* A variation of the above WHERE EXISTS but using ANY should return the same rows */
         sb = new StringBuilder();
@@ -164,7 +163,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("         and unbound_e.empid = this_employees_e.empid) ");
         sb.append("     )");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, expectedRowsString);
 
 		/* 
          * The next 5 queries were also found problematic as part DERBY-3301 
@@ -176,7 +175,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("      where this_employees_e.department = this.id and ");
         sb.append("            unbound_e.empid = this_employees_e.empid and this.id = 2)");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 0, "" +
                 "EMPID |\n" +
                 "--------\n" +
                 "  14   |\n" +
@@ -195,7 +194,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("         unbound_e.empid = this_employees_e.empid ");
         sb.append(" )) ");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
                 "ID | EMPID |PROJID |\n" +
                 "--------------------\n" +
                 " 1 |  11   |  101  |\n" +
@@ -219,7 +218,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("            and unbound_e.empid = this_employees_e.empid ");
         sb.append("            and this.id = 1)) ");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
                 "EMPID |PROJID |\n" +
                 "----------------\n" +
                 "  11   |  101  |\n" +
@@ -241,7 +240,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("            and unbound_e.empid = this_employees_e.empid ");
         sb.append("            and this.companyid = 1))");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
                 "EMPID |PROJID |\n" +
                 "----------------\n" +
                 "  11   |  101  |\n" +
@@ -267,7 +266,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("            and unbound_e.empid = this_employees_e.empid) ");
         sb.append(")");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
                 "EMPID |PROJID |\n" +
                 "----------------\n" +
                 "  11   |  101  |\n" +
@@ -293,7 +292,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("            and unbound_e.empid = this_employees_e.empid)");
         sb.append(")");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
                 "EMPID |PROJID |\n" +
                 "----------------\n" +
                 "  11   |  101  |\n" +
@@ -319,7 +318,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("            and unbound_e.empid = this_employees_e.empid)");
         sb.append(")");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 2, "" +
                 "EMPID |PROJID |\n" +
                 "----------------\n" +
                 "  11   |  101  |\n" +
@@ -343,7 +342,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("select * from a ");
         sb.append("where not exists ");
         sb.append("(select bb from (select bb from b) p where a.bb=p.bb)");
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 0, "" +
                 "AA |BB |\n" +
                 "--------\n" +
                 " 1 | 2 |\n" +
@@ -354,7 +353,7 @@ public class Subquery_NestedWhere_IT {
         sb.append("select * from a ");
         sb.append("where exists ");
         sb.append("(select bb from (select bb from b) p where a.bb=p.bb)");
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sb.toString(), 0, "" +
                 "AA |BB |\n" +
                 "--------\n" +
                 " 1 | 1 |");
@@ -388,35 +387,35 @@ public class Subquery_NestedWhere_IT {
         s.executeUpdate("insert into t5501b values 1,3,5");
 
         // works before DERBY-5501
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select i from t5501a t2 where t1.i=t2.i)", 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select i from t5501a t2 where t1.i=t2.i)", 0, "" +
                 "I |\n" +
                 "----\n" +
                 " 5 |");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i+3.14 from t5501b t1 where not exists (select i+3.14 from t5501a t2 where t1.i=t2.i)", 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i+3.14 from t5501b t1 where not exists (select i+3.14 from t5501a t2 where t1.i=t2.i)", 0, "" +
                 "1  |\n" +
                 "------\n" +
                 "8.14 |");
 
         // works before DERBY-5501: "*" is specially handled already
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select * from t5501a t2 where t1.i=t2.i)", 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select * from t5501a t2 where t1.i=t2.i)", 0, "" +
                 "I |\n" +
                 "----\n" +
                 " 5 |");
 
         // fails before DERBY-5501
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select i,j from t5501a t2 where t1.i=t2.i)", 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select i,j from t5501a t2 where t1.i=t2.i)", 0, "" +
                 "I |\n" +
                 "----\n" +
                 " 5 |");
 
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select true,j from t5501a t2 where t1.i=t2.i)", 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select true,j from t5501a t2 where t1.i=t2.i)", 0, "" +
                 "I |\n" +
                 "----\n" +
                 " 5 |");
 
         s.executeUpdate("delete from t5501a where i=1");
-        assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select i,j from t5501a t2 where t1.i=t2.i)", 0, "" +
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), "select i from t5501b t1 where not exists (select i,j from t5501a t2 where t1.i=t2.i)", 0, "" +
                 "I |\n" +
                 "----\n" +
                 " 1 |\n" +
