@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.subquery;
 
 import com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -598,21 +598,6 @@ public class Subquery_Flattening_Aggregate_IT {
                 " 4 |40 |40  |\n" +
                 " 5 |50 |500 |");
     }
-
-    @Test
-    public void unsupported_values() throws Exception {
-        String sql = "select * from A where a1 = (values 1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
-                "A1 |A2 |A3 |\n" +
-                "------------\n" +
-                " 1 |10 |10 |");
-        sql = "select * from A where a1 = (select a1 from A where a1 = (values 1))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3 |\n" +
-                "------------\n" +
-                " 1 |10 |10 |");
-    }
-
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
