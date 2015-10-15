@@ -21,6 +21,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     private String characterDelimiter;
     private String columnDelimiter;
     private int numberOfColumns;
+    private int[] columnIndex;
     public SpliceFileVTI() {
 
     }
@@ -29,9 +30,14 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter) {
-        this.fileName = fileName;
+        this(fileName);
         this.characterDelimiter = characterDelimiter;
         this.columnDelimiter = columnDelimiter;
+    }
+
+    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex) {
+        this(fileName, characterDelimiter, columnDelimiter);
+        this.columnIndex = columnIndex;
     }
 
     public static DatasetProvider getSpliceFileVTI(String fileName) {
@@ -40,6 +46,10 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
 
     public static DatasetProvider getSpliceFileVTI(String fileName, String characterDelimiter, String columnDelimiter) {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter);
+    }
+
+    public static DatasetProvider getSpliceFileVTI(String fileName, String characterDelimiter, String columnDelimiter, int[] columnIndex) {
+        return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex);
     }
 
     @Override
