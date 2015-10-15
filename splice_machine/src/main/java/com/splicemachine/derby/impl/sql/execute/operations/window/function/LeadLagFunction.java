@@ -16,7 +16,6 @@ import com.splicemachine.db.impl.sql.compile.LeadLagFunctionDefinition;
  *         Date: 9/30/15
  */
 public class LeadLagFunction extends SpliceGenericWindowFunction {
-    private boolean isLead;
     private int offset;
     // TODO: JC - handle default value
     private DataValueDescriptor defaultValue;
@@ -26,7 +25,7 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
     public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnType,
                                 FormatableHashtable functionSpecificArgs) {
         super.setup(cf, aggregateName, returnType);
-        this.isLead = aggregateName.equals("LEAD");
+        boolean isLead = aggregateName.equals("LEAD");
         this.offset = (int) functionSpecificArgs.get(LeadLagFunctionDefinition.OFFSET);
         // TODO: JC - handle default value
 //        this.defaultValue = (DataValueDescriptor) functionSpecificArgs.get(LeadLagFunctionDefinition.DEFAULT_VALUE);
