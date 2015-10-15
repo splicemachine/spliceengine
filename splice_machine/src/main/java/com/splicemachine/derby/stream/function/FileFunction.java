@@ -51,9 +51,9 @@ import java.io.StringReader;
                         SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
                 String[] values = spliceCsvReader.readAsStringArray();
                 ExecRow returnRow = execRow.getClone();
-                if (values.length != returnRow.nColumns()) {
+                /*if (values.length != returnRow.nColumns()) {
                     throw new RuntimeException("Column Missmatch with value " + s);
-                } else {
+                } else*/ {
                     for (int i = 1; i <= returnRow.nColumns(); i++) {
                         returnRow.getColumn(i).setValue(values[i-1]);
                     }
