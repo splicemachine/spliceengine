@@ -178,7 +178,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     private static class ResultBuffer implements Iterator<ExecRow> {
         private final List<ExecRow> results = new ArrayList<>();
         private Iterator<ExecRow> resultItr;
-        boolean finished;
+        private boolean finished;
 
         void bufferResult(ExecRow resultRow) {
             results.add(resultRow);
@@ -210,7 +210,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
 
         @Override
         public ExecRow next() {
-            if (! finished || resultItr == null || ! resultItr.hasNext()) {
+            if (resultItr == null || ! resultItr.hasNext()) {
                 return null;
             }
             ExecRow resultRow = resultItr.next();
