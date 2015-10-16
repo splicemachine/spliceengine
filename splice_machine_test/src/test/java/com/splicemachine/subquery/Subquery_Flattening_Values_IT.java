@@ -10,7 +10,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import static com.splicemachine.subquery.SubqueryITUtil.assertUnorderedResult;
+import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -33,9 +33,6 @@ public class Subquery_Flattening_Values_IT {
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
 
-    private static final int ALL_FLATTENED = 0;
-
-
     @BeforeClass
     public static void createSharedTables() throws Exception {
         classWatcher.executeUpdate("create table A(a1 int, a2 int, a3 int)");
@@ -44,20 +41,20 @@ public class Subquery_Flattening_Values_IT {
 
     @Test
     public void values() throws Exception {
-        assertUnorderedResult(conn(), "select * from A where a1 = (values 1)", ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 = (values 1)", ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 1 |10 |10 |");
-        assertUnorderedResult(conn(), "select * from A where a1 > (values 1)", ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 > (values 1)", ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 2 |20 |20 |\n" +
                 " 3 |30 |30 |");
-        assertUnorderedResult(conn(), "select * from A where a1 < (values 1)", ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 < (values 1)", ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |");
-        assertUnorderedResult(conn(), "select * from A where a1 != (values 1)", ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 != (values 1)", ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |\n" +
@@ -68,7 +65,7 @@ public class Subquery_Flattening_Values_IT {
     @Test
     public void valuesThrows() throws Exception {
         try {
-            assertUnorderedResult(conn(), "select * from A where a1 = (values 1,2)", ALL_FLATTENED, "");
+            assertUnorderedResult(conn(), "select * from A where a1 = (values 1,2)", ZERO_SUBQUERY_NODES, "");
             fail("expected exception");
         } catch (SQLException e) {
             assertEquals("Scalar subquery is only allowed to return a single row.", e.getMessage());
