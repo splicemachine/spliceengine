@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.test.framework;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -29,6 +29,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.services.reflect.SpliceReflectClasses;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.SpliceExecutionFactory;
+import com.splicemachine.derby.impl.sql.execute.operations.window.BaseFrameBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregatorImpl;
+import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrameBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import com.splicemachine.derby.utils.PartitionAwareIterator;
 import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
@@ -51,7 +56,7 @@ import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
  *          <li>Create an instance of the expected results function (the nested class created above)</li>
  *      </ul>
  *      <li>Use this framework to run your test and verify results -
- *      see {@link #helpTestWindowFunction(int, int, int[], int[], int[], java.util.List, FrameDefinition, com.splicemachine.derby.impl.sql.execute.operations.window.WindowTestingFramework.ExpectedResultsFunction, com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction, boolean)}</li>
+ *      see {@link #helpTestWindowFunction(int, int, int[], int[], int[], java.util.List, FrameDefinition, WindowTestingFramework.ExpectedResultsFunction, com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction, boolean)}</li>
  *     </li>
  * </ol>
  *
@@ -97,7 +102,7 @@ public class WindowTestingFramework {
     @Test
     @Ignore("Just for demo purposes. Can be run manually.")
     public void testGenInserts() throws Exception {
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition().setColumnName("intCol"),
                 new DoubleColumnDefinition().setVariant(4).setColumnConstraint("not null"),
@@ -120,7 +125,7 @@ public class WindowTestingFramework {
      * @param inputRowDefinition the width and type for the input columns.
      * @param frameDefinition the window frame clause. Pass <code>null</code> to use the {@link #DEFAULT_FRAME_DEF}
      * @param expectedResultsFunction a function provided by the caller that implements
-     * {@link com.splicemachine.derby.impl.sql.execute.operations.window.WindowTestingFramework.ExpectedResultsFunction}
+     * {@link WindowTestingFramework.ExpectedResultsFunction}
      *                          that is used to generate expected results to verify window function results.
      * @param function the window function to test
      * @param printResults passing <code>true</code> will print out window function output plus expected results.
@@ -149,9 +154,9 @@ public class WindowTestingFramework {
         }
 
         // foreach partition, create a frameSource
-        List<PartitionAwarePushBackIterator<ExecRow>> frameSources = new ArrayList<PartitionAwarePushBackIterator<ExecRow>>(nPartitions);
-        List<ExecRow> expectedRows = new ArrayList<ExecRow>(nPartitions*partitionSize);
-        List<ExecRow> allInputRows = new ArrayList<ExecRow>(nPartitions*partitionSize);
+        List<PartitionAwarePushBackIterator<ExecRow>> frameSources = new ArrayList<>(nPartitions);
+        List<ExecRow> expectedRows = new ArrayList<>(nPartitions*partitionSize);
+        List<ExecRow> allInputRows = new ArrayList<>(nPartitions * partitionSize);
         for (int i=1; i<=nPartitions; i++) {
 
             // create a list of rows within partition
@@ -160,7 +165,7 @@ public class WindowTestingFramework {
             if (partitionColIDs.length > 0) {
                 // init the frame source with rows of the partition
                 PartitionAwarePushBackIterator<ExecRow> frameSource =
-                    new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(inputRows, partitionColIDs));
+                    new PartitionAwarePushBackIterator<>(new TestPartitionAwareIterator(inputRows, partitionColIDs));
                 frameSources.add(frameSource);
             } else {
                 allInputRows.addAll(inputRows);
@@ -173,7 +178,7 @@ public class WindowTestingFramework {
         if (partitionColIDs.length == 0) {
             // init the frame source with rows of the partition
             PartitionAwarePushBackIterator<ExecRow> frameSource =
-                new PartitionAwarePushBackIterator<ExecRow>(new TestPartitionAwareIterator(allInputRows, partitionColIDs));
+                new PartitionAwarePushBackIterator<>(new TestPartitionAwareIterator(allInputRows, partitionColIDs));
             frameSources.add(frameSource);
         }
 
@@ -188,14 +193,14 @@ public class WindowTestingFramework {
             new WindowAggregatorImpl(function,aggregatorColID, inputColumnIDs,resultColID, frameDefinition)};
 
         // iterate thru the partitions creating a frame buffer for each
-        List<ExecRow> results = new ArrayList<ExecRow>();
+        List<ExecRow> results = new ArrayList<>();
         for (PartitionAwarePushBackIterator<ExecRow> frameSource : frameSources) {
             WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(null,
-                                                      functions,
-                                                      frameSource,
-                                                      theFrame,
-                                                      convertToZeroBased(inputColumnIDs),
-                                                      templateRow);
+                                                                              functions,
+                                                                              frameSource,
+                                                                              theFrame,
+                                                                              convertToZeroBased(inputColumnIDs),
+                                                                              templateRow);
 
             // process each frame buffer
             ExecRow row = frameBuffer.next(null);
@@ -227,7 +232,7 @@ public class WindowTestingFramework {
      */
     public static List<ExecRow> createValueRows(int partitionValue, int nRows, int[] sortColIDs,
                                                 List<TestColumnDefinition> columnDefinitions) throws StandardException {
-        List<ExecRow> rows = new ArrayList<ExecRow>(nRows);
+        List<ExecRow> rows = new ArrayList<>(nRows);
         for (int j=0; j<nRows; j++) {
             ValueRow valueRow = new ValueRow(columnDefinitions.size());
             int i=1; // valueRow.setColumn() is 1-based
@@ -259,7 +264,7 @@ public class WindowTestingFramework {
      */
     public List<ExecRow> calculateExpectedResults(List<ExecRow> inputRows, ExpectedResultsFunction expectedResultsFunction)
         throws StandardException {
-        List<ExecRow> expectedRows = new ArrayList<ExecRow>(inputRows.size());
+        List<ExecRow> expectedRows = new ArrayList<>(inputRows.size());
         for (ExecRow inputRow : inputRows) {
             DataValueDescriptor[] cloneRow = inputRow.getRowArrayClone();
             ValueRow templateRow = new ValueRow(cloneRow.length + 1);
@@ -453,7 +458,7 @@ public class WindowTestingFramework {
      */
     public static void printInputSet(List<TestColumnDefinition> rowDefinition, int nRows, int[] sortColIDs,
                                      String tableName, PrintStream out) throws StandardException {
-        List<ExecRow> rows = new ArrayList<ExecRow>();
+        List<ExecRow> rows = new ArrayList<>();
         for (int i=1; i<=2; i++) {
             rows.addAll(createValueRows(i, nRows, sortColIDs, rowDefinition));
         }
@@ -532,7 +537,7 @@ public class WindowTestingFramework {
             this.repeatCounter = 0;
             this.repeatPeriod = repeatPeriod;
             this.maxDuplicates = DUPLICATE_SET_SIZE_MULTIPLIER *this.repeatPeriod;
-            this.duplicateSet = new ArrayList<DataValueDescriptor>(maxDuplicates);
+            this.duplicateSet = new ArrayList<>(maxDuplicates);
             return this;
         }
 

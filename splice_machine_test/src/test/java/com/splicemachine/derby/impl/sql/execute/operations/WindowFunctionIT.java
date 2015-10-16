@@ -1,8 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,20 +30,22 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
 
 /**
  *
  * Created by jyuan on 7/30/14.
  */
 public class WindowFunctionIT extends SpliceUnitTest {
-    public static final String CLASS_NAME = WindowFunctionIT.class.getSimpleName().toUpperCase();
+    private static final String SCHEMA = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    private static String tableDef = "(empnum int, dept int, salary int)";
-    public static final String TABLE_NAME = "EMPTAB";
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);
+    private static String empTabDef = "(empnum int, dept int, salary int)";
+    private static final String EMPTAB = "EMPTAB";
+    private static SpliceTableWatcher empTabTableWatcher = new SpliceTableWatcher(EMPTAB, SCHEMA, empTabDef);
 
     private static String[] EMPTAB_ROWS = {
         "20,1,75000",
@@ -60,9 +65,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "30,3,84000"
     };
 
-    private static String table2Def = "(item int, price double, date timestamp)";
-    public static final String TABLE2_NAME = "purchased";
-    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME, table2Def);
+    private static String perchacedDef = "(item int, price double, date timestamp)";
+    private static final String PURCHASED = "purchased";
+    private static SpliceTableWatcher purchacedTableWatcher = new SpliceTableWatcher(PURCHASED, SCHEMA, perchacedDef);
 
     private static String[] PURCHASED_ROWS = {
         "1, 1.0, '2014-09-08 18:27:48.881'",
@@ -82,9 +87,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "5, 11.0, '2014-09-08 17:41:56.353'"
     };
 
-    private static String table3Def = "(PersonID int,FamilyID int,FirstName varchar(10),LastName varchar(25),DOB timestamp)";
-    public static final String TABLE3_NAME = "people";
-    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME, table3Def);
+    private static String peopleDef = "(PersonID int,FamilyID int,FirstName varchar(10),LastName varchar(25),DOB timestamp)";
+    private static final String PEOPLE = "people";
+    private static SpliceTableWatcher peopleTableWatcher = new SpliceTableWatcher(PEOPLE, SCHEMA, peopleDef);
 
     private static String[] PEOPLE_ROWS = {
         "1,1,'Joe','Johnson', '2000-10-23 13:00:00'",
@@ -100,9 +105,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "2,1,'Jim','Johnson','2001-12-15 05:45:00'"
     };
 
-    private static String table4Def = "(EMPNO NUMERIC(4) NOT NULL, ENAME VARCHAR(10), JOB VARCHAR(9), MGR numeric(4), HIREDATE DATE, SAL NUMERIC(7, 2), COMM numeric(7, 2), DEPTNO numeric(2))";
-    public static final String TABLE4_NAME = "emp";
-    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher(TABLE4_NAME,CLASS_NAME, table4Def);
+    private static String empDef = "(EMPNO NUMERIC(4) NOT NULL, ENAME VARCHAR(10), JOB VARCHAR(9), MGR numeric(4), HIREDATE DATE, SAL NUMERIC(7, 2), COMM numeric(7, 2), DEPTNO numeric(2))";
+    private static final String EMP = "emp";
+    private static SpliceTableWatcher empTableWatcher = new SpliceTableWatcher(EMP, SCHEMA, empDef);
 
     private static String[] EMP_ROWS = {
         "7369, 'SMITH', 'CLERK',    7902, '1980-12-17', 800, NULL, 20",
@@ -121,26 +126,26 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "7934, 'MILLER', 'CLERK', 7782,'1982-01-23', 1300, NULL, 10"
     };
 
-    private static final String VIEW_NAME = "YEAR_VIEW";
-    private static String viewDef = String.format("as select to_char(hiredate,'yy') as yr,ename,hiredate from %s.%s group by hiredate,ename",
-                                                  CLASS_NAME, TABLE4_NAME);
-    private static SpliceViewWatcher yearView = new SpliceViewWatcher(VIEW_NAME,CLASS_NAME, viewDef);
+    private static final String YEAR_VIEW = "YEAR_VIEW";
+    private static String viewYearDef = String.format("as select to_char(hiredate,'yy') as yr,ename,hiredate from %s.%s group by hiredate,ename",
+                                                      SCHEMA, EMP);
+    private static SpliceViewWatcher yearView = new SpliceViewWatcher(YEAR_VIEW, SCHEMA, viewYearDef);
 
-    private static String table5aDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, Nome_Dep VARCHAR(200))";
-    public static final String TABLE5a_NAME = "Departamentos";
-    protected static SpliceTableWatcher spliceTableWatcher5a = new SpliceTableWatcher(TABLE5a_NAME,CLASS_NAME, table5aDef);
+    private static String departmentosDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, Nome_Dep VARCHAR(200))";
+    private static final String DEPARTAMENTOS = "Departamentos";
+    private static SpliceTableWatcher departmentosTableWatcher = new SpliceTableWatcher(DEPARTAMENTOS, SCHEMA, departmentosDef);
 
-    private static String[] DEPT = {
+    private static String[] DEPT_ROWS = {
         "'Vendas'",
         "'IT'",
         "'Recursos Humanos'"
     };
 
-    private static String table5bDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, ID_Dep INT, Nome VARCHAR(200), Salario Numeric(18,2))";
-    public static final String TABLE5b_NAME = "Funcionarios";
-    protected static SpliceTableWatcher spliceTableWatcher5b = new SpliceTableWatcher(TABLE5b_NAME,CLASS_NAME, table5bDef);
+    private static String functionariosDef = "(ID INT generated always as identity (START WITH 1, INCREMENT BY 1) PRIMARY KEY, ID_Dep INT, Nome VARCHAR(200), Salario Numeric(18,2))";
+    private static final String FUNCIONARIOS = "Funcionarios";
+    private static SpliceTableWatcher functionariosTableWatcher = new SpliceTableWatcher(FUNCIONARIOS, SCHEMA, functionariosDef);
 
-    private static String[] FUNC = {
+    private static String[] FUNC_ROWS = {
         "1, 'Fabiano', 2000",
         "1, 'Amorim', 2500",
         "1, 'Diego', 9000",
@@ -153,8 +158,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     };
 
     private static String best_addr_freqDef = "(INDIVIDUAL_ID bigint, RESIDENCE_ID bigint, FILE_ID integer, GENERATION_QUALIFIER varchar(15), FIRST_NAME varchar(15), LAST_NAME varchar(15), US_ADDRESS_LINE_1 varchar(100), US_ADDRESS_LINE_2 varchar(100), US_ADDRESS_LINE_3 varchar(100), US_STATE varchar(100), US_CITY varchar(20), US_ZIP  varchar(10), US_ZIP4 varchar(10), BRAND integer, FREQUENCY bigint, RUS_NCOA_EFFECTIVE_DATE timestamp, RSOURCERECORD_POOL integer, RSOURCERECORD_SUM integer, SOURCE_DATE timestamp, RECORD_ID bigint, RWRNK bigint)";
-    public static final String best_addr_freq_NAME = "best_addr_freq";
-    protected static SpliceTableWatcher spliceTableWatcherBest_addr_freq = new SpliceTableWatcher(best_addr_freq_NAME,CLASS_NAME, best_addr_freqDef);
+    private static final String best_addr_freq_NAME = "best_addr_freq";
+    private static SpliceTableWatcher spliceTableWatcherBest_addr_freq = new SpliceTableWatcher(best_addr_freq_NAME, SCHEMA, best_addr_freqDef);
 
     private static final String best_addr_freq_insert = "insert into %s (INDIVIDUAL_ID, RESIDENCE_ID, FILE_ID, GENERATION_QUALIFIER, FIRST_NAME, LAST_NAME, US_ADDRESS_LINE_1, US_ADDRESS_LINE_2, US_ADDRESS_LINE_3, US_STATE, US_CITY, US_ZIP, US_ZIP4, BRAND, FREQUENCY, RUS_NCOA_EFFECTIVE_DATE, RSOURCERECORD_POOL, RSOURCERECORD_SUM, SOURCE_DATE, RECORD_ID, RWRNK) values (%s)";
     private static String[] best_addr_freqRows = {
@@ -171,8 +176,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
     };
 
     private static String best_ids_poolDef = "(INDIVIDUAL_ID bigint, RESIDENCE_ID bigint, HOUSEHOLD_ID bigint, FILE_ID integer, BUSINESS_IND boolean, CREATED_BY varchar(100), CREATED_DATE timestamp, JOB_ID integer, BRAND integer, GENERATION_QUALIFIER varchar(15), FIRST_NAME varchar(25), LAST_NAME varchar(25), RSOURCERECORD_POOL integer, RSOURCERECORD_SUM integer, SOURCE_DATE timestamp, RECORD_ID bigint, US_ADDRESS_LINE_1 varchar(100), US_ADDRESS_LINE_2 varchar(100), US_ADDRESS_LINE_3 varchar(100), US_STATE varchar(100), US_CITY varchar(20), US_ZIP  varchar(10), US_ZIP4 varchar(10), RUS_NCOA_EFFECTIVE_DATE timestamp, RUS_NCOA_MOVE_CODE integer, RADDRESS_QUALITY integer, RPRIORITY integer, RINVALID_MOVE_IND integer, ROWRANK bigint)";
-    public static final String best_ids_pool_NAME = "best_ids_pool";
-    protected static SpliceTableWatcher spliceTableWatcherBest_ids_pool = new SpliceTableWatcher(best_ids_pool_NAME,CLASS_NAME, best_ids_poolDef);
+    private static final String best_ids_pool_NAME = "best_ids_pool";
+    private static SpliceTableWatcher spliceTableWatcherBest_ids_pool = new SpliceTableWatcher(best_ids_pool_NAME, SCHEMA, best_ids_poolDef);
 
     private static final String best_ids_pool_insert = "insert into %s (INDIVIDUAL_ID ,RESIDENCE_ID ,HOUSEHOLD_ID ,FILE_ID ,BUSINESS_IND ,CREATED_BY ,CREATED_DATE ,JOB_ID ,BRAND ,GENERATION_QUALIFIER ,FIRST_NAME ,LAST_NAME ,RSOURCERECORD_POOL ,RSOURCERECORD_SUM ,SOURCE_DATE ,RECORD_ID ,US_ADDRESS_LINE_1 ,US_ADDRESS_LINE_2 ,US_ADDRESS_LINE_3 ,US_STATE ,US_CITY ,US_ZIP ,US_ZIP4 ,RUS_NCOA_EFFECTIVE_DATE ,RUS_NCOA_MOVE_CODE ,RADDRESS_QUALITY ,RPRIORITY ,RINVALID_MOVE_IND ,ROWRANK ) values (%s)";
     private static String[] best_ids_poolDefRows = {
@@ -188,10 +193,102 @@ public class WindowFunctionIT extends SpliceUnitTest {
         "1, 19908, 1, 1, NULL, 'a', NULL, 1, 222, 'a', 'a', 'a', 0, 0, NULL, 1, 'Howard Street', 'Financial District', ' ', 'CA', 'San Francisco', '94105', '1111', '1900-01-01 00:00:00.0', 0, 0, 333, 0, 316"
     };
 
+    private static String empTabHireDateDef = "(empnum int, dept int, salary int, hiredate date)";
+    private static final String EMPTAB_HIRE_DATE = "EMPTAB_HIRE_DATE";
+    private static SpliceTableWatcher empTabHireDateTableWatcher = new SpliceTableWatcher(EMPTAB_HIRE_DATE, SCHEMA, empTabHireDateDef);
+
+    private static String[] EMPTAB_HIRE_DATE_ROWS = {
+        "20,1,75000,'2012-11-11'",
+        "70,1,76000,'2012-04-03'",
+        "60,1,78000,'2014-03-04'",
+        "110,1,53000,'2010-03-20'",
+        "50,1,52000,'2011-05-24'",
+        "55,1,52000,'2011-10-15'",
+        "10,1,50000,'2010-03-20'",
+        "90,2,51000,'2012-04-03'",
+        "40,2,52000,'2013-06-06'",
+        "44,2,52000,'2013-12-20'",
+        "49,2,53000,'2012-04-03'",
+        "80,3,79000,'2013-04-24'",
+        "100,3,55000,'2010-04-12'",
+        "120,3,75000,'2012-04-03'",
+        "30,3,84000,'2010-08-09'",
+    };
+
+    private static final String EMPTAB_NULLS = "EMPTAB_NULLS";
+    private static SpliceTableWatcher empTabNullsTableWatcher = new SpliceTableWatcher(EMPTAB_NULLS, SCHEMA, empTabHireDateDef);
+
+    private static String[] EMPTAB_ROWS_NULL = {
+        "20,1,75000,'2012-11-11'",
+        "70,1,76000,'2012-04-03'",
+        "60,1,78000,'2014-03-04'",
+        "110,1,53000,'2010-03-20'",
+        "50,1,52000,'2011-05-24'",
+        "55,1,52000,'2011-10-15'",
+        "10,1,50000,'2010-03-20'",
+        "90,2,51000,'2012-04-03'",
+        "40,2,52000,'2013-06-06'",
+        "44,2,52000,'2013-12-20'",
+        "49,2,53000,'2012-04-03'",
+        "80,3,79000,'2013-04-24'",
+        "100,3,55000,'2010-04-12'",
+        "120,3,75000,'2012-04-03'",
+        "30,3,84000,'2010-08-09'",
+        "32,1,null,'2010-08-09'",
+        "33,3,null,'2010-08-09'"
+    };
+
+    private static String txnDetailDef = "(SOURCE_SALES_INSTANCE_ID BIGINT, TRANSACTION_DT DATE NOT NULL, ORIGINAL_SKU_CATEGORY_ID INTEGER, SALES_AMT DECIMAL(9,2), CUSTOMER_MASTER_ID BIGINT)";
+    private static final String TXN_DETAIL = "TXN_DETAIL";
+    private static SpliceTableWatcher txnDetailTableWatcher = new SpliceTableWatcher(TXN_DETAIL, SCHEMA, txnDetailDef);
+
+    private static String[] TXN_DETAIL_ROWS = {
+        "0,'2013-05-12',44871,329.18,74065939",
+        "0,'2013-05-12',44199,35.46,74065939",
+        "0,'2013-05-12',44238,395.44,74065939",
+        "0,'2013-05-12',44410,1763.41,74065939",
+        "0,'2013-05-12',44797,915.97,74065939",
+        "0,'2013-05-12',44837,179.88,74065939",
+        "0,'2013-05-12',44600,0,74065939",
+        "0,'2013-05-12',44880,467.33,74065939"
+    };
+
+    private static String allSalesDef = "(years INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount NUMERIC(8, 2))";
+    private static final String ALL_SALES = "ALL_SALES";
+    private static SpliceTableWatcher allSalesTableWatcher = new SpliceTableWatcher(ALL_SALES, SCHEMA, allSalesDef);
+
+    private static String[] ALL_SALES_ROWS = {
+        "2006,1,1,21,16034.84",
+        "2006,2,1,21,15644.65",
+        "2006,3,2,21,20167.83",
+        "2006,4,2,21,25056.45",
+        "2006,5,2,21,NULL",
+        "2006,6,1,21,15564.66",
+        "2006,7,1,21,15644.65",
+        "2006,8,1,21,16434.82",
+        "2006,9,1,21,19654.57",
+        "2006,10,1,21,21764.19",
+        "2006,11,1,21,13026.73",
+        "2006,12,2,21,10034.64",
+        "2005,1,2,22,16634.84",
+        "2005,1,2,21,26034.84",
+        "2005,2,1,21,12644.65",
+        "2005,3,1,21,NULL",
+        "2005,4,1,21,25026.45",
+        "2005,5,1,21,17212.66",
+        "2005,6,1,21,15564.26",
+        "2005,7,2,21,62654.82",
+        "2005,8,2,21,26434.82",
+        "2005,9,2,21,15644.65",
+        "2005,10,2,21,21264.19",
+        "2005,11,1,21,13026.73",
+        "2005,12,1,21,10032.64"
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
-                                            .around(spliceTableWatcher)
+                                            .around(empTabTableWatcher)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
@@ -199,14 +296,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     try {
                                                         for (String row : EMPTAB_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
-                                                                String.format("insert into %s values (%s)", spliceTableWatcher, row));
+                                                                String.format("insert into %s values (%s)", empTabTableWatcher, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
                                                         throw new RuntimeException(e);
                                                     }
                                                 }})
-                                            .around(spliceTableWatcher2)
+                                            .around(purchacedTableWatcher)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
@@ -214,7 +311,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     try {
                                                         for (String row : PURCHASED_ROWS) {
                                                             String sql = String.format("insert into %s values (%s)",
-                                                                                       spliceTableWatcher2, row);
+                                                                                       purchacedTableWatcher, row);
 //                            System.out.println(sql+";");  // will print insert statements
                                                             ps = spliceClassWatcher.prepareStatement(sql);
                                                             ps.execute();
@@ -224,7 +321,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     }
                                                 }
                                             })
-                                            .around(spliceTableWatcher3)
+                                            .around(peopleTableWatcher)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
@@ -233,7 +330,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                         for (String row : PEOPLE_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
                                                                 String.format("insert into %s values (%s)",
-                                                                              spliceTableWatcher3, row));
+                                                                              peopleTableWatcher, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -241,7 +338,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     }
                                                 }
                                             })
-                                            .around(spliceTableWatcher4)
+                                            .around(empTableWatcher)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
@@ -250,7 +347,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                         for (String row : EMP_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
                                                                 String.format("insert into %s values (%s)",
-                                                                              spliceTableWatcher4, row));
+                                                                              empTableWatcher, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -259,16 +356,16 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                 }
                                             })
                                             .around(yearView)
-                                            .around(spliceTableWatcher5a)
+                                            .around(departmentosTableWatcher)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
                                                     PreparedStatement ps;
                                                     try {
-                                                        for (String row : DEPT) {
+                                                        for (String row : DEPT_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
                                                                 String.format("insert into %s (Nome_Dep) values (%s)" +
-                                                                                  "", spliceTableWatcher5a, row));
+                                                                                  "", departmentosTableWatcher, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -276,17 +373,17 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                     }
                                                 }
                                             })
-                                            .around(spliceTableWatcher5b)
+                                            .around(functionariosTableWatcher)
                                             .around(new SpliceDataWatcher() {
                                                 @Override
                                                 protected void starting(Description description) {
                                                     PreparedStatement ps;
                                                     try {
-                                                        for (String row : FUNC) {
+                                                        for (String row : FUNC_ROWS) {
                                                             ps = spliceClassWatcher.prepareStatement(
                                                                 String.format("insert into %s (ID_Dep, Nome, " +
                                                                                   "Salario) values (%s)",
-                                                                              spliceTableWatcher5b, row));
+                                                                              functionariosTableWatcher, row));
                                                             ps.execute();
                                                         }
                                                     } catch (Exception e) {
@@ -327,6 +424,70 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                                         throw new RuntimeException(e);
                                                     }
                                                 }
+                                            })
+                                            .around(empTabHireDateTableWatcher)
+                                            .around(empTabNullsTableWatcher)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : EMPTAB_HIRE_DATE_ROWS) {
+                                                            String sql = String.format("insert into %s values (%s)", empTabHireDateTableWatcher, row);
+                                                            ps = spliceClassWatcher.prepareStatement(sql);
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : EMPTAB_ROWS_NULL) {
+                                                            String sql = String.format("insert into %s values (%s)", empTabNullsTableWatcher, row);
+                                                            ps = spliceClassWatcher.prepareStatement(sql);
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(txnDetailTableWatcher)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : TXN_DETAIL_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s values (%s)", txnDetailTableWatcher, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                            })
+                                            .around(allSalesTableWatcher)
+                                            .around(new SpliceDataWatcher() {
+                                                @Override
+                                                protected void starting(Description description) {
+                                                    PreparedStatement ps;
+                                                    try {
+                                                        for (String row : ALL_SALES_ROWS) {
+                                                            ps = spliceClassWatcher.prepareStatement(
+                                                                String.format("insert into %s values (%s)", allSalesTableWatcher, row));
+                                                            ps.execute();
+                                                        }
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
                                             });
 
     @Rule
@@ -338,7 +499,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum,dept,salary," +
                               "min(salary) over (Partition by dept ORDER BY salary ROWS 2 preceding) as minsal " +
                               "from %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -371,7 +532,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum,dept,salary," +
                               "max(salary) over (Partition by dept ORDER BY salary, empnum ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as maxsal " +
                               "from %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -403,7 +564,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "max(salary) over (Partition by dept ORDER BY salary, empnum rows between unbounded preceding and unbounded following) as maxsal " +
                               "from %s order by dept",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -434,7 +595,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "max(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as maxsal " +
                               "from %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -464,7 +625,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "min(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and current row) as minsal " +
                               "from %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -494,7 +655,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, sum(salary) over (Partition by dept ORDER BY salary) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -525,7 +686,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -556,7 +717,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -586,7 +747,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding and 1 following) as sumsal from %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -617,7 +778,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "avg(salary) over (Partition by dept ORDER BY salary) as avgsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -648,7 +809,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "count(*) over (Partition by dept ORDER BY salary) as count from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -679,7 +840,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as countsal " +
                               "from %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -710,7 +871,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
                               "from %s order by salary, dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -740,7 +901,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept) as c from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -771,7 +932,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary range between current row and unbounded following) " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -802,7 +963,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and current row) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -833,7 +994,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary range between unbounded preceding and unbounded following) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -865,7 +1026,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) " +
                               "from %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -896,7 +1057,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between unbounded preceding and current row) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -926,7 +1087,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "sum(salary) over (Partition by dept ORDER BY salary rows between unbounded preceding and unbounded following) as sumsal " +
                               "from %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -959,7 +1120,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 String.format("SELECT empnum,dept,salary," +
                                   "min(salary) over (Partition by dept ORDER BY salary desc RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING ) as minsal " +
                                   "from %s order by dept, empnum",
-                              this.getTableReference(TABLE_NAME));
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -990,7 +1151,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 String.format("SELECT empnum, dept, salary, " +
                                   "sum(salary) over (Partition by dept ORDER BY salary desc) as sumsal " +
                                   "from %s order by dept, empnum",
-                              this.getTableReference(TABLE_NAME));
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1022,7 +1183,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 String.format("SELECT empnum, dept, salary, " +
                                   "sum(salary) over (Partition by dept ORDER BY salary range between current row and current row) as sumsal " +
                                   "from %s order by dept, empnum",
-                              this.getTableReference(TABLE_NAME));
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1052,7 +1213,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 String.format("SELECT empnum, dept, salary, " +
                                   "sum(salary) over (Partition by dept ORDER BY salary rows between current row and current row) as sumsal " +
                                   "from %s order by dept, empnum",
-                              this.getTableReference(TABLE_NAME));
+                              this.getTableReference(EMPTAB));
 
             ResultSet rs = methodWatcher.executeQuery(sqlText);
             String expected =
@@ -1084,7 +1245,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "ROW_NUMBER() OVER (partition by dept ORDER BY dept, empnum, salary desc) AS RowNumber " +
                               "FROM %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1114,7 +1275,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, empnum, salary desc) AS RowNumber " +
                               "FROM %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1143,7 +1304,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRankWithinPartition() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS Rank FROM %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1172,7 +1333,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testRankWithoutPartiion() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY salary desc) AS Rank FROM %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1202,7 +1363,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc) AS denseank " +
                               "FROM %s order by dept, empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1237,7 +1398,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             xPlainTrace.setConnection(conn);
             xPlainTrace.turnOnTrace();
             String s = "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
-            String sqlText = String.format(s, this.getTableReference(TABLE_NAME));
+            String sqlText = String.format(s, this.getTableReference(EMPTAB));
             long count = conn.count(sqlText);
             assertEquals(EMPTAB_ROWS.length, count);
             xPlainTrace.turnOffTrace();
@@ -1269,7 +1430,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS denseank " +
                               "FROM %s order by dept, empnum" ,
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1299,7 +1460,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, ROW_NUMBER() OVER (ORDER BY dept, salary desc, empnum) AS rownum " +
                               "FROM %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1329,7 +1490,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, RANK() OVER (ORDER BY dept, salary desc) AS Rank " +
                               "FROM %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1359,7 +1520,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY dept, salary desc) AS denserank " +
                               "FROM %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1388,7 +1549,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDenseRankWithPartition3OrderByCols_duplicateKey() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1418,7 +1579,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, salary desc) AS DenseRank " +
                               "FROM %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1448,7 +1609,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank " +
                               "FROM %s",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1478,7 +1639,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (ORDER BY salary desc) AS Rank " +
                               "FROM %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1509,7 +1670,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number, dob " +
                               "from %s order by PersonID",
-                          this.getTableReference(TABLE3_NAME));
+                          this.getTableReference(PEOPLE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1536,7 +1697,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (order by DOB) as Number " +
                               "from %s order by PersonID",
-                          this.getTableReference(TABLE3_NAME));
+                          this.getTableReference(PEOPLE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1562,7 +1723,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-1775
         String sqlText =
             String.format("SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s",
-                          this.getTableReference(TABLE2_NAME));
+                          this.getTableReference(PURCHASED));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1593,7 +1754,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date " +
                               "from %s",
-                          this.getTableReference(TABLE2_NAME));
+                          this.getTableReference(PURCHASED));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -1628,7 +1789,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "group by empnum, dept order by empnum";
 
         ResultSet rs = methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE_NAME)));
+            String.format(sqlText, this.getTableReference(EMPTAB)));
 
         String expected =
             "EMPNUM |DEPT |  3   |RANK |\n" +
@@ -1659,7 +1820,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "max(salary) over (Partition by dept) as maxsal " +
                               "from %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1691,7 +1852,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("SELECT empnum, dept, salary, " +
                               "rank() over (Partition by dept order by salary) as salrank " +
                               "from %s order by empnum",
-                          this.getTableReference(TABLE_NAME));
+                          this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1724,7 +1885,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("select sum(sal), " +
                               "rank() over ( order by sum(sal) ) empsal, ename from %s " +
                               "group by ename order by ename",
-                          this.getTableReference(TABLE4_NAME));
+                          this.getTableReference(EMP));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1757,7 +1918,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             "select sal, rank() over ( order by sum(sal) ) empsal, ename from %s";
 
         methodWatcher.executeQuery(
-            String.format(sqlText, this.getTableReference(TABLE4_NAME)));
+            String.format(sqlText, this.getTableReference(EMP)));
     }
 
     @Test
@@ -1767,7 +1928,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             String.format("select sum(sal) as sum_sal, avg(sal) as avg_sal, " +
                               "rank() over ( order by sum(sal), avg(sal) ) empsal, ename " +
                               "from %s group by ename order by ename",
-                          this.getTableReference(TABLE4_NAME));
+                          this.getTableReference(EMP));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1802,7 +1963,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "INNER" +
                                            " JOIN %1$s ON %2$s.ID_Dep = %1$s.ID group by %1$s.Nome_Dep," +
                                            "%2$s.Nome, %2$s.Salario ORDER BY 3 DESC, 1",
-                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1829,7 +1990,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
                                            "%1$s INNER JOIN %2$s " +
                                            "ON %2$s.ID_Dep = %1$s.ID",
-                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
 
@@ -1855,7 +2016,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
                                            "%2$s INNER JOIN %1$s " +
                                            "ON %2$s.ID_Dep = %1$s.ID",
-                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
 
@@ -1887,7 +2048,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
                                            "INNER JOIN %1$s " +
                                            "ON %2$s.ID_Dep = %1$s.ID ORDER BY 5 DESC",
-                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1914,7 +2075,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                            "SUM(%2$s.Salario) OVER(PARTITION BY %1$s.Nome_Dep) " +
                                            "\"Média por Departamento\" " +
                                            "FROM %2$s, %1$s GROUP BY %1$s.Nome_Dep",
-                                       this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+                                       this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -1933,7 +2094,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170RankOverView() throws Exception {
         String sqlText =
             String.format("select yr, rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
-                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+                              "hiredate from %s", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "YR | EMPRANK | ENAME | HIREDATE  |\n" +
@@ -1961,7 +2122,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170RankOverViewMissingKey() throws Exception {
         String sqlText =
             String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
-                              "hiredate from %s", this.getTableReference(VIEW_NAME));
+                              "hiredate from %s", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "EMPRANK | ENAME | HIREDATE  |\n" +
@@ -1989,7 +2150,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170MaxOverView() throws Exception {
         String sqlText =
             String.format("select max(hiredate) over () as maxhiredate, ename," +
-                              "hiredate from %s order by ename", this.getTableReference(VIEW_NAME));
+                              "hiredate from %s order by ename", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "MAXHIREDATE | ENAME | HIREDATE  |\n" +
@@ -2016,7 +2177,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170MaxOverTable() throws Exception {
         String sqlText =
             String.format("select max(hiredate) over () as maxhiredate, ename, hiredate from %s order by ename",
-                          this.getTableReference(TABLE4_NAME));
+                          this.getTableReference(EMP));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -2045,7 +2206,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testDB2170WithAggOverView() throws Exception {
         String sqlText =
             String.format("select max(hiredate) as maxhiredate, ename,hiredate from %s group by ename, hiredate order by ename",
-                          this.getTableReference(VIEW_NAME));
+                          this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "MAXHIREDATE | ENAME | HIREDATE  |\n" +
@@ -2068,7 +2229,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test @Ignore("DB-3226 window join order")
+    @Test @Ignore("DB-3226 window joing order")
     public void testDB2472BufferUnderflow() throws Exception {
         String sqlText =
             String.format("SELECT  BIP.Individual_ID ,BIP.Residence_ID ,BIP.Household_ID ,BIP.FILE_ID ," +
@@ -2090,4 +2251,1016 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertNotNull("\n" + sqlText + "\n", TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+
+    @Test
+    public void testLastValueFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp2";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+        .create();
+
+        String sqlText = format("select empno, salary, deptno, last_value(empno) over(partition by deptno order by " +
+                                    "salary asc range between current row and unbounded following) as last_val from " +
+                                    "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO |LAST_VAL |\n" +
+                "----------------------------------\n" +
+                "  10   | 12000 |   5   |   10    |\n" +
+                "  11   | 10000 |   5   |   10    |\n" +
+                "  12   | 10000 |   5   |   10    |\n" +
+                "  13   | 9000  |   1   |   13    |\n" +
+                "  14   | 7500  |   1   |   13    |\n" +
+                "  15   | 7600  |   1   |   13    |\n" +
+                "  16   | 8500  |   2   |   17    |\n" +
+                "  17   | 9500  |   2   |   17    |\n" +
+                "  18   | 7700  |   2   |   17    |\n" +
+                "  19   | 8500  |   3   |   19    |\n" +
+                "  20   | 6900  |   3   |   19    |\n" +
+                "  21   | 7500  |   3   |   19    |\n" +
+                "  22   | 6500  |   4   |   23    |\n" +
+                "  23   | 7800  |   4   |   23    |\n" +
+                "  24   | 7200  |   4   |   23    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFirstValueFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+        .create();
+
+        String sqlText = format("select empno, salary, deptno, first_value(empno) over(partition by deptno order by " +
+                                    "salary asc rows unbounded preceding) as first_value from " +
+                                    "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO | FIRST_VALUE |\n" +
+                "--------------------------------------\n" +
+                "  10   | 12000 |   5   |     11      |\n" +
+                "  11   | 10000 |   5   |     11      |\n" +
+                "  12   | 10000 |   5   |     11      |\n" +
+                "  13   | 9000  |   1   |     14      |\n" +
+                "  14   | 7500  |   1   |     14      |\n" +
+                "  15   | 7600  |   1   |     14      |\n" +
+                "  16   | 8500  |   2   |     18      |\n" +
+                "  17   | 9500  |   2   |     18      |\n" +
+                "  18   | 7700  |   2   |     18      |\n" +
+                "  19   | 8500  |   3   |     20      |\n" +
+                "  20   | 6900  |   3   |     20      |\n" +
+                "  21   | 7500  |   3   |     20      |\n" +
+                "  22   | 6500  |   4   |     22      |\n" +
+                "  23   | 7800  |   4   |     22      |\n" +
+                "  24   | 7200  |   4   |     22      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueWithAggregateArgument() throws Exception {
+        // DB-3920
+        String tableName = "all_sales2";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(yr INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount decimal(8, 2))";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (yr,MONTH,PRD_TYPE_ID,EMP_ID,AMOUNT) values (?,?,?,?,?)",
+                                      tableRef))
+            .withRows(rows(
+                row(2006, 1, 1, 21, 16034.84), row(2006, 2, 1, 21, 15644.65), row(2006, 3, 2, 21, 20167.83),
+                row(2006, 4, 2, 21, 25056.45), row(2006, 5, 2, 21, null), row(2006, 6, 1, 21, 15564.66),
+                row(2006, 7, 1, 21, 15644.65), row(2006, 8, 1, 21, 16434.82), row(2006, 9, 1, 21, 19654.57),
+                row(2006, 10, 1, 21, 21764.19), row(2006, 11, 1, 21, 13026.73), row(2006, 12, 2, 21, 10034.64),
+                row(2005, 1, 2, 22, 16634.84), row(2005, 1, 2, 21, 26034.84), row(2005, 2, 1, 21, 12644.65),
+                row(2005, 3, 1, 21, null), row(2005, 4, 1, 21, 25026.45), row(2005, 5, 1, 21, 17212.66),
+                row(2005, 6, 1, 21, 15564.26), row(2005, 7, 2, 21, 62654.82), row(2005, 8, 2, 21, 26434.82),
+                row(2005, 9, 2, 21, 15644.65), row(2005, 10, 2, 21, 21264.19), row(2005, 11, 1, 21, 13026.73),
+                row(2005, 12, 1, 21, 10032.64)
+            ))
+            .create();
+
+        String sqlText = format("SELECT month, SUM(amount) AS month_amount, " +
+                                    "LAST_VALUE(SUM(amount)) OVER (ORDER BY month ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) " +
+                                    "AS next_month_amount FROM %s GROUP BY month ORDER BY month", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "MONTH |MONTH_AMOUNT | NEXT_MONTH_AMOUNT |\n" +
+                "------------------------------------------\n" +
+                "   1   |  58704.52   |     28289.30      |\n" +
+                "   2   |  28289.30   |     20167.83      |\n" +
+                "   3   |  20167.83   |     50082.90      |\n" +
+                "   4   |  50082.90   |     17212.66      |\n" +
+                "   5   |  17212.66   |     31128.92      |\n" +
+                "   6   |  31128.92   |     78299.47      |\n" +
+                "   7   |  78299.47   |     42869.64      |\n" +
+                "   8   |  42869.64   |     35299.22      |\n" +
+                "   9   |  35299.22   |     43028.38      |\n" +
+                "  10   |  43028.38   |     26053.46      |\n" +
+                "  11   |  26053.46   |     20067.28      |\n" +
+                "  12   |  20067.28   |     20067.28      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test @Ignore("DB-3920: found possible frame processing problem while implementing first_value()")
+    public void testFirstValueWithAggregateArgument() throws Exception {
+        // DB-3920
+        String tableName = "all_sales3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(yr INTEGER, month INTEGER, prd_type_id INTEGER, emp_id INTEGER , amount decimal(8, 2))";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (yr,MONTH,PRD_TYPE_ID,EMP_ID,AMOUNT) values (?,?,?,?,?)",
+                                      tableRef))
+            .withRows(rows(
+                row(2006, 1, 1, 21, 16034.84), row(2006, 2, 1, 21, 15644.65), row(2006, 3, 2, 21, 20167.83),
+                row(2006, 4, 2, 21, 25056.45), row(2006, 5, 2, 21, null), row(2006, 6, 1, 21, 15564.66),
+                row(2006, 7, 1, 21, 15644.65), row(2006, 8, 1, 21, 16434.82), row(2006, 9, 1, 21, 19654.57),
+                row(2006, 10, 1, 21, 21764.19), row(2006, 11, 1, 21, 13026.73), row(2006, 12, 2, 21, 10034.64),
+                row(2005, 1, 2, 22, 16634.84), row(2005, 1, 2, 21, 26034.84), row(2005, 2, 1, 21, 12644.65),
+                row(2005, 3, 1, 21, null), row(2005, 4, 1, 21, 25026.45), row(2005, 5, 1, 21, 17212.66),
+                row(2005, 6, 1, 21, 15564.26), row(2005, 7, 2, 21, 62654.82), row(2005, 8, 2, 21, 26434.82),
+                row(2005, 9, 2, 21, 15644.65), row(2005, 10, 2, 21, 21264.19), row(2005, 11, 1, 21, 13026.73),
+                row(2005, 12, 1, 21, 10032.64)
+            ))
+            .create();
+
+        String sqlText = format("SELECT month, SUM(amount) AS month_amount, " +
+                                    "FIRST_VALUE(SUM(amount)) OVER (ORDER BY month ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) " +
+                                    "AS prev_month_amount FROM %s GROUP BY month ORDER BY month", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "MONTH |MONTH_AMOUNT | PREV_MONTH_AMOUNT |\n" +
+                "------------------------------------------\n" +
+                "   1   |  58704.52   |     58704.52      |\n" +
+                "   2   |  28289.30   |     58704.52      |\n" +
+                "   3   |  20167.83   |     28289.30      |\n" +
+                "   4   |  50082.90   |     20167.83      |\n" +
+                "   5   |  17212.66   |     50082.90      |\n" +
+                "   6   |  31128.92   |     17212.66      |\n" +
+                "   7   |  78299.47   |     31128.92      |\n" +
+                "   8   |  42869.64   |     78299.47      |\n" +
+                "   9   |  35299.22   |     42869.64      |\n" +
+                "  10   |  43028.38   |     35299.22      |\n" +
+                "  11   |  26053.46   |     43028.38      |\n" +
+                "  12   |  20067.28   |     26053.46      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLeadFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, " +
+                                    "LEAD(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC) NEXT_LOWER_SAL from " +
+                                    "%s order by deptno, SALARY DESC", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO |NEXT_LOWER_SAL |\n" +
+                "----------------------------------------\n" +
+                "  13   | 9000  |   1   |     7600      |\n" +
+                "  15   | 7600  |   1   |     7500      |\n" +
+                "  14   | 7500  |   1   |     NULL      |\n" +
+                "  17   | 9500  |   2   |     8500      |\n" +
+                "  16   | 8500  |   2   |     7700      |\n" +
+                "  18   | 7700  |   2   |     NULL      |\n" +
+                "  19   | 8500  |   3   |     7500      |\n" +
+                "  21   | 7500  |   3   |     6900      |\n" +
+                "  20   | 6900  |   3   |     NULL      |\n" +
+                "  23   | 7800  |   4   |     7200      |\n" +
+                "  24   | 7200  |   4   |     6500      |\n" +
+                "  22   | 6500  |   4   |     NULL      |\n" +
+                "  10   | 12000 |   5   |     10000     |\n" +
+                "  11   | 10000 |   5   |     10000     |\n" +
+                "  12   | 10000 |   5   |     NULL      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLagFunction() throws Exception {
+        // DB-3920
+        String tableName = "emp3";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, " +
+                                    "LAG(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC) NEXT_LOWER_SAL from " +
+                                    "%s order by deptno, SALARY DESC", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO |NEXT_LOWER_SAL |\n" +
+                "----------------------------------------\n" +
+                "  13   | 9000  |   1   |     NULL      |\n" +
+                "  15   | 7600  |   1   |     9000      |\n" +
+                "  14   | 7500  |   1   |     7600      |\n" +
+                "  17   | 9500  |   2   |     NULL      |\n" +
+                "  16   | 8500  |   2   |     9500      |\n" +
+                "  18   | 7700  |   2   |     8500      |\n" +
+                "  19   | 8500  |   3   |     NULL      |\n" +
+                "  21   | 7500  |   3   |     8500      |\n" +
+                "  20   | 6900  |   3   |     7500      |\n" +
+                "  23   | 7800  |   4   |     NULL      |\n" +
+                "  24   | 7200  |   4   |     7800      |\n" +
+                "  22   | 6500  |   4   |     7200      |\n" +
+                "  10   | 12000 |   5   |     NULL      |\n" +
+                "  11   | 10000 |   5   |     12000     |\n" +
+                "  12   | 10000 |   5   |     10000     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueFunctionWithCaseArgument() throws Exception {
+        // DB-3920
+        String tableName = "emp4";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, " +
+                                "last_value((CASE WHEN empno < 17 THEN 0 WHEN empno >= 17 THEN 1 END)) " +
+                                "over(partition by deptno order by salary asc range between current row and unbounded following) as last_val from " +
+                                "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO |LAST_VAL |\n" +
+                "----------------------------------\n" +
+                "  10   | 12000 |   5   |    0    |\n" +
+                "  11   | 10000 |   5   |    0    |\n" +
+                "  12   | 10000 |   5   |    0    |\n" +
+                "  13   | 9000  |   1   |    0    |\n" +
+                "  14   | 7500  |   1   |    0    |\n" +
+                "  15   | 7600  |   1   |    0    |\n" +
+                "  16   | 8500  |   2   |    1    |\n" +
+                "  17   | 9500  |   2   |    1    |\n" +
+                "  18   | 7700  |   2   |    1    |\n" +
+                "  19   | 8500  |   3   |    1    |\n" +
+                "  20   | 6900  |   3   |    1    |\n" +
+                "  21   | 7500  |   3   |    1    |\n" +
+                "  22   | 6500  |   4   |    1    |\n" +
+                "  23   | 7800  |   4   |    1    |\n" +
+                "  24   | 7200  |   4   |    1    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFirstValueFunctionWithCaseArgument() throws Exception {
+        // DB-3920
+        String tableName = "emp5";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(EMPNO int, EMPNAME varchar(20), SALARY int, DEPTNO int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (EMPNO, EMPNAME, SALARY, DEPTNO) values (?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(10, "Bill", 12000, 5), row(11, "Solomon", 10000, 5), row(12, "Susan", 10000, 5),
+                row(13, "Wendy", 9000, 1), row(14, "Benjamin", 7500, 1), row(15, "Tom", 7600, 1),
+                row(16, "Henry", 8500, 2), row(17, "Robert", 9500, 2), row(18, "Paul", 7700, 2),
+                row(19, "Dora", 8500, 3), row(20, "Samuel", 6900, 3), row(21, "Mary", 7500, 3),
+                row(22, "Daniel", 6500, 4), row(23, "Ricardo", 7800, 4), row(24, "Mark", 7200, 4)
+            ))
+            .create();
+
+        String sqlText = format("select empno, salary, deptno, " +
+                                "first_value((CASE WHEN empno < 17 THEN 1 WHEN empno >= 17 THEN 0 END)) " +
+                                "over(partition by deptno order by salary asc rows unbounded preceding) as first_val from " +
+                                "%s order by empno asc", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        String expected =
+            "EMPNO |SALARY |DEPTNO | FIRST_VAL |\n" +
+                "------------------------------------\n" +
+                "  10   | 12000 |   5   |     1     |\n" +
+                "  11   | 10000 |   5   |     1     |\n" +
+                "  12   | 10000 |   5   |     1     |\n" +
+                "  13   | 9000  |   1   |     1     |\n" +
+                "  14   | 7500  |   1   |     1     |\n" +
+                "  15   | 7600  |   1   |     1     |\n" +
+                "  16   | 8500  |   2   |     0     |\n" +
+                "  17   | 9500  |   2   |     0     |\n" +
+                "  18   | 7700  |   2   |     0     |\n" +
+                "  19   | 8500  |   3   |     0     |\n" +
+                "  20   | 6900  |   3   |     0     |\n" +
+                "  21   | 7500  |   3   |     0     |\n" +
+                "  22   | 6500  |   4   |     0     |\n" +
+                "  23   | 7800  |   4   |     0     |\n" +
+                "  24   | 7200  |   4   |     0     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLastValueFunctionWithIgnoreNulls() throws Exception {
+        // DB-3920
+        String tableName = "employees";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(employee_id int, employee_name varchar(10), salary int, department varchar(10), commission int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s values (?,?,?,?,?)", tableRef))
+            .withRows(rows(
+                row(101, "Emp A", 10000, "Sales", null),
+                row(102, "Emp B", 20000, "IT", 20),
+                row(103, "Emp C", 28000, "IT", 20),
+                row(104, "Emp D", 30000, "Support", 5),
+                row(105, "Emp E", 32000, "Sales", 10),
+                row(106, "Emp F", 20000, "Sales", 5),
+                row(107, "Emp G", 12000, "Sales", null),
+                row(108, "Emp H", 12000, "Support", null)
+            ))
+            .create();
+
+        // IGNORE NULLS
+        String sqlText = format("SELECT employee_id\n" +
+                                    "       ,employee_name\n" +
+                                    "       ,department\n" +
+                                    "       ,LAST_VALUE(commission IGNORE NULLS) OVER (PARTITION BY department\n" +
+                                    "                   ORDER BY employee_id DESC\n" +
+                                    "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
+                                    "Minimum_Commission\n" +
+                                    "FROM %s", tableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
+        String expected =
+            "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
+                "--------------------------------------------------------------\n" +
+                "     107     |     Emp G     |   Sales   |        10         |\n" +
+                "     106     |     Emp F     |   Sales   |        10         |\n" +
+                "     105     |     Emp E     |   Sales   |        10         |\n" +
+                "     101     |     Emp A     |   Sales   |        10         |\n" +
+                "     108     |     Emp H     |  Support  |         5         |\n" +
+                "     104     |     Emp D     |  Support  |         5         |\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     102     |     Emp B     |    IT     |        20         |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        // RESPECT NULLS
+        sqlText = format("SELECT employee_id\n" +
+                                    "       ,employee_name\n" +
+                                    "       ,department\n" +
+                                    "       ,LAST_VALUE(commission) OVER (PARTITION BY department\n" +
+                                    "                   ORDER BY employee_id DESC\n" +
+                                    "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
+                                    "Minimum_Commission\n" +
+                                    "FROM %s", tableRef);
+        rs = methodWatcher.executeQuery(sqlText);
+        // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
+        expected =
+            "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
+                "--------------------------------------------------------------\n" +
+                "     107     |     Emp G     |   Sales   |       NULL        |\n" +
+                "     106     |     Emp F     |   Sales   |       NULL        |\n" +
+                "     105     |     Emp E     |   Sales   |       NULL        |\n" +
+                "     101     |     Emp A     |   Sales   |       NULL        |\n" +
+                "     108     |     Emp H     |  Support  |         5         |\n" +
+                "     104     |     Emp D     |  Support  |         5         |\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     102     |     Emp B     |    IT     |        20         |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLeadLagOffsetExtrema() throws Exception {
+        // DB-3977, DB-3980 - offset extrema
+        String tableName = "twoints";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(a int, b int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (a, b) values (?,?)", tableRef))
+            .withRows(rows(
+                row(1, null), row(1,15), row(1, 10), row(1, null), row(2, 25), row(2, 10)
+            ))
+            .create();
+
+        String sqlText = format("SELECT a, Lead(b,0) OVER(partition by a order by b) FROM %s", tableRef);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            fail("Expected exception because lead(b,0) - offset < 1");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("2201Y", e.getSQLState());
+        }
+
+        sqlText = format("SELECT a, Lead(b,%s) OVER(partition by a order by b) FROM %s", Integer.MAX_VALUE, tableRef);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            fail("Expected exception because lead(b,0) - offset >= Integer.MAX_VALUE");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("2201Y", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testLeadLagFirstValueLastValueNoOrderBy() throws Exception {
+        // DB-3976 - no order by
+        String tableName = "twoints";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(a int, b int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (a, b) values (?,?)", tableRef))
+            .withRows(rows(
+                row(1, null), row(1,15), row(1, 10), row(1, null), row(2, 25), row(2, 10)
+            ))
+            .create();
+
+        String sqlText = format("SELECT a, first_value(b) OVER(partition by a) FROM %s", tableRef);
+        methodWatcher.executeQuery(sqlText);
+
+        sqlText = format("SELECT a, lag(b) OVER(partition by a) FROM %s", tableRef);
+        methodWatcher.executeQuery(sqlText);
+
+        // since it row are returned in arbitrary order when no ORDER BY is specified, the best we can do
+        // here is to test that we don't get an exception
+//        String expected =
+//            "A | 2 |\n" +
+//                "--------\n" +
+//                " 2 |25 |\n" +
+//                " 2 |25 |\n" +
+//                " 1 |15 |\n" +
+//                " 1 |15 |\n" +
+//                " 1 |15 |\n" +
+//                " 1 |15 |";
+//        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+    }
+
+    @Test
+    public void testLeadLagDefaultValue() throws Exception {
+        // DB-3982 - default not implemented
+        String tableName = "twoints";
+        String tableRef = SCHEMA+"."+tableName;
+        String tableDef = "(a int, b int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, tableName);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+            .withCreate(String.format("create table %s %s", tableRef, tableDef))
+            .withInsert(String.format("insert into %s (a, b) values (?,?)", tableRef))
+            .withRows(rows(
+                row(1, null), row(1,15), row(1, 10), row(1, null), row(2, 25), row(2, 10)
+            ))
+            .create();
+
+        String sqlText = format("SELECT a, lag(b, 2, 13) OVER(partition by a order by b) FROM %s", tableRef);
+        try {
+            methodWatcher.executeQuery(sqlText);
+            fail("Expected exception \"default\" value not implemented.");
+        } catch (SQLException e) {
+            assertEquals("2202C", e.getSQLState());
+        }
+    }
+
+    //==================================================================================================================
+    // Tests for multiple window functions in one query
+    //==================================================================================================================
+
+    @Test
+    public void testRankDate() throws Exception {
+        String sqlText =
+            String.format("SELECT hiredate, dept, rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "HIREDATE  |DEPT |RANKHIRE |\n" +
+                "----------------------------\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2013-06-06 |  2  |    3    |\n" +
+                "2013-12-20 |  2  |    4    |\n" +
+                "2010-04-12 |  3  |    1    |\n" +
+                "2010-08-09 |  3  |    2    |\n" +
+                "2012-04-03 |  3  |    3    |\n" +
+                "2013-04-24 |  3  |    4    |\n" +
+                "2010-03-20 |  1  |    1    |\n" +
+                "2010-03-20 |  1  |    1    |\n" +
+                "2011-05-24 |  1  |    3    |\n" +
+                "2011-10-15 |  1  |    4    |\n" +
+                "2012-04-03 |  1  |    5    |\n" +
+                "2012-11-11 |  1  |    6    |\n" +
+                "2014-03-04 |  1  |    7    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+    @Test
+    public void testNullsRankDate() throws Exception {
+        String sqlText =
+            String.format("SELECT hiredate, dept, " +
+                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s",
+                          this.getTableReference(EMPTAB_NULLS));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "HIREDATE  |DEPT |RANKHIRE |\n" +
+                "----------------------------\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2013-06-06 |  2  |    3    |\n" +
+                "2013-12-20 |  2  |    4    |\n" +
+                "2010-04-12 |  3  |    1    |\n" +
+                "2010-08-09 |  3  |    2    |\n" +
+                "2010-08-09 |  3  |    2    |\n" +
+                "2012-04-03 |  3  |    4    |\n" +
+                "2013-04-24 |  3  |    5    |\n" +
+                "2010-03-20 |  1  |    1    |\n" +
+                "2010-03-20 |  1  |    1    |\n" +
+                "2010-08-09 |  1  |    3    |\n" +
+                "2011-05-24 |  1  |    4    |\n" +
+                "2011-10-15 |  1  |    5    |\n" +
+                "2012-04-03 |  1  |    6    |\n" +
+                "2012-11-11 |  1  |    7    |\n" +
+                "2014-03-04 |  1  |    8    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMultiFunctionSameOverClause() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
+                              "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
+                              "FROM %s",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | DENSERANK |RANK | ROWNUMBER |\n" +
+                "----------------------------------------------------\n" +
+                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
+                "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
+                "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
+                "  30   |  3  | 84000 |     1     |  1  |     1     |\n" +
+                "  80   |  3  | 79000 |     2     |  2  |     2     |\n" +
+                "  120  |  3  | 75000 |     3     |  3  |     3     |\n" +
+                "  100  |  3  | 55000 |     4     |  4  |     4     |\n" +
+                "  60   |  1  | 78000 |     1     |  1  |     1     |\n" +
+                "  70   |  1  | 76000 |     2     |  2  |     2     |\n" +
+                "  20   |  1  | 75000 |     3     |  3  |     3     |\n" +
+                "  110  |  1  | 53000 |     4     |  4  |     4     |\n" +
+                "  50   |  1  | 52000 |     5     |  5  |     5     |\n" +
+                "  55   |  1  | 52000 |     6     |  6  |     6     |\n" +
+                "  10   |  1  | 50000 |     7     |  7  |     7     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNullsMultiFunctionSameOverClause() throws Exception {
+        String sqlText =
+            String.format("SELECT empnum, dept, salary, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
+                              "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
+                              "FROM %s",
+                          this.getTableReference(EMPTAB_NULLS));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |DEPT |SALARY | DENSERANK |RANK | ROWNUMBER |\n" +
+                "----------------------------------------------------\n" +
+                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
+                "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
+                "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
+                "  33   |  3  | NULL  |     1     |  1  |     1     |\n" +
+                "  30   |  3  | 84000 |     2     |  2  |     2     |\n" +
+                "  80   |  3  | 79000 |     3     |  3  |     3     |\n" +
+                "  120  |  3  | 75000 |     4     |  4  |     4     |\n" +
+                "  100  |  3  | 55000 |     5     |  5  |     5     |\n" +
+                "  32   |  1  | NULL  |     1     |  1  |     1     |\n" +
+                "  60   |  1  | 78000 |     2     |  2  |     2     |\n" +
+                "  70   |  1  | 76000 |     3     |  3  |     3     |\n" +
+                "  20   |  1  | 75000 |     4     |  4  |     4     |\n" +
+                "  110  |  1  | 53000 |     5     |  5  |     5     |\n" +
+                "  50   |  1  | 52000 |     6     |  6  |     6     |\n" +
+                "  55   |  1  | 52000 |     7     |  7  |     7     |\n" +
+                "  10   |  1  | 50000 |     8     |  8  |     8     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMultiFunctionSamePartitionDifferentOrderBy() throws Exception {
+        // DB-1989 - Attempted to encode a value that does not have a scalar type format id
+        String sqlText =
+            String.format("SELECT empnum, hiredate, dept, salary, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, hiredate) AS DenseRank, " +
+                              "dept, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY hiredate desc) AS RowNumber " +
+                              "FROM %s order by hiredate desc, empnum",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM | HIREDATE  |DEPT |SALARY | DENSERANK |DEPT | ROWNUMBER |\n" +
+                "----------------------------------------------------------------\n" +
+                "  60   |2014-03-04 |  1  | 78000 |     1     |  1  |     1     |\n" +
+                "  44   |2013-12-20 |  2  | 52000 |     3     |  2  |     1     |\n" +
+                "  40   |2013-06-06 |  2  | 52000 |     2     |  2  |     2     |\n" +
+                "  80   |2013-04-24 |  3  | 79000 |     2     |  3  |     1     |\n" +
+                "  20   |2012-11-11 |  1  | 75000 |     3     |  1  |     2     |\n" +
+                "  49   |2012-04-03 |  2  | 53000 |     1     |  2  |     3     |\n" +
+                "  70   |2012-04-03 |  1  | 76000 |     2     |  1  |     3     |\n" +
+                "  90   |2012-04-03 |  2  | 51000 |     4     |  2  |     4     |\n" +
+                "  120  |2012-04-03 |  3  | 75000 |     3     |  3  |     2     |\n" +
+                "  55   |2011-10-15 |  1  | 52000 |     6     |  1  |     4     |\n" +
+                "  50   |2011-05-24 |  1  | 52000 |     5     |  1  |     5     |\n" +
+                "  30   |2010-08-09 |  3  | 84000 |     1     |  3  |     3     |\n" +
+                "  100  |2010-04-12 |  3  | 55000 |     4     |  3  |     4     |\n" +
+                "  10   |2010-03-20 |  1  | 50000 |     7     |  1  |     7     |\n" +
+                "  110  |2010-03-20 |  1  | 53000 |     4     |  1  |     6     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNullsMultiFunctionSamePartitionDifferentOrderBy() throws Exception {
+        // DB-1989 - Attempted to encode a value that does not have a scalar type format id
+        String sqlText =
+            String.format("SELECT empnum, hiredate, salary, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY hiredate, salary) AS DR_Hire_Sal_By_Dept, " +
+                              "dept, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY hiredate, dept) AS RN_Hire_Sal_By_Dept " +
+                              "FROM %s order by dept, hiredate",
+                          this.getTableReference(EMPTAB_NULLS));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM | HIREDATE  |SALARY | DR_HIRE_SAL_BY_DEPT |DEPT | RN_HIRE_SAL_BY_DEPT |\n" +
+                "------------------------------------------------------------------------------\n" +
+                "  10   |2010-03-20 | 50000 |          1          |  1  |          1          |\n" +
+                "  110  |2010-03-20 | 53000 |          2          |  1  |          2          |\n" +
+                "  32   |2010-08-09 | NULL  |          3          |  1  |          3          |\n" +
+                "  50   |2011-05-24 | 52000 |          4          |  1  |          4          |\n" +
+                "  55   |2011-10-15 | 52000 |          5          |  1  |          5          |\n" +
+                "  70   |2012-04-03 | 76000 |          6          |  1  |          6          |\n" +
+                "  20   |2012-11-11 | 75000 |          7          |  1  |          7          |\n" +
+                "  60   |2014-03-04 | 78000 |          8          |  1  |          8          |\n" +
+                "  90   |2012-04-03 | 51000 |          1          |  2  |          1          |\n" +
+                "  49   |2012-04-03 | 53000 |          2          |  2  |          2          |\n" +
+                "  40   |2013-06-06 | 52000 |          3          |  2  |          3          |\n" +
+                "  44   |2013-12-20 | 52000 |          4          |  2  |          4          |\n" +
+                "  100  |2010-04-12 | 55000 |          1          |  3  |          1          |\n" +
+                "  33   |2010-08-09 | NULL  |          2          |  3  |          2          |\n" +
+                "  30   |2010-08-09 | 84000 |          3          |  3  |          3          |\n" +
+                "  120  |2012-04-03 | 75000 |          4          |  3  |          4          |\n" +
+                "  80   |2013-04-24 | 79000 |          5          |  3  |          5          |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSelectDateMultiFunction() throws Exception {
+        // DB-1989 - Attempted to encode a value that does not have a scalar type format id
+        String sqlText =
+            String.format("SELECT hiredate, dept, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY hiredate, salary) AS DenseRank_HireDate_Salary_By_Dept, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY hiredate, dept) AS RowNumber_HireDate_Salary_By_Dept " +
+                              "FROM %s order by hiredate, RowNumber_HireDate_Salary_By_Dept",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
+//        System.out.println(sqlText);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "HIREDATE  |DEPT | DENSERANK_HIREDATE_SALARY_BY_DEPT | ROWNUMBER_HIREDATE_SALARY_BY_DEPT |\n" +
+                "------------------------------------------------------------------------------------------\n" +
+                "2010-03-20 |  1  |                 1                 |                 1                 |\n" +
+                "2010-03-20 |  1  |                 2                 |                 2                 |\n" +
+                "2010-04-12 |  3  |                 1                 |                 1                 |\n" +
+                "2010-08-09 |  3  |                 2                 |                 2                 |\n" +
+                "2011-05-24 |  1  |                 3                 |                 3                 |\n" +
+                "2011-10-15 |  1  |                 4                 |                 4                 |\n" +
+                "2012-04-03 |  2  |                 1                 |                 1                 |\n" +
+                "2012-04-03 |  2  |                 2                 |                 2                 |\n" +
+                "2012-04-03 |  3  |                 3                 |                 3                 |\n" +
+                "2012-04-03 |  1  |                 5                 |                 5                 |\n" +
+                "2012-11-11 |  1  |                 6                 |                 6                 |\n" +
+                "2013-04-24 |  3  |                 4                 |                 4                 |\n" +
+                "2013-06-06 |  2  |                 3                 |                 3                 |\n" +
+                "2013-12-20 |  2  |                 4                 |                 4                 |\n" +
+                "2014-03-04 |  1  |                 7                 |                 7                 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMultiFunctionSamePartitionDifferentOrderBy_WO_hiredate() throws Exception {
+        String sqlText = String.format("SELECT empnum, salary, " +
+                                           "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, " +
+                                           "dept, " +
+                                           "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber FROM %s order by empnum",
+                                       this.getTableReference(EMPTAB_HIRE_DATE));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |SALARY | DENSERANK |DEPT | ROWNUMBER |\n" +
+                "----------------------------------------------\n" +
+                "  10   | 50000 |     1     |  1  |     1     |\n" +
+                "  20   | 75000 |     4     |  1  |     2     |\n" +
+                "  30   | 84000 |     4     |  3  |     1     |\n" +
+                "  40   | 52000 |     2     |  2  |     1     |\n" +
+                "  44   | 52000 |     2     |  2  |     2     |\n" +
+                "  49   | 53000 |     3     |  2  |     3     |\n" +
+                "  50   | 52000 |     2     |  1  |     3     |\n" +
+                "  55   | 52000 |     2     |  1  |     4     |\n" +
+                "  60   | 78000 |     6     |  1  |     5     |\n" +
+                "  70   | 76000 |     5     |  1  |     6     |\n" +
+                "  80   | 79000 |     3     |  3  |     2     |\n" +
+                "  90   | 51000 |     1     |  2  |     4     |\n" +
+                "  100  | 55000 |     1     |  3  |     3     |\n" +
+                "  110  | 53000 |     3     |  1  |     7     |\n" +
+                "  120  | 75000 |     2     |  3  |     4     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNullsMultiFunctionSamePartitionDifferentOrderBy_WO_hiredate() throws Exception {
+        // Note that, because nulls are sorted last by default in PostgreSQL and
+        // we sort nulls first by default, the comparison of ranking function output
+        // cannot be compared with PostgreSQL's. Verification of this output is manual.
+        String sqlText =
+            String.format("SELECT empnum, salary, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary, empnum) AS DenseRank, " +
+                              "dept, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber FROM %s order by dept, empnum",
+                          this.getTableReference(EMPTAB_NULLS));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |SALARY | DENSERANK |DEPT | ROWNUMBER |\n" +
+                "----------------------------------------------\n" +
+                "  10   | 50000 |     2     |  1  |     1     |\n" +
+                "  20   | 75000 |     6     |  1  |     2     |\n" +
+                "  32   | NULL  |     1     |  1  |     3     |\n" +
+                "  50   | 52000 |     3     |  1  |     4     |\n" +
+                "  55   | 52000 |     4     |  1  |     5     |\n" +
+                "  60   | 78000 |     8     |  1  |     6     |\n" +
+                "  70   | 76000 |     7     |  1  |     7     |\n" +
+                "  110  | 53000 |     5     |  1  |     8     |\n" +
+                "  40   | 52000 |     2     |  2  |     1     |\n" +
+                "  44   | 52000 |     3     |  2  |     2     |\n" +
+                "  49   | 53000 |     4     |  2  |     3     |\n" +
+                "  90   | 51000 |     1     |  2  |     4     |\n" +
+                "  30   | 84000 |     5     |  3  |     1     |\n" +
+                "  33   | NULL  |     1     |  3  |     2     |\n" +
+                "  80   | 79000 |     4     |  3  |     3     |\n" +
+                "  100  | 55000 |     2     |  3  |     4     |\n" +
+                "  120  | 75000 |     3     |  3  |     5     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMultiFunctionSamePartitionDifferentOrderBy_MissingKeyColumn() throws Exception {
+        // DB-1988 Key column missing from select causes invalid output
+        String sqlText =
+            String.format("SELECT empnum, salary, " +
+                              "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary) AS DenseRank, " +
+                              "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY dept, empnum) AS RowNumber " +
+                              "FROM %s order by salary, empnum",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
+//        System.out.println(sqlText);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "EMPNUM |SALARY | DENSERANK | ROWNUMBER |\n" +
+                "----------------------------------------\n" +
+                "  10   | 50000 |     1     |     1     |\n" +
+                "  90   | 51000 |     1     |     4     |\n" +
+                "  40   | 52000 |     2     |     1     |\n" +
+                "  44   | 52000 |     2     |     2     |\n" +
+                "  50   | 52000 |     2     |     3     |\n" +
+                "  55   | 52000 |     2     |     4     |\n" +
+                "  49   | 53000 |     3     |     3     |\n" +
+                "  110  | 53000 |     3     |     7     |\n" +
+                "  100  | 55000 |     1     |     3     |\n" +
+                "  20   | 75000 |     4     |     2     |\n" +
+                "  120  | 75000 |     2     |     4     |\n" +
+                "  70   | 76000 |     5     |     6     |\n" +
+                "  60   | 78000 |     6     |     5     |\n" +
+                "  80   | 79000 |     3     |     2     |\n" +
+                "  30   | 84000 |     4     |     1     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testMultiFunctionInQueryDiffAndSameOverClause() throws Exception {
+        String sqlText =
+            String.format("SELECT salary, dept, " +
+                              "ROW_NUMBER() OVER (ORDER BY salary, dept) AS RowNumber, " +
+                              "RANK() OVER (ORDER BY salary desc, dept) AS Rank, " +
+                              "DENSE_RANK() OVER (ORDER BY salary desc, dept) AS DenseRank " +
+                              "FROM %s order by salary desc, dept",
+                          this.getTableReference(EMPTAB_HIRE_DATE));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "SALARY |DEPT | ROWNUMBER |RANK | DENSERANK |\n" +
+                "--------------------------------------------\n" +
+                " 84000 |  3  |    15     |  1  |     1     |\n" +
+                " 79000 |  3  |    14     |  2  |     2     |\n" +
+                " 78000 |  1  |    13     |  3  |     3     |\n" +
+                " 76000 |  1  |    12     |  4  |     4     |\n" +
+                " 75000 |  1  |    10     |  5  |     5     |\n" +
+                " 75000 |  3  |    11     |  6  |     6     |\n" +
+                " 55000 |  3  |     9     |  7  |     7     |\n" +
+                " 53000 |  1  |     7     |  8  |     8     |\n" +
+                " 53000 |  2  |     8     |  9  |     9     |\n" +
+                " 52000 |  1  |     3     | 10  |    10     |\n" +
+                " 52000 |  1  |     4     | 10  |    10     |\n" +
+                " 52000 |  2  |     5     | 12  |    11     |\n" +
+                " 52000 |  2  |     6     | 12  |    11     |\n" +
+                " 51000 |  2  |     2     | 14  |    12     |\n" +
+                " 50000 |  1  |     1     | 15  |    13     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNullsMultiFunctionInQueryDiffAndSameOverClause() throws Exception {
+        // Note that, because nulls are sorted last by default in PostgreSQL and
+        // we sort nulls first by default, the comparison of ranking function output
+        // cannot be compared with PostgreSQL's. Verification of this output is manual.
+        String sqlText =
+            String.format("SELECT salary, dept, " +
+                              "ROW_NUMBER() OVER (ORDER BY salary, dept) AS RowNumber, " +
+                              "RANK() OVER (ORDER BY salary desc, dept) AS Rank, " +
+                              "DENSE_RANK() OVER (ORDER BY salary desc, dept) AS DenseRank " +
+                              "FROM %s order by salary desc, dept",
+                          this.getTableReference(EMPTAB_NULLS));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "SALARY |DEPT | ROWNUMBER |RANK | DENSERANK |\n" +
+                "--------------------------------------------\n" +
+                " NULL  |  1  |     1     |  1  |     1     |\n" +
+                " NULL  |  3  |     2     |  2  |     2     |\n" +
+                " 84000 |  3  |    17     |  3  |     3     |\n" +
+                " 79000 |  3  |    16     |  4  |     4     |\n" +
+                " 78000 |  1  |    15     |  5  |     5     |\n" +
+                " 76000 |  1  |    14     |  6  |     6     |\n" +
+                " 75000 |  1  |    12     |  7  |     7     |\n" +
+                " 75000 |  3  |    13     |  8  |     8     |\n" +
+                " 55000 |  3  |    11     |  9  |     9     |\n" +
+                " 53000 |  1  |     9     | 10  |    10     |\n" +
+                " 53000 |  2  |    10     | 11  |    11     |\n" +
+                " 52000 |  1  |     5     | 12  |    12     |\n" +
+                " 52000 |  1  |     6     | 12  |    12     |\n" +
+                " 52000 |  2  |     7     | 14  |    13     |\n" +
+                " 52000 |  2  |     8     | 14  |    13     |\n" +
+                " 51000 |  2  |     4     | 16  |    14     |\n" +
+                " 50000 |  1  |     3     | 17  |    15     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testPullFunctionInputColumnUp4Levels() throws Exception {
+        // DB-2087 - Kryo exception
+        String sqlText =
+            String.format("select Transaction_Detail5.SOURCE_SALES_INSTANCE_ID C0, " +
+                              "min(Transaction_Detail5.TRANSACTION_DT) over (partition by Transaction_Detail5.ORIGINAL_SKU_CATEGORY_ID) C1, " +
+                              "sum(Transaction_Detail5.SALES_AMT) over (partition by Transaction_Detail5.TRANSACTION_DT) C10 " +
+                              "from %s AS Transaction_Detail5 " +
+                              "where Transaction_Detail5.TRANSACTION_DT between DATE('2010-01-21') " +
+                              "and DATE('2013-11-21') and Transaction_Detail5.CUSTOMER_MASTER_ID=74065939",
+                          this.getTableReference(TXN_DETAIL));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "C0 |    C1     |  C10   |\n" +
+                "-------------------------\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |\n" +
+                " 0 |2013-05-12 |4086.67 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testWindowDefnEquivalent() throws Exception {
+        // DB-2165 - NPE, operator null in OverClause.isEquivalent(OrderByCol, OrderByCol)
+        String sqlText =
+            String.format("SELECT\n" +
+                              "prd_type_id, SUM(amount),\n" +
+                              "RANK() OVER (ORDER BY SUM(amount) DESC) AS rank,\n" +
+                              "DENSE_RANK() OVER (ORDER BY SUM(amount) DESC) AS dense_rank\n" +
+                              "FROM %s\n" +
+                              "WHERE amount IS NOT NULL\n" +
+                              "GROUP BY prd_type_id\n" +
+                              "ORDER BY prd_type_id", this.getTableReference(ALL_SALES));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "PRD_TYPE_ID |    2     |RANK |DENSE_RANK |\n" +
+                "-------------------------------------------\n" +
+                "      1      |227276.50 |  1  |     1     |\n" +
+                "      2      |223927.08 |  2  |     2     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
 }
