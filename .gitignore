@@ -14,7 +14,7 @@
 *.rej
 *.run.xml
 **/*.log.*
-**/test-data
+**/test_data/bad_import/*
 
 
 
@@ -74,7 +74,8 @@ Thumbs.db
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
