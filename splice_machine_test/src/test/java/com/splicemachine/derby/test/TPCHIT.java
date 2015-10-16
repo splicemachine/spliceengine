@@ -219,14 +219,14 @@ public class TPCHIT {
     public void sql21() throws Exception {
         String sql = getContent("21.sql");
         executeQuery(sql, "", true);
-        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql22() throws Exception {
         String sql = getContent("22.sql");
         executeQuery(sql, getContent("22.expected.txt"), true);
-        assertSubqueryNodeCount(conn(), sql, TWO_SUBQUERY_NODES);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test(expected = SQLException.class)

@@ -216,6 +216,24 @@ public class Subquery_Flattening_Aggregate_IT {
                 "26 |390 |520 |65 |");
     }
 
+    /* At one point this shape of query was not flattened, it now is DB-3599 */
+    @Test
+    public void inNotIn() throws Exception {
+        String sql;
+        sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 in (3,30,300))";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "");
+        sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 not in (3,30,300))";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 1 |10 |10  |\n" +
+                " 3 |30 |30  |\n" +
+                " 4 |40 |40  |\n" +
+                " 5 | 5 | 5  |\n" +
+                " 5 |50 |500 |");
+    }
+
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // multiple correlated predicates in same subquery
@@ -548,30 +566,6 @@ public class Subquery_Flattening_Aggregate_IT {
     public void unsupported_complexWhere() throws Exception {
         String sql = "select * from A where A.a2 = (select max(b2) from B where not (B.b1=A.a1*10 or B.b1=A.a1))";
         assertUnorderedResult(sql, 1, "");
-    }
-
-    @Test
-    public void unsupported_inNotIn() throws Exception {
-        // The important part for this test is that we don't attempt to flatten currently.  But incidentally this
-        // first query returns the wrong result.  DB-3599
-        String sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 in (3,30,300))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3  |\n" +
-                "-------------\n" +
-                " 1 |10 |10  |\n" +
-                " 2 |20 |20  |\n" +
-                " 4 |40 |40  |\n" +
-                " 5 | 5 | 5  |\n" +
-                " 5 |50 |500 |");
-        sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 not in (3,30,300))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3  |\n" +
-                "-------------\n" +
-                " 1 |10 |10  |\n" +
-                " 3 |30 |30  |\n" +
-                " 4 |40 |40  |\n" +
-                " 5 | 5 | 5  |\n" +
-                " 5 |50 |500 |");
     }
 
     @Test
