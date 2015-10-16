@@ -5,6 +5,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import org.junit.*;
 
+import static com.splicemachine.subquery.SubqueryITUtil.assertUnorderedResult;
 import static org.junit.Assert.assertEquals;
 
 public class Subquery_Flattening_NotExists_IT {
@@ -582,6 +583,17 @@ public class Subquery_Flattening_NotExists_IT {
                 "--------\n" +
                 " 2 |20 |\n" +
                 " 4 |40 |");
+    }
+
+    @Test
+    public void union_unionsInFromListOfNotExistsSubquery() throws Exception {
+        String sql = "select * from B where NOT exists(" +
+                "select * from (select c1 r from C union select d1 r from D) foo where foo.r=b1" +
+                ")";
+        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+                "B1  | B2  |\n" +
+                "------------\n" +
+                "NULL |NULL |");
     }
 
 
