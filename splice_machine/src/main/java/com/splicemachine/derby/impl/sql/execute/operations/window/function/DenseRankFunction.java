@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -30,7 +31,8 @@ public class DenseRankFunction extends SpliceGenericWindowFunction implements Wi
     private long rank;
 
     @Override
-    public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+    public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType,
+                                FormatableHashtable functionSpecificArgs) {
         super.setup( classFactory, aggregateName, returnDataType );
         return this;
     }

@@ -1,6 +1,8 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.test.framework;
 
 import org.junit.Test;
+
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 
 /**
  * @author Jeff Cunningham

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 
 /**
  * @author Jeff Cunningham
@@ -29,4 +30,6 @@ public interface WindowAggregator {
     FrameDefinition getFrameDefinition();
 
     String getName();
+
+    SpliceGenericWindowFunction getCachedAggregator();
 }

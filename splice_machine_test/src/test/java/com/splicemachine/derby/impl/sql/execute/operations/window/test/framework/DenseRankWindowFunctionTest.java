@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations.window;
+package com.splicemachine.derby.impl.sql.execute.operations.window.test.framework;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,6 +11,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.DenseRankFunction;
 
 /**
@@ -35,7 +36,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
         int[] orderByColIDs = new int[] {2};    // 1-based
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -60,7 +61,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testEmptyOrderByColumns() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition()}));
 
@@ -82,7 +83,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testEmptyPartitionColumns() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13)}));
@@ -94,7 +95,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testTimestampColumn() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -108,7 +109,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testStringColumn() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13),
@@ -122,7 +123,7 @@ public class DenseRankWindowFunctionTest extends WindowTestingFramework {
     public void testThreeOrderByColumns() throws Exception {
 
         // define the shape of the input rows
-        List<TestColumnDefinition> rowDefinition = new ArrayList<TestColumnDefinition>(
+        List<TestColumnDefinition> rowDefinition = new ArrayList<>(
             Arrays.asList(new TestColumnDefinition[]{
                 new IntegerColumnDefinition(),
                 new DoubleColumnDefinition().setVariant(13).setColumnName("partition_and_input1"),
