@@ -1301,6 +1301,10 @@ public class SQLParser
 		case ROWNUMBER:
 		case RANK:
 		case DENSERANK:
+		case LASTVALUE:
+		case FIRSTVALUE:
+		case LEAD:
+		case LAG:
 
 		// case PERCENT_RANK:
 		// case CUME_DIST:
@@ -2762,6 +2766,7 @@ TOKEN [IGNORE_CASE] :
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
+|	<IGNORE: "ignore">
 |	<INCREMENT: "increment">
 |	<INITIAL: "initial">
 |   <INOUT: "inout">
@@ -2797,6 +2802,7 @@ TOKEN [IGNORE_CASE] :
 |	<RELEASE: "release">
 |	<QUARTER: "quarter">
 |	<REPEATABLE: "repeatable">
+|	<RESPECT: "respect">
 |	<RESTART: "restart">
 |	<RETURNS: "returns">
 |	<ROLLUP: "rollup">
@@ -2859,6 +2865,10 @@ TOKEN [IGNORE_CASE] :
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
+|	<FIRSTVALUE: "first_value">
+|	<LAG: "lag">
+|	<LASTVALUE: "last_value">
+|	<LEAD: "lead">
 |	<LONGINT: "bigint">
 |	<LONG: "long">
 |	<LTRIM: "ltrim">
@@ -10544,8 +10554,12 @@ datetimeValueFunction() throws StandardException :
    windowOrAggregateFunctionNode() throws StandardException :
    {
        ValueNode winOrAgg;
+       ValueNode input;
        QueryTreeNode window = null;
        ValueNode[] rankColsRef = null;
+       Boolean ignoreNulls = Boolean.FALSE;
+       Integer offset = 1;
+       ValueNode defaultValue = null;
    }
    {
        <COUNT> <LEFT_PAREN>
@@ -10622,7 +10636,88 @@ datetimeValueFunction() throws StandardException :
                getContextManager());
            return winOrAgg;
        }
+   |
+       <LASTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) ignoreNulls = ignoreNulls() <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.FIRST_LAST_VALUE_FUNCTION_NODE,
+               FirstLastValueFunctionDefinition.class,
+               window,
+               input,
+               ignoreNulls,
+               "LAST_VALUE",
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <FIRSTVALUE> <LEFT_PAREN> input = additiveExpression(null, 0) ignoreNulls = ignoreNulls() <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.FIRST_LAST_VALUE_FUNCTION_NODE,
+               FirstLastValueFunctionDefinition.class,
+               window,
+               input,
+               ignoreNulls,
+               "FIRST_VALUE",
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <LEAD> <LEFT_PAREN> input = additiveExpression(null, 0) [ <COMMA> offset = scale() [ <COMMA> defaultValue = literal() ] ] <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.LEAD_LAG_FUNCTION_NODE,
+               LeadLagFunctionDefinition.class,
+               window,
+               input,
+               "LEAD",
+               offset,
+               defaultValue,    // optional default value TODO:
+               getContextManager());
+           return winOrAgg;
+       }
+   |
+       <LAG> <LEFT_PAREN> input = additiveExpression(null, 0) [ <COMMA> offset = scale() [ <COMMA> defaultValue = literal() ] ] <RIGHT_PAREN> window = overClause()
+       {
+           setWindowFrameMode(window, WindowFrameDefinition.FrameMode.ROWS);
+           winOrAgg = (ValueNode) nodeFactory.getNode(
+               C_NodeTypes.LEAD_LAG_FUNCTION_NODE,
+               LeadLagFunctionDefinition.class,
+               window,
+               input,
+               "LAG",
+               offset,
+               defaultValue,    // optional default value TODO:
+               getContextManager());
+           return winOrAgg;
+       }
    }
+
+Boolean
+ignoreNulls() :
+{}
+{
+    LOOKAHEAD ( { getToken(1).kind == IGNORE && getToken(2).kind == NULLS } )
+    ( <IGNORE> <NULLS>
+        {
+            return Boolean.TRUE;
+        }
+    )
+|
+    LOOKAHEAD ( { getToken(1).kind == RESPECT && getToken(2).kind == NULLS } )
+    ( <RESPECT> <NULLS>
+        {
+            return Boolean.FALSE;
+        }
+    )
+|
+    {
+        return Boolean.FALSE;
+    }
+}
 
 
 QueryTreeNode
@@ -15768,10 +15863,12 @@ nonReservedKeyword()  :
 	|	tok = <EMPTY>
 	|	tok = <EXCLUSIVE>
 	|	tok = <EXTRACT>
+	|	tok = <FIRSTVALUE>
 	|	tok = <FN>
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
 	|	tok = <IDENTITY_VAL_LOCAL>
+	|	tok = <IGNORE>
 	|	tok = <INCREMENT>
 	|	tok = <INDEX>
 	|	tok = <INITIAL>
@@ -15779,9 +15876,12 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <INTERVAL>
 	|   tok = <JAVA>
+	|	tok = <LAG>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
+	|	tok = <LASTVALUE>
     |   tok = <LCASE>
+	|	tok = <LEAD>
 	|	tok = <LENGTH>
 	|	tok = <LEVEL>
     |   tok = <LIMIT>
@@ -15839,6 +15939,7 @@ nonReservedKeyword()  :
 	|	tok = <REPEATABLE>
 	|	tok = <REFERENCING>
 	|	tok = <RESET>
+	|	tok = <RESPECT>
 	|	tok = <RESTART>
 	|	tok = <RESULT>
 	|	tok = <RETAIN>

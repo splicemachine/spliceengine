@@ -826,6 +826,27 @@ Guide.
             </msg>
 
             <msg>
+                <name>2201Y</name>
+                <text>Invalid LEAD, LAG for OFFSET, must be greater or equal to 0 and less than Integer.MAX_VALUE. Got '{0}'.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>2202A</name>
+                <text>Missing argument for first(), last() function.</text>
+            </msg>
+
+            <msg>
+                <name>2202B</name>
+              <text>Missing argument for lead(), lag() function.</text>
+            </msg>
+
+            <msg>
+                <name>2202C</name>
+              <text>"default" argument for lead(), lag() function is not implemented.</text>
+            </msg>
+
+            <msg>
                 <name>2201W</name>
                 <text>Row count for FIRST/NEXT/TOP must be >= 1 and row count for LIMIT must be >= 0.</text>
             </msg>
