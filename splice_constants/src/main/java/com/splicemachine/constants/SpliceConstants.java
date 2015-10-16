@@ -608,7 +608,7 @@ public class SpliceConstants {
     public static int broadcastRegionMBThreshold;
 
     /**
-     * Threshold in rows for the broadcast join region size.  Default is 5 Million Rows
+     * Threshold in rows for the broadcast join region size.  Default is 1 Million Rows
      *
      */
     @Parameter private static final String BROADCAST_REGION_ROW_THRESHOLD = "splice.optimizer.broadcastRegionRowThreshold";
