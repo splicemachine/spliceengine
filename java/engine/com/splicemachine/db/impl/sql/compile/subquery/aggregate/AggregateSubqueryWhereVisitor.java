@@ -150,7 +150,8 @@ class AggregateSubqueryWhereVisitor implements Visitor {
         }
         /* Top level node is not an AndNode or BinaryRelationalOperatorNode */
         else {
-            foundUnsupported = true;
+            /* Can be anything as long as it is not correlated. */
+            foundUnsupported = ColumnUtils.isSubtreeCorrelated(node);
         }
         return node;
     }
