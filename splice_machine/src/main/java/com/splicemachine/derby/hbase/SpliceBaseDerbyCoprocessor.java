@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.impl.ActionFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -25,7 +27,9 @@ public class SpliceBaseDerbyCoprocessor {
         regionServerZNode = regionServerServices.getServerName().getServerName();
 
         //make sure the factory is correct
-        TransactionalRegions.setActionFactory(RollForwardAction.FACTORY);
+        long rollForwardrate = SIConstants.rollForwardRate;
+        ActionFactory af = rollForwardrate>0? RollForwardAction.FACTORY:ActionFactory.NOOP_ACTION_FACTORY;
+        TransactionalRegions.setActionFactory(af);
         //use the independent write control from the write pipeline
         TransactionalRegions.setTrafficControl(SpliceBaseIndexEndpoint.independentTrafficControl);
 
