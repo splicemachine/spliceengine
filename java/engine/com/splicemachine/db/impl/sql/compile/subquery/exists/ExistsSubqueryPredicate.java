@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.sql.compile.subquery.exists;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
 
@@ -54,8 +55,21 @@ class ExistsSubqueryPredicate implements com.google.common.base.Predicate<Subque
 
         ResultSetNode subqueryResultSet = subqueryNode.getResultSet();
 
-        /* subquery cannot contain a union */
-        if (subqueryResultSet.getFromList().containsNode(UnionNode.class)) {
+        boolean subqueryCorrelated = ColumnUtils.isSubtreeCorrelated(subqueryNode);
+
+        /* correlated subquery cannot contain a union */
+        if (subqueryCorrelated && subqueryResultSet.getFromList().containsNode(UnionNode.class)) {
+            return false;
+        }
+
+        /* correlated subquery cannot have a limit or offset
+         *
+         * select A.* from A where exists ( select 1 from B where a1=b1 offset 100);
+         *
+         * This query returns rows in A only where there are more than 100 rows in B with a1 = b1.  Our join/flattening
+         * strategy can't currently do this because it will group by b1 (DistinctTableScan) before applying the offset.
+         */
+        if(subqueryCorrelated && (subqueryNode.getOffset() != null || subqueryNode.getFetchFirst() != null)) {
             return false;
         }
 
