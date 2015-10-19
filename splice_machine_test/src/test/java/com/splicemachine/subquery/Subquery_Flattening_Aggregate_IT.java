@@ -14,8 +14,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
 import static org.junit.Assert.assertEquals;
-import static com.splicemachine.subquery.SubqueryITUtil.*;
 
 /**
  * Test for flattening where-subqueries containing aggregates. Splice added this capability. <p/> All of the tested
@@ -508,6 +508,53 @@ public class Subquery_Flattening_Aggregate_IT {
                 " 3 |30 |30 | 3 |300 |3000 |");
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // misc
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void aggregateOfConstant() throws Exception {
+        String sql = "select * from A where A.a2 = (select max(40) from B where B.b1=A.a1)";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3 |\n" +
+                "------------\n" +
+                " 4 |40 |40 |");
+    }
+
+    @Test
+    public void aggregateColumnMultipliedByConstant() throws Exception {
+        String sql = "select * from A where A.a2 * 10 = (select max(b2*0.1) from B where B.b1=A.a1)";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 0 | 0 | 0  |\n" +
+                " 4 |40 |40  |\n" +
+                " 5 |50 |500 |");
+    }
+
+    @Test
+    public void multipleAggregateFunctions() throws Exception {
+        // one distinct column reference in aggregate expression
+        String sql = "select * from A where A.a2 > (select max(b2) - min(b2) from B where B.b1=A.a1)";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 1 |10 |10  |\n" +
+                " 2 |20 |20  |\n" +
+                " 5 | 5 | 5  |\n" +
+                " 5 |50 |500 |");
+        // two distinct column references in aggregate expression
+        sql = "select * from A where A.a2 > (select max(b3) - min(b2) from B where B.b1=A.a1)";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 1 |10 |10  |\n" +
+                " 5 | 5 | 5  |\n" +
+                " 5 |50 |500 |");
+    }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -554,30 +601,11 @@ public class Subquery_Flattening_Aggregate_IT {
     }
 
     @Test
-    public void unsupported_aggregateOfConstant() throws Exception {
-        String sql = "select * from A where A.a2 = (select max(40) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3 |\n" +
-                "------------\n" +
-                " 4 |40 |40 |");
-    }
-
-    @Test
     public void unsupported_complexWhere() throws Exception {
         String sql = "select * from A where A.a2 = (select max(b2) from B where not (B.b1=A.a1*10 or B.b1=A.a1))";
         assertUnorderedResult(sql, 1, "");
     }
 
-    @Test
-    public void unsupported_aggregateColumnMultipliedByConstant() throws Exception {
-        String sql = "select * from A where A.a2 * 10 = (select max(b2*0.1) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3  |\n" +
-                "-------------\n" +
-                " 0 | 0 | 0  |\n" +
-                " 4 |40 |40  |\n" +
-                " 5 |50 |500 |");
-    }
 
     @Test
     public void unsupported_nestedCorrelatedThreeLevels() throws Exception {
