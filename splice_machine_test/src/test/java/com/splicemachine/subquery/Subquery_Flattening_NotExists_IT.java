@@ -82,6 +82,12 @@ public class Subquery_Flattening_NotExists_IT {
                         "----\n" +
                         " 0 |"
         );
+        // offset in subquery
+        assertUnorderedResult(conn(), "select count(*) from A where NOT exists (select 1 from D offset 10000 rows)", ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 7 |"
+        );
     }
 
 
@@ -519,7 +525,7 @@ public class Subquery_Flattening_NotExists_IT {
     public void union_unCorrelated() throws Exception {
         // union of empty tables
         String sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 0 | 0 |\n" +
@@ -532,14 +538,57 @@ public class Subquery_Flattening_NotExists_IT {
 
         // union one non-empty first subquery
         sql = "select count(*) from A where NOT exists(select 1 from C union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "1 |\n" +
                 "----\n" +
                 " 0 |");
 
         // union one non-empty second subquery
         sql = "select count(*) from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from C)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // union, three unions
+        sql = "select count(*) from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from C union select 1 from D)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // non-empty tables, where subquery predicates eliminate all rows
+        sql = "select count(*) from A where NOT exists(select 1 from C where c1 > 999999 union select 1 from D where d1 < -999999)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 7 |");
+
+        // non-empty tables, where subquery predicates eliminate all rows in ONE table
+        sql = "select count(*) from A where NOT exists(select 1 from C where c1 > 999999 union select 1 from D where d1 = 0)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+
+        // unions with column references
+        sql = "select count(*) from A where NOT exists(select c1,c2 from C union select d1,d2 from D)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // unions referencing all columns
+        sql = "select count(*) from A where NOT exists(select * from C union select * from D)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |");
+
+        // union same table
+        sql = "select count(*) from A where NOT exists(select * from A union select * from A)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "1 |\n" +
                 "----\n" +
                 " 0 |");
@@ -838,6 +887,28 @@ public class Subquery_Flattening_NotExists_IT {
         );
 
     }
+
+    @Test
+    public void notFlattened_correlatedWithOffset() throws Exception {
+
+        /* I don't currently assert the result here because splice returns the wrong result: DB-4020 */
+
+        // offset in subquery -- return rows in A that have more than one row in D where a1=d1;
+        assertSubqueryNodeCount(conn(), "select * from A where NOT exists (select 1 from D where d1=a1 offset 1 rows)", ONE_SUBQUERY_NODE);
+        // offset in subquery -- return rows in A that have more than two rows in D where a1=d1;
+        assertSubqueryNodeCount(conn(), "select * from A where NOT exists (select 1 from D where d1=a1 offset 3 rows)", ONE_SUBQUERY_NODE);
+    }
+
+    @Test
+    public void notFlattened_correlatedWithLimits() throws Exception {
+        assertUnorderedResult(conn(), "select * from A where NOT exists (select 1 from D where d1=a1 {limit 1})", ONE_SUBQUERY_NODE, "" +
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 2 |20 |\n" +
+                " 4 |40 |"
+        );
+    }
+
 
     private TestConnection conn() {
         return methodWatcher.getOrCreateConnection();
