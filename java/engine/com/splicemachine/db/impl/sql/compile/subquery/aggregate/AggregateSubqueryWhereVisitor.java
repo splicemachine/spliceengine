@@ -82,13 +82,13 @@ class AggregateSubqueryWhereVisitor implements Visitor {
 
     /* The level of the subquery we are considering flattening in the enclosing predicate */
     private final int subqueryLevel;
-    private final ColumnReference aggColReference;
+    private final List<ColumnReference> aggColReferences;
 
     private boolean foundUnsupported;
 
-    public AggregateSubqueryWhereVisitor(int subqueryLevel, ColumnReference aggColReference) {
+    public AggregateSubqueryWhereVisitor(int subqueryLevel, List<ColumnReference> aggColReferences) {
         this.subqueryLevel = subqueryLevel;
-        this.aggColReference = aggColReference;
+        this.aggColReferences = aggColReferences;
     }
 
     @Override
@@ -139,10 +139,10 @@ class AggregateSubqueryWhereVisitor implements Visitor {
             ColumnReference leftReference = (ColumnReference) leftOperand;
             ColumnReference rightReference = (ColumnReference) rightOperand;
 
-            /* BAD: Correlated column reference cannot be compared to the subqueries aggregated column. */
-            if (leftReference.getCorrelated() && aggColReference.equals(rightReference)
+            /* BAD: Correlated column reference cannot be compared to columns in the subqueries aggregate expression. */
+            if (leftReference.getCorrelated() && aggColReferences.contains(rightReference)
                     ||
-                    rightReference.getCorrelated() && aggColReference.equals(leftReference)) {
+                    rightReference.getCorrelated() && aggColReferences.contains(leftReference)) {
                 foundUnsupported = true;
                 return node;
             }
