@@ -342,7 +342,7 @@
 								<!-- <argument>-verbose:gc</argument> -->
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
-                                <argument>-Dsplice.spark.extraClassPath=${project.build.directory}/dependency/*</argument>
+                                <argument>-Dsplice.spark.extraClassPath=${project.build.directory}/dependency/*:${project.build.directory}/classes</argument>
 								<argument>-Xdebug</argument>
 								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
