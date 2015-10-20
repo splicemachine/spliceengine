@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
@@ -37,6 +38,7 @@ public interface PairDataSet<K,V> {
     public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext);
+    public DataSet<V> writeIndex(HTableWriterBuilder builder);
     public String toString();
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<Tuple2<K,V>>, U> f);
 

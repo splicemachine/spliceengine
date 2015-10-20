@@ -1,6 +1,26 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.utils.WarningState;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.function.IndexPairFunction;
+import com.splicemachine.derby.stream.index.HTableScannerBuilder;
+import com.splicemachine.derby.stream.function.IndexTransformFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.index.HTableWriterBuilder;
+import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
+import org.apache.hadoop.hbase.client.Scan;
 
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 
@@ -16,7 +36,6 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.pipeline.ddl.DDLChange;
@@ -33,7 +52,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.CancellationException;
@@ -173,6 +191,93 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
         statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
         SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+        boolean unique = tentativeIndexDesc.isUnique();
+        boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
+        long indexConglomId = tentativeIndexDesc.getConglomerateNumber();
+        Txn childTxn = null;
+        try {
+            SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) txnControl).findConglomerate(tableConglomId);
+
+            int[] formatIds = conglomerate.getFormat_ids();
+            int[] columnOrdering = conglomerate.getColumnOrdering();
+
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
+            childTxn = beginChildTransaction(indexTransaction, indexConglomId);
+            Scan tableScan = createScan();
+            HTableScannerBuilder hTableScannerBuilder = new HTableScannerBuilder()
+                    .transaction(indexTransaction)
+                    .demarcationPoint(demarcationPoint)
+                    .indexColToMainColPosMap(baseColumnPositions)
+                    .scan(tableScan);
+            HTableWriterBuilder builder = new HTableWriterBuilder()
+                    .heapConglom(indexConglomId)
+                    .txn(childTxn);
+
+            DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder, (new Long(tableConglomId)).toString());
+            IndexTransformFunction indexTransformerFunction =
+                    new IndexTransformFunction(
+                            baseColumnPositions,
+                            unique,
+                            uniqueWithDuplicateNulls,
+                            descColumns,
+                            columnOrdering,
+                            formatIds);
+            DataSet<LocatedRow> result = dataset.map(indexTransformerFunction).index(new IndexPairFunction()).writeIndex(builder);
+            childTxn.commit();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        } finally {
+            if(activation.isTraced()){
+                GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
+            }
+            try {
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),((SpliceTransactionManager) txnControl).getActiveStateTxn());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+    }
+    protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
+        TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+        return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());
+    }
+
+    private Scan createScan () throws IOException{
+        Scan scan= SpliceUtils.createScan(null);
+        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+        scan.setStartRow(new byte[0]);
+        scan.setStopRow(new byte[0]);
+        scan.setCacheBlocks(false);
+        return scan;
+    }
+
+    protected void populateIndex_old(Activation activation,
+                                 int[] baseColumnPositions,
+                                 boolean[] descColumns,
+                                 long tableConglomId,
+                                 HTableInterface table,
+                                 TransactionController txnControl,
+                                 Txn indexTransaction, Txn demarcationPoint,
+                                 TentativeIndexDesc tentativeIndexDesc) throws StandardException {
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+				/*
+				 * Backfill the index with any existing data.
+				 *
+				 * It's possible that the index will be created on the same node as some system tables are located.
+				 * This means that there
+				 */
+        //TODO -sf- replace this name with the actual SQL being issued
+        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+        long sId = snowflake.nextUUID();
+        if (activation.isTraced()) {
+            activation.getLanguageConnectionContext().setXplainStatementId(sId);
+        }
+        StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
+                ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
+        OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
+        statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
+        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         JobFuture future = null;
         boolean unique = tentativeIndexDesc.isUnique();
         boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
@@ -189,7 +294,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                     conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
                     statementUuid, operationUuid,
                     activation.isTraced(), columnOrder, formatIds,
-                    demarcationPoint);
+                    demarcationPoint.getCommitTimestamp());
 
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
@@ -221,7 +326,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             }
         }
     }
-
     protected void createIndex(Activation activation, DDLChange ddlChange,
                                HTableInterface table, TableDescriptor td) throws StandardException {
         JobFuture future = null;

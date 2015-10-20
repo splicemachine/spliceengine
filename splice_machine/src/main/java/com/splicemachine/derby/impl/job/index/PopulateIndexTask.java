@@ -5,6 +5,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -274,8 +276,11 @@ public class PopulateIndexTask extends ZkTask{
                 mainPair.setKey(row);
                 mainPair.setValue(data);
             }
+            LOG.error("main row = " + BytesUtil.toHex(row));
+            LOG.error("main value = " + BytesUtil.toHex(data));
             KVPair pair=transformer.translate(mainPair);
-
+            LOG.error("index row = " + BytesUtil.toHex(pair.getRowKey()));
+            LOG.error("index value = " + BytesUtil.toHex(pair.getValue()));
             writeBuffer.add(pair);
         }
         manipulationTimer.tick(1);

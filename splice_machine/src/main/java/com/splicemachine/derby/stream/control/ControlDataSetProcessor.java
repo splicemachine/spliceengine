@@ -4,21 +4,21 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.index.HTableScannerIterator;
+import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnDataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -26,16 +26,13 @@ import org.apache.hadoop.hbase.util.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
-import com.google.common.collect.ArrayListMultimap;
 import scala.Tuple2;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipException;
 
 /**
  * Created by jleach on 4/13/15.
@@ -56,6 +53,19 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         return new ControlDataSet(tableScannerIterator);
     }
 
+    @Override
+    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException {
+        TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+                TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(),
+                TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
+
+        hTableBuilder
+                .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),hTableBuilder.getScan()))
+                .region(localRegion)
+                .metricFactory(Metrics.noOpMetricFactory());
+        HTableScannerIterator tableScannerIterator = new HTableScannerIterator(hTableBuilder);
+        return new ControlDataSet(tableScannerIterator);
+    }
     @Override
     public <V> DataSet<V> getEmpty() {
         return new ControlDataSet<>(Collections.<V>emptyList());

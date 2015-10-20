@@ -2,10 +2,8 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.stream.iterator.TableScannerIterator;
+import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 
 import java.io.InputStream;
 
@@ -14,6 +12,7 @@ import java.io.InputStream;
  */
 public interface DataSetProcessor {
     <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation,TableScannerBuilder siTableBuilder, String tableName) throws StandardException;
+    <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException;
     <V> DataSet<V> getEmpty();
     <V> DataSet<V> singleRowDataSet(V value);
     <V> DataSet<V> createDataSet(Iterable<V> value);
