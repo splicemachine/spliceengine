@@ -342,12 +342,13 @@
 								<!-- <argument>-verbose:gc</argument> -->
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
+                                <argument>-Dsplice.spark.extraClassPath=${project.build.directory}/dependency/*</argument>
 								<argument>-Xdebug</argument>
 								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Dzookeeper.sasl.client=false</argument>
-								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Dsplice.authentication=NATIVE</argument>
