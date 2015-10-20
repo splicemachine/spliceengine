@@ -1,129 +1,76 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
-import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
-import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 
-import java.sql.Statement;
 import java.sql.ResultSet;
-import java.util.*;
+import java.sql.Statement;
+
+import static org.junit.Assert.assertEquals;
 
 /**
- * @author Scott Fines
- * Date: 3/4/14
+ * Integration tests for NestedLoopJoinOperation.
  */
 @Category(SerialTest.class) //in Serial category because of the NestedLoopIteratorClosesStatements test
 public class NestedLoopJoinIT {
-		public static final String CLASS_NAME = NestedLoopJoinIT.class.getSimpleName().toUpperCase();
 
-		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-		protected static SpliceTableWatcher b2 = new SpliceTableWatcher("b2",
-						spliceSchemaWatcher.schemaName,"(c1 int, c2 int, c3 char(1), c4 int, c5 int,c6 int)");
-		protected static SpliceTableWatcher b3 = new SpliceTableWatcher("b3",
-						spliceSchemaWatcher.schemaName,"(c8 int, c9 int, c5 int, c6 int)");
-		protected static SpliceTableWatcher b4 = new SpliceTableWatcher("b4",spliceSchemaWatcher.schemaName,"(c7 int, c4 int, c6 int)");
-		protected static SpliceTableWatcher b = new SpliceTableWatcher("b",spliceSchemaWatcher.schemaName,"(c1 int, c2 int, c3 char(1), c4 int, c5 int, c6 int)");
+    private static final String SCHEMA_NAME = NestedLoopJoinIT.class.getSimpleName().toUpperCase();
+    @ClassRule
+    public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA_NAME);
+    @ClassRule
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
-		@ClassRule
-		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-						.around(spliceSchemaWatcher)
-						.around(b)
-						.around(b2)
-						.around(b3)
-						.around(b4).around(new SpliceDataWatcher() {
-								@Override
-								protected void starting(Description description) {
-										try {
-												spliceClassWatcher.executeUpdate(String.format("insert into %s (c5,c1,c3,c4,c6) values (3,4, 'F',43,23)",b2));
-												spliceClassWatcher.executeUpdate(String.format("insert into %s (c5,c8,c9,c6) values (2,3,19,28)", b3));
-												spliceClassWatcher.executeUpdate(String.format("insert into %s (c7,c4,c6) values (4, 42, 31)",b4));
-												String viewSql =String.format("create view %1$s.bvw (c5,c1,c2,c3,c4) as select c5,c1,c2,c3,c4 from %2$s union select c5,c1,c2,c3,c4 from %3$s",spliceSchemaWatcher.schemaName,b2,b);
-												spliceClassWatcher.getStatement().execute(viewSql);
-										} catch (Exception e) {
-												throw new RuntimeException(e);
-										}
-								}
+    @BeforeClass
+    public static void createTables() throws Exception {
+        // B
+        classWatcher.executeUpdate("create table B(c1 int, c2 int, c3 char(1), c4 int, c5 int, c6 int)");
+        // B2
+        classWatcher.executeUpdate("create table B2 (c1 int, c2 int, c3 char(1), c4 int, c5 int,c6 int)");
+        classWatcher.executeUpdate("insert into B2 (c5,c1,c3,c4,c6) values (3,4, 'F',43,23)");
+        // B3
+        classWatcher.executeUpdate("create table B3(c8 int, c9 int, c5 int, c6 int)");
+        classWatcher.executeUpdate("insert into B3 (c5,c8,c9,c6) values (2,3,19,28)");
+        // B4
+        classWatcher.executeUpdate("create table B4(c7 int, c4 int, c6 int)");
+        classWatcher.executeUpdate("insert into B4 (c7,c4,c6) values (4, 42, 31)");
+        // VIEW
+        classWatcher.executeUpdate("create view bvw (c5,c1,c2,c3,c4) as select c5,c1,c2,c3,c4 from B2 union select c5,c1,c2,c3,c4 from B");
+    }
 
-								@Override
-								protected void finished(Description description) {
-										try{
-												spliceClassWatcher.executeUpdate(String.format("drop view %s",spliceSchemaWatcher.schemaName+".bvw"));
-										}catch(Exception e){
-												throw new RuntimeException(e);
-										}
-										super.finished(description);
-								}
-						});
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
+    /* Regression test for DB-1027 */
+    @Test
+    public void testCanJoinTwoTablesWithViewAndQualifiedSinkOperation() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select B3.* from B3 join BVW on (B3.c8 = BVW.c5) join B4 on (BVW.c1 = B4.c7) where B4.c4 = 42");
+        assertEquals("" +
+                "C8 |C9 |C5 |C6 |\n" +
+                "----------------\n" +
+                " 3 |19 | 2 |28 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
 
-		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-		@Test
-		public void testCanJoinTwoTablesWithViewAndQualifiedSinkOperation() throws Exception {
-			/*Regression test for DB-1027*/
-				String query = String.format("select %1$s.* from %1$s join %2$s on (%1$s.c8 = %2$s.c5) join %3$s on (%2$s.c1 = %3$s.c7) where %3$s.c4 = 42",
-								b3, spliceSchemaWatcher.schemaName + ".bvw", b4);
-				ResultSet rs = methodWatcher.executeQuery(query);
-				List<int[]> correct = Arrays.asList(new int[]{3, 19, 2, 28});
-				List<int[]> actual = Lists.newArrayListWithExpectedSize(1);
-				while(rs.next()){
-						int[] ret = new int[4];
-						for(int i=0;i<4;i++){
-								int n = rs.getInt(i+1);
-								Assert.assertFalse("Null accidentally returned!",rs.wasNull());
-								ret[i] = n;
-						}
-						actual.add(ret);
-				}
+    /* Regression test for DB-1129 */
+    @Test
+    public void testNestedLoopIteratorCloseStatements() throws Exception {
+        int statementCountBefore = getSysStatementCount();
+        methodWatcher.executeQuery("select * from B2 a, B2 b --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP");
+        int statementCountAfter = getSysStatementCount();
+        assertEquals(statementCountBefore, statementCountAfter);
+    }
 
-				Comparator<int[]> c = new Comparator<int[]>() {
-
-						@Override
-						public int compare(int[] o1, int[] o2) {
-								if (o1 == null) {
-										if (o2 == null) return 0;
-										return -1;
-								} else if (o2 == null) return 1;
-
-								return Ints.compare(o1[0], o2[0]);
-						}
-				};
-				Collections.sort(correct, c);
-				Collections.sort(actual,c);
-
-				Assert.assertEquals("Incorrect number of results returned!",correct.size(),actual.size());
-				Iterator<int[]> actualIter = actual.iterator();
-				for(int[] correctLine:correct){
-						int[] next = actualIter.next();
-						Assert.assertArrayEquals("Incorrect row!",correctLine,next);
-				}
-		}
-		
-		@Test 
-		public void testNestedLoopIteratorCloseStatements() throws Exception {  // JIRA DB-1129
-			Statement s = methodWatcher.getStatement();
-			ResultSet rs = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY()");
-			int countstatementsbefore = 0;
-			while (rs.next()) {
-				countstatementsbefore += 1;
-			}
-			String query = String.format("select * from %1$s a, %1$s b --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP", b2);
-			s.executeQuery(query);
-			rs = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY()");
-			int countstatementsafter = 0;
-			while (rs.next()) {
-				countstatementsafter += 1;
-			}
-			Assert.assertEquals(countstatementsbefore,countstatementsafter);
-		}
+    private int getSysStatementCount() throws Exception {
+        Statement s = methodWatcher.getStatement();
+        ResultSet rs = s.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY()");
+        return SpliceUnitTest.resultSetSize(rs);
+    }
 
 }
