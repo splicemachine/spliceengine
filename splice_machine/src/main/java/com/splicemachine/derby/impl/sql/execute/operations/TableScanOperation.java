@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -207,13 +208,15 @@ public class TableScanOperation extends ScanOperation {
         @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             assert currentTemplate != null: "Current Template Cannot Be Null";
-			TableScannerBuilder tsb = getTableScannerBuilder();
+            OperationContext<TableScanOperation> operationContext = dsp.createOperationContext(this);
+			TableScannerBuilder tsb = getTableScannerBuilder(dsp);
 			return dsp.getTableScanner(this,tsb,tableName);
         }
 
-		public TableScannerBuilder getTableScannerBuilder() throws StandardException {
+		public TableScannerBuilder getTableScannerBuilder(DataSetProcessor dsp) throws StandardException {
             TxnView txn = getCurrentTransaction();
 			return new TableScannerBuilder()
+                            .operationContext(dsp.createOperationContext(this))
 							.transaction(txn)
 							.scan(getNonSIScan())
 							.template(currentTemplate)
