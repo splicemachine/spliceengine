@@ -11,7 +11,8 @@ Usage
 
 * Find the JSON in: AFTER_BIND.json, AFTER_OPTIMIZE.json, AFTER_PARSE.json 
 
- (in splice process current directory, feel free to improve this if you would like to see these saved somewhere else)  
+ (it attempts to write to the target sub director under splice process current directory, if it exists, else in the CWD.
+ Feel free to improve this if you would like to see these saved somewhere else)  
   
 * Open ast-visualization.html (In IntelliJ you can right click and select "Open In Browser..."
 

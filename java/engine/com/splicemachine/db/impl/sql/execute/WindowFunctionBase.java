@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
@@ -23,14 +24,17 @@ public abstract class WindowFunctionBase implements WindowFunction {
     protected ClassFactory classFactory;
     protected String windowFunctionName;
     protected DataTypeDescriptor returnDataType;
+    protected FormatableHashtable functionSpecificArgs;
 
     @Override
-    public ExecAggregator setup(ClassFactory classFactory,
+    public WindowFunction setup(ClassFactory classFactory,
                                 String windowFunctionName,
-                                DataTypeDescriptor returnDataType) {
+                                DataTypeDescriptor returnDataType,
+                                FormatableHashtable functionSpecificArgs) {
         this.classFactory = classFactory;
         this.windowFunctionName = windowFunctionName;
         this.returnDataType = returnDataType;
+        this.functionSpecificArgs = functionSpecificArgs;
         return this;
     }
 
@@ -41,10 +45,11 @@ public abstract class WindowFunctionBase implements WindowFunction {
             Object newInstance = windowFunctionClass.newInstance();
             windowFunctionInstance = (WindowFunction)newInstance;
             // the splice-side instance is invoked here
-            windowFunctionInstance = (WindowFunction) windowFunctionInstance.setup(
+            windowFunctionInstance = windowFunctionInstance.setup(
                 classFactory,
                 windowFunctionName,
-                returnDataType
+                returnDataType,
+                functionSpecificArgs
             );
         }catch(Exception e){
             throw new RuntimeException(e);
@@ -108,4 +113,8 @@ public abstract class WindowFunctionBase implements WindowFunction {
         return 0;
     }
 
+    @Override
+    public WindowFunction setup(ClassFactory classFactory, String aggregateName, DataTypeDescriptor returnDataType) {
+        return null;
+    }
 }

@@ -727,7 +727,11 @@ public interface SQLState {
 	String LANG_ESCAPE_IS_NULL                                  	   = "22501";
 	String LANG_INVALID_ROW_COUNT_FIRST                                = "2201W";
 	String LANG_INVALID_ROW_COUNT_OFFSET                               = "2201X";
+	String LANG_INVALID_LEAD_LAG_OFFSET                                = "2201Y";
 	String LANG_ROW_COUNT_OFFSET_FIRST_IS_NULL                         = "2201Z";
+    String LANG_MISSING_FIRST_LAST_VALUE_ARG                           = "2202A";
+    String LANG_MISSING_LEAD_LAG_ARG                                   = "2202B";
+    String LANG_MISSING_LEAD_LAG_DEFAULT                               = "2202C";
 
 	/*
 	** Integrity violations.

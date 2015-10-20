@@ -117,8 +117,8 @@ public class ColumnReference extends ValueNode {
     //       a3 |             1 |           0
     //
     //</pre>
-    private int nestingLevel = -1;
-    private int sourceLevel = -1;
+	private int			nestingLevel = -1;
+	private int			sourceLevel = -1;
 
 	/* Whether or not this column reference been scoped for the
 	   sake of predicate pushdown.
@@ -137,13 +137,13 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @param columnName	The name of the column being referenced
 	 * @param tableName		The qualification for the column
-	 * @param tokBeginOffset begin position of token for the column name
+	 * @param tokBeginOffset begin position of token for the column name 
 	 *					identifier from parser.
-	 * @param tokEndOffset	end position of token for the column name
+	 * @param tokEndOffset	end position of token for the column name 
 	 *					identifier from parser.
 	 */
 
-	public void init(Object columnName,
+	public void init(Object columnName, 
 					 Object tableName,
 			 		 Object	tokBeginOffset,
 					 Object	tokEndOffset
@@ -324,8 +324,8 @@ public class ColumnReference extends ValueNode {
 
 	/**
 	 * Mark this node as being generated to replace an aggregate.
-	 * (Useful for replacing aggregates in the HAVING clause with
-	 * column references to the matching aggregate in the
+	 * (Useful for replacing aggregates in the HAVING clause with 
+	 * column references to the matching aggregate in the 
 	 * user's SELECT.
 	 */
 	public void markGeneratedToReplaceAggregate()
@@ -462,7 +462,7 @@ public class ColumnReference extends ValueNode {
 	{
 		if (tableName == null)
 			return columnName;
-
+		
 		return tableName.toString() + "." + columnName;
 	}
 
@@ -553,7 +553,7 @@ public class ColumnReference extends ValueNode {
 	/**
 	 * Is the column wirtable by the cursor or not. (ie, is it in the list of FOR UPDATE columns list)
 	 *
-	 * @return TRUE, if the column is a base column of a table and is
+	 * @return TRUE, if the column is a base column of a table and is 
 	 * writable by cursor.
 	 */
 	public boolean updatableByCursor()
@@ -629,7 +629,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ValueNode putAndsOnTop()
+	public ValueNode putAndsOnTop() 
 					throws StandardException
 	{
 		BinaryComparisonOperatorNode		equalsNode;
@@ -641,7 +641,7 @@ public class ColumnReference extends ValueNode {
 										C_NodeTypes.BOOLEAN_CONSTANT_NODE,
 										Boolean.TRUE,
 										getContextManager());
-		equalsNode = (BinaryComparisonOperatorNode)
+		equalsNode = (BinaryComparisonOperatorNode) 
 						nodeFactory.getNode(
 										C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
 										this,
@@ -661,7 +661,7 @@ public class ColumnReference extends ValueNode {
 	/**
 	 * Categorize this predicate.  Initially, this means
 	 * building a bit map of the referenced tables for each predicate.
-	 * If the source of this ColumnReference (at the next underlying level)
+	 * If the source of this ColumnReference (at the next underlying level) 
 	 * is not a ColumnReference or a VirtualColumnNode then this predicate
 	 * will not be pushed down.
 	 *
@@ -1005,7 +1005,7 @@ public class ColumnReference extends ValueNode {
 		}
 	}
 
-	/**
+	/** 
 	 * Update the table map to reflect the source
 	 * of this CR.
 	 *
@@ -1088,7 +1088,7 @@ public class ColumnReference extends ValueNode {
 		 * where <interface> is the appropriate Datatype protocol interface
 		 * for the type of the column.
 		 */
-	    acb.pushColumnReference(mb, sourceResultSetNumber,
+	    acb.pushColumnReference(mb, sourceResultSetNumber, 
 	    									source.getVirtualColumnId());
 
 		mb.cast(getTypeCompiler().interfaceName());
@@ -1136,7 +1136,7 @@ public class ColumnReference extends ValueNode {
 	 * @return Whether or not the source of this ColumnReference is itself a ColumnReference.
 	 */
 	boolean pointsToColumnReference()
-	{
+	{ 
 		return (source.getExpression() instanceof ColumnReference);
 	}
 
@@ -1146,10 +1146,10 @@ public class ColumnReference extends ValueNode {
      * the type that has been set on this node.
 	 */
 	public DataTypeDescriptor getTypeServices()
-	{
+	{        
         if (source == null)
             return super.getTypeServices();
-
+       
         return source.getTypeServices();
     }
 
@@ -1260,7 +1260,7 @@ public class ColumnReference extends ValueNode {
 			return false;
 		}
 		ColumnReference other = (ColumnReference)o;
-		return (tableNumber == other.tableNumber
+		return (tableNumber == other.tableNumber 
 				&& columnName.equals(other.getColumnName()));
 	}
 
@@ -1323,7 +1323,7 @@ public class ColumnReference extends ValueNode {
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
-
+	
 	public ResultColumn getOrigSourceResultColumn()
 	{
         /* RESOLVE - If expression is a ColumnReference, then we are hitting

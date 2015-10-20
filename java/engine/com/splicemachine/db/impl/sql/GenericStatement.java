@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 
@@ -723,8 +724,16 @@ public class GenericStatement implements Statement{
             try {
                 JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();
                 queryTree.accept(jsonVisitor);
+
                 String destinationFileName = phase + ".json";
-                Files.write(Paths.get(destinationFileName), jsonVisitor.toJson().getBytes("UTF-8"));
+                Path target = Paths.get(destinationFileName);
+                // Attempt to write to target director, if exists under CWD
+                Path subDir = Paths.get("./target");
+                if (Files.isDirectory(subDir)) {
+                    target = subDir.resolve(target);
+                }
+
+                Files.write(target, jsonVisitor.toJson().getBytes("UTF-8"));
             } catch (IOException e) {
                 /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
                    write to the destination, for example, then warn but let the query run. */
