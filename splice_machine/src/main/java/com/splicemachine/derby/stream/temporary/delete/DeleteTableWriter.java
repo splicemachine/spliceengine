@@ -17,7 +17,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/5/15.
  */
-public class DeleteTableWriter extends AbstractTableWriter {
+public class DeleteTableWriter extends AbstractTableWriter<ExecRow> {
     private static final FixedDataHash EMPTY_VALUES_ENCODER = new FixedDataHash(new byte[]{});
     protected static final KVPair.Type dataType = KVPair.Type.DELETE;
     protected PairEncoder encoder;

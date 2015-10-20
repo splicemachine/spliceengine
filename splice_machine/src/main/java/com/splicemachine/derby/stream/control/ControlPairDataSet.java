@@ -1,8 +1,10 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.base.Optional;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -10,6 +12,8 @@ import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.index.HTableWriter;
+import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriter;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
@@ -18,10 +22,10 @@ import com.splicemachine.derby.stream.temporary.update.UpdateTableWriter;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
 import com.google.common.collect.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.hbase.KVPair;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.util.*;
@@ -302,7 +306,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             operationContext.getOperation().fireBeforeStatementTriggers();
             updateTableWriter = builder.build();
             updateTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
-            updateTableWriter.update((Iterator < ExecRow >) values().toLocalIterator());
+            updateTableWriter.update((Iterator<ExecRow>) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
@@ -326,7 +330,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             operationContext.getOperation().fireBeforeStatementTriggers();
             deleteTableWriter = builder.build();
             deleteTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
-            deleteTableWriter.delete((Iterator < ExecRow >) values().toLocalIterator());
+            deleteTableWriter.delete((Iterator<ExecRow>) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
@@ -341,7 +345,28 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 throw new RuntimeException(e);
             }
         }
+    }
 
+    @Override
+    public DataSet<V> writeIndex(HTableWriterBuilder writerBuilder) {
 
+        HTableWriter writer = null;
+        try{
+            writer = writerBuilder.build();
+            writer.open();
+            writer.write((Iterator<KVPair>) values().toLocalIterator());
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1, new SQLLongint(writer.getRowsWritten()));
+            return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if (writer != null)
+                    writer.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

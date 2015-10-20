@@ -30,7 +30,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/5/15.
  */
-public class UpdateTableWriter extends AbstractTableWriter {
+public class UpdateTableWriter extends AbstractTableWriter<ExecRow> {
     protected static final KVPair.Type dataType = KVPair.Type.UPDATE;
     protected int[] formatIds;
     protected int[] columnOrdering;
