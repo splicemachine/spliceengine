@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>db-project</artifactId>
-        <version>1.5.1.1-SNAPSHOT</version>
+        <version>1.5.1.1</version>
     </parent>
     <artifactId>dbLocale_cs</artifactId>
     <name>Apache Derby messages: Czech</name>
