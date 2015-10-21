@@ -206,4 +206,15 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     public long getRecordsWritten() {
         return rowsWritten.value();
     }
+
+
+    @Override
+    public void pushScope(String display) {
+        SpliceSpark.pushScope(display);
+    }
+
+    @Override
+    public void popScope() {
+        SpliceSpark.popScope();
+    }
 }
