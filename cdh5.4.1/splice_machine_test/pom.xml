@@ -343,6 +343,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
                                 <argument>-Dsplice.spark.extraClassPath=${project.build.directory}/dependency/*:${project.build.directory}/classes</argument>
+                                <argument>-Dsplice.spark.extra=-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020 -Dlog4j.configuration=${log4j.config.uri} -Dhbase.rootdir=${project.build.directory}/hbase</argument>
 								<argument>-Xdebug</argument>
 								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
