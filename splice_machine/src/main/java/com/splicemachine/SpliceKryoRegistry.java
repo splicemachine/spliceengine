@@ -57,7 +57,6 @@ import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
-import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.load.FileImportReader;
 import com.splicemachine.derby.impl.load.ImportContext;
@@ -816,7 +815,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FileImportReader.class, EXTERNALIZABLE_SERIALIZER,216);
         instance.register(CreateIndexTask.class, EXTERNALIZABLE_SERIALIZER,217);
         instance.register(TransactionReadTask.class, EXTERNALIZABLE_SERIALIZER,218);
-        instance.register(PopulateIndexTask.class, EXTERNALIZABLE_SERIALIZER,219);
         // 220 is open
         // 221 is open
         instance.register(CreateBackupTask.class, EXTERNALIZABLE_SERIALIZER,222);
