@@ -19,6 +19,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import com.google.common.base.Splitter;
+import org.apache.spark.rdd.RDDOperationScope;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
@@ -27,6 +28,11 @@ public class SpliceSpark {
     public static boolean active = true;
     static volatile JavaSparkContext localContext = null;
     static boolean spliceStaticComponentsSetup = false;
+    private static final String SCOPE_KEY = "spark.rdd.scope";
+    private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
+    private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
+    private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
+
 
     private static String[] getJarFiles(String file) {
         if (file == null || file.isEmpty())
@@ -127,7 +133,7 @@ public class SpliceSpark {
         conf.set("spark.shuffle.compress","false");
         conf.set("spark.kryoserializer.buffer.mb", "4");
         conf.set("spark.kryoserializer.buffer.max.mb", "512");
-//        conf.set("spark.executor.extraJavaOptions", extraOpts);
+        conf.set("spark.executor.extraJavaOptions", extraOpts);
         conf.set("spark.shuffle.file.buffer.kb","128");
         conf.set("spark.executor.extraLibraryPath", extraLibraryPath);
         conf.set("spark.executor.extraClassPath", extraClassPath);
@@ -161,4 +167,20 @@ public class SpliceSpark {
             return new JavaSparkContext(conf);
         }
     }
+
+    public static void pushScope(String displayString) {
+        JavaSparkContext jspc = SpliceSpark.getContext();
+        jspc.setLocalProperty(OLD_SCOPE_KEY,jspc.getLocalProperty(SCOPE_KEY));
+        jspc.setLocalProperty(OLD_SCOPE_OVERRIDE,jspc.getLocalProperty(SCOPE_OVERRIDE));
+        jspc.setLocalProperty(SCOPE_KEY,new RDDOperationScope(displayString, null, RDDOperationScope.nextScopeId()+"").toJson());
+        jspc.setLocalProperty(SCOPE_OVERRIDE,"true");
+    }
+
+    public static void popScope() {
+        SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
+        SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
+    }
+
+
+
 }
