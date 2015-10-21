@@ -3,12 +3,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.RowComparator;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -18,6 +20,8 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import org.apache.log4j.Logger;
+import org.apache.spark.rdd.RDDOperationScope;
+
 import java.io.*;
 import java.util.*;
 
@@ -183,10 +187,23 @@ public class SortOperation extends SpliceBaseOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet dataSet = source.getDataSet();
         OperationContext operationContext = dsp.createOperationContext(this);
-        if (distinct)
+        if (distinct) {
+            operationContext.pushScope("Sort Distinct");
             dataSet = dataSet.distinct();
-        return dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
-                .sortByKey(new RowComparator(descColumns, nullsOrderedLow)).values()
-                .map(new SetCurrentLocatedRowFunction(operationContext));
-    }
+            operationContext.popScope();
+        }
+            operationContext.pushScope("Sort Prepare Keys");
+            PairDataSet pair = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns));
+            operationContext.popScope();
+            operationContext.pushScope("Shuffle/Sort Data");
+            DataSet sortedValues = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow)).values();
+            operationContext.popScope();
+            try {
+                operationContext.pushScope("Read Sort Data");
+                return sortedValues.map(new SetCurrentLocatedRowFunction(operationContext));
+            }
+            finally {
+            operationContext.popScope();
+            }
+        }
 }
