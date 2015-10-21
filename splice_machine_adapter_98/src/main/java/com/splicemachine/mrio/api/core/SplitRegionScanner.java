@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.splicemachine.hbase.TableRegionsInRange;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.HTable;
@@ -49,8 +50,13 @@ public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
 	void createAndRegisterClientSideRegionScanner(HTableInterface table, Scan newScan) throws IOException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s",table,newScan, table.getConfiguration());
+        Configuration conf = table.getConfiguration();
+        if (System.getProperty("hbase.rootdir") != null)
+            conf.set("hbase.rootdir",System.getProperty("hbase.rootdir"));
+
+
 		ClientSideRegionScanner clientSideRegionScanner =
-				  new ClientSideRegionScanner(table, table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
+				  new ClientSideRegionScanner(table, conf,FSUtils.getCurrentFileSystem(conf), FSUtils.getRootDir(conf),
 					table.getTableDescriptor(),((TableRegionsInRange)table).getRegionLocation(newScan.getStartRow()).getRegionInfo(),
 					newScan,null);
 	  			this.region = clientSideRegionScanner.region;
