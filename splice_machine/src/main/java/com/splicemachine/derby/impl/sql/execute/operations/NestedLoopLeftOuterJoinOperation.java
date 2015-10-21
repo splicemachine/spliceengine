@@ -75,6 +75,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
         }
         if (!nestedLoopIterator.hasNext()) {
             nestedLoopIterator.close();
+            nestedLoopIterator = null;
 
             if ((leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
                 mergedRow = null;
