@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
 import com.splicemachine.derby.stream.index.HTableInputFormat;
@@ -23,6 +24,7 @@ import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -53,11 +55,17 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
+        SpliceSpark.pushScope("HFile Scan["+tableName+"]");
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                 RowLocation.class, ExecRow.class);
-
-        return new SparkDataSet(rawRDD.map(
-                new TableScanTupleFunction<Op>(createOperationContext(spliceOperation))));
+        rawRDD.setName(tableName);
+        SpliceSpark.popScope();
+        SpliceSpark.pushScope("Lazy Deserialization");
+        JavaRDD<LocatedRow> appliedRDD = rawRDD.map(
+                    new TableScanTupleFunction<Op>(createOperationContext(spliceOperation)));
+        appliedRDD.setName("Lazy Deserialization");
+        SpliceSpark.popScope();
+        return new SparkDataSet(appliedRDD);
     }
 
     @Override
