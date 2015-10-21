@@ -16,8 +16,10 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.CursorActivation;
+import com.splicemachine.derby.stream.function.ScrollInsensitiveFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -246,7 +248,14 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return source.getDataSet(dsp);
+        OperationContext operationContext = dsp.createOperationContext(this);
+        try {
+            operationContext.pushScope("Scroll Insensitive");
+            return source.getDataSet(dsp).map(new ScrollInsensitiveFunction(operationContext));
+        }
+        finally {
+            operationContext.popScope();
+        }
     }
 
 
