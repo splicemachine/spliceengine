@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.splicemachine</groupId>
-	<version>1.5.1-SNAPSHOT</version>
+	<version>1.5.1</version>
 	<packaging>pom</packaging>
 	<artifactId>spliceengine-parent</artifactId>
 	<name>${project.artifactId}</name>
@@ -24,7 +24,7 @@
 		</repository>
 	</repositories>
 	<properties>
-		<derby.version>1.5.1.1-SNAPSHOT</derby.version>
+		<derby.version>1.5.1.1</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest, com.splicemachine.test.BackupTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly>
 		<!-- run chaos monkey -->
@@ -550,19 +550,6 @@
 	</build>
 	<profiles>
 		<profile>
-			<id>all</id>
-			<modules>
-				<module>cdh5.3.2</module>
-				<!--module>cdh5.3.3</module-->
-				<module>cdh5.4.1</module>
-				<module>hdp2.1.7</module>
-				<module>hdp2.2.4</module>
-				<!--module>hdp2.3.0</module-->
-				<module>mapr0.98.4</module>
-				<!--module>mapr0.98.12</module-->
-			</modules>
-		</profile>
-		<profile>
 			<id>staticanalysis</id>
 			<build>
 				<plugins>
@@ -862,6 +849,19 @@
 				<obfuscate.si>obfuscated</obfuscate.si>
 				<obfuscate.si.tag>-obfuscated</obfuscate.si.tag>
 			</properties>
+		</profile>
+		<profile>
+			<id>all</id>
+			<modules>
+				<module>cdh5.3.2</module>
+				<!--module>cdh5.3.3</module-->
+				<module>cdh5.4.1</module>
+				<module>hdp2.1.7</module>
+				<module>hdp2.2.4</module>
+				<!--module>hdp2.3.0</module-->
+				<module>mapr0.98.4</module>
+				<!--module>mapr0.98.12</module-->
+			</modules>
 		</profile>
 		<profile>
 			<id>cdh5.3.2</id>
