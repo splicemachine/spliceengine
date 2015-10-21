@@ -59,6 +59,8 @@ SpliceSQL Engine
 * Start Spark Master (http://localhost:8080)
 * `mvn -DskipTests exec:exec -Dspark-master`
 * Start Spark Worker
+*  export SPARK_TESTING=true
+*  export SPARK_SCALA_VERSION=2.10
 * `mvn -DskipTests exec:exec -Dspark-worker`
 * Start Zookeeper
 * `mvn exec:exec -PspliceZoo`
