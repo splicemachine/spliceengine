@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.IndexPairFunction;
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
@@ -16,10 +13,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
 import org.apache.hadoop.hbase.client.Scan;
 
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
@@ -28,7 +21,6 @@ import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
-import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.management.OperationInfo;
@@ -251,81 +243,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         return scan;
     }
 
-    protected void populateIndex_old(Activation activation,
-                                 int[] baseColumnPositions,
-                                 boolean[] descColumns,
-                                 long tableConglomId,
-                                 HTableInterface table,
-                                 TransactionController txnControl,
-                                 Txn indexTransaction, Txn demarcationPoint,
-                                 TentativeIndexDesc tentativeIndexDesc) throws StandardException {
-        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-				/*
-				 * Backfill the index with any existing data.
-				 *
-				 * It's possible that the index will be created on the same node as some system tables are located.
-				 * This means that there
-				 */
-        //TODO -sf- replace this name with the actual SQL being issued
-        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
-        long sId = snowflake.nextUUID();
-        if (activation.isTraced()) {
-            activation.getLanguageConnectionContext().setXplainStatementId(sId);
-        }
-        StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-                ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
-        OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-                statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
-        statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
-        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
-        JobFuture future = null;
-        boolean unique = tentativeIndexDesc.isUnique();
-        boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
-        long conglomId = tentativeIndexDesc.getConglomerateNumber();
-        try{
-            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)txnControl).findConglomerate(tableConglomId);
-            long statementUuid = statementInfo.getStatementUuid();
-            long operationUuid = populateIndexOp.getOperationUuid();
-
-            int[] formatIds = conglomerate.getFormat_ids();
-            int[] columnOrder = conglomerate.getColumnOrdering();
-
-            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction,
-                    conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
-                    statementUuid, operationUuid,
-                    activation.isTraced(), columnOrder, formatIds,
-                    demarcationPoint.getCommitTimestamp());
-
-            long start = System.currentTimeMillis();
-            future = SpliceDriver.driver().getJobScheduler().submit(job);
-            JobInfo info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-            info.setJobFuture(future);
-            statementInfo.addRunningJob(populateIndexOp.getOperationUuid(),info);
-            try{
-                future.completeAll(info); //TODO -sf- add status information
-            }catch(ExecutionException e){
-                info.failJob();
-                throw e;
-            }catch(CancellationException ce){
-                throw Exceptions.parseException(ce);
-            }
-            statementInfo.completeJob(info);
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        } finally {
-            cleanupFuture(future);
-            if(activation.isTraced()){
-                GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
-            }
-            try {
-                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),((SpliceTransactionManager) txnControl).getActiveStateTxn());
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-    }
     protected void createIndex(Activation activation, DDLChange ddlChange,
                                HTableInterface table, TableDescriptor td) throws StandardException {
         JobFuture future = null;
