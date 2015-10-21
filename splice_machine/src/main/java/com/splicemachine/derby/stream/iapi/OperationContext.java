@@ -23,4 +23,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     long getRecordsRead();
     long getRecordsFiltered();
     long getRecordsWritten();
+    void pushScope(String display);
+    void popScope();
 }

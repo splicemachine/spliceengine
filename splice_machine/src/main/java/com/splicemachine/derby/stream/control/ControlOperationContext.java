@@ -164,4 +164,14 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     public long getRecordsWritten() {
         return rowsWritten;
     }
+
+    @Override
+    public void pushScope(String display) {
+        // no op
+    }
+
+    @Override
+    public void popScope() {
+        // no op
+    }
 }
