@@ -276,7 +276,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             return dsp.getEmpty();
         }
         OperationContext operationContext = dsp.createOperationContext(this);
-        return source.getDataSet(dsp).flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext));
+        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
+        try {
+            operationContext.pushScope("Project Restrict");
+            return sourceSet.flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext));
+        } finally {
+            operationContext.popScope();
+        }
     }
 
 
