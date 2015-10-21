@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -209,14 +210,14 @@ public class TableScanOperation extends ScanOperation {
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             assert currentTemplate != null: "Current Template Cannot Be Null";
             OperationContext<TableScanOperation> operationContext = dsp.createOperationContext(this);
-			TableScannerBuilder tsb = getTableScannerBuilder(dsp);
-			return dsp.getTableScanner(this,tsb,tableName);
+            TableScannerBuilder tsb = getTableScannerBuilder(dsp);
+            return dsp.getTableScanner(this, tsb, tableName);
         }
 
 		public TableScannerBuilder getTableScannerBuilder(DataSetProcessor dsp) throws StandardException {
             TxnView txn = getCurrentTransaction();
 			return new TableScannerBuilder()
-                            .operationContext(dsp.createOperationContext(this))
+                           // .operationContext(dsp.createOperationContext(this))
 							.transaction(txn)
 							.scan(getNonSIScan())
 							.template(currentTemplate)
