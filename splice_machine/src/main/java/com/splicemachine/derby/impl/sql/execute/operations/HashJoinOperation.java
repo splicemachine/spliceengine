@@ -27,15 +27,10 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	private static Logger LOG = Logger.getLogger(HashJoinOperation.class);
 	protected NestedLoopIterator nestedLoopIterator;
 	
-	static {
-		nodeTypes = new ArrayList<NodeType>();
-		nodeTypes.add(NodeType.MAP);	
-		nodeTypes.add(NodeType.SCROLL);
-	}
-	
 	public HashJoinOperation() {
 		super();
 	}
+
 	public HashJoinOperation(SpliceOperation leftResultSet,
 			   int leftNumCols,
 			   SpliceOperation rightResultSet,
