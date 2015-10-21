@@ -43,8 +43,4 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, L
             return locatedRow;
         }
 
-    @Override
-    public String getDisplayString() {
-        return "Scroll Insensitive";
-    }
 }
