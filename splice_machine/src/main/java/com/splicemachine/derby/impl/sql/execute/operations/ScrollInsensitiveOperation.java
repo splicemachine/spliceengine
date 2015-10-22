@@ -249,9 +249,10 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
+        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         try {
             operationContext.pushScope("Scroll Insensitive");
-            return source.getDataSet(dsp).map(new ScrollInsensitiveFunction(operationContext));
+            return sourceSet.map(new ScrollInsensitiveFunction(operationContext));
         }
         finally {
             operationContext.popScope();
