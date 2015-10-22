@@ -130,7 +130,7 @@ public class RSUtils {
      * Return any instances of clazz at or below node
      */
     public static <N> List<N> collectNodes(Visitable node, Class<N> clazz) throws StandardException {
-        return CollectNodes.collector(clazz).collect(node);
+        return CollectingVisitorBuilder.forClass(clazz).collect(node);
     }
 
     /**
@@ -139,14 +139,14 @@ public class RSUtils {
      */
     public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz,
                                                 Predicate<? super Visitable> pred) throws StandardException {
-        return CollectNodes.collector(clazz).until(pred).collect(node);
+        return CollectingVisitorBuilder.forClass(clazz).until(pred).collect(node);
     }
 
     public static <N> List<N> collectExpressionNodes(ResultSetNode node, Class<N> clazz) throws StandardException {
         // define traversal axis to be the node itself (so we can get to its descendants) or,
         // our real target, non-ResultSetNodes
         Predicate<Object> onAxis = Predicates.or(Predicates.equalTo((Object) node), Predicates.not(isRSN));
-        return CollectNodes.collector(clazz).onAxis(onAxis).collect(node);
+        return CollectingVisitorBuilder.forClass(clazz).onAxis(onAxis).collect(node);
     }
 
     /**
@@ -154,7 +154,7 @@ public class RSUtils {
      * descend into expression nodes (therefore doesn't consider ResultSetNodes in subqueries descendants).
      */
     public static List<ResultSetNode> getSelfAndDescendants(ResultSetNode rsn) throws StandardException {
-        return CollectNodes.collector(ResultSetNode.class).onAxis(isRSN).collect(rsn);
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class).onAxis(isRSN).collect(rsn);
     }
 
     /**
@@ -163,13 +163,13 @@ public class RSUtils {
     public static List<ResultSetNode> getChildren(ResultSetNode node) throws StandardException {
         Predicate<Object> self = Predicates.equalTo((Object) node);
         Predicate<Object> notSelfButRS = Predicates.and(Predicates.not(self), isRSN);
-        return CollectNodes.<ResultSetNode>collector(notSelfButRS)
+        return CollectingVisitorBuilder.<ResultSetNode>forPredicate(notSelfButRS)
                 .onAxis(self)
                 .collect(node);
     }
 
     public static List<ResultSetNode> nodesUntilBinaryNode(ResultSetNode rsn) throws StandardException {
-        return CollectNodes.collector(ResultSetNode.class)
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class)
                 .onAxis(isRSN)
                 .until(isBinaryRSN)
                 .collect(rsn);

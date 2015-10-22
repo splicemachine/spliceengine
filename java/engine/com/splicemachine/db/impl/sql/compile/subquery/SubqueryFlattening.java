@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.ast.CollectNodes;
+import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.sql.compile.SelectNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
@@ -28,7 +28,7 @@ public class SubqueryFlattening {
         /*
          * Find all SelectNodes that have subqueries.
          */
-        List<SelectNode> selectNodesWithSubquery = CollectNodes.<SelectNode>collector(
+        List<SelectNode> selectNodesWithSubquery = CollectingVisitorBuilder.<SelectNode>forPredicate(
                 new SelectNode.SelectNodeWithSubqueryPredicate()).collect(statementNode
         );
 

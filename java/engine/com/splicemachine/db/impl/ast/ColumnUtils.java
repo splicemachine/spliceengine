@@ -98,7 +98,7 @@ public class ColumnUtils {
      * TRUE if the node parameter or any of its descendants are a correlated ColumnReference.
      */
     public static boolean isSubtreeCorrelated(Visitable node) throws StandardException {
-        List<ColumnReference> columnReferences = CollectNodes.collector(ColumnReference.class).collect(node);
+        List<ColumnReference> columnReferences = CollectingVisitorBuilder.forClass(ColumnReference.class).collect(node);
         return Iterables.any(columnReferences, IsCorrelatedPredicate.INSTANCE);
     }
 
