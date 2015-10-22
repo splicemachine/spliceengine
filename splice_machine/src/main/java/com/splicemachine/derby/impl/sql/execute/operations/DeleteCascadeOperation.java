@@ -54,7 +54,7 @@ public class DeleteCascadeOperation extends DeleteOperation
 		super(source,
 			  ((constantActionItem == -1) ?activation.getConstantAction() :
 			  (ConstantAction)activation.getPreparedStatement().getSavedObject(constantActionItem)),
-			  activation);
+			  activation,0,0);
 
 		ConstantAction passedInConstantAction;
 		if(constantActionItem == -1)

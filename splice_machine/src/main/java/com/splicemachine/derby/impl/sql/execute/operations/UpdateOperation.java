@@ -73,9 +73,10 @@ public class UpdateOperation extends DMLWriteOperation{
     FormatableBitSet     pkColumns;
 
     public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
-                           GeneratedMethod checkGM, Activation activation)
+                           GeneratedMethod checkGM, Activation activation,double optimizerEstimatedRowCount,
+                           double optimizerEstimatedCost)
             throws StandardException, IOException {
-        super(source, generationClauses, checkGM, activation);
+        super(source, generationClauses, checkGM, activation,optimizerEstimatedRowCount,optimizerEstimatedCost);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime();
     }
@@ -231,6 +232,11 @@ public class UpdateOperation extends DMLWriteOperation{
                 .heapList(getHeapList())
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
-        return set.index(new InsertPairFunction(operationContext)).updateData(builder, operationContext);
+        try {
+            operationContext.pushScope("Update");
+            return set.index(new InsertPairFunction(operationContext)).updateData(builder, operationContext);
+        } finally {
+            operationContext.popScope();
+        }
     }
 }

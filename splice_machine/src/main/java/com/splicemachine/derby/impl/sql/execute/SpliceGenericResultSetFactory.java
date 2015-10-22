@@ -1031,12 +1031,14 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     @Override
     public NoPutResultSet getInsertResultSet(NoPutResultSet source,
                                              GeneratedMethod generationClauses, GeneratedMethod checkGM,
-                                             String insertMode, String statusDirectory, int failBadRecordCount)
+                                             String insertMode, String statusDirectory, int failBadRecordCount,
+                                             double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
-                    statusDirectory, failBadRecordCount);
+                    statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             return top;
@@ -1047,10 +1049,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
     @Override
     public NoPutResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-                                             GeneratedMethod checkGM) throws StandardException {
+                                             GeneratedMethod checkGM,double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation());
+            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation(),optimizerEstimatedCost,optimizerEstimatedRowCount);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             return top;
@@ -1060,16 +1063,18 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     }
 
     @Override
-    public ResultSet getDeleteCascadeUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM, int constantActionItem, int rsdItem) throws StandardException {
+    public ResultSet getDeleteCascadeUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM, int constantActionItem, int rsdItem
+                                                     ) throws StandardException {
         throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
-    public NoPutResultSet getDeleteResultSet(NoPutResultSet source)
+    public NoPutResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation());
+            SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost);
             top.markAsTopResultSet();
             return top;
         }catch(Exception e){
