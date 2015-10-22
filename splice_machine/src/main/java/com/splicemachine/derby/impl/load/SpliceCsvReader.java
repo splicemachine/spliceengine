@@ -2,9 +2,12 @@ package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.supercsv.exception.SuperCsvException;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ITokenizer;
@@ -17,7 +20,7 @@ import org.supercsv.prefs.CsvPreference;
  */
 public class SpliceCsvReader extends CsvListReader {
 
-    private ArrayList<String> failMsg = new ArrayList<String>();
+    private String fileName;
 
 	/**
 	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
@@ -30,8 +33,9 @@ public class SpliceCsvReader extends CsvListReader {
 	 * @throws NullPointerException
 	 *             if reader or preferences are null
 	 */
-	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
+	public SpliceCsvReader(Reader reader, CsvPreference preferences, String fileName) {
 		super(reader, preferences);
+        this.fileName = fileName;
 	}
 
 	/**
@@ -60,27 +64,19 @@ public class SpliceCsvReader extends CsvListReader {
 	 * @throws SuperCsvException
 	 *             if there was a general exception while reading/processing
 	 */
-	public String[] readAsStringArray() throws IOException {
-        boolean res = false;
-
+	public String[] readAsStringArray() throws IOException, StandardException {
         try {
-            res = readRow();
+            if (readRow()) {
+                List<String> rowAsList = getColumns();
+                String[] row = new String[rowAsList.size()];
+                rowAsList.toArray(row);
+                return row;
+            }
         } catch (Exception e) {
-            failMsg.add(e.getMessage());
+            throw StandardException.newException(SQLState.UNEXPECTED_IMPORT_READING_ERROR, this.fileName, e.getMessage());
         }
-
-		if (res) {
-			List<String> rowAsList = getColumns();
-			String[] row = new String[rowAsList.size()];
-			rowAsList.toArray(row);
-			return row;
-		}
 		
 		return null; // EOF
 	}
 
-
-    public ArrayList<String> getFailMsg() {
-        return failMsg;
-    }
 }
