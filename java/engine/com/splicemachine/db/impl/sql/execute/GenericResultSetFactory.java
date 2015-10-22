@@ -65,14 +65,20 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 	}
 
     @Override
-	public abstract ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM,String insertMode, String statusDirectory, int failBadRecordCount) throws StandardException;
+	public abstract ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM,
+                                                 String insertMode, String statusDirectory, int failBadRecordCount,
+                                                 double optimizerEstimatedRowCount,
+                                                 double optimizerEstimatedCost) throws StandardException;
 
 	/**
 		@see ResultSetFactory#getInsertVTIResultSet
 		@exception StandardException thrown on error
 	 */
+    @Override
 	public ResultSet getInsertVTIResultSet(NoPutResultSet source, 
-										NoPutResultSet vtiRS
+										NoPutResultSet vtiRS,
+                                        double optimizerEstimatedRowCount,
+                                        double optimizerEstimatedCost
 										)
 		throws StandardException
 	{
@@ -85,7 +91,9 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 		@see ResultSetFactory#getDeleteVTIResultSet
 		@exception StandardException thrown on error
 	 */
-	public ResultSet getDeleteVTIResultSet(NoPutResultSet source)
+    @Override
+	public ResultSet getDeleteVTIResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                           double optimizerEstimatedCost)
 		throws StandardException
 	{
 		Activation activation = source.getActivation();
@@ -94,7 +102,8 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 	}
 
     @Override
-	public abstract ResultSet getDeleteResultSet(NoPutResultSet source) throws StandardException;
+	public abstract ResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                                 double optimizerEstimatedCost) throws StandardException;
 
     @Override
 	public abstract ResultSet getDeleteCascadeResultSet(NoPutResultSet source,
@@ -104,13 +113,15 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 
 
     @Override
-	public abstract ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM) throws StandardException;
+	public abstract ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM,double optimizerEstimatedRowCount,
+                                                 double optimizerEstimatedCost) throws StandardException;
 
 	/**
 		@see ResultSetFactory#getUpdateVTIResultSet
 		@exception StandardException thrown on error
 	 */
-	public ResultSet getUpdateVTIResultSet(NoPutResultSet source)
+	public ResultSet getUpdateVTIResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                           double optimizerEstimatedCost)
 			throws StandardException
 	{
 		Activation activation = source.getActivation();

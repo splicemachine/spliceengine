@@ -112,7 +112,9 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the insert
 	 */
 	ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-								 GeneratedMethod checkGM, String insertMode, String statusDirectory, int failBadRecordCount)
+								 GeneratedMethod checkGM, String insertMode, String statusDirectory, int failBadRecordCount,
+                                 double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost)
         throws StandardException;
 
 	/**
@@ -128,7 +130,9 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the insert
 	 */
 	ResultSet getInsertVTIResultSet(NoPutResultSet source, 
-								 NoPutResultSet vtiRS)
+								 NoPutResultSet vtiRS,
+                                 double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost)
         throws StandardException;
 
 	/**
@@ -142,7 +146,8 @@ public interface ResultSetFactory {
 		@return the delete VTI operation as a result set.
 		@exception StandardException thrown when unable to perform the insert
 	 */
-	ResultSet getDeleteVTIResultSet(NoPutResultSet source)
+	ResultSet getDeleteVTIResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                    double optimizerEstimatedCost)
         throws StandardException;
 
 	/**
@@ -158,7 +163,8 @@ public interface ResultSetFactory {
 		@return the delete operation as a result set.
 		@exception StandardException thrown when unable to perform the delete
 	 */
-	ResultSet getDeleteResultSet(NoPutResultSet source)
+	ResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost)
 							throws StandardException;
 
 	/**
@@ -202,7 +208,8 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the update
 	 */
 	ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-								 GeneratedMethod checkGM)
+								 GeneratedMethod checkGM,double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost)
         throws StandardException;
 
 	/**
@@ -211,7 +218,8 @@ public interface ResultSetFactory {
      * @return the update operation as a result set.
      * @exception StandardException thrown on error
 	 */
-	public ResultSet getUpdateVTIResultSet(NoPutResultSet source)
+	public ResultSet getUpdateVTIResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
+                                           double optimizerEstimatedCost)
         throws StandardException;
 
 	/**

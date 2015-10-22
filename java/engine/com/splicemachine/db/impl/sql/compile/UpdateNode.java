@@ -856,7 +856,9 @@ public final class UpdateNode extends DMLModStatementNode
         if( null != targetVTI)
         {
 			targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
-            mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateVTIResultSet", ClassName.ResultSet, 1);
+            mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+            mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+            mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateVTIResultSet", ClassName.ResultSet, 3);
 		}
         else
         {
@@ -874,8 +876,10 @@ public final class UpdateNode extends DMLModStatementNode
                               ClassName.ResultSet, 5);
             }else
             {
+                mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
-                              ClassName.ResultSet, 3);
+                              ClassName.ResultSet, 5);
             }
         }
 	}
