@@ -1871,6 +1871,7 @@ public interface SQLState {
 	String LOB_DATA_FILE_EXISTS                                    ="XIE0T.S";
     String EXPORT_PARAMETER_IS_WRONG                               ="XIE0U.S";
     String EXPORT_PARAMETER_VALUE_IS_WRONG                         ="XIE0X.S";
+    String UNEXPECTED_IMPORT_READING_ERROR                         ="XIE10.S";
 
 
 
