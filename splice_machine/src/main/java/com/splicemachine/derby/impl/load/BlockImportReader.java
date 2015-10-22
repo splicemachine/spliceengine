@@ -133,11 +133,6 @@ public class BlockImportReader implements ImportReader {
 				return false;
 		}
 
-    @Override
-    public String[] getFailMessages() {
-        return new String[0];
-    }
-
     BlockLocation getLocation(){
 				//exposed for testing purposes
 				return location;
