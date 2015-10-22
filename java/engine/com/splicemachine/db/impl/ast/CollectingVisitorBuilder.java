@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Build a CollectingVisitor and optionally wrap it in additional visitors.
  *
- * Use this guy when you want to visit all nodes in a tree and collect those that evaluate to true for a specified guava
+ * Use this when you want to visit all nodes in a tree and collect those that evaluate to true for a specified guava
  * predicate.
  */
 public class CollectingVisitorBuilder<T> {
@@ -41,6 +41,11 @@ public class CollectingVisitorBuilder<T> {
         return this;
     }
 
+    public CollectingVisitorBuilder<T> skipping(Class<?> clazz) {
+        wrapped = new SkippingVisitor(wrapped, Predicates.instanceOf(clazz));
+        return this;
+    }
+
     public CollectingVisitorBuilder<T> until(Predicate<? super Visitable> p) {
         wrapped = new VisitUntilVisitor(wrapped, p);
         return this;
@@ -50,6 +55,7 @@ public class CollectingVisitorBuilder<T> {
         wrapped = new AxisVisitor(wrapped, p);
         return this;
     }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // static factory methods for building this builder.

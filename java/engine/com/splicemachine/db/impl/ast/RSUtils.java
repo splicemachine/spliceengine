@@ -1,25 +1,17 @@
 package com.splicemachine.db.impl.ast;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.*;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.base.*;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.AccessPath;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.Visitable;
 
 
 /**
@@ -134,8 +126,8 @@ public class RSUtils {
     }
 
     /**
-     * Visit the node in question and all descendants of the node until the specified predicate evaluates to true.
-     * Note that if the predicate evaluates to true for the passed top node parameter then no nodes will be visited.
+     * Visit the node in question and all descendants of the node until the specified predicate evaluates to true. Note
+     * that if the predicate evaluates to true for the passed top node parameter then no nodes will be visited.
      */
     public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz,
                                                 Predicate<? super Visitable> pred) throws StandardException {
@@ -271,4 +263,5 @@ public class RSUtils {
         List<ResultSetNode> sinks = Lists.newLinkedList(sinkingChildren(node));
         return (sinks != null && sinks.size() > 0);
     }
+
 }

@@ -1255,7 +1255,7 @@ public class ColumnReference extends ValueNode {
 	}
 
     @Override
-	protected boolean isEquivalent(ValueNode o) throws StandardException {
+	public boolean isEquivalent(ValueNode o) throws StandardException {
 		if (!isSameNodeType(o)) {
 			return false;
 		}

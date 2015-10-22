@@ -3,7 +3,6 @@ package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -128,7 +127,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         /*
          * For each correlated predicate generate a GroupByColumn
          */
-        GroupByUtil.addGroupByNodes(topSelectNode, subquerySelectNode, correlatedSubqueryPreds);
+        GroupByUtil.addGroupByNodes(subquerySelectNode, correlatedSubqueryPreds);
 
         ResultColumnList newRcl = subquerySelectNode.getResultColumns().copyListAndObjects();
         newRcl.genVirtualColumnNodes(subquerySelectNode, subquerySelectNode.getResultColumns());
@@ -136,7 +135,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         /*
          * Insert the new FromSubquery into to origSelectNode's From list.
          */
-        FromSubquery fromSubquery = nf.buildFromSubqueryNode(topSelectNode, subqueryNode, subqueryResultSet, newRcl, getSubqueryAlias());
+        FromSubquery fromSubquery = nf.buildFromSubqueryNode(topSelectNode, subqueryResultSet, newRcl, getSubqueryAlias());
         topSelectNode.getFromList().addFromTable(fromSubquery);
 
         /*

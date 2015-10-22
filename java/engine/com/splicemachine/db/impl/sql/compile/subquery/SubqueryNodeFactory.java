@@ -52,16 +52,15 @@ public class SubqueryNodeFactory {
      * FromSubquery
      */
     public FromSubquery buildFromSubqueryNode(SelectNode outerSelectNode,
-                                              SubqueryNode subqueryNode,
                                               ResultSetNode subqueryResultSet,
                                               ResultColumnList newRcl,
                                               String subqueryAlias) throws StandardException {
         FromSubquery fromSubquery = (FromSubquery) nodeFactory.getNode(C_NodeTypes.FROM_SUBQUERY,
                 subqueryResultSet,
-                subqueryNode.getOrderByList(),
-                subqueryNode.getOffset(),
-                subqueryNode.getFetchFirst(),
-                subqueryNode.hasJDBClimitClause(),
+                null,                  // order by
+                null,                  // offset
+                null,                  // fetchFirst
+                false,                 // hasJDBClimitClause
                 subqueryAlias,
                 newRcl,
                 null,

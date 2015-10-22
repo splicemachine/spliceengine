@@ -14,10 +14,9 @@ public class SubqueryReplacement {
      *
      * EXAMPLE:
      * <pre>
-     *     select A.* from A where a3 = (select sum(b2) from B where b1=a1);
+     *     FROM: where a1 = 5 and a3 = (select sum(b2) from B where b1=a1);
+     *     TO  : where a1 = 5 and a3 = fromSubqueryTableAlias.r
      * </pre>
-     *
-     * In the above we change a3 = (subquery) to a3 = foo.sumColAlias where foo is the FromSubquery table alias.
      *
      * We know which subquery node to replace because we have a reference to it in the passed FromSubquery parameter.
      *
@@ -57,24 +56,30 @@ public class SubqueryReplacement {
     /**
      * Same logic as above, except here the subquery is replaced with a boolean constant TRUE. Intended to be used to
      * replace EXISTS subqueries.
+     *
+     * <pre>
+     *     FROM: where a1 = 5 and exists (select sum(b2) from B where b1=a1);
+     *     TO  : where a1 = 5 and true;
+     * </pre>
+     *
      */
-    public static ValueNode replaceSubqueryWithTrue(ValueNode node, FromSubquery fsq) throws StandardException {
+    public static ValueNode replaceSubqueryWithTrue(ValueNode node, SubqueryNode nodeToReplace) throws StandardException {
         /* For EXISTS subqueries only it is possible for the entire where clause of the outer query to == the exist subquery. */
-        if (node instanceof SubqueryNode && ((SubqueryNode) node).getResultSet() == fsq.getSubquery()) {
-            return newBooleanTrue(fsq);
+        if (node instanceof SubqueryNode && node == nodeToReplace) {
+            return newBooleanTrue(node);
         } else if (node instanceof BinaryOperatorNode) {
             BinaryOperatorNode root = (BinaryOperatorNode) node;
             ValueNode left = root.getLeftOperand();
             ValueNode right = root.getRightOperand();
-            if (left instanceof SubqueryNode && ((SubqueryNode) left).getResultSet() == fsq.getSubquery()) {
-                root.setLeftOperand(newBooleanTrue(fsq));
+            if (left instanceof SubqueryNode && left == nodeToReplace) {
+                root.setLeftOperand(newBooleanTrue(node));
                 return root;
-            } else if (right instanceof SubqueryNode && ((SubqueryNode) right).getResultSet() == fsq.getSubquery()) {
-                root.setRightOperand(newBooleanTrue(fsq));
+            } else if (right instanceof SubqueryNode && right == nodeToReplace) {
+                root.setRightOperand(newBooleanTrue(node));
                 return root;
             } else {
-                left = replaceSubqueryWithTrue(left, fsq);
-                right = replaceSubqueryWithTrue(right, fsq);
+                left = replaceSubqueryWithTrue(left, nodeToReplace);
+                right = replaceSubqueryWithTrue(right, nodeToReplace);
                 root.setLeftOperand(left);
                 root.setRightOperand(right);
                 return root;
@@ -85,10 +90,10 @@ public class SubqueryReplacement {
         return node;
     }
 
-    private static BooleanConstantNode newBooleanTrue(FromSubquery fsq) throws StandardException {
-        return (BooleanConstantNode) fsq.getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+    private static BooleanConstantNode newBooleanTrue(QueryTreeNode anyNode) throws StandardException {
+        return (BooleanConstantNode) anyNode.getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                 Boolean.TRUE,
-                fsq.getContextManager());
+                anyNode.getContextManager());
     }
 
 }

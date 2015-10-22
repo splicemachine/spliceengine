@@ -31,8 +31,7 @@ public class GroupByUtil {
      * (actually the correlated subquery predicate(s) are removed from the subquery tree before we get here but I left
      * one in the above example for clarity)
      */
-    public static void addGroupByNodes(SelectNode outerSelectNode,
-                                       SelectNode subquerySelectNode,
+    public static void addGroupByNodes(SelectNode subquerySelectNode,
                                        List<BinaryRelationalOperatorNode> correlatedSubqueryPreds) throws StandardException {
 
         /*
@@ -40,13 +39,15 @@ public class GroupByUtil {
          * columns that are compared to the outer query columns.
          */
         if (!correlatedSubqueryPreds.isEmpty()) {
-            int subqueryNestingLevel = outerSelectNode.getNestingLevel() + 1;
+            int subqueryNestingLevel = subquerySelectNode.getNestingLevel();
 
             for (BinaryRelationalOperatorNode bro : correlatedSubqueryPreds) {
                 if (PredicateUtils.isLeftColRef(bro, subqueryNestingLevel)) {
                     addGroupByNodes(subquerySelectNode, bro.getLeftOperand());
                 } else if (PredicateUtils.isRightColRef(bro, subqueryNestingLevel)) {
                     addGroupByNodes(subquerySelectNode, bro.getRightOperand());
+                } else {
+                    throw new IllegalArgumentException("Did not find correlated column ref on either side of BRON");
                 }
             }
         }
