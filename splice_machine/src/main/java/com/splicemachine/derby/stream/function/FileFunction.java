@@ -1,12 +1,15 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;
@@ -21,6 +24,10 @@ import java.io.StringReader;
         private String characterDelimiter;
         private String columnDelimiter;
         private ExecRow execRow;
+
+        public FileFunction() {
+
+        }
         public FileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow) {
             this.characterDelimiter = characterDelimiter;
             this.columnDelimiter = columnDelimiter;
@@ -31,14 +38,18 @@ import java.io.StringReader;
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeUTF(characterDelimiter);
             out.writeUTF(columnDelimiter);
-            out.writeObject(execRow);
+            try {
+                ArrayUtil.writeIntArray(out,WriteReadUtils.getExecRowTypeFormatIds(execRow));
+            } catch (StandardException se) {
+                throw new IOException(se);
+            }
         }
 
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             characterDelimiter = in.readUTF();
             columnDelimiter = in.readUTF();
-            execRow = (ExecRow) in.readObject();
+            execRow =WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
         }
 
         @Override

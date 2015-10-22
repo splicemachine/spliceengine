@@ -942,6 +942,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
                             .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
                             .build(),
+                    Procedure.newBuilder().name("TO_TIME")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.TIME))
+                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build(),
                     Procedure.newBuilder().name("NEXT_DAY")
                             .numOutputParams(0)
                             .numResultSets(0)
