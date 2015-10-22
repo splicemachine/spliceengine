@@ -35,13 +35,15 @@ public class DeleteOperation extends DMLWriteOperation {
 		super();
 	}
 
-	public DeleteOperation(SpliceOperation source, Activation activation) throws StandardException {
-		super(source, activation);
+	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
+                           double optimizerEstimatedCost) throws StandardException {
+		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost);
 		recordConstructorTime();
 	}
 
-	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation) throws StandardException {
-		super(source, activation);
+	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation,double optimizerEstimatedRowCount,
+                           double optimizerEstimatedCost) throws StandardException {
+		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost);
 		recordConstructorTime();
 	}
 
@@ -70,6 +72,11 @@ public class DeleteOperation extends DMLWriteOperation {
         DeleteTableWriterBuilder builder = new DeleteTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .txn(txn);
-        return set.index(new InsertPairFunction(operationContext)).deleteData(builder, operationContext);
+        try {
+            operationContext.pushScope("Delete");
+            return set.index(new InsertPairFunction(operationContext)).deleteData(builder, operationContext);
+        } finally {
+            operationContext.popScope();
+        }
     }
 }

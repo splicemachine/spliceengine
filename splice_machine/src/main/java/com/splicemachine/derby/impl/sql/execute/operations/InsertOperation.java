@@ -70,8 +70,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 		public InsertOperation(SpliceOperation source,
 													 GeneratedMethod generationClauses,
-													 GeneratedMethod checkGM,String insertMode, String statusDirectory, int failBadRecordCount) throws StandardException{
-				super(source, generationClauses, checkGM, source.getActivation());
+													 GeneratedMethod checkGM,String insertMode, String statusDirectory, int failBadRecordCount,double optimizerEstimatedRowCount,
+                                                     double optimizerEstimatedCost) throws StandardException{
+				super(source, generationClauses, checkGM, source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost);
                 this.insertMode = InsertNode.InsertMode.valueOf(insertMode);
                 this.statusDirectory = statusDirectory;
                 this.failBadRecordCount = failBadRecordCount;
@@ -83,7 +84,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				recordConstructorTime();
 		}
 
-		public InsertOperation(SpliceOperation source,
+/*		public InsertOperation(SpliceOperation source,
                            OperationInformation opInfo,
                            DMLWriteInfo writeInfo) throws StandardException {
 				super(source, opInfo, writeInfo);
@@ -93,7 +94,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                     Exceptions.parseException(ioe);
                 }
 		}
-
+*/
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
             try {
@@ -226,6 +227,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .pkCols(pkCols)
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
-        return set.index(new InsertPairFunction(operationContext)).insertData(builder,operationContext);
+        try {
+            operationContext.pushScope("Insert");
+            return set.index(new InsertPairFunction(operationContext)).insertData(builder, operationContext);
+        } finally {
+            operationContext.popScope();
+        }
     }
 }

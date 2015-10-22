@@ -56,8 +56,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				super();
 		}
 
-		public DMLWriteOperation(SpliceOperation source, Activation activation) throws StandardException{
-				super(activation, -1, 0d, 0d);
+		public DMLWriteOperation(SpliceOperation source, Activation activation,
+                                 double optimizerEstimatedRowCount,
+                                 double optimizerEstimatedCost) throws StandardException{
+				super(activation, -1, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.source = source;
 				this.activation = activation;
 				this.writeInfo = new DerbyDMLWriteInfo();
@@ -72,8 +74,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		public DMLWriteOperation(SpliceOperation source,
 														 GeneratedMethod generationClauses,
 														 GeneratedMethod checkGM,
-														 Activation activation) throws StandardException{
-				this(source, activation);
+														 Activation activation,double optimizerEstimatedRowCount,
+                                                         double optimizerEstimatedCost) throws StandardException{
+				this(source, activation, optimizerEstimatedRowCount,optimizerEstimatedCost);
 
             if(generationClauses != null) {
                 this.generationClausesFunMethodName = generationClauses.getMethodName();
