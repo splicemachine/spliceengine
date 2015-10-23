@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.subquery;
 
 import com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static com.splicemachine.subquery.SubqueryITUtil.*;
 
 /**
  * Test for flattening where-subqueries containing aggregates. Splice added this capability. <p/> All of the tested
@@ -23,8 +24,6 @@ import static org.junit.Assert.assertEquals;
 public class Subquery_Flattening_Aggregate_IT {
 
     private static final String SCHEMA = Subquery_Flattening_Aggregate_IT.class.getSimpleName();
-
-    private static final int ALL_FLATTENED = 0;
 
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -55,13 +54,13 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void equals_columnRef() throws Exception {
         String sql = "select * from A where A.a2 = (select max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |\n" +
                 " 2 |20 |20 |");
         sql = "select * from A where A.a2  = (select min(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |");
@@ -70,7 +69,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void notEquals_columnRef() throws Exception {
         String sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 1 |10 |10  |\n" +
@@ -81,7 +80,7 @@ public class Subquery_Flattening_Aggregate_IT {
 
         // with extra predicates on outer table
         sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1) and a1 = 5 or a2 = 30";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 3 |30 |30  |\n" +
@@ -93,7 +92,7 @@ public class Subquery_Flattening_Aggregate_IT {
     public void notEquals_extraTopLevelPredicate() throws Exception {
         // the subquery filters out A.a1=0,2 and the top level predicate filters out A.a1=3
         String sql = "select * from A where A.a2!= 30 AND A.a2 != (select max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 1 |10 |10  |\n" +
@@ -105,7 +104,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void lessThan_extraPredicateInSubquery() throws Exception {
         String sql = "select * from A where A.a2  < (select sum(b2) from B where B.b1=A.a1 AND B.b2 >= 40)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 3 |30 |30  |\n" +
@@ -117,12 +116,12 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void greaterThanLessThan_columnRef() throws Exception {
         String sql = "select * from A where A.a2  > (select max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 1 |10 |10 |");
         sql = "select * from A where A.a2  < (select min(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 5 | 5 | 5  |\n" +
@@ -132,7 +131,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void equals_arithmetic() throws Exception {
         String sql = "select * from A where A.a2 * 10 = (select max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |\n" +
@@ -142,12 +141,12 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void equals_constant() throws Exception {
         String sql = "select * from A where 4444 = (select sum(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 4 |40 |40 |");
         sql = "select * from A where (select sum(b2) from B where B.b1=A.a1) = 4444";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 4 |40 |40 |");
@@ -156,7 +155,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void aggregateMultipliedByConstant() throws Exception {
         String sql = "select * from A where A.a2 * 10 = (select max(b2)*0.1 from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 0 | 0 | 0  |\n" +
@@ -171,14 +170,14 @@ public class Subquery_Flattening_Aggregate_IT {
             Collections.shuffle(preds);
             String subquery = "select max(b2) from B where " + Joiner.on(" AND ").join(preds);
             String sql = "select * from A where A.a2 < (" + subquery + ")";
-            assertUnorderedResult(sql, ALL_FLATTENED, "");
+            assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "");
         }
     }
 
     @Test
     public void unaryOperatorArithmeticNode() throws Exception {
         String sql = "select * from A where A.a2 = (select max(b2) from B where B.b1=A.a1 and sqrt(b1) > 1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 2 |20 |20 |");
@@ -187,7 +186,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void outerQueryIsAggregate() throws Exception {
         String sql = "select 2*sum(a1),3*sum(a2),4*sum(a3) from A where A.a2 < (select .2*max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "1 | 2  |  3  |\n" +
                 "---------------\n" +
                 "34 |375 |2300 |");
@@ -200,7 +199,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "from A " +
                 "join B on A.a1 = B.b1 " +
                 "where A.a2 < (select .2*max(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "1 | 2  |  3  | 4  |\n" +
                 "--------------------\n" +
                 "70 |915 |3020 |175 |");
@@ -211,11 +210,29 @@ public class Subquery_Flattening_Aggregate_IT {
                 "from A " +
                 "join B on A.a1 = B.b1 " +
                 "where b.b2 < (select .2*avg(bbb.b2) from B bbb where bbb.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "1 | 2  | 3  | 4 |\n" +
                 "------------------\n" +
                 "26 |390 |520 |65 |");
     }
+
+    /* At one point this shape of query was not flattened, it now is DB-3599 */
+    @Test
+    public void inNotIn() throws Exception {
+        String sql;
+        sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 in (3,30,300))";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "");
+        sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 not in (3,30,300))";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 1 |10 |10  |\n" +
+                " 3 |30 |30  |\n" +
+                " 4 |40 |40  |\n" +
+                " 5 | 5 | 5  |\n" +
+                " 5 |50 |500 |");
+    }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -226,7 +243,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void multipleCorrelationPredicates() throws Exception {
         String sql = "select * from A where A.a2 > (select sum(b2) from B where A.a1=B.b1 AND A.a1=B.b3)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 1 |10 |10 |\n" +
@@ -235,7 +252,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 " 4 |40 |40 |");
 
         sql = "select * from A where A.a2 < (select sum(b2) from B where A.a1=B.b1 AND A.a3=B.b3)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 5 | 5 | 5 |");
@@ -245,7 +262,7 @@ public class Subquery_Flattening_Aggregate_IT {
     public void multipleCorrelationPredicates_Extraneous() throws Exception {
         // Extraneous correlated predicates.
         String sql = "select * from A where A.a2 < (select sum(b2) from B where B.b1=A.a1 AND B.b1=A.a1 AND B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 2 |20 |20  |\n" +
@@ -268,7 +285,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "              4444 = (select sum(b2) from B where B.b1=A.a1)" +
                 "           or  333 = (select sum(b2) from B where B.b1=A.a1)" +
                 "           or   22 = (select sum(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 2 |20 |20 |\n" +
@@ -280,7 +297,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "                4444 = (select sum(b2) from B where B.b1=A.a1)" +
                 "           and  4000 = (select max(b2) from B where B.b1=A.a1)" +
                 "           and     4 = (select min(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 4 |40 |40 |");
@@ -290,7 +307,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "                4444 = (select sum(b2) from B where B.b1=A.a1)" +
                 "           and  (select max(b2) from B where B.b1=A.a1) = 4000" +
                 "           and     4 = (select min(b2) from B where B.b1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 4 |40 |40 |");
@@ -301,7 +318,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "           and  4000 = (select max(b2) from B where B.b1=A.a1)" +
                 "           and     4 = (select min(b2) from B where B.b1=A.a1)" +
                 "           and a2 >= 40 and a3 <= 40 and a1 between 1 and 4";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 4 |40 |40 |");
@@ -313,7 +330,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "                30 = (select sum(aa.a2) from A aa where aa.a1=A.a1)" +
                 "           and  30 = (select avg(aa.a2) from A aa where aa.a1=A.a1)" +
                 "           and  30 = (select min(aa.a2) from A aa where aa.a1=A.a1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 3 |30 |30 |");
@@ -325,7 +342,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "              5000 = (select sum(b2) from B where B.b1=A.a1)" +
                 "            and  5 = (select avg(c2) from C where C.c1=A.a1)";
 
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 5 | 5 | 5  |\n" +
@@ -341,7 +358,7 @@ public class Subquery_Flattening_Aggregate_IT {
     @Test
     public void uncorrelatedAggregateSubquery() throws Exception {
         String sql = "select * from A where a2 < (select sum(b1) from B)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |\n" +
@@ -355,7 +372,7 @@ public class Subquery_Flattening_Aggregate_IT {
     public void uncorrelatedAggregateSubquery2() throws Exception {
         String sql = "select * from A where a2 > (select sum(b1) from B)" +
                 "                       or  a3 > (select sum(b2) from B)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 4 |40 |40  |\n" +
@@ -373,7 +390,7 @@ public class Subquery_Flattening_Aggregate_IT {
         String sql = "select * from A where a2 > " +
                 "              (select sum(b1) from B where b2 > " +
                 "                  (select sum(a1) from A))";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 3 |30 |30  |\n" +
@@ -387,7 +404,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "              (select sum(b1) from B where b2 > " +
                 "                  (select sum(a1) from A where a1 < " +
                 "                      (select count(b1) from B)))";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 3 |30 |30  |\n" +
@@ -402,7 +419,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "                  (select sum(a1) from A where a1 < " +
                 "                      (select count(b1) from B where b2 > " +
                 "                          (select max(a3) from A))))";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 4 |40 |40  |\n" +
@@ -414,7 +431,7 @@ public class Subquery_Flattening_Aggregate_IT {
         String sql = "select t1.* from A t1 where t1.a2 > " +
                 "              (select sum(b1) from B t2 where t2.b2 > " +
                 "                  (select sum(a1) from A t3 where t3.a2=t2.b1))";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 1 |10 |10  |\n" +
@@ -438,7 +455,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 " join B on a1=b1 " +
                 " where a2 > (select min(c2) from C where C.c1=A.a1) " +
                 " and b3 < 1000";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |B1 | B2  |B3  |\n" +
                 "----------------------------\n" +
                 " 1 |10 |10  | 1 |  1  | 1  |\n" +
@@ -455,7 +472,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 " where b3 < 1000 " +
                 " and a2 > (select min(c2) from C where C.c1=A.a1) " +
                 " and b3 > (select avg(c2) from C where C.c1=A.a1) ";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |B1 |B2 |B3  |\n" +
                 "-------------------------\n" +
                 " 3 |30 |30 | 3 |30 |300 |");
@@ -470,7 +487,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 " where b3 < 1000 " +
                 " and a2 > (select min(c2) from C where C.c1=A.a1) " +
                 " and b3 > (select avg(bb.b2) from B bb where bb.b1=A.a1) ";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |B1 |B2 |B3  |\n" +
                 "-------------------------\n" +
                 " 3 |30 |30 | 3 |30 |300 |");
@@ -484,7 +501,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 " where a1 > 0" +
                 " and a2 > (select min(cc.c2) from C cc join B bb on cc.c1=bb.b1 where cc.c1=A.a1 and cc.c1 > 0) " +
                 " and b3 > (select avg(cc.c2) from C cc join B bb on cc.c1=bb.b1 where cc.c1=A.a1 and bb.b2 > 0) ";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3 |B1 |B2  | B3  |\n" +
                 "---------------------------\n" +
                 " 3 |30 |30 | 3 |30  | 300 |\n" +
@@ -552,30 +569,6 @@ public class Subquery_Flattening_Aggregate_IT {
     }
 
     @Test
-    public void unsupported_inNotIn() throws Exception {
-        // The important part for this test is that we don't attempt to flatten currently.  But incidentally this
-        // first query returns the wrong result.  DB-3599
-        String sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 in (3,30,300))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3  |\n" +
-                "-------------\n" +
-                " 1 |10 |10  |\n" +
-                " 2 |20 |20  |\n" +
-                " 4 |40 |40  |\n" +
-                " 5 | 5 | 5  |\n" +
-                " 5 |50 |500 |");
-        sql = "select * from A where A.a2 != (select max(b2) from B where B.b1=A.a1 and B.b3 not in (3,30,300))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3  |\n" +
-                "-------------\n" +
-                " 1 |10 |10  |\n" +
-                " 3 |30 |30  |\n" +
-                " 4 |40 |40  |\n" +
-                " 5 | 5 | 5  |\n" +
-                " 5 |50 |500 |");
-    }
-
-    @Test
     public void unsupported_aggregateColumnMultipliedByConstant() throws Exception {
         String sql = "select * from A where A.a2 * 10 = (select max(b2*0.1) from B where B.b1=A.a1)";
         assertUnorderedResult(sql, 1, "" +
@@ -598,21 +591,6 @@ public class Subquery_Flattening_Aggregate_IT {
                 " 4 |40 |40  |\n" +
                 " 5 |50 |500 |");
     }
-
-    @Test
-    public void unsupported_values() throws Exception {
-        String sql = "select * from A where a1 = (values 1)";
-        assertUnorderedResult(sql, ALL_FLATTENED, "" +
-                "A1 |A2 |A3 |\n" +
-                "------------\n" +
-                " 1 |10 |10 |");
-        sql = "select * from A where a1 = (select a1 from A where a1 = (values 1))";
-        assertUnorderedResult(sql, 1, "" +
-                "A1 |A2 |A3 |\n" +
-                "------------\n" +
-                " 1 |10 |10 |");
-    }
-
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //

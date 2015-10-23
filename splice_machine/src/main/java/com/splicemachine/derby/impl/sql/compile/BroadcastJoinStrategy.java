@@ -93,8 +93,10 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
         CostEstimate baseEstimate = innerTable.estimateCost(nonJoinPredicates,innerCd,optimizer.newCostEstimate(),optimizer,null);
         double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
-        //TODO -sf- warn users when they hint this join and we think it won't fit in heap
-        return wasHinted || estimatedMemoryMB<SpliceConstants.broadcastRegionMBThreshold;
+        double estimatedRowCount = baseEstimate.getEstimatedRowCount();
+        long regionThreshold = SpliceConstants.broadcastRegionMBThreshold;
+        long rowCountThreshold = SpliceConstants.broadcastRegionRowThreshold;
+        return wasHinted || (estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold) ;
 	}
 
     @Override

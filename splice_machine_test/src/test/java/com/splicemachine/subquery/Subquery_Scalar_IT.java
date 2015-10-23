@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.subquery;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;

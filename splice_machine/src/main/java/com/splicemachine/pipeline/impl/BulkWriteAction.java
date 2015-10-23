@@ -343,9 +343,10 @@ public class BulkWriteAction implements Callable<WriteStats> {
 			// Aggregate the error counts by code.
 			HashMap<Code, Integer> errorCodeToCountMap = new HashMap<Code, Integer>();
 			for (IntObjectCursor<WriteResult> failedRowCursor : failedRows) {
-				Code errorCode = failedRowCursor.value.getCode();
+				WriteResult wr = failedRowCursor.value;
+				Code errorCode = (wr == null ? null : wr.getCode());
 				Integer errorCount = errorCodeToCountMap.get(errorCode);
-				errorCodeToCountMap.put(errorCode, (errorCode == null ? 1 : errorCount++));
+				errorCodeToCountMap.put(errorCode, (errorCode == null || errorCount == null ? 1 : errorCount++));
 			}
 
 			// Make a string out of the error map.

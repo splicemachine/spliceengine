@@ -617,6 +617,14 @@ public class SpliceConstants {
     public static int broadcastRegionMBThreshold;
 
     /**
+     * Threshold in rows for the broadcast join region size.  Default is 1 Million Rows
+     *
+     */
+    @Parameter private static final String BROADCAST_REGION_ROW_THRESHOLD = "splice.optimizer.broadcastRegionRowThreshold";
+    @DefaultValue(BROADCAST_REGION_ROW_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 1000000;
+    public static int broadcastRegionRowThreshold;
+
+    /**
      * Estimate of the number of rows in a region.
      *
      */
@@ -1075,6 +1083,10 @@ public class SpliceConstants {
     @DefaultValue(TEMP_TABLE_BUCKET_COUNT) public static int DEFAULT_TEMP_TABLE_BUCKET_COUNT = 16;
     public static int tempTableBucketCount;
 
+    @Parameter public static final String ENABLE_IMPORT_STATUS_LOGGING = "splice.import.enableStatusLogging";
+    @DefaultValue(ENABLE_IMPORT_STATUS_LOGGING) public static final boolean DEFAULT_ENABLE_IMPORT_STATUS_LOGGING = false;
+    public static boolean enableImportStatusLogging;
+
     public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
     public static int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
     public static int batchOnceBatchSize;
@@ -1160,6 +1172,7 @@ public class SpliceConstants {
         regionMaxFileSize = (long) (( (float) SpliceConstants.config.getLong(HConstants.HREGION_MAX_FILESIZE,1024 * 1024 * 1024L))/( (float)1024*1024));
         hbaseRegionRowEstimate = SpliceConstants.config.getLong(HBASE_REGION_ROWS_ESTIMATE, DEFAULT_HBASE_REGION_ROWS_ESTIMATE);
         broadcastRegionMBThreshold = SpliceConstants.config.getInt(BROADCAST_REGION_MB_THRESHOLD,DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
+        broadcastRegionRowThreshold = SpliceConstants.config.getInt(BROADCAST_REGION_ROW_THRESHOLD,DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         indexPerRowCost = SpliceConstants.config.getFloat(INDEX_PER_ROW_COST, (float)DEFAULT_INDEX_PER_ROW_COST);
         optimizerHashCost = SpliceConstants.config.getFloat(OPTIMIZER_HASH_COST, (float)DEFAULT_OPTIMIZER_HASH_COST);
         extraQualifierMultiplier = SpliceConstants.config.getFloat(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, (float) DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
@@ -1303,6 +1316,8 @@ public class SpliceConstants {
         regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
 
         batchOnceBatchSize = config.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
+
+        enableImportStatusLogging = config.getBoolean(ENABLE_IMPORT_STATUS_LOGGING,DEFAULT_ENABLE_IMPORT_STATUS_LOGGING);
     }
 
     public static void reloadConfiguration(Configuration configuration) {

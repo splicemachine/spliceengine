@@ -14,41 +14,43 @@ import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
  * @author jyuan on 9/15/14.
  */
 public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
+    private int[] peerColumnIds;
 
     public LogicalGroupFrameBuffer (SpliceRuntimeContext runtimeContext,
                                     WindowAggregator[] aggregators,
                                     PartitionAwarePushBackIterator<ExecRow> source,
                                     FrameDefinition frameDefinition,
-                                    int[] sortColumns,
+                                    int[] peerColumnIds,
                                     ExecRow templateRow) throws StandardException {
-        super(runtimeContext, aggregators, source, frameDefinition, sortColumns, templateRow);
+        super(runtimeContext, aggregators, source, frameDefinition, templateRow);
+        this.peerColumnIds = peerColumnIds;
     }
 
     @Override
     protected void loadFrame() throws IOException, StandardException {
         // peak the first row
-        ExecRow row = source.next(runtimeContext);
-        source.pushBack(row);
-        // TODO: throw an error when there are more than one sort columns
+        ExecRow row = partitionIter.next(runtimeContext);
+        partitionIter.pushBack(row);
+        // TODO: compare ALL peer columns to find peer
         DataValueDescriptor currentValue = null;
         if (frameEnd < Long.MAX_VALUE) {
-            currentValue = row.getColumn(sortColumns[0] + 1).cloneValue(false);
+            currentValue = row.getColumn(peerColumnIds[0] + 1).cloneValue(false);
         }
         //long endValue = frameEnd == Long.MAX_VALUE ? frameEnd : frameEnd + currentValue;
         endOfPartition = false;
-        partition = source.getPartition();
+        partition = partitionIter.getPartition();
 
         boolean endOfFrame = false;
         while (!endOfFrame) {
-            row = source.next(runtimeContext);
+            row = partitionIter.next(runtimeContext);
             if (row == null) {
                 // consumed all rows
                 break;
             }
 
-            if (Bytes.compareTo(partition, source.getPartition()) != 0) {
+            if (Bytes.compareTo(partition, partitionIter.getPartition()) != 0) {
                 // consumed this partition, push back the row that belongs to the next partition
-                source.pushBack(row);
+                partitionIter.pushBack(row);
                 endOfPartition = true;
                 endOfFrame = true;
             }
@@ -57,7 +59,7 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
 
                 if (frameEnd < Long.MAX_VALUE) {
                     // if frame end is not unbounded following, compare values
-                    DataValueDescriptor v = clonedRow.getColumn(sortColumns[0]+1);
+                    DataValueDescriptor v = clonedRow.getColumn(peerColumnIds[0]+1);
                     if (v.compare(currentValue)==0) {
                         // if the value falls into the window frame, aggregate it
                         add(clonedRow);
@@ -65,7 +67,7 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
                     }
                     else {
                         endOfFrame = true;
-                        source.pushBack(row);
+                        partitionIter.pushBack(row);
                     }
                 }
                 else {
@@ -85,13 +87,13 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
         current++;
         // if the next candidate row is not in the buffer yet, read it from scanner
         if (current >= rows.size()) {
-            ExecRow row = source.next(runtimeContext);
+            ExecRow row = partitionIter.next(runtimeContext);
             if (row != null) {
                 ExecRow clonedRow = row.getClone();
-                if (Bytes.compareTo(source.getPartition(), partition) == 0) {
+                if (Bytes.compareTo(partitionIter.getPartition(), partition) == 0) {
                     rows.add(clonedRow);
                 } else {
-                    source.pushBack(row);
+                    partitionIter.pushBack(row);
                     endOfPartition = true;
                 }
             }
@@ -111,13 +113,13 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
         // Remove rows from the front of the window frame
         DataValueDescriptor newKey = null;
         if (frameEnd < Long.MAX_VALUE || frameStart > Long.MIN_VALUE) {
-            newKey = rows.get(current).getColumn(sortColumns[0] + 1);
+            newKey = rows.get(current).getColumn(peerColumnIds[0] + 1);
         }
         if (frameStart > Long.MIN_VALUE) {
             boolean inRange = false;
             while (!inRange) {
                 ExecRow row = rows.get(start);
-                DataValueDescriptor v = row.getColumn(sortColumns[0]+1);
+                DataValueDescriptor v = row.getColumn(peerColumnIds[0]+1);
                 if (v.compare(newKey) < 0) {
                     remove();
                     start++;
@@ -142,11 +144,11 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
         if (frameEnd < Long.MAX_VALUE) {
             boolean inRange = true;
             while(inRange && !endOfPartition) {
-                ExecRow row = source.next(runtimeContext);
+                ExecRow row = partitionIter.next(runtimeContext);
                 if (row != null) {
                     ExecRow clonedRow = row.getClone();
-                    if (Bytes.compareTo(source.getPartition(), partition) == 0) {
-                        DataValueDescriptor v = row.getColumn(sortColumns[0]+1);
+                    if (Bytes.compareTo(partitionIter.getPartition(), partition) == 0) {
+                        DataValueDescriptor v = row.getColumn(peerColumnIds[0]+1);
                         if (newKey != null && newKey.compare(v) == 0) {
                             rows.add(clonedRow);
                             add(clonedRow);
@@ -154,11 +156,11 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
                         }
                         else {
                             inRange = false;
-                            source.pushBack(row);
+                            partitionIter.pushBack(row);
                         }
 
                     } else {
-                        source.pushBack(row);
+                        partitionIter.pushBack(row);
                         endOfPartition = true;
                     }
                 }
