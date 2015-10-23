@@ -82,12 +82,6 @@ public class Subquery_Flattening_NotExists_IT {
                         "----\n" +
                         " 0 |"
         );
-        // offset in subquery
-        assertUnorderedResult(conn(), "select count(*) from A where NOT exists (select 1 from D offset 10000 rows)", ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 7 |"
-        );
     }
 
 
@@ -890,13 +884,27 @@ public class Subquery_Flattening_NotExists_IT {
 
     @Test
     public void notFlattened_correlatedWithOffset() throws Exception {
-
         /* I don't currently assert the result here because splice returns the wrong result: DB-4020 */
-
         // offset in subquery -- return rows in A that have more than one row in D where a1=d1;
         assertSubqueryNodeCount(conn(), "select * from A where NOT exists (select 1 from D where d1=a1 offset 1 rows)", ONE_SUBQUERY_NODE);
         // offset in subquery -- return rows in A that have more than two rows in D where a1=d1;
         assertSubqueryNodeCount(conn(), "select * from A where NOT exists (select 1 from D where d1=a1 offset 3 rows)", ONE_SUBQUERY_NODE);
+    }
+
+    @Test
+    public void notFlattened_unCorrelatedWithOffset() throws Exception {
+        // subquery with offset that eliminates all rows
+        assertUnorderedResult(conn(), "select count(*) from A where NOT exists (select 1 from D offset 10000 rows)", ONE_SUBQUERY_NODE, "" +
+                "1 |\n" +
+                "----\n" +
+                " 7 |"
+        );
+        // subquery with offset that DOES NOT eliminate all rows
+        assertUnorderedResult(conn(), "select count(*) from A where NOT exists (select 1 from D offset 1 rows)", ONE_SUBQUERY_NODE, "" +
+                "1 |\n" +
+                "----\n" +
+                " 0 |"
+        );
     }
 
     @Test
@@ -906,6 +914,15 @@ public class Subquery_Flattening_NotExists_IT {
                 "--------\n" +
                 " 2 |20 |\n" +
                 " 4 |40 |"
+        );
+    }
+
+    @Test
+    public void notFlattened_unCorrelatedWithLimits() throws Exception {
+        assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from D {limit 1})", ONE_SUBQUERY_NODE, "" +
+                "1 |\n" +
+                "----\n" +
+                " 7 |"
         );
     }
 
