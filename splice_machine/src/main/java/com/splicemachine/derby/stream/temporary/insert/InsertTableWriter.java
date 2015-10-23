@@ -23,14 +23,13 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/5/15.
  */
-public class InsertTableWriter extends AbstractTableWriter {
+public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     protected int[] pkCols;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
     protected static final KVPair.Type dataType = KVPair.Type.INSERT;
     protected SpliceSequence[] spliceSequences;
-    protected RecordingCallBuffer<KVPair> writeBuffer;
     protected PairEncoder encoder;
     public int rowsWritten;
     protected InsertOperation insertOperation;
@@ -64,14 +63,6 @@ public class InsertTableWriter extends AbstractTableWriter {
             throw Exceptions.parseException(e);
         }
     }
-    public void close() throws StandardException {
-        try {
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-        } catch (Exception e) {
-            throw Exceptions.parseException(e);
-        }
-    };
 
     public void insert(ExecRow execRow) throws StandardException {
         try {

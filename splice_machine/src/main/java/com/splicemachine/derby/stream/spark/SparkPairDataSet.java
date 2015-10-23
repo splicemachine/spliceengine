@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Optional;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -12,6 +13,8 @@ import com.splicemachine.derby.stream.function.broadcast.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.index.HTableOutputFormat;
+import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.output.SMOutputFormat;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
@@ -222,6 +225,23 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
+            return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public DataSet<V> writeIndex(HTableWriterBuilder builder){
+
+        try {
+            Configuration conf = new Configuration(SIConstants.config);
+            TableWriterUtils.serializeHTableWriterBuilder(conf, builder);
+            conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, HTableOutputFormat.class, HTableOutputFormat.class);
+            JavaSparkContext context = SpliceSpark.getContext();
+            rdd.saveAsNewAPIHadoopDataset(conf);
+            ValueRow valueRow = new ValueRow(1);
+            //valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
         } catch (Exception e) {
             throw new RuntimeException(e);

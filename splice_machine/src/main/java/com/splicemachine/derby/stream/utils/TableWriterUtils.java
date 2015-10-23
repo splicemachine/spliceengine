@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.utils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.iapi.TableWriter.Type;
+import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
@@ -18,6 +19,11 @@ public class TableWriterUtils {
     public static void serializeInsertTableWriterBuilder(Configuration conf, InsertTableWriterBuilder builder) throws IOException, StandardException {
         conf.set(MRConstants.TABLE_WRITER, builder.getInsertTableWriterBuilderBase64String());
         conf.set(MRConstants.TABLE_WRITER_TYPE, Type.INSERT.toString());
+    }
+
+    public static void serializeHTableWriterBuilder(Configuration conf, HTableWriterBuilder builder) throws IOException, StandardException {
+        conf.set(MRConstants.TABLE_WRITER, builder.getHTableWriterBuilderBase64String());
+        conf.set(MRConstants.TABLE_WRITER_TYPE, Type.INDEX.toString());
     }
 
     public static void serializeUpdateTableWriterBuilder(Configuration conf, UpdateTableWriterBuilder builder) throws IOException, StandardException {
@@ -46,6 +52,8 @@ public class TableWriterUtils {
                 return UpdateTableWriterBuilder.getUpdateTableWriterBuilderFromBase64String(base64).build();
             case DELETE:
                 return DeleteTableWriterBuilder.getDeleteTableWriterBuilderFromBase64String(base64).build();
+            case INDEX:
+                return HTableWriterBuilder.getHTableWriterBuilderFromBase64String(base64).build();
             default:
                 throw new IOException("Type Incorrect");
         }
