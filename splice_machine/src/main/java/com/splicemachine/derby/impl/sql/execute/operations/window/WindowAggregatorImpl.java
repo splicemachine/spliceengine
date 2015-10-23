@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 import java.util.Arrays;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
@@ -19,7 +20,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.function.Splic
  *  
  */
 public class WindowAggregatorImpl implements WindowAggregator {
-//	private static Logger LOG = Logger.getLogger(WindowAggregatorImpl.class);
 	final int functionColumnId;
 	private final int[] inputColumnIds;
 	private final int resultColumnId;
@@ -29,6 +29,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
     private final ClassFactory cf;
     private final String functionClassName;
     private final DataTypeDescriptor resultColumnDesc;
+    private final FormatableHashtable functionSpecificArgs;
 
     private SpliceGenericWindowFunction cachedAggregator;
     private int[] partitionColumns;
@@ -43,6 +44,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 		this.inputColumnIds = windowInfo.getInputColNums();
 		this.resultColumnId = windowInfo.getOutputColNum();
         this.functionName = windowInfo.getFunctionName();
+        this.functionSpecificArgs = windowInfo.getFunctionSpecificArgs();
         this.functionClassName = windowInfo.getWindowFunctionClassName();
         this.resultColumnDesc = windowInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
 
@@ -82,8 +84,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 
     @Override
     public String toString() {
-        return "WindowAggregator{" +
-            "functionName='" + functionName + '\'' +
+        return "WindowAggregator{'" + functionName + '\'' +
             ", functionColumnId=" + functionColumnId +
             ", inputColumnIds=" + Arrays.toString(inputColumnIds) +
             ", resultColumnId=" + resultColumnId +
@@ -112,6 +113,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
         this.functionClassName = cachedAggregator.toString();
         this.frameDefinition = frameDefinition;
         this.resultColumnDesc = null;
+        this.functionSpecificArgs = new FormatableHashtable();
     }
 
     @Override
@@ -189,6 +191,11 @@ public class WindowAggregatorImpl implements WindowAggregator {
         return functionName;
     }
 
+    @Override
+    public SpliceGenericWindowFunction getCachedAggregator() {
+        return this.cachedAggregator;
+    }
+
     private void accumulate(DataValueDescriptor[] inputCols,DataValueDescriptor aggCol, DataValueDescriptor outputCol)
             throws StandardException{
         WindowFunction ua = (WindowFunction)aggCol.getObject();
@@ -205,8 +212,9 @@ public class WindowAggregatorImpl implements WindowAggregator {
                 Class aggClass = cf.loadApplicationClass(this.functionClassName);
                 WindowFunction function = (WindowFunction) aggClass.newInstance();
                 function.setup(cf,
-                        this.functionName,
-                        this.resultColumnDesc
+                               this.functionName,
+                               this.resultColumnDesc,
+                               this.functionSpecificArgs
                 );
                 function = function.newWindowFunction();
                 cachedAggregator = (SpliceGenericWindowFunction) function;

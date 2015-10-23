@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -11,14 +11,12 @@ import org.junit.Test;
 
 import java.sql.ResultSet;
 
-import static com.splicemachine.derby.impl.sql.execute.operations.SubqueryITUtil.assertUnorderedResult;
+import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.junit.Assert.assertEquals;
 
 public class Subquery_Flattening_Exists_IT {
 
     private static final String SCHEMA = Subquery_Flattening_Exists_IT.class.getSimpleName();
-
-    private static final int ALL_FLATTENED = 0;
 
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -46,20 +44,20 @@ public class Subquery_Flattening_Exists_IT {
     public void uncorrelated_oneSubqueryTable() throws Exception {
         // subquery reads different table
         assertUnorderedResult(conn(),
-                "select count(*) from A where exists (select b1 from B where b2 > 20)", ALL_FLATTENED, "" +
+                "select count(*) from A where exists (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
                         "1 |\n" +
                         "----\n" +
                         " 6 |"
         );
         // subquery reads same table
         assertUnorderedResult(conn(),
-                "select count(*) from A where exists (select a1 from A ai where ai.a2 > 20)", ALL_FLATTENED, "" +
+                "select count(*) from A where exists (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "" +
                         "1 |\n" +
                         "----\n" +
                         " 6 |"
         );
         // empty table
-        assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from EMPTY_TABLE)", ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from EMPTY_TABLE)", ZERO_SUBQUERY_NODES, "" +
                 "1 |\n" +
                 "----\n" +
                 " 0 |"
@@ -69,7 +67,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select count(*) from A where " +
                         "exists (select b1 from B where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B where b1 > 3)", ALL_FLATTENED, "" +
+                        "exists (select b1 from B where b1 > 3)", ZERO_SUBQUERY_NODES, "" +
                         "1 |\n" +
                         "----\n" +
                         " 6 |"
@@ -79,7 +77,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select count(*) from A where " +
                         "exists (select b1 from B where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B where b1 < 0)", ALL_FLATTENED, "" +
+                        "exists (select b1 from B where b1 < 0)", ZERO_SUBQUERY_NODES, "" +
                         "1 |\n" +
                         "----\n" +
                         " 0 |"
@@ -90,7 +88,7 @@ public class Subquery_Flattening_Exists_IT {
     public void uncorrelated_twoSubqueryTables() throws Exception {
         // subquery reads different table
         assertUnorderedResult(conn(),
-                "select A.* from A where exists (select b1 from B join D on b1=d1 where b2 > 20)", ALL_FLATTENED, "" +
+                "select A.* from A where exists (select b1 from B join D on b1=d1 where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
                         " 0 | 0 |\n" +
@@ -102,7 +100,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         // subquery reads same table
         assertUnorderedResult(conn(),
-                "select A.* from A where exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ALL_FLATTENED, "" +
+                "select A.* from A where exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
                         " 0 | 0 |\n" +
@@ -117,7 +115,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select A.* from A where " +
                         "exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B join D on b1=d1 where b1 > 3)", ALL_FLATTENED, "" +
+                        "exists (select b1 from B join D on b1=d1 where b1 > 3)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
                         " 0 | 0 |\n" +
@@ -132,7 +130,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select count(*) from A where " +
                         "exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B join D on b1=d1 where b1 < 0)", ALL_FLATTENED, "" +
+                        "exists (select b1 from B join D on b1=d1 where b1 < 0)", ZERO_SUBQUERY_NODES, "" +
                         "1 |\n" +
                         "----\n" +
                         " 0 |"
@@ -142,7 +140,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void uncorrelated_threeSubqueryTables() throws Exception {
         assertUnorderedResult(conn(),
-                "select A.* from A where exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ALL_FLATTENED, "" +
+                "select A.* from A where exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
                         " 0 | 0 |\n" +
@@ -158,7 +156,7 @@ public class Subquery_Flattening_Exists_IT {
     public void correlated_oneSubqueryTable() throws Exception {
         /* simple case */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from D where a1 = d1)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1 from D where a1 = d1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 0 |\n" +
@@ -168,7 +166,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* subquery selects constant */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -176,7 +174,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* subquery selects b1 */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select b1 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -184,7 +182,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* subquery selects b1 multiple times */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1,b1,b1 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select b1,b1,b1 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -192,7 +190,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* subquery selects constant multiple times */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1,2,3 from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1,2,3 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -200,7 +198,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* subquery selects all */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select * from B where a1 = b1 and b1 in (3,5))", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select * from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -212,7 +210,7 @@ public class Subquery_Flattening_Exists_IT {
     public void correlated_twoSubqueryTables() throws Exception {
         /* no extra predicates */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
@@ -223,7 +221,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* restriction on C */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and c1 in (3,5))", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and c1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -231,7 +229,7 @@ public class Subquery_Flattening_Exists_IT {
         );
         /* restriction on B and C */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and b2 = 50)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and b2 = 50)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 5 |"
@@ -241,7 +239,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where " +
                         "    a1 > 0 and a2 < 50 " +
                         "and exists (select b1 from B join C on b1=c1 where a1 = b1) " +
-                        "and a1 > 0 and a2 < 50", ALL_FLATTENED, "" +
+                        "and a1 > 0 and a2 < 50", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
@@ -254,7 +252,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_threeSubqueryTables() throws Exception {
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1 = b1)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1 = b1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
@@ -266,7 +264,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_withMultipleCorrelationPredicates() throws Exception {
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from D where a1=d1 and a2=d2)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1 from D where a1=d1 and a2=d2)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 0 |\n" +
@@ -280,12 +278,12 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_withCorrelatedColumnRefComparedToConstant() throws Exception {
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B where a1=3)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1 from B where a1=3)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |");
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B where a1=4 and a1=b1)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select 1 from B where a1=4 and a1=b1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 4 |");
@@ -304,7 +302,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where " +
                         "exists (select 1 from B where a1=b1 and b1 in (3,5))" +
                         " and " +
-                        "exists (select 1 from C where a1=c1 and c1 in (3,5))", ALL_FLATTENED, "" +
+                        "exists (select 1 from C where a1=c1 and c1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -317,7 +315,7 @@ public class Subquery_Flattening_Exists_IT {
                         " and " +
                         "exists (select 1 from C where a1=c1)" +
                         " and " +
-                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ALL_FLATTENED, "" +
+                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -332,7 +330,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where " +
                         "exists (select 1 from B join C on b1=c1 where a1=b1 and b1 in (3,5))" +
                         " and " +
-                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ALL_FLATTENED, "" +
+                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -345,7 +343,7 @@ public class Subquery_Flattening_Exists_IT {
                         " and " +
                         "exists (select 1 from C where a1=c1)" +
                         " and " +
-                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ALL_FLATTENED, "" +
+                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 3 |\n" +
@@ -363,7 +361,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_rightJoinInSubquery() throws Exception {
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select * from C right join D on c1=d1 where a1=c1)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select * from C right join D on c1=d1 where a1=c1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
@@ -375,7 +373,7 @@ public class Subquery_Flattening_Exists_IT {
     @Test
     public void correlated_leftJoinInSubquery() throws Exception {
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select * from C left join D on c1=d1 where a1=c1)", ALL_FLATTENED, "" +
+                "select a1 from A where exists (select * from C left join D on c1=d1 where a1=c1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
@@ -398,7 +396,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select * from A " +
                 "join (select * from B" +
                 "      where b1 > 0 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |B1 |B2 |\n" +
                 "----------------\n" +
                 " 1 |10 | 1 |10 |\n" +
@@ -419,7 +417,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select * from A " +
                 "left join (select * from B" +
                 "      where b1 > 0 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 | B1  | B2  |\n" +
                 "--------------------\n" +
                 " 0 | 0 |NULL |NULL |\n" +
@@ -441,7 +439,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select * from A " +
                 "right join (select * from B" +
                 "      where b1 > 3 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |B1 |B2 |\n" +
                 "----------------\n" +
                 " 4 |40 | 4 |40 |\n" +
@@ -463,7 +461,7 @@ public class Subquery_Flattening_Exists_IT {
                 "                 inner join C on b1=c1" +
                 "                 where exists (select 1 from D where c1=d1 and c2 = 30)" +
                 "                 and b1 > 0)  AS foo on a1=foo.b1";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 | B1  |colAlias |\n" +
                 "------------------------\n" +
                 " 0 | 0 |NULL |   NN    |\n" +
@@ -488,7 +486,7 @@ public class Subquery_Flattening_Exists_IT {
         String sql = "select A.* from A where exists(" +
                 "select 1 from B where a1=b1 and exists(" +
                 "select 1 from C where b1=c1" + "))";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 1 |10 |\n" +
@@ -504,7 +502,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select 1 from B where a1=b1 and exists(" +
                 "select 1 from C where b1=c1 and exists(" +
                 "select 1 from D where d1=c1" + ")))";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 1 |10 |\n" +
@@ -514,7 +512,7 @@ public class Subquery_Flattening_Exists_IT {
                 "select 1 from B where a1=b1 and a1=5 and exists(" +
                 "select 1 from C where b1=c1 and b1=5 and exists(" +
                 "select 1 from D where d1=c1 and d1=5" + ")))";
-        assertUnorderedResult(conn(), sql, ALL_FLATTENED, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 5 |50 |");
@@ -598,6 +596,22 @@ public class Subquery_Flattening_Exists_IT {
                 " 5 |50 |");
     }
 
+    @Test
+    public void union_unionsInFromListOfExistsSubquery() throws Exception {
+        String sql = "select * from A where exists(" +
+                "select * from (select c1 r from C union select d1 r from D) foo where foo.r=a1" +
+                ")";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                " 1 |10 |\n" +
+                " 2 |20 |\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |\n" +
+                " 5 |50 |");
+    }
+
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -626,14 +640,14 @@ public class Subquery_Flattening_Exists_IT {
 
         /* correlated */
         assertUnorderedResult(conn(),
-                "select a1 from AA where exists(select 1 from BB join CC on b2=c1 where b1=a1)", ALL_FLATTENED, "" +
+                "select a1 from AA where exists(select 1 from BB join CC on b2=c1 where b1=a1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
                         " 2 |");
         /* uncorrelated */
         assertUnorderedResult(conn(),
-                "select a1 from AA where exists(select 1 from BB join CC on b2=c1)", ALL_FLATTENED, "" +
+                "select a1 from AA where exists(select 1 from BB join CC on b2=c1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +

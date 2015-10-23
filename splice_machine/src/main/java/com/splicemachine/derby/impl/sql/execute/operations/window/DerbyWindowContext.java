@@ -24,7 +24,6 @@ import com.splicemachine.derby.impl.SpliceMethod;
  *         Date: 7/8/14
  */
 public class DerbyWindowContext implements WindowContext {
-//    private static Logger LOG = Logger.getLogger(DerbyWindowContext.class);
 
 
     private String rowAllocatorMethodName;
@@ -125,6 +124,16 @@ public class DerbyWindowContext implements WindowContext {
             this.rowAllocatorMethodName = null;
 
         this.aggregateItem = in.readInt();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buf = new StringBuilder("WindowContext{");
+        for (WindowAggregator wa : windowAggregators) {
+            buf.append(wa.toString());
+        }
+        buf.append("}");
+        return buf.toString();
     }
 
     private static WindowAggregator[] buildWindowAggregators(WindowFunctionInfoList infos, ClassFactory cf) {

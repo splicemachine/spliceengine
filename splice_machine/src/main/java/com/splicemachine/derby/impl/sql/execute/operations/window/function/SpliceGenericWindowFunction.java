@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
@@ -30,8 +32,13 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     }
 
     @Override
-    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType)
-    {
+    public WindowFunction setup(ClassFactory classFactory, String windowFunctionName, DataTypeDescriptor
+        returnDataType, FormatableHashtable functionSpecificArgs) {
+        return this;
+    }
+
+    @Override
+    public WindowFunction setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
         return this;
     }
 
@@ -118,7 +125,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     public void reset() {
         WindowChunk chunk = new WindowChunk();
         first = last = chunk;
-        chunks = new ArrayList<WindowChunk>();
+        chunks = new ArrayList<>();
         chunks.add(chunk);
     }
 
@@ -140,7 +147,6 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
             return resultType.getTypeFormatId();
         }
     }
-
 
     protected class WindowChunk {
         DataValueDescriptor result;
@@ -219,5 +225,10 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     @Override
     public boolean didEliminateNulls() {
         return false;
+    }
+
+    public List<DataValueDescriptor> finishFrame() throws StandardException {
+        // override/implement if function needs the entire frame
+        return null;
     }
 }

@@ -17,6 +17,18 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.apache.hadoop.hbase.client.Result;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -177,7 +189,7 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public String toString() {
-        return "WindowOperation {source="+source;
+        return "WindowOperation{"+windowContext+"}";
     }
 
     @Override

@@ -17,6 +17,7 @@ import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.ExecContext;
 import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -387,7 +389,10 @@ public abstract class SpliceBaseHTable implements HTableInterface, TableRegionsI
             exception = ((RemoteWithExtrasException) exception).unwrapRemoteException();
 //            exception = Throwables.getRootCause(exception);
         }
-        if (exception instanceof IncorrectRegionException || exception instanceof NotServingRegionException) {
+        if (exception instanceof IncorrectRegionException ||
+        	exception instanceof NotServingRegionException ||
+        	exception instanceof ConnectException ||
+        	isFailedServerException(exception)) {
             return exception;
         }
         Throwable cause = exception.getCause();
@@ -404,6 +409,15 @@ public abstract class SpliceBaseHTable implements HTableInterface, TableRegionsI
         return null;
     }
 
+    private static boolean isFailedServerException(Throwable t) {
+    	// Unfortunately we can not call ExceptionTranslator.isFailedServerException()
+    	// which is explicitly for this purpose. Other places in the code call it,
+    	// but SpliceHTabe is already in splice_si_adapter_98 so we can not use
+    	// the generic DerbyFactory capability without a bunch of refactoring.
+    	// We'll come back to this later.
+    	return t.getClass().getName().contains("FailedServerException");
+    }
+    
     private static void logAndThrowCause(Exception ee) throws Throwable {
         if (ee.getCause() != null) {
             SpliceLogUtils.logAndThrow(LOG, "The Cause:", ee.getCause());
