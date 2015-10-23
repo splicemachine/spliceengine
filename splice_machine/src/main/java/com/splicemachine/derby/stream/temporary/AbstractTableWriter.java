@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 
@@ -17,7 +18,7 @@ import java.util.concurrent.Callable;
 /**
  * Created by jleach on 5/20/15.
  */
-public abstract class AbstractTableWriter implements AutoCloseable, TableWriter {
+public abstract class AbstractTableWriter<T> implements AutoCloseable, TableWriter<T> {
     protected TxnView txn;
     protected byte[] destinationTable;
     protected long heapConglom;
@@ -62,4 +63,12 @@ public abstract class AbstractTableWriter implements AutoCloseable, TableWriter 
             operation.evaluateGenerationClauses(row);
     }
 
+    public void close() throws StandardException {
+        try {
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
+    };
 }

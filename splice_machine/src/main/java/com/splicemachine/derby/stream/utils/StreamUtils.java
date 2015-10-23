@@ -20,6 +20,7 @@ public class StreamUtils {
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
     public static final DataSetProcessor hregionDataSetProcessor = new HregionDataSetProcessor();
     private static final double CONTROL_SIDE_THRESHOLD = 1E20; // based on a TPCC1000 run on an 8 node cluster
+    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E6;
 
     public static DataSetProcessor getControlDataSetProcessor() {
         return controlDataSetProcessor;
@@ -37,7 +38,8 @@ public class StreamUtils {
             }
         }
         double estimatedCost = activation.getResultSet() == null ? op.getEstimatedCost() : ((SpliceOperation)activation.getResultSet()).getEstimatedCost();
-        return estimatedCost > CONTROL_SIDE_THRESHOLD?sparkDataSetProcessor:controlDataSetProcessor;
+        double estimatedRowCount = activation.getResultSet() == null ? op.getEstimatedRowCount() : ((SpliceOperation)activation.getResultSet()).getEstimatedRowCount();
+        return (estimatedCost > CONTROL_SIDE_THRESHOLD || estimatedRowCount > CONTROL_SIDE_ROWCOUNT_THRESHOLD) ?sparkDataSetProcessor:controlDataSetProcessor;
     }
 
     public static <Op extends SpliceOperation> DataSetProcessor getLocalDataSetProcessorFromActivation(Activation activation, SpliceOperation op) {

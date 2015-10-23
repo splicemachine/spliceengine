@@ -5,31 +5,22 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
+import com.splicemachine.derby.stream.index.HTableInputFormat;
+import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.iterator.TableScannerIterator;
-import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
-import com.splicemachine.metrics.Metrics;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.mrio.api.core.SMSQLUtil;
-import com.splicemachine.mrio.api.core.SpliceRegionScanner;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
@@ -67,6 +58,23 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
                 new TableScanTupleFunction<Op>(createOperationContext(spliceOperation))));
     }
 
+    @Override
+    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException {
+        JavaSparkContext ctx = SpliceSpark.getContext();
+        Configuration conf = new Configuration(SIConstants.config);
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        try {
+            conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, hTableBuilder.getTableScannerBuilderBase64String());
+        } catch (IOException ioe) {
+            throw StandardException.unexpectedUserException(ioe);
+        }
+        JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(conf, HTableInputFormat.class,
+                byte[].class, KVPair.class);
+
+        return new SparkDataSet(rawRDD.map(
+                new HTableScanTupleFunction()));
+    }
     @Override
     public <V> DataSet<V> getEmpty() {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1));

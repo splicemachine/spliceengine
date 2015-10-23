@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.TransactionOperations;
@@ -43,6 +45,7 @@ public class TableScannerBuilder implements Externalizable {
 		protected boolean[] keyColumnSortOrder;
 		protected TransactionalRegion region;
 		protected int[] execRowTypeFormatIds;
+        protected OperationContext operationContext;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -61,7 +64,13 @@ public class TableScannerBuilder implements Externalizable {
 				return this;
 		}
 
-		public TableScannerBuilder scan(Scan scan) {
+        public TableScannerBuilder operationContext(OperationContext operationContext) {
+            this.operationContext = operationContext;
+            return this;
+        }
+
+
+    public TableScannerBuilder scan(Scan scan) {
 				assert scan!=null : "Null scans are not allowed!";
 				this.scan = scan;
 				return this;
@@ -264,8 +273,10 @@ public class TableScannerBuilder implements Externalizable {
 				out.writeUTF(indexName);
 			out.writeBoolean(tableVersion!=null);
 			if (tableVersion!=null)
-				out.writeUTF(tableVersion);			
-
+				out.writeUTF(tableVersion);
+            out.writeBoolean(operationContext!=null);
+            if (operationContext!=null)
+                out.writeObject(operationContext);
 		}
 
 		@Override
@@ -288,6 +299,8 @@ public class TableScannerBuilder implements Externalizable {
 				indexName = in.readUTF();
 			if (in.readBoolean())				
 				tableVersion = in.readUTF();
+            if (in.readBoolean())
+                operationContext = (OperationContext) in.readObject();
 		}
 		
 		public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
