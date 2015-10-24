@@ -25,6 +25,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import com.splicemachine.pipeline.exception.Exceptions;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -120,7 +121,7 @@ public class VTIOperation extends SpliceBaseOperation {
 
 	private boolean isDerbyStyleTableFunction;
 
-    private final TypeDescriptor returnType;
+    private  TypeDescriptor returnType;
 
     private DataTypeDescriptor[]    returnColumnTypes;
 
@@ -140,7 +141,11 @@ public class VTIOperation extends SpliceBaseOperation {
 			return NAME;
 	}
 
-	
+
+    public VTIOperation() {
+
+    }
+
     //
     // class interface
     //
@@ -192,11 +197,16 @@ public class VTIOperation extends SpliceBaseOperation {
 		this.ctcNumber = ctcNumber;
 		compileTimeConstants = (FormatableHashtable) (activation.getPreparedStatement().
 								getSavedObject(ctcNumber));
-        init(SpliceOperationContext.newContext(activation));
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException {
+        super.init(context);
         this.activation = context.getActivation();
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
         this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);

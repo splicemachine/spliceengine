@@ -178,6 +178,11 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         return new ControlDataSet<>(value);
     }
 
+    @Override
+    public void setSchedulerPool(String pool) {
+        // no op
+    }
+
     private class TextFileIterator implements Iterator<String>{
 
         Scanner scanner;
@@ -197,5 +202,6 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         public boolean hasNext() {
             return scanner.hasNextLine();
         }
+
     }
 }

@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.si.api.TxnView;
 import java.io.Externalizable;
+import java.util.List;
 
 /**
  * Created by jleach on 4/17/15.
@@ -25,4 +26,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     long getRecordsWritten();
     void pushScope(String display);
     void popScope();
+    void recordBadRecord(String badRecord);
+    List<String> getBadRecords();
 }

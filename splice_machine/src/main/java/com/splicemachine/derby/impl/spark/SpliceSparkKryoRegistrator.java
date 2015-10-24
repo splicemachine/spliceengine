@@ -619,6 +619,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(WindowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(IndexRowReaderBuilder.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(VTIOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(StandardException.class, new Serializer<StandardException>() {
             @Override
             public void write(Kryo kryo, Output output, StandardException e) {

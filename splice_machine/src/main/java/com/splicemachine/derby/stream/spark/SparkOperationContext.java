@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
@@ -11,15 +12,19 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.stream.accumulator.BadRecordsAccumulator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by jleach on 4/17/15.
@@ -38,6 +43,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public Accumulator<Integer> rowsProduced;
         public Accumulator<Integer> rowsFiltered;
         public Accumulator<Integer> rowsWritten;
+        public Accumulable<List<String>,String> badRecordsAccumulable;
 
         public SparkOperationContext() {
 
@@ -58,6 +64,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             this.rowsJoinedLeft = SpliceSpark.getContext().accumulator(0, baseName + " rows joined left");
             this.rowsJoinedRight = SpliceSpark.getContext().accumulator(0, baseName + " rows joined right");
             this.rowsProduced= SpliceSpark.getContext().accumulator(0, baseName + " rows produced");
+            this.badRecordsAccumulable = SpliceSpark.getContext().accumulable(new ArrayList<String>(), "BadRecords",new BadRecordsAccumulator());
         }
 
         protected SparkOperationContext(Activation activation)  {
@@ -98,6 +105,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             out.writeObject(rowsJoinedLeft);
             out.writeObject(rowsJoinedRight);
             out.writeObject(rowsProduced);
+            out.writeObject(badRecordsAccumulable);
         }
 
         @Override
@@ -116,18 +124,21 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             rowsJoinedLeft = (Accumulator<Integer>) in.readObject();
             rowsJoinedRight = (Accumulator<Integer>) in .readObject();
             rowsProduced = (Accumulator<Integer>) in.readObject();
+            badRecordsAccumulable = (Accumulable<List<String>,String>) in.readObject();
             boolean prepared = false;
             try {
-                impl = new SpliceTransactionResourceImpl();
-                impl.prepareContextManager();
-                prepared = true;
-                impl.marshallTransaction(txn);
-                if(isOp) {
-                    activation = soi.getActivation(impl.getLcc());
-                    context = SpliceOperationContext.newContext(activation);
-                    op.init(context);
+                if (ContextService.getFactory().getCurrentContextManager() == null) {
+                    impl = new SpliceTransactionResourceImpl();
+                    impl.prepareContextManager();
+                    prepared = true;
+                    impl.marshallTransaction(txn);
+                    if (isOp) {
+                        activation = soi.getActivation(impl.getLcc());
+                        context = SpliceOperationContext.newContext(activation);
+                        op.init(context);
+                    }
+                    readExternalInContext(in);
                 }
-                readExternalInContext(in);
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
@@ -216,5 +227,16 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void popScope() {
         SpliceSpark.popScope();
+    }
+
+
+    @Override
+    public void recordBadRecord(String badRecord) {
+        badRecordsAccumulable.add(badRecord);
+    }
+
+    @Override
+    public List<String> getBadRecords() {
+        return badRecordsAccumulable.value();
     }
 }

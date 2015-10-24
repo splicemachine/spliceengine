@@ -48,7 +48,7 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     }
 
     public void open() throws StandardException {
-          open(null,null);
+          open(insertOperation.getTriggerHandler(),insertOperation);
     }
 
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
@@ -108,14 +108,7 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
         }
         return new KeyEncoder(prefix,dataHash,postfix);
     }
-/* Hive Auto Increment Writing
-    public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
-        long nextIncrement = spliceSequences[columnPosition-1].getNext();
-        DataValueDescriptor dvd = execRowDefinition.cloneColumn(columnPosition);
-        dvd.setValue(nextIncrement);
-        return dvd;
-    }
-*/
+
     public DataHash getRowHash() throws StandardException {
         //get all columns that are being set
         int[] columns = getEncodingColumns(execRowDefinition.nColumns(),pkCols);

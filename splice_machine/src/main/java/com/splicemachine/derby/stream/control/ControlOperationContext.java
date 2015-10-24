@@ -15,6 +15,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by jleach on 4/17/15.
@@ -26,6 +28,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         long rowsJoinedLeft;
         long rowsJoinedRight;
         long rowsProduced;
+        List<String> badRecords;
         public SpliceObserverInstructions soi;
         public SpliceTransactionResourceImpl impl;
         public Activation activation;
@@ -50,6 +53,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             rowsRead = 0;
             rowsFiltered=0;
             rowsWritten = 0;
+            badRecords = new ArrayList<String>();
         }
 
         public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
@@ -173,5 +177,15 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public void popScope() {
         // no op
+    }
+
+    @Override
+    public void recordBadRecord(String badRecord) {
+        badRecords.add(badRecord);
+    }
+
+    @Override
+    public List<String> getBadRecords() {
+        return badRecords;
     }
 }
