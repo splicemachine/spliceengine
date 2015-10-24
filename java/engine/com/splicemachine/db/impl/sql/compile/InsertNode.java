@@ -636,11 +636,13 @@ public final class InsertNode extends DMLModStatementNode {
 
 		if (insertMode != null) {
             String upperValue = StringUtil.SQLToUpperCase(insertModeString);
-            if (!Sets.newHashSet(InsertMode.values()).contains(upperValue))
+            try {
+                insertMode = InsertMode.valueOf(upperValue);
+            } catch (Exception e) {
                 throw StandardException.newException(SQLState.LANG_INVALID_INSERT_MODE,
                         insertMode,
                         targetTableName);
-            insertMode = InsertMode.valueOf(upperValue);
+            }
         }
 
         if (failBadRecordCountString != null) {
