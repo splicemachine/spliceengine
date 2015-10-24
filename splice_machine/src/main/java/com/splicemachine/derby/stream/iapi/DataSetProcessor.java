@@ -27,4 +27,5 @@ public interface DataSetProcessor {
     PairDataSet<String,InputStream> readWholeTextFile(String path);
     DataSet<String> readTextFile(String path);
     <K,V> PairDataSet<K, V> getEmptyPair();
+    void setSchedulerPool(String pool);
 }

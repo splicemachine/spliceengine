@@ -4,9 +4,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
@@ -29,15 +29,15 @@ public class InsertTableWriterBuilder implements Externalizable {
     protected SpliceSequence[] spliceSequences;
     protected long heapConglom;
     protected TxnView txn;
-    protected InsertOperation insertOperation;
+    protected OperationContext operationContext;
 
     public InsertTableWriterBuilder pkCols(int[] pkCols) {
         this.pkCols = pkCols;
         return this;
     }
 
-    public InsertTableWriterBuilder insertOperation(InsertOperation insertOperation) {
-        this.insertOperation = insertOperation;
+    public InsertTableWriterBuilder operationContext(OperationContext operationContext) {
+        this.operationContext = operationContext;
         return this;
     }
 
@@ -45,7 +45,6 @@ public class InsertTableWriterBuilder implements Externalizable {
         this.spliceSequences = spliceSequences;
         return this;
     }
-
 
     public InsertTableWriterBuilder txn(TxnView txn) {
         this.txn = txn;
@@ -80,9 +79,9 @@ public class InsertTableWriterBuilder implements Externalizable {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         try {
-            out.writeBoolean(insertOperation!=null);
-            if (insertOperation!=null)
-                out.writeObject(insertOperation);
+            out.writeBoolean(operationContext!=null);
+            if (operationContext!=null)
+                out.writeObject(operationContext);
             TransactionOperations.getOperationFactory().writeTxn(txn, out);
             ArrayUtil.writeIntArray(out, pkCols);
             out.writeUTF(tableVersion);
@@ -104,7 +103,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         if (in.readBoolean())
-            insertOperation = (InsertOperation) in.readObject();
+            operationContext = (OperationContext) in.readObject();
         txn = TransactionOperations.getOperationFactory().readTxn(in);
         pkCols = ArrayUtil.readIntArray(in);
         tableVersion = in.readUTF();
@@ -131,7 +130,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     public InsertTableWriter build() throws StandardException {
         return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
                     autoIncrementRowLocationArray,spliceSequences,
-                    heapConglom,txn,insertOperation);
+                    heapConglom,txn,(InsertOperation)operationContext.getOperation());
     }
 
 }

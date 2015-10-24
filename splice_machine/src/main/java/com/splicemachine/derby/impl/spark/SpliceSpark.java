@@ -110,6 +110,7 @@ public class SpliceSpark {
         String extraLibraryPath = System.getProperty("splice.spark.extraLibraryPath", "");
         String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
         String shuffleMemory = System.getProperty("splice.spark.shuffleMemory", "0.5");
+        String schedulerFile = System.getProperty("splice.spark.scheduler.allocation.file");
 
 
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
@@ -119,6 +120,8 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
+        if (schedulerFile !=null)
+            conf.set("spark.scheduler.allocation.file",schedulerFile);
         conf.set("spark.scheduler.mode", "FAIR");
         conf.set("spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
@@ -170,6 +173,7 @@ public class SpliceSpark {
 
     public static void pushScope(String displayString) {
         JavaSparkContext jspc = SpliceSpark.getContext();
+        jspc.setCallSite(displayString);
         jspc.setLocalProperty(OLD_SCOPE_KEY,jspc.getLocalProperty(SCOPE_KEY));
         jspc.setLocalProperty(OLD_SCOPE_OVERRIDE,jspc.getLocalProperty(SCOPE_OVERRIDE));
         jspc.setLocalProperty(SCOPE_KEY,new RDDOperationScope(displayString, null, RDDOperationScope.nextScopeId()+"").toJson());

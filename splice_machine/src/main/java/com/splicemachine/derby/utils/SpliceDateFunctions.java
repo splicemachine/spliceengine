@@ -10,6 +10,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -37,6 +38,13 @@ public class SpliceDateFunctions {
     }
 
     /**
+     * Implements the TO_TIMESTAMP(source) function.
+     */
+    public static Timestamp TO_TIMESTAMP(String source) throws SQLException {
+        return TO_TIMESTAMP(source,null);
+    }
+
+    /**
      * Implements the TO_TIMESTAMP(source, pattern) function.
      */
     public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
@@ -44,13 +52,25 @@ public class SpliceDateFunctions {
         Timestamp ts = new Timestamp(parseDateTime(source, format));
         return ts;
     }
+    /**
+     * Implements the TO_TIME(source) function.
+     */
+    public static Time TO_TIME(String source) throws SQLException {
+        return TO_TIME(source,null);
+    }
+    /**
+     * Implements the TO_TIME(source,format) function.
+     */
+    public static Time TO_TIME(String source, String format) throws SQLException {
+        if (source == null) return null;
+        return new Time(parseDateTime(source, format));
+    }
 
     /**
-     * Implements the TO_TIMESTAMP(source) function.
+     * Implements the TO_DATE(source) function.
      */
-    public static Timestamp TO_TIMESTAMP(String source) throws SQLException {
-        if (source == null) return null;
-        return new Timestamp(parseDateTime(source, null));
+    public static Date TO_DATE(String source) throws SQLException {
+        return TO_DATE(source,null);
     }
 
     /**
@@ -60,15 +80,6 @@ public class SpliceDateFunctions {
         if (source == null) return null;
         return new Date(parseDateTime(source, format));
     }
-
-    /**
-     * Implements the TO_DATE(source) function.
-     */
-    public static Date TO_DATE(String source) throws SQLException {
-        if (source == null) return null;
-        return new Date(parseDateTime(source, null));
-    }
-
 
     private static long parseDateTime(String source, String format) throws SQLException {
         // FIXME: Timezone loss for Timestamp - see http://stackoverflow.com/questions/16794772/joda-time-parse-a-date-with-timezone-and-retain-that-timezone

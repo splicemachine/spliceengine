@@ -7,8 +7,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -84,17 +82,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				recordConstructorTime();
 		}
 
-/*		public InsertOperation(SpliceOperation source,
-                           OperationInformation opInfo,
-                           DMLWriteInfo writeInfo) throws StandardException {
-				super(source, opInfo, writeInfo);
-                try {
-                    init(SpliceOperationContext.newContext(activation));
-                } catch (IOException ioe) {
-                    Exceptions.parseException(ioe);
-                }
-		}
-*/
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
             try {
@@ -219,7 +206,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
         InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
-                .insertOperation(this)
+                .operationContext(operationContext)
                 .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                 .execRowDefinition(getExecRowDefinition())
                 .execRowTypeFormatIds(execRowTypeFormatIds)
@@ -228,7 +215,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
         try {
-            operationContext.pushScope("Insert");
+            operationContext.pushScope("Insert ["+heapConglom+"]");
+            if (statusDirectory!=null)
+                dsp.setSchedulerPool("import");
             return set.index(new InsertPairFunction(operationContext)).insertData(builder, operationContext);
         } finally {
             operationContext.popScope();

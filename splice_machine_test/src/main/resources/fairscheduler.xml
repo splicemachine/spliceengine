@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <allocations>
     <pool name="import">
-        <schedulingMode>FIFO</schedulingMode>
+        <schedulingMode>FAIR</schedulingMode>
         <weight>10</weight>
     </pool>
     <pool name="query">
-        <schedulingMode>FIFO</schedulingMode>
+        <schedulingMode>FAIR</schedulingMode>
         <weight>20</weight>
     </pool>
     <pool name="admin">
-        <schedulingMode>FIFO</schedulingMode>
+        <schedulingMode>FAIR</schedulingMode>
         <weight>1</weight>
     </pool>
     <pool name="urgent">
-        <schedulingMode>FIFO</schedulingMode>
+        <schedulingMode>FAIR</schedulingMode>
         <weight>1000</weight>
     </pool>
 </allocations>

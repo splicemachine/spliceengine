@@ -26,7 +26,9 @@ public interface DatasetProvider {
      * @return
      * @throws StandardException
      */
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException;
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op,
+                                                                       DataSetProcessor dsp, ExecRow execRow)
+            throws StandardException;
 
     /**
      *

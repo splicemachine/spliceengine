@@ -79,7 +79,9 @@ public class VTIOperationIT extends SpliceUnitTest {
 
     @Test
     public void testJDBCSQLVTI() throws Exception {
-        String sql = String.format("select * from table (JDBCSQLVTI('jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin', 'select * from %s.%s'))a", CLASS_NAME, TABLE_NAME);
+        String sql = String.format("select * from table (JDBCSQLVTI('jdbc:splice://localhost:1527/splicedb;create=true;" +
+                "user=splice;password=admin', " +
+                "'select * from %s.%s'))a", CLASS_NAME, TABLE_NAME);
         ResultSet rs = spliceClassWatcher.executeQuery(sql);
         int count = 0;
         while (rs.next()) {
@@ -110,4 +112,20 @@ public class VTIOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals(5, count);
     }
+
+    @Test
+    public void testVTIConversion() throws Exception {
+        String location = getResourceDirectory()+"vtiConversion.in";
+        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') " +
+                "as b (c1 varchar(128), c2 varchar(128), c3 varchar(128), c4 varchar(128), c5 varchar(128), " +
+                "c6 varchar(128))", location);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(5, count);
+    }
+
+
 }

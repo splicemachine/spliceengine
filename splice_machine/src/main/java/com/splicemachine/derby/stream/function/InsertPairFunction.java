@@ -25,7 +25,6 @@ public class InsertPairFunction extends SplicePairFunction<SpliceOperation,Locat
 
         @Override
         public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
-            incrementRowsWritten();
             return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
         }
 
@@ -38,15 +37,8 @@ public class InsertPairFunction extends SplicePairFunction<SpliceOperation,Locat
 
         @Override
         public ExecRow genValue(LocatedRow locatedRow) {
-            incrementRowsWritten();
             StreamLogUtils.logOperationRecordWithMessage(locatedRow, operationContext, "indexed for insert");
             return locatedRow.getRow();
-        }
-
-        private void incrementRowsWritten() {
-            if (operationContext != null) {
-                operationContext.recordWrite();
-            }
         }
 
     }

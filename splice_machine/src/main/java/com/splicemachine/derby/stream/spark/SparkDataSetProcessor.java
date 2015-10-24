@@ -129,6 +129,10 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
     }
 
+    public void setSchedulerPool(String pool) {
+        SpliceSpark.getContext().setLocalProperty("spark.scheduler.pool",pool);
+    }
+
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path) {
         return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
