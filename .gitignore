@@ -49,7 +49,6 @@
 ######################
 *.log
 *.log.[0-9]*
-*.sql
 *.sqlite
  
 # OS generated files #

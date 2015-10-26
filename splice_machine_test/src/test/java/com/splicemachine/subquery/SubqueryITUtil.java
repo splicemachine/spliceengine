@@ -18,6 +18,26 @@ public class SubqueryITUtil {
     public static final int ONE_SUBQUERY_NODE = 1;
     public static final int TWO_SUBQUERY_NODES = 2;
 
+    /* See SubqueryFlatteningTestTables.sql.  Queries that select from A with predicates that do not eliminate
+     * any rows expect this result. */
+    public static final String RESULT_ALL_OF_A = "" +
+            "A1  | A2  |\n" +
+            "------------\n" +
+            "  0  |  0  |\n" +
+            "  1  | 10  |\n" +
+            " 11  | 110 |\n" +
+            " 12  | 120 |\n" +
+            " 12  | 120 |\n" +
+            " 13  |  0  |\n" +
+            " 13  |  1  |\n" +
+            "  2  | 20  |\n" +
+            "  3  | 30  |\n" +
+            "  4  | 40  |\n" +
+            "  5  | 50  |\n" +
+            "  6  | 60  |\n" +
+            "  7  | 70  |\n" +
+            "NULL |NULL |";
+
     /**
      * Assert that the query executes with the expected result and that it executes using the expected number of
      * subqueries

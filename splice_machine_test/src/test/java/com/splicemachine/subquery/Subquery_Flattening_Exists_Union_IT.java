@@ -2,6 +2,7 @@ package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -29,17 +30,8 @@ public class Subquery_Flattening_Exists_Union_IT {
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
-        classWatcher.executeUpdate("create table EMPTY_TABLE(e1 int, e2 int, e3 int, e4 int)");
-        classWatcher.executeUpdate("create table A(a1 int, a2 int)");
-        classWatcher.executeUpdate("create table B(b1 int, b2 int)");
-        classWatcher.executeUpdate("create table C(c1 int, c2 int)");
-        classWatcher.executeUpdate("create table D(d1 int, d2 int)");
-        classWatcher.executeUpdate("insert into A values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
-        classWatcher.executeUpdate("insert into B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(null,null)");
-        classWatcher.executeUpdate("insert into C values            (1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(6,60),(6,60),(null,null)");
-        classWatcher.executeUpdate("insert into D values(0,0),(0,0),(1,10),(1,10),              (3,30),(3,30),              (5,50),(5,50),(null,null)");
+        TestUtils.executeSqlFile(classWatcher.getOrCreateConnection(), "subquery/SubqueryFlatteningTestTables.sql", "");
     }
-
 
     @Test
     public void union_unCorrelated() throws Exception {
@@ -48,57 +40,36 @@ public class Subquery_Flattening_Exists_Union_IT {
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
 
         // union one non-empty first subquery
-        sql = "select count(*) from A where exists(select 1 from C union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select 1 from C union select 1 from EMPTY_TABLE)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
 
         // union one non-empty second subquery
-        sql = "select count(*) from A where exists(select 1 from EMPTY_TABLE union select 1 from C )";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select 1 from EMPTY_TABLE union select 1 from C )";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
         // union, three unions
-        sql = "select count(*) from A where exists(select 1 from EMPTY_TABLE union select 1 from C union select 1 from D)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select 1 from EMPTY_TABLE union select 1 from C union select 1 from D)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
         // non-empty tables, where subquery predicates eliminate all rows
-        sql = "select count(*) from A where exists(select 1 from C where c1 > 999999 union select 1 from D where d1 < -999999)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 0 |");
+        sql = "select * from A where exists(select 1 from C where c1 > 999999 union select 1 from D where d1 < -999999)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+
         // non-empty tables, where subquery predicates eliminate all rows in ONE table
-        sql = "select count(*) from A where exists(select 1 from C where c1 > 999999 union select 1 from D where d1 = 0)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select 1 from C where c1 > 999999 union select 1 from D where d1 = 0)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
 
         // unions with column references
-        sql = "select count(*) from A where exists(select c1,c2 from C union select d1,d2 from D)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select c1,c2 from C union select d1,d2 from D)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
 
         // unions referencing all columns
-        sql = "select count(*) from A where exists(select * from C union select * from D)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select * from C union select * from D)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
 
         // union same table
-        sql = "select count(*) from A where exists(select * from A union select * from A)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |");
+        sql = "select * from A where exists(select * from A union select * from A)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
     }
 
     @Test
@@ -118,38 +89,100 @@ public class Subquery_Flattening_Exists_Union_IT {
         // union one non-empty first subquery
         sql = "select * from A where exists(select 1 from C where c1=a1 union select 1 from EMPTY_TABLE where e1=a1)";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 1 |10 |\n" +
-                " 2 |20 |\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |");
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                " 2 |20  |\n" +
+                " 5 |50  |");
 
         // union one non-empty second subquery
         sql = "select * from A where exists(select 1 from EMPTY_TABLE where e1=a1 union select 1 from C where c1=a1)";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 1 |10 |\n" +
-                " 2 |20 |\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |");
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                " 2 |20  |\n" +
+                " 5 |50  |");
 
         // union no non-empty
         sql = "select * from A where exists(select 1 from D where d1=a1 union select 1 from C where c1=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                "12 |120 |\n" +
+                "12 |120 |\n" +
+                " 2 |20  |\n" +
+                " 5 |50  |\n" +
+                " 6 |60  |\n" +
+                " 7 |70  |");
+    }
+
+    @Test
+    public void union_correlated_lotsOfSubqueryPredicates() throws Exception {
+        // union no non-empty
+        String sql = "select * from A where exists(" + "" +
+                "select 1 from D where d1=a1 and d1!=11 and d1 not in (12,13) and d2 < 70" +
+                "union " +
+                "select 1 from C where c1=a1 and c1!=11 and c2!=20" +
+                ")";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |\n" +
                 "--------\n" +
                 " 0 | 0 |\n" +
                 " 1 |10 |\n" +
-                " 2 |20 |\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |");
-
+                " 5 |50 |\n" +
+                " 6 |60 |");
     }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // UNION ALL
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+    @Test
+    public void unionAll_unCorrelated() throws Exception {
+        String sql = "select * from A where exists(select 1 from EMPTY_TABLE union ALL select 1 from EMPTY_TABLE)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+
+        // non-empty tables, where subquery predicates eliminate all rows in ONE table
+        sql = "select * from A where exists(select 1 from C where c1 > 999999 union ALL select 1 from D where d1 = 0)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+    }
+
+    @Test
+    public void unionAll_correlated() throws Exception {
+        String R = "" +
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                " 2 |20  |\n" +
+                " 5 |50  |";
+
+        // union one non-empty first subquery
+        String sql = "select * from A where exists(select 1 from C where c1=a1 union ALL select 1 from EMPTY_TABLE where e1=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, R);
+
+        // union one non-empty second subquery
+        sql = "select * from A where exists(select 1 from EMPTY_TABLE where e1=a1 union ALL select 1 from C where c1=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, R);
+    }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // misc
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
     public void union_unionsInFromListOfExistsSubquery() throws Exception {
@@ -157,14 +190,17 @@ public class Subquery_Flattening_Exists_Union_IT {
                 "select * from (select c1 r from C union select d1 r from D) foo where foo.r=a1" +
                 ")";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 0 | 0 |\n" +
-                " 1 |10 |\n" +
-                " 2 |20 |\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |");
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                "12 |120 |\n" +
+                "12 |120 |\n" +
+                " 2 |20  |\n" +
+                " 5 |50  |\n" +
+                " 6 |60  |\n" +
+                " 7 |70  |");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -178,24 +214,30 @@ public class Subquery_Flattening_Exists_Union_IT {
         // same table in each union select
         String sql = "select * from A where exists(select 1 from D where d1=a1 union select 1 from D where d2=a2)";
         assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 0 | 0 |\n" +
-                " 1 |10 |\n" +
-                " 3 |30 |\n" +
-                " 5 |50 |");
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                "12 |120 |\n" +
+                "12 |120 |\n" +
+                "13 | 0  |\n" +
+                " 5 |50  |\n" +
+                " 6 |60  |\n" +
+                " 7 |70  |");
 
         // different table in each union select
         sql = "select * from A where exists(select 1 from C where c1=a1 union select 1 from D where d1=a2)";
         assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 0 | 0 |\n" +
-                " 1 |10 |\n" +
-                " 2 |20 |\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |");
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                "13 | 0  |\n" +
+                "13 | 1  |\n" +
+                " 2 |20  |\n" +
+                " 5 |50  |");
     }
 
     private Connection conn() {
