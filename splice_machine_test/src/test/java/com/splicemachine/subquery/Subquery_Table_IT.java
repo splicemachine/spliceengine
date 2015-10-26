@@ -2,6 +2,7 @@ package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 
@@ -47,16 +48,17 @@ public class Subquery_Table_IT {
         classWatcher.executeUpdate("create table T4 (i int)");
         classWatcher.executeUpdate("insert into T4 values (30),(40)");
 
-        TestUtils.executeSqlFile(classWatcher, "test_data/employee.sql", SCHEMA);
-        TestUtils.executeSqlFile(classWatcher, "null_int_data.sql", SCHEMA);
-        TestUtils.executeSqlFile(classWatcher, "test_data/content.sql", SCHEMA);
+        TestConnection conn = classWatcher.getOrCreateConnection();
+        TestUtils.executeSqlFile(conn, "test_data/employee.sql", SCHEMA);
+        TestUtils.executeSqlFile(conn, "null_int_data.sql", SCHEMA);
+        TestUtils.executeSqlFile(conn, "test_data/content.sql", SCHEMA);
 
-        TestUtils.executeSql(classWatcher, "" +
+        TestUtils.executeSql(conn, "" +
                 "create table s (a int, b int, c int, d int, e int, f int);" +
                 "insert into s values (0,1,2,3,4,5);" +
                 "insert into s values (10,11,12,13,14,15);", SCHEMA);
 
-        TestUtils.executeSql(classWatcher, "" +
+        TestUtils.executeSql(conn, "" +
                         "create table parentT ( i int, j int, k int); \n" +
                         "create table childT ( i int, j int, k int); \n" +
                         "insert into parentT values (1,1,1), (2,2,2), (3,3,3), (4,4,4); \n" +

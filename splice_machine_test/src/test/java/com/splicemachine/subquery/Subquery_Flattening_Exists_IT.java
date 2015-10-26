@@ -29,182 +29,125 @@ public class Subquery_Flattening_Exists_IT {
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
-        classWatcher.executeUpdate("create table EMPTY_TABLE(e1 int, e2 int, e3 int, e4 int)");
-        classWatcher.executeUpdate("create table A(a1 int, a2 int)");
-        classWatcher.executeUpdate("create table B(b1 int, b2 int)");
-        classWatcher.executeUpdate("create table C(c1 int, c2 int)");
-        classWatcher.executeUpdate("create table D(d1 int, d2 int)");
-        classWatcher.executeUpdate("insert into A values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
-        classWatcher.executeUpdate("insert into B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(null,null)");
-        classWatcher.executeUpdate("insert into C values            (1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(6,60),(6,60),(null,null)");
-        classWatcher.executeUpdate("insert into D values(0,0),(0,0),(1,10),(1,10),              (3,30),(3,30),              (5,50),(5,50),(null,null)");
+        TestUtils.executeSqlFile(classWatcher.getOrCreateConnection(), "subquery/SubqueryFlatteningTestTables.sql", "");
     }
 
     @Test
     public void uncorrelated_oneSubqueryTable() throws Exception {
-        // subquery reads different table
-        assertUnorderedResult(conn(),
-                "select count(*) from A where exists (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
-                        "1 |\n" +
-                        "----\n" +
-                        " 6 |"
-        );
+
         // subquery reads same table
-        assertUnorderedResult(conn(),
-                "select count(*) from A where exists (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "" +
-                        "1 |\n" +
-                        "----\n" +
-                        " 6 |"
-        );
+        assertUnorderedResult(conn(), "select * from A where exists (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
+        // subquery reads different table
+        assertUnorderedResult(conn(), "select * from A where exists (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
         // empty table
-        assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from EMPTY_TABLE)", ZERO_SUBQUERY_NODES, "" +
-                "1 |\n" +
-                "----\n" +
-                " 0 |"
-        );
-        // two exists
+        assertUnorderedResult(conn(), "select * from A where exists (select 1 from EMPTY_TABLE)", ZERO_SUBQUERY_NODES, "");
+
+        // two exists, both return rows
         assertUnorderedResult(conn(),
-                "select count(*) from A where " +
+                "select * from A where " +
                         "exists (select b1 from B where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B where b1 > 3)", ZERO_SUBQUERY_NODES, "" +
-                        "1 |\n" +
-                        "----\n" +
-                        " 6 |"
-        );
-        // two exists, different rows
+                        "exists (select b1 from B where b1 > 3)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
+        // two exists, one excludes all rows
         assertUnorderedResult(conn(),
-                "select count(*) from A where " +
+                "select * from A where " +
                         "exists (select b1 from B where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B where b1 < 0)", ZERO_SUBQUERY_NODES, "" +
-                        "1 |\n" +
-                        "----\n" +
-                        " 0 |"
-        );
+                        "exists (select b1 from B where b1 < 0)", ZERO_SUBQUERY_NODES, "");
+
+        // two exists, both excludes all rows
+        assertUnorderedResult(conn(),
+                "select * from A where " +
+                        "exists (select b1 from B where b2 < 0)" +
+                        " and " +
+                        "exists (select b1 from B where b1 < 0)", ZERO_SUBQUERY_NODES, "");
     }
 
     @Test
     public void uncorrelated_twoSubqueryTables() throws Exception {
-        // subquery reads different table
-        assertUnorderedResult(conn(),
-                "select A.* from A where exists (select b1 from B join D on b1=d1 where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 0 | 0 |\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |"
-        );
         // subquery reads same table
-        assertUnorderedResult(conn(),
-                "select A.* from A where exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 0 | 0 |\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |"
-        );
+        assertUnorderedResult(conn(), "select * from A where exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
+        // subquery reads different table
+        assertUnorderedResult(conn(), "select * from A where exists (select b1 from B join D on b1=d1 where b2 > 20)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
         // two exists
         assertUnorderedResult(conn(),
-                "select A.* from A where " +
+                "select * from A where " +
                         "exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B join D on b1=d1 where b1 > 3)", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 0 | 0 |\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |"
-        );
+                        "exists (select b1 from B join D on b1=d1 where b1 > 3)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
         // two exists, one of which excludes all rows
         assertUnorderedResult(conn(),
-                "select count(*) from A where " +
+                "select * from A where " +
                         "exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
-                        "exists (select b1 from B join D on b1=d1 where b1 < 0)", ZERO_SUBQUERY_NODES, "" +
-                        "1 |\n" +
-                        "----\n" +
-                        " 0 |"
-        );
+                        "exists (select b1 from B join D on b1=d1 where b1 < 0)", ZERO_SUBQUERY_NODES, "");
     }
 
     @Test
     public void uncorrelated_threeSubqueryTables() throws Exception {
-        assertUnorderedResult(conn(),
-                "select A.* from A where exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 0 | 0 |\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |"
-        );
+        assertUnorderedResult(conn(), "select A.* from A where exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
     }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // correlated
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
     public void correlated_oneSubqueryTable() throws Exception {
-        /* simple case */
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from D where a1 = d1)", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 0 |\n" +
-                        " 1 |\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
-        /* subquery selects constant */
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
-        /* subquery selects b1 */
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
-        /* subquery selects b1 multiple times */
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1,b1,b1 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
-        /* subquery selects constant multiple times */
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1,2,3 from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
-        /* subquery selects all */
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select * from B where a1 = b1 and b1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
+        String R = "" +
+                "A1 |\n" +
+                "----\n" +
+                " 0 |\n" +
+                " 1 |\n" +
+                "11 |\n" +
+                " 2 |\n" +
+                " 3 |\n" +
+                " 6 |";
 
+        /* subquery selects constant */
+        assertUnorderedResult(conn(), "select a1 from A where exists (select 1 from B where a1 = b1)", ZERO_SUBQUERY_NODES, R);
+        assertUnorderedResult(conn(), "select a1 from A where exists (select 1 from B where b1 = a1)", ZERO_SUBQUERY_NODES, R);
+        /* subquery selects b1 */
+        assertUnorderedResult(conn(), "select a1 from A where exists (select b1 from B where a1 = b1)", ZERO_SUBQUERY_NODES, R);
+        /* subquery selects b1 multiple times */
+        assertUnorderedResult(conn(), "select a1 from A where exists (select b1,b1,b1 from B where a1 = b1)", ZERO_SUBQUERY_NODES, R);
+        /* subquery selects constant multiple times */
+        assertUnorderedResult(conn(), "select a1 from A where exists (select 1,2,3 from B where a1 = b1)", ZERO_SUBQUERY_NODES, R);
+        /* subquery selects all */
+        assertUnorderedResult(conn(), "select a1 from A where exists (select * from B where a1 = b1)", ZERO_SUBQUERY_NODES, R);
+
+        /* exists B join C */
+        assertUnorderedResult(conn(),
+                "select * from B where exists (select * from C where b1 = c1)", ZERO_SUBQUERY_NODES, "" +
+                        "B1 |B2  |\n" +
+                        "---------\n" +
+                        " 0 | 0  |\n" +
+                        " 1 |10  |\n" +
+                        "11 |110 |\n" +
+                        "11 |110 |\n" +
+                        " 2 |20  |\n" +
+                        " 8 |80  |"
+        );
+        /* exists C join D */
+        assertUnorderedResult(conn(),
+                "select * from C where exists (select * from D where d1 = c1)", ZERO_SUBQUERY_NODES, "" +
+                        "C1 |C2  |\n" +
+                        "---------\n" +
+                        " 0 | 0  |\n" +
+                        " 1 |10  |\n" +
+                        "11 |110 |\n" +
+                        "11 |110 |\n" +
+                        "11 |110 |\n" +
+                        " 5 |50  |"
+        );
     }
 
     @Test
@@ -214,26 +157,24 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
+                        " 0 |\n" +
                         " 1 |\n" +
-                        " 2 |\n" +
-                        " 3 |\n" +
-                        " 4 |\n" +
-                        " 5 |"
+                        "11 |\n" +
+                        " 2 |"
         );
         /* restriction on C */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and c1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
+                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and c1 in (2,5))", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
+                        " 2 |"
         );
         /* restriction on B and C */
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1 = b1 and b2 = 50)", ZERO_SUBQUERY_NODES, "" +
+                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1=b1 and b2=20)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 5 |"
+                        " 2 |"
         );
         /* many redundant/identical predicates (we didn't handle this at one point DB-3885) */
         assertUnorderedResult(conn(),
@@ -244,22 +185,19 @@ public class Subquery_Flattening_Exists_IT {
                         "A1 |\n" +
                         "----\n" +
                         " 1 |\n" +
-                        " 2 |\n" +
-                        " 3 |\n" +
-                        " 4 |"
+                        " 2 |"
         );
     }
 
     @Test
     public void correlated_threeSubqueryTables() throws Exception {
-        assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1 = b1)", ZERO_SUBQUERY_NODES, "" +
-                        "A1 |\n" +
-                        "----\n" +
-                        " 1 |\n" +
-                        " 3 |\n" +
-                        " 5 |"
-        );
+        String R = "A1 |\n" +
+                "----\n" +
+                " 0 |\n" +
+                " 1 |\n" +
+                "11 |";
+        assertUnorderedResult(conn(), "select a1 from A where exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1=b1)", ZERO_SUBQUERY_NODES, "" + R);
+        assertUnorderedResult(conn(), "select a1 from A where exists (select 1 from C join B on b1=c1 join D on c1=d1 where a1=b1)", ZERO_SUBQUERY_NODES, R);
     }
 
     @Test
@@ -270,8 +208,12 @@ public class Subquery_Flattening_Exists_IT {
                         "----\n" +
                         " 0 |\n" +
                         " 1 |\n" +
-                        " 3 |\n" +
-                        " 5 |");
+                        "11 |\n" +
+                        "12 |\n" +
+                        "12 |\n" +
+                        " 5 |\n" +
+                        " 6 |\n" +
+                        " 7 |");
     }
 
     /* Sometimes correlated column references aren't compared to any table in the subquery. In this case the predicates
@@ -284,10 +226,10 @@ public class Subquery_Flattening_Exists_IT {
                         "----\n" +
                         " 3 |");
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select 1 from B where a1=4 and a1=b1)", ZERO_SUBQUERY_NODES, "" +
+                "select a1 from A where exists (select 1 from B where a1=2 and a1=b1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 4 |");
+                        " 2 |");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -301,13 +243,15 @@ public class Subquery_Flattening_Exists_IT {
         // one tables in 2 subqueries
         assertUnorderedResult(conn(),
                 "select a1 from A where " +
-                        "exists (select 1 from B where a1=b1 and b1 in (3,5))" +
+                        "exists (select 1 from B where a1=b1)" +
                         " and " +
-                        "exists (select 1 from C where a1=c1 and c1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
+                        "exists (select 1 from C where a1=c1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
+                        " 0 |\n" +
+                        " 1 |\n" +
+                        "11 |\n" +
+                        " 2 |"
         );
         // one tables in 3 subqueries
         assertUnorderedResult(conn(),
@@ -316,11 +260,12 @@ public class Subquery_Flattening_Exists_IT {
                         " and " +
                         "exists (select 1 from C where a1=c1)" +
                         " and " +
-                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
+                        "exists (select 1 from D where a1=d1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
+                        " 0 |\n" +
+                        " 1 |\n" +
+                        "11 |"
         );
     }
 
@@ -329,13 +274,12 @@ public class Subquery_Flattening_Exists_IT {
         // one tables in 2 subqueries
         assertUnorderedResult(conn(),
                 "select a1 from A where " +
-                        "exists (select 1 from B join C on b1=c1 where a1=b1 and b1 in (3,5))" +
+                        "exists (select 1 from B join C on b1=c1 where a1=b1 and b1=1)" +
                         " and " +
-                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
+                        "exists (select 1 from D where a1=d1 and d1=1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
+                        " 1 |"
         );
         // one tables in 3 subqueries
         assertUnorderedResult(conn(),
@@ -344,11 +288,12 @@ public class Subquery_Flattening_Exists_IT {
                         " and " +
                         "exists (select 1 from C where a1=c1)" +
                         " and " +
-                        "exists (select 1 from D where a1=d1 and d1 in (3,5))", ZERO_SUBQUERY_NODES, "" +
+                        "exists (select 1 from D where a1=d1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
-                        " 3 |\n" +
-                        " 5 |"
+                        " 0 |\n" +
+                        " 1 |\n" +
+                        "11 |"
         );
     }
 
@@ -365,8 +310,9 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where exists (select * from C right join D on c1=d1 where a1=c1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
+                        " 0 |\n" +
                         " 1 |\n" +
-                        " 3 |\n" +
+                        "11 |\n" +
                         " 5 |"
         );
     }
@@ -377,10 +323,10 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where exists (select * from C left join D on c1=d1 where a1=c1)", ZERO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
+                        " 0 |\n" +
                         " 1 |\n" +
+                        "11 |\n" +
                         " 2 |\n" +
-                        " 3 |\n" +
-                        " 4 |\n" +
                         " 5 |"
         );
     }
@@ -398,18 +344,12 @@ public class Subquery_Flattening_Exists_IT {
                 "join (select * from B" +
                 "      where b1 > 0 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |B1 |B2 |\n" +
-                "----------------\n" +
-                " 1 |10 | 1 |10 |\n" +
-                " 1 |10 | 1 |10 |\n" +
-                " 2 |20 | 2 |20 |\n" +
-                " 2 |20 | 2 |20 |\n" +
-                " 3 |30 | 3 |30 |\n" +
-                " 3 |30 | 3 |30 |\n" +
-                " 4 |40 | 4 |40 |\n" +
-                " 4 |40 | 4 |40 |\n" +
-                " 5 |50 | 5 |50 |\n" +
-                " 5 |50 | 5 |50 |");
+                "A1 |A2  |B1 |B2  |\n" +
+                "------------------\n" +
+                " 1 |10  | 1 |10  |\n" +
+                "11 |110 |11 |110 |\n" +
+                "11 |110 |11 |110 |\n" +
+                " 2 |20  | 2 |20  |");
     }
 
     @Test
@@ -419,19 +359,23 @@ public class Subquery_Flattening_Exists_IT {
                 "left join (select * from B" +
                 "      where b1 > 0 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 | B1  | B2  |\n" +
-                "--------------------\n" +
-                " 0 | 0 |NULL |NULL |\n" +
-                " 1 |10 |  1  | 10  |\n" +
-                " 1 |10 |  1  | 10  |\n" +
-                " 2 |20 |  2  | 20  |\n" +
-                " 2 |20 |  2  | 20  |\n" +
-                " 3 |30 |  3  | 30  |\n" +
-                " 3 |30 |  3  | 30  |\n" +
-                " 4 |40 |  4  | 40  |\n" +
-                " 4 |40 |  4  | 40  |\n" +
-                " 5 |50 |  5  | 50  |\n" +
-                " 5 |50 |  5  | 50  |");
+                "A1  | A2  | B1  | B2  |\n" +
+                "------------------------\n" +
+                "  0  |  0  |NULL |NULL |\n" +
+                "  1  | 10  |  1  | 10  |\n" +
+                " 11  | 110 | 11  | 110 |\n" +
+                " 11  | 110 | 11  | 110 |\n" +
+                " 12  | 120 |NULL |NULL |\n" +
+                " 12  | 120 |NULL |NULL |\n" +
+                " 13  |  0  |NULL |NULL |\n" +
+                " 13  |  1  |NULL |NULL |\n" +
+                "  2  | 20  |  2  | 20  |\n" +
+                "  3  | 30  |NULL |NULL |\n" +
+                "  4  | 40  |NULL |NULL |\n" +
+                "  5  | 50  |NULL |NULL |\n" +
+                "  6  | 60  |NULL |NULL |\n" +
+                "  7  | 70  |NULL |NULL |\n" +
+                "NULL |NULL |NULL |NULL |");
     }
 
     @Test
@@ -441,12 +385,11 @@ public class Subquery_Flattening_Exists_IT {
                 "right join (select * from B" +
                 "      where b1 > 3 and exists (select 1 from C where c1=b1)) AS foo on a1=foo.b1";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |B1 |B2 |\n" +
-                "----------------\n" +
-                " 4 |40 | 4 |40 |\n" +
-                " 4 |40 | 4 |40 |\n" +
-                " 5 |50 | 5 |50 |\n" +
-                " 5 |50 | 5 |50 |");
+                "A1  | A2  |B1 |B2  |\n" +
+                "---------------------\n" +
+                " 11  | 110 |11 |110 |\n" +
+                " 11  | 110 |11 |110 |\n" +
+                "NULL |NULL | 8 |80  |");
     }
 
     @Test
@@ -463,17 +406,22 @@ public class Subquery_Flattening_Exists_IT {
                 "                 where exists (select 1 from D where c1=d1 and c2 = 30)" +
                 "                 and b1 > 0)  AS foo on a1=foo.b1";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 | B1  |colAlias |\n" +
-                "------------------------\n" +
-                " 0 | 0 |NULL |   NN    |\n" +
-                " 1 |10 |NULL |   NN    |\n" +
-                " 2 |20 |NULL |   NN    |\n" +
-                " 3 |30 |  3  |   YY    |\n" +
-                " 3 |30 |  3  |   YY    |\n" +
-                " 3 |30 |  3  |   YY    |\n" +
-                " 3 |30 |  3  |   YY    |\n" +
-                " 4 |40 |NULL |   NN    |\n" +
-                " 5 |50 |NULL |   NN    |");
+                "A1  | A2  | B1  |colAlias |\n" +
+                "----------------------------\n" +
+                "  0  |  0  |NULL |   NN    |\n" +
+                "  1  | 10  |NULL |   NN    |\n" +
+                " 11  | 110 |NULL |   NN    |\n" +
+                " 12  | 120 |NULL |   NN    |\n" +
+                " 12  | 120 |NULL |   NN    |\n" +
+                " 13  |  0  |NULL |   NN    |\n" +
+                " 13  |  1  |NULL |   NN    |\n" +
+                "  2  | 20  |NULL |   NN    |\n" +
+                "  3  | 30  |NULL |   NN    |\n" +
+                "  4  | 40  |NULL |   NN    |\n" +
+                "  5  | 50  |NULL |   NN    |\n" +
+                "  6  | 60  |NULL |   NN    |\n" +
+                "  7  | 70  |NULL |   NN    |\n" +
+                "NULL |NULL |NULL |   NN    |");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -488,13 +436,12 @@ public class Subquery_Flattening_Exists_IT {
                 "select 1 from B where a1=b1 and exists(" +
                 "select 1 from C where b1=c1" + "))";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 1 |10 |\n" +
-                " 2 |20 |\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |");
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                " 2 |20  |");
     }
 
     @Test
@@ -504,21 +451,21 @@ public class Subquery_Flattening_Exists_IT {
                 "select 1 from C where b1=c1 and exists(" +
                 "select 1 from D where d1=c1" + ")))";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 1 |10 |\n" +
-                " 3 |30 |\n" +
-                " 5 |50 |");
-        sql = "select A.* from A where exists(" +
-                "select 1 from B where a1=b1 and a1=5 and exists(" +
-                "select 1 from C where b1=c1 and b1=5 and exists(" +
-                "select 1 from D where d1=c1 and d1=5" + ")))";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 5 |50 |");
-    }
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |");
 
+        sql = "select A.* from A where exists(" +
+                "select b1 from B where a1=b1 and a1=11 and exists(" +
+                "select c1 from C where b1=c1 and b1=11 and exists(" +
+                "select d2 from D where d1=c1 and d1=11" + ")))";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2  |\n" +
+                "---------\n" +
+                "11 |110 |");
+    }
 
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -604,6 +551,50 @@ public class Subquery_Flattening_Exists_IT {
         rs.close();
     }
 
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // misc other tests
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void deleteOverNotExists_uncorrelated() throws Exception {
+        methodWatcher.executeUpdate("create table Y(y1 int)");
+        methodWatcher.executeUpdate("create table Z(z1 int)");
+
+        // uncorrelated -- basic case, delete everything
+        methodWatcher.executeUpdate("insert into Y values(1),(2),(3)");
+        methodWatcher.executeUpdate("insert into Z values(1),(2),(3)");
+        int deleteCount = methodWatcher.executeUpdate("delete from Y where exists (select 1 from Z)");
+        assertEquals(3, deleteCount);
+        assertEquals(0L, methodWatcher.query("select count(*) from Y"));
+
+        // uncorrelated -- delete nothing, because subquery predicate excludes all rows
+        methodWatcher.executeUpdate("insert into Y values(1),(2),(3)");
+        methodWatcher.executeUpdate("insert into Z values(1),(2),(3)");
+        deleteCount = methodWatcher.executeUpdate("delete from Y where exists (select 1 from Z where z1 > 100)");
+        assertEquals(0, deleteCount);
+
+        // uncorrelated -- delete everything, because subquery predicate does not exclude all rows
+        deleteCount = methodWatcher.executeUpdate("delete from Y where exists (select 1 from Z where z1=1)");
+        assertEquals(3, deleteCount);
+        assertEquals(0L, methodWatcher.query("select count(*) from Y"));
+    }
+
+    @Test
+    public void deleteOverNotExists_correlated() throws Exception {
+        methodWatcher.executeUpdate("create table YY(y1 int)");
+        methodWatcher.executeUpdate("create table ZZ(z1 int)");
+
+        // correlated -- basic case
+        methodWatcher.executeUpdate("insert into YY values(1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+        methodWatcher.executeUpdate("insert into ZZ values(2),(4),(6),(8),(10)");
+        int deleteCount = methodWatcher.executeUpdate("delete from YY where exists (select 1 from ZZ where y1=z1)");
+        assertEquals(5, deleteCount);
+        // verify that only expected rows remain in target table
+        assertEquals("[1, 3, 5, 7, 9]", methodWatcher.queryList("select y1 from YY").toString());
+    }
+
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -617,15 +608,14 @@ public class Subquery_Flattening_Exists_IT {
                 "select a1 from A where " +
                         "exists (select b1 from B where a1=b1 and b1 in (3,5))" +
                         "or " +
-                        "exists (select b1 from B where a1=b1 and b1 in (0,3,5))", 2, "" +
+                        "exists (select b1 from B where a1=b1 and b1 in (0,3,5))", TWO_SUBQUERY_NODES, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 0 |\n" +
-                        " 3 |\n" +
-                        " 5 |"
+                        " 3 |"
         );
         assertUnorderedResult(conn(),
-                "select a1 from A where exists (select b1 from B where a1=b1 and b1 < 3) or a1=5", 1, "" +
+                "select a1 from A where exists (select b1 from B where a1=b1 and b1 < 3) or a1=5", ONE_SUBQUERY_NODE, "" +
                         "A1 |\n" +
                         "----\n" +
                         " 0 |\n" +
@@ -643,26 +633,30 @@ public class Subquery_Flattening_Exists_IT {
                         "from B " +
                         "where b1 > 1 " +
                         "group by b1 " +
-                        "having sum(b1) > 0 and exists(select 1 from C)", 1, "" +
+                        "having sum(b1) > 0 and exists(select 1 from C)", ONE_SUBQUERY_NODE, "" +
                         "B1 | 2  |\n" +
                         "---------\n" +
-                        " 2 |40  |\n" +
-                        " 3 |60  |\n" +
-                        " 4 |80  |\n" +
-                        " 5 |100 |"
+                        "11 |220 |\n" +
+                        " 2 |20  |\n" +
+                        " 3 |30  |\n" +
+                        " 6 |60  |\n" +
+                        " 8 |80  |\n" +
+                        " 9 |90  |"
         );
         assertUnorderedResult(conn(),
                 "select b1, sum(b2) " +
                         "from B " +
                         "where b1 > 1 " +
                         "group by b1 " +
-                        "having exists(select 1 from C)", 1, "" +
+                        "having exists(select 1 from C)", ONE_SUBQUERY_NODE, "" +
                         "B1 | 2  |\n" +
                         "---------\n" +
-                        " 2 |40  |\n" +
-                        " 3 |60  |\n" +
-                        " 4 |80  |\n" +
-                        " 5 |100 |"
+                        "11 |220 |\n" +
+                        " 2 |20  |\n" +
+                        " 3 |30  |\n" +
+                        " 6 |60  |\n" +
+                        " 8 |80  |\n" +
+                        " 9 |90  |"
         );
     }
 
@@ -671,14 +665,13 @@ public class Subquery_Flattening_Exists_IT {
         assertUnorderedResult(conn(),
                 "select A.* from A where " +
                         "exists(select 1 from B where a1=b1 and " +
-                        "exists(select 1 from C where c1=a1))", 2, "" +
-                        "A1 |A2 |\n" +
-                        "--------\n" +
-                        " 1 |10 |\n" +
-                        " 2 |20 |\n" +
-                        " 3 |30 |\n" +
-                        " 4 |40 |\n" +
-                        " 5 |50 |"
+                        "exists(select 1 from C where c1=a1))", TWO_SUBQUERY_NODES, "" +
+                        "A1 |A2  |\n" +
+                        "---------\n" +
+                        " 0 | 0  |\n" +
+                        " 1 |10  |\n" +
+                        "11 |110 |\n" +
+                        " 2 |20  |"
         );
 
     }
@@ -705,29 +698,29 @@ public class Subquery_Flattening_Exists_IT {
         assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from D offset 1 rows)", ONE_SUBQUERY_NODE, "" +
                 "1 |\n" +
                 "----\n" +
-                " 6 |"
+                "14 |"
         );
     }
 
     @Test
     public void notFlattened_correlatedWithLimits() throws Exception {
         assertUnorderedResult(conn(), "select * from A where exists (select 1 from D where d1=a1 {limit 1})", ONE_SUBQUERY_NODE, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 0 | 0 |\n" +
-                " 1 |10 |\n" +
-                " 3 |30 |\n" +
-                " 5 |50 |"
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                "12 |120 |\n" +
+                "12 |120 |\n" +
+                " 5 |50  |\n" +
+                " 6 |60  |\n" +
+                " 7 |70  |"
         );
     }
 
     @Test
     public void notFlattened_unCorrelatedWithLimits() throws Exception {
-        assertUnorderedResult(conn(), "select count(*) from A where exists (select 1 from D {limit 1})", ONE_SUBQUERY_NODE, "" +
-                "1 |\n" +
-                "----\n" +
-                " 6 |"
-        );
+        assertUnorderedResult(conn(), "select * from A where exists (select 1 from D {limit 1})", ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
     }
 
     private TestConnection conn() {

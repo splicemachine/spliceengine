@@ -88,9 +88,9 @@ public class Subquery_Scalar_IT {
         classWatcher.getStatement().executeUpdate("insert into WORKS VALUES ('E3','P2',20)");
         classWatcher.getStatement().executeUpdate("insert into WORKS VALUES ('E4','P2',20), ('E4','P4',40), ('E4','P5',80)");
 
-        TestUtils.executeSqlFile(classWatcher, "test_data/employee.sql", SCHEMA);
+        TestUtils.executeSqlFile(classWatcher.getOrCreateConnection(), "test_data/employee.sql", SCHEMA);
 
-        TestUtils.executeSql(classWatcher, "" +
+        TestUtils.executeSql(classWatcher.getOrCreateConnection(), "" +
                 "create table tWithNulls1 (c1 int, c2 int); \n" +
                 "create table tWithNulls2 (c1 int, c2 int); \n" +
                 "insert into tWithNulls1 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); \n" +
