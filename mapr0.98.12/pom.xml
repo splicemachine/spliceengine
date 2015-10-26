@@ -13,6 +13,7 @@
 		<hive.version>0.13.0-mapr-1504-protobuf250</hive.version>
 		<zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
 		<maprfs.version>4.1.0-mapr</maprfs.version>
+		<spark.version>1.5.0</spark.version>
 		<spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>
 	</properties>
 	<parent>
