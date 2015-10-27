@@ -57,14 +57,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final TransactionalRegion region;
     private final Scan scan;
     private ScopedPredicates<Data> scopedPredicates;
-    private final ExecRow template;
+    protected final ExecRow template;
     private final boolean reuseRowLocation;
     private final String tableVersion;
-    private final int[] rowDecodingMap;
+    protected final int[] rowDecodingMap;
     private SIFilter<Data> siFilter;
     private EntryPredicateFilter predicateFilter;
     private List<Data> keyValues;
-    private RowLocation currentRowLocation;
+    protected RowLocation currentRowLocation;
     private final boolean[] keyColumnSortOrder;
     private String indexName;
     private ByteSlice slice = new ByteSlice();

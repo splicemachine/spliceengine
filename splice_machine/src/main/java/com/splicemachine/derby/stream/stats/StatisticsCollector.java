@@ -1,22 +1,23 @@
-package com.splicemachine.derby.impl.stats;
+package com.splicemachine.derby.stream.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.impl.stats.DvdStatsCollector;
+import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
+import com.splicemachine.derby.impl.stats.StatsConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -27,26 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-/**
- * Statistics collector entity. Designed to be shared by the two types of tasks (maintenance
- * and triggered collections).
- *
- * @author Scott Fines
- *         Date: 2/26/15
- */
+
 public class StatisticsCollector {
     protected final TxnView txn;
     private final ExecRow template;
-    private final Scan partitionScan;
-    private final int[] rowDecodingMap;
-    private final int[] keyColumnEncodingOrder;
-    private final boolean[] keyColumnSortOrder;
-    private final int[] keyColumnTypes;
-    private final int[] keyDecodingMap;
-    private final FormatableBitSet collectedKeyColumns;
-    private final String tableVersion;
-    private final TransactionalRegion txnRegion;
-    private final MeasuredRegionScanner scanner;
     /*
      * A reverse mapping between the output column position and that column's position in
      * the original row.
@@ -59,82 +44,69 @@ public class StatisticsCollector {
      */
     private final int[] lengths;
     private final long tableConglomerateId;
+    private final SITableScanner scanner;
+    private final String regionId;
 
     protected transient long openScannerTimeMicros = -1l;
     protected transient long closeScannerTimeMicros = -1l;
+    private ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors;
+    private int[] fieldLengths;
 
     public StatisticsCollector(TxnView txn,
                                ExecRow template,
-                               Scan partitionScan,
-                               int[] rowDecodingMap,
-                               int[] keyColumnEncodingOrder,
-                               boolean[] keyColumnSortOrder,
-                               int[] keyColumnTypes,
-                               int[] keyDecodingMap,
                                int[] columnPositionMap,
                                int[] lengths,
-                               FormatableBitSet collectedKeyColumns,
-                               String tableVersion,
-                               TransactionalRegion txnRegion,
-                               MeasuredRegionScanner scanner
-                               ) {
+                               SITableScanner scanner) {
         this.txn = txn;
         this.template = template;
-        this.partitionScan = partitionScan;
-        this.rowDecodingMap = rowDecodingMap;
-        this.keyColumnEncodingOrder = keyColumnEncodingOrder;
-        this.keyColumnSortOrder = keyColumnSortOrder;
-        this.keyColumnTypes = keyColumnTypes;
-        this.keyDecodingMap = keyDecodingMap;
-        this.collectedKeyColumns = collectedKeyColumns;
-        this.tableVersion = tableVersion;
-        this.txnRegion = txnRegion;
-        this.scanner = scanner;
         this.columnPositionMap = columnPositionMap;
         this.lengths = lengths;
-        this.tableConglomerateId=Long.parseLong(txnRegion.getTableName());
+        this.scanner = scanner;
+        MeasuredRegionScanner regionScanner = scanner.getRegionScanner();
+        HRegionInfo region = regionScanner.getRegionInfo();
+        String conglomId = region.getTable().toString();
+        regionId = region.getEncodedName();
+        tableConglomerateId = new Long((conglomId));
+        dvdCollectors = getCollectors();
+        fieldLengths = new int[dvdCollectors.length];
     }
 
     @SuppressWarnings("unchecked")
-    public OverheadManagedPartitionStatistics collect() throws ExecutionException {
-        try(SITableScanner scanner = getTableScanner()){
-            ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors = getCollectors();
-            int[] fieldLengths = new int[dvdCollectors.length];
-            ExecRow row;
-            while((row = scanner.next(null))!=null){
-                updateRow(scanner, dvdCollectors, fieldLengths, row);
-            }
-            List<ColumnStatistics> columnStats = getFinalColumnStats(dvdCollectors);
-
-            TimeView readTime = scanner.getTime();
-            long byteCount = scanner.getBytesOutput();
-            long rowCount = scanner.getRowsVisited()-scanner.getRowsFiltered();
-
-            String tableId = txnRegion.getTableName();
-            String regionId = txnRegion.getRegionName();
-            long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
-            long remoteReadTimeMicros = getRemoteReadTime(rowCount);
-            if(remoteReadTimeMicros>0){
-                remoteReadTimeMicros/=1000;
-            }
-            return new SimpleOverheadManagedPartitionStatistics(tableId,regionId,
-                    rowCount,
-                    byteCount,
-                    0l, //TODO -sf- get Query count for this region
-                    localReadTimeMicros,
-                    remoteReadTimeMicros,
-                    getOpenScannerTimeMicros(),
-                    getOpenScannerEvents(),
-                    getCloseScannerTimeMicros(),
-                    getCloseScannerEvents(),
-                    columnStats);
+    public void collect(ExecRow row) throws ExecutionException {
+        try{
+            updateRow(scanner, dvdCollectors, fieldLengths, row);
         } catch (StandardException | IOException e) {
             throw new ExecutionException(e); //should only be IOExceptions
-        }finally{
-            closeResources();
         }
     }
 
+    public SimpleOverheadManagedPartitionStatistics getStatistics() throws ExecutionException {
+        List<ColumnStatistics> columnStats = getFinalColumnStats(dvdCollectors);
+
+        TimeView readTime = scanner.getTime();
+        long byteCount = scanner.getBytesOutput();
+        long rowCount = scanner.getRowsVisited() - scanner.getRowsFiltered();
+
+        long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
+        long remoteReadTimeMicros = getRemoteReadTime(rowCount);
+        if (remoteReadTimeMicros > 0) {
+            remoteReadTimeMicros /= 1000;
+        }
+        return new SimpleOverheadManagedPartitionStatistics(
+                (new Long(tableConglomerateId)).toString(),
+                regionId,
+                rowCount,
+                byteCount,
+                0l, //TODO -sf- get Query count for this region
+                localReadTimeMicros,
+                remoteReadTimeMicros,
+                getOpenScannerTimeMicros(),
+                getOpenScannerEvents(),
+                getCloseScannerTimeMicros(),
+                getCloseScannerEvents(),
+                columnStats);
+
+    }
     protected long getCloseScannerEvents(){ return 1l; }
 
     protected long getOpenScannerTimeMicros() throws ExecutionException{ return openScannerTimeMicros; }
@@ -174,16 +146,16 @@ public class StatisticsCollector {
          * and then use that to estimate how long it would take to read us remotely
          */
         //TODO -sf- randomize this a bit so we don't hotspot a region
-        int fetchSampleSize=StatsConstants.fetchSampleSize;
+        int fetchSampleSize= StatsConstants.fetchSampleSize;
         Timer remoteReadTimer = Metrics.newWallTimer();
-        Scan scan =TransactionOperations.getOperationFactory().newScan(txn);
+        Scan scan = TransactionOperations.getOperationFactory().newScan(txn);
         scan.setStartRow(HConstants.EMPTY_START_ROW);
         scan.setStopRow(HConstants.EMPTY_END_ROW);
         int n =2;
         long totalOpenTime = 0;
         long totalCloseTime = 0;
         int iterations = 0;
-        try(HTableInterface table =SpliceAccessManager.getHTable(tableConglomerateId)){
+        try(HTableInterface table = SpliceAccessManager.getHTable(tableConglomerateId)){
             while(n<fetchSampleSize){
                 scan.setBatch(n);
                 scan.setCaching(n);
@@ -229,7 +201,7 @@ public class StatisticsCollector {
             DataValueDescriptor dvd = dvds[i];
             int columnId = columnPositionMap[i];
             int columnLength = lengths[i];
-            collectors[i] = DvdStatsCollector.newCollector(columnId, dvd.getTypeFormatId(), columnLength, topKSize,cardinalityPrecision);
+            collectors[i] = DvdStatsCollector.newCollector(columnId, dvd.getTypeFormatId(), columnLength, topKSize, cardinalityPrecision);
         }
     }
 
@@ -242,24 +214,5 @@ public class StatisticsCollector {
         ColumnStatsCollector<DataValueDescriptor> [] collectors = new ColumnStatsCollector[dvds.length];
         populateCollectors(dvds, collectors);
         return collectors;
-    }
-
-    @SuppressWarnings("unchecked")
-    private SITableScanner getTableScanner() {
-        return new TableScannerBuilder()
-                .transaction(txn)
-                .template(template)
-                .metricFactory(Metrics.basicMetricFactory()) //record latency timings
-                .scan(partitionScan)
-                .rowDecodingMap(rowDecodingMap)
-                .keyColumnEncodingOrder(keyColumnEncodingOrder)
-                .keyColumnSortOrder(keyColumnSortOrder)
-                .keyColumnTypes(keyColumnTypes)
-                .keyDecodingMap(keyDecodingMap)
-                .accessedKeyColumns(collectedKeyColumns)
-                .tableVersion(tableVersion)
-                .region(txnRegion)
-                .scanner(scanner)
-                .build();
     }
 }

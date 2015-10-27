@@ -1,40 +1,32 @@
-package com.splicemachine.derby.impl.stats;
+package com.splicemachine.derby.stream.stats;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
-/**
- * @author Scott Fines
- *         Date: 3/10/15
- */
 public class IndexStatisticsCollector extends StatisticsCollector {
+
+    long baseTableConglomId;
     private static final Logger LOG = Logger.getLogger(IndexStatisticsCollector.class);
 
     private final Random randomGenerator;
@@ -45,38 +37,17 @@ public class IndexStatisticsCollector extends StatisticsCollector {
     private final Get[] getBuffer;
     private int bufferPos = 0;
 
-    public IndexStatisticsCollector(Txn txn,
-                                    ExecRow colsToCollect,
-                                    Scan partitionScan,
-                                    int[] rowDecodingMap,
-                                    int[] keyColumnEncodingOrder,
-                                    boolean[] keyColumnSortOrder,
-                                    int[] keyColumnTypes,
-                                    int[] keyDecodingMap,
+    public IndexStatisticsCollector(TxnView txn,
+                                    ExecRow template,
                                     int[] columnPositionMap,
-                                    int[] fieldLengths,
-                                    FormatableBitSet collectedKeyColumns,
-                                    String tableVersion,
-                                    TransactionalRegion txnRegion,
-                                    MeasuredRegionScanner scanner,
+                                    int[] lengths,
+                                    SITableScanner scanner,
                                     long baseConglomerateId) {
-        super(txn,
-                colsToCollect,
-                partitionScan,
-                rowDecodingMap,
-                keyColumnEncodingOrder,
-                keyColumnSortOrder,
-                keyColumnTypes,
-                keyDecodingMap,
-                columnPositionMap,
-                fieldLengths,
-                collectedKeyColumns,
-                tableVersion,
-                txnRegion,
-                scanner);
+        super(txn, template, columnPositionMap, lengths, scanner);
+        this.baseTableConglomId = baseTableConglomId;
         this.randomGenerator = new Random();
         int s = 1;
-        while(s<SpliceConstants.indexBatchSize)s<<=1;
+        while(s< SpliceConstants.indexBatchSize)s<<=1;
         this.sampleSize = s;
         this.fetchTimer = Metrics.newWallTimer();
         baseTable = SpliceAccessManager.getHTable(Long.toString(baseConglomerateId).getBytes());
@@ -86,40 +57,30 @@ public class IndexStatisticsCollector extends StatisticsCollector {
     @Override
     protected void updateRow(SITableScanner scanner,
                              ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors,
-                             int[] fieldLengths,
-                             ExecRow row) throws StandardException, IOException {
-        super.updateRow(scanner,dvdCollectors,fieldLengths,row);
+                             int[] fieldLengths, ExecRow row) throws StandardException, IOException {
+        super.updateRow(scanner, dvdCollectors, fieldLengths, row);
         sampledGet(row);
     }
 
-
-    @Override
-    protected void closeResources(){
-        super.closeResources();
-        try {
-            baseTable.close();
-        } catch (IOException e) {
-            LOG.error("Encountered error closing base htable",e);
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private double getLatency() throws IOException{
+        if(bufferPos>0){
+            doFetch(bufferPos);
+            bufferPos=0;
         }
+        TimeView time = fetchTimer.getTime();
+        double latency;
+        if(fetchTimer.getNumEvents()<=0)latency = 0d;
+        else
+            latency = ((double) time.getWallClockTime()) / fetchTimer.getNumEvents();
+        if(LOG.isTraceEnabled())
+            LOG.trace("IndexLookup latency = "+ time.getWallClockTime()+" nanoseconds to retrieve "+fetchTimer.getNumEvents()+" events");
+        return latency;
     }
 
     @Override
-    protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors){
-        /*
-         * The last column in the row is the HBaseRowLocation of the base table, which we do not include statistics
-         * for. Hence, we ignore it (for now)
-         *
-         * TODO -sf- should we collect the avg column width to improve our costing model?
-         */
-        List<ColumnStatistics> columnStats = new ArrayList<>(dvdCollectors.length-1);
-        for (int i = 0; i < dvdCollectors.length-1; i++) {
-            columnStats.add(dvdCollectors[i].build());
-        }
-        return columnStats;
-    }
-
-    @Override
-    protected long getRemoteReadTime(long rowCount) throws ExecutionException{
+    protected long getRemoteReadTime(long rowCount) throws ExecutionException {
         try{
             return (long)(getLatency()*rowCount);
         }catch(IOException e){
@@ -147,40 +108,7 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         return 0l;
     }
 
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private double getLatency() throws IOException{
-        if(bufferPos>0){
-            doFetch(bufferPos);
-            bufferPos=0;
-        }
-        TimeView time = fetchTimer.getTime();
-        double latency;
-        if(fetchTimer.getNumEvents()<=0)latency = 0d;
-        else
-            latency = ((double) time.getWallClockTime()) / fetchTimer.getNumEvents();
-        if(LOG.isTraceEnabled())
-                LOG.trace("IndexLookup latency = "+ time.getWallClockTime()+" nanoseconds to retrieve "+fetchTimer.getNumEvents()+" events");
-        return latency;
-    }
-
-    private boolean isSampled() {
-        /*
-         * This uses Vitter's Resevoir sampling to generate a uniform random sample
-         * of data points, which we can use to generate a small sample of data to fetch (and
-         * thus giving us our remote read latency)
-         */
-        if(this.numStarts<sampleSize) {
-            numStarts++;
-            return true;
-        }
-
-        numStarts++;
-        long pos = (long)(randomGenerator.nextDouble()*numStarts);
-        return pos < sampleSize;
-    }
-
-    private void sampledGet(ExecRow row) throws StandardException, IOException{
+    protected void sampledGet(ExecRow row) throws StandardException, IOException{
         /*
          * There's a weird behavior with system tables where the row location could be empty.
          * This is very weird, and we don't like it much, but it happens and we don't want to blow
@@ -201,9 +129,25 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         }
     }
 
+    private boolean isSampled() {
+        /*
+         * This uses Vitter's Resevoir sampling to generate a uniform random sample
+         * of data points, which we can use to generate a small sample of data to fetch (and
+         * thus giving us our remote read latency)
+         */
+        if(this.numStarts<sampleSize) {
+            numStarts++;
+            return true;
+        }
+
+        numStarts++;
+        long pos = (long)(randomGenerator.nextDouble()*numStarts);
+        return pos < sampleSize;
+    }
+
     private void doFetch(int bufferSize) throws IOException{
         if(bufferSize<=0) return; //nothing to do
-        List<Get> gets=Arrays.asList(getBuffer).subList(0,bufferSize);
+        List<Get> gets= Arrays.asList(getBuffer).subList(0,bufferSize);
         /*
          * The JVM may not necessarily have heated up this code path just yet, and the HBase
          * memstore may not have the rows cached in memory. This means that we will tend to take longer
