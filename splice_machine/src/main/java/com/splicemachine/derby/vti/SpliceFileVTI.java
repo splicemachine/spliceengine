@@ -74,11 +74,9 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
 
             OperationContext operationContext = dsp.createOperationContext(op);
-            operationContext.pushScope(fileName);
             DataSet<String> textSet = dsp.readTextFile(fileName);
-            operationContext.popScope();
         try {
-            operationContext.pushScope("Parse Delimited File");
+            operationContext.pushScope("Parse File:      /sfsdfsdfsd/sdfds/sdfsdf [estCost=234234324, estRows=32423493294234234 qualifiers=[column1=234234322]");
             return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat,operationContext));
         } finally {
             operationContext.popScope();

@@ -28,4 +28,6 @@ public interface DataSetProcessor {
     DataSet<String> readTextFile(String path);
     <K,V> PairDataSet<K, V> getEmptyPair();
     void setSchedulerPool(String pool);
+    void setPermissive();
+    void setFailBadRecordCount(int failBadRecordCount);
 }

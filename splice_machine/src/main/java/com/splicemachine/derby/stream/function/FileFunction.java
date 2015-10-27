@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.StringReader;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -90,6 +91,8 @@ import java.util.Collections;
     @Override
         public Iterable<LocatedRow> call(String s) throws Exception {
             try {
+                if (operationContext.isFailed())
+                    return Collections.EMPTY_LIST;
                 StringReader stringReader = new StringReader(s);
                 SpliceCsvReader spliceCsvReader = new SpliceCsvReader(stringReader, new CsvPreference.Builder(
                         characterDelimiter != null && characterDelimiter.length() > 0 ? characterDelimiter.charAt(0) : '\'',
@@ -122,8 +125,11 @@ import java.util.Collections;
                 }
                 return Collections.singletonList(new LocatedRow(returnRow));
             } catch (Exception e) {
-                operationContext.recordBadRecord("\n"+e.getLocalizedMessage()+"\n"+s+"\n");
-                return Collections.EMPTY_LIST;
+                if (operationContext.isPermissive()) {
+                    operationContext.recordBadRecord("\n" + e.getLocalizedMessage() + "\n" + s + "\n");
+                    return Collections.EMPTY_LIST;
+                }
+                throw e; // Not Permissive of errors
             }
         }
 }

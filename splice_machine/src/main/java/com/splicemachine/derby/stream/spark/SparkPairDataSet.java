@@ -187,7 +187,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireAfterStatementTriggers();
@@ -207,7 +206,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf, builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
             operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
@@ -225,7 +223,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeDeleteTableWriterBuilder(conf, builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
             operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);

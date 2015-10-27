@@ -2,14 +2,13 @@ package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.db.iapi.jdbc.EngineConnection;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.ImportFunction;
 import com.splicemachine.derby.impl.load.spark.ImportResult;
@@ -332,16 +331,11 @@ public class HdfsImport {
                                  ResultSet[] results) throws SQLException {
         Connection conn = SpliceAdmin.getDefaultConn();
         try {
-            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
-            final String user = lcc.getSessionUserId();
-            Activation activation = lcc.getLastActivation();
-            BaseSpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
-            try {
-                if(schemaName==null)
-                    schemaName = SpliceConstants.SPLICE_USER;
-                if(tableName==null)
-                    throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-
+            if (schemaName == null)               // Use the current schema if no schema is specified.
+                schemaName = ((EngineConnection) conn).getCurrentSchemaName();
+            if(tableName==null)
+                throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
+/*
                 EmbedConnection embedConnection = (EmbedConnection)conn;
                 ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
                         insertColumnList, fileName, columnDelimiter,
@@ -352,11 +346,12 @@ public class HdfsImport {
                 				(isCheckScan ? CHECK_RESULT_COLUMNS : IMPORT_RESULT_COLUMNS), activation);
                 rs.open();
                 results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
-
-            }catch (StandardException e) {
+    */
+            throw new StandardException();
+        }catch (StandardException e) {
                 throw PublicAPI.wrapStandardException(e);
-            }
-        } finally {
+        }
+        finally {
             try {
                 if (conn != null) {
                     conn.close();
@@ -845,5 +840,63 @@ public class HdfsImport {
 				}
 		}
 
+
+    public static boolean initializeColumnInfo(String columnPattern, Connection connection, String schemaName, String tableName)
+            throws SQLException {
+        DatabaseMetaData dmd = connection.getMetaData();
+        ResultSet rs = dmd.getColumns(null,
+                schemaName,
+                tableName,
+                columnPattern);
+        boolean foundTheColumn=false;
+        while (rs.next())
+        {
+
+            // 4.COLUMN_NAME String => column name
+            String columnName = rs.getString(4);
+
+            // 5.DATA_TYPE short => SQL type from java.sql.Types
+            short dataType = rs.getShort(5);
+
+            // 6.TYPE_NAME String => Data source dependent type name
+            String typeName = rs.getString(6);
+
+
+            // 7.COLUMN_SIZE int => column size. For char or date types
+            // this is the maximum number of characters, for numeric or
+            // decimal types this is precision.
+            int columnSize = rs.getInt(7);
+
+            // 9.DECIMAL_DIGITS int => the number of fractional digits
+            int decimalDigits = rs.getInt(9);
+
+            // 10.NUM_PREC_RADIX int => Radix (typically either 10 or 2)
+            int numPrecRadix = rs.getInt(10);
+            foundTheColumn = true;
+            if(importExportSupportedType(dataType))
+            {
+
+                insertColumnNames.add(columnName);
+                String sqlType = typeName + getTypeOption(typeName , columnSize , columnSize , decimalDigits);
+                columnTypes.add(sqlType);
+                jdbcColumnTypes.add(new Integer(dataType));
+                noOfColumns++;
+
+                if ( dataType == java.sql.Types.JAVA_OBJECT )
+                {
+                    udtClassNames.put( "COLUMN" +  noOfColumns, getUDTClassName( dmd, typeName ) );
+                }
+            }else
+            {
+                rs.close();
+                throw
+                        LoadError.nonSupportedTypeColumn(columnName,typeName);
+            }
+
+        }
+
+        rs.close();
+        return foundTheColumn;
+    }
 
 }

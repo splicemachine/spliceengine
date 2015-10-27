@@ -130,7 +130,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     public InsertTableWriter build() throws StandardException {
         return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
                     autoIncrementRowLocationArray,spliceSequences,
-                    heapConglom,txn,(InsertOperation)operationContext.getOperation());
+                    heapConglom,txn,operationContext);
     }
 
 }

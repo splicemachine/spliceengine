@@ -44,6 +44,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public Accumulator<Integer> rowsFiltered;
         public Accumulator<Integer> rowsWritten;
         public Accumulable<List<String>,String> badRecordsAccumulable;
+        public boolean permissive;
+        public boolean failed;
+        public int numberBadRecords = 0;
+        private int failBadRecordCount = -1;
 
         public SparkOperationContext() {
 
@@ -90,6 +94,8 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeInt(failBadRecordCount);
+            out.writeBoolean(permissive);
             out.writeBoolean(op!=null);
             if (op!=null) {
                 if (soi == null)
@@ -97,7 +103,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 out.writeObject(soi);
                 out.writeObject(op);
             }
-
             TransactionOperations.getOperationFactory().writeTxn(txn, out);
             out.writeObject(rowsRead);
             out.writeObject(rowsFiltered);
@@ -111,6 +116,8 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         @Override
         public void readExternal(ObjectInput in)
                 throws IOException, ClassNotFoundException {
+            failBadRecordCount = in.readInt();
+            permissive = in.readBoolean();
             SpliceSpark.setupSpliceStaticComponents();
             boolean isOp = in.readBoolean();
             if (isOp) {
@@ -232,11 +239,36 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void recordBadRecord(String badRecord) {
+        numberBadRecords++;
         badRecordsAccumulable.add(badRecord);
+        if (numberBadRecords>= this.failBadRecordCount)
+            failed=true;
     }
+
 
     @Override
     public List<String> getBadRecords() {
         return badRecordsAccumulable.value();
+    }
+
+
+    @Override
+    public boolean isPermissive() {
+        return permissive;
+    }
+
+    @Override
+    public boolean isFailed() {
+        return failed;
+    }
+
+    @Override
+    public void setPermissive() {
+        this.permissive = true;
+    }
+
+    @Override
+    public void setFailBadRecordCount(int failBadRecordCount) {
+        this.failBadRecordCount = failBadRecordCount;
     }
 }

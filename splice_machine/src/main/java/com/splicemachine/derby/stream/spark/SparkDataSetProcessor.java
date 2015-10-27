@@ -39,6 +39,10 @@ import java.util.Collections;
  * Created by jleach on 4/13/15.
  */
 public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
+    private int failBadRecordCount = -1;
+    private boolean permissive;
+
+
 
     public SparkDataSetProcessor() {
 
@@ -116,7 +120,12 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
-        return new SparkOperationContext<Op>(spliceOperation);
+        OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation);
+        if (permissive) {
+            operationContext.setPermissive();
+            operationContext.setFailBadRecordCount(failBadRecordCount);
+        }
+        return operationContext;
     }
 
     @Override
@@ -142,7 +151,13 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public DataSet<String> readTextFile(String path) {
-        return new SparkDataSet<String>(SpliceSpark.getContext().textFile(path));
+        try {
+            SpliceSpark.pushScope("Read Text File\n"+path);
+            return new SparkDataSet<String>(SpliceSpark.getContext().textFile(path));
+        } finally {
+            SpliceSpark.popScope();
+        }
+
     }
 
 
@@ -159,5 +174,15 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
         return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));
+    }
+
+    @Override
+    public void setPermissive() {
+        this.permissive = true;
+    }
+
+    @Override
+    public void setFailBadRecordCount(int failBadRecordCount) {
+        this.failBadRecordCount = failBadRecordCount;
     }
 }

@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import parquet.io.api.Binary;
 import parquet.io.api.RecordConsumer;
+import parquet.schema.MessageType;
 import parquet.schema.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 public class ParquetExecRowUtils {
 
     public static MessageType buildSchemaFromExecRowDefinition(ExecRow execRow) throws StandardException {
+        /*
         List<Type> types = new ArrayList<Type>(execRow.nColumns());
         for (int i =1 ; i<= execRow.nColumns(); i++) {
             DataValueDescriptor dvd = execRow.getColumn(i);
@@ -42,9 +44,12 @@ public class ParquetExecRowUtils {
                         Type.Repetition.OPTIONAL).named(Integer.toString(i)));
         }
         return new MessageType("row",types);
+                */
+        return null;
     }
 
     public static void writeRow (ExecRow execRow, RecordConsumer recordConsumer) throws StandardException {
+        /*
         recordConsumer.startMessage();
         for (int i =1; i<= execRow.nColumns(); i++) {
             recordConsumer.startField(Integer.toString(i),i-1);
@@ -67,6 +72,7 @@ public class ParquetExecRowUtils {
             recordConsumer.endField(Integer.toString(i),i-1);
         }
         recordConsumer.endMessage();
+        */
 
     }
 
