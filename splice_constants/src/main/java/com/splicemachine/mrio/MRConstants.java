@@ -21,6 +21,7 @@ public class MRConstants {
     final public static String SPLICE_OUTPUT_CONGLOMERATE = "splice.output.conglomerate";
 	final public static String SPLICE_WRITE_BUFFER_SIZE = "splice.write.buffer.size";
 	final public static String SPLICE_JDBC_STR = "splice.jdbc";
+	final public static String ONE_SPLIT_PER_REGION = "one.split.per.region";
 	final public static String SPLICE_SCAN_INFO = "splice.scan.info";
 	final public static String HBASE_OUTPUT_TABLE_NAME = "hbase_output_tableName";
 	final public static String SPLICE_SCAN_MEMSTORE_ONLY="MR";

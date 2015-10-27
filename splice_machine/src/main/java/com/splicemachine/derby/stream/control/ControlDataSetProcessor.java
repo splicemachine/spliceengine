@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.control;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.index.HTableScannerIterator;
@@ -66,6 +67,10 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         HTableScannerIterator tableScannerIterator = new HTableScannerIterator(hTableBuilder);
         return new ControlDataSet(tableScannerIterator);
     }
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
     @Override
     public <V> DataSet<V> getEmpty() {
         return new ControlDataSet<>(Collections.<V>emptyList());
@@ -87,8 +92,12 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public void setJobGroup(String jobName, String jobDescription) {
+    public <Op extends SpliceOperation> OperationContext createOperationContext(Activation activation) {
+        throw new RuntimeException("not implemented");
+    }
 
+    @Override
+    public void setJobGroup(String jobName, String jobDescription) {
     }
 
     @Override
