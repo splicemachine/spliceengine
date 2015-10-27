@@ -117,7 +117,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
         setConf(context.getConfiguration());
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
-        TableInputFormat tableInputFormat = new TableInputFormat();
+        CloseableTableInputFormat tableInputFormat = new CloseableTableInputFormat();
         conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         tableInputFormat.setConf(conf);
         try {
@@ -135,6 +135,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
         }
         SubregionSplitter splitter = DerbyFactoryDriver.derbyFactory.getSubregionSplitter();
         List<InputSplit> results = splitter.getSubSplits(table, splits);
+        tableInputFormat.close();
         return results;
     }
 

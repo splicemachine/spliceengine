@@ -74,8 +74,7 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 		if (table != null)
 			table.close();
 		memScannerList.get(0).close();		
-		//TODO: jyuan - why this failed for hive?
-		//region.close();
+		region.close();
 	}
 
 	public HRegionInfo getRegionInfo() {
