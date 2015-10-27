@@ -8,14 +8,16 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.utils.PipelineConstants;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
 import java.util.Iterator;
@@ -31,19 +33,20 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     protected static final KVPair.Type dataType = KVPair.Type.INSERT;
     protected SpliceSequence[] spliceSequences;
     protected PairEncoder encoder;
-    public int rowsWritten;
     protected InsertOperation insertOperation;
+    protected OperationContext operationContext;
 
     public InsertTableWriter(int[] pkCols, String tableVersion, ExecRow execRowDefinition,
                              RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
-                             long heapConglom, TxnView txn, InsertOperation insertOperation) {
+                             long heapConglom, TxnView txn, OperationContext operationContext) {
         super(txn,heapConglom);
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
-        this.insertOperation = insertOperation;
+        this.insertOperation = (InsertOperation)operationContext.getOperation();
+        this.operationContext = operationContext;
         this.destinationTable = Long.toString(heapConglom).getBytes();
     }
 
@@ -54,8 +57,8 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         super.open(triggerHandler, operation);
         try {
-            writeBuffer = writeCoordinator.writeBuffer(destinationTable,
-                    txn, Metrics.noOpMetricFactory());
+            writeBuffer = writeCoordinator.writeBuffer(destinationTable,txn, PipelineConstants.noOpFlushHook,insertOperation.failBadRecordCount>1?
+                    new PermissiveInsertWriteConfiguration(writeCoordinator.defaultWriteConfiguration(),operationContext):writeCoordinator.defaultWriteConfiguration());
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
@@ -66,12 +69,18 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
 
     public void insert(ExecRow execRow) throws StandardException {
         try {
+            if (operationContext.isFailed())
+                return;
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
-            rowsWritten++;
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
+            operationContext.recordWrite();
         } catch (Exception e) {
+            if (operationContext.isPermissive()) {
+                operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString());
+                return;
+            }
             throw Exceptions.parseException(e);
         }
     }

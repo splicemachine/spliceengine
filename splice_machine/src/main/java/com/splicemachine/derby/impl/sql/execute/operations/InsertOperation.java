@@ -199,6 +199,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (statusDirectory!=null) {
+            dsp.setSchedulerPool("import");
+            dsp.setPermissive();
+            dsp.setFailBadRecordCount(this.failBadRecordCount);
+        }
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();

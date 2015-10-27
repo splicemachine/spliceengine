@@ -27,5 +27,9 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void pushScope(String display);
     void popScope();
     void recordBadRecord(String badRecord);
+    boolean isPermissive();
+    void setPermissive();
+    void setFailBadRecordCount(int failBadRecordCount);
+    boolean isFailed();
     List<String> getBadRecords();
 }

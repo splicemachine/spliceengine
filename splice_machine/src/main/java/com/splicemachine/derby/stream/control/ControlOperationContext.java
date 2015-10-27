@@ -36,6 +36,10 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         public Op op;
         public TxnView txn;
         protected static Logger LOG = Logger.getLogger(ControlOperationContext.class);
+        private int failBadRecordCount = -1;
+        private boolean permissive;
+        private boolean failed;
+        private int numberBadRecords = 0;
 
 
 
@@ -181,11 +185,34 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
 
     @Override
     public void recordBadRecord(String badRecord) {
+        numberBadRecords++;
         badRecords.add(badRecord);
+        if (numberBadRecords>= this.failBadRecordCount)
+            failed=true;
     }
 
     @Override
     public List<String> getBadRecords() {
         return badRecords;
+    }
+
+    @Override
+    public boolean isPermissive() {
+        return permissive;
+    }
+
+    @Override
+    public boolean isFailed() {
+        return failed;
+    }
+
+    @Override
+    public void setPermissive() {
+        this.permissive=true;
+    }
+
+    @Override
+    public void setFailBadRecordCount(int failBadRecordCount) {
+        this.failBadRecordCount = failBadRecordCount;
     }
 }

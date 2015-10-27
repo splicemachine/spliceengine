@@ -41,6 +41,9 @@ import java.util.zip.GZIPInputStream;
  * Created by jleach on 4/13/15.
  */
 public class ControlDataSetProcessor implements DataSetProcessor {
+    private int failBadRecordCount = -1;
+    private boolean permissive;
+
     private static final Logger LOG = Logger.getLogger(ControlDataSetProcessor.class);
     @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
@@ -203,5 +206,15 @@ public class ControlDataSetProcessor implements DataSetProcessor {
             return scanner.hasNextLine();
         }
 
+    }
+
+    @Override
+    public void setPermissive() {
+        permissive = true;
+    }
+
+    @Override
+    public void setFailBadRecordCount(int failBadRecordCount) {
+        this.failBadRecordCount = failBadRecordCount;
     }
 }
