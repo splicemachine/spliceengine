@@ -14,7 +14,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 4/2/14
  */
-class StringDescriptorSerializer implements DescriptorSerializer{
+public class StringDescriptorSerializer implements DescriptorSerializer{
 		private static final DescriptorSerializer INSTANCE = new StringDescriptorSerializer();
 		public static final Factory INSTANCE_FACTORY = new Factory() {
 				@Override public DescriptorSerializer newInstance() { return INSTANCE; }

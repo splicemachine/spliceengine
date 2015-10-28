@@ -1,24 +1,15 @@
 package com.splicemachine.derby.utils;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import net.sf.ehcache.config.PinningConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.J2SEDataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import java.io.IOException;
+
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.*;

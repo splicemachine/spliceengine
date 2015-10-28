@@ -194,23 +194,12 @@ public class BroadcastJoinOperation extends JoinOperation{
     }
 
 
-//    private void submitRightHandSideLookup(final SpliceRuntimeContext ctx){
-//        if(rhsFuture!=null) return;
-//        rhsFuture=rhsLookupService.submit(new RightHandLoader(ctx,rightRow.getClone()));
-//    }
-
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
         leftHashKeys=generateHashKeys(leftHashKeyItem);
         rightHashKeys=generateHashKeys(rightHashKeyItem);
 
-//        if(regionScanner!=null){
-//            // We are on a region where we are being processed, so
-//            // we can go ahead and start fetching the right hand side ahead of time.
-////            SpliceRuntimeContext runtimeContext=context.getRuntimeContext();
-////            submitRightHandSideLookup(runtimeContext);
-//        }
         startExecutionTime=System.currentTimeMillis();
     }
 
@@ -299,107 +288,6 @@ public class BroadcastJoinOperation extends JoinOperation{
         SpliceNoPutResultSet resultSet=ors.getDelegate();
         return new RightLoader(ctx,resultSet);
     }
-
-//    private class RightHandLoader implements Callable<Map<ByteBuffer, List<ExecRow>>>{
-//        private final SpliceRuntimeContext runtimeContext;
-//        private final ExecRow rightTemplate;
-//
-//        private Counter rightRowCounter;
-//        private Timer timer;
-//        private long rightBytes=0l;
-//
-//        private RightHandLoader(SpliceRuntimeContext runtimeContext,ExecRow rightTemplate){
-//            this.runtimeContext=runtimeContext;
-//            this.rightTemplate=rightTemplate;
-//        }
-//
-//        @Override
-//        public Map<ByteBuffer, List<ExecRow>> call() throws Exception{
-//            timer=runtimeContext.newTimer();
-//            timer.startTiming();
-//
-//            Map<ByteBuffer, List<ExecRow>> rightHandSide=broadcastJoinCache.get(Bytes.mapKey(uniqueSequenceID),new Callable<Map<ByteBuffer, List<ExecRow>>>(){
-//                @Override
-//                public Map<ByteBuffer, List<ExecRow>> call() throws Exception{
-//                    SpliceLogUtils.trace(LOG,"Load right-side cache for BroadcastJoin, uniqueSequenceID %s",
-//                            Bytes.toLong(uniqueSequenceID));
-//                    return loadRightSide(runtimeContext);
-//                }
-//            });
-//
-//            if(rightRowCounter==null){
-//                rightRowCounter=runtimeContext.newCounter();
-//                if(rightRowCounter.isActive()){
-//                    for(List<ExecRow> rows : rightHandSide.values()){
-//                        rightRowCounter.add(rows.size());
-//                    }
-//                }
-//                timer.tick(rightRowCounter.getTotal());
-//                BroadcastJoinOperation.this.rightHandTimer=
-//                        new BaseIOStats(timer.getTime(),rightBytes,rightRowCounter.getTotal());
-//            }
-//
-//            return rightHandSide;
-//        }
-//
-//        private Map<ByteBuffer, List<ExecRow>> loadRightSide(SpliceRuntimeContext runtimeContext)
-//                throws StandardException, IOException{
-//            ByteBuffer hashKey;
-//            List<ExecRow> rows;
-//            Map<ByteBuffer, List<ExecRow>> cache=new HashMap<>();
-//
-//            if(runtimeContext.shouldRecordTraceMetrics()){
-//                activation.getLanguageConnectionContext().setStatisticsTiming(true);
-//                addToOperationChain(runtimeContext,null,rightResultSet.getUniqueSequenceID());
-//            }
-//
-//            rightRowCounter=runtimeContext.newCounter();
-//            SpliceRuntimeContext ctxNoSink=runtimeContext.copy();
-//            ctxNoSink.unMarkAsSink();
-//            OperationResultSet ors=new OperationResultSet(activation,rightResultSet);
-//            ors.sinkOpen(runtimeContext.getTxn(),true);
-//            ors.executeScan(false,ctxNoSink);
-//            SpliceNoPutResultSet resultSet=ors.getDelegate();
-//            DescriptorSerializer[] serializers=VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);
-//            KeyEncoder keyEncoder=new KeyEncoder(NoOpPrefix.INSTANCE,
-//                    BareKeyHash.encoder(rightHashKeys,null,serializers),
-//                    NoOpPostfix.INSTANCE
-//            );
-//
-//            ExecRow right;
-//            while((right=resultSet.getNextRowCore())!=null){
-//                rightRowCounter.add(1l);
-//                hashKey=ByteBuffer.wrap(keyEncoder.getKey(right));
-//                if((rows=cache.get(hashKey))!=null){
-//                    // Previously, we added the row for same hash conditionally:
-//                    //     if (!oneRowRightSide)
-//                    // This was an optimization for exists & not exists where we only need
-//                    // to find one row. However, this broke cases where although where it's
-//                    // true that we only need to FIND one row, we still need to allow for multiple
-//                    // entries from which we need to search for that one row. In particular,
-//                    // this can happen when inequality join criteria are present,
-//                    // such as TPCH query 21, which exposed this issue.
-//                    rows.add(right.getClone());
-//                }else{
-//                    rows=Lists.newArrayListWithExpectedSize(1);
-//                    rows.add(right.getClone());
-//                    cache.put(hashKey,rows);
-//                }
-//            }
-//            if(LOG.isDebugEnabled()){
-//                logSize(rightResultSet,cache);
-//            }
-//            BroadcastJoinOperation.this.rightHandTimer=resultSet.getStats();
-//            ors.close();
-//            if(shouldRecordStats()){
-//                List<XplainOperationChainInfo> operationChain=SpliceBaseOperation.operationChain.get();
-//                if(operationChain!=null && operationChain.size()>0){
-//                    operationChain.remove(operationChain.size()-1);
-//                }
-//            }
-//            return Collections.unmodifiableMap(cache);
-//        }
-//    }
 
     //TODO -sf- add this back in
     private static void logSize(SpliceOperation op,Map inMemoryMap){

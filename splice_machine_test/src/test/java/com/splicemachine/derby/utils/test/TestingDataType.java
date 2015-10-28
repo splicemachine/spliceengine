@@ -2,19 +2,14 @@ package com.splicemachine.derby.utils.test;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Charsets;
-import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.AbstractTimeDescriptorSerializer;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyVarchar;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.codehaus.jackson.map.deser.TimestampDeserializer;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -264,7 +259,7 @@ public enum TestingDataType {
         @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((String)o); }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
-            return new LazyStringDataValueDescriptor(new SQLVarchar());
+            return new LazyVarchar();
         }
 
         @Override

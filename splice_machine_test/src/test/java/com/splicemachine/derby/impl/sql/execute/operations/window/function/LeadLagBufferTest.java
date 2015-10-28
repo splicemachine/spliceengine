@@ -1,24 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-import static org.junit.Assert.assertNotNull;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Test;
-
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLInteger;
-import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
+import static junit.framework.Assert.*;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test for {@link com.splicemachine.derby.impl.sql.execute.operations.window.function.LeadLagFunction.LeadLagBuffer}
  */
 public class LeadLagBufferTest {
 
+    @SuppressWarnings("FieldCanBeLocal")
     private boolean debug = false;
 
     //================================================================================================
@@ -201,7 +198,7 @@ public class LeadLagBufferTest {
         assertNotNull(result);
         assertEquals("haven't added anything yet", 0, result.size());
 
-        DataValueDescriptor dvd = new LazyNumberDataValueDescriptor(new SQLInteger(13));
+        DataValueDescriptor dvd = new SQLInteger(13);
         buff.addRow(dvd, dvd.getNewNull());
         result = buff.terminate();
         assertNotNull(result);
@@ -219,7 +216,7 @@ public class LeadLagBufferTest {
         buff.initialize(offset);
 
         for (int i=1; i<=frameSize; i++) {
-            DataValueDescriptor dvd = new LazyNumberDataValueDescriptor(new SQLInteger(i));
+            DataValueDescriptor dvd = new SQLInteger(i);
             buff.addRow(dvd, dvd.getNewNull());
         }
 
@@ -266,13 +263,13 @@ public class LeadLagBufferTest {
     private List<Tuple> genExpectedResults(int frameSize, int offset) {
         List<Tuple> results = new ArrayList<>(frameSize);
         for (int i=1; i<=frameSize; i++) {
-            Tuple t = new Tuple(new LazyNumberDataValueDescriptor(new SQLInteger(i)));
+            Tuple t = new Tuple(new SQLInteger(i));
             results.add(t);
             int leadLag = i + offset;
             if (leadLag > frameSize || leadLag <= 0) {
                 t.expectedResult = t.rowValue.getNewNull();
             } else {
-                t.expectedResult = new LazyNumberDataValueDescriptor(new SQLInteger(leadLag));
+                t.expectedResult = new SQLInteger(leadLag);
             }
         }
         return results;

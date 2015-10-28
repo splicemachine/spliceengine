@@ -29,10 +29,10 @@ import com.splicemachine.derby.impl.load.FileImportReader;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.spark.kryo.SparkValueRowSerializer;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyTimestamp;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -66,7 +66,6 @@ import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
-import org.apache.spark.scheduler.CompressedMapStatus;
 import org.apache.spark.serializer.KryoRegistrator;
 
 import java.math.BigDecimal;
@@ -515,7 +514,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                     }
                 });
 
-        instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyTimestamp.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER);
