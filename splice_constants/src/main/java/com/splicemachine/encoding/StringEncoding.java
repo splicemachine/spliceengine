@@ -27,7 +27,12 @@ public class StringEncoding {
      */
     public static byte[] toBytes(String value, boolean desc){
         if(value==null) return Encoding.EMPTY_BYTE_ARRAY;
-        if(value.length()==0) return new byte[]{0x01};
+        if(value.length()==0){
+            if(desc)
+                return new byte[]{(byte)(0x01^0xff)};
+            else
+                return new byte[]{0x01};
+        }
 
         //convert to UTF-8 encoding
         BytesRef result = new BytesRef();
@@ -81,7 +86,10 @@ public class StringEncoding {
      */
     public static String getString(byte[] data, boolean desc){
         if(data.length==0) return null;
-        if(data.length>0 && data[0] == 0x01) return "";
+        if(data.length==1){
+            if(desc && (byte)(data[0])==(byte)0xFE) return "";
+            else if(!desc && (byte)data[0]==(byte)0x01) return "";
+        }
 
         for(int i=0;i<data.length;i++){
             byte datum = data[i];
