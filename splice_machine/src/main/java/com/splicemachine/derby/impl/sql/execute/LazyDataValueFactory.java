@@ -1,12 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.impl.sql.execute.dvd.*;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DecimalDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.utils.ByteSlice;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -23,7 +22,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
     private static final TimestampDVDSerializer timestampSerializer = new TimestampDVDSerializer();
 
     public StringDataValue getVarcharDataValue(String value) {
-        return new LazyStringDataValueDescriptor(new SQLVarchar(value));
+        return new LazyVarchar(new SQLVarchar(value));
     }
 
     public StringDataValue getVarcharDataValue(String value, StringDataValue previous) throws StandardException {
@@ -36,9 +35,9 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         }else{
             if(previous != null){
                 previous.setValue(value);
-                result = new LazyStringDataValueDescriptor(previous);
+                result = new LazyVarchar(previous);
             }else{
-                result = new LazyStringDataValueDescriptor(new SQLVarchar(value));
+                result = new LazyVarchar(new SQLVarchar(value));
             }
         }
 
@@ -57,7 +56,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         if(previous != null && previous instanceof LazyNumberDataValueDescriptor){
             previous.setValue(value);
         }else{
-            previous = new LazyNumberDataValueDescriptor(new SQLDouble(value));
+            previous = new LazyDouble(new SQLDouble(value));
         }
 
         return previous;
@@ -67,7 +66,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         if(previous != null && previous instanceof LazyNumberDataValueDescriptor){
             previous.setValue(value);
         }else{
-            previous = new LazyNumberDataValueDescriptor(new SQLDouble(value));
+            previous = new LazyDouble(new SQLDouble(value));
         }
 
         return previous;
@@ -78,19 +77,19 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         if(previous != null && previous instanceof LazyNumberDataValueDescriptor){
             previous.setValue(value);
         }else{
-            previous = new LazyNumberDataValueDescriptor(new SQLDecimal(BigDecimal.valueOf(value.longValue())));
+            previous = new LazyDecimal(new SQLDecimal(BigDecimal.valueOf(value.longValue())));
         }
 
         return previous;
     }
 
     public NumberDataValue getDecimalDataValue(String value) throws StandardException {
-        return new LazyNumberDataValueDescriptor(new SQLDecimal(value));
+        return new LazyDecimal(new SQLDecimal(value));
     }
 
     public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
         if(dataValue == null){
-            dataValue = new LazyNumberDataValueDescriptor(new SQLDecimal());
+            dataValue = new LazyDecimal();
         }else{
             dataValue.setToNull();
         }
@@ -103,10 +102,10 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
                                           DateTimeDataValue previous)
             throws StandardException
     {
-        if (previous != null && previous instanceof LazyTimestampDataValueDescriptor) {
+        if (previous != null && previous instanceof LazyTimestamp) {
             previous.setValue(value);
         } else {
-            previous = new LazyTimestampDataValueDescriptor(new SQLTimestamp(value));
+            previous = new LazyTimestamp(new SQLTimestamp(value));
         }
         return previous;
     }
@@ -115,13 +114,13 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
     public DateTimeDataValue getTimestampValue( String timestampStr, boolean isJdbcEscape) throws StandardException
     {
         SQLTimestamp ts = new SQLTimestamp( timestampStr, isJdbcEscape, getLocaleFinder());
-        return new LazyTimestampDataValueDescriptor(ts);
+        return new LazyTimestamp(ts);
     }
 
     @Override
     public DateTimeDataValue getTimestamp( DataValueDescriptor date, DataValueDescriptor time) throws StandardException
     {
-        return new LazyTimestampDataValueDescriptor(new SQLTimestamp( date, time));
+        return new LazyTimestamp(new SQLTimestamp( date, time));
     }
 
     @Override
@@ -131,7 +130,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         {
             try
             {
-                return new LazyTimestampDataValueDescriptor(new SQLTimestamp((Timestamp) null));
+                return new LazyTimestamp(new SQLTimestamp((Timestamp) null));
             }
             catch( StandardException se)
             {
@@ -150,25 +149,25 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         /* Wrappers */
             case StoredFormatIds.SQL_BIT_ID: return new SQLBit();
             case StoredFormatIds.SQL_BOOLEAN_ID: return new SQLBoolean();
-            case StoredFormatIds.SQL_CHAR_ID: return new LazyStringDataValueDescriptor(new SQLChar());
+            case StoredFormatIds.SQL_CHAR_ID: return new LazyChar(new SQLChar());
             case StoredFormatIds.SQL_DATE_ID: return new SQLDate();
-            case StoredFormatIds.SQL_DOUBLE_ID: return new LazyNumberDataValueDescriptor(new SQLDouble());
-            case StoredFormatIds.SQL_DECIMAL_ID: return new LazyNumberDataValueDescriptor(new SQLDecimal());
+            case StoredFormatIds.SQL_DOUBLE_ID: return new LazyDouble(new SQLDouble());
+            case StoredFormatIds.SQL_DECIMAL_ID: return new LazyDecimal(new SQLDecimal());
             case StoredFormatIds.SQL_INTEGER_ID: return new SQLInteger();
             case StoredFormatIds.SQL_LONGINT_ID: return new SQLLongint();
             case StoredFormatIds.SQL_REAL_ID: return new SQLReal();
             case StoredFormatIds.SQL_REF_ID: return new SQLRef();
             case StoredFormatIds.SQL_SMALLINT_ID: return new SQLSmallint();
             case StoredFormatIds.SQL_TIME_ID: return new SQLTime();
-            case StoredFormatIds.SQL_TIMESTAMP_ID: return new LazyTimestampDataValueDescriptor(new SQLTimestamp());
+            case StoredFormatIds.SQL_TIMESTAMP_ID: return new LazyTimestamp(new SQLTimestamp());
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
-            case StoredFormatIds.SQL_VARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLVarchar());
-            case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLLongvarchar());
+            case StoredFormatIds.SQL_VARCHAR_ID: return new LazyVarchar(new SQLVarchar());
+            case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyLongVarchar(new SQLLongvarchar());
             case StoredFormatIds.SQL_VARBIT_ID: return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: return new SQLLongVarbit();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: return new UserType();
             case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
-            case StoredFormatIds.SQL_CLOB_ID: return new LazyStringDataValueDescriptor(new SQLClob());
+            case StoredFormatIds.SQL_CLOB_ID: return new LazyClob(new SQLClob());
             case StoredFormatIds.XML_ID: return new XML();
             default:return null;
         }

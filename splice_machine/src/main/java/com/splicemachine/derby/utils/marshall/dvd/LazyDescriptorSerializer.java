@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;

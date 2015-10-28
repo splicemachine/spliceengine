@@ -1,11 +1,10 @@
-package com.splicemachine.derby.impl.sql.execute;
+package com.splicemachine.derby.impl.sql.execute.dvd;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
-import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.db.iapi.types.*;
@@ -20,7 +19,7 @@ public class LazyNumberDataValueDescriptorTest {
         @Test
         public void testCanSerializeAndDeserializeProperly() throws Exception {
             NumberDataValue actual = new SQLDouble(12);
-            LazyNumberDataValueDescriptor dvd = new LazyNumberDataValueDescriptor(actual);
+            LazyNumberDataValueDescriptor dvd = new LazyDouble(actual);
 
             Kryo kryo = SpliceDriver.getKryoPool().get();
             Output output = new Output(4096,-1);
@@ -40,7 +39,7 @@ public class LazyNumberDataValueDescriptorTest {
         @Test
         public void testCanSerializeNullsCorrectly() throws Exception {
             NumberDataValue actual = new SQLDouble();
-            LazyNumberDataValueDescriptor dvd = new LazyNumberDataValueDescriptor(actual);
+            LazyNumberDataValueDescriptor dvd = new LazyDouble(actual);
 
             Kryo kryo = SpliceDriver.getKryoPool().get();
             Output output = new Output(4096,-1);

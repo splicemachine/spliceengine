@@ -13,7 +13,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 4/2/14
  */
-class DoubleDescriptorSerializer implements DescriptorSerializer {
+public class DoubleDescriptorSerializer implements DescriptorSerializer {
 		private static final DescriptorSerializer INSTANCE = new DoubleDescriptorSerializer();
 		public static final Factory INSTANCE_FACTORY = new Factory() {
 				@Override public DescriptorSerializer newInstance() { return INSTANCE; }
