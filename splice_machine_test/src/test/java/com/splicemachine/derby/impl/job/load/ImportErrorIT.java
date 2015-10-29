@@ -126,7 +126,8 @@ public class ImportErrorIT extends SpliceUnitTest {
         });
     }
 
-    @Test(timeout=5000)
+//    @Test(timeout=5000)
+    @Test
     public void testCannotInsertALongIntoAnIntegerField() throws Exception {
         runImportTest("long_int.csv",new ErrorCheck() {
             @Override

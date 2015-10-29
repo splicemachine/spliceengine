@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -100,7 +99,7 @@ public class BroadcastJoinCache{
     }
 
 
-    private class ReferenceCountedJoinTable implements JoinTable{
+    private static class ReferenceCountedJoinTable implements JoinTable{
         private final JoinTable delegate;
         private ReferenceCountingFactory refFactory;
 
