@@ -47,7 +47,7 @@ public class BroadcastJoinOperation extends JoinOperation{
     protected int[] rightHashKeys;
     protected static List<NodeType>  nodeTypes=Arrays.asList(NodeType.MAP,NodeType.SCROLL);
     private Joiner joiner;
-    protected volatile JoinTable rightSideMap;
+    protected JoinTable rightSideMap;
     protected static final BroadcastJoinCache broadcastJoinCache = new BroadcastJoinCache();
 
     protected static final String NAME=BroadcastJoinOperation.class.getSimpleName().replaceAll("Operation","");
@@ -123,7 +123,14 @@ public class BroadcastJoinOperation extends JoinOperation{
         if(next==null){
             timer.tick(0);
             stopExecutionTime=System.currentTimeMillis();
-            rightSideMap.close(); //release the right side map
+            /*
+             * We do a quick close here, because we know we won't need it any longer, and this way we may
+             * potentially release resources earlier and make life easier on the garbage collector.
+             */
+            if(rightSideMap!=null){
+                rightSideMap.close();
+                rightSideMap=null;
+            }
         }else{
             timer.tick(1);
         }
@@ -211,6 +218,7 @@ public class BroadcastJoinOperation extends JoinOperation{
     public void close() throws StandardException, IOException{
         super.close();
         if(joiner!=null) joiner.close();
+        if(rightSideMap!=null)rightSideMap.close();
     }
 
     @Override
