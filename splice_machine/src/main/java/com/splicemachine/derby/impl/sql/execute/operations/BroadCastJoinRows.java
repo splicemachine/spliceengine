@@ -73,7 +73,7 @@ public class BroadCastJoinRows implements IJoinRowsIterator<ExecRow> {
         pair = null;
     }
 
-    private class CountingIterator implements Iterator<ExecRow>{
+    private static class CountingIterator implements Iterator<ExecRow>{
         private final Iterator<ExecRow> delegate;
         private final Counter rightRowsSeen;
 
