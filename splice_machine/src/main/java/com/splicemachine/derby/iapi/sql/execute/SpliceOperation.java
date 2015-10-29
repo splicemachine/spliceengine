@@ -17,6 +17,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
@@ -39,6 +40,9 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
 
+    public OperationContext getOperationContext();
+
+    public void setOperationContext(OperationContext operationContext);
 
     /**
      * @return a descriptive name for this operation. Used for reporting information.
@@ -184,5 +188,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     public TriggerHandler getTriggerHandler() throws StandardException;
 
     public ExecIndexRow getStartPosition() throws StandardException;
+
+    public String getVTIFileName();
 
 }

@@ -2,11 +2,14 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Optional;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.*;
@@ -21,8 +24,12 @@ import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
@@ -192,6 +199,22 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
                 operationContext.getOperation().fireAfterStatementTriggers();
             }
             ValueRow valueRow = new ValueRow(1);
+            InsertOperation insertOperation = ((InsertOperation)operationContext.getOperation());
+            if (insertOperation.isImport()) {
+                List<String> badRecords = operationContext.getBadRecords();
+                if (badRecords.size()>= insertOperation.failBadRecordCount) {
+                    DataSet dataSet = new ControlDataSet<>(badRecords);
+                    Path path = null;
+                    if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
+                        FileSystem fileSystem = FileSystem.get(SpliceConstants.config);
+                        path = ImportUtils.generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
+                        dataSet.saveAsTextFile(path.toString());
+                        fileSystem.close();
+                    }
+                    throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
+                }
+            }
+
             valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {

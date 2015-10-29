@@ -3,10 +3,7 @@ package com.splicemachine.mrio.api.hive;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.mrio.api.core.PKColumnNamePosition;
-import com.splicemachine.mrio.api.core.TableContext;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -29,7 +26,6 @@ import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.NameType;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
@@ -103,8 +99,8 @@ public class SMSerDe implements SerDe {
                     TableScannerBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(tableName, colNames);
                     conf.set(MRConstants.SPLICE_SCAN_INFO, tableScannerBuilder.getTableScannerBuilderBase64String());
 
-                    TableContext tableContext = sqlUtil.createTableContext(tableName, tableScannerBuilder);
-                    conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
+                  //  TableContext tableContext = sqlUtil.createTableContext(tableName, tableScannerBuilder);
+                  //  conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
                 }
 			} catch (Exception e) {
 				throw new SerDeException(e);

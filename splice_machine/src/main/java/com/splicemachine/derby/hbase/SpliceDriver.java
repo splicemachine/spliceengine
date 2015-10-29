@@ -58,7 +58,6 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
-import com.splicemachine.derby.impl.load.ImportTaskManagementStats;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -482,8 +481,6 @@ public class SpliceDriver {
 
             ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
             mbs.registerMBean(TransactionStorage.getTxnStoreManagement(), txnStoreName);
-
-            ImportTaskManagementStats.getInstance().registerJMX(mbs);
 
             DatabasePropertyManagementImpl.registerJMX(mbs);
 

@@ -4,7 +4,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
@@ -30,6 +29,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     protected long heapConglom;
     protected TxnView txn;
     protected OperationContext operationContext;
+    protected boolean isUpsert;
 
     public InsertTableWriterBuilder pkCols(int[] pkCols) {
         this.pkCols = pkCols;
@@ -43,6 +43,11 @@ public class InsertTableWriterBuilder implements Externalizable {
 
     public InsertTableWriterBuilder spliceSequences(SpliceSequence[] spliceSequences) {
         this.spliceSequences = spliceSequences;
+        return this;
+    }
+
+    public InsertTableWriterBuilder isUpsert(boolean isUpsert) {
+        this.isUpsert = isUpsert;
         return this;
     }
 
@@ -79,6 +84,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         try {
+            out.writeBoolean(isUpsert);
             out.writeBoolean(operationContext!=null);
             if (operationContext!=null)
                 out.writeObject(operationContext);
@@ -102,6 +108,7 @@ public class InsertTableWriterBuilder implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        isUpsert = in.readBoolean();
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
         txn = TransactionOperations.getOperationFactory().readTxn(in);
@@ -130,7 +137,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     public InsertTableWriter build() throws StandardException {
         return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
                     autoIncrementRowLocationArray,spliceSequences,
-                    heapConglom,txn,operationContext);
+                    heapConglom,txn,operationContext,isUpsert);
     }
 
 }

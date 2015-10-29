@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.stream.function.*;
+import org.apache.hadoop.fs.Path;
 
 import java.io.OutputStream;
 import java.util.Iterator;
@@ -100,4 +101,6 @@ public interface DataSet<V> {
 //    DataSet<LocatedRow> writeToDisk(ExportParams exportParams);
 
     <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction);
+
+    void saveAsTextFile(String path);
 }

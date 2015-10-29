@@ -303,6 +303,12 @@ public class NormalizeOperation extends SpliceBaseOperation {
             super(operationContext);
         }
 
-
     }
+
+    @Override
+    public String getVTIFileName() {
+        return getSubOperations().get(0).getVTIFileName();
+    }
+
+
 }

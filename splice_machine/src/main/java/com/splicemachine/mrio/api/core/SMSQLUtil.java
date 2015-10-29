@@ -1,13 +1,10 @@
 package com.splicemachine.mrio.api.core;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.derby.impl.load.ColumnContext;
-import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.IntArrays;
@@ -22,13 +19,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -438,50 +432,5 @@ public class SMSQLUtil extends SIConstants {
         return scan;
     }
 
-    public Map<String,ColumnContext.Builder> getColumns(String tableName) throws SQLException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getColumns tableName=%s", tableName);
-        ResultSet result = null;
-        try{
-            String[] schemaTableName = parseTableName(tableName);
-            DatabaseMetaData databaseMetaData = connect.getMetaData();
-            return ImportUtils.getColumns(schemaTableName[0], schemaTableName[1], null, databaseMetaData);
-        } finally {
-            if (result != null)
-                result.close();
-        }
-    }
 
-    public TableContext createTableContext(String tableName,
-                                           TableScannerBuilder tableScannerBuilder) throws SQLException {
-        int[] execRowIds = tableScannerBuilder.getExecRowTypeFormatIds();
-        Map<String, ColumnContext.Builder> columns = getColumns(tableName);
-        ColumnContext[] columnContexts = new ColumnContext[columns.size()];
-        int index = 0;
-        for(ColumnContext.Builder colBuilder : columns.values()) {
-            ColumnContext context = colBuilder.build();
-            columnContexts[index++] = context;
-        }
-        String conglomerateId = getConglomID(tableName);
-
-        List<PKColumnNamePosition> pkColumnNamePositions = getPrimaryKeys(tableName);
-        List<NameType> nameTypes = getTableStructure(tableName);
-
-        List<String>  columnNames = new ArrayList<String>(nameTypes.size());
-        for (int i = 0; i< nameTypes.size(); i++) {
-            columnNames.add(nameTypes.get(i).getName());
-        }
-
-        int[] columnOrdering = getKeyColumnEncodingOrder(nameTypes,pkColumnNamePositions);
-        int[] pkCols = new int[0];
-        if (columnOrdering != null && columnOrdering.length > 0) {
-            pkCols = new int[columnOrdering.length];
-            for (int i = 0; i < columnOrdering.length; ++i) {
-                pkCols[i] = columnOrdering[i] + 1;
-            }
-        }
-
-        TableContext tableContext = new TableContext(columnContexts, pkCols, execRowIds, new Long(conglomerateId));
-        return tableContext;
-    }
 }

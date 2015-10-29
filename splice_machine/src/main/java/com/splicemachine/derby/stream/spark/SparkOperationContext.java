@@ -68,7 +68,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             this.rowsJoinedLeft = SpliceSpark.getContext().accumulator(0, baseName + " rows joined left");
             this.rowsJoinedRight = SpliceSpark.getContext().accumulator(0, baseName + " rows joined right");
             this.rowsProduced= SpliceSpark.getContext().accumulator(0, baseName + " rows produced");
-            this.badRecordsAccumulable = SpliceSpark.getContext().accumulable(new ArrayList<String>(), "BadRecords",new BadRecordsAccumulator());
+            this.badRecordsAccumulable = SpliceSpark.getContext().accumulable(new ArrayList<String>(), baseName+" BadRecords",new BadRecordsAccumulator());
         }
 
         protected SparkOperationContext(Activation activation)  {
@@ -248,7 +248,14 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public List<String> getBadRecords() {
-        return badRecordsAccumulable.value();
+        List<SpliceOperation> operations = getOperation().getSubOperations();
+        List<String> badRecords = badRecordsAccumulable.value();
+        if (operations!=null) {
+            for (SpliceOperation operation : operations) {
+                badRecords.addAll(operation.getOperationContext().getBadRecords());
+            }
+        }
+        return badRecords;
     }
 
 

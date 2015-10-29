@@ -24,6 +24,8 @@ import java.util.Collections;
  * Created by jleach on 10/8/15.
  */
     public class FileFunction extends SpliceFlatMapFunction<SpliceOperation, String, LocatedRow> {
+        protected static final char DEFAULT_COLUMN_DELIMITTER = ",".charAt(0);
+        protected static final char DEFAULT_STRIP_STRING = "\"".charAt(0);
         private String characterDelimiter;
         private String columnDelimiter;
         private ExecRow execRow;
@@ -50,8 +52,12 @@ import java.util.Collections;
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             super.writeExternal(out);
-            out.writeUTF(characterDelimiter);
-            out.writeUTF(columnDelimiter);
+            out.writeBoolean(characterDelimiter!=null);
+            if (characterDelimiter!=null)
+                out.writeUTF(characterDelimiter);
+            out.writeBoolean(columnDelimiter!=null);
+            if (columnDelimiter!=null)
+                out.writeUTF(columnDelimiter);
             writeNullableUTF(out, timeFormat);
             writeNullableUTF(out, dateTimeFormat);
             writeNullableUTF(out,timestampFormat);
@@ -68,8 +74,10 @@ import java.util.Collections;
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             super.readExternal(in);
-            characterDelimiter = in.readUTF();
-            columnDelimiter = in.readUTF();
+            if (in.readBoolean())
+                characterDelimiter = in.readUTF();
+            if (in.readBoolean())
+                columnDelimiter = in.readUTF();
             if (in.readBoolean())
                 timeFormat = in.readUTF();
             if (in.readBoolean())
@@ -95,34 +103,39 @@ import java.util.Collections;
                     return Collections.EMPTY_LIST;
                 StringReader stringReader = new StringReader(s);
                 SpliceCsvReader spliceCsvReader = new SpliceCsvReader(stringReader, new CsvPreference.Builder(
-                        characterDelimiter != null && characterDelimiter.length() > 0 ? characterDelimiter.charAt(0) : '\'',
-                        columnDelimiter != null && columnDelimiter.length() > 0 ? columnDelimiter.charAt(0) : ',',
+                        characterDelimiter != null && characterDelimiter.length() > 0 ? characterDelimiter.charAt(0) : DEFAULT_STRIP_STRING,
+                        columnDelimiter != null && columnDelimiter.length() > 0 ? columnDelimiter.charAt(0) : DEFAULT_COLUMN_DELIMITTER,
                         "\n",
                         SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
                 String[] values = spliceCsvReader.readAsStringArray();
+                System.out.println("Parsed Row -> " + values!=null?Arrays.toString(values):values);
                 ExecRow returnRow = execRow.getClone();
                 for (int i = 1; i <= returnRow.nColumns(); i++) {
                     DataValueDescriptor dvd = returnRow.getColumn(i);
                     int type = dvd.getTypeFormatId();
+                    String value = values[i - 1];
+                    if (value != null && (value.equals("null") || value.equals("NULL") || value.isEmpty()))
+                        value = null;
                     if (type == StoredFormatIds.SQL_TIME_ID) {
-                        if (timeFormat == null)
-                            dvd.setValue(values[i - 1]);
+                        if (timeFormat == null || value==null)
+                            dvd.setValue(value);
                         else
-                            dvd.setValue(SpliceDateFunctions.TO_TIME(values[i - 1], timeFormat));
+                            dvd.setValue(SpliceDateFunctions.TO_TIME(value, timeFormat));
                     } else if (type == StoredFormatIds.SQL_TIMESTAMP_ID) {
-                        if (timestampFormat == null)
-                            dvd.setValue(values[i - 1]);
+                        if (timestampFormat == null || value==null)
+                            dvd.setValue(value);
                         else
-                            dvd.setValue(SpliceDateFunctions.TO_TIMESTAMP(values[i - 1], timestampFormat));
+                            dvd.setValue(SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat));
                     } else if (type == StoredFormatIds.SQL_DATE_ID) {
-                        if (dateTimeFormat == null)
-                            dvd.setValue(values[i - 1]);
+                        if (dateTimeFormat == null || value == null)
+                            dvd.setValue(value);
                         else
-                            dvd.setValue(SpliceDateFunctions.TO_DATE(values[i - 1], dateTimeFormat));
+                            dvd.setValue(SpliceDateFunctions.TO_DATE(value, dateTimeFormat));
                     } else {
-                        dvd.setValue(values[i - 1]);
+                        dvd.setValue(value);
                     }
                 }
+                System.out.println("Returned Row -> " + returnRow);
                 return Collections.singletonList(new LocatedRow(returnRow));
             } catch (Exception e) {
                 if (operationContext.isPermissive()) {

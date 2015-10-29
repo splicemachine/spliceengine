@@ -8,7 +8,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
@@ -23,11 +22,6 @@ import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
-import com.splicemachine.derby.impl.load.ColumnContext;
-import com.splicemachine.derby.impl.load.FileImportReader;
-import com.splicemachine.derby.impl.load.ImportContext;
-import com.splicemachine.derby.impl.load.ImportTask;
-import com.splicemachine.derby.impl.load.spark.ImportResult;
 import com.splicemachine.derby.impl.spark.kryo.SparkValueRowSerializer;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
@@ -52,7 +46,6 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
-
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -68,9 +61,7 @@ import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
-import org.apache.spark.scheduler.CompressedMapStatus;
 import org.apache.spark.serializer.KryoRegistrator;
-
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -524,10 +515,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER);
 				//instance.register(SinkTask.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(CreateIndexTask.class,EXTERNALIZABLE_SERIALIZER);
-				instance.register(ImportTask.class,EXTERNALIZABLE_SERIALIZER);
-				instance.register(ImportContext.class,EXTERNALIZABLE_SERIALIZER);
-				instance.register(ColumnContext.class,EXTERNALIZABLE_SERIALIZER);
-				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(TriggerExecutionStack.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class));
@@ -649,7 +636,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                 return StandardException.newException(messageId, arguments);
             }
         });
-        instance.register(ImportResult.class);
         instance.register(ArrayListMultimap.class, new Serializer<ArrayListMultimap>() {
             @Override
             public void write(Kryo kryo, Output output, ArrayListMultimap map) {

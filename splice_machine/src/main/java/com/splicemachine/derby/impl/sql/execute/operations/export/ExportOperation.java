@@ -7,6 +7,7 @@ import com.splicemachine.db.impl.sql.compile.ExportNode;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.stream.function.ExportFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -164,31 +165,4 @@ public class ExportOperation extends SpliceBaseOperation {
         return dataset.writeToDisk(exportParams.getDirectory(), new ExportFunction(operationContext));
     }
 
-    public static ExportExecRowWriter initializeRowWriter(OutputStream outputStream, ExportParams exportParams) throws IOException {
-        CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, exportParams);
-        return new ExportExecRowWriter(writer);
-    }
-
-    private static class ExportFunction extends SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Integer> {
-        public ExportFunction() {
-        }
-
-        public ExportFunction(OperationContext<ExportOperation> operationContext) {
-            super(operationContext);
-        }
-
-        @Override
-        public Integer call(OutputStream outputStream, Iterator<LocatedRow> locatedRowIterator) throws Exception {
-            ExportOperation op = operationContext.getOperation();
-            ExportExecRowWriter rowWriter = initializeRowWriter(outputStream, op.getExportParams());
-            int count = 0;
-            while (locatedRowIterator.hasNext()) {
-                count++;
-                LocatedRow lr = locatedRowIterator.next();
-                rowWriter.writeRow(lr.getRow(), op.getSourceResultColumnDescriptors());
-            }
-            rowWriter.close();
-            return count;
-        }
-    }
 }

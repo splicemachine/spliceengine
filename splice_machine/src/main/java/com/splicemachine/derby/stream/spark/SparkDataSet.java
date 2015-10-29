@@ -232,7 +232,7 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
             if (isCompressed) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
-            final ExportExecRowWriter rowWriter = ExportOperation.initializeRowWriter(fileOut, op.getExportParams());
+            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
             return new RecordWriter<Void, LocatedRow>() {
                 @Override
                 public void write(Void _, LocatedRow locatedRow) throws IOException, InterruptedException {
@@ -249,5 +249,10 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
                 }
             };
         }
+    }
+
+    @Override
+    public void saveAsTextFile(String path) {
+        rdd.saveAsTextFile(path);
     }
 }

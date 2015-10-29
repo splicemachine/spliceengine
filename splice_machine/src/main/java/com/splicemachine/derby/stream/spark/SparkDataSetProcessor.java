@@ -121,6 +121,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation);
+        spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive();
             operationContext.setFailBadRecordCount(failBadRecordCount);

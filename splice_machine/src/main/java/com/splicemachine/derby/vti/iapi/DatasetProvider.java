@@ -37,4 +37,7 @@ public interface DatasetProvider {
      * @return
      */
     public ResultSetMetaData getMetaData() throws SQLException;
+
+    public OperationContext getOperationContext();
+
 }

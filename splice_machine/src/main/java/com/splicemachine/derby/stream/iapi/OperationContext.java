@@ -32,4 +32,5 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void setFailBadRecordCount(int failBadRecordCount);
     boolean isFailed();
     List<String> getBadRecords();
+
 }

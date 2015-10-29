@@ -9,17 +9,11 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.impl.load.ColumnContext;
-import com.splicemachine.derby.impl.load.ColumnContext.Builder;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -83,8 +77,6 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
                     colNames.add(nameType.getName());
                 }
                 TableScannerBuilder tableScannerBuilder = util.getTableScannerBuilder(tableName, colNames);
-                TableContext tableContext = util.createTableContext(tableName, tableScannerBuilder);
-                conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
 
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -101,8 +93,8 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
 	public RecordWriter<RowLocation, ExecRow> getRecordWriter(
 			TaskAttemptContext context) throws IOException,
 			InterruptedException {
-        TableContext tableContext = TableContext.getTableContextFromBase64String(context.getConfiguration().get(MRConstants.SPLICE_TBLE_CONTEXT));
-        return new SMRecordWriterImpl(tableContext, context.getConfiguration());
+//        TableContext tableContext = TableContext.getTableContextFromBase64String(context.getConfiguration().get(MRConstants.SPLICE_TBLE_CONTEXT));
+        return new SMRecordWriterImpl(context.getConfiguration());
 	}
 
 	@Override
