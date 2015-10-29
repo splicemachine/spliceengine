@@ -108,7 +108,7 @@ import java.util.Collections;
                         "\n",
                         SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
                 String[] values = spliceCsvReader.readAsStringArray();
-                System.out.println("Parsed Row -> " + values!=null?Arrays.toString(values):values);
+                //System.out.println("Parsed Row -> " + values!=null?Arrays.toString(values):values);
                 ExecRow returnRow = execRow.getClone();
                 for (int i = 1; i <= returnRow.nColumns(); i++) {
                     DataValueDescriptor dvd = returnRow.getColumn(i);
@@ -135,7 +135,7 @@ import java.util.Collections;
                         dvd.setValue(value);
                     }
                 }
-                System.out.println("Returned Row -> " + returnRow);
+               // System.out.println("Returned Row -> " + returnRow);
                 return Collections.singletonList(new LocatedRow(returnRow));
             } catch (Exception e) {
                 if (operationContext.isPermissive()) {
