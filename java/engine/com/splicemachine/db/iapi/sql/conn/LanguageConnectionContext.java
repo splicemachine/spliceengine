@@ -1370,4 +1370,14 @@ public interface LanguageConnectionContext extends Context {
      * @return true, if this LCC has any trigger execution contexts.
      */
     boolean hasTriggers();
+
+
+    void setFailedRecords(long failedRecords);
+
+    void setBadFile(String badFile);
+
+    long getFailedRecords();
+
+    String getBadFile();
+
 }

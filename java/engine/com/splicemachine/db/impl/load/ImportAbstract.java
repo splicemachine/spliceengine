@@ -87,8 +87,8 @@ abstract class ImportAbstract extends VTITemplate {
     columnNames = new String[numberOfColumns];
     loadColumnNames();
     nextRow = new String[numberOfColumns];
-    tableColumnTypes = ColumnInfo.getExpectedVtiColumnTypes(tableColumnTypesStr,
-                                                            numberOfColumns);
+    tableColumnTypes = null;//ColumnInfo.getExpectedVtiColumnTypes(tableColumnTypesStr,
+                              //                              numberOfColumns);
     columnTypeNames =  ColumnInfo.getExpectedColumnTypeNames( columnTypeNamesString, numberOfColumns );
     udtClasses = ColumnInfo.getExpectedUDTClasses( udtClassNamesString );
 	// get the ResultSetMetaData now as we know it's needed

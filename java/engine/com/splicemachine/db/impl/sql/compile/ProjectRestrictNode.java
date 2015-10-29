@@ -1636,8 +1636,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
     }
 
-
-
     @Override
     public String printExplainInformation(int order) throws StandardException {
         StringBuilder sb = new StringBuilder();

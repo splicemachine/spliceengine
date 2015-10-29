@@ -3304,6 +3304,21 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
+    public String printRuntimeInformation() throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        String indexName = getIndexName();
+        sb.append(getClassName(indexName)).append("(")
+                .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
+        if (indexName != null)
+            sb.append(",baseTable=").append(getPrettyTableName());
+        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+        if(qualifiers!=null && qualifiers.size()>0) //add
+            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+        sb.append(")");
+        return sb.toString();
+    }
+
+    @Override
     public String printExplainInformation(int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();

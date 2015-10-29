@@ -198,9 +198,9 @@ public class Import extends ImportAbstract{
                 throw LoadError.entityNameMissing();
             
             
-            ColumnInfo columnInfo = new ColumnInfo(connection , schemaName ,
-                                                   tableName, insertColumnList, 
-                                                   columnIndexes, columnDefinitions);
+            ColumnInfo columnInfo = null;//new ColumnInfo(connection , schemaName ,
+                                         //          tableName, insertColumnList,
+                                         //          columnIndexes, columnDefinitions);
 
             String columnTypeNames = null;
             String udtClassNames = null;
@@ -238,7 +238,7 @@ public class Import extends ImportAbstract{
             String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
             
 
-            String cNamesWithCasts = columnInfo.getColumnNamesWithCasts();
+            String cNamesWithCasts = null;//columnInfo.getColumnNamesWithCasts();
             String insertColumnNames = columnInfo.getInsertColumnNames();
             if(insertColumnNames !=null)
                 insertColumnNames = "(" + insertColumnNames + ") " ;

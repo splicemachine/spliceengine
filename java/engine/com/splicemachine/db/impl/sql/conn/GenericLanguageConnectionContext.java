@@ -49,6 +49,20 @@ import java.util.*;
  */
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext{
 
+    private static final ThreadLocal<String> badFile = new ThreadLocal<String>() {
+        @Override
+        protected String initialValue() {
+            return null;
+        }
+    };
+    private static final ThreadLocal<Long> failedRecords = new ThreadLocal<Long>() {
+        @Override
+        protected Long initialValue() {
+            return 0l;
+        }
+    };
+
+
     // make sure these are not zeros
     private final static int NON_XA=0;
     private final static int XA_ONE_PHASE=1;
@@ -3641,5 +3655,25 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public boolean hasTriggers(){
         return !(this.triggerStack==null || this.triggerStack.isEmpty());
+    }
+
+    @Override
+    public void setFailedRecords(long failedRecords) {
+        this.failedRecords.set(failedRecords);
+    }
+
+    @Override
+    public void setBadFile(String badFile) {
+        this.badFile.set(badFile);
+    }
+
+    @Override
+    public long getFailedRecords() {
+        return failedRecords.get();
+    }
+
+    @Override
+    public String getBadFile() {
+        return badFile.get();
     }
 }

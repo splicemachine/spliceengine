@@ -647,7 +647,7 @@ public final class InsertNode extends DMLModStatementNode {
 
         if (failBadRecordCountString != null) {
             failBadRecordCount = getIntProperty(failBadRecordCountString, "bulkFetch");
-            if (failBadRecordCount <= 0) {
+            if (failBadRecordCount < 0) {
                 throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE,
                         String.valueOf(failBadRecordCount));
             }
