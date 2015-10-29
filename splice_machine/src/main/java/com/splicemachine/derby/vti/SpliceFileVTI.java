@@ -1,16 +1,22 @@
 package com.splicemachine.derby.vti;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+
+import java.io.IOException;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
@@ -25,6 +31,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     private String dateTimeFormat;
     private String timestampFormat;
     private int[] columnIndex;
+    private OperationContext operationContext;
     public SpliceFileVTI() {
 
     }
@@ -72,13 +79,16 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
-
-            OperationContext operationContext = dsp.createOperationContext(op);
-            DataSet<String> textSet = dsp.readTextFile(fileName);
+            operationContext = dsp.createOperationContext(op);
         try {
-            operationContext.pushScope("Parse File:      /sfsdfsdfsd/sdfds/sdfsdf [estCost=234234324, estRows=32423493294234234 qualifiers=[column1=234234322]");
+            ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config),false);
+            DataSet<String> textSet = dsp.readTextFile(fileName);
+            operationContext.pushScope(fileName);
             return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat,operationContext));
-        } finally {
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
+        finally {
             operationContext.popScope();
         }
     }
@@ -101,5 +111,14 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
         throw new SQLException("not supported");
+    }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 }

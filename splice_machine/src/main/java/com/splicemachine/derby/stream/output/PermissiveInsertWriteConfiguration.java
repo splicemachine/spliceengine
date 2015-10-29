@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.output;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -23,11 +24,13 @@ import java.util.concurrent.ExecutionException;
 public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfiguration {
     private static final Logger LOG = Logger.getLogger(PermissiveInsertWriteConfiguration.class);
     protected OperationContext operationContext;
+    protected PairDecoder pairDecoder;
 
-    public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext) {
+    public PermissiveInsertWriteConfiguration(WriteConfiguration delegate, OperationContext operationContext, PairDecoder pairDecoder) {
         super(delegate);
-        assert operationContext!=null;
+        assert operationContext!=null && pairDecoder != null:"Passed in null values to PermissiveInsert";
         this.operationContext = operationContext;
+        this.pairDecoder = pairDecoder;
     }
 
     @Override
@@ -58,7 +61,12 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
             if (!value.canRetry()) {
                 if (operationContext.isFailed())
                     ignore = true;
-                operationContext.recordBadRecord(errorRow(kvPairList.get(rowNum).toString(),value));
+                try {
+                    operationContext.recordBadRecord(errorRow(pairDecoder.decode(kvPairList.get(rowNum)).toString(), value));
+                } catch (Exception e) {
+                    ignore = true;
+                }
+
                 if (operationContext.isFailed())
                     ignore = true;
             }
@@ -109,6 +117,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
                 sb = sb.append("ENVIRONMENT(").append(result.getCode()).append(")");
                 break;
         }
+        sb.append(": " + row);
         return sb.toString();
     }
 }

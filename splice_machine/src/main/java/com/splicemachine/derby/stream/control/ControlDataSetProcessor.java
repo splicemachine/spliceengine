@@ -93,7 +93,9 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     @Override
     public <Op extends SpliceOperation> OperationContext createOperationContext(Op spliceOperation) {
-        return new ControlOperationContext(spliceOperation);
+        OperationContext operationContext = new ControlOperationContext(spliceOperation);
+        spliceOperation.setOperationContext(operationContext);
+        return operationContext;
     }
 
     @Override

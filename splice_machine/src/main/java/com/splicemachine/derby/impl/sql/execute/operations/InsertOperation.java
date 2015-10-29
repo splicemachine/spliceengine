@@ -197,6 +197,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
             out.writeInt(failBadRecordCount);
 		}
 
+    public boolean isImport() {
+        return failBadRecordCount!= -1;
+    }
+
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (statusDirectory!=null) {
@@ -216,6 +220,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .execRowDefinition(getExecRowDefinition())
                 .execRowTypeFormatIds(execRowTypeFormatIds)
                 .spliceSequences(spliceSequences)
+                .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
                 .pkCols(pkCols)
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
@@ -228,4 +233,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
             operationContext.popScope();
         }
     }
+
+    @Override
+    public String getVTIFileName() {
+        return getSubOperations().get(0).getVTIFileName();
+    }
+
 }

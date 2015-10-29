@@ -6,25 +6,19 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-
 import org.apache.hadoop.hbase.util.Pair;
-
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
-import com.splicemachine.derby.impl.load.ImportTaskManagement;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.utils.DatabasePropertyManagement;
 import com.splicemachine.job.JobSchedulerManagement;
@@ -104,23 +98,6 @@ public class JMXUtils {
             jobMonitors.add(new Pair<String, JobSchedulerManagement>(mbsc.getFirst(),getNewMBeanProxy(mbsc.getSecond(), JOB_SCHEDULER_MANAGEMENT, JobSchedulerManagement.class)));
         }
         return jobMonitors;
-    }
-
-    /**
-     * Returns a list of JMX MBeans with statistics for the running import tasks on all of the region servers.
-     * Each entry in the list contains a "pair" which contains the region server that is executing the import task
-     * and the statistics for the import task.  The statistics are retrieved from each region server MBean using JMX.
-     *
-     * @return list of JMX MBeans with statistics for the running import tasks on all of the region servers
-     *
-     * @throws SQLException
-     */
-    public static List<Pair<String,ImportTaskManagement>> getImportTaskManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<Pair<String,ImportTaskManagement>> importTasks = Lists.newArrayListWithCapacity(mbscArray.size());
-        for (Pair<String,JMXConnector> mbsc: mbscArray) {
-        	importTasks.add(new Pair<String, ImportTaskManagement>(mbsc.getFirst(), getNewMXBeanProxy(mbsc.getSecond(), IMPORT_TASK_MANAGEMENT, ImportTaskManagement.class)));
-        }
-        return importTasks;
     }
 
     public static List<TieredSchedulerManagement> getTaskSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {

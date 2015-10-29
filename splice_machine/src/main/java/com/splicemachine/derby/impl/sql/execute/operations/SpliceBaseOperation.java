@@ -17,6 +17,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInforma
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.hbase.KVPair;
@@ -76,6 +77,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected ExecRow currentRow;
 		protected RowLocation currentRowLocation;
 		protected boolean executed = false;
+        protected OperationContext operationContext;
 		protected DataValueDescriptor[] sequence;
 		protected boolean isOpen = true;
 		protected int resultSetNumber;
@@ -939,4 +941,19 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public ExecIndexRow getStartPosition() throws StandardException {
 		throw new RuntimeException("getStartPosition not implemented");
 	}
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
+
+    @Override
+    public void setOperationContext(OperationContext operationContext) {
+        this.operationContext = operationContext;
+    }
+
+    @Override
+    public String getVTIFileName() {
+        throw new RuntimeException("Not Supported");
+    }
 }

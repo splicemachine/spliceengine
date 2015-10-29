@@ -6,13 +6,11 @@ import com.splicemachine.derby.hbase.RollForwardTask;
 import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
-import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.hbase.backup.CreateBackupTask;
 import com.splicemachine.hbase.backup.RestoreBackupTask;
 import org.apache.hadoop.conf.Configuration;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
-
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -132,7 +130,6 @@ public class SchedulerPriorities {
 
 				//DDL operations
 				priority = config.getInt(BASE_PRIORITY_PREFIX + "import", defaultDdlWritePriority);
-				basePriorityMap.put(ImportTask.class,priority);
 				priority = config.getInt(BASE_PRIORITY_PREFIX + "index.create", defaultDdlWritePriority);
                 basePriorityMap.put(CreateIndexTask.class,priority);
             priority = config.getInt(BASE_PRIORITY_PREFIX + "alter.table", defaultDdlWritePriority);

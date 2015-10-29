@@ -1,33 +1,26 @@
 package com.splicemachine.derby.impl.job.load;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SlowTest;
-
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
-
 import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HdfsImportIT extends SpliceUnitTest {
@@ -171,7 +164,6 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
     @Test
-//    @Ignore("Weird error, need to deal later -SF-")
     public void testImportWithPrimaryKeys() throws Exception{
         testImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
     }
@@ -179,7 +171,6 @@ public class HdfsImportIT extends SpliceUnitTest {
     
   @Test
   public void testNewImportDirectory() throws Exception{
-	  // importdir has a subdirectory as well with files in it
       testNewImport(spliceSchemaWatcher.schemaName,TABLE_2,getResourceDirectory()+"importdir","NAME,TITLE,AGE",baddir.newFolder().getCanonicalPath(),0,8);
   }
 
@@ -187,7 +178,7 @@ public class HdfsImportIT extends SpliceUnitTest {
   // test bad records at threshold and beyond threshold
 
     private void testImport(String schemaName, String tableName,String location,String colList) throws Exception {
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null,null,null)",schemaName,tableName,colList,location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,1,null)",schemaName,tableName,colList,location));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
         List<String> results = Lists.newArrayList();
@@ -249,14 +240,12 @@ public class HdfsImportIT extends SpliceUnitTest {
     }
 
 
-
 	@Test
-//	@Ignore("Bug")
 	public void testImportHelloThere() throws Exception {
 		String csvLocation = getResourceDirectory()+"hello_there.csv";
 		PreparedStatement ps =
                 methodWatcher.prepareStatement(
-                        format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, null, '%s', ',', null, null,null,null)",
+                        format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,null,null,1,null)",
                                 spliceSchemaWatcher.schemaName, TABLE_5, csvLocation));
 		ps.execute();
 		ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s order by i",spliceSchemaWatcher.schemaName,TABLE_5));
@@ -280,8 +269,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
 	@Test
 	public void testImportFromSQL() throws Exception{
-		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',',null,null,null,null)",spliceSchemaWatcher.schemaName,TABLE_3));
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null,?" +
+				",',',null,null,null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_3));
         ps.setString(1,getResourceDirectory()+"order_detail_small.csv");
 		ps.execute();
 
@@ -318,8 +307,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	
 	@Test
 	public void testImportISODateFormat() throws Exception{
-		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"','yyyy-MM-dd''T''HH:mm:ss.SSS''Z''',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null,?" +
+				",',','\"','yyyy-MM-dd''T''HH:mm:ss.SSS''Z''',null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_9));
         ps.setString(1,getResourceDirectory()+"iso_order_date.csv");
 		ps.execute();
 
@@ -338,8 +327,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		public void testImportCustomTimeFormatMillisWithTz() throws Exception{
 				methodWatcher.executeUpdate("delete from "+spliceTableWatcher9);
 
-				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-								",',','\"','yyyy-MM-dd hh:mm:ss.SSSZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null,?" +
+								",',','\"','yyyy-MM-dd hh:mm:ss.SSSZ',null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_9));
 				ps.setString(1,getResourceDirectory()+"tz_ms_order_date.csv");
 				ps.execute();
 
@@ -361,8 +350,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		public void testImportCustomTimeFormat() throws Exception{
 				methodWatcher.executeUpdate("delete from "+spliceTableWatcher9);
 
-				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-								",',','\"','yyyy-MM-dd HH:mm:ssZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null,?" +
+								",',','\"','yyyy-MM-dd HH:mm:ssZ',null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_9));
 				ps.setString(1,getResourceDirectory()+"tz_order_date.cs");
 				ps.execute();
 
@@ -383,8 +372,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
 		@Test
 	public void testImportNullFields() throws Exception{
-		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
-				",',','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_10));
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null,?" +
+				",',','\"',null,null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_10));
         ps.setString(1,getResourceDirectory()+"null_field.csv");
 		ps.execute();
 
@@ -412,8 +401,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportWithExtraTabDelimited() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city.txt";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,null,null,null)", spliceSchemaWatcher.schemaName, TABLE_4,location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null," +
+                "'%s',',',null,null,null,null,1,null)", spliceSchemaWatcher.schemaName, TABLE_4,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s",this.getTableReference(TABLE_4)));
@@ -430,8 +419,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportTabDelimited() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city_tab.txt";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s','\t',null,null,null,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null," +
+                "'%s','\t',null,null,null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_8));
@@ -447,8 +436,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportTabDelimitedNullSeparator() throws Exception{
         String location = getResourceDirectory()+"lu_cust_city_tab.txt";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s','\t','\0',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null," +
+                "'%s','\t','\0',null,null,null,1,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_8));
@@ -516,14 +505,13 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testImportTabWithDefaultColumnValue() throws Exception{
         String location = getResourceDirectory()+"default_column.txt";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,null,null,null)", spliceSchemaWatcher.schemaName, TABLE_11, location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s','J'," +
+                "'%s',',',null,null,null,null,1,null)", spliceSchemaWatcher.schemaName, TABLE_11, location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_11));
         while(rs.next()){
             int i = rs.getInt(1);
-            //System.out.println("i = " + i);
             Assert.assertEquals(i, 10);
         }
     }
@@ -531,8 +519,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		@Test
     public void testImportTableWithAutoIncrementColumn() throws Exception{
         String location = getResourceDirectory()+"default_column.txt";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,null,null,null)",spliceSchemaWatcher.schemaName,AUTO_INCREMENT_TABLE,location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null," +
+                "'%s',',',null,null,null,null,1,null)",spliceSchemaWatcher.schemaName,AUTO_INCREMENT_TABLE,location));
         ps.execute();
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,AUTO_INCREMENT_TABLE));
@@ -542,12 +530,17 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
+
 		
 	@Test
+    @Ignore("Not Following this test")
 	public void testNullDatesWithMillisecondAccuracy() throws Exception {
+
+        DataValueDescriptor dvd = new SQLTimestamp();
+
         String location = getResourceDirectory()+"datebug.tbl";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null)", spliceSchemaWatcher.schemaName, TABLE_13, location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null," +
+                "'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null,1,null)", spliceSchemaWatcher.schemaName, TABLE_13, location));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s",spliceSchemaWatcher.schemaName,TABLE_13));
         int i =0;
@@ -561,8 +554,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	@Test
 	public void testNullDatesWithMixedCaseAccuracy() throws Exception {
         String location = getResourceDirectory()+"datebug.tbl";
-        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
-                "'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null)", spliceSchemaWatcher.schemaName, TABLE_15, location));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA ('%s','%s',null," +
+                "'%s',',',null,'yyyy-MM-dd HH:mm:ss.SSSSSS',null,null,1,null)", spliceSchemaWatcher.schemaName, TABLE_15, location));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select SHIPPED_DATE from %s.%s",spliceSchemaWatcher.schemaName,TABLE_15));
         int i =0;
@@ -844,7 +837,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testCheckContstraintLoad() throws Exception{
         testImport(spliceSchemaWatcher.schemaName, TABLE_19, getResourceDirectory() + "test_data/salary_check_constraint.csv", "EMPNO,SALARY,BONUS,TAX");
     }

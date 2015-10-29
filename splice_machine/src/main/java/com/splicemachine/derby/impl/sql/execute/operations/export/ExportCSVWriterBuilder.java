@@ -9,7 +9,7 @@ import java.io.*;
 /**
  * Constructs/configures CsvListWriter objects used during export.
  */
-class ExportCSVWriterBuilder {
+public class ExportCSVWriterBuilder {
 
     /* On a local 4-node cluster varying this buffer size by 3 orders of magnitude had almost no effect. */
     private static final int WRITE_BUFFER_SIZE_BYTES = 16 * 1024;

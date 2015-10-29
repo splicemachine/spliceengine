@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.collect.Iterators;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -10,6 +11,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -169,18 +171,27 @@ public class ControlDataSet<V> implements DataSet<V> {
         if (isCompressed) {
             extension += ".gz";
         }
+        OutputStream fileOut = null;
         try {
             Path file = new Path(path);
             FileSystem fs = file.getFileSystem(SpliceConstants.config);
             fs.mkdirs(file);
-            OutputStream fileOut = fs.create(new Path(path + "/part-r-00000" + extension), false);
+            fileOut = fs.create(new Path(path + "/part-r-00000" + extension), false);
             if (isCompressed) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
             count = exportFunction.call(fileOut, iterable.iterator());
-            fileOut.close();
+
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            if (fileOut !=null) {
+                try {
+                    Closeables.close(fileOut, true);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
 
         File success = new File(path + "/_SUCCESS");
@@ -194,5 +205,30 @@ public class ControlDataSet<V> implements DataSet<V> {
         valueRow.setColumn(1,new SQLInteger(count));
         valueRow.setColumn(2,new SQLInteger(0));
         return new ControlDataSet<>(Arrays.asList(new LocatedRow(valueRow )));
+    }
+
+    @Override
+    public void saveAsTextFile(String path) {
+        OutputStream fileOut = null;
+        try {
+            Path file = new Path(path);
+            FileSystem fs = file.getFileSystem(SpliceConstants.config);
+            fileOut = fs.create(new Path(path), false);
+            Iterator iterator = iterable.iterator();
+            while (iterator.hasNext()) {
+                fileOut.write(iterator.next().toString().getBytes());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (fileOut !=null) {
+                try {
+                    Closeables.close(fileOut, true);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
     }
 }

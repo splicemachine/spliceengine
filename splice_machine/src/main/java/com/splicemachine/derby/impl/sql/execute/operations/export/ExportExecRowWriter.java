@@ -23,7 +23,7 @@ public class ExportExecRowWriter implements Closeable {
     private CsvListWriter csvWriter;
     private NumberFormat decimalFormat = NumberFormat.getInstance();
 
-    ExportExecRowWriter(CsvListWriter csvWriter) {
+    public ExportExecRowWriter(CsvListWriter csvWriter) {
         checkNotNull(csvWriter);
         this.csvWriter = csvWriter;
     }

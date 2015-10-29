@@ -174,7 +174,7 @@ public class HRegionUtil extends BaseHRegionUtil {
 	    	    		SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d",file.getPath(),storeFileInBytes);
 	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
 	    		  int size = fileReader.getRootBlockCount();
-                  long incrementalSize = storeFileInBytes/(long) size;
+                  long incrementalSize = size==0?storeFileInBytes:storeFileInBytes/(long) size;
                   int blockCounter = 0;
 	    		  long lastOffset = 0;
 	    		  for (int i =0; i<size;i++) {

@@ -2,35 +2,28 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.VariableSizeDataValue;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.vti.IFastPath;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
@@ -94,38 +87,21 @@ String fileName, String characterDelimiter, String columnDelimiter, int numberOf
  */
 public class VTIOperation extends SpliceBaseOperation {
 	/* Run time statistics variables */
-	public int rowsReturned;
 	public String javaClassName;
-
-    private boolean next;
-	private ClassInspector classInspector;
     private SpliceMethod<ExecRow> row;
     private String rowMethodName;
     private SpliceMethod<DatasetProvider> constructor;
     private String constructorMethodName;
-
-	private PreparedStatement userPS;
-	private DatasetProvider userVTI;
+	public DatasetProvider userVTI;
 	private ExecRow allocatedRow;
 	private FormatableBitSet referencedColumns;
 	private boolean isTarget;
 	private FormatableHashtable compileTimeConstants;
 	private int ctcNumber;
-
-	private boolean pushedProjection;
-	private IFastPath	fastPath;
-
-	private Qualifier[][]	pushedQualifiers;
-
 	private boolean[] runtimeNullableColumn;
-
 	private boolean isDerbyStyleTableFunction;
-
     private  TypeDescriptor returnType;
-
     private DataTypeDescriptor[]    returnColumnTypes;
-
-    private String[] vtiProjection;
     private Restriction vtiRestriction;
 
 	/**
@@ -179,10 +155,6 @@ public class VTIOperation extends SpliceBaseOperation {
         this.returnType = returnTypeNumber == -1 ? null :
             (TypeDescriptor)
             activation.getPreparedStatement().getSavedObject(returnTypeNumber);
-
-        this.vtiProjection = vtiProjectionNumber == -1 ? null :
-            (String[])
-            activation.getPreparedStatement().getSavedObject(vtiProjectionNumber);
 
         this.vtiRestriction = vtiRestrictionNumber == -1 ? null :
             (Restriction)
@@ -383,40 +355,6 @@ public class VTIOperation extends SpliceBaseOperation {
 		return ExecutionContext.CS_TO_JDBC_ISOLATION_LEVEL_MAP[getScanIsolationLevel()];
 	}
 
-
-	public final void setSharedState(String key, java.io.Serializable value) {
-		if (key == null)
-			return;
-
-		if (compileTimeConstants == null) {
-
-			Object[] savedObjects = activation.getPreparedStatement().getSavedObjects();
-
-			synchronized (savedObjects) {
-
-				compileTimeConstants = (FormatableHashtable) savedObjects[ctcNumber];
-				if (compileTimeConstants == null) {
-					compileTimeConstants = new FormatableHashtable();
-					savedObjects[ctcNumber] = compileTimeConstants;
-				}
-			}
-		}
-
-		if (value == null)
-			compileTimeConstants.remove(key);
-		else
-			compileTimeConstants.put(key, value);
-
-
-	}
-
-	public Object getSharedState(String key) {
-		if ((key == null) || (compileTimeConstants == null))
-			return null;
-
-		return compileTimeConstants.get(key);
-	}
-
     /**
      * <p>
      * Get the types of the columns returned by a Derby-style table function.
@@ -438,89 +376,6 @@ public class VTIOperation extends SpliceBaseOperation {
         }
 
         return returnColumnTypes;
-    }
-
-    /**
-     * <p>
-     * Cast the value coming out of the user-coded ResultSet. The
-     * rules are described in CastNode.getDataValueConversion().
-     * </p>
-     */
-    private void    cast( DataTypeDescriptor dtd, DataValueDescriptor dvd )
-        throws StandardException
-    {
-        TypeId      typeID = dtd.getTypeId();
-
-        if ( !typeID.isBlobTypeId() && !typeID.isClobTypeId() )
-        {
-            if ( typeID.isLongVarcharTypeId() ) { castLongvarchar( dtd, dvd ); }
-            else if ( typeID.isLongVarbinaryTypeId() ) { castLongvarbinary( dtd, dvd ); }
-            else if ( typeID.isDecimalTypeId() ) { castDecimal( dtd, dvd ); }
-            else
-            {
-                Object      o = dvd.getObject();
-
-                dvd.setObjectForCast( o, true, typeID.getCorrespondingJavaTypeName() );
-
-                if ( typeID.variableLength() )
-                {
-                    VariableSizeDataValue   vsdv = (VariableSizeDataValue) dvd;
-                    int                                 width;
-                    if ( typeID.isNumericTypeId() ) { width = dtd.getPrecision(); }
-                    else { width = dtd.getMaximumWidth(); }
-            
-                    vsdv.setWidth( width, dtd.getScale(), false );
-                }
-            }
-
-        }
-
-    }
-
-    /**
-     * <p>
-     * Truncate long varchars to the legal maximum.
-     * </p>
-     */
-    private void    castLongvarchar( DataTypeDescriptor dtd, DataValueDescriptor dvd )
-        throws StandardException
-    {
-        if ( dvd.getLength() > TypeId.LONGVARCHAR_MAXWIDTH )
-        {
-            dvd.setValue( dvd.getString().substring( 0, TypeId.LONGVARCHAR_MAXWIDTH ) );
-        }
-    }
-    
-    /**
-     * <p>
-     * Truncate long varbinary values to the legal maximum.
-     * </p>
-     */
-    private void    castLongvarbinary( DataTypeDescriptor dtd, DataValueDescriptor dvd )
-        throws StandardException
-    {
-        if ( dvd.getLength() > TypeId.LONGVARBIT_MAXWIDTH )
-        {
-            byte[]  original = dvd.getBytes();
-            byte[]  result = new byte[ TypeId.LONGVARBIT_MAXWIDTH ];
-
-            System.arraycopy( original, 0, result, 0, TypeId.LONGVARBIT_MAXWIDTH );
-            
-            dvd.setValue( result );
-        }
-    }
-    
-    /**
-     * <p>
-     * Set the correct precision and scale for a decimal value.
-     * </p>
-     */
-    private void    castDecimal( DataTypeDescriptor dtd, DataValueDescriptor dvd )
-        throws StandardException
-    {
-        VariableSizeDataValue   vsdv = (VariableSizeDataValue) dvd;
-            
-        vsdv.setWidth( dtd.getPrecision(), dtd.getScale(), false );
     }
 
 	@Override
@@ -553,4 +408,12 @@ public class VTIOperation extends SpliceBaseOperation {
     public List<SpliceOperation> getSubOperations() {
         return Collections.EMPTY_LIST;
     }
+
+    @Override
+    public String getVTIFileName() {
+        if (userVTI instanceof SpliceFileVTI)
+            return ((SpliceFileVTI) userVTI).getFileName();
+        return null;
+    }
+
 }

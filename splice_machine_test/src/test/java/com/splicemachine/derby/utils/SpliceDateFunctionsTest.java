@@ -249,4 +249,16 @@ public class SpliceDateFunctionsTest {
     private static Timestamp timeStampT(String dateString) throws ParseException {
         return new Timestamp(DFT.parse(dateString).getTime());
     }
+
+    @Test
+    public void testLargeTimestamps() throws Exception {
+
+        SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.22","yyyy-MM-dd HH:mm:ss.SSSSSS");
+        SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:27.135","yyyy-MM-dd HH:mm:ss.SSSSSS");
+        SpliceDateFunctions.TO_TIMESTAMP("2013-11-26 23:28:55.386","yyyy-MM-dd HH:mm:ss.SSSSSS");
+        SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:27.135","yyyy-MM-dd HH:mm:ss.SSSSSS");
+        SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:40.287469","yyyy-MM-dd HH:mm:ss.SSSSSS");
+
+    }
+
 }

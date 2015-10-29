@@ -31,7 +31,9 @@ public class ColumnInfoIT extends SpliceUnitTest{
     @Test
     public void testGenerateInsertStatement() throws Exception{
         TestConnection testConnection = methodWatcher.createConnection();
-        ColumnInfo columnInfo = new ColumnInfo(testConnection,spliceSchemaWatcher.toString(),"A",null,null,null);
+        ColumnInfo columnInfo = new ColumnInfo(testConnection,spliceSchemaWatcher.toString(),"A",null);
+        System.out.println("Column Info-> " + columnInfo.getInsertColumnNames());
+        System.out.println("Column Info-> " + columnInfo.getColumnTypeNames());
     }
 
 

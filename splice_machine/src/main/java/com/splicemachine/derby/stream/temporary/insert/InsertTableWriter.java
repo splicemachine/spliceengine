@@ -15,7 +15,6 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.utils.PipelineConstants;
 import com.splicemachine.si.api.TxnView;
@@ -30,15 +29,16 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     protected String tableVersion;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
-    protected static final KVPair.Type dataType = KVPair.Type.INSERT;
+    protected KVPair.Type dataType;
     protected SpliceSequence[] spliceSequences;
     protected PairEncoder encoder;
     protected InsertOperation insertOperation;
     protected OperationContext operationContext;
+    protected boolean isUpsert;
 
     public InsertTableWriter(int[] pkCols, String tableVersion, ExecRow execRowDefinition,
                              RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
-                             long heapConglom, TxnView txn, OperationContext operationContext) {
+                             long heapConglom, TxnView txn, OperationContext operationContext, boolean isUpsert) {
         super(txn,heapConglom);
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
@@ -48,6 +48,8 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
         this.insertOperation = (InsertOperation)operationContext.getOperation();
         this.operationContext = operationContext;
         this.destinationTable = Long.toString(heapConglom).getBytes();
+        this.isUpsert = isUpsert;
+        this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
     }
 
     public void open() throws StandardException {
@@ -57,9 +59,10 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         super.open(triggerHandler, operation);
         try {
-            writeBuffer = writeCoordinator.writeBuffer(destinationTable,txn, PipelineConstants.noOpFlushHook,insertOperation.failBadRecordCount>1?
-                    new PermissiveInsertWriteConfiguration(writeCoordinator.defaultWriteConfiguration(),operationContext):writeCoordinator.defaultWriteConfiguration());
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
+            writeBuffer = writeCoordinator.writeBuffer(destinationTable,txn, PipelineConstants.noOpFlushHook,insertOperation.failBadRecordCount!=-1?
+                    new PermissiveInsertWriteConfiguration(writeCoordinator.defaultWriteConfiguration(),
+                            operationContext,encoder.getDecoder(execRowDefinition)):writeCoordinator.defaultWriteConfiguration());
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
         }catch(Exception e){

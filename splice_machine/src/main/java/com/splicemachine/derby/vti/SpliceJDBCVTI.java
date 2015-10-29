@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import java.sql.*;
 
@@ -19,6 +20,7 @@ public class SpliceJDBCVTI implements DatasetProvider, VTICosting {
     private String schemaName;
     private String tableName;
     private String sql; // Bind Variables?
+    protected OperationContext operationContext;
     public SpliceJDBCVTI() {
 
     }
@@ -45,6 +47,7 @@ public class SpliceJDBCVTI implements DatasetProvider, VTICosting {
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op,DataSetProcessor dsp,  ExecRow execRow) throws StandardException {
         Connection connection = null;
+        operationContext = dsp.createOperationContext(op);
         final PreparedStatement ps;
         try {
             connection = DriverManager.getConnection(connectionUrl);
@@ -83,5 +86,10 @@ public class SpliceJDBCVTI implements DatasetProvider, VTICosting {
             if (connection!=null)
                 connection.close();
         }
+    }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
     }
 }
