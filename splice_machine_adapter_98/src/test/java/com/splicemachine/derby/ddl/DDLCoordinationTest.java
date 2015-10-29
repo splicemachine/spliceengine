@@ -146,7 +146,7 @@ public class DDLCoordinationTest{
             }
         };
 
-        AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,new SingleInstanceLockFactory(lock),clock,10l,1l);
+        AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,new SingleInstanceLockFactory(lock),clock,1l,10l);
 
         //initiate the sequence
         String id=controller.notifyMetadataChange(change);
