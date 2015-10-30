@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils.marshall.dvd;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.common.base.Throwables;
+import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -32,7 +34,20 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 				return new Factory() {
 						@Override public DescriptorSerializer newInstance() { return new KryoDescriptorSerializer(kryoPool); }
 
-						@Override public boolean applies(DataValueDescriptor dvd) { return dvd!=null && applies(dvd.getTypeFormatId()); }
+						@Override public boolean applies(DataValueDescriptor dvd) {
+                            if (dvd == null)
+                                return false;
+
+                            try {
+                                Object o = dvd.getObject();
+                                if (o!= null && o instanceof UDTBase)
+                                    return false;
+                                else
+                                    return applies(dvd.getTypeFormatId());
+                            } catch (Exception e) {
+                                throw new RuntimeException(Throwables.getRootCause(e));
+                            }
+                        }
 
 						@Override
 						public boolean applies(int typeFormatId) {

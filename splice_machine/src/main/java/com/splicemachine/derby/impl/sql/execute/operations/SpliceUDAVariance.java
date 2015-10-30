@@ -4,6 +4,11 @@ import com.splicemachine.db.agg.Aggregator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 
 /**
  * Evaluate the variance using the algorithm described by Chan, Golub, and LeVeque in
@@ -22,7 +27,7 @@ import com.splicemachine.db.iapi.error.StandardException;
  * Numer. Math, 58 (1991) pp. 583--590
  *
  */
-public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,SpliceUDAVariance<K>> {
+public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,SpliceUDAVariance<K>>, Externalizable {
     long count;
     double variance;
     double mean;
@@ -71,9 +76,18 @@ public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,Splic
         return (K) r;
     }
 
-    public void add (DataValueDescriptor addend) throws StandardException{
-        variance = addend.getDouble();
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeLong(count);
+        out.writeDouble(variance);
+        out.writeDouble(mean);
     }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        count = in.readLong();
+        variance = in.readDouble();
+        mean = in.readDouble();
+    }
 }
 

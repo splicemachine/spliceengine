@@ -39,13 +39,6 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatistics,
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void add(DataValueDescriptor addend) throws StandardException {
-        if(!addend.isNull())
-            accumulate((ColumnStatistics)addend.getObject());
-    }
-
-    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(stats!=null);
         if(stats!=null)

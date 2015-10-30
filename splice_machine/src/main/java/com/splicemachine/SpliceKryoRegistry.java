@@ -7,6 +7,8 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.catalog.types.*;
+import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.FkTask;
@@ -88,6 +90,7 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -613,8 +616,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return new KVPair(rowKey,value,t);
             }
         }, 143);
-        instance.register(SpliceStddevPop.class,144);
-        instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class, new MapSerializer(), 146);
 
         //instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
@@ -857,5 +858,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyLongVarchar.class, EXTERNALIZABLE_SERIALIZER, 268);
         instance.register(LazyDouble.class, EXTERNALIZABLE_SERIALIZER,269);
         instance.register(LazyDecimal.class, EXTERNALIZABLE_SERIALIZER,270);
+        instance.register(UDTAliasInfo.class, EXTERNALIZABLE_SERIALIZER, 271);
+        instance.register(UDTBase.class, EXTERNALIZABLE_SERIALIZER, 272);
     }
 }

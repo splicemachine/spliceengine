@@ -2,6 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.lang.Math;
 
 public class SpliceStddevSamp<K extends Double> extends SpliceUDAVariance<K>
@@ -31,11 +35,20 @@ public class SpliceStddevSamp<K extends Double> extends SpliceUDAVariance<K>
     }
 
     @Override
-    public void add (DataValueDescriptor addend) throws StandardException{
-        if (!addend.isNull()){
-            result = addend.getDouble();
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(result != null);
+        if (result!=null) {
+            out.writeDouble(result);
         }
     }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        if (in.readBoolean()) {
+            result = in.readDouble();
+        }
+    }
 }
 
