@@ -40,11 +40,5 @@ public class SpliceUDAStableVariance<K extends Double>
     public K terminate() {
         return (K) new Double(m2 / (count - 1));
     }
-
-    @Override
-    public void add(DataValueDescriptor addend) throws StandardException {
-        throw new UnsupportedOperationException();
-    }
-
 }
 

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -15,7 +16,7 @@ import java.io.IOException;
  * Date: 4/2/14
  */
 public class NullDescriptorSerializer implements DescriptorSerializer{
-		private final DescriptorSerializer delegate;
+		private DescriptorSerializer delegate;
 		private final boolean sparse;
 
 		public NullDescriptorSerializer(DescriptorSerializer delegate,boolean sparse) {
@@ -94,6 +95,9 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 						if (!sparse) encodeEmpty(fieldEncoder);
 						return;
 				}
+                if (dvd.getObject() instanceof UDTBase) {
+                    delegate = UDTDescriptorSerializer.INSTANCE;
+                }
 				delegate.encode(fieldEncoder,dvd,desc);
 		}
 

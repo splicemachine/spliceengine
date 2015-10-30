@@ -4,14 +4,21 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.shared.common.udt.UDTBase;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.UDTInputStream;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -23,6 +30,10 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.SQLDecimal;
 import org.apache.log4j.Logger;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
@@ -32,11 +43,11 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class SparkValueRowSerializer<T extends ExecRow> extends Serializer<T> {
     private static Logger LOG = Logger.getLogger(SparkValueRowSerializer.class);
-    private LoadingCache<IntArray, DescriptorSerializer[]> serializersCache = CacheBuilder.newBuilder().maximumSize(10).build(
-            new CacheLoader<IntArray, DescriptorSerializer[]>() {
+    private LoadingCache<DataValueDescriptor[], DescriptorSerializer[]> serializersCache = CacheBuilder.newBuilder().maximumSize(10).build(
+            new CacheLoader<DataValueDescriptor[], DescriptorSerializer[]>() {
                 @Override
-                public DescriptorSerializer[] load(IntArray key) {
-                    return VersionedSerializers.latestVersion(false).getSerializers(key.array);
+                public DescriptorSerializer[] load(DataValueDescriptor[] dvds) {
+                    return VersionedSerializers.latestVersion(false).getSerializers(dvds);
                 }
             }
     );
@@ -51,13 +62,39 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
 
     @Override
     public void write(Kryo kryo, Output output, T object) {
-        int[] formatIds = SpliceUtils.getFormatIds(object.getRowArray());
-        DataHash encoder = getEncoder(formatIds);
-        output.writeInt(formatIds.length, true);
-        for (int formatId : formatIds) {
-            output.writeInt(formatId, true);
-        }
 
+        DataValueDescriptor[] dvds = object.getRowArray();
+        int[] formatIds = SpliceUtils.getFormatIds(dvds);
+        DataHash encoder = getEncoder(dvds);
+        output.writeInt(formatIds.length, true);
+        try {
+            for (int i = 0; i < formatIds.length; ++i) {
+                int formatId = formatIds[i];
+                output.writeInt(formatId, true);
+                if (formatId == StoredFormatIds.SQL_USERTYPE_ID_V3) {
+                    Object o = dvds[i].getObject();
+                    boolean useKryo = false;
+                    if (o != null && o instanceof UDTBase) {
+                        // This is a UDT or UDA, do not serialize using Kryo
+                        output.writeBoolean(useKryo);
+                        ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
+                        objectOutputStream.writeObject(o);
+                        objectOutputStream.flush();
+                        byte[] bytes = outputBuffer.toByteArray();
+                        output.writeInt(bytes.length);
+                        output.write(bytes);
+                        objectOutputStream.close();
+
+                    } else {
+                        useKryo = true;
+                        output.writeBoolean(useKryo);
+                    }
+                }
+            }
+        } catch(Exception e) {
+            throw new RuntimeException(Throwables.getRootCause(e));
+        }
         encoder.setRow(object);
         try {
             byte[] encoded = encoder.encode();
@@ -90,19 +127,36 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         T instance = newType(size);
 
         int[] formatIds = new int[size];
-        for (int i = 0; i < size; ++i) {
-            formatIds[i] = input.readInt(true);
-        }
-        DataValueDescriptor[] rowTemplate;
+        ExecRow execRow = new ValueRow(size);
+        DataValueDescriptor[] rowTemplate = execRow.getRowArray();
         try {
-            rowTemplate = getClone(templatesCache.get(new IntArray(formatIds)));
-        } catch (ExecutionException e) {
-            LOG.error("Error loading template from cache", e);
-            rowTemplate = getRowTemplate(formatIds);
+            for (int i = 0; i < size; ++i) {
+                formatIds[i] = input.readInt(true);
+                rowTemplate[i] = getDVD(formatIds[i]);
+                if (formatIds[i] == StoredFormatIds.SQL_USERTYPE_ID_V3) {
+                    if (!input.readBoolean()) {
+                        // This is a UDT or UDA
+                        int len = input.readInt();
+                        byte[] bytes = new byte[len];
+                        input.read(bytes, 0, len);
+                        LanguageConnectionContext lcc = (LanguageConnectionContext)
+                                ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+                        ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+                        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+                        UDTInputStream inputStream = new UDTInputStream(in, cf);
+                        Object o = inputStream.readObject();
+                        rowTemplate[i].setValue(o);
+                        inputStream.close();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(Throwables.getRootCause(e));
         }
+
         instance.setRowArray(rowTemplate);
 
-        KeyHashDecoder decoder = getEncoder(formatIds).getDecoder();
+        KeyHashDecoder decoder = getEncoder(rowTemplate).getDecoder();
         int length = input.readInt(true);
         int position = input.position();
 
@@ -122,25 +176,26 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         return instance;
     }
 
-    private static DataValueDescriptor[] getClone(DataValueDescriptor[] dataValueDescriptors) {
-        DataValueDescriptor[] result =  new DataValueDescriptor[dataValueDescriptors.length];
-        for (int i = 0; i < dataValueDescriptors.length; ++i) {
-            result[i] = dataValueDescriptors[i].getNewNull();
+    private static DataValueDescriptor getDVD(int formatId) {
+        if (formatId == StoredFormatIds.SQL_DECIMAL_ID) {
+            return new SQLDecimal();
+        } else {
+            return DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
         }
-        return result;
     }
 
     protected abstract T newType(int size);
 
 
-    private DataHash getEncoder(int[] formatIds) {
+    private DataHash getEncoder(DataValueDescriptor[] dvds) {
+        int[] formatIds = SpliceUtils.getFormatIds(dvds);
         int[] rowColumns = IntArrays.count(formatIds.length);
         DescriptorSerializer[] serializers;
         try {
-            serializers = serializersCache.get(new IntArray(formatIds));
+            serializers = serializersCache.get(dvds);
         } catch (ExecutionException e) {
             LOG.error("Error loading serializers from serializersCache", e);
-            serializers = VersionedSerializers.latestVersion(false).getSerializers(formatIds);
+            serializers = VersionedSerializers.latestVersion(false).getSerializers(dvds);
         }
 
         return BareKeyHash.encoder(rowColumns, null, serializers);

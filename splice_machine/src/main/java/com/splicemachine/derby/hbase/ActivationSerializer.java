@@ -3,6 +3,12 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.shared.common.udt.UDTBase;
+import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.derby.utils.marshall.dvd.UDTInputStream;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -54,6 +60,7 @@ public class ActivationSerializer {
 
     private static final List<FieldStorageFactory> factories;
     private static final ArrayFactory arrayFactory;
+    private static final ClassFactory classFactory;
 
     static{
         factories = Lists.newArrayList();
@@ -67,6 +74,10 @@ public class ActivationSerializer {
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
+        LanguageConnectionContext lcc = (LanguageConnectionContext)
+                ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+        classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
+
     }
 
     private static class Visitor{
@@ -361,19 +372,48 @@ public class ActivationSerializer {
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeBoolean(dvd.isNull());
-            if(!dvd.isNull())
-                out.writeObject(dvd);
-            else
+            if (!dvd.isNull()) {
+                boolean useKryo = true;
+                if (dvd instanceof UserType && ((UserType) dvd).getObject() instanceof UDTBase) {
+                    // If this is a UDT or UDA, do not serialize using kryo
+                    useKryo = false;
+                    out.writeBoolean(useKryo);
+                    ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
+                    objectOutputStream.writeObject(dvd);
+                    objectOutputStream.flush();
+                    byte[] bytes = outputBuffer.toByteArray();
+                    out.writeInt(bytes.length);
+                    out.write(bytes);
+                    objectOutputStream.close();
+                } else {
+                    out.writeBoolean(useKryo);
+                    out.writeObject(dvd);
+                }
+            } else {
                 out.writeInt(type);
-
+            }
         }
 
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            if(!in.readBoolean())
-                dvd = (DataValueDescriptor)in.readObject();
-            else
+            if(!in.readBoolean()) {
+                if (in.readBoolean()) {
+                    dvd = (DataValueDescriptor) in.readObject();
+                } else {
+                    // This is a UDT or UDA and was not serialized by Kryo
+                    int len = in.readInt();
+                    byte[] bytes = new byte[len];
+                    in.read(bytes, 0, len);
+                    ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+                    UDTInputStream inputStream = new UDTInputStream(input, classFactory);
+                    dvd = (DataValueDescriptor)inputStream.readObject();
+                    inputStream.close();
+                }
+
+            } else {
                 type = in.readInt();
+            }
         }
     }
 
