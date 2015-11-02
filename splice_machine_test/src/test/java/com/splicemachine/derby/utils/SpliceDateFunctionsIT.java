@@ -5,9 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLSyntaxErrorException;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -1198,6 +1196,23 @@ public class SpliceDateFunctionsIT {
             }
         }
         assertTrue("Expected some NOW() rows.", rows > 0);
+    }
+
+    @Test
+    public void testInsertTimestampDuringDaylightSavingGap() throws Exception {
+        Connection conn = methodWatcher.getOrCreateConnection();
+        conn.createStatement().executeUpdate("create table DST(a TIMESTAMP)");
+
+        Statement s = conn.createStatement();
+
+        s.executeUpdate("INSERT INTO DST VALUES('2019-03-10 02:24:11')");
+        s.executeUpdate("INSERT INTO DST VALUES('2014-03-09 02:45:11')");
+        s.executeUpdate("INSERT INTO DST VALUES('2006-04-02 02:12:33')");
+        s.executeUpdate("INSERT INTO DST VALUES('1990-04-01 02:12:33')");
+        s.executeUpdate("INSERT INTO DST VALUES('1984-04-29 02:12:33')");
+        s.executeUpdate("INSERT INTO DST VALUES('1967-04-30 02:12:33')");
+        s.executeUpdate("INSERT INTO DST VALUES('2061-03-13 02:03:43.715')");
+        s.executeUpdate("INSERT INTO DST VALUES('2077-03-14 02:52:30.712')");
     }
 
     //====================================================================================================
