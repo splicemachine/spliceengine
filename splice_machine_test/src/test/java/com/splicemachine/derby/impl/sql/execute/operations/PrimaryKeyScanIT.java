@@ -130,7 +130,6 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore ("Need nulls handled")
     public void testScanForNullEntries() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1 is null",this.getTableReference(TABLE_NAME)));
         Assert.assertTrue("Expected 0 rows returned!",!rs.next());

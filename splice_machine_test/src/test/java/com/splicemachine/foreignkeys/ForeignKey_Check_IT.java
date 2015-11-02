@@ -364,7 +364,6 @@ public class ForeignKey_Check_IT {
     }
 
     @Test
-    @Ignore("DB-3735")
     public void nullValues_referencing_twoColumnUniqueIndex() throws Exception {
 
         new TableCreator(connection())
@@ -386,7 +385,6 @@ public class ForeignKey_Check_IT {
     }
 
     @Test
-    @Ignore("DB-3735")
     public void nullValues_referencing_twoColumnDoubleUniqueIndex() throws Exception {
 
         new TableCreator(connection())
