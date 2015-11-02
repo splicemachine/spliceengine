@@ -77,7 +77,7 @@ public final class InsertNode extends DMLModStatementNode {
 
     public static final String INSERT_MODE = "insertMode";
     public static final String STATUS_DIRECTORY = "statusDirectory";
-    public static final String FAIL_BAD_RECORD_COUNT = "failBadRecordCount";
+    public static final String BAD_RECORDS_ALLOWED = "badRecordsAllowed";
     public static final String INSERT = "INSERT";
 
 
@@ -91,7 +91,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     ValueNode           fetchFirst;
     private     boolean           hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
     private     String              statusDirectory;
-    private     int              failBadRecordCount = -1;
+    private     int              badRecordsAllowed = 0;
 
 
 	protected   RowLocation[] 		autoincRowLocation;
@@ -632,7 +632,7 @@ public final class InsertNode extends DMLModStatementNode {
 		// The only property that we're currently interested in is insertMode
 		String insertModeString = targetProperties.getProperty(INSERT_MODE);
         String statusDirectoryString = targetProperties.getProperty(STATUS_DIRECTORY);
-        String failBadRecordCountString = targetProperties.getProperty(FAIL_BAD_RECORD_COUNT);
+        String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
 
 		if (insertMode != null) {
             String upperValue = StringUtil.SQLToUpperCase(insertModeString);
@@ -645,17 +645,12 @@ public final class InsertNode extends DMLModStatementNode {
             }
         }
 
-        if (failBadRecordCountString != null) {
-            failBadRecordCount = getIntProperty(failBadRecordCountString, "bulkFetch");
-            if (failBadRecordCount < 0) {
-                throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_VALUE,
-                        String.valueOf(failBadRecordCount));
-            }
-        }
+        if (failBadRecordCountString != null)
+            badRecordsAllowed = getIntProperty(failBadRecordCountString, "bulkFetch");
 
         if (statusDirectoryString != null) {
             statusDirectory = statusDirectoryString;
-            // Need to Validate Directory is valid, I think I will have to do this on execution side unfortunately.
+            // TODO JL Need to Validate Directory is valid, I think I will have to do this on execution side unfortunately.
         }
 
 
@@ -876,7 +871,7 @@ public final class InsertNode extends DMLModStatementNode {
                 mb.pushNull("java.lang.String");
             else
                 mb.push(statusDirectory);
-            mb.push(failBadRecordCount);
+            mb.push(badRecordsAllowed);
             mb.push((double) this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
 
