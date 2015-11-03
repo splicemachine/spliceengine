@@ -306,10 +306,12 @@ public class StatsStoreCostController extends GenericController implements Store
         List<ColumnStatistics> columnStats=pStats.columnStatistics();
         int avgRowWidth = pStats.avgRowWidth();
         int tcc = totalColumnCount;
-        for(ColumnStatistics cStats:columnStats){
-            int colWidth=cStats.avgColumnWidth();
-            avgRowWidth-=colWidth;
-            tcc--;
+        if (columnStats != null) {
+            for(ColumnStatistics cStats:columnStats){
+                int colWidth=cStats.avgColumnWidth();
+                avgRowWidth-=colWidth;
+                tcc--;
+            }
         }
         if(tcc<=0){
             /*
