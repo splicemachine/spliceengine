@@ -66,7 +66,7 @@
 						<artifactId>zookeeper</artifactId>
 					</exclusion>
 				</exclusions>
- </dependency>		
+ </dependency>
 	<dependency>
 				<groupId>com.splicemachine</groupId>
 				<artifactId>utilities</artifactId>
@@ -436,7 +436,7 @@
 						<!-- Skip ITs -->
 						<exclude>**/*IT.java</exclude>
 						<!-- Skip Window function UIs temporarily - DB-1765 -->
-						<exclude>com/splicemachine/derby/impl/sql/execute/operations/window/**</exclude>
+						<exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
 					</excludes>
 					<runOrder>alphabetical</runOrder>
 				</configuration>

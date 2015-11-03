@@ -58,13 +58,11 @@ import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.TransactionReadTask;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.dvd.*;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
@@ -88,9 +86,7 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -655,8 +651,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                     }
                 },149);
 
-        instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,154);
-        //instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
+        instance.register(LazyTimestamp.class,EXTERNALIZABLE_SERIALIZER,154);
+        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
 				instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>() {
 						@Override
@@ -856,6 +852,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ClearStatsCacheDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 262);
         instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER, 263);
         instance.register(VTIOperation.class, EXTERNALIZABLE_SERIALIZER, 264);
-
+        instance.register(LazyVarchar.class, EXTERNALIZABLE_SERIALIZER, 265);
+        instance.register(LazyChar.class, EXTERNALIZABLE_SERIALIZER, 266);
+        instance.register(LazyClob.class, EXTERNALIZABLE_SERIALIZER, 267);
+        instance.register(LazyLongVarchar.class, EXTERNALIZABLE_SERIALIZER, 268);
+        instance.register(LazyDouble.class, EXTERNALIZABLE_SERIALIZER,269);
+        instance.register(LazyDecimal.class, EXTERNALIZABLE_SERIALIZER,270);
     }
 }

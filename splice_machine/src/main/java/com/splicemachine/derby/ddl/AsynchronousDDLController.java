@@ -49,8 +49,8 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
     public AsynchronousDDLController(DDLCommunicator communicator,
                                      LockFactory lockFactory,
                                      Clock clock,
-                                     long maxDdlWaitMillis,
-                                     long refreshIntervalMillis){
+                                     long refreshIntervalMillis,
+                                     long maxDdlWaitMillis){
         this.communicator=communicator;
         this.clock = clock;
         this.notificationLock = lockFactory.newLock();

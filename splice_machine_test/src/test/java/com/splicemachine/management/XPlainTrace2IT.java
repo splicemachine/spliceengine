@@ -219,7 +219,6 @@ public class XPlainTrace2IT extends BaseXplainIT{
     }
 
     @Test
-    @Ignore("Ignored until DB-1755 is resolved")
     public void testDropColumn() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "alter table " + spliceTableWatcher1 + " drop column j";

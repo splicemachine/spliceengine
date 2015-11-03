@@ -18,9 +18,8 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
                                      WindowAggregator[] aggregators,
                                      PartitionAwarePushBackIterator<ExecRow> source,
                                      FrameDefinition frameDefinition,
-                                     int[] sortColumns,
                                      ExecRow templateRow) throws StandardException {
-        super(runtimeContext, aggregators, source, frameDefinition, sortColumns, templateRow);
+        super(runtimeContext, aggregators, source, frameDefinition, templateRow);
     }
 
     @Override
@@ -31,13 +30,13 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
         }
 
         endOfPartition = false;
-        partition = source.getPartition();
+        partition = partitionIter.getPartition();
         for (int i = 0; i <= frameEnd; ++i) {
-            ExecRow row = source.next(runtimeContext);
+            ExecRow row = partitionIter.next(runtimeContext);
             if (row == null) {
                 break;
             }
-            if (Bytes.compareTo(partition, source.getPartition()) == 0) {
+            if (Bytes.compareTo(partition, partitionIter.getPartition()) == 0) {
                 ExecRow clonedRow = row.getClone();
                 rows.add(clonedRow);
 
@@ -48,7 +47,7 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
             }
             else {
                 // we consumed this partition, push back the row that belongs to the next partition
-                source.pushBack(row);
+                partitionIter.pushBack(row);
                 endOfPartition = true;
                 break;
             }
@@ -88,13 +87,13 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer{
         if (end != Long.MAX_VALUE) {
             if (current + frameEnd > end && !endOfPartition) {
                 // read a row from scanner
-                ExecRow row = source.next(runtimeContext);
+                ExecRow row = partitionIter.next(runtimeContext);
                 if (row != null) {
                     ExecRow clonedRow = row.getClone();
-                    if (Bytes.compareTo(source.getPartition(), partition) == 0) {
+                    if (Bytes.compareTo(partitionIter.getPartition(), partition) == 0) {
                         rows.add(clonedRow);
                     } else {
-                        source.pushBack(row);
+                        partitionIter.pushBack(row);
                         endOfPartition = true;
                     }
                 }

@@ -1,18 +1,14 @@
 package com.splicemachine.derby.impl.job.load;
 
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.pipeline.exception.ErrorState;
-
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;

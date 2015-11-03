@@ -25,20 +25,17 @@ import com.splicemachine.utils.SpliceUtilities;
 
 public class TestUtils {
 
-    public static URL getClasspathResource(String path){
-        return TestUtils.class.getClassLoader().getResource(path);
-    }
 
-    public static void executeSql(SpliceWatcher spliceWatcher, String sqlStatements, String schema){
+    public static void executeSql(Connection connection, String sqlStatements, String schema) {
         try {
-            String str = sqlStatements.replaceAll("<SCHEMA>",schema);
+            String str = sqlStatements.replaceAll("<SCHEMA>", schema);
             str = str.replaceAll("<DIR>",SpliceUnitTest.getResourceDirectory());
-            for (String s : str.split(";")){
+            for (String s : str.split(";")) {
                 String trimmed = s.trim();
-                if (!trimmed.equals("")){
-                    Statement stmt = spliceWatcher.getStatement();
+                if (!trimmed.equals("")) {
+                    Statement stmt = connection.createStatement();
                     stmt.execute(s);
-                    spliceWatcher.commit();
+                    connection.commit();
                 }
             }
         } catch (Exception e) {
@@ -46,9 +43,14 @@ public class TestUtils {
         }
     }
 
+    public static void executeSqlFile(Connection connection, String fileSuffix, String schema) {
+        executeSql(connection, readFile(fileSuffix), schema);
+    }
 
-    public static void executeSqlFile(SpliceWatcher spliceWatcher, String fileSuffix, String schema){
-        executeSql(spliceWatcher, readFile(fileSuffix), schema);
+    /* @Deprecated Use the version that takes java.sql.Connection rather than a junit TestWatcher */
+    @Deprecated
+    public static void executeSqlFile(SpliceWatcher watcher, String fileSuffix, String schema) {
+        executeSql(watcher.getOrCreateConnection(), readFile(fileSuffix), schema);
     }
 
     private static String readFile(String fileName) {
@@ -148,7 +150,7 @@ public class TestUtils {
             protected void starting(Description description) {
 
                 try {
-                    TestUtils.executeSqlFile(watcher, fileName, className);
+                    TestUtils.executeSqlFile(watcher.getOrCreateConnection(), fileName, className);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -162,7 +164,7 @@ public class TestUtils {
             protected void starting(Description description) {
 
                 try {
-                    TestUtils.executeSql(watcher, sqlStatements, className);
+                    TestUtils.executeSql(watcher.getOrCreateConnection(), sqlStatements, className);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

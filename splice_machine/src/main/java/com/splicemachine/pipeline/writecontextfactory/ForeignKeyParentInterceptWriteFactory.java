@@ -1,6 +1,6 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
-import com.clearspring.analytics.util.Lists;
+import com.google.common.collect.Lists;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyParentInterceptWriteHandler;
 

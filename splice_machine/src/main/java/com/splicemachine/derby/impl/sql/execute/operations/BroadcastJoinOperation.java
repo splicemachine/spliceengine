@@ -79,9 +79,9 @@ import java.util.*;
  *
  */
 
-public class BroadcastJoinOperation extends JoinOperation {
-    private static final long serialVersionUID = 2l;
-    private static Logger LOG = Logger.getLogger(BroadcastJoinOperation.class);
+public class BroadcastJoinOperation extends JoinOperation{
+    private static final long serialVersionUID=2l;
+    private static Logger LOG=Logger.getLogger(BroadcastJoinOperation.class);
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
@@ -112,29 +112,29 @@ public class BroadcastJoinOperation extends JoinOperation {
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
                                   String userSuppliedOptimizerOverrides) throws
-                                                                         StandardException {
-        super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-                 activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide,
-                 optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
-        this.leftHashKeyItem = leftHashKeyItem;
-        this.rightHashKeyItem = rightHashKeyItem;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-                                                    ClassNotFoundException {
-        super.readExternal(in);
-        leftHashKeyItem = in.readInt();
-        rightHashKeyItem = in.readInt();
+            StandardException{
+        super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,
+                activation,restriction,resultSetNumber,oneRowRightSide,notExistsRightSide,
+                optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+        this.leftHashKeyItem=leftHashKeyItem;
+        this.rightHashKeyItem=rightHashKeyItem;
+        try{
+            init(SpliceOperationContext.newContext(activation));
+        }catch(IOException e){
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void readExternal(ObjectInput in) throws IOException,
+            ClassNotFoundException{
+        super.readExternal(in);
+        leftHashKeyItem=in.readInt();
+        rightHashKeyItem=in.readInt();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
@@ -148,7 +148,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public SpliceOperation getLeftOperation() {
+    public SpliceOperation getLeftOperation(){
         return leftResultSet;
     }
 
