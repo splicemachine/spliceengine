@@ -5,10 +5,6 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
@@ -17,39 +13,23 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
-import com.splicemachine.derby.impl.stats.DvdStatsCollector;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.impl.stats.StatsConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stream.stats.IndexStatisticsCollector;
-import com.splicemachine.derby.stream.stats.StatisticsCollector;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.Metrics;
-import com.splicemachine.metrics.TimeView;
-import com.splicemachine.metrics.Timer;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.collector.ColumnStatsCollector;
 import com.splicemachine.storage.EntryEncoder;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.List;
@@ -71,7 +51,6 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
     public StatisticsScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             MetricFactory metricFactory,
                              Scan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
@@ -87,7 +66,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
                              int[] fieldLengths,
                              int[] columnPositionMap,
                              long baseConglomId) {
-        super(dataLib, scanner, region, template, metricFactory, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+        super(dataLib, scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
                 tableVersion, filterFactory);
         this.columnPositionMap = columnPositionMap;

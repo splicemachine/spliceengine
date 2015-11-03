@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
-
 import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Joiner;
 import com.google.common.primitives.Longs;
@@ -31,14 +30,12 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -551,7 +548,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return new TableScannerBuilder()
                 .transaction(txn)
                 .execRowTypeFormatIds(execRowFormatIds)
-                .metricFactory(Metrics.basicMetricFactory())
                 .scan(scan)
                 .rowDecodingMap(rowDecodingMap)
                 .keyColumnEncodingOrder(keyEncodingOrder)
@@ -732,7 +728,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return new TableScannerBuilder()
                 .transaction(txn)
                 .execRowTypeFormatIds(execRowFormatIds)
-                .metricFactory(Metrics.basicMetricFactory())
                 .scan(scan)
                 .rowDecodingMap(rowDecodingMap)
                 .keyColumnEncodingOrder(keyColumnEncodingOrder)

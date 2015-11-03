@@ -87,7 +87,7 @@ public class UpportIT extends SpliceUnitTest {
             statement.execute();
             Assert.fail("Did not thow exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", ErrorState.IMPORT_MISSING_NOT_NULL_KEY.getSqlState(),se.getSQLState());
+            Assert.assertEquals("Incorrect SQL State!", ErrorState.LANG_NULL_INTO_NON_NULL.getSqlState(),se.getSQLState());
         }
     }
 
@@ -105,7 +105,7 @@ public class UpportIT extends SpliceUnitTest {
             statement.execute();
             Assert.fail("Did not thow exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", ErrorState.IMPORT_MISSING_NOT_NULL_KEY.getSqlState(),se.getSQLState());
+            Assert.assertEquals("Incorrect SQL State!", ErrorState.LANG_NULL_INTO_NON_NULL.getSqlState(),se.getSQLState());
         }
     }
 

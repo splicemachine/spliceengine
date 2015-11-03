@@ -23,7 +23,6 @@ import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerialize
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -56,7 +55,6 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
     public StatisticsScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             MetricFactory metricFactory,
                              Scan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
@@ -72,7 +70,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
                              int[] fieldLengths,
                              int[] columnPositionMap,
                              long baseConglomId) {
-        super(dataLib, scanner, region, template, metricFactory, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+        super(dataLib, scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
                 tableVersion, filterFactory);
         this.columnPositionMap = columnPositionMap;

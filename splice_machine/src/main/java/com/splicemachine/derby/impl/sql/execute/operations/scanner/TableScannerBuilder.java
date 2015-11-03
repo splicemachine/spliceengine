@@ -5,11 +5,9 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
-
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.stats.StatisticsScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
@@ -31,7 +29,6 @@ import org.apache.hadoop.hbase.util.Base64;
 public class TableScannerBuilder implements Externalizable {
 		protected MeasuredRegionScanner scanner;
 		protected	ExecRow template;
-		protected	MetricFactory metricFactory;
 		protected	Scan scan;
 		protected	int[] rowColumnMap;
 		protected TxnView txn;
@@ -60,11 +57,6 @@ public class TableScannerBuilder implements Externalizable {
 		public TableScannerBuilder template(ExecRow template) {
 				assert template !=null :"Null template rows are not allowed!";
 				this.template = template;
-				return this;
-		}
-
-		public TableScannerBuilder metricFactory(MetricFactory metricFactory) {
-				this.metricFactory = metricFactory;
 				return this;
 		}
 
@@ -257,7 +249,6 @@ public class TableScannerBuilder implements Externalizable {
                         scanner,
                         region,
                         template,
-                        metricFactory==null?Metrics.noOpMetricFactory():metricFactory,
                         scan,
                         rowColumnMap,
                         txn,
@@ -280,7 +271,6 @@ public class TableScannerBuilder implements Externalizable {
                         scanner,
                         region,
                         template,
-                        metricFactory==null?Metrics.noOpMetricFactory():metricFactory,
                         scan,
                         rowColumnMap,
                         txn,
@@ -329,7 +319,6 @@ public class TableScannerBuilder implements Externalizable {
             out.writeBoolean(operationContext!=null);
             if (operationContext!=null)
                 out.writeObject(operationContext);
-			out.writeObject(metricFactory);
 
             out.writeBoolean(fieldLengths!=null);
             if (fieldLengths!=null) {
@@ -372,8 +361,6 @@ public class TableScannerBuilder implements Externalizable {
 				tableVersion = in.readUTF();
             if (in.readBoolean())
                 operationContext = (OperationContext) in.readObject();
-			metricFactory = (MetricFactory)in.readObject();
-
             if (in.readBoolean()) {
                 int n = in.readInt();
                 fieldLengths = new int[n];
@@ -420,8 +407,4 @@ public class TableScannerBuilder implements Externalizable {
 		public int[] getExecRowTypeFormatIds() {
 			return execRowTypeFormatIds;
 		}
-
-        public MetricFactory getMetricFactory() {
-            return metricFactory;
-        }
 }

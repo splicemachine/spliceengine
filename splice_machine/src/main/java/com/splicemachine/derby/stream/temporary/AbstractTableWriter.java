@@ -38,7 +38,6 @@ public abstract class AbstractTableWriter<T> implements AutoCloseable, TableWrit
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         writeCoordinator = SpliceDriver.driver().getTableWriter();
         this.triggerHandler = triggerHandler;
-        flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
         this.operation = (DMLWriteOperation) operation;
     }
 
@@ -65,6 +64,7 @@ public abstract class AbstractTableWriter<T> implements AutoCloseable, TableWrit
 
     public void close() throws StandardException {
         try {
+            TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
             writeBuffer.flushBuffer();
             writeBuffer.close();
         } catch (Exception e) {

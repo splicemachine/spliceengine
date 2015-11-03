@@ -48,7 +48,10 @@ public class SpliceTableWatcher extends TestWatcher {
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
             ps.setString(3,filename);
-            ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+
+            }
         } catch (Exception e) {
             error(e);
             throw new RuntimeException(e);
