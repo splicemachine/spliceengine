@@ -81,9 +81,9 @@ public class TPCC extends SpliceUnitTest {
 		@Override
 		protected void starting(Description description) {
 			try {
-				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s',',',null,null,null,null)",CLASS_NAME,CUSTOMER,getResource("customer.csv.gz")));
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,null,null,0,null,true,null)",CLASS_NAME,CUSTOMER,getResource("customer.csv.gz")));
 				ps.execute();
-				ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s',',',null,null,null,null)",CLASS_NAME,WAREHOUSE,getResource("warehouse.csv")));
+				ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,null,null,0,null,true,null)",CLASS_NAME,WAREHOUSE,getResource("warehouse.csv")));
 				ps.execute();
 			} catch (Exception e) {
 				throw new RuntimeException(e);

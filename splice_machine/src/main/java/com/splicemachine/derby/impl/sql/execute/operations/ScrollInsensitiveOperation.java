@@ -251,7 +251,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         try {
-            operationContext.pushScope("Scroll Insensitive");
+            operationContext.pushScope(String.format("Scroll Insensitive {cost=%f,rows=%f}",getEstimatedCost(),getEstimatedRowCount()));
             dsp.setSchedulerPool("query");
             return sourceSet.map(new ScrollInsensitiveFunction(operationContext));
         }

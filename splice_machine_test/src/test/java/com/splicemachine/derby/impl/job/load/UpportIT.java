@@ -8,12 +8,10 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.pipeline.exception.ErrorState;
-
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.Collections;
@@ -78,7 +76,7 @@ public class UpportIT extends SpliceUnitTest {
     @Test
     public void testUpsertFailsWithMissingNonNullColumn() throws Exception {
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,occupiedTable.tableName);
         statement.setString(3,"a");
@@ -96,7 +94,7 @@ public class UpportIT extends SpliceUnitTest {
     @Test
     public void testUpsertFailsWithMissingPk() throws Exception {
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2, nullableBTable.tableName);
         statement.setString(3,"b");
@@ -114,7 +112,7 @@ public class UpportIT extends SpliceUnitTest {
     @Test
     public void testUpsertFailsWithNoPk() throws Exception {
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,no_pk.tableName);
         statement.setString(3,fullTestFile.fileName());
@@ -141,7 +139,7 @@ public class UpportIT extends SpliceUnitTest {
         newCorrect.add(new int[]{size + 1, size + 1});
 
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,occupiedTable.tableName);
         statement.setString(3,fullTestFile.fileName());
@@ -182,7 +180,7 @@ public class UpportIT extends SpliceUnitTest {
         newCorrect.add(new int[]{size + 1, size + 1});
 
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,"a");
@@ -213,7 +211,7 @@ public class UpportIT extends SpliceUnitTest {
     @Test
     public void testUpsertWithPartialEmptyTableWillInsert() throws Exception {
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,?,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,"a");
@@ -244,7 +242,7 @@ public class UpportIT extends SpliceUnitTest {
     @Test
     public void testUpsertWithEmptyTableWillInsert() throws Exception {
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,fullTestFile.fileName());
@@ -275,7 +273,7 @@ public class UpportIT extends SpliceUnitTest {
     @Ignore
     public void testUpsertWithEmptyTableWillInsertDuplicatesReportedAsBad() throws Exception {
         CallableStatement statement =
-                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?)");
+                conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,true,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3, fullTestFileWithDuplicates.fileName());
@@ -348,14 +346,6 @@ public class UpportIT extends SpliceUnitTest {
             generator.close();
         }
         return generator;
-    }
-
-    private void validateImportResults(ResultSet resultSet, int good,int bad) throws SQLException {
-        Assert.assertTrue("No rows returned!",resultSet.next());
-        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(1));
-        Assert.assertEquals("Incorrect number of tasks reported!",0,resultSet.getInt(2));
-        Assert.assertEquals("Incorrect number of rows reported!",good,resultSet.getInt(3));
-        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(4));
     }
 
     private static TestConnection createConnection() throws Exception {

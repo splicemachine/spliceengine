@@ -44,14 +44,14 @@ public class TPCHIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void loadData() throws Exception {
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
-        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
 
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
 

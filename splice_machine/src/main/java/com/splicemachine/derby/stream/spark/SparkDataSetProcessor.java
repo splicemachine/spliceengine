@@ -42,8 +42,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     private int failBadRecordCount = -1;
     private boolean permissive;
 
-
-
     public SparkDataSetProcessor() {
 
     }

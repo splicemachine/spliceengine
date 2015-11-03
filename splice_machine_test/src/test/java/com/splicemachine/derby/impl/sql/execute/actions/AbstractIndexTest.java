@@ -19,7 +19,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  *         Created on: 8/4/13
  */
-public class AbstractIndexTest {
+public class AbstractIndexTest extends SpliceUnitTest {
 
     protected static final String tableSchema = "(a int, b float, c int, d double)";
 
@@ -44,12 +44,6 @@ public class AbstractIndexTest {
                 indexName,
                 tableWatcher.getSchema(),indexSchema,true);
         idxWatcher.starting(null);
-    }
-
-    protected final void importData(String schema,String tableName, String fileName) throws Exception {
-        String file = SpliceUnitTest.getResourceDirectory()+ fileName;
-        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null,'%s',',',null,null,null,null)", schema, tableName, null, file));
-        ps.execute();
     }
 
 

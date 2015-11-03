@@ -86,6 +86,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
             try {
                 super.init(context);
+                source.init(context);
                 writeInfo.initialize(context);
                 heapConglom = writeInfo.getConglomerateId();
                 pkCols = writeInfo.getPkColumnMap();
@@ -129,6 +130,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 		@Override
 		public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
+            assert activation!=null && spliceSequences!=null:"activation or sequences are null";
             nextIncrement = ((BaseActivation) activation).ignoreSequence()?-1:spliceSequences[columnPosition - 1].getNext();
             this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
             if (rowTemplate==null)
@@ -158,15 +160,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		@Override
 		public void setActivation(Activation activation) throws StandardException {
 			super.setActivation(activation);
-
-				SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-				writeInfo.initialize(context);
-				heapConglom = writeInfo.getConglomerateId();
-				pkCols = writeInfo.getPkColumnMap();
-				singleRowResultSet = isSingleRowResultSet();
-				autoIncrementRowLocationArray = writeInfo.getConstantAction() != null &&
-								((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation() != null?
-								((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation():new RowLocation[0];
+		    SpliceOperationContext context = SpliceOperationContext.newContext(activation);
+            try {
+                init(context);
+            } catch (IOException ioe) {
+                throw StandardException.plainWrapException(ioe);
+            }
 		}
 
 		@Override

@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -46,10 +47,11 @@ public class UpdateTableWriter extends AbstractTableWriter<ExecRow> {
     protected PairEncoder encoder;
     protected ExecRow currentRow;
     public int rowsUpdated = 0;
+    protected OperationContext operationContext;
 
     public UpdateTableWriter(long heapConglom, int[] formatIds, int[] columnOrdering,
                              int[] pkCols,  FormatableBitSet pkColumns, String tableVersion, TxnView txn,
-                             ExecRow execRowDefinition,FormatableBitSet heapList) throws StandardException {
+                             ExecRow execRowDefinition,FormatableBitSet heapList, OperationContext operationContext) throws StandardException {
         super(txn,heapConglom);
         assert pkCols != null && columnOrdering != null: "Primary Key Information is null";
         this.formatIds = formatIds;
@@ -59,6 +61,7 @@ public class UpdateTableWriter extends AbstractTableWriter<ExecRow> {
         this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
         this.heapList = heapList;
+        this.operationContext = operationContext;
     }
 
     public void open() throws StandardException {
@@ -177,6 +180,7 @@ public class UpdateTableWriter extends AbstractTableWriter<ExecRow> {
             assert encode.getRowKey() != null && encode.getRowKey().length > 0: "Tried to buffer incorrect row key";
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
+            operationContext.recordWrite();
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

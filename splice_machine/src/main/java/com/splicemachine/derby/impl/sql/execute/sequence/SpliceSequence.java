@@ -15,6 +15,10 @@ public class SpliceSequence extends AbstractSequence {
 	protected byte[] sysColumnsRow;
     protected static final byte[] autoIncrementValueQualifier = Encoding.encode(7);
 
+    public SpliceSequence() {
+        super();
+    }
+
 	public SpliceSequence (long blockAllocationSize,byte[] sysColumnsRow,
             long startingValue,
             long incrementSteps) {

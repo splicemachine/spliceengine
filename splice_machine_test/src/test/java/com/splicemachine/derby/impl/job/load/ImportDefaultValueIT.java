@@ -3,17 +3,14 @@ package com.splicemachine.derby.impl.job.load;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.perf.runner.qualifiers.Result;
-import com.sun.xml.bind.v2.schemagen.xmlschema.Import;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
-import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
@@ -23,7 +20,7 @@ import java.util.List;
 /**
  * Created by yifu on 6/13/14.
  */
-public class ImportDefaultValueIT {
+public class ImportDefaultValueIT extends SpliceUnitTest{
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportDefaultValueIT.class.getSimpleName().toUpperCase();
     protected static String TABLE_1 = "A";
@@ -39,19 +36,12 @@ public class ImportDefaultValueIT {
 
     @Test
     public void textImportDefaultValue() throws Exception{
-        PrintWriter writer = new PrintWriter("/tmp/Test.txt","UTF-8");
-        writer.println(",abc");
-        writer.println("2,");
-        writer.println("3,ab");
-        writer.close();
-        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA('"+spliceSchemaWatcher.schemaName+"','"+TABLE_1+"',null,'/tmp/Test.txt',',',null,null,null,null,0,null)");
+        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA('"+spliceSchemaWatcher.schemaName+"','"+TABLE_1+"','col1','"+getResourceDirectory()+"ImportDefaultValue.txt',',',null,null,null,null,0,null,true,null)");
         ps.execute();
         PreparedStatement s = methodWatcher.prepareStatement("select * from "+spliceSchemaWatcher.schemaName+"."+TABLE_1);
-        List<String> expected  = Arrays.asList("abc","abc","ab");
+        List<String> expected  = Arrays.asList("abc","abc","abc");
         Collections.sort(expected);
-
         List<String> actual = Lists.newArrayListWithExpectedSize(expected.size());
-
         ResultSet rs = s.executeQuery();
         while(rs.next()){
             actual.add(rs.getString(2));

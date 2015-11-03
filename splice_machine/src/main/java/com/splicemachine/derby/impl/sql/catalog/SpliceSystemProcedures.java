@@ -97,6 +97,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("timeFormat",32672)
                                 .bigint("maxBadRecords")
                                 .varchar("badRecordDirectory",32672)
+                                .varchar("oneLineRecords",5)
+                                .varchar("charset",32672)
                                 .build();
                         procedures.add(importWithBadRecords);
 
@@ -113,7 +115,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("timeFormat",32672)
                                 .bigint("maxBadRecords")
                                 .varchar("badRecordDirectory",32672)
-                                .bigint("maxRecords")
+                                .varchar("oneLineRecords",5)
+                                .varchar("charset",32672)
                                 .build();
                         procedures.add(importCheckData);
 
@@ -130,6 +133,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("timeFormat",32672)
                                 .bigint("maxBadRecords")
                                 .varchar("badRecordDirectory",32672)
+                                .varchar("oneLineRecords",5)
+                                .varchar("charset",32672)
                                 .build();
                         procedures.add(upport);
 
@@ -146,7 +151,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("timeFormat",32672)
                                 .bigint("maxBadRecords")
                                 .varchar("badRecordDirectory",32672)
-                                .bigint("maxRecords")
+                                .varchar("oneLineRecords",5)
+                                .varchar("charset",32672)
                                 .build();
                         procedures.add(upsertCheckDataFromFile);
 

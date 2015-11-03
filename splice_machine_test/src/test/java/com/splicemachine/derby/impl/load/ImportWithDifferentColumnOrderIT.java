@@ -58,7 +58,7 @@ public class ImportWithDifferentColumnOrderIT {
     public void allColumnsOutOfOrder() throws Exception {
         String path = tempFolder.getRoot() + "/Test1.txt";
         methodWatcher.executeUpdate("create table A (COL1 INT, COL2 VARCHAR(10))");
-        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA('%s','A','COL2,COL1','%s',',',null,null,null,null,0,null)", SCHEMA, path));
+        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA('%s','A','COL2,COL1','%s',',',null,null,null,null,0,null,true,null)", SCHEMA, path));
         ResultSet rs1 = methodWatcher.executeQuery("select * from A order by col1");
         assertEquals("" +
                 "COL1 |   COL2    |\n" +
@@ -72,7 +72,7 @@ public class ImportWithDifferentColumnOrderIT {
     public void onlySomeColumnsOutOfOrder() throws Exception {
         String path = tempFolder.getRoot() + "/Test2.txt";
         methodWatcher.executeUpdate("create table B (COL1 INT, COL2 VARCHAR(10), COL3 INT, COL4 VARCHAR(2))");
-        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA('%s','B','COL2,COL1,COL3,COL4','%s',',',null,null,null,null,0,null)", SCHEMA, path));
+        methodWatcher.executeQuery(format("call SYSCS_UTIL.IMPORT_DATA('%s','B','COL2,COL1,COL3,COL4','%s',',',null,null,null,null,0,null,true,null)", SCHEMA, path));
         ResultSet rs2 = methodWatcher.executeQuery("select * from B order by col1");
         assertEquals("" +
                 "COL1 |   COL2    |COL3 |COL4 |\n" +

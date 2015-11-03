@@ -184,13 +184,13 @@ public class MergeJoinIT extends SpliceUnitTest {
                 protected void starting(Description description) {
                     try {
                         PreparedStatement ps = spliceClassWatcher.prepareStatement(
-                                format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
-                                                "'%s','%s',null,null,'%s','|','\"',null,null,null)",
+                                format("call SYSCS_UTIL.IMPORT_DATA(" +
+                                                "'%s','%s',null,'%s','|','\"',null,null,null,1,null,true,null)",
                                         CLASS_NAME, LINEITEM, getResource("lineitem.tbl")));
                         ps.execute();
                         ps = spliceClassWatcher.prepareStatement(
-                                format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
-                                                "'%s','%s',null,null,'%s','|','\"',null,null,null)",
+                                format("call SYSCS_UTIL.IMPORT_DATA(" +
+                                                "'%s','%s',null,'%s','|','\"',null,null,null,1,null,true,null)",
                                         CLASS_NAME, ORDERS, getResource("orders.tbl")));
                         ps.execute();
                     } catch (Exception e) {

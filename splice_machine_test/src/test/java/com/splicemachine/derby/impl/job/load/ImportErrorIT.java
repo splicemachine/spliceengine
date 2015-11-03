@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.job.load;
 
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -68,14 +71,9 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("no_such_table","file_doesn't_exist.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", ErrorState.LANG_TABLE_NOT_FOUND.getSqlState(),se.getSQLState());
-
-                String correctErrorMessage = "Table/View '"+table.toUpperCase()+"' does not exist.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+                Assert.assertEquals("Incorrect sql state!", "XIE0M",se.getSQLState());
             }
         });
-
     }
 
     @Test
@@ -85,16 +83,8 @@ public class ImportErrorIT extends SpliceUnitTest {
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
-
-                //se.getMessage() can return message either with a period or without a period.  So we check for each.
-                String correctErrorMessage = String.format("Data file not found: File %s does not exist",location);
-                String correctErrorMessage1 = String.format("Data file not found: File %s does not exist.",location);
-                String retval = se.getMessage();
-                Assert.assertTrue("Incorrect error message! location={" + location + "}, retval={" + retval + "}", retval.equals(correctErrorMessage)||retval.equals(correctErrorMessage1));
-//                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
-
     }
 
     @Test
@@ -102,11 +92,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("null_col.csv", new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
-
-                String correctErrorMessage = "Too many bad records in import"; //"Column 'A'  cannot accept a NULL value.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+                Assert.assertEquals("Incorrect sql state!", SQLState.LANG_NULL_INTO_NON_NULL , se.getSQLState());
             }
         });
     }
@@ -116,17 +102,12 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("long_string.csv",new ErrorCheck(){
             @Override
             public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
-
-                String correctErrorMessage = "Too many bad records in import"; //"A truncation error was encountered trying to shrink VARCHAR " +
-                        //"'thisstringhasmorethanfivecharacters' to length 5.";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+                Assert.assertEquals("Incorrect sql state!", SQLState.LANG_STRING_TRUNCATION, se.getSQLState());
             }
         });
     }
 
-    @Test(timeout=5000)
+    @Test
     public void testCannotInsertALongIntoAnIntegerField() throws Exception {
         runImportTest("long_int.csv",new ErrorCheck() {
             @Override
@@ -189,6 +170,7 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
+
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
                 String correctErrorMessage = "Too many bad records in import"; //"The syntax of the string representation of a datetime value is incorrect.";
@@ -230,11 +212,7 @@ public class ImportErrorIT extends SpliceUnitTest {
 				runImportTest("null_time.csv",new ErrorCheck() {
 						@Override
 						public void check(String table, String location, SQLException se) {
-								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
-
-								String correctErrorMessage = "Too many bad records in import"; //"Column 'G'  cannot accept a NULL value.";
-								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+								Assert.assertEquals("Incorrect sql state!", SQLState.LANG_NULL_INTO_NON_NULL, se.getSQLState());
 						}
 				});
 		}
@@ -244,11 +222,7 @@ public class ImportErrorIT extends SpliceUnitTest {
 				runImportTest("null_timestamp.csv",new ErrorCheck() {
 						@Override
 						public void check(String table, String location, SQLException se) {
-								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
-
-								String correctErrorMessage = "Too many bad records in import"; //"Column 'H'  cannot accept a NULL value.";
-								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+								Assert.assertEquals("Incorrect sql state!", SQLState.LANG_NULL_INTO_NON_NULL, se.getSQLState());
 						}
 				});
 		}
@@ -272,30 +246,11 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("DECIMALTABLE","bad_decimal.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009 ,se.getSQLState());
-
-                String correctErrorMessage = "Too many bad records in import"; //"The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
-                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
     }
 
-    /*
-		@Test(expected = SQLException.class)
-		public void testNonNullIntoIncrement() throws Exception {
-				runImportTest("INCREMENT","simple_column.txt",new ErrorCheck() {
-						@Override
-						public void check(String table, String location, SQLException se) {
-								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!",ErrorState.LANG_AI_CANNOT_MODIFY_AI.getSqlState(),se.getSQLState());
-
-								String correctErrorMessage = "Attempt to modify an identity column 'A'.";
-								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage().trim());
-						}
-				});
-		}
-    */
     private interface ErrorCheck{
         void check(String table, String location, SQLException se);
     }
@@ -312,7 +267,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         String location = getResourceDirectory()+"test_data/bad_import/"+file;
         PreparedStatement ps = null;
         try{
-            ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA(?, ?, ?, ?, ',', null, null, null, null, 1, null)");
+            ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA(?, ?, ?, ?, ',', null, null, null, null, 0, null, true, null)");
             ps.setString(1, schema.schemaName);
             ps.setString(2, table);
             ps.setNull(3, Types.VARCHAR);

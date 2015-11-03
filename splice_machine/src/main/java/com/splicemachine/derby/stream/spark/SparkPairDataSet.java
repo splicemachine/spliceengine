@@ -202,7 +202,8 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             InsertOperation insertOperation = ((InsertOperation)operationContext.getOperation());
             if (insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
-                if (badRecords.size()>= insertOperation.failBadRecordCount) {
+                if (badRecords.size()>0) {
+                    System.out.println("badRecords -> " + badRecords);
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
@@ -211,7 +212,10 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
                         dataSet.saveAsTextFile(path.toString());
                         fileSystem.close();
                     }
-                    throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
+                    if (insertOperation.failBadRecordCount==0)
+                        throw new RuntimeException(badRecords.get(0));
+                    if (badRecords.size()>= insertOperation.failBadRecordCount)
+                        throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
                 }
             }
 

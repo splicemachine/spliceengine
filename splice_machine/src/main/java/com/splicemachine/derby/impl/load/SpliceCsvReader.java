@@ -2,10 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.supercsv.exception.SuperCsvException;
+import java.util.*;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ITokenizer;
 import org.supercsv.prefs.CsvPreference;
@@ -15,7 +12,7 @@ import org.supercsv.prefs.CsvPreference;
  *
  * @author dwinters
  */
-public class SpliceCsvReader extends CsvListReader {
+public class SpliceCsvReader extends CsvListReader implements Iterator<List<String>> {
 
     private ArrayList<String> failMsg = new ArrayList<String>();
 
@@ -49,40 +46,22 @@ public class SpliceCsvReader extends CsvListReader {
 		super(tokenizer, preferences);
 	}
 
-	/**
-	 * Reads a row of a CSV file and returns an array of Strings containing each column.
-	 * This method primarily exists because SuperCSV uses Lists of Strings and
-	 * Splice Machine uses String arrays.  This saves some extraneous object creation.
-	 * 
-	 * @return the array of columns, or null if EOF
-	 * @throws IOException
-	 *             if an I/O error occurred
-	 * @throws SuperCsvException
-	 *             if there was a general exception while reading/processing
-	 */
-	public String[] readAsStringArray() throws IOException {
-        boolean res = false;
-
+    @Override
+    public boolean hasNext() {
         try {
-            res = readRow();
-        } catch (Exception e) {
-            failMsg.add(e.getMessage());
+            return readRow();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
         }
+    }
 
-		if (res) {
-			List<String> rowAsList = getColumns();
-			String[] row = new String[rowAsList.size()];
-			rowAsList.toArray(row);
-			return row;
-		}
-		
-		return null; // EOF
-	}
+    @Override
+    public List<String> next() {
+        return getColumns();
+    }
 
-
-
-
-    public ArrayList<String> getFailMsg() {
-        return failMsg;
+    @Override
+    public void remove() {
+        throw new RuntimeException("Not Supported");
     }
 }
