@@ -2667,20 +2667,20 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                   ORDER BY employee_id DESC\n" +
                                     "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
                                     "Minimum_Commission\n" +
-                                    "FROM %s", tableRef);
+                                    "FROM %s order by department", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
         String expected =
             "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
                 "--------------------------------------------------------------\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     102     |     Emp B     |    IT     |        20         |\n" +
                 "     107     |     Emp G     |   Sales   |        10         |\n" +
                 "     106     |     Emp F     |   Sales   |        10         |\n" +
                 "     105     |     Emp E     |   Sales   |        10         |\n" +
                 "     101     |     Emp A     |   Sales   |        10         |\n" +
                 "     108     |     Emp H     |  Support  |         5         |\n" +
-                "     104     |     Emp D     |  Support  |         5         |\n" +
-                "     103     |     Emp C     |    IT     |        20         |\n" +
-                "     102     |     Emp B     |    IT     |        20         |";
+                "     104     |     Emp D     |  Support  |         5         |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
 
         // RESPECT NULLS
@@ -2691,20 +2691,20 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                   ORDER BY employee_id DESC\n" +
                                     "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
                                     "Minimum_Commission\n" +
-                                    "FROM %s", tableRef);
+                                    "FROM %s order by department", tableRef);
         rs = methodWatcher.executeQuery(sqlText);
         // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
         expected =
             "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
                 "--------------------------------------------------------------\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     102     |     Emp B     |    IT     |        20         |\n" +
                 "     107     |     Emp G     |   Sales   |       NULL        |\n" +
                 "     106     |     Emp F     |   Sales   |       NULL        |\n" +
                 "     105     |     Emp E     |   Sales   |       NULL        |\n" +
                 "     101     |     Emp A     |   Sales   |       NULL        |\n" +
                 "     108     |     Emp H     |  Support  |         5         |\n" +
-                "     104     |     Emp D     |  Support  |         5         |\n" +
-                "     103     |     Emp C     |    IT     |        20         |\n" +
-                "     102     |     Emp B     |    IT     |        20         |";
+                "     104     |     Emp D     |  Support  |         5         |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2812,21 +2812,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testRankDate() throws Exception {
         String sqlText =
-            String.format("SELECT hiredate, dept, rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s",
+            String.format("SELECT hiredate, dept, rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s order by dept desc",
                           this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "HIREDATE  |DEPT |RANKHIRE |\n" +
                 "----------------------------\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2013-06-06 |  2  |    3    |\n" +
-                "2013-12-20 |  2  |    4    |\n" +
                 "2010-04-12 |  3  |    1    |\n" +
                 "2010-08-09 |  3  |    2    |\n" +
                 "2012-04-03 |  3  |    3    |\n" +
                 "2013-04-24 |  3  |    4    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2013-06-06 |  2  |    3    |\n" +
+                "2013-12-20 |  2  |    4    |\n" +
                 "2010-03-20 |  1  |    1    |\n" +
                 "2010-03-20 |  1  |    1    |\n" +
                 "2011-05-24 |  1  |    3    |\n" +
@@ -2841,22 +2841,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testNullsRankDate() throws Exception {
         String sqlText =
             String.format("SELECT hiredate, dept, " +
-                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s",
+                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s order by dept desc",
                           this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "HIREDATE  |DEPT |RANKHIRE |\n" +
                 "----------------------------\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2013-06-06 |  2  |    3    |\n" +
-                "2013-12-20 |  2  |    4    |\n" +
                 "2010-04-12 |  3  |    1    |\n" +
                 "2010-08-09 |  3  |    2    |\n" +
                 "2010-08-09 |  3  |    2    |\n" +
                 "2012-04-03 |  3  |    4    |\n" +
                 "2013-04-24 |  3  |    5    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2013-06-06 |  2  |    3    |\n" +
+                "2013-12-20 |  2  |    4    |\n" +
                 "2010-03-20 |  1  |    1    |\n" +
                 "2010-03-20 |  1  |    1    |\n" +
                 "2010-08-09 |  1  |    3    |\n" +
@@ -2876,21 +2876,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
                               "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM %s",
+                              "FROM %s order by dept desc",
                           this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "EMPNUM |DEPT |SALARY | DENSERANK |RANK | ROWNUMBER |\n" +
                 "----------------------------------------------------\n" +
-                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
-                "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
-                "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
-                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
                 "  30   |  3  | 84000 |     1     |  1  |     1     |\n" +
                 "  80   |  3  | 79000 |     2     |  2  |     2     |\n" +
                 "  120  |  3  | 75000 |     3     |  3  |     3     |\n" +
                 "  100  |  3  | 55000 |     4     |  4  |     4     |\n" +
+                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
+                "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
+                "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
                 "  60   |  1  | 78000 |     1     |  1  |     1     |\n" +
                 "  70   |  1  | 76000 |     2     |  2  |     2     |\n" +
                 "  20   |  1  | 75000 |     3     |  3  |     3     |\n" +
@@ -2909,22 +2909,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
                               "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM %s",
+                              "FROM %s order by dept desc",
                           this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "EMPNUM |DEPT |SALARY | DENSERANK |RANK | ROWNUMBER |\n" +
                 "----------------------------------------------------\n" +
-                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
-                "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
-                "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
-                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
                 "  33   |  3  | NULL  |     1     |  1  |     1     |\n" +
                 "  30   |  3  | 84000 |     2     |  2  |     2     |\n" +
                 "  80   |  3  | 79000 |     3     |  3  |     3     |\n" +
                 "  120  |  3  | 75000 |     4     |  4  |     4     |\n" +
                 "  100  |  3  | 55000 |     5     |  5  |     5     |\n" +
+                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
+                "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
+                "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
                 "  32   |  1  | NULL  |     1     |  1  |     1     |\n" +
                 "  60   |  1  | 78000 |     2     |  2  |     2     |\n" +
                 "  70   |  1  | 76000 |     3     |  3  |     3     |\n" +
