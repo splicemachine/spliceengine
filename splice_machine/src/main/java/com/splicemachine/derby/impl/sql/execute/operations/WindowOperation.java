@@ -14,7 +14,6 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -177,7 +176,7 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public String toString() {
-        return "WindowOperation {source="+source;
+        return "WindowOperation{"+windowContext+"}";
     }
 
     @Override

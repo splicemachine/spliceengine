@@ -100,8 +100,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher13)
 						.around(spliceTableWatcher14)
 						.around(spliceTableWatcher15)
-						.around(spliceTableWatcher16)
-						.around(spliceTableWatcher17)
+            .around(spliceTableWatcher16)
+            .around(spliceTableWatcher17)
                         .around(spliceTableWatcher18)
                         .around(spliceTableWatcher19)
 						.around(autoIncTableWatcher);
@@ -187,7 +187,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testAlternateDateAndTimeImport() throws Exception {
 		methodWatcher.executeUpdate("delete from "+spliceSchemaWatcher.schemaName + "." + TABLE_12);
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,'MM/dd/yyyy','HH.mm.ss',%d,'%s','true','utf-8')",
-        		spliceSchemaWatcher.schemaName,TABLE_12,getResourceDirectory()+"dateAndTime.in",1,baddir.newFolder().getCanonicalPath()));
+        		spliceSchemaWatcher.schemaName,TABLE_12,getResourceDirectory()+"dateAndTime.in",0,baddir.newFolder().getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_12));
         List<String> results = Lists.newArrayList();
@@ -197,7 +197,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             Time t = rs.getTime(2);
             Assert.assertNotNull("Date is null!", d);
             Assert.assertNotNull("Time is null!", t);
-            results.add(String.format("Date:%s,Time:%s",d,t));
+            results.add(String.format("Date:%s,Time:%s", d, t));
         }
         Assert.assertTrue("Incorrect number of rows imported 2!="+results.size(), results.size() == 2);
         
@@ -222,8 +222,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 			results.add(String.format("i:%d,j:%s",i,j));
 		}
 		Assert.assertEquals("wrong row count imported!", 2, results.size());
-		Assert.assertEquals("first row wrong","i:1,j:Hello", results.get(0));
-		Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
+		Assert.assertEquals("first row wrong", "i:1,j:Hello", results.get(0));
+        Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
 	}
 
     @Test
@@ -321,14 +321,14 @@ public class HdfsImportIT extends SpliceUnitTest {
 
 				ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_9));
 				List<String> results = Lists.newArrayList();
-				while(rs.next()){
+				while (rs.next()){
 						Timestamp order_date = rs.getTimestamp(1);
-						Assert.assertNotNull("order_date incorrect",order_date);
+                    Assert.assertNotNull("order_date incorrect",order_date);
 						//have to deal with differing time zones here
 						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
-						sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
+                    sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
 						String textualFormat = sdf.format(order_date);
-						Assert.assertEquals("2013-06-06 15:02:48.0",textualFormat);
+                    Assert.assertEquals("2013-06-06 15:02:48.0",textualFormat);
 						results.add(String.format("order_date:%s",order_date));
 				}
 				Assert.assertTrue("import failed!", results.size() == 1);
@@ -352,9 +352,9 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertEquals(j.byteValue(),0);
 			Assert.assertNull("String failure " + k, k);
 			Assert.assertNull("Timestamp failure " + l, l);
-			count++;
-		}
-		Assert.assertTrue("import failed!" + count, count == 1);
+            count++;
+        }
+            Assert.assertTrue("import failed!" + count, count == 1);
 	}
 
     @Test
@@ -419,7 +419,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null, "SYS","SYSSCHEMAS",null);
 		Map<String,Integer>colNameToTypeMap = Maps.newHashMap();
 		colNameToTypeMap.put("SCHEMAID",Types.CHAR);
-		colNameToTypeMap.put("SCHEMANAME",Types.VARCHAR);
+		colNameToTypeMap.put("SCHEMANAME", Types.VARCHAR);
 		colNameToTypeMap.put("AUTHORIZATIONID", Types.VARCHAR);
 		int count=0;
 		while(rs.next()){
@@ -428,10 +428,10 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertTrue("ColName not contained in map: " + colName,
                     colNameToTypeMap.containsKey(colName));
 			Assert.assertEquals("colType incorrect!",
-								colNameToTypeMap.get(colName).intValue(),colType);
-			count++;
-		}
-		Assert.assertEquals("incorrect count returned!",colNameToTypeMap.size(),count);
+								colNameToTypeMap.get(colName).intValue(), colType);
+            count++;
+        }
+        Assert.assertEquals("incorrect count returned!",colNameToTypeMap.size(),count);
 	}
 
     @Test
@@ -607,8 +607,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testImportWithEmbeddedClassicMacNewlinesInsideSingleQuotes() throws Exception{
-		testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/classic-mac/newlines-with-single-quotes.tsv", "''", 0, baddir.newFolder().getCanonicalPath(), 3);
+	public void testImportWithEmbeddedClassicMacNewlinesInsideSingleQuotes() throws Exception {
+        testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() + "embedded-newlines/classic-mac/newlines-with-single-quotes.tsv", "''", 0, baddir.newFolder().getCanonicalPath(), 3);
 	}
 
 	/**
@@ -638,14 +638,14 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertNotNull("ID is null!", id);
 			Assert.assertNotNull("DESCRIPTION is null!", description);
 			Assert.assertNotNull("NAME is null!", name);
-			results.add(String.format("id:%d,description:%s,name:%s",id, description, name));
-		}
-		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
+			results.add(String.format("id:%d,description:%s,name:%s", id, description, name));
+        }
+        Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
 
 	@Test
-	public void testNewImportCheckDirectory() throws Exception{
-		testNewImportCheck(spliceSchemaWatcher.schemaName, TABLE_17, getResourceDirectory() + "importdir", "NAME,TITLE,AGE", baddir.newFolder().getCanonicalPath(), 0, 0);
+	public void testNewImportCheckDirectory() throws Exception {
+        testNewImportCheck(spliceSchemaWatcher.schemaName, TABLE_17, getResourceDirectory() + "importdir", "NAME,TITLE,AGE", baddir.newFolder().getCanonicalPath(), 0, 0);
 	}
 
 	// uses new stored procedure
@@ -655,8 +655,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 		methodWatcher.executeUpdate("delete from "+schemaName + "." + tableName);
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_CHECK_DATA('%s','%s','%s','%s',',',null,null,null,null,%d,'%s',-1)",
 				schemaName,tableName,colList,location,failErrorCount,badDir));
-		ps.execute();
-		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
 		List<String> results = Lists.newArrayList();
 		while(rs.next()){
 			String name = rs.getString(1);
@@ -679,37 +679,22 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnEOF() throws Exception {
-		/*
-		 * PLEASE NOTE:
-		 * I do not like this test.  It is nasty to fetch the root cause's message and substring match parts of it.
-		 * However, since Derby and Splice wrap the exceptions so many times, I don't see any option to determine whether
-		 * the correct exception is being thrown.
-		 * I also do not see an expectRootCause method and the junit team has rejected the request for it a couple times:
-		 *     https://github.com/junit-team/junit/issues/714
-		 *     https://github.com/junit-team/junit/pull/778
-		 */
-		//try {
-			testMissingEndQuoteForQuotedColumn(
-					spliceSchemaWatcher.schemaName,
-					TABLE_18,
-					getResourceDirectory() + "import/missing-end-quote/employees.csv",
-					"NAME,TITLE,AGE",
-					baddir.newFolder().getCanonicalPath(),
-					0,
-					1); //6);
-//		} catch (Throwable t) {
-//			String expectedMessage1 = "unexpected end of file";
-//			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
-//			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
-//            if (! rootCauseMessage.contains("Intentional task invalidation")) {
-//                Assert.assertTrue(
-//                        String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
-//                        rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
-//            }
-//        }
+        String badDirPath = baddir.newFolder().getCanonicalPath();
+        String csvPath = getResourceDirectory() + "import/missing-end-quote/employees.csv";
+        try {
+            testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE", badDirPath, 0, 1);
+            fail("This CSV file must raise XIE10 exception");
+        } catch (SQLException e) {
+            assertEquals("XIE10", e.getSQLState());
+            String errMsg = e.getMessage();
+            assertTrue(errMsg.contains(csvPath));
+            assertTrue(errMsg.contains("unexpected end of file"));
+        }
 	}
 
-	/**
+
+
+    /**
 	 * Tests an import scenario where a quoted column is missing the end quote and the
 	 * maximum number of lines in a quoted column is exceeded.
 	 *
@@ -717,35 +702,17 @@ public class HdfsImportIT extends SpliceUnitTest {
 	 */
 	@Test
 	public void testMissingEndQuoteForQuotedColumnMax() throws Exception {
-		/*
-		 * PLEASE NOTE:
-		 * I do not like this test.  It is nasty to fetch the root cause's message and substring match parts of it.
-		 * However, since Derby and Splice wrap the exceptions so many times, I don't see any option to determine whether
-		 * the correct exception is being thrown.
-		 * I also do not see an expectRootCause method and the junit team has rejected the request for it a couple times:
-		 *     https://github.com/junit-team/junit/issues/714
-		 *     https://github.com/junit-team/junit/pull/778
-		 */
-		//try {
-            // no exceptions now, we just skipping wrong lines
-			testMissingEndQuoteForQuotedColumn(
-					spliceSchemaWatcher.schemaName,
-					TABLE_18,
-					getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv",
-					"NAME,TITLE,AGE",
-					baddir.newFolder().getCanonicalPath(),
-					0,
-					2); //201000);
-//		} catch (Throwable t) {
-//			String expectedMessage1 = "Quoted column beginning on line";
-//			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
-//			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
-//            if (! rootCauseMessage.contains("Intentional task invalidation")) {
-//                Assert.assertTrue(
-//                        String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
-//                        rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
-//            }
-//        }
+        String badDirPath = baddir.newFolder().getCanonicalPath();
+        String csvPath = getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv";
+        try {
+		    testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE", badDirPath, 0, 199999);
+            fail("This CSV file must raise XIE10 exception");
+        } catch (SQLException e) {
+            assertEquals("XIE10", e.getSQLState());
+            String errMsg = e.getMessage();
+            assertTrue(errMsg.contains(csvPath));
+            assertTrue(errMsg.contains("Quoted column beginning"));
+        }
 	}
 
     //DB-3685
@@ -765,7 +732,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery("select count(*) from HdfsImportIT.num_dt1 --SPLICE-PROPERTIES index=idx1");
         assertTrue(rs.next());
         int c2 = rs.getInt(1);
-        assertTrue(c1==c2);
+        assertTrue(c1 == c2);
     }
 	/**
 	 * Worker method for import tests related to CSV files that are missing the end quote for a quoted column.
@@ -797,13 +764,14 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertNotNull("name is null!", name);
 			Assert.assertNotNull("title is null!", title);
 			results.add(String.format("name:%s,title:%s,age:%d", name, title, age));
-		}
-		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
+        }
+        Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
 
     @Test(expected = SQLException.class)
     public void testCheckContstraintLoad() throws Exception{
         testImport(spliceSchemaWatcher.schemaName, TABLE_19, getResourceDirectory() + "test_data/salary_check_constraint.csv", "EMPNO,SALARY,BONUS,TAX",baddir.newFolder().getCanonicalPath(),1,8);
     }
+
 
 }

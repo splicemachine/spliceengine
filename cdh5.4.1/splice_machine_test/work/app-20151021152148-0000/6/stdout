@@ -1,0 +1,119 @@
+Listening for transport dt_socket at address: 4020
+16:17:46,635 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:46,682 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [Remoting] - Starting remoting
+16:17:46,844 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:46,863 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:46,866 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:46,869 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:46,875 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:46,879 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:46,884 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+16:17:46,893 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:46,896 (driverPropsFetcher-akka.actor.default-dispatcher-13) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:46,896 (driverPropsFetcher-akka.actor.default-dispatcher-13) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:46,896 (driverPropsFetcher-akka.actor.default-dispatcher-13) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:46,897 (driverPropsFetcher-akka.actor.default-dispatcher-13) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:46,914 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:46,918 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [Remoting] - Starting remoting
+16:17:46,927 (driverPropsFetcher-akka.actor.default-dispatcher-5) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:46,929 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:46,929 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:46,930 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:46,946 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:46,967 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [Remoting] - Starting remoting
+16:17:46,980 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:46,981 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:46,982 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:46,982 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:46,982 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:46,997 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,001 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [Remoting] - Starting remoting
+16:17:47,007 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,009 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,009 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,010 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,010 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,022 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,026 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [Remoting] - Starting remoting
+16:17:47,032 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,034 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,034 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,034 (driverPropsFetcher-akka.actor.default-dispatcher-5) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,034 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,046 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,050 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [Remoting] - Starting remoting
+16:17:47,057 (driverPropsFetcher-akka.actor.default-dispatcher-5) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,058 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,058 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,058 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,059 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,071 (driverPropsFetcher-akka.actor.default-dispatcher-6) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,075 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+16:17:47,081 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,082 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,083 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,083 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,083 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,095 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,099 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+16:17:47,105 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,106 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,106 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,107 (driverPropsFetcher-akka.actor.default-dispatcher-5) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,107 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,118 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,122 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [Remoting] - Starting remoting
+16:17:47,128 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,129 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,129 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,129 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,129 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,140 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,144 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [Remoting] - Starting remoting
+16:17:47,150 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,151 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,151 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,151 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,152 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,161 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,165 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [Remoting] - Starting remoting
+16:17:47,171 (driverPropsFetcher-akka.actor.default-dispatcher-5) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,172 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,173 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,173 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,173 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,182 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,186 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [Remoting] - Starting remoting
+16:17:47,192 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,193 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,194 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,194 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,194 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,203 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,206 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+16:17:47,212 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,213 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,214 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,214 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,214 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,222 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,225 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+16:17:47,230 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,231 (driverPropsFetcher-akka.actor.default-dispatcher-13) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,232 (driverPropsFetcher-akka.actor.default-dispatcher-13) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,232 (driverPropsFetcher-akka.actor.default-dispatcher-13) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,232 (driverPropsFetcher-akka.actor.default-dispatcher-13) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,241 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,245 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [Remoting] - Starting remoting
+16:17:47,251 (driverPropsFetcher-akka.actor.default-dispatcher-2) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,252 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,252 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,252 (driverPropsFetcher-akka.actor.default-dispatcher-3) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,252 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+16:17:47,259 (driverPropsFetcher-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+16:17:47,263 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+16:17:47,267 (driverPropsFetcher-akka.actor.default-dispatcher-5) ERROR [a.r.t.n.NettyTransport] - failed to bind to /192.168.0.83:0, shutting down Netty transport
+16:17:47,268 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+16:17:47,269 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+16:17:47,269 (driverPropsFetcher-akka.actor.default-dispatcher-4) ERROR [Remoting] - Remoting system has been terminated abrubtly. Attempting to shut down transports
+16:17:47,269 (driverPropsFetcher-akka.actor.default-dispatcher-4) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.

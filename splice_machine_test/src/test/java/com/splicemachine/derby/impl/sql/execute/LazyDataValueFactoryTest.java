@@ -1,13 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class LazyDataValueFactoryTest {
 

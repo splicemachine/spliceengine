@@ -3,24 +3,23 @@ package com.splicemachine.derby.test;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
-
 import org.apache.commons.io.IOUtils;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static com.splicemachine.subquery.SubqueryITUtil.*;
+import static org.apache.hadoop.util.StringUtils.format;
 import static org.junit.Assert.assertEquals;
 
-public class TPCHIT extends SpliceUnitTest {
+public class TPCHIT {
 
     private static final String SCHEMA_NAME = "TPCH1X";
     private static final String LINEITEM = "LINEITEM";
@@ -32,18 +31,18 @@ public class TPCHIT extends SpliceUnitTest {
     private static final String NATION = "NATION";
     private static final String REGION = "REGION";
 
-    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
+    @ClassRule
+    public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(new SpliceSchemaWatcher(SCHEMA_NAME))
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME));
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @BeforeClass
     public static void loadData() throws Exception {
+        TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"))).execute();
@@ -56,14 +55,14 @@ public class TPCHIT extends SpliceUnitTest {
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
 
         // validate
-        assertEquals(9958L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, LINEITEM)));
-        assertEquals(2500L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, ORDERS)));
-        assertEquals(250L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, CUSTOMERS)));
-        assertEquals(1332L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PARTSUPP)));
-        assertEquals(16L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, SUPPLIER)));
-        assertEquals(333L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PART)));
-        assertEquals(25L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, NATION)));
-        assertEquals(5L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, REGION)));
+        assertEquals(9958L, spliceClassWatcher.query("select count(*) from " + LINEITEM));
+        assertEquals(2500L, spliceClassWatcher.query("select count(*) from " + ORDERS));
+        assertEquals(250L, spliceClassWatcher.query("select count(*) from " + CUSTOMERS));
+        assertEquals(1332L, spliceClassWatcher.query("select count(*) from " + PARTSUPP));
+        assertEquals(16L, spliceClassWatcher.query("select count(*) from " + SUPPLIER));
+        assertEquals(333L, spliceClassWatcher.query("select count(*) from " + PART));
+        assertEquals(25L, spliceClassWatcher.query("select count(*) from " + NATION));
+        assertEquals(5L, spliceClassWatcher.query("select count(*) from " + REGION));
     }
 
 
@@ -74,8 +73,9 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql2() throws Exception {
-        executeQuery(getContent("2.sql"), "", true);
-        queryDoesNotContainString("explain " + getContent("2.sql"),"SubQuery",methodWatcher);
+        String sql = getContent("2.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
@@ -85,7 +85,9 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql4() throws Exception {
-        executeQuery(getContent("4.sql"), getContent("4.expected.txt"), true);
+        String sql = getContent("4.sql");
+        executeQuery(sql, getContent("4.expected.txt"), true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
@@ -100,28 +102,34 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql7() throws Exception {
-        executeQuery(getContent("7.sql"), "", true);
+        String sql = getContent("7.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql8() throws Exception {
-        executeQuery(getContent("8.sql"), "", true);
+        String sql = getContent("8.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql8InvalidMergeJoin() throws Exception {
-    	try {
-    		executeQuery(getContent("8-invalid-merge.sql"), "", true);
+        try {
+            executeQuery(getContent("8-invalid-merge.sql"), "", true);
         } catch (SQLException e) {
             // Error expected due to invalid MERGE join:
-        	// ERROR 42Y69: No valid execution plan was found for this statement. 
+            // ERROR 42Y69: No valid execution plan was found for this statement.
             assertEquals("42Y69", e.getSQLState());
         }
     }
 
     @Test
     public void sql9() throws Exception {
-        executeQuery(getContent("9.sql"), "", true);
+        String sql = getContent("9.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
@@ -138,7 +146,9 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql11() throws Exception {
-        executeQuery(getContent("11.sql"), "", true);
+        String sql = getContent("11.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
     }
 
     @Test
@@ -148,7 +158,9 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql13() throws Exception {
-        executeQuery(getContent("13.sql"), getContent("13.expected.txt"), true);
+        String sql = getContent("13.sql");
+        executeQuery(sql, getContent("13.expected.txt"), true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
@@ -158,23 +170,34 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql15() throws Exception {
-        executeUpdate(getContent("15a.sql"));
-        executeQuery(getContent("15b.sql"), "", false);
+        String sql15a = getContent("15a.sql");
+        String sql15b = getContent("15b.sql");
+
+        executeUpdate(sql15a);
+        executeQuery(sql15b, "", false);
+
+        assertSubqueryNodeCount(conn(), sql15b, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql16() throws Exception {
-        executeQuery(getContent("16.sql"), getContent("16.expected.txt"), true);
+        String sql = getContent("16.sql");
+        executeQuery(sql, getContent("16.expected.txt"), true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql17() throws Exception {
-        executeQuery(getContent("17.sql"), getContent("17.expected.txt"), false);
+        String sql = getContent("17.sql");
+        executeQuery(sql, getContent("17.expected.txt"), false);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql18() throws Exception {
-        executeQuery(getContent("18.sql"), "", true);
+        String sql = getContent("18.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
     }
 
     @Test
@@ -184,17 +207,23 @@ public class TPCHIT extends SpliceUnitTest {
 
     @Test
     public void sql20() throws Exception {
-        executeQuery(getContent("20.sql"), "", true);
+        String sql = getContent("20.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
     }
 
     @Test
     public void sql21() throws Exception {
-        executeQuery(getContent("21.sql"), "", true);
+        String sql = getContent("21.sql");
+        executeQuery(sql, "", true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
     public void sql22() throws Exception {
-        executeQuery(getContent("22.sql"), getContent("22.expected.txt"), true);
+        String sql = getContent("22.sql");
+        executeQuery(sql, getContent("22.expected.txt"), true);
+        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test(expected = SQLException.class)
@@ -210,22 +239,7 @@ public class TPCHIT extends SpliceUnitTest {
         methodWatcher.executeQuery(String.format(mergeOverMergeSort, SCHEMA_NAME, SCHEMA_NAME, SCHEMA_NAME, SCHEMA_NAME));
     }
 
-    private static String getResource(String name) {
-        return getResourceDirectory() + "tcph/data/" + name;
-    }
-
-    private static String getContent(String fileName) throws IOException {
-        String fullFileName = getResourceDirectory() + "tcph/query/" + fileName;
-        return IOUtils.toString(new FileInputStream(new File(fullFileName)));
-    }
-    
-    private static final String EXPLAIN = "explain ";
-    private static final String PLAN_LINE_LEADER = "->  ";
-    private static final String JOIN_STRATEGY_TERMINATOR = "(";
-    private static final String NESTED_LOOP_JOIN = "NestedLoopJoin";
-	private static final String MERGE_SORT_JOIN = "MergeSortJoin";
-	private static final String MERGE_JOIN = "MergeJoin";
-	private static final String BROADCAST_JOIN = "BroadcastJoin";
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {
         ResultSet resultSet = methodWatcher.executeQuery(query);
@@ -238,7 +252,24 @@ public class TPCHIT extends SpliceUnitTest {
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.convert("", resultSet, sort).toString().trim());
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+    private static String getResource(String name) {
+        return SpliceUnitTest.getResourceDirectory() + "tcph/data/" + name;
+    }
+
+    private static String getContent(String fileName) throws IOException {
+        String fullFileName = SpliceUnitTest.getResourceDirectory() + "tcph/query/" + fileName;
+        return IOUtils.toString(new FileInputStream(new File(fullFileName)));
+    }
+
     private void executeUpdate(String query) throws Exception {
         methodWatcher.executeUpdate(query);
     }
+
+    private TestConnection conn() {
+        return methodWatcher.getOrCreateConnection();
+    }
+
 }

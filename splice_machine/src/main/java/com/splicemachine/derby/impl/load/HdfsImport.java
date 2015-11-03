@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.load;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.*;
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.types.*;
@@ -24,34 +23,38 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.exception.ErrorState;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
- *
+ * <p/>
  * When importing data which is contained in HDFS, there is an inherent disconnect
  * between the data locality of any normal file in HDFS, and the data locality of the
- * individual region servers. 
- *
- *  <p>Under normal HBase circumstances, one would use HBase's provided bulk-import 
+ * individual region servers.
+ * <p/>
+ * <p>Under normal HBase circumstances, one would use HBase's provided bulk-import
  * capabilities, which uses MapReduce to align HFiles with HBase's location and then loads
  * them in one single go. This won't work in Splice's case, however, because each insertion
  * needs to update Secondary indices, validate constraints, and so on and so forth which
- * are not executed when bulk-loading HFiles. 
- *
+ * are not executed when bulk-loading HFiles.
+ * <p/>
  * <p>Thus, we must parallelize insertions as much as possible, while still maintaining
  * as much data locality as possible. However, it is not an inherent given that any
  * block location has a corresponding region, nor is it given that any given RegionServer
  * has blocks contained on it. To make matters worse, when a RegionServer <em>does</em>
- * have blocks contained on it, there is no guarantee that the data in those blocks 
+ * have blocks contained on it, there is no guarantee that the data in those blocks
  * is owned by that specific RegionServer.
- *
+ * <p/>
  * <p>There isn't a perfect solution to this problem, unfortunately. This implementation
  * favors situations in which a BlockLocation is co-located with a Region; as a consequence,
  * pre-splitting a Table into regions and spreading those regions out across the cluster is likely
  * to improve the performance of this import process.
  *
  * @author Scott Fines
- *
  */
 public class HdfsImport {
 		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
@@ -86,7 +89,7 @@ public class HdfsImport {
                                              String oneLineRecords,
                                              String charset,
                                              ResultSet[] results
-    ) throws SQLException {
+    ) throws SQLException{
         doImport(schemaName,
                 tableName,
                 insertColumnList,
@@ -325,6 +328,4 @@ public class HdfsImport {
         }
         return StringUtil.quoteStringLiteral(string);
     }
-
-
 }

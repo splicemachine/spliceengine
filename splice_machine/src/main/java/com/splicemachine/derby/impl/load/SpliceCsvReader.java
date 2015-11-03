@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
+import java.util.List;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.io.ITokenizer;
 import org.supercsv.prefs.CsvPreference;
@@ -14,7 +15,7 @@ import org.supercsv.prefs.CsvPreference;
  */
 public class SpliceCsvReader extends CsvListReader implements Iterator<List<String>> {
 
-    private ArrayList<String> failMsg = new ArrayList<String>();
+    private String fileName;
 
 	/**
 	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
@@ -27,8 +28,9 @@ public class SpliceCsvReader extends CsvListReader implements Iterator<List<Stri
 	 * @throws NullPointerException
 	 *             if reader or preferences are null
 	 */
-	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
+	public SpliceCsvReader(Reader reader, CsvPreference preferences, String fileName) {
 		super(reader, preferences);
+        this.fileName = fileName;
 	}
 
 	/**
@@ -64,4 +66,5 @@ public class SpliceCsvReader extends CsvListReader implements Iterator<List<Stri
     public void remove() {
         throw new RuntimeException("Not Supported");
     }
+
 }

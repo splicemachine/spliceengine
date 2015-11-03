@@ -1,0 +1,10 @@
+Listening for transport dt_socket at address: 4020
+15:09:37,315 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+15:09:37,361 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Starting remoting
+15:09:37,533 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [Remoting] - Remoting started; listening on addresses :[akka.tcp://driverPropsFetcher@192.168.0.83:58418]
+15:09:37,735 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+15:09:37,737 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+15:09:37,760 (sparkExecutor-akka.actor.default-dispatcher-5) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+15:09:37,765 (sparkExecutor-akka.actor.default-dispatcher-5) INFO  [Remoting] - Starting remoting
+15:09:37,771 (driverPropsFetcher-akka.actor.default-dispatcher-3) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+15:09:37,775 (sparkExecutor-akka.actor.default-dispatcher-2) INFO  [Remoting] - Remoting started; listening on addresses :[akka.tcp://sparkExecutor@192.168.0.83:58420]

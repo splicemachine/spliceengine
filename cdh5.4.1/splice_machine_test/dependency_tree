@@ -1,0 +1,231 @@
+[INFO] Scanning for projects...
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building splice_machine_test-cdh5.4.1 2.0.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-dependency-plugin:2.8:tree (default-cli) @ splice_machine_test-cdh5.4.1 ---
+[INFO] com.splicemachine:splice_machine_test-cdh5.4.1:jar:2.0.0-SNAPSHOT
+[INFO] +- com.splicemachine:splice_machine_adapter_98-cdh5.4.1:jar:2.0.0-SNAPSHOT:compile
+[INFO] |  \- com.splicemachine:splice_machine-cdh5.4.1:jar:2.0.0-SNAPSHOT:compile
+[INFO] |     +- com.splicemachine:splice_si_adapter_98-cdh5.4.1:jar:2.0.0-SNAPSHOT:compile
+[INFO] |     |  +- com.splicemachine:splice_si-cdh5.4.1:jar:2.0.0-SNAPSHOT:compile
+[INFO] |     |  |  \- com.splicemachine:splice_constants-cdh5.4.1:jar:2.0.0-SNAPSHOT:compile
+[INFO] |     |  |     +- com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:jar:1.4.2:compile
+[INFO] |     |  |     +- joda-time:joda-time:jar:2.3:compile
+[INFO] |     |  |     +- org.apache.hadoop:hadoop-client:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hadoop:hadoop-mapreduce-client-app:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  +- org.apache.hadoop:hadoop-mapreduce-client-common:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  |  +- org.apache.hadoop:hadoop-yarn-client:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  |  \- org.apache.hadoop:hadoop-yarn-server-common:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  \- org.apache.hadoop:hadoop-mapreduce-client-shuffle:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hadoop:hadoop-yarn-api:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hadoop:hadoop-mapreduce-client-core:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  \- org.apache.hadoop:hadoop-yarn-common:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |     \- com.sun.jersey:jersey-client:jar:1.9:compile
+[INFO] |     |  |     |  +- org.apache.hadoop:hadoop-mapreduce-client-jobclient:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  \- org.apache.hadoop:hadoop-annotations:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     +- org.apache.hadoop:hadoop-common:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.commons:commons-math3:jar:3.1.1:compile
+[INFO] |     |  |     |  +- xmlenc:xmlenc:jar:0.52:compile
+[INFO] |     |  |     |  +- commons-httpclient:commons-httpclient:jar:3.1:compile
+[INFO] |     |  |     |  +- commons-codec:commons-codec:jar:1.4:compile
+[INFO] |     |  |     |  +- commons-net:commons-net:jar:3.1:compile
+[INFO] |     |  |     |  +- commons-collections:commons-collections:jar:3.2.1:compile
+[INFO] |     |  |     |  +- org.mortbay.jetty:jetty:jar:6.1.26.cloudera.4:compile
+[INFO] |     |  |     |  +- org.mortbay.jetty:jetty-util:jar:6.1.26.cloudera.4:compile
+[INFO] |     |  |     |  +- com.sun.jersey:jersey-core:jar:1.8:compile
+[INFO] |     |  |     |  +- com.sun.jersey:jersey-json:jar:1.9:compile
+[INFO] |     |  |     |  |  +- org.codehaus.jettison:jettison:jar:1.1:compile
+[INFO] |     |  |     |  |  +- com.sun.xml.bind:jaxb-impl:jar:2.2.3-1:compile
+[INFO] |     |  |     |  |  \- org.codehaus.jackson:jackson-xc:jar:1.8.3:compile
+[INFO] |     |  |     |  +- com.sun.jersey:jersey-server:jar:1.9:compile
+[INFO] |     |  |     |  |  \- asm:asm:jar:3.1:compile
+[INFO] |     |  |     |  +- javax.servlet.jsp:jsp-api:jar:2.1:compile
+[INFO] |     |  |     |  +- commons-el:commons-el:jar:1.0:compile
+[INFO] |     |  |     |  +- net.java.dev.jets3t:jets3t:jar:0.9.0:compile
+[INFO] |     |  |     |  |  \- com.jamesmurty.utils:java-xmlbuilder:jar:0.4:compile
+[INFO] |     |  |     |  +- commons-configuration:commons-configuration:jar:1.6:compile
+[INFO] |     |  |     |  |  +- commons-digester:commons-digester:jar:1.8:compile
+[INFO] |     |  |     |  |  |  \- commons-beanutils:commons-beanutils:jar:1.7.0:compile
+[INFO] |     |  |     |  |  \- commons-beanutils:commons-beanutils-core:jar:1.8.0:compile
+[INFO] |     |  |     |  +- org.slf4j:slf4j-api:jar:1.7.5:compile
+[INFO] |     |  |     |  +- org.slf4j:slf4j-log4j12:jar:1.7.5:compile
+[INFO] |     |  |     |  +- org.codehaus.jackson:jackson-core-asl:jar:1.8.8:compile
+[INFO] |     |  |     |  +- org.codehaus.jackson:jackson-mapper-asl:jar:1.8.8:compile
+[INFO] |     |  |     |  +- org.apache.avro:avro:jar:1.7.6-cdh5.4.1:compile
+[INFO] |     |  |     |  |  +- com.thoughtworks.paranamer:paranamer:jar:2.3:compile
+[INFO] |     |  |     |  |  \- org.xerial.snappy:snappy-java:jar:1.0.5:compile
+[INFO] |     |  |     |  +- org.apache.hadoop:hadoop-auth:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  \- org.apache.directory.server:apacheds-kerberos-codec:jar:2.0.0-M15:compile
+[INFO] |     |  |     |  |     +- org.apache.directory.server:apacheds-i18n:jar:2.0.0-M15:compile
+[INFO] |     |  |     |  |     +- org.apache.directory.api:api-asn1-api:jar:1.0.0-M20:compile
+[INFO] |     |  |     |  |     \- org.apache.directory.api:api-util:jar:1.0.0-M20:compile
+[INFO] |     |  |     |  +- com.jcraft:jsch:jar:0.1.42:compile
+[INFO] |     |  |     |  +- org.apache.curator:curator-client:jar:2.7.1:compile
+[INFO] |     |  |     |  +- org.apache.curator:curator-recipes:jar:2.7.1:compile
+[INFO] |     |  |     |  +- org.htrace:htrace-core:jar:3.0.4:compile
+[INFO] |     |  |     |  \- org.apache.commons:commons-compress:jar:1.4.1:compile
+[INFO] |     |  |     |     \- org.tukaani:xz:jar:1.0:compile
+[INFO] |     |  |     +- org.apache.hadoop:hadoop-hdfs:jar:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- commons-daemon:commons-daemon:jar:1.0.13:compile
+[INFO] |     |  |     |  \- org.fusesource.leveldbjni:leveldbjni-all:jar:1.8:compile
+[INFO] |     |  |     +- org.apache.hbase:hbase-client:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-annotations:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  |  \- jdk.tools:jdk.tools:jar:1.7:system
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-common:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.htrace:htrace-core:jar:3.1.0-incubating:compile
+[INFO] |     |  |     |  +- org.jruby.jcodings:jcodings:jar:1.0.8:compile
+[INFO] |     |  |     |  +- org.jruby.joni:joni:jar:2.1.2:compile
+[INFO] |     |  |     |  \- com.github.stephenc.findbugs:findbugs-annotations:jar:1.3.9-1:compile
+[INFO] |     |  |     +- org.apache.hbase:hbase-common:jar:tests:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  \- org.apache.hadoop:hadoop-core:jar:2.6.0-mr1-cdh5.4.1:compile
+[INFO] |     |  |     |     +- hsqldb:hsqldb:jar:1.8.0.10:compile
+[INFO] |     |  |     |     \- org.eclipse.jdt:core:jar:3.1.1:compile
+[INFO] |     |  |     +- org.apache.hbase:hbase-protocol:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     +- org.apache.hbase:hbase-server:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-prefix-tree:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:runtime
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-hadoop-compat:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-hadoop2-compat:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- com.yammer.metrics:metrics-core:jar:2.1.2:compile
+[INFO] |     |  |     |  +- org.apache.commons:commons-math:jar:2.1:compile
+[INFO] |     |  |     |  +- org.mortbay.jetty:jetty-sslengine:jar:6.1.26.cloudera.4:compile
+[INFO] |     |  |     |  +- org.mortbay.jetty:jsp-2.1:jar:6.1.14:compile
+[INFO] |     |  |     |  +- org.mortbay.jetty:jsp-api-2.1:jar:6.1.14:compile
+[INFO] |     |  |     |  +- org.codehaus.jackson:jackson-jaxrs:jar:1.8.8:compile
+[INFO] |     |  |     |  +- org.jamon:jamon-runtime:jar:2.3.1:compile
+[INFO] |     |  |     |  +- javax.xml.bind:jaxb-api:jar:2.1:compile
+[INFO] |     |  |     |  |  \- javax.activation:activation:jar:1.1:compile
+[INFO] |     |  |     |  \- org.apache.hadoop:hadoop-hdfs:test-jar:tests:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     +- org.apache.hbase:hbase-testing-util:jar:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-annotations:test-jar:tests:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-server:test-jar:tests:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-hadoop-compat:test-jar:tests:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  +- org.apache.hbase:hbase-hadoop2-compat:test-jar:tests:1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT:compile
+[INFO] |     |  |     |  \- org.apache.hadoop:hadoop-minicluster:jar:2.6.0-mr1-cdh5.4.1:compile
+[INFO] |     |  |     |     +- org.apache.hadoop:hadoop-test:jar:2.6.0-mr1-cdh5.4.1:compile
+[INFO] |     |  |     |     |  +- org.apache.ftpserver:ftplet-api:jar:1.0.0:compile
+[INFO] |     |  |     |     |  +- org.apache.mina:mina-core:jar:2.0.0-M5:compile
+[INFO] |     |  |     |     |  +- org.apache.ftpserver:ftpserver-core:jar:1.0.0:compile
+[INFO] |     |  |     |     |  \- org.apache.ftpserver:ftpserver-deprecated:jar:1.0.0-M2:compile
+[INFO] |     |  |     |     \- org.apache.hadoop:hadoop-common:test-jar:tests:2.6.0-cdh5.4.1:compile
+[INFO] |     |  |     +- org.apache.hive:hive-beeline:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hive:hive-metastore:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  +- com.jolbox:bonecp:jar:0.8.0.RELEASE:compile
+[INFO] |     |  |     |  |  +- org.apache.derby:derby:jar:10.11.1.1:compile
+[INFO] |     |  |     |  |  +- org.datanucleus:datanucleus-api-jdo:jar:3.2.6:compile
+[INFO] |     |  |     |  |  +- org.datanucleus:datanucleus-core:jar:3.2.10:compile
+[INFO] |     |  |     |  |  +- org.datanucleus:datanucleus-rdbms:jar:3.2.9:compile
+[INFO] |     |  |     |  |  +- commons-pool:commons-pool:jar:1.5.4:compile
+[INFO] |     |  |     |  |  +- commons-dbcp:commons-dbcp:jar:1.4:compile
+[INFO] |     |  |     |  |  +- javax.jdo:jdo-api:jar:3.0.1:compile
+[INFO] |     |  |     |  |  |  \- javax.transaction:jta:jar:1.1:compile
+[INFO] |     |  |     |  |  \- org.antlr:antlr-runtime:jar:3.4:compile
+[INFO] |     |  |     |  |     +- org.antlr:stringtemplate:jar:3.2.1:compile
+[INFO] |     |  |     |  |     \- antlr:antlr:jar:2.7.7:compile
+[INFO] |     |  |     |  +- jline:jline:jar:2.12:compile
+[INFO] |     |  |     |  \- org.apache.thrift:libthrift:jar:0.9.2:compile
+[INFO] |     |  |     +- org.apache.hive:hive-cli:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hive:hive-serde:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  +- com.twitter:parquet-hadoop-bundle:jar:1.5.0-cdh5.4.1:compile
+[INFO] |     |  |     |  |  \- com.sun.jersey:jersey-servlet:jar:1.14:compile
+[INFO] |     |  |     |  \- org.apache.hive:hive-exec:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |     +- org.apache.hive:hive-ant:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |     |  \- org.apache.velocity:velocity:jar:1.5:compile
+[INFO] |     |  |     |     |     \- oro:oro:jar:2.0.8:compile
+[INFO] |     |  |     |     +- org.cloudera.logredactor:logredactor:jar:1.0.2:compile
+[INFO] |     |  |     |     +- org.antlr:ST4:jar:4.0.4:compile
+[INFO] |     |  |     |     +- org.apache.curator:apache-curator:pom:2.6.0:compile
+[INFO] |     |  |     |     +- org.codehaus.groovy:groovy-all:jar:2.1.6:compile
+[INFO] |     |  |     |     +- org.apache.calcite:calcite-core:jar:1.0.0-incubating:compile
+[INFO] |     |  |     |     |  +- org.apache.calcite:calcite-linq4j:jar:1.0.0-incubating:compile
+[INFO] |     |  |     |     |  +- org.pentaho:pentaho-aggdesigner-algorithm:jar:5.1.5-jhyde:compile
+[INFO] |     |  |     |     |  +- eigenbase:eigenbase-properties:jar:1.1.4:compile
+[INFO] |     |  |     |     |  +- org.codehaus.janino:janino:jar:2.7.6:compile
+[INFO] |     |  |     |     |  \- org.codehaus.janino:commons-compiler:jar:2.7.6:compile
+[INFO] |     |  |     |     +- org.apache.calcite:calcite-avatica:jar:1.0.0-incubating:compile
+[INFO] |     |  |     |     \- stax:stax-api:jar:1.0.1:compile
+[INFO] |     |  |     +- org.apache.hive:hive-common:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- log4j:apache-log4j-extras:jar:1.2.17:compile
+[INFO] |     |  |     |  \- org.apache.ant:ant:jar:1.9.1:compile
+[INFO] |     |  |     |     \- org.apache.ant:ant-launcher:jar:1.9.1:compile
+[INFO] |     |  |     +- org.apache.hive:hive-contrib:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     +- org.apache.hive:hive-hbase-handler:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     +- org.apache.hive:hive-hwi:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  \- org.eclipse.jetty.aggregate:jetty-all-server:jar:7.6.0.v20120127:compile
+[INFO] |     |  |     |     +- org.apache.geronimo.specs:geronimo-jta_1.1_spec:jar:1.1.1:compile
+[INFO] |     |  |     |     +- javax.mail:mail:jar:1.4.1:compile
+[INFO] |     |  |     |     +- org.apache.geronimo.specs:geronimo-jaspic_1.0_spec:jar:1.0:compile
+[INFO] |     |  |     |     +- org.apache.geronimo.specs:geronimo-annotation_1.0_spec:jar:1.1.1:compile
+[INFO] |     |  |     |     \- asm:asm-commons:jar:3.1:compile
+[INFO] |     |  |     |        \- asm:asm-tree:jar:3.1:compile
+[INFO] |     |  |     +- org.apache.hive:hive-jdbc:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.httpcomponents:httpclient:jar:4.2.5:compile
+[INFO] |     |  |     |  +- org.apache.httpcomponents:httpcore:jar:4.2.5:compile
+[INFO] |     |  |     |  \- org.apache.curator:curator-framework:jar:2.6.0:compile
+[INFO] |     |  |     +- org.apache.hive:hive-service:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- net.sf.jpam:jpam:jar:1.1:compile
+[INFO] |     |  |     |  +- org.eclipse.jetty.aggregate:jetty-all:jar:7.6.0.v20120127:compile
+[INFO] |     |  |     |  \- org.apache.thrift:libfb303:jar:0.9.2:compile
+[INFO] |     |  |     +- org.apache.hive:hive-shims:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hive.shims:hive-shims-common:jar:1.1.0-cdh5.4.1:compile
+[INFO] |     |  |     |  +- org.apache.hive.shims:hive-shims-0.23:jar:1.1.0-cdh5.4.1:runtime
+[INFO] |     |  |     |  |  \- org.apache.hadoop:hadoop-yarn-server-resourcemanager:jar:2.6.0-cdh5.4.1:runtime
+[INFO] |     |  |     |  |     +- com.google.inject.extensions:guice-servlet:jar:3.0:runtime
+[INFO] |     |  |     |  |     +- com.google.inject:guice:jar:3.0:runtime
+[INFO] |     |  |     |  |     |  +- javax.inject:javax.inject:jar:1:runtime
+[INFO] |     |  |     |  |     |  \- aopalliance:aopalliance:jar:1.0:runtime
+[INFO] |     |  |     |  |     +- com.sun.jersey.contribs:jersey-guice:jar:1.9:runtime
+[INFO] |     |  |     |  |     +- org.apache.hadoop:hadoop-yarn-server-applicationhistoryservice:jar:2.6.0-cdh5.4.1:runtime
+[INFO] |     |  |     |  |     \- org.apache.hadoop:hadoop-yarn-server-web-proxy:jar:2.6.0-cdh5.4.1:runtime
+[INFO] |     |  |     |  \- org.apache.hive.shims:hive-shims-scheduler:jar:1.1.0-cdh5.4.1:runtime
+[INFO] |     |  |     +- org.apache.zookeeper:zookeeper:jar:3.4.5-cdh5.4.1:compile
+[INFO] |     |  |     \- org.apache.spark:spark-assembly-hadoop2.6.0-cdh5.4.1:jar:1.5.0:compile
+[INFO] |     |  +- com.splicemachine:splice_protocol-cdh5.4.1:jar:2.0.0-SNAPSHOT:compile
+[INFO] |     |  +- com.splicemachine:asynchbase:jar:1.5.6:compile
+[INFO] |     |  \- com.stumbleupon:async:jar:1.4.0:compile
+[INFO] |     \- org.scala-lang:scala-library:jar:2.10.4:compile
+[INFO] +- com.splicemachine:splice_machine_adapter_98-cdh5.4.1:jar:tests:2.0.0-SNAPSHOT:compile
+[INFO] +- org.splicetest.sqlj:sqlj-it-procs:jar:1.0.2:compile
+[INFO] +- com.google.protobuf:protobuf-java:jar:2.5.0:compile
+[INFO] +- com.carrotsearch:hppc:jar:0.5.2:compile
+[INFO] +- com.carrotsearch:java-sizeof:jar:0.0.4:compile
+[INFO] +- com.esotericsoftware.kryo:kryo:jar:2.21:compile
+[INFO] |  +- com.esotericsoftware.reflectasm:reflectasm:jar:shaded:1.07:compile
+[INFO] |  |  \- org.ow2.asm:asm:jar:4.0:compile
+[INFO] |  +- com.esotericsoftware.minlog:minlog:jar:1.2:compile
+[INFO] |  \- org.objenesis:objenesis:jar:1.2:compile
+[INFO] +- com.github.stephenc.high-scale-lib:high-scale-lib:jar:1.1.1:compile
+[INFO] +- com.google.code.findbugs:jsr305:jar:1.3.9:compile
+[INFO] +- com.google.code.gson:gson:jar:2.2.2:compile
+[INFO] +- com.google.guava:guava:jar:14.0:compile
+[INFO] +- com.lmax:disruptor:jar:3.2.1:compile
+[INFO] +- com.splicemachine:utilities:jar:1.2.1-SNAPSHOT:compile
+[INFO] +- com.splicemachine:stats:jar:1.0.1-SNAPSHOT:compile
+[INFO] +- commons-cli:commons-cli:jar:1.2:compile
+[INFO] +- commons-dbutils:commons-dbutils:jar:1.5:compile
+[INFO] +- commons-io:commons-io:jar:2.1:compile
+[INFO] +- commons-lang:commons-lang:jar:2.5:compile
+[INFO] +- commons-logging:commons-logging:jar:1.1.1:compile
+[INFO] +- de.javakaffee:kryo-serializers:jar:0.26:compile
+[INFO] +- io.netty:netty:jar:3.6.6.Final:compile
+[INFO] +- net.sf.ehcache:ehcache-core:jar:2.6.6:compile
+[INFO] +- net.sf.opencsv:opencsv:jar:2.3:compile
+[INFO] +- net.sf.supercsv:super-csv:jar:2.3.2-SNAPSHOT-splice:compile
+[INFO] +- com.splicemachine:db:jar:2.0.0.0-SNAPSHOT:compile
+[INFO] +- com.splicemachine:dbclient:jar:2.0.0.0-SNAPSHOT:compile
+[INFO] +- org.apache.lucene:lucene-core:jar:4.3.1:compile
+[INFO] +- org.apache.mrunit:mrunit:jar:hadoop2:1.0.0:compile
+[INFO] +- org.uncommons.maths:uncommons-maths:jar:1.2.1:compile
+[INFO] +- org.uncommons.watchmaker:watchmaker-framework:jar:0.7.1:compile
+[INFO] +- junit:junit:jar:4.12:test
+[INFO] |  \- org.hamcrest:hamcrest-core:jar:1.3:test
+[INFO] +- org.mockito:mockito-all:jar:1.9.5:test
+[INFO] \- log4j:log4j:jar:1.2.17:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 6.574 s
+[INFO] Finished at: 2015-10-21T16:37:30-05:00
+[INFO] Final Memory: 29M/446M
+[INFO] ------------------------------------------------------------------------

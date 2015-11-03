@@ -448,7 +448,6 @@ public class UpdateOperationIT {
     }
 
     @Test
-    @Ignore("DB-")
     public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
         int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
         Assert.assertEquals("incorrect num rows updated!", 4, rows);

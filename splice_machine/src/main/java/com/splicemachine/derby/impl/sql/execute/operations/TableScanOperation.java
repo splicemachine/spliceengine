@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -110,27 +109,27 @@ public class TableScanOperation extends ScanOperation {
 		}
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
-        tableName = in.readUTF();
-        tableNameBytes = Bytes.toBytes(tableName);
-        indexColItem = in.readInt();
+        tableName=in.readUTF();
+        tableNameBytes=Bytes.toBytes(tableName);
+        indexColItem=in.readInt();
         if(in.readBoolean())
-            indexName = in.readUTF();
+            indexName=in.readUTF();
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
         out.writeUTF(tableName);
         out.writeInt(indexColItem);
-        out.writeBoolean(indexName != null);
+        out.writeBoolean(indexName!=null);
         if(indexName!=null)
             out.writeUTF(indexName);
     }
 
     @Override
-    public void init(SpliceOperationContext context) throws StandardException, IOException {
+    public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
         this.baseColumnMap = operationInformation.getBaseColumnMap();
         this.slice = ByteSlice.empty();
@@ -155,15 +154,6 @@ public class TableScanOperation extends ScanOperation {
 		}
 
 		@Override
-		public String toString() {
-				try {
-						return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f}",tableName,scanInformation.isKeyed(),resultSetNumber,optimizerEstimatedCost,optimizerEstimatedRowCount);
-				} catch (Exception e) {
-						return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f}", tableName, "UNKNOWN", resultSetNumber,optimizerEstimatedCost,optimizerEstimatedRowCount);
-				}
-		}
-
-		@Override
 		public void	close() throws StandardException {
 				SpliceLogUtils.trace(LOG, "close in TableScan");
 				beginTime = getCurrentTimeMillis();
@@ -171,24 +161,6 @@ public class TableScanOperation extends ScanOperation {
 						activation.clearIndexScanInfo();
 				}
 				super.close();
-		}
-
-		public Properties getScanProperties()
-		{
-				if (scanProperties == null)
-						scanProperties = new Properties();
-				scanProperties.setProperty("numPagesVisited", "0");
-				scanProperties.setProperty("numRowsVisited", "0");
-				scanProperties.setProperty("numRowsQualified", "0");
-				scanProperties.setProperty("numColumnsFetched", "0");//FIXME: need to loop through accessedCols to figure out
-				try {
-						scanProperties.setProperty("columnsFetchedBitSet", ""+scanInformation.getAccessedColumns());
-				} catch (StandardException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,e);
-				}
-				//treeHeight
-
-				return scanProperties;
 		}
 
 		@Override
@@ -214,6 +186,15 @@ public class TableScanOperation extends ScanOperation {
             return dsp.getTableScanner(this, tsb, tableName);
         }
 
+    @Override
+    public String toString(){
+        try{
+            return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f}",tableName,scanInformation.isKeyed(),resultSetNumber,optimizerEstimatedCost,optimizerEstimatedRowCount);
+        }catch(Exception e){
+            return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f}",tableName,"UNKNOWN",resultSetNumber,optimizerEstimatedCost,optimizerEstimatedRowCount);
+        }
+    }
+
 		public TableScannerBuilder getTableScannerBuilder(DataSetProcessor dsp) throws StandardException {
             TxnView txn = getCurrentTransaction();
 			return new TableScannerBuilder()
@@ -232,6 +213,5 @@ public class TableScanOperation extends ScanOperation {
 							.keyDecodingMap(getKeyDecodingMap())
 							.rowDecodingMap(baseColumnMap);
 		}
-
 
 }

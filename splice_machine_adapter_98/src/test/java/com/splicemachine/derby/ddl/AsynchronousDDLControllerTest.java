@@ -147,7 +147,7 @@ public class AsynchronousDDLControllerTest{
 
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
-        AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,10,1);
+        AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
         DDLChange change = new DDLChange(txn);
         String retChangeId=controller.notifyMetadataChange(change);
@@ -201,7 +201,7 @@ public class AsynchronousDDLControllerTest{
 
         LockFactory lf = new SingleInstanceLockFactory(lock);
 
-        AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,10,1);
+        AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
         DDLChange change = new DDLChange(txn);
         String retChangeId=controller.notifyMetadataChange(change);

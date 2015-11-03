@@ -1,0 +1,52 @@
+Listening for transport dt_socket at address: 4020
+18:27:58,100 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+18:27:58,158 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [Remoting] - Starting remoting
+18:27:58,400 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [Remoting] - Remoting started; listening on addresses :[akka.tcp://driverPropsFetcher@10.0.1.12:53684]
+18:27:58,646 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+18:27:58,649 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+18:27:58,674 (sparkExecutor-akka.actor.default-dispatcher-2) INFO  [a.e.s.Slf4jLogger] - Slf4jLogger started
+18:27:58,679 (sparkExecutor-akka.actor.default-dispatcher-2) INFO  [Remoting] - Starting remoting
+18:27:58,687 (driverPropsFetcher-akka.actor.default-dispatcher-2) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
+18:27:58,691 (sparkExecutor-akka.actor.default-dispatcher-2) INFO  [Remoting] - Remoting started; listening on addresses :[akka.tcp://sparkExecutor@10.0.1.12:53686]
+18:28:04,696 (Executor task launch worker-0) ERROR [c.s.p.u.PipelineConstants] - No Native Snappy Installed: Splice Machine's Write Pipeline will not compress data over the wire.
+18:28:04,797 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Booting the SpliceDriver
+18:28:05,700 (splice-lifecycle-manager) INFO  [c.s.d.i.s.c.SpliceDataDictionary] - Splice Software Version = null
+18:28:05,700 (splice-lifecycle-manager) INFO  [c.s.d.i.s.c.SpliceDataDictionary] - Splice Catalog Version = 2.0.0
+18:28:05,841 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Splice Engine is Running, Enabling Services
+18:28:05,841 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Splice Machine Release      = UNKNOWN
+18:28:05,841 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Splice Machine Version Hash = 1.1
+18:28:05,841 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Splice Machine Build Time   = UNKNOWN
+18:28:05,841 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Splice Machine URL          = UNKNOWN
+18:28:05,841 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Services successfully started, enabling JDBC connections...
+18:28:05,845 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMInputFormat] - createRecordReader for split=HBase table split(table name: 1344, scan: , start row: , end row: , region location: localhost), context org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl@3800b7ff
+18:28:05,845 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMInputFormat] - getRecorderReader with table=com.splicemachine.hbase.table.SpliceHTable@372fe312, conglomerate=1344
+18:28:05,846 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMRecordReaderImpl] - init
+18:28:05,864 (splice-lifecycle-manager) INFO  [c.s.d.h.SpliceDriver] - Ready to accept JDBC connections on 0.0.0.0:1527
+18:28:06,123 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseSplitRegionScanner] - init split scanner with scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}, table=com.splicemachine.hbase.table.SpliceHTable@372fe312, location_number=1 ,locations=[region=1344,,1445383578858.93302d7c93754da180d53e2be9ad970a., hostname=localhost,53449,1445383537310, seqNum=2]
+18:28:06,123 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseSplitRegionScanner] - adding Split Region Scanner for startKey=[B@5fefa55b, endKey=[B@6e512a91
+18:28:06,124 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SplitRegionScanner] - createAndRegisterClientSideRegionScanner with table=com.splicemachine.hbase.table.SpliceHTable@372fe312, scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}, tableConfiguration=Configuration: core-default.xml, core-site.xml, mapred-default.xml, mapred-site.xml, hdfs-default.xml, hdfs-site.xml, hbase-default.xml, hbase-site.xml, splice-site.xml
+18:28:06,146 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - init for regionInfo={ENCODED => 93302d7c93754da180d53e2be9ad970a, NAME => '1344,,1445383578858.93302d7c93754da180d53e2be9ad970a.', STARTKEY => '', ENDKEY => ''}, scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}
+18:28:06,147 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - updateScanner with hregionInfo={ENCODED => 93302d7c93754da180d53e2be9ad970a, NAME => '1344,,1445383578858.93302d7c93754da180d53e2be9ad970a.', STARTKEY => '', ENDKEY => ''}, tableName=1344, rootDir=file:/Users/jleach/Documents/workspace/spliceengine/cdh5.4.1/splice_machine_test/target/hbase, scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}
+18:28:06,577 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMInputFormat] - returning record reader
+18:28:06,578 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMRecordReaderImpl] - initialize with split=HBase table split(table name: 1344, scan: , start row: , end row: , region location: localhost)
+18:28:06,578 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMRecordReaderImpl] - init
+18:28:06,578 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseSplitRegionScanner] - init split scanner with scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}, table=com.splicemachine.hbase.table.SpliceHTable@372fe312, location_number=1 ,locations=[region=1344,,1445383578858.93302d7c93754da180d53e2be9ad970a., hostname=localhost,53449,1445383537310, seqNum=2]
+18:28:06,578 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseSplitRegionScanner] - adding Split Region Scanner for startKey=[B@5fefa55b, endKey=[B@6e512a91
+18:28:06,579 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SplitRegionScanner] - createAndRegisterClientSideRegionScanner with table=com.splicemachine.hbase.table.SpliceHTable@372fe312, scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}, tableConfiguration=Configuration: core-default.xml, core-site.xml, mapred-default.xml, mapred-site.xml, hdfs-default.xml, hdfs-site.xml, hbase-default.xml, hbase-site.xml, splice-site.xml
+18:28:06,581 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - init for regionInfo={ENCODED => 93302d7c93754da180d53e2be9ad970a, NAME => '1344,,1445383578858.93302d7c93754da180d53e2be9ad970a.', STARTKEY => '', ENDKEY => ''}, scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}
+18:28:06,581 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - updateScanner with hregionInfo={ENCODED => 93302d7c93754da180d53e2be9ad970a, NAME => '1344,,1445383578858.93302d7c93754da180d53e2be9ad970a.', STARTKEY => '', ENDKEY => ''}, tableName=1344, rootDir=file:/Users/jleach/Documents/workspace/spliceengine/cdh5.4.1/splice_machine_test/target/hbase, scan={"timeRange":[0,9223372036854775807],"batch":-1,"startRow":"","stopRow":"","loadColumnFamiliesOnDemand":null,"totalColumns":0,"cacheBlocks":true,"families":{},"maxResultSize":-1,"maxVersions":2147483647,"caching":32}
+18:28:17,512 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseMemstoreKeyValueScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.SMRecordReaderImpl] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseSplitRegionScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseMemstoreKeyValueScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseMemstoreKeyValueScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseSplitRegionScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseMemstoreKeyValueScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseClientSideRegionScanner] - close
+18:28:17,513 (Executor task launch worker-0) DEBUG [c.s.m.a.c.BaseMemstoreKeyValueScanner] - close
+18:30:30,491 (sparkExecutor-akka.actor.default-dispatcher-17) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Shutting down remote daemon.
+18:30:30,491 (sparkExecutor-akka.actor.default-dispatcher-17) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remote daemon shut down; proceeding with flushing remote transports.
+18:30:30,506 (sparkExecutor-akka.actor.default-dispatcher-17) INFO  [a.r.RemoteActorRefProvider$RemotingTerminator] - Remoting shut down.
