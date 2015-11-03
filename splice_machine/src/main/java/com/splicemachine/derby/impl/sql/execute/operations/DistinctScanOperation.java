@@ -166,7 +166,6 @@ public class DistinctScanOperation extends ScanOperation {
                 .transaction(getCurrentTransaction())
                 .scan(getNonSIScan())
                 .template(currentRow)
-                .metricFactory(null)
                 .tableVersion(scanInformation.getTableVersion())
                 .indexName(indexName)
                 .reuseRowLocation(false)

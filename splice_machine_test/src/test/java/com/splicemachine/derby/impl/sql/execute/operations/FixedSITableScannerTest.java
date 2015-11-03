@@ -14,7 +14,6 @@ import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -277,7 +276,6 @@ public class FixedSITableScannerTest {
 				TableScannerBuilder builder = new TableScannerBuilder()
 								.scan(scan)
 								.scanner(scanner)
-								.metricFactory(Metrics.noOpMetricFactory())
 								.tableVersion("2.0")
 								.rowDecodingMap(rowDecodingMap)
 								.filterFactory(

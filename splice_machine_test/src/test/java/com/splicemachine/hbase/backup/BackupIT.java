@@ -18,6 +18,7 @@ import org.junit.runner.Description;
 
 import static java.lang.String.format;
 @Category(value = {SerialTest.class, SlowTest.class})
+@Ignore
 public class BackupIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static String TABLE_NAME1 = "A";

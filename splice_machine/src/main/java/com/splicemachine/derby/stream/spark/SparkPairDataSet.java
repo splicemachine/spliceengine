@@ -200,7 +200,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             }
             ValueRow valueRow = new ValueRow(1);
             InsertOperation insertOperation = ((InsertOperation)operationContext.getOperation());
-            if (insertOperation.isImport()) {
+            if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
                     System.out.println("badRecords -> " + badRecords);

@@ -39,6 +39,7 @@ public class DeleteTableWriter extends AbstractTableWriter<ExecRow> {
         writeBuffer = writeCoordinator.writeBuffer(destinationTable,
                 txn, Metrics.noOpMetricFactory());
         encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
+        flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
     }
     public KeyEncoder getKeyEncoder() throws StandardException {
         return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
@@ -66,16 +67,6 @@ public class DeleteTableWriter extends AbstractTableWriter<ExecRow> {
     public DataHash getRowHash() throws StandardException {
         return EMPTY_VALUES_ENCODER;
     }
-
-
-    public void close() throws StandardException {
-        try {
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-        } catch (Exception e) {
-            throw Exceptions.parseException(e);
-        }
-    };
 
     public void delete(ExecRow execRow) throws StandardException {
         try {

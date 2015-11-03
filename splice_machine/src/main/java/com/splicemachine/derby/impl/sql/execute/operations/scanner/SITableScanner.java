@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.codahale.metrics.Metric;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
@@ -21,10 +22,7 @@ import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.Counter;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.TimeView;
-import com.splicemachine.metrics.Timer;
+import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
@@ -84,7 +82,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             MetricFactory metricFactory,
                              Scan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
@@ -106,6 +103,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
         this.reuseRowLocation = reuseRowLocation;
+        MetricFactory metricFactory = Metrics.basicMetricFactory();
         this.timer = metricFactory.newTimer();
         this.filterCounter = metricFactory.newCounter();
         this.outputBytesCounter = metricFactory.newCounter();

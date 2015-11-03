@@ -135,6 +135,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     }
 
     public InsertTableWriter build() throws StandardException {
+        assert txn!=null:"Txn is null";
         return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
                     autoIncrementRowLocationArray,spliceSequences,
                     heapConglom,txn,operationContext,isUpsert);

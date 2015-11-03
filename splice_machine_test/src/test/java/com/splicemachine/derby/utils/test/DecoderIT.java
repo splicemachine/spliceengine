@@ -63,7 +63,10 @@ public class DecoderIT {
                         SpliceNetConnection.getConnection().prepareStatement(
                                 String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,null,null,0,null,true,null)",
                                         SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME, csvLocation));
-                ps.executeQuery();
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+
+                }
             } catch (Exception e) {
                 LOG.error("Error inserting into "+TransactionHeaderTable.TABLE_NAME+" table", e);
                 throw new RuntimeException(e);
@@ -78,9 +81,12 @@ public class DecoderIT {
             try {
                 PreparedStatement ps =
                         SpliceNetConnection.getConnection().prepareStatement(
-                                String.format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s', null, '%s', ',', null, null,null,null,0,null,true,null)",
+                                String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,null,null,0,null,true,null)",
                                         SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME2, csvLocation2));
-                ps.executeQuery();
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+
+                }
             } catch (Exception e) {
                 LOG.error("Error inserting into "+TransactionHeaderTable.TABLE_NAME2+" table", e);
                 throw new RuntimeException(e);

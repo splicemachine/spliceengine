@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.Set;
 
@@ -41,7 +42,11 @@ public class MicrostrategiesCustomerIT {
         ps.setString(1, SCHEMA);
         ps.setString(2, "A");
         ps.setString(3, getResourceDirectory() + "customer_iso.csv");
-        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+
+        }
+        rs.close();
         ps.close();
     }
 

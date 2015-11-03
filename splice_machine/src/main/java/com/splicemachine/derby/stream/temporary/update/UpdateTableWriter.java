@@ -104,6 +104,7 @@ public class UpdateTableWriter extends AbstractTableWriter<ExecRow> {
                 txn, Metrics.noOpMetricFactory());
         writeBuffer = transformWriteBuffer(bufferToTransform);
         encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
+        flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException {
@@ -199,13 +200,4 @@ public class UpdateTableWriter extends AbstractTableWriter<ExecRow> {
         update(execRow);
     }
 
-
-    public void close() throws StandardException {
-        try {
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
-        } catch (Exception e) {
-            throw Exceptions.parseException(e);
-        }
-    }
 }

@@ -4,7 +4,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.IntArrays;
@@ -404,7 +403,6 @@ public class SMSQLUtil extends SIConstants {
         FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(keyColumnEncodingOrder,keyDecodingMap);
         return new TableScannerBuilder()
                 .transaction(ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION, null))
-                .metricFactory(Metrics.basicMetricFactory())
                 .scan(createNewScan())
                 .execRowTypeFormatIds(execRowFormatIds)
                 .tableVersion("2.0")

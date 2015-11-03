@@ -166,8 +166,7 @@ public class PopulateConglomerateTask extends ZkTask {
             TxnView txnView = new DDLTxnView(txn, this.demarcationTimestamp);
 
             TableScannerBuilder builder = new TableScannerBuilder();
-            builder.region(TransactionalRegions.get(region)).scan(scan).scanner(mrs).transaction(txnView).
-                metricFactory(metricFactory);
+            builder.region(TransactionalRegions.get(region)).scan(scan).scanner(mrs).transaction(txnView);
 
             TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
 

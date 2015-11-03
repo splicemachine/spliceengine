@@ -40,31 +40,35 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
                              RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
                              long heapConglom, TxnView txn, OperationContext operationContext, boolean isUpsert) {
         super(txn,heapConglom);
+        assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
-        this.insertOperation = (InsertOperation)operationContext.getOperation();
         this.operationContext = operationContext;
         this.destinationTable = Long.toString(heapConglom).getBytes();
         this.isUpsert = isUpsert;
         this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
+        if (operationContext!=null)
+            this.insertOperation = (InsertOperation)operationContext.getOperation();
     }
 
     public void open() throws StandardException {
-          open(insertOperation.getTriggerHandler(),insertOperation);
+          open(insertOperation==null?null:insertOperation.getTriggerHandler(),insertOperation);
     }
 
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         super.open(triggerHandler, operation);
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
-            writeBuffer = writeCoordinator.writeBuffer(destinationTable,txn, PipelineConstants.noOpFlushHook,insertOperation.failBadRecordCount!=-1?
+            writeBuffer = writeCoordinator.writeBuffer(destinationTable,txn, PipelineConstants.noOpFlushHook,insertOperation!=null&&
+                    insertOperation.failBadRecordCount!=0?
                     new PermissiveInsertWriteConfiguration(writeCoordinator.defaultWriteConfiguration(),
                             operationContext,encoder.getDecoder(execRowDefinition)):writeCoordinator.defaultWriteConfiguration());
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
+            flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -72,16 +76,17 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
 
     public void insert(ExecRow execRow) throws StandardException {
         try {
-            if (operationContext.isFailed())
+            if (operationContext!=null && operationContext.isFailed())
                 return;
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
-            operationContext.recordWrite();
+            if (operationContext!=null)
+                operationContext.recordWrite();
         } catch (Exception e) {
-            if (operationContext.isPermissive()) {
-                operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString());
+            if (operationContext!=null && operationContext.isPermissive()) {
+                    operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString());
                 return;
             }
             throw Exceptions.parseException(e);
