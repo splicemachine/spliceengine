@@ -4,9 +4,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import parquet.io.api.Binary;
-import parquet.io.api.RecordConsumer;
-import parquet.schema.*;
+import org.apache.parquet.io.api.Binary;
+import org.apache.parquet.io.api.RecordConsumer;
+import org.apache.parquet.schema.*;
+
 import java.util.ArrayList;
 import java.util.List;
 

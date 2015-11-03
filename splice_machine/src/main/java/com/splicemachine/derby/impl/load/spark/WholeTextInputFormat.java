@@ -17,7 +17,6 @@ import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.lib.input.CombineFileSplit;
 import org.apache.spark.input.WholeTextFileRecordReader;
-import parquet.Closeables;
 
 import java.io.IOException;
 import java.io.InputStream;
