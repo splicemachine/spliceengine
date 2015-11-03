@@ -1,2 +1,0 @@
-Listening for transport dt_socket at address: 4020
-16:38:32,805 (SIGINT handler) ERROR [o.a.s.e.CoarseGrainedExecutorBackend] - RECEIVED SIGNAL 2: SIGINT
