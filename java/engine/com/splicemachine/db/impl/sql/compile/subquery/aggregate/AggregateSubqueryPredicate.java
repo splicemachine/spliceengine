@@ -1,8 +1,11 @@
 package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
+
+import java.util.List;
 
 /**
  * This predicate determines if we attempt to flatten a given aggregate SubqueryNode or not.
@@ -43,40 +46,14 @@ class AggregateSubqueryPredicate implements com.google.common.base.Predicate<Sub
         if (resultColumns.size() != 1) {
             return false;
         }
-        /* Make a modest attempt to find AggregateNode nodes so that can enforce restrictions on which columns their
-         * ColumnReference operands can reference.  This code currently supports expressions like: sum(b1), 5*sum(b1),
-         * sum(b1)*5, but otherwise gives up and returns false meaning we won't attempt flattening.  On second thought
-         * I should have used RSUtils or similar to just traverse the ResultColumns and find all AggregateNodes here.
-         * If we ever need to support flattening something like sum(b1)*sum(b2) we will have to do that. */
-        ResultColumn resultColumn = resultColumns.elementAt(0);
-        ValueNode expression = resultColumn.getExpression();
-        AggregateNode aggregateNode;
-        if (expression instanceof AggregateNode) {
-            aggregateNode = (AggregateNode) expression;
-        } else if (expression instanceof BinaryArithmeticOperatorNode ) {
-            BinaryArithmeticOperatorNode bao = (BinaryArithmeticOperatorNode) expression;
-            if ((bao.getLeftOperand() instanceof AggregateNode) && (bao.getRightOperand() instanceof ConstantNode)) {
-                aggregateNode = (AggregateNode) bao.getLeftOperand();
-            } else if ((bao.getRightOperand() instanceof AggregateNode) && (bao.getLeftOperand() instanceof ConstantNode)) {
-                aggregateNode = (AggregateNode) bao.getRightOperand();
-            } else {
-                return false;
-            }
-        } else {
-            /* Don't know how to find the ColumnReference inside of AggregateNode for use in checks below. */
-            return false;
-        }
-        ValueNode aggregateNodeOperand = aggregateNode.getOperand();
-        if (!(aggregateNodeOperand instanceof ColumnReference)) {
-            return false;
-        }
+        /* Find column references in the aggregate expression */
+        List<ColumnReference> aggregateColumnRefs = RSUtils.collectNodes(resultColumns.elementAt(0).getExpression(), ColumnReference.class);
 
         /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
         /* If there is no where clause on the subquery then ok */
         if (whereClause != null) {
-            ColumnReference aggregationColumnReference = (ColumnReference) aggregateNode.getOperand();
-            AggregateSubqueryWhereVisitor aggregateSubqueryWhereVisitor = new AggregateSubqueryWhereVisitor(subquerySelectNode.getNestingLevel(), aggregationColumnReference);
+            AggregateSubqueryWhereVisitor aggregateSubqueryWhereVisitor = new AggregateSubqueryWhereVisitor(subquerySelectNode.getNestingLevel(), aggregateColumnRefs);
             whereClause.accept(aggregateSubqueryWhereVisitor);
             return !aggregateSubqueryWhereVisitor.isFoundUnsupported();
         }

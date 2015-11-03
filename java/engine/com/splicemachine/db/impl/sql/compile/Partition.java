@@ -77,4 +77,16 @@ public class Partition extends GroupByList {
 //        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
         return buf.toString();
     }
+
+    @Override
+    public String toHTMLString() {
+        StringBuilder buf = new StringBuilder();
+        for (int i=0; i<size(); ++i) {
+            GroupByColumn col = getGroupByColumn(i);
+            buf.append(col.getColumnName()).append('(');
+            buf.append(col.getColumnPosition()-1).append("),");
+        }
+        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
+        return buf.toString();
+    }
 }

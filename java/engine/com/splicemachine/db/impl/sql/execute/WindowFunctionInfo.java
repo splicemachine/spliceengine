@@ -29,7 +29,6 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 
@@ -64,15 +63,16 @@ public class WindowFunctionInfo implements Formatable
 	** See the constructor for the meaning of these fields
 	*/
 	String	functionName;
-	int[]	inputColumns;
+	int[] operandColNums;
 	int		outputColumn;
 	int		aggregatorColumn;
 	String	functionClassName;
-	ResultDescription	rd;
+	ResultDescription resultDescription;
     FormatableArrayHolder partitionInfo;
     FormatableArrayHolder orderByInfo;
     FormatableArrayHolder keyInfo;
     FormatableHashtable frameInfo;
+    FormatableHashtable functionSpecificArgs;
 
     /**
 	 * Niladic constructor for Formattable
@@ -89,33 +89,34 @@ public class WindowFunctionInfo implements Formatable
 	 *		used to process this function.  Function class expected
 	 *		to have a no-arg constructor and implement
 	 *		WindowFunction.
-	 * @param inputColNums	the input column numbers
+	 * @param operandColNumns the function operand column numbers
 	 * @param outputColNum	the output column number
-	 * @param aggregatorColNum	the column number in which the
-	 *		window function is stored.
-	 * @param rd	the result description
+	 * @param aggregatorColNum the column number in which the window function class is stored.
+	 * @param resultDescription	the result description
 	 *
 	 */
 	public WindowFunctionInfo(String functionName,
                               String functionClassName,
-                              int[] inputColNums,
+                              int[] operandColNumns,
                               int outputColNum,
                               int aggregatorColNum,
-                              ResultDescription rd,
+                              ResultDescription resultDescription,
                               FormatableArrayHolder partitionInfo,
                               FormatableArrayHolder orderByInfo,
                               FormatableArrayHolder keyInfo,
-                              FormatableHashtable frameInfo) {
+                              FormatableHashtable frameInfo,
+                              FormatableHashtable functionSpecificArgs) {
 		this.functionName	= functionName;
 		this.functionClassName = functionClassName;
-		this.inputColumns	= inputColNums;
+		this.operandColNums = operandColNumns;
 		this.outputColumn	= outputColNum;
 		this.aggregatorColumn = aggregatorColNum;
-		this.rd 			= rd;
+		this.resultDescription = resultDescription;
         this.partitionInfo = partitionInfo;
         this.orderByInfo = orderByInfo;
         this.keyInfo = keyInfo;
         this.frameInfo = frameInfo;
+        this.functionSpecificArgs = functionSpecificArgs;
 	}
 
 	/**
@@ -159,7 +160,7 @@ public class WindowFunctionInfo implements Formatable
 	 */
 	public int[] getInputColNums()
 	{
-		return inputColumns;
+		return operandColNums;
 	}
 
 	/**
@@ -177,11 +178,11 @@ public class WindowFunctionInfo implements Formatable
 	 * Get the result description for the input value
 	 * to this aggregate.
 	 *
-	 * @return the rd
+	 * @return the resultDescription
 	 */
 	public ResultDescription getResultDescription()
 	{
-		return rd;
+		return resultDescription;
 	}
 
     public ColumnOrdering[] getPartitionInfo() {
@@ -228,29 +229,22 @@ public class WindowFunctionInfo implements Formatable
         this.frameInfo = frameInfo;
     }
 
-    /**
-	 * Get a string for the object
-	 *
-	 * @return string
-	 */
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "WindowFunctionInfo = Name: "+ functionName +
-				"\n\tClass: " + functionClassName +
-				"\n\tInputCols: " + arrayToString(inputColumns) +
-				"\n\tOutputCol: " + outputColumn +
-				"\n\tPartCols: " + partitionInfo +
-				"\n\tOrderByCols: " + orderByInfo +
-				"\n\tKeyCols: " + keyInfo +
-				"\n\tWindowFunctionColNum: " + aggregatorColumn +
-				"\n\tResultDescription: " + rd;
-		}
-		else
-		{
-			return "";
-		}
+    public FormatableHashtable getFunctionSpecificArgs() {
+        return functionSpecificArgs;
+    }
+
+    public void setFunctionSpecificArgs(FormatableHashtable functionSpecificArgs) {
+        this.functionSpecificArgs = functionSpecificArgs;
+    }
+
+    public String toHTMLString() {
+        return "Name: "+ functionName + "<br/>" +
+            "PartCols: " + (partitionInfo != null ? getColumnNumString(partitionInfo) : "()" ) + "<br/>" +
+            "OrderByCols: " + (orderByInfo != null ? getColumnNumString(orderByInfo) : "()") + "<br/>" +
+            "KeyCols: " + (keyInfo != null ? getColumnNumString(keyInfo) : "()") + "<br/>" +
+            "ResultCol: " + outputColumn + "<br/>" +
+            "OperandCols: " + arrayToString(operandColNums) + "<br/>" +
+            "FunctionColNum: " + aggregatorColumn + "<br/>";
 	}
 
     private static String arrayToString(int[] cols) {
@@ -262,6 +256,17 @@ public class WindowFunctionInfo implements Formatable
             // chop off last ','
             if (buf.length() > 0) buf.setLength(buf.length()-1);
         }
+        return buf.toString();
+    }
+
+    private String getColumnNumString(FormatableArrayHolder fah) {
+        StringBuilder buf = new StringBuilder();
+        for (Object icoObj : fah.getArray(IndexColumnOrder.class)) {
+            IndexColumnOrder ico = (IndexColumnOrder)icoObj;
+            buf.append(ico.getColumnId()).append(',');
+        }
+        // chop off last ','
+        if (buf.length() > 0) buf.setLength(buf.length()-1);
         return buf.toString();
     }
 
@@ -281,19 +286,19 @@ public class WindowFunctionInfo implements Formatable
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
 		out.writeObject(functionName);
-
-        int length = inputColumns.length;
+        int length = operandColNums.length;
         out.writeInt( length );
-        for (int inputColumn : inputColumns) { out.writeInt(inputColumn); }
+        for (int inputColumn : operandColNums) { out.writeInt(inputColumn); }
 
 		out.writeInt(outputColumn);
 		out.writeInt(aggregatorColumn);
 		out.writeObject(functionClassName);
-		out.writeObject(rd);
+		out.writeObject(resultDescription);
         out.writeObject(partitionInfo);
         out.writeObject(orderByInfo);
         out.writeObject(keyInfo);
         out.writeObject(frameInfo);
+        out.writeObject(functionSpecificArgs);
 	}
 
 	/**
@@ -308,19 +313,19 @@ public class WindowFunctionInfo implements Formatable
 		throws IOException, ClassNotFoundException
 	{
 		functionName = (String)in.readObject();
-
         int length = in.readInt();
-        inputColumns = new int[ length ];
-        for ( int i = 0; i < length; i++ ) { inputColumns[ i ] = in.readInt(); }
+        operandColNums = new int[ length ];
+        for ( int i = 0; i < length; i++ ) { operandColNums[ i ] = in.readInt(); }
 
         outputColumn = in.readInt();
 		aggregatorColumn = in.readInt();
 		functionClassName = (String)in.readObject();
-		rd = (ResultDescription)in.readObject();
+		resultDescription = (ResultDescription)in.readObject();
         partitionInfo = (FormatableArrayHolder) in.readObject();
         orderByInfo = (FormatableArrayHolder) in.readObject();
         keyInfo = (FormatableArrayHolder) in.readObject();
         frameInfo = (FormatableHashtable) in.readObject();
+        functionSpecificArgs = (FormatableHashtable) in.readObject();
 	}
 	
 	/**

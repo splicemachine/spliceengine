@@ -39,4 +39,6 @@ public class CorrelatedEqualityBronPredicate implements com.google.common.base.P
                 ||
                 (!right.getCorrelated() && left.getCorrelated() && left.getSourceLevel() == sourceLevel);
     }
+
+
 }

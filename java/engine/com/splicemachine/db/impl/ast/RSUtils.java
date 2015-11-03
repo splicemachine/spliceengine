@@ -1,25 +1,17 @@
 package com.splicemachine.db.impl.ast;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.*;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.base.*;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.AccessPath;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.Visitable;
 
 
 /**
@@ -130,23 +122,23 @@ public class RSUtils {
      * Return any instances of clazz at or below node
      */
     public static <N> List<N> collectNodes(Visitable node, Class<N> clazz) throws StandardException {
-        return CollectNodes.collector(clazz).collect(node);
+        return CollectingVisitorBuilder.forClass(clazz).collect(node);
     }
 
     /**
-     * Visit the node in question and all descendants of the node until the specified predicate evaluates to true.
-     * Note that if the predicate evaluates to true for the passed top node parameter then no nodes will be visited.
+     * Visit the node in question and all descendants of the node until the specified predicate evaluates to true. Note
+     * that if the predicate evaluates to true for the passed top node parameter then no nodes will be visited.
      */
     public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz,
                                                 Predicate<? super Visitable> pred) throws StandardException {
-        return CollectNodes.collector(clazz).until(pred).collect(node);
+        return CollectingVisitorBuilder.forClass(clazz).until(pred).collect(node);
     }
 
     public static <N> List<N> collectExpressionNodes(ResultSetNode node, Class<N> clazz) throws StandardException {
         // define traversal axis to be the node itself (so we can get to its descendants) or,
         // our real target, non-ResultSetNodes
         Predicate<Object> onAxis = Predicates.or(Predicates.equalTo((Object) node), Predicates.not(isRSN));
-        return CollectNodes.collector(clazz).onAxis(onAxis).collect(node);
+        return CollectingVisitorBuilder.forClass(clazz).onAxis(onAxis).collect(node);
     }
 
     /**
@@ -154,7 +146,7 @@ public class RSUtils {
      * descend into expression nodes (therefore doesn't consider ResultSetNodes in subqueries descendants).
      */
     public static List<ResultSetNode> getSelfAndDescendants(ResultSetNode rsn) throws StandardException {
-        return CollectNodes.collector(ResultSetNode.class).onAxis(isRSN).collect(rsn);
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class).onAxis(isRSN).collect(rsn);
     }
 
     /**
@@ -163,13 +155,13 @@ public class RSUtils {
     public static List<ResultSetNode> getChildren(ResultSetNode node) throws StandardException {
         Predicate<Object> self = Predicates.equalTo((Object) node);
         Predicate<Object> notSelfButRS = Predicates.and(Predicates.not(self), isRSN);
-        return CollectNodes.<ResultSetNode>collector(notSelfButRS)
+        return CollectingVisitorBuilder.<ResultSetNode>forPredicate(notSelfButRS)
                 .onAxis(self)
                 .collect(node);
     }
 
     public static List<ResultSetNode> nodesUntilBinaryNode(ResultSetNode rsn) throws StandardException {
-        return CollectNodes.collector(ResultSetNode.class)
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class)
                 .onAxis(isRSN)
                 .until(isBinaryRSN)
                 .collect(rsn);
@@ -271,4 +263,5 @@ public class RSUtils {
         List<ResultSetNode> sinks = Lists.newLinkedList(sinkingChildren(node));
         return (sinks != null && sinks.size() > 0);
     }
+
 }

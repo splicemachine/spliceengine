@@ -1,5 +1,6 @@
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -15,8 +16,9 @@ public class DenseRankFunction extends WindowFunctionBase implements WindowFunct
     @Override
     public WindowFunction setup(ClassFactory classFactory,
                                 String functionName,
-                                DataTypeDescriptor returnDataType) {
-        super.setup(classFactory, functionName, returnDataType);
+                                DataTypeDescriptor returnDataType,
+                                FormatableHashtable functionSpecificArgs) {
+        super.setup(classFactory, functionName, returnDataType, functionSpecificArgs);
         return this;
     }
 

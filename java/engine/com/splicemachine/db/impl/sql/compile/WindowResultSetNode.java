@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -77,12 +76,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * that contains this partition.
      */
     private Collection<WindowFunctionNode> windowFunctions;
-
-    /**
-     * The list of aggregate nodes we've processed as
-     * window functions
-     */
-    private Vector<AggregateNode> processedAggregates = new Vector<>();
 
     /**
      * Information that is used at execution time to
@@ -266,10 +259,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * Add a whole slew of columns needed for
      * aggregation. Basically, for each aggregate we add at least
      * 3 columns: the aggregate input expression(s) (ranking functions accept many)
-     * and the aggregator column and a column where the aggregate
+     * and the window function column and a column where the aggregate
      * result is stored.  The input expressions are
-     * taken directly from the aggregator node.  The aggregator
-     * is the run time aggregator.  We add it to the RC list
+     * taken directly from the window function node.  The window function
+     * is the run time window function.  We add it to the RC list
      * as a new object coming into the sort node.
      * <p/>
      * At this point this is invoked, we have the following
@@ -293,13 +286,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * For each aggregate in windowFunctions <UL>
      * <LI> create RC in FROM TABLE.  Fill it with
      * aggs Operator.
-     * <LI> create RC in FROM TABLE for agg result</LI>
-     * <LI> create RC in FROM TABLE for aggregator</LI>
-     * <LI> create RCs in PARTITION for agg input, set them
+     * <LI> create RC in FROM TABLE for function result</LI>
+     * <LI> create RC in FROM TABLE for window function</LI>
+     * <LI> create RCs in PARTITION for function input, set them
      * to point to FROM TABLE RC </LI>
-     * <LI> create RC in PARTITION for agg result</LI>
-     * <LI> create RC in PARTITION for aggregator</LI>
-     * <LI> replace Agg with reference to RC for agg result </LI></UL>.
+     * <LI> create RC in PARTITION for function result</LI>
+     * <LI> create RC in PARTITION for window function</LI>
+     * <LI> replace function with reference to RC for function result </LI></UL>.
      * <p/>
      * For a query like,
      * <pre>
@@ -311,7 +304,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * <pre>
      * ProjectRestrictNode RCL -> (ptr to GBN(column[0]), ptr to GBN(column[1]), ptr to GBN(column[4]))
      * |
-     * GroupByNode RCL->(C1, SUM(C2), <agg-input>, <aggregator>, MAX(C3), <agg-input>, <aggregator>)
+     * WindowResultSetNode RCL->(C1, SUM(C2), <function-input>, <window function>, MAX(C3), <function-input>, <window function>)
      * |
      * ProjectRestrict RCL->(C1, C2, C3)
      * |
@@ -321,16 +314,16 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * The RCL of the GroupByNode contains all the unagg (or grouping columns)
      * followed by at least 3 RC's for each aggregate in this order: the final computed
      * aggregate value (aggregate result), the aggregate input columns and a column for
-     * the aggregator function itself.
+     * the window function itself.
      * <p/>
-     * The Aggregator function puts the results in the first column of the RC's
+     * The window function puts the results in the first column of the RC's
      * and the PR resultset in turn picks up the value from there.
      * <p/>
      * The notation (ptr to GBN(column[0])) basically means that it is
      * a pointer to the 0th RC in the RCL of the GroupByNode.
      * <p/>
-     * The addition of these unagg and agg columns to the GroupByNode and
-     * to the PRN is performed in addUnAggColumns and addAggregateColumns.
+     * The addition of these unagg and function columns to the GroupByNode and
+     * to the PRN is performed in addUnAggColumns and addWindowFunctionColumns.
      * <p/>
      * Note that that addition of the GroupByNode is done after the
      * query is optimized (in SelectNode#modifyAccessPaths) which means a
@@ -359,7 +352,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // note windowingRCL is a reference to resultColumns
         // setting columns on windowingRCL will also set them on resultColumns
         ResultColumnList windowingRCL = resultColumns;
-        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<SubstituteExpressionVisitor>();
+        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<>();
 
         // Add all referenced columns (CRs) and virtual column (VCNs) in select list to windowing node's RCL
         // and substitute references in original node to point to the Windowing
@@ -681,8 +674,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
-     * In the query rewrite involving aggregates, add the columns for
-     * aggregation.
+     * In the query rewrite involving window functions, add the columns for
+     * function.
      *
      * @see #addNewColumnsForAggregation
      */
@@ -709,7 +702,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
 
 			/*
-			** AGG RESULT: Set the windowFunctionNode result to null in the
+			** FUNCTION RESULT: Set the windowFunctionNode result to null in the
 			** bottom project restrict.
 			*/
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
@@ -738,9 +731,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             replaceParentFunctionWithResultReference(parent.getResultColumns(), windowFunctionNode, tmpRC);
 
 			/*
-			** AGG INPUT(s): Create ResultColumns in the bottom
-			** project restrict that have the expressions
-			** to be aggregated
+			** FUNCTION OPERANDS(s): Create ResultColumns in the bottom
+			** project restrict that have the expressions to be aggregated
 			*/
             // Create function references for all input operands
             ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns(aboveJoin);
@@ -779,7 +771,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
 
 			/*
-			** AGGREGATOR: Add a getAggregator method call
+			** FUNCTION: Add a getAggregator method call
 			** to the bottom result column list.
 			*/
             newRC = windowFunctionNode.getNewAggregatorResultColumn(dd);
@@ -799,7 +791,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             tmpRC.setVirtualColumnId(windowingRCL.size());
 
             /*
-			** Create an aggregator result expression
+			** Create an window function result expression
              */
             ResultColumn aggResultRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
@@ -810,7 +802,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			/*
 			** Piece together a fake one column rcl that we will use
 			** to generate a proper result description for input
-			** to this agg if it is a user agg.
+			** to this function if it is a user function.
 			*/
             ResultColumnList aggRCL = (ResultColumnList) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
@@ -833,9 +825,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 partitionCols,      // window function partition
                 orderByCols,        // window function order by
                 keyCols,            // deduplicated set of partition and order by cols that will be row key
-                windowFunctionNode.getWindow().getFrameExtent().toMap()
+                windowFunctionNode.getWindow().getFrameExtent().toMap(),
+                windowFunctionNode.getFunctionSpecificArgs()
             ));
-            this.processedAggregates.add(windowFunctionNode);
         }
     }
 
@@ -936,26 +928,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
-     * Convert this object to a String.  See comments in QueryTreeNode.java
-     * for how this should be done for tree printing.
-     *
-     * @return This object as a String
-     */
-
-    public String toString() {
-        if (SanityManager.DEBUG) {
-            StringBuilder buf = new StringBuilder("functions: ");
-            for (WindowFunctionInfo info : windowInfoList) {
-                buf.append('\n').append(info.toString());
-            }
-            buf.append("\nWindowDefinition: ").append(wdn.toString()).append(super.toString());
-            return buf.toString();
-        } else {
-            return "";
-        }
-    }
-
-    /**
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.
      *
@@ -967,9 +939,9 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
             printLabel(depth, "windowFunction:\n");
             int i = 0;
-            for (AggregateNode agg : windowFunctions) {
+            for (AggregateNode function : windowFunctions) {
                 debugPrint(formatNodeString("[" + i++ + "]:", depth + 1));
-                agg.treePrint(depth + 1);
+                function.treePrint(depth + 1);
             }
 
             printLabel(depth, "windowDefintionNode: ");
@@ -1128,7 +1100,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                                            newResultColumn);
                 break;
             } else if (aParentCol.getExpression() instanceof BinaryOperatorNode) {
-                // TODO: what other skulduggery does Derby have in store in its plan trees?
                 BinaryOperatorNode aron = (BinaryOperatorNode) aParentCol.getExpression();
                 if (functionNode.equals(aron.getRightOperand())) {
 
@@ -1193,7 +1164,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param nodeLevel the level we're at in the tree    @return the new result column
      * @throws StandardException on error
      */
-    public static ResultColumn createColumnReferenceWrapInResultColumn(ResultColumn targetRC,
+    private static ResultColumn createColumnReferenceWrapInResultColumn(ResultColumn targetRC,
                                                                        NodeFactory nodeFactory,
                                                                        ContextManager contextManager,
                                                                        int nodeLevel)
@@ -1274,13 +1245,37 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     @Override
     public String printExplainInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("WindowFunction").append("(")
-                .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProjectionString());
-        sb.append(")");
-        return sb.toString();
+        return spaceToLevel() + "WindowFunction" + "(" + "n=" + order + "," +
+            getFinalCostEstimate().prettyProjectionString() + ")";
+    }
+
+    @Override
+    public String toHTMLString() {
+        StringBuilder buf = new StringBuilder("WindowFunctions: <br/>");
+        for (WindowFunctionInfo info : windowInfoList) {
+            buf.append(info.toHTMLString()).append("<br/>");
+        }
+        buf.append("WindowDefinition: <br/>").append(wdn.toHTMLString()).append("<br/>");
+        return buf.toString();
+    }
+
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return This object as a String
+     */
+    public String toString() {
+        if (SanityManager.DEBUG) {
+            StringBuilder buf = new StringBuilder("functions: ");
+            for (WindowFunctionInfo info : windowInfoList) {
+                buf.append('\n').append(info.toString());
+            }
+            buf.append("\nWindowDefinition: ").append(wdn.toString()).append(super.toString());
+            return buf.toString();
+        } else {
+            return "";
+        }
     }
 
 }

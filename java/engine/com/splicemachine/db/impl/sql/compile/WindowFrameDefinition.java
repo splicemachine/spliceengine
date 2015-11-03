@@ -10,8 +10,6 @@ import com.splicemachine.db.shared.common.reference.SQLState;
  * A window function frame definition. Created and validated on the db side,
  * transported as raw data to splice side.
  *
- * TODO: STD exception msgs below are not being propageted by Derby
- *
  * @author Jeff Cunningham
  *         Date: 6/6/14
  */
@@ -93,7 +91,7 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
         @Override
         public int hashCode() {
             int result = frame.hashCode();
-            result = (int) (31 * result + value);
+            result = 31 * result + value;
             return result;
         }
 
@@ -180,6 +178,11 @@ public class WindowFrameDefinition extends QueryTreeNode implements Serializable
             "    frame mode: " + frameMode + "\n" +
             "    frame start: " + frameStart + "\n" +
             "    frame end: " + frameEnd);
+    }
+
+    @Override
+    public String toHTMLString() {
+        return ("mode: " + frameMode + " start: " + frameStart + " end: " + frameEnd);
     }
 
     public FrameMode getFrameMode() {

@@ -91,6 +91,7 @@ public interface ISpliceVisitor {
     public Visitable visit(DropViewNode node) throws StandardException;
     public Visitable visit(ExecSPSNode node) throws StandardException;
     public Visitable visit(ExtractOperatorNode node) throws StandardException;
+    public Visitable visit(FirstLastValueFunctionNode node) throws StandardException;
     public Visitable visit(FKConstraintDefinitionNode node) throws StandardException;
     public Visitable visit(FromList node) throws StandardException;
     public Visitable visit(GenerationClauseNode node) throws StandardException;
@@ -104,6 +105,7 @@ public interface ISpliceVisitor {
     public Visitable visit(IsNode node) throws StandardException;
     public Visitable visit(IsNullNode node) throws StandardException;
     public Visitable visit(JavaToSQLValueNode node) throws StandardException;
+    public Visitable visit(LeadLagFunctionNode node) throws StandardException;
     public Visitable visit(LengthOperatorNode node) throws StandardException;
     public Visitable visit(LikeEscapeOperatorNode node) throws StandardException;
     public Visitable visit(LockTableNode node) throws StandardException;

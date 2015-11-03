@@ -166,56 +166,93 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
         NodeFactory nodeFactory = subquerySelectNode.getNodeFactory();
         ContextManager contextManager = outerSelectNode.getContextManager();
         int outerNestingLevel = outerSelectNode.getNestingLevel();
+        int subqueryNestingLevel = outerNestingLevel + 1;
 
-        /*
-         * The following lines collect two types of correlated predicates from the subquery where clause while removing
-         * them.
-         */
-        ValueNode subqueryWhereClause = subquerySelectNode.getWhereClause();
-        List<BinaryRelationalOperatorNode> correlatedSubqueryPredsD = new ArrayList<>();
+        List<SelectNode> selectNodeList = Lists.newArrayList();
+        List<UnionNode> unionNodeList = FlatteningUtils.findSameLevelUnionNodes(subqueryNode);
+        if (!unionNodeList.isEmpty()) {
+            List<SelectNode> selectsInUnion = FlatteningUtils.findSameLevelSelectNodes(subqueryNode);
+            selectNodeList.addAll(selectsInUnion);
+            /* Annoyingly derby further increments the nesting level for selects in a union subquery.  If the
+             * outer query is nesting level 0 then the subquery select will be nesting level 1 and will have as
+             * descendants a tree of UnionNode/SelectNode all at level 2 */
+            subqueryNestingLevel = subqueryNestingLevel + 1;
+        } else {
+            selectNodeList.add(subquerySelectNode);
+        }
+
         List<BinaryRelationalOperatorNode> correlatedSubqueryPredsC = new ArrayList<>();
-        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsD, new CorrelatedEqualityBronPredicate(outerNestingLevel));
-        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsC, new CorrelatedBronPredicate(outerNestingLevel));
-        subquerySelectNode.setWhereClause(subqueryWhereClause);
-        subquerySelectNode.setOriginalWhereClause(subqueryWhereClause);
+        List<BinaryRelationalOperatorNode> correlatedSubqueryPredsD = new ArrayList<>();
 
-        /*
-         * For each correlated predicate generate a GroupByColumn.  We add the GroupByColumn to the subquery result
-         * columns so that it can be referenced by the outer query.  For EXISTS and NOT-EXISTS we don't care about the
-         * subquery's original result columns so we clear them [ where exists (select a,b,c...) is same as
-         * where exists (select 1 ... )].
+        /**
+         * We do the following logic either for the SelectNode directly under the SubqueryNode or for each SelectNode
+         * in a union.
          */
-        subquerySelectNode.getResultColumns().getNodes().clear();
-        GroupByUtil.addGroupByNodes(outerSelectNode, subquerySelectNode, correlatedSubqueryPredsD);
+        for (SelectNode sn : selectNodeList) {
+
+            /* Clear these each time.  If the subquery is NOT a union we will only iterate once.  If the subquery is
+             * a union we only need one set of predicates (we have asserted in ExistsSubqueryPredicate that the
+             * predicates of all union selects are symmetric). */
+            correlatedSubqueryPredsC.clear();
+            correlatedSubqueryPredsD.clear();
+
+            /*
+             * The following lines collect two types of correlated predicates from the subquery where clause while removing
+             * them.
+             */
+            ValueNode subqueryWhereClause = sn.getWhereClause();
+            subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsC, new CorrelatedBronPredicate(outerNestingLevel));
+            subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsD, new CorrelatedEqualityBronPredicate(outerNestingLevel));
+            sn.setWhereClause(subqueryWhereClause);
+            sn.setOriginalWhereClause(subqueryWhereClause);
+
+            /*
+             * For each correlated predicate generate a GroupByColumn.  We add the GroupByColumn to the subquery result
+             * columns so that it can be referenced by the outer query.  For EXISTS and NOT-EXISTS we don't care about the
+             * subquery's original result columns so we clear them [ where exists (select a,b,c...) is same as
+             * where exists (select 1 ... )].
+             */
+            sn.getResultColumns().getNodes().clear();
+            GroupByUtil.addGroupByNodes(sn, correlatedSubqueryPredsD);
+
+        }
+
+        /* If there are Unions we have changed the RCs of every select below a union--regenerate the Union RCs. */
+        for (UnionNode unionNode : unionNodeList) {
+            unionNode.bindResultColumns(unionNode.getFromList());
+        }
 
         /*
          * Build the new FromSubquery and insert it into outer select.
          */
         FromSubquery fromSubquery = addFromSubquery(
                 outerSelectNode,
-                subqueryNode,
-                subquerySelectNode,
-                subqueryResultSet,
+                subqueryNode.isEXISTS(),
+                unionNodeList.isEmpty() ? subqueryResultSet : unionNodeList.get(0),
+                subqueryNestingLevel,
                 correlatedSubqueryPredsD, nodeFactory, contextManager);
+
+        /*
+         * Replace subquery with True in outer query.
+         */
+        outerSelectNode.setWhereClause(SubqueryReplacement.replaceSubqueryWithTrue(outerSelectNode.getWhereClause(), subqueryNode));
 
         /*
          * Add correlated predicates from subquery to outer query where clause.
          */
-        outerSelectNode.setWhereClause(SubqueryReplacement.replaceSubqueryWithTrue(outerSelectNode.getWhereClause(), fromSubquery));
-
         for (int i = 0; i < correlatedSubqueryPredsD.size(); i++) {
             BinaryRelationalOperatorNode pred = correlatedSubqueryPredsD.get(i);
 
             ColumnReference colRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery,
                     i, outerSelectNode.getNodeFactory(), contextManager);
 
-            FromSubqueryColRefFactory.replace(pred, colRef, outerNestingLevel + 1);
+            FromSubqueryColRefFactory.replace(pred, colRef, subqueryNestingLevel);
 
 
             /*
              * Finally add the predicate to the outer query.
              */
-            FlatteningUtils.deCorrelate(pred);
+            FlatteningUtils.decrementColRefNestingLevel(pred);
             outerSelectNode.setWhereClause(FlatteningUtils.addPredToTree(outerSelectNode.getWhereClause(), pred));
         }
 
@@ -223,7 +260,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
          * Move type C correlated preds to outer where clause.  NOT-EXISTS subqueries with type C preds are NOT flattened.
          */
         for (BinaryRelationalOperatorNode pred : correlatedSubqueryPredsC) {
-            FlatteningUtils.deCorrelate(pred);
+            FlatteningUtils.decrementColRefNestingLevel(pred);
             outerSelectNode.setWhereClause(FlatteningUtils.addPredToTree(outerSelectNode.getWhereClause(), pred));
         }
 
@@ -236,9 +273,9 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
      * specific to either EXISTS or NOT EXISTS.
      */
     private FromSubquery addFromSubquery(SelectNode outerSelectNode,
-                                         SubqueryNode subqueryNode,
-                                         SelectNode subquerySelectNode,
+                                         boolean isExistsSubquery,
                                          ResultSetNode subqueryResultSet,
+                                         int subqueryNestingLevel,
                                          List<BinaryRelationalOperatorNode> correlatedSubqueryPredsD,
                                          NodeFactory nodeFactory,
                                          ContextManager contextManager) throws StandardException {
@@ -246,15 +283,15 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
         /*
          * New FromSubquery
          */
-        ResultColumnList newRcl = subquerySelectNode.getResultColumns().copyListAndObjects();
-        newRcl.genVirtualColumnNodes(subquerySelectNode, subquerySelectNode.getResultColumns());
-        FromSubquery fromSubquery = nf.buildFromSubqueryNode(outerSelectNode, subqueryNode, subqueryResultSet, newRcl, getSubqueryAlias());
+        ResultColumnList newRcl = subqueryResultSet.getResultColumns().copyListAndObjects();
+        newRcl.genVirtualColumnNodes(subqueryResultSet, subqueryResultSet.getResultColumns());
+        FromSubquery fromSubquery = nf.buildFromSubqueryNode(outerSelectNode, subqueryResultSet, newRcl, getSubqueryAlias());
         int outerNestingLevel = outerSelectNode.getNestingLevel();
 
         /*
          * For EXISTS subqueries just add the FromSubquery to the outer query and we are done.
          */
-        if (!subqueryNode.isNOT_EXISTS()) {
+        if (isExistsSubquery) {
             outerSelectNode.getFromList().addFromTable(fromSubquery);
         }
 
@@ -287,7 +324,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
                      */
                     BinaryRelationalOperatorNode pred = correlatedSubqueryPredsD.get(i);
                     ColumnReference joinColRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery, i, nodeFactory, contextManager);
-                    FromSubqueryColRefFactory.replace(pred, joinColRef, outerNestingLevel + 1);
+                    FromSubqueryColRefFactory.replace(pred, joinColRef, subqueryNestingLevel);
                     FlatteningUtils.addPredToTree(joinClause, pred);
                     /*
                      * Add right-side IS NULL predicate to outer query.

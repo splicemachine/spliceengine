@@ -63,12 +63,12 @@ public class OverClause extends QueryTreeNode {
     public List<OrderedColumn> getKeyColumns() {
         int partitionSize = (partition != null ? partition.size() : 0);
         int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
-        List<OrderedColumn> keyCols = new ArrayList<OrderedColumn>(partitionSize+orderByListSize);
+        List<OrderedColumn> keyCols = new ArrayList<>(partitionSize+orderByListSize);
         Set<ValueNode> addedNodes = new HashSet<ValueNode>(partitionSize+orderByListSize);
 
         // partition columns
         for (int i=0; i<partitionSize; i++) {
-            OrderedColumn oc = (OrderedColumn) partition.elementAt(i);
+            OrderedColumn oc = partition.elementAt(i);
             if (! addedNodes.contains(oc.getColumnExpression())) {
                 keyCols.add(oc);
                 addedNodes.add(oc.getColumnExpression());
@@ -96,16 +96,16 @@ public class OverClause extends QueryTreeNode {
     public List<OrderedColumn> getOverColumns() {
         int partitionSize = (partition != null ? partition.size() : 0);
         int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
-        List<OrderedColumn> keyCols = new ArrayList<OrderedColumn>(partitionSize+orderByListSize);
+        List<OrderedColumn> keyCols = new ArrayList<>(partitionSize+orderByListSize);
 
         // partition columns
         for (int i=0; i<partitionSize; i++) {
-            keyCols.add((OrderedColumn) partition.elementAt(i));
+            keyCols.add(partition.elementAt(i));
         }
 
         // order by columns
         for (int i=0; i<orderByListSize; ++i) {
-            keyCols.add((OrderedColumn) orderByClause.elementAt(i));
+            keyCols.add(orderByClause.elementAt(i));
         }
 
         return keyCols;
@@ -127,6 +127,12 @@ public class OverClause extends QueryTreeNode {
             "  "+frameDefinition + "\n");
     }
 
+    @Override
+    public String toHTMLString() {
+        return "Partition: " + (partition != null ? partition.toHTMLString() : "") +
+            "<br/> OrderBy: " + printOrderByList() + "<br/> Frame: " + frameDefinition.toHTMLString();
+
+    }
 
     /**
      * QueryTreeNode override. Prints the sub-nodes of this object.
@@ -241,15 +247,16 @@ public class OverClause extends QueryTreeNode {
         if (orderByClause == null) {
             return "";
         }
-        StringBuilder buf = new StringBuilder("\n");
+        StringBuilder buf = new StringBuilder();
         for (int i=0; i<orderByClause.size(); ++i) {
             OrderByColumn col = orderByClause.getOrderByColumn(i);
-            buf.append("    column_name: ").append(col.getColumnExpression().getColumnName()).append("\n");
-            // Lang col indexes are 1-based, storage col indexes are zero-based
-            buf.append("    columnid: ").append(col.getColumnPosition()).append("\n");
-            buf.append("    ascending: ").append(col.isAscending()).append("\n");
-            buf.append("    nullsOrderedLow: ").append(col.isAscending()).append("\n");
+            buf.append(col.getColumnExpression().getColumnName()).append('(');
+            buf.append(col.getColumnPosition()).append("),");
         }
+        if (buf.length() > 0) {
+            buf.setLength(buf.length()-1);
+        }
+
         return buf.toString();
     }
 

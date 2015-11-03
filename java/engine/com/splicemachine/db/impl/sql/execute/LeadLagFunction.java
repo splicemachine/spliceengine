@@ -6,12 +6,12 @@ import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 /**
- * Factory for spliceengine RowNumberFunction.
+ * Factory for spliceengine FirstLastValueFunction.
  *
  * @author Jeff Cunningham
- *         Date: 8/4/14
+ *         Date: 9/30/15
  */
-public class RowNumberFunction extends WindowFunctionBase implements WindowFunction {
+public class LeadLagFunction extends WindowFunctionBase implements WindowFunction {
 
     @Override
     public WindowFunction setup(ClassFactory classFactory,
@@ -24,6 +24,6 @@ public class RowNumberFunction extends WindowFunctionBase implements WindowFunct
 
     @Override
     public WindowFunction newWindowFunction() {
-        return super.newWindowFunction("com.splicemachine.derby.impl.sql.execute.operations.window.function.RowNumberFunction");
+        return super.newWindowFunction("com.splicemachine.derby.impl.sql.execute.operations.window.function.LeadLagFunction");
     }
 }

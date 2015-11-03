@@ -16,8 +16,14 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
  *
  * Where the CR can be on either side but must have nesting level equal to that specified in the constructor. We are
  * usually looking for a level different than where the CR is found, thus it is a correlated column reference. Since it
- * is being compared to a subtree with no column references this predicate evaluates to true for predicates than can be
+ * is being compared to a subtree with no column references this predicate evaluates to true for predicates that can be
  * moved to the query with the specified nesting level.
+ *
+ * EXAMPLE:
+ *
+ * select * from A where exists( select 1 from B where a1 = 10 );
+ *
+ * In this query 'a1=10' can be moved to the outer query (for EXISTS subqueries, but not for NOT-EXISTS subqueries).
  */
 public class CorrelatedBronPredicate implements com.google.common.base.Predicate<BinaryRelationalOperatorNode> {
 

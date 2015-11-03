@@ -269,11 +269,11 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
             JoinNode joinNode) throws StandardException {
 
         /* Find column references starting at the DML node but don't go below the current join node. */
-        CollectNodes<IsNullNode> collectNodesVisitor = new CollectNodes<>(new NotExistsFlatteningIsNullPredicate());
+        CollectingVisitor<IsNullNode> collectingVisitorVisitor = new CollectingVisitor<>(new NotExistsFlatteningIsNullPredicate());
         Predicate<? super Visitable> skipPredicate = Predicates.<Visitable>equalTo(joinNode);
-        SkippingVisitor skippingVisitor = new SkippingVisitor(collectNodesVisitor, skipPredicate);
+        SkippingVisitor skippingVisitor = new SkippingVisitor(collectingVisitorVisitor, skipPredicate);
         node.acceptChildren(skippingVisitor);
-        List<IsNullNode> isNullNodes = collectNodesVisitor.getCollected();
+        List<IsNullNode> isNullNodes = collectingVisitorVisitor.getCollected();
 
         /* Collect the corresponding ColumnReferences if any */
         List<ColumnReference> columnReferences = Lists.newArrayList();
