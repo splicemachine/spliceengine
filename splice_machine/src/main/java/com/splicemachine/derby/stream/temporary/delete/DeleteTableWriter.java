@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
@@ -22,9 +23,11 @@ public class DeleteTableWriter extends AbstractTableWriter<ExecRow> {
     protected static final KVPair.Type dataType = KVPair.Type.DELETE;
     protected PairEncoder encoder;
     public int rowsDeleted = 0;
+    protected OperationContext operationContext;
 
-    public DeleteTableWriter(TxnView txn, long heapConglom) throws StandardException {
+    public DeleteTableWriter(TxnView txn, long heapConglom, OperationContext operationContext) throws StandardException {
         super(txn,heapConglom);
+        this.operationContext = operationContext;
     }
 
     public void open() throws StandardException {
@@ -81,6 +84,7 @@ public class DeleteTableWriter extends AbstractTableWriter<ExecRow> {
             rowsDeleted++;
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
+            operationContext.recordWrite();
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

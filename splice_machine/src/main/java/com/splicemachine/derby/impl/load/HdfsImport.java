@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
@@ -80,8 +81,10 @@ public class HdfsImport {
                                              String timestampFormat,
                                              String dateFormat,
                                              String timeFormat,
-                                             long maxBadRecords,
+                                             long badRecordsAllowed,
                                              String badRecordDirectory,
+                                             String oneLineRecords,
+                                             String charset,
                                              ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
@@ -93,8 +96,10 @@ public class HdfsImport {
                 timestampFormat,
                 dateFormat,
                 timeFormat,
-                maxBadRecords,
+                badRecordsAllowed,
                 badRecordDirectory,
+                oneLineRecords,
+                charset,
                 true,
                 false,
                 results);
@@ -108,9 +113,10 @@ public class HdfsImport {
                                              String timestampFormat,
                                              String dateFormat,
                                              String timeFormat,
-                                             long maxBadRecords,
+                                             long badRecordsAllowed,
                                              String badRecordDirectory,
-                                             long maxRecords,
+                                             String oneLineRecords,
+                                             String charset,
                                              ResultSet[] results
     ) throws SQLException {
         doImport(schemaName,
@@ -122,8 +128,10 @@ public class HdfsImport {
                 timestampFormat,
                 dateFormat,
                 timeFormat,
-                maxBadRecords,
+                badRecordsAllowed,
                 badRecordDirectory,
+                oneLineRecords,
+                charset,
                 true,
                 true,
                 results);
@@ -137,8 +145,10 @@ public class HdfsImport {
 																			 String timestampFormat,
 																			 String dateFormat,
 																			 String timeFormat,
-																			 long maxBadRecords,
+																			 long badRecordsAllowed,
 																			 String badRecordDirectory,
+                                                                             String oneLineRecords,
+                                                                             String charset,
 																			 ResultSet[] results
 																			 ) throws SQLException {
     doImport(schemaName,
@@ -150,8 +160,10 @@ public class HdfsImport {
             timestampFormat,
             dateFormat,
             timeFormat,
-            maxBadRecords,
+            badRecordsAllowed,
             badRecordDirectory,
+            oneLineRecords,
+            charset,
             false,
             false,
             results);
@@ -165,9 +177,10 @@ public class HdfsImport {
 																			 String timestampFormat,
 																			 String dateFormat,
 																			 String timeFormat,
-																			 long maxBadRecords,
+																			 long badRecordsAllowed,
 																			 String badRecordDirectory,
-																			 long maxRecords,
+																			 String oneLineRecords,
+                                                                             String charset,
 																			 ResultSet[] results
 																			 ) throws SQLException {
     doImport(schemaName,
@@ -179,8 +192,10 @@ public class HdfsImport {
             timestampFormat,
             dateFormat,
             timeFormat,
-            maxBadRecords,
+            badRecordsAllowed,
             badRecordDirectory,
+            oneLineRecords,
+            charset,
             false,
             true,
             results);
@@ -194,31 +209,38 @@ public class HdfsImport {
                                  String timestampFormat,
                                  String dateFormat,
                                  String timeFormat,
-                                 long maxBadRecords,
+                                 long badRecordsAllowed,
                                  String badRecordDirectory,
+                                 String oneLineRecords,
+                                 String charset,
                                  boolean isUpsert,
                                  boolean isCheckScan,
                                  ResultSet[] results) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
             "columnDelimiter=%s, characterDelimiter=%s, timestampFormat=%s, dateFormat=%s, timeFormat=%s, " +
-            "maxBadRecords=%d, badRecordDirectory=%s, isUpsert=%s, isCheckScan=%s",
+            "badRecordsAllowed=%d, badRecordDirectory=%s, oneLineRecords=%s, charset=%s, isUpsert=%s, isCheckScan=%s",
                     schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,
-                    timestampFormat,dateFormat,timeFormat,maxBadRecords,badRecordDirectory,isUpsert,isCheckScan);
+                    timestampFormat,dateFormat,timeFormat,badRecordsAllowed,badRecordDirectory, oneLineRecords, charset, isUpsert,isCheckScan);
 
+        if (charset ==null) {
+            charset = StandardCharsets.UTF_8.name();
+            System.out.println("charset->" + charset);
+        }
 
         Connection conn = SpliceAdmin.getDefaultConn();
         try {
             assert conn != null;
-            if (schemaName == null)               // Use the current schema if no schema is specified.
-                schemaName = ((EngineConnection) conn).getCurrentSchemaName();
+            schemaName = schemaName == null?
+                    ((EngineConnection) conn).getCurrentSchemaName().toUpperCase():
+                    schemaName.toUpperCase();
             Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();
             if (tableName == null)
                 throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-
+            tableName = tableName.toUpperCase();
             // This needs to be found by the database locale, not hard coded.
             if (timestampFormat == null)
-                timeFormat = "yyyy-MM-dd HH:mm:ss";
+                timestampFormat = "yyyy-MM-dd HH:mm:ss";
             if (dateFormat == null)
                 dateFormat = "yyyy-MM-dd";
             if (timeFormat == null)
@@ -239,7 +261,10 @@ public class HdfsImport {
             sb.append(quoteStringArgument(dateFormat));
             sb.append(",");
             sb.append(quoteStringArgument(timestampFormat));
-
+            sb.append(",");
+            sb.append(quoteStringArgument(oneLineRecords.toLowerCase()));
+            sb.append(",");
+            sb.append(quoteStringArgument(charset));
             sb.append(" )");
 
 
@@ -249,7 +274,7 @@ public class HdfsImport {
                 insertColumnList = null;
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList!=null?insertColumnList.toUpperCase():insertColumnList);
-            String insertSql = "INSERT INTO " + entityName + "("+columnInfo.getInsertColumnNames() + ") --splice-properties insertMode="+(isUpsert?"UPSERT":"INSERT")+", statusDirectory=" + badRecordDirectory + ", failBadRecordCount=" + maxBadRecords + "\n"+
+            String insertSql = "INSERT INTO " + entityName + "("+columnInfo.getInsertColumnNames() + ") --splice-properties insertMode="+(isUpsert?"UPSERT":"INSERT")+", statusDirectory=" + badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n"+
                     " SELECT * from " +
                     importvti + " AS importvti (" + columnInfo.getImportAsColumns() + ")";
 

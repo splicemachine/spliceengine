@@ -15,6 +15,10 @@ public abstract class AbstractSequence implements Sequence, Externalizable {
     protected final Lock updateLock = new ReentrantLock();
 	protected long startingValue;
 
+    public AbstractSequence() {
+
+    }
+
     public AbstractSequence(long blockAllocationSize, long incrementSteps, long startingValue) {
     	if (incrementSteps > blockAllocationSize)
     		blockAllocationSize = incrementSteps;

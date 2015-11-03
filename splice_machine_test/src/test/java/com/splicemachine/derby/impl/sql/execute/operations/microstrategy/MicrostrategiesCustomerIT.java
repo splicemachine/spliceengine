@@ -37,7 +37,7 @@ public class MicrostrategiesCustomerIT {
     }
 
     private static void doImport() throws Exception {
-        PreparedStatement ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
+        PreparedStatement ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,1,null,true,null)");
         ps.setString(1, SCHEMA);
         ps.setString(2, "A");
         ps.setString(3, getResourceDirectory() + "customer_iso.csv");

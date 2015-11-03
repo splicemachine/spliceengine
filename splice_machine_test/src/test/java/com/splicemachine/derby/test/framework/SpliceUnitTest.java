@@ -1,5 +1,6 @@
 package com.splicemachine.derby.test.framework;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.runner.Description;
 
@@ -187,5 +189,25 @@ public class SpliceUnitTest {
             return this.rows;
         }
     }
+
+    protected static void importData(SpliceWatcher methodWatcher, String schema,String tableName, String fileName) throws Exception {
+        String file = SpliceUnitTest.getResourceDirectory()+ fileName;
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,1,null,true,'utf-8')", schema, tableName, null, file));
+        ps.executeQuery();
+    }
+
+    protected static void importData(SpliceWatcher methodWatcher, String schema,String tableName, String fileName, String columnDelimiter, String characterDelimiter) throws Exception {
+        String file = SpliceUnitTest.getResourceDirectory()+ fileName;
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s','%s','%s',null,null,null,1,null,true,'utf-8')", schema, tableName, null, file,columnDelimiter,characterDelimiter));
+        ps.executeQuery();
+    }
+
+    protected static void validateImportResults(ResultSet resultSet, int good,int bad) throws SQLException {
+        Assert.assertTrue("No rows returned!",resultSet.next());
+        Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(3));
+        Assert.assertEquals("Incorrect number of rows reported!",good,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(2));
+    }
+
 
 }

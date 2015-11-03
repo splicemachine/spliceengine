@@ -44,11 +44,11 @@ public class SpliceTableWatcher extends TestWatcher {
         PreparedStatement ps = null;
         try {
             connection = SpliceNetConnection.getConnection();
-            ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
+            ps = connection.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,1,null,true,'utf-8')");
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
             ps.setString(3,filename);
-            ps.executeUpdate();
+            ps.executeQuery();
         } catch (Exception e) {
             error(e);
             throw new RuntimeException(e);
@@ -63,12 +63,12 @@ public class SpliceTableWatcher extends TestWatcher {
         PreparedStatement ps = null;
         try {
             connection = SpliceNetConnection.getConnection();
-            ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,?,null,null)");
+            ps = connection.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,?,null,null,0,null,true,null)");
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
             ps.setString(3,filename);
             ps.setString(4, timestamp);
-            ps.executeUpdate();
+            ps.executeQuery();
         } catch (Exception e) {
             error(e);
             throw new RuntimeException(e);

@@ -46,11 +46,11 @@ public class MsOrderDetailIT extends SpliceUnitTest {
      */
     @Test
     public void testGroupedAggregationsGroupUniquely() throws Exception{
-        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
+        PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,0,null,true,null)");
         ps.setString(1,CLASS_NAME);
         ps.setString(2,TABLE_NAME);        
         ps.setString(3,getResourceDirectory()+"/order_detail_small.csv");
-        ps.executeUpdate();
+        ps.executeQuery();
         ResultSet groupedRs = methodWatcher.executeQuery(format("select orl_customer_id, count(*) from %s group by orl_customer_id",this.getTableReference(TABLE_NAME)));
         Set<String> uniqueGroups = Sets.newHashSet();
         while(groupedRs.next()){

@@ -14,21 +14,11 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.derby.stream.temporary.update.*;
 import com.splicemachine.hbase.KVPair;
-
-import com.splicemachine.metrics.Counter;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.TimeView;
-import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -135,22 +125,6 @@ public class UpdateOperation extends DMLWriteOperation{
         return colPositionMap;
     }
 
-
-		private int[] getFinalPkColumns(int[] colPositionMap) {
-				int[] finalPkColumns;
-				if(pkCols!=null){
-						finalPkColumns =new int[pkCols.length];
-						int count = 0;
-						for(int i : pkCols){
-								finalPkColumns[count] = colPositionMap[i];
-								count++;
-						}
-				}else{
-						finalPkColumns = new int[0];
-				}
-				return finalPkColumns;
-		}
-
     public FormatableBitSet getHeapList() throws StandardException{
         if(heapList==null){
             heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
@@ -223,6 +197,7 @@ public class UpdateOperation extends DMLWriteOperation{
         int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
         UpdateTableWriterBuilder builder = new UpdateTableWriterBuilder()
                 .heapConglom(heapConglom)
+                .operationContext(operationContext)
                 .execRowDefinition(execRow)
                 .execRowTypeFormatIds(execRowTypeFormatIds)
                 .pkCols(pkCols==null?new int[0]:pkCols)

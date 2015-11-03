@@ -9,14 +9,17 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.function.StreamFileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
@@ -32,11 +35,15 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     private String timestampFormat;
     private int[] columnIndex;
     private OperationContext operationContext;
+    private boolean oneLineRecords;
+    private String charset;
     public SpliceFileVTI() {
 
     }
     public SpliceFileVTI(String fileName) {
         this.fileName = fileName;
+        oneLineRecords = true;
+        charset = StandardCharsets.UTF_8.name();
     }
 
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter) {
@@ -45,17 +52,30 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         this.columnDelimiter = columnDelimiter;
     }
 
+    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, boolean oneLineRecords) {
+        this(fileName);
+        this.characterDelimiter = characterDelimiter;
+        this.columnDelimiter = columnDelimiter;
+        this.oneLineRecords = oneLineRecords;
+    }
+
+
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex) {
         this(fileName, characterDelimiter, columnDelimiter);
         this.columnIndex = columnIndex;
     }
 
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex, String timeFormat, String dateTimeFormat, String timestampFormat) {
-        this(fileName, characterDelimiter, columnDelimiter);
-        this.columnIndex = columnIndex;
+        this(fileName, characterDelimiter, columnDelimiter,columnIndex);
         this.timeFormat = timeFormat;
         this.dateTimeFormat = dateTimeFormat;
         this.timestampFormat = timestampFormat;
+    }
+
+    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex, String timeFormat, String dateTimeFormat, String timestampFormat, String oneLineRecords, String charset) {
+        this(fileName, characterDelimiter, columnDelimiter,columnIndex,timeFormat,dateTimeFormat,timestampFormat);
+        this.oneLineRecords = Boolean.parseBoolean(oneLineRecords);
+        this.charset = charset;
     }
 
 
@@ -81,10 +101,16 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
             operationContext = dsp.createOperationContext(op);
         try {
-            ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config),false);
-            DataSet<String> textSet = dsp.readTextFile(fileName);
-            operationContext.pushScope(fileName);
-            return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat,operationContext));
+            ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
+            if (oneLineRecords) {
+                DataSet<String> textSet = dsp.readTextFile(fileName);
+                operationContext.pushScope(fileName);
+                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
+            } else {
+                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName);
+                 operationContext.pushScope(fileName);
+                 return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
+            }
         } catch (IOException ioe) {
             throw StandardException.plainWrapException(ioe);
         }

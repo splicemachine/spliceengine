@@ -71,7 +71,8 @@ public class DeleteOperation extends DMLWriteOperation {
         TxnView txn = getCurrentTransaction();
         DeleteTableWriterBuilder builder = new DeleteTableWriterBuilder()
                 .heapConglom(heapConglom)
-                .txn(txn);
+                .txn(txn)
+                .operationContext(operationContext);
         try {
             operationContext.pushScope("Delete");
             return set.index(new InsertPairFunction(operationContext)).deleteData(builder, operationContext);

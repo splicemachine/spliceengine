@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
@@ -28,9 +29,14 @@ public class UpdateTableWriterBuilder implements Externalizable {
     protected TxnView txn;
     protected ExecRow execRowDefinition;
     protected int[] execRowTypeFormatIds;
+    protected OperationContext operationContext;
+
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(operationContext!=null);
+        if (operationContext!=null)
+            out.writeObject(operationContext);
         out.writeLong(heapConglom);
         ArrayUtil.writeIntArray(out, formatIds);
         ArrayUtil.writeIntArray(out, columnOrdering);
@@ -44,6 +50,8 @@ public class UpdateTableWriterBuilder implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (in.readBoolean())
+            operationContext = (OperationContext) in.readObject();
         heapConglom = in.readLong();
         formatIds = ArrayUtil.readIntArray(in);
         columnOrdering = ArrayUtil.readIntArray(in);
@@ -72,6 +80,11 @@ public class UpdateTableWriterBuilder implements Externalizable {
     public UpdateTableWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
         assert execRowDefinition != null :"ExecRowDefinition Cannot Be null!";
         this.execRowDefinition = execRowDefinition;
+        return this;
+    }
+
+    public UpdateTableWriterBuilder operationContext(OperationContext operationContext) {
+        this.operationContext = operationContext;
         return this;
     }
 
@@ -127,7 +140,7 @@ public class UpdateTableWriterBuilder implements Externalizable {
     public UpdateTableWriter build() throws StandardException {
         return new UpdateTableWriter(heapConglom, formatIds, columnOrdering==null?new int[0]:columnOrdering,
         pkCols==null?new int[0]:pkCols,  pkColumns, tableVersion, txn,
-                execRowDefinition,heapList);
+                execRowDefinition,heapList,operationContext);
     }
 
 }

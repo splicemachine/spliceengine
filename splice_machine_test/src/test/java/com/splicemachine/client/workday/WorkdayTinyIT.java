@@ -8,7 +8,6 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -71,17 +70,6 @@ public class WorkdayTinyIT extends SpliceUnitTest {
             Assert.fail("ResultSet comparison failed:\n" +buf.toString());
         }
     }
-
-//    private static String printResultSet(String header, List<List<String>> rowVals) {
-//        StringBuilder buf = new StringBuilder(header);
-//        for (List<String> rowVal : rowVals) {
-//            buf.append('\n');
-//            for (String val : rowVal) {
-//                buf.append(val).append(',');
-//            }
-//        }
-//        return buf.toString();
-//    }
 
     private static List<List<String>> serializeResultSet(ResultSet rs) throws SQLException {
         List<List<String>> actualRowVals = new ArrayList<List<String>>();

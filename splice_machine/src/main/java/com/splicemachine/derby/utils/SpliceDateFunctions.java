@@ -1,18 +1,17 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.ImmutableMap;
+import com.splicemachine.db.iapi.reference.SQLState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Map;
@@ -89,15 +88,15 @@ public class SpliceDateFunctions {
                 parser = DateTimeFormat.forPattern(format);
             } catch (Exception e) {
                 throw new SQLException("Error creating a datetime parser for pattern: "+format+". Try using an" +
-                                           " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", e);
+                                           " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
             }
         }
         DateTime parsed;
         try {
             parsed = parser.withOffsetParsed().parseDateTime(source);
         } catch (Exception e) {
-            throw new SQLException("Error parsing datatime "+source+" with pattern: "+format+". Try using an" +
-                                       " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", e);
+            throw new SQLException("Error parsing datetime "+source+" with pattern: "+format+". Try using an" +
+                                       " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
         }
         return parsed.getMillis();
     }
