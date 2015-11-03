@@ -553,20 +553,6 @@
 	</build>
 	<profiles>
 		<profile>
-			<id>all</id>
-			<modules>
-				<module>cdh5.3.2</module>
-				<!--module>cdh5.3.3</module-->
-				<!--module>cdh5.4.0</module-->
-				<module>cdh5.4.1</module>
-				<module>hdp2.1.7</module>
-				<module>hdp2.2.4</module>
-				<!--module>hdp2.3.0</module-->
-				<module>mapr0.98.4</module>
-				<!--<module>mapr0.98.12</module>-->
-			</modules>
-		</profile>
-		<profile>
 			<id>staticanalysis</id>
 			<build>
 				<plugins>
@@ -868,21 +854,21 @@
 			</properties>
 		</profile>
 		<profile>
+			<id>all</id>
+			<modules>
+				<module>cdh5.3.2</module>
+				<module>cdh5.4.1</module>
+				<module>hdp2.1.7</module>
+				<module>hdp2.2.4</module>
+				<!--module>hdp2.3.0</module-->
+				<module>mapr0.98.4</module>
+				<!--<module>mapr0.98.12</module>-->
+			</modules>
+		</profile>
+		<profile>
 			<id>cdh5.3.2</id>
 			<modules>
 				<module>cdh5.3.2</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>cdh5.3.3</id>
-			<modules>
-				<module>cdh5.3.3</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>cdh5.4.0</id>
-			<modules>
-				<module>cdh5.4.0</module>
 			</modules>
 		</profile>
 		<profile>
@@ -913,6 +899,12 @@
 			<id>mapr0.98.4</id>
 			<modules>
 				<module>mapr0.98.4</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>mapr0.98.12</id>
+			<modules>
+				<module>mapr0.98.12</module>
 			</modules>
 		</profile>
 	</profiles>
