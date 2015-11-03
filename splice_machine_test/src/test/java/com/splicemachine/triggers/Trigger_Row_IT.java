@@ -163,6 +163,7 @@ public class Trigger_Row_IT {
     }
 
     @Test
+    @Ignore("DB-4074")
     public void afterUpdate_sinkingTriggerAction() throws Exception {
         methodWatcher.executeUpdate("insert into RECORD values('aaa')");
 
