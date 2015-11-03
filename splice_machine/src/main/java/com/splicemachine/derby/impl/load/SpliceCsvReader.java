@@ -15,8 +15,6 @@ import org.supercsv.prefs.CsvPreference;
  */
 public class SpliceCsvReader extends CsvListReader implements Iterator<List<String>> {
 
-    private String fileName;
-
 	/**
 	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
 	 * <tt>reader</tt> will be wrapped in a <tt>BufferedReader</tt> before accessed.
@@ -28,9 +26,8 @@ public class SpliceCsvReader extends CsvListReader implements Iterator<List<Stri
 	 * @throws NullPointerException
 	 *             if reader or preferences are null
 	 */
-	public SpliceCsvReader(Reader reader, CsvPreference preferences, String fileName) {
+	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
 		super(reader, preferences);
-        this.fileName = fileName;
 	}
 
 	/**

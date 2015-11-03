@@ -569,7 +569,7 @@ public class SpliceRealResultSetStatisticsFactory
                     tsrs.getIndexName(),
                     tsrs.isConstraint,
                     SpliceBaseOperation.printQualifiers(tsrs.getScanQualifiers()),
-                    tsrs.getScanProperties(),
+                    null,
                     startPosition,
                     stopPosition,
                     isolationLevel,

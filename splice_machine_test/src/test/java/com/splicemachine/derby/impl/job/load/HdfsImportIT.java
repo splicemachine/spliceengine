@@ -683,9 +683,9 @@ public class HdfsImportIT extends SpliceUnitTest {
         String csvPath = getResourceDirectory() + "import/missing-end-quote/employees.csv";
         try {
             testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE", badDirPath, 0, 1);
-            fail("This CSV file must raise XIE10 exception");
+            Assert.fail("This CSV file must raise XIE10 exception");
         } catch (SQLException e) {
-            assertEquals("XIE10", e.getSQLState());
+            Assert.assertEquals("XIE10", e.getSQLState());
             String errMsg = e.getMessage();
             assertTrue(errMsg.contains(csvPath));
             assertTrue(errMsg.contains("unexpected end of file"));
@@ -706,9 +706,9 @@ public class HdfsImportIT extends SpliceUnitTest {
         String csvPath = getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv";
         try {
 		    testMissingEndQuoteForQuotedColumn(spliceSchemaWatcher.schemaName, TABLE_18, csvPath, "NAME,TITLE,AGE", badDirPath, 0, 199999);
-            fail("This CSV file must raise XIE10 exception");
+            Assert.fail("This CSV file must raise XIE10 exception");
         } catch (SQLException e) {
-            assertEquals("XIE10", e.getSQLState());
+            Assert.assertEquals("XIE10", e.getSQLState());
             String errMsg = e.getMessage();
             assertTrue(errMsg.contains(csvPath));
             assertTrue(errMsg.contains("Quoted column beginning"));
