@@ -830,7 +830,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TentativeAddConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,232);
         instance.register(TentativeAddColumnDesc.class,EXTERNALIZABLE_SERIALIZER,233);
         instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,234);
-        instance.register(StatisticsTask.class, EXTERNALIZABLE_SERIALIZER,235);
 
         //statistics
         instance.register(BooleanStats.class,EXTERNALIZABLE_SERIALIZER,236);

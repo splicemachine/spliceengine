@@ -18,12 +18,14 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
+import com.splicemachine.db.iapi.sql.Activation;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,6 +61,25 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+        JavaSparkContext ctx = SpliceSpark.getContext();
+        Configuration conf = new Configuration(SIConstants.config);
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
+        try {
+            conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, siTableBuilder.getTableScannerBuilderBase64String());
+        } catch (IOException ioe) {
+            throw StandardException.unexpectedUserException(ioe);
+        }
+        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
+                RowLocation.class, ExecRow.class);
+
+        return new SparkDataSet(rawRDD.map(
+                new TableScanTupleFunction(createOperationContext(activation))));
+    }
+
+    @Override
     public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
@@ -91,6 +112,11 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
+        return new SparkOperationContext<Op>(activation);
+    }
+
+    @Override
     public void setJobGroup(String jobName, String jobDescription) {
         SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
     }
@@ -116,5 +142,4 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
         return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));
     }
-
 }

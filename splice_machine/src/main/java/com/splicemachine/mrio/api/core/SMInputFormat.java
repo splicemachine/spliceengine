@@ -3,6 +3,8 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+
+import com.clearspring.analytics.util.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -17,6 +19,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -127,6 +130,10 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
             throw new IOException(e);
         }
         List<InputSplit> splits = tableInputFormat.getSplits(context);
+        String oneSplitPerRegion = conf.get(MRConstants.ONE_SPLIT_PER_REGION);
+        if (oneSplitPerRegion == null || oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0) {
+            return toSMSplits(splits);
+        }
         if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "getSplits " + splits);
             for (InputSplit split: splits) {
@@ -182,4 +189,13 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
     }
 
 
+    private List<InputSplit> toSMSplits (List<InputSplit> splits) {
+        List<InputSplit> sMSplits = Lists.newArrayList();
+        for(InputSplit split:splits) {
+            final TableSplit tableSplit = (TableSplit) split;
+            SMSplit smSplit= new SMSplit(new TableSplit(tableSplit.getTable(), tableSplit.getStartRow(), tableSplit.getEndRow(), tableSplit.getRegionLocation()));
+            sMSplits.add(smSplit);
+        }
+        return sMSplits;
+    }
 }

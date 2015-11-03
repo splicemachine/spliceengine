@@ -7,6 +7,7 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.stats.StatisticsScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.TransactionOperations;
@@ -46,6 +47,9 @@ public class TableScannerBuilder implements Externalizable {
 		protected TransactionalRegion region;
 		protected int[] execRowTypeFormatIds;
         protected OperationContext operationContext;
+        protected int[] fieldLengths;
+        protected int[] columnPositionMap;
+        protected long baseTableConglomId = -1l;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -231,23 +235,65 @@ public class TableScannerBuilder implements Externalizable {
 				return this;
 		}
 
+        public TableScannerBuilder fieldLengths(int[] fieldLengths) {
+            this.fieldLengths = fieldLengths;
+            return this;
+        }
+
+        public TableScannerBuilder columnPositionMap(int[] columnPositionMap) {
+            this.columnPositionMap = columnPositionMap;
+            return this;
+        }
+
+        public TableScannerBuilder baseTableConglomId(long baseTableConglomId) {
+            this.baseTableConglomId = baseTableConglomId;
+            return this;
+        }
+
 		public SITableScanner build(){
-				return new SITableScanner(SIFactoryDriver.siFactory.getDataLib(),scanner,
-								region,
-								template,
-								metricFactory==null?Metrics.noOpMetricFactory():metricFactory,
-								scan,
-								rowColumnMap,
-								txn,
-								keyColumnEncodingOrder,
-								keyColumnSortOrder,
-								keyColumnTypes,
-								keyDecodingMap,
-								accessedKeys,
-						        reuseRowLocation,
-								indexName,
-								tableVersion,
-								filterFactory);
+            if (fieldLengths != null) {
+                return new StatisticsScanner(
+                        SIFactoryDriver.siFactory.getDataLib(),
+                        scanner,
+                        region,
+                        template,
+                        metricFactory==null?Metrics.noOpMetricFactory():metricFactory,
+                        scan,
+                        rowColumnMap,
+                        txn,
+                        keyColumnEncodingOrder,
+                        keyColumnSortOrder,
+                        keyColumnTypes,
+                        keyDecodingMap,
+                        accessedKeys,
+                        reuseRowLocation,
+                        indexName,
+                        tableVersion,
+                        filterFactory,
+                        fieldLengths,
+                        columnPositionMap,
+                        baseTableConglomId);
+            }
+            else {
+                return new SITableScanner(
+                        SIFactoryDriver.siFactory.getDataLib(),
+                        scanner,
+                        region,
+                        template,
+                        metricFactory==null?Metrics.noOpMetricFactory():metricFactory,
+                        scan,
+                        rowColumnMap,
+                        txn,
+                        keyColumnEncodingOrder,
+                        keyColumnSortOrder,
+                        keyColumnTypes,
+                        keyDecodingMap,
+                        accessedKeys,
+                        reuseRowLocation,
+                        indexName,
+                        tableVersion,
+                        filterFactory);
+            }
 
 		}
 
@@ -255,7 +301,13 @@ public class TableScannerBuilder implements Externalizable {
 		public void writeExternal(ObjectOutput out) throws IOException {	
 			ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
 			out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
-			ArrayUtil.writeIntArray(out, rowColumnMap);
+			out.writeBoolean(rowColumnMap != null);
+            if(rowColumnMap != null) {
+                out.writeInt(rowColumnMap.length);
+                for (int i = 0; i < rowColumnMap.length; ++i) {
+                    out.writeInt(rowColumnMap[i]);
+                }
+            }
 			TransactionOperations.getOperationFactory().writeTxn(txn, out);
 			ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
             out.writeBoolean(keyColumnSortOrder != null);
@@ -271,12 +323,26 @@ public class TableScannerBuilder implements Externalizable {
 			out.writeBoolean(indexName!=null);
 			if (indexName!=null)
 				out.writeUTF(indexName);
-			out.writeBoolean(tableVersion!=null);
+			out.writeBoolean(tableVersion != null);
 			if (tableVersion!=null)
 				out.writeUTF(tableVersion);
             out.writeBoolean(operationContext!=null);
             if (operationContext!=null)
                 out.writeObject(operationContext);
+			out.writeObject(metricFactory);
+
+            out.writeBoolean(fieldLengths!=null);
+            if (fieldLengths!=null) {
+                out.writeInt(fieldLengths.length);
+                for (int i = 0; i < fieldLengths.length; ++i) {
+                    out.writeInt(fieldLengths[i]);
+                }
+                out.writeInt(columnPositionMap.length);
+                for (int i = 0; i < columnPositionMap.length; ++i) {
+                    out.writeInt(columnPositionMap[i]);
+                }
+                out.writeLong(baseTableConglomId);
+            }
 		}
 
 		@Override
@@ -284,7 +350,12 @@ public class TableScannerBuilder implements Externalizable {
 				ClassNotFoundException {
 			execRowTypeFormatIds = ArrayUtil.readIntArray(in);
 			scan = SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
-			rowColumnMap = ArrayUtil.readIntArray(in);
+			if (in.readBoolean()) {
+                rowColumnMap = new int[in.readInt()];
+                for (int i = 0; i < rowColumnMap.length; ++i) {
+                    rowColumnMap[i] = in.readInt();
+                }
+            }
 			txn = TransactionOperations.getOperationFactory().readTxn(in);
 			keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
             if (in.readBoolean()) {
@@ -301,6 +372,21 @@ public class TableScannerBuilder implements Externalizable {
 				tableVersion = in.readUTF();
             if (in.readBoolean())
                 operationContext = (OperationContext) in.readObject();
+			metricFactory = (MetricFactory)in.readObject();
+
+            if (in.readBoolean()) {
+                int n = in.readInt();
+                fieldLengths = new int[n];
+                for (int i = 0; i < n; ++i) {
+                    fieldLengths[i] = in.readInt();
+                }
+                n = in.readInt();
+                columnPositionMap = new int[n];
+                for (int i = 0; i < n; ++i) {
+                    columnPositionMap[i] = in.readInt();
+                }
+                baseTableConglomId = in.readLong();
+            }
 		}
 		
 		public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
@@ -335,4 +421,7 @@ public class TableScannerBuilder implements Externalizable {
 			return execRowTypeFormatIds;
 		}
 
+        public MetricFactory getMetricFactory() {
+            return metricFactory;
+        }
 }

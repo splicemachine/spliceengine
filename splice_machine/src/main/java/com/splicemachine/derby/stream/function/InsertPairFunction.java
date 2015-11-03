@@ -44,7 +44,9 @@ public class InsertPairFunction extends SplicePairFunction<SpliceOperation,Locat
         }
 
         private void incrementRowsWritten() {
-            operationContext.recordWrite();
+            if (operationContext != null) {
+                operationContext.recordWrite();
+            }
         }
 
     }

@@ -180,13 +180,17 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) {
         try {
-            operationContext.getOperation().fireBeforeStatementTriggers();
+            if (operationContext.getOperation() != null) {
+                operationContext.getOperation().fireBeforeStatementTriggers();
+            }
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
             JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
-            operationContext.getOperation().fireAfterStatementTriggers();
+            if (operationContext.getOperation() != null) {
+                operationContext.getOperation().fireAfterStatementTriggers();
+            }
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));

@@ -185,7 +185,7 @@
 		<dependency>
 			<groupId>org.apache.spark</groupId>
 			<artifactId>${spark-assembly-id}</artifactId>
-			<version>1.5.0</version>
+			<version>${spark.version}</version>
 		</dependency>
 	</dependencies>
 </project>
