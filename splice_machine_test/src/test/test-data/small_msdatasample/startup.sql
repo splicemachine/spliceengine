@@ -10,7 +10,7 @@ CREATE TABLE category (
 	cat_name_ja		VARCHAR(128),
 	cat_name_sch		VARCHAR(128),
 	cat_name_ko		VARCHAR(128));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'CATEGORY', null, null, '<DIR>small_msdatasample/category.csv', ',', '"', null,null,null);
+call SYSCS_UTIL.IMPORT_DATA ('<SCHEMA>', 'CATEGORY', null, '<DIR>small_msdatasample/category.csv', ',', '"', null,null,null,0,null,true,null);
 
 drop table if exists category_sub;
 CREATE TABLE category_sub (
@@ -25,7 +25,7 @@ CREATE TABLE category_sub (
 	sbc_desc_ja		VARCHAR(128),
 	sbc_desc_sch		VARCHAR(128),
 	sbc_desc_ko		VARCHAR(128));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'CATEGORY_SUB', null, null, '<DIR>small_msdatasample/category_sub.csv', ',', '"', null,null,null);
+call SYSCS_UTIL.IMPORT_DATA ('<SCHEMA>', 'CATEGORY_SUB', null, '<DIR>small_msdatasample/category_sub.csv', ',', '"', null,null,null,0,null,true,null);
 
 drop table if exists customer;
 CREATE TABLE customer (
@@ -51,7 +51,7 @@ CREATE TABLE customer (
 	cst_tenure		INT,
 	cst_recency		INT,
 	cst_status_id		INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'CUSTOMER', null, null, '<DIR>small_msdatasample/customer_iso.csv', ',', '"', null,null,null);
+call SYSCS_UTIL.IMPORT_DATA ('<SCHEMA>', 'CUSTOMER', null, '<DIR>small_msdatasample/customer_iso.csv', ',', '"', null,null,null,0,null,true,null);
 
 
 drop table if exists item;
@@ -85,7 +85,7 @@ CREATE TABLE item (
 	itm_itm_long_desc_ja	VARCHAR(32672),
 	itm_long_desc_sch	VARCHAR(32672),
 	itm_long_desc_ko	VARCHAR(32672));
-call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'ITEM', null, null, '<DIR>small_msdatasample/item.csv', ',', '"', null,null,null);
+call SYSCS_UTIL.IMPORT_DATA ('<SCHEMA>', 'ITEM', null, '<DIR>small_msdatasample/item.csv', ',', '"', null,null,null,0,null,true,null);
 
 drop table if exists order_header;
 CREATE TABLE order_header (
@@ -97,7 +97,7 @@ CREATE TABLE order_header (
 	orh_qty			FLOAT, 
 	orh_ship_date		TIMESTAMP,
 	orh_rush		INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'ORDER_HEADER', null, null, '<DIR>small_msdatasample/order_header.csv', ',', '"', null,null,null);
+call SYSCS_UTIL.IMPORT_DATA ('<SCHEMA>', 'ORDER_HEADER', null, '<DIR>small_msdatasample/order_header.csv', ',', '"', null,null,null,0,null,true,null);
 
 drop table if exists order_line;
 CREATE TABLE order_line (
@@ -112,4 +112,4 @@ CREATE TABLE order_line (
 	orl_unit_cost 		FLOAT, 
 	orl_discount 		FLOAT, 
 	orl_customer_id 	INT);
-call SYSCS_UTIL.SYSCS_IMPORT_DATA ('<SCHEMA>', 'ORDER_LINE', null, null, '<DIR>small_msdatasample/order_line.csv', ',', '"', null,null,null);
+call SYSCS_UTIL.IMPORT_DATA ('<SCHEMA>', 'ORDER_LINE', null, '<DIR>small_msdatasample/order_line.csv', ',', '"', null,null,null,0,null,true,null);
