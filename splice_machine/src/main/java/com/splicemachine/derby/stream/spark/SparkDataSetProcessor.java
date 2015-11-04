@@ -29,8 +29,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.rdd.RDD;
+import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 import com.splicemachine.db.iapi.sql.Activation;
+import scala.collection.Iterator;
+import scala.collection.Map;
+import scala.reflect.ClassManifestFactory$;
+import scala.reflect.ClassTag$;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,16 +66,29 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
-        SpliceSpark.pushScope("HFile Scan["+tableName+"]");
-        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
-                RowLocation.class, ExecRow.class);
-        rawRDD.setName(tableName);
-        SpliceSpark.popScope();
-        SpliceSpark.pushScope("Lazy Deserialization");
-        JavaRDD<LocatedRow> appliedRDD = rawRDD.map(
+/*        JavaRDD<LocatedRow> appliedRDD = null;
+        Map persistentRDDs = ctx.sc().getPersistentRDDs();
+        if (persistentRDDs.size()>0) {
+            Iterator it =  persistentRDDs.valuesIterator();
+            it.hasNext();
+            RDD rdd = (RDD) it.next();
+            appliedRDD = new JavaRDD<>(rdd, ClassManifestFactory$.MODULE$.fromClass(LocatedRow.class));
+        }
+
+        else {
+*/
+            SpliceSpark.pushScope("HFile Scan[" + tableName + "]");
+            JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
+                    RowLocation.class, ExecRow.class);
+            rawRDD.setName(tableName);
+            SpliceSpark.popScope();
+            SpliceSpark.pushScope("Lazy Deserialization");
+            JavaRDD<LocatedRow> appliedRDD = rawRDD.map(
                     new TableScanTupleFunction<Op>(createOperationContext(spliceOperation)));
-        appliedRDD.setName("Lazy Deserialization");
-        SpliceSpark.popScope();
+            appliedRDD.setName("Lazy Deserialization");
+//            appliedRDD.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
+            SpliceSpark.popScope();
+//        }
         return new SparkDataSet(appliedRDD);
     }
 
