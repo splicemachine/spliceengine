@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.collect.Iterators;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.SQLInteger;
@@ -8,22 +7,15 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.apache.hadoop.fs.*;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.GzipCodec;
-import org.apache.hadoop.util.ReflectionUtils;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.FluentIterable;
 import scala.Tuple2;
-
 import javax.annotation.Nullable;
 import java.io.*;
 import java.util.*;
@@ -153,13 +145,21 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> fetchWithOffset(int offset, int fetch) {
-        return new ControlDataSet<>(Iterables.limit(Iterables.skip(iterable,offset),fetch));
+    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> f) {
+        try {
+            return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public DataSet<V> take(int take) {
-        return new ControlDataSet<V>(Iterables.limit(iterable,take));
+    public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> f) {
+        try {
+            return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -230,5 +230,10 @@ public class ControlDataSet<V> implements DataSet<V> {
             }
         }
 
+    }
+
+    @Override
+    public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
+        return this;
     }
 }

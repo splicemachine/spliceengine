@@ -104,7 +104,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     */
     public LocatedRow call(List<String> values) throws Exception {
         try {
-            System.out.println("Parsed Row -> " + values);
+//            System.out.println("Parsed Row -> " + values);
             ExecRow returnRow = execRow.getClone();
             for (int i = 1; i <= returnRow.nColumns(); i++) {
                 DataValueDescriptor dvd = returnRow.getColumn(i);
@@ -131,7 +131,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                     dvd.setValue(value);
                 }
             }
-             System.out.println("Returned Row -> " + returnRow);
+  //           System.out.println("Returned Row -> " + returnRow);
             return new LocatedRow(returnRow);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {

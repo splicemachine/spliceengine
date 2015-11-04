@@ -4,8 +4,11 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.function.OffsetFunction;
+import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -172,9 +175,17 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        final long fetchLimit = getFetchLimit();
-        final long offset = getTotalOffset();
-        return source.getDataSet(dsp).fetchWithOffset((int)offset,fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE);
+        long fetchLimit = getFetchLimit();
+        long offset = getTotalOffset();
+        OperationContext operationContext = dsp.createOperationContext(this);
+        operationContext.pushScope("");
+        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
+        fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
+        return sourceSet.take(new TakeFunction<SpliceOperation, LocatedRow>(
+                operationContext,
+                (int)(offset+fetchLimit)))
+                .coalesce(1,true)
+                .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext,(int) offset));
     }
 
 }

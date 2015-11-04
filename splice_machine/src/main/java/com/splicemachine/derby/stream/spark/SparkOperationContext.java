@@ -252,7 +252,8 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         List<String> badRecords = badRecordsAccumulable.value();
         if (operations!=null) {
             for (SpliceOperation operation : operations) {
-                badRecords.addAll(operation.getOperationContext().getBadRecords());
+                if (operation.getOperationContext()!=null)
+                    badRecords.addAll(operation.getOperationContext().getBadRecords());
             }
         }
         return badRecords;

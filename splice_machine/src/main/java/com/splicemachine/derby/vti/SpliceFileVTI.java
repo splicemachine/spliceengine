@@ -15,6 +15,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import java.io.IOException;
@@ -104,12 +105,12 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
             if (oneLineRecords) {
                 DataSet<String> textSet = dsp.readTextFile(fileName);
-                operationContext.pushScope(fileName);
+                operationContext.pushScope("Parse File");
                 return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
             } else {
                  PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName);
-                 operationContext.pushScope(fileName);
-                 return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
+                operationContext.pushScope("Parse File");
+                return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
             }
         } catch (IOException ioe) {
             throw StandardException.plainWrapException(ioe);
