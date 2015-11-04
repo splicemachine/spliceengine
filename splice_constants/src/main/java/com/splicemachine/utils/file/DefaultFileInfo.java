@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hbase.HConstants;
 
 import java.io.IOException;
 
@@ -102,7 +103,7 @@ public class DefaultFileInfo implements FileInfo{
 								 */
 								String user = DEFAULT_USER;
 								String group = DEFAULT_GROUP;
-								Path homeDirectory = new Path(fs.getConf().get("hbase.rootdir")); // XXX JLEACH TODO Needs to be configurable.
+								Path homeDirectory = new Path(fs.getConf().get(HConstants.HBASE_DIR));
 								if(homeDirectory==null){
 										userGroupInfo = new String[]{user,group};
 										return userGroupInfo;
