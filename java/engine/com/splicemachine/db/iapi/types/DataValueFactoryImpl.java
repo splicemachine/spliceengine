@@ -902,6 +902,17 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 }
         }
 
+        public UserDataValue            getNullObject(Object o)
+        {
+            if (o == null)
+            {
+                return new UserType((Object) null);
+            }
+            else
+            {
+                return new UserType(o);
+            }
+        }
         public RefDataValue             getNullRef(RefDataValue dataValue)
         {
                 if (dataValue == null)

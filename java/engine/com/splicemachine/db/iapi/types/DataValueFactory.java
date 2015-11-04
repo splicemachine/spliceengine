@@ -700,6 +700,7 @@ public interface DataValueFactory
          */
         UserDataValue           getNullObject(UserDataValue dataValue);
 
+        UserDataValue           getNullObject(Object o);
         /**
          * Get a RefDataValue with a SQL null value. If the supplied value
          * is null then get a new value, otherwise set it to null and return 

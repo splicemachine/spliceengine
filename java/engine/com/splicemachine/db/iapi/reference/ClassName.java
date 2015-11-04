@@ -54,6 +54,7 @@ public interface ClassName
 	String NumberDataValue = "com.splicemachine.db.iapi.types.NumberDataValue";
 	String RefDataValue = "com.splicemachine.db.iapi.types.RefDataValue";
 	String UserDataValue = "com.splicemachine.db.iapi.types.UserDataValue";
+    String UserType = "com.splicemachine.db.iapi.types.UserType";
 	String ConcatableDataValue  = "com.splicemachine.db.iapi.types.ConcatableDataValue";
 	String XMLDataValue  = "com.splicemachine.db.iapi.types.XMLDataValue";
 
@@ -133,4 +134,5 @@ public interface ClassName
 	String VTICosting = "com.splicemachine.db.vti.VTICosting";
 
 	String Authorizer = "com.splicemachine.db.iapi.sql.conn.Authorizer";
+    String UDTBase = "com.splicemachine.db.shared.common.udt.UDTBase";
 }

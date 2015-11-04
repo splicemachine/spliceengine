@@ -38,12 +38,13 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.shared.common.udt.UDTBase;
 
 /**
 	Aggregator for user-defined aggregates. Wraps the application-supplied
     implementation of com.splicemachine.db.agg.Aggregator.
  */
-public final class UserDefinedAggregator  implements ExecAggregator
+public final class UserDefinedAggregator  extends UDTBase implements ExecAggregator
 {
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -223,8 +224,12 @@ public final class UserDefinedAggregator  implements ExecAggregator
         e.printStackTrace( Monitor.getStream().getPrintWriter() );
     }
 
+    @Override
     public void add(DataValueDescriptor addend) throws StandardException {
-    	_aggregator.add(addend);
+        throw new UnsupportedOperationException();
     }
 
+    public Aggregator getAggregator() {
+        return _aggregator;
+    }
 }

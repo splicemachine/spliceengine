@@ -21,8 +21,11 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
@@ -144,6 +147,39 @@ public class UserDefinedTypeCompiler extends BaseTypeCompiler
 		super.generateDataValue(mb, collationType, field);
 	}
 
-		
+    @Override
+	public void generateNull(MethodBuilder mb, int collationType) {
+		int argCount;
+        try {
+            LanguageConnectionContext lcc = (LanguageConnectionContext)
+                    ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+            ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+            String typeName = getCorrespondingPrimitiveTypeName();
+            if (typeName.contains(".")) {
+                Class thisClazz = cf.loadApplicationClass(typeName);
+                Class UDTBaseClazz = cf.loadApplicationClass(ClassName.UDTBase);
+                if (UDTBaseClazz.isAssignableFrom(thisClazz)) {
+                    // If this is a user-defined data type or aggregator, new an instance of this type
+                    // so that splice can distinguish it with other classes that are serialize/deserialize by Kryo.
+                    mb.pop();
+                    mb.pushNewStart(typeName);
+                    mb.pushNewComplete(0);
+                    mb.upCast("java.lang.Object");
+                }
+            }
+            if (pushCollationForDataValue(collationType)) {
+                mb.push(collationType);
+                argCount = 2;
+            } else
+                argCount = 1;
+
+            mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
+                    nullMethodName(),
+                    interfaceName(),
+                    argCount);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getCause());
+        }
+	}
 
 }
