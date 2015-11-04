@@ -271,13 +271,16 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		}
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return source.getDataSet(dsp).
-                map(new NormalizeSparkFunction(dsp.createOperationContext(this)));
+        DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
+        OperationContext operationContext = dsp.createOperationContext(this);
+        try {
+            operationContext.pushScope("Normalize");
+            return
+                    sourceSet.map(new NormalizeSparkFunction(dsp.createOperationContext(this)));
+        } finally {
+            operationContext.popScope();
+        }
     }
-
-
-
-
 
     public static final class NormalizeSparkFunction extends SpliceFunction<NormalizeOperation, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = 7780564699906451370L;

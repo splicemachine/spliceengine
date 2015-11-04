@@ -3,8 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -103,6 +105,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        OperationContext operationContext = dsp.createOperationContext(this);
         TableScannerBuilder tsb = new TableScannerBuilder()
                 .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
@@ -117,7 +120,10 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(baseColumnMap);
-        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, tableName).take(1);
+        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, tableName)
+                .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
+                .coalesce(1,true)
+                .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));
     }
 }
 

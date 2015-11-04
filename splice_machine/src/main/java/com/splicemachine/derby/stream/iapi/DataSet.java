@@ -2,10 +2,7 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.stream.function.*;
-import org.apache.hadoop.fs.Path;
 
 import java.io.OutputStream;
 import java.util.Iterator;
@@ -29,6 +26,12 @@ public interface DataSet<V> {
      * Remove duplicates from dataset
      */
     DataSet<V> distinct();
+    /**
+     * Decrease the number of partitions
+     *
+     */
+    DataSet<V> coalesce(int numPartitions, boolean shuffle);
+
     /**
      * Iterate over all values and produce a single value.
      */
@@ -90,13 +93,11 @@ public interface DataSet<V> {
     /**
      * Perform a fetch with offset
      *
-     * @param offset
-     * @param fetch
      * @return
      */
-    DataSet<V> fetchWithOffset(int offset, int fetch);
+    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction);
 
-    DataSet<V> take(int take);
+    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
 
 //    DataSet<LocatedRow> writeToDisk(ExportParams exportParams);
 
