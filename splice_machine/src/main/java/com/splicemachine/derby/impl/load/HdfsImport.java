@@ -226,10 +226,8 @@ public class HdfsImport {
                     schemaName,tableName,insertColumnList,fileName,columnDelimiter,characterDelimiter,
                     timestampFormat,dateFormat,timeFormat,badRecordsAllowed,badRecordDirectory, oneLineRecords, charset, isUpsert,isCheckScan);
 
-        if (charset ==null) {
+        if (charset ==null)
             charset = StandardCharsets.UTF_8.name();
-            System.out.println("charset->" + charset);
-        }
 
         Connection conn = SpliceAdmin.getDefaultConn();
         try {
