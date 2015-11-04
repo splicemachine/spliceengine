@@ -44,13 +44,14 @@ public class ImportWithDifferentColumnOrderIT {
         writer1.println("yuas,123");
         writer1.println("YifuMa,52");
         writer1.println("PeaceNLove,214");
+        writer1.flush();
         writer1.close();
 
         PrintWriter writer2 = new PrintWriter(new File(tempFolder.getRoot(), "Test2.txt"), "UTF-8");
-        writer2.println();
         writer2.println("mvnVSworld, 134,11,sd");
         writer2.println("derbyWins, 97,6,os");
         writer2.println("RadioHeadS,00192,43,ux");
+        writer2.flush();
         writer2.close();
     }
 
