@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.collect.Iterables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -26,6 +25,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.storage.StorageLevel;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -45,15 +45,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class SparkDataSet<V> implements DataSet<V>, Serializable {
     public JavaRDD<V> rdd;
-    public int offset = -1;
-    public int fetch = -1;
     public SparkDataSet(JavaRDD<V> rdd) {
-        this.rdd = rdd;
-    }
-
-    public SparkDataSet(JavaRDD<V> rdd, int offset, int fetch) {
-        this.offset = offset;
-        this.fetch = fetch;
         this.rdd = rdd;
     }
 
@@ -91,14 +83,7 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public Iterator<V> toLocalIterator() {
-        if (offset ==-1)
-            return rdd.collect().iterator();
-        return Iterables.limit(Iterables.skip(new Iterable() {
-            @Override
-            public Iterator iterator() {
-                return rdd.collect().iterator();
-            }
-        },offset), fetch).iterator();
+        return rdd.collect().iterator();
     }
 
     @Override
@@ -255,5 +240,10 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
         return new SparkDataSet<V>(rdd.coalesce(numPartitions,shuffle));
+    }
+
+    @Override
+    public void persist() {
+        rdd.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
     }
 }

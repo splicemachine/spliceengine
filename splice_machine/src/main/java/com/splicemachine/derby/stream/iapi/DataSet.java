@@ -3,7 +3,6 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
-
 import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -76,12 +75,35 @@ public interface DataSet<V> {
      */
     <Op extends SpliceOperation> DataSet<V> filter (SplicePredicateFunction<Op,V> f);
 
+    /**
+     *
+     *
+     * @param dataSet
+     * @return
+     */
     DataSet<V> intersect(DataSet<V> dataSet);
 
+    /**
+     *
+     * @param dataSet
+     * @return
+     */
     DataSet<V> subtract(DataSet<V> dataSet);
 
+    /**
+     *
+     * @return
+     */
     boolean isEmpty();
 
+    /**
+     * Apply FlatMap (1 element -> 0..n elements
+     *
+     * @param f
+     * @param <Op>
+     * @param <U>
+     * @return
+     */
    <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
 
     /**
@@ -104,4 +126,7 @@ public interface DataSet<V> {
     <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction);
 
     void saveAsTextFile(String path);
+
+    void persist();
+
 }
