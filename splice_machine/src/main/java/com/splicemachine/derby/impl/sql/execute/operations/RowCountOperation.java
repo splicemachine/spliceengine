@@ -178,14 +178,33 @@ public class RowCountOperation extends SpliceBaseOperation {
         long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
-        operationContext.pushScope("");
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
-        fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
-        return sourceSet.take(new TakeFunction<SpliceOperation, LocatedRow>(
-                operationContext,
-                (int)(offset+fetchLimit)))
-                .coalesce(1,true)
-                .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext,(int) offset));
+        if (fetchLimit ==0) { // No Fetch, just offset
+            operationContext.pushScope(String.format("Offset [%d]",offset));
+            try {
+                return sourceSet.coalesce(1, true)
+                        .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
+            } finally {
+
+            }
+        } else {
+            fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
+            operationContext.pushScope(String.format("Fetch [%d]",(int) (offset + fetchLimit)));
+            DataSet takeData = sourceSet.take(new TakeFunction<SpliceOperation, LocatedRow>(
+                    operationContext,
+                    (int) (offset + fetchLimit)));
+            operationContext.popScope();
+            operationContext.pushScope(String.format("Coalesce [1]"));
+            DataSet coalesce = takeData.coalesce(1, true);
+            operationContext.popScope();
+            try {
+                operationContext.pushScope(String.format("Offset [%d]", offset));
+                return coalesce
+                        .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
+            } finally {
+                operationContext.popScope();
+            }
+        }
     }
 
 }
