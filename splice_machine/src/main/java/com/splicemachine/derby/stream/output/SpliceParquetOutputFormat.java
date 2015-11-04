@@ -1,7 +1,7 @@
 package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import parquet.hadoop.ParquetOutputFormat;
+import org.apache.parquet.hadoop.ParquetOutputFormat;
 
 /**
  * Created by jleach on 5/15/15.

@@ -2,9 +2,10 @@ package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.conf.Configuration;
-import parquet.hadoop.api.WriteSupport;
-import parquet.io.api.RecordConsumer;
-import parquet.schema.MessageType;
+import org.apache.parquet.hadoop.api.WriteSupport;
+import org.apache.parquet.io.api.RecordConsumer;
+import org.apache.parquet.schema.MessageType;
+
 import java.util.HashMap;
 
 /**
