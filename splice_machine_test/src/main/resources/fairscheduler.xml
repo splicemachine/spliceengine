@@ -12,6 +12,10 @@
         <schedulingMode>FAIR</schedulingMode>
         <weight>1</weight>
     </pool>
+    <pool name="compaction">
+        <schedulingMode>FAIR</schedulingMode>
+        <weight>5</weight>
+    </pool>
     <pool name="urgent">
         <schedulingMode>FAIR</schedulingMode>
         <weight>1000</weight>
