@@ -103,7 +103,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             operationContext = dsp.createOperationContext(op);
         try {
             ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
-            if (oneLineRecords) {
+            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName);
                 operationContext.pushScope("Parse File");
                 return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
