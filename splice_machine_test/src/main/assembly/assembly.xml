@@ -21,9 +21,6 @@
 			</unpackOptions>
 			<includes>
 				<!-- splice artifacts -->
-				<include>com.splicemachine:asynchbase</include>
-				<include>com.splicemachine:utilities</include>
-				<include>com.splicemachine:stats</include>
 				<include>com.splicemachine:splice_constants-${envClassifier}</include>
 				<include>com.splicemachine:splice_si-${envClassifier}</include>
 				<include>com.splicemachine:splice_si_adapter_9*-${envClassifier}</include>
@@ -32,22 +29,27 @@
 				<include>com.splicemachine:splice_machine-${envClassifier}</include>
 				<include>com.splicemachine:splice_machine_adapter_9*-${envClassifier}</include>
 				<include>com.splicemachine:splice_machine_test-${envClassifier}</include>
+				<!-- splice internal project artifacts -->
+				<include>com.splicemachine:asynchbase</include>
+				<include>com.splicemachine:db</include>
+				<include>com.splicemachine:dbclient</include>
+				<include>com.splicemachine:stats</include>
+				<include>com.splicemachine:utilities</include>
 				<!-- third party artifacts -->
 				<include>com.carrotsearch:hppc</include>
 				<include>com.esotericsoftware.kryo:kryo</include>
 				<include>com.google.code.gson:gson</include> 
 				<include>com.google.protobuf:protobuf-java</include>
+				<include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
 				<include>com.lmax:disruptor</include>
 				<include>com.stumbleupon:async</include>
 				<include>de.javakaffee:kryo-serializers</include>
 				<include>net.sf.ehcache:ehcache-core</include>
 				<include>net.sf.opencsv:opencsv</include>
 				<include>net.sf.supercsv:super-csv</include>
-				<include>com.splicemachine:db</include>
-				<include>com.splicemachine:dbclient</include>
+				<include>org.apache.commons:commons-lang3</include>
 				<include>org.apache.lucene:lucene-core</include>
-				<include>org.apache.spark</include>				
-				<include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
+				<include>org.apache.spark</include>
 			</includes>
 		</dependencySet>
 
