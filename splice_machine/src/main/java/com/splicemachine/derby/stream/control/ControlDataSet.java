@@ -15,6 +15,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.FluentIterable;
+import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.io.*;
@@ -235,5 +236,10 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
         return this;
+    }
+
+    @Override
+    public void persist() {
+        // no op
     }
 }
