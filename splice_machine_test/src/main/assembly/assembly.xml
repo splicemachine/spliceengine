@@ -47,7 +47,6 @@
 				<include>net.sf.ehcache:ehcache-core</include>
 				<include>net.sf.opencsv:opencsv</include>
 				<include>net.sf.supercsv:super-csv</include>
-				<include>org.apache.commons:commons-lang3</include>
 				<include>org.apache.lucene:lucene-core</include>
 				<include>org.apache.spark</include>
 			</includes>
