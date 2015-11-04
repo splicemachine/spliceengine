@@ -120,7 +120,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,'%s')",
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,'%s',true,null)",
                                 SCHEMA_NAME, TABLE1, dataFile, temporaryFolder.newFolder().getCanonicalPath()));
                         ps.execute();
                         ps.close();
@@ -150,6 +150,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
                         rs.close();
                     } catch (Exception e) {
                         LOG.error("Error importing data", e);
+                        throw new RuntimeException(e);
                     } finally {
                         spliceClassWatcher.closeAll();
                     }
