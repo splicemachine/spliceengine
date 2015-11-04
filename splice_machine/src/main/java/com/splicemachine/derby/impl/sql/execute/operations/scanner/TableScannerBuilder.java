@@ -5,7 +5,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
-import com.splicemachine.SpliceKryoRegistry;
+
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.shared.common.udt.UDTBase;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -19,7 +24,6 @@ import org.apache.commons.lang.SerializationUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Base64;
 
 /**
@@ -239,50 +243,93 @@ public class TableScannerBuilder implements Externalizable {
 
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {	
-			ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
-			out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
-			ArrayUtil.writeIntArray(out, rowColumnMap);
-			TransactionOperations.getOperationFactory().writeTxn(txn, out);
-			ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
-            out.writeBoolean(keyColumnSortOrder != null);
-            if (keyColumnSortOrder != null) {
-			    ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+			try {
+                out.writeBoolean(execRowTypeFormatIds!=null);
+                if (execRowTypeFormatIds!=null) {
+                    out.writeInt(execRowTypeFormatIds.length);
+                    for (int i = 0; i < execRowTypeFormatIds.length; ++i) {
+                        out.writeInt(execRowTypeFormatIds[i]);
+                        if (execRowTypeFormatIds[i] == StoredFormatIds.SQL_USERTYPE_ID_V3) {
+                            DataValueDescriptor dvd = template.getColumn(i + 1);
+                            Object o = null;
+                            if (dvd != null) {
+                                o = dvd.getObject();
+                            }
+                            if (o != null && o instanceof UDTBase) {
+                                // Serialize this UDT or UDA
+                                out.writeBoolean(true);
+                                out.writeObject(o);
+                            } else {
+                                out.writeBoolean(false);
+                            }
+                        }
+                    }
+                }
+                out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
+                ArrayUtil.writeIntArray(out, rowColumnMap);
+                TransactionOperations.getOperationFactory().writeTxn(txn, out);
+                ArrayUtil.writeIntArray(out, keyColumnEncodingOrder);
+                out.writeBoolean(keyColumnSortOrder != null);
+                if (keyColumnSortOrder != null) {
+                    ArrayUtil.writeBooleanArray(out, keyColumnSortOrder);
+                }
+                ArrayUtil.writeIntArray(out, keyColumnTypes);
+                out.writeBoolean(keyDecodingMap != null);
+                if (keyDecodingMap != null) {
+                    ArrayUtil.writeIntArray(out, keyDecodingMap);
+                }
+                out.writeObject(accessedKeys);
+                out.writeBoolean(indexName != null);
+                if (indexName != null)
+                    out.writeUTF(indexName);
+                out.writeBoolean(tableVersion != null);
+                if (tableVersion != null)
+                    out.writeUTF(tableVersion);
+            } catch (StandardException e) {
+                throw new IOException(e.getCause());
             }
-			ArrayUtil.writeIntArray(out, keyColumnTypes);
-            out.writeBoolean(keyDecodingMap != null);
-            if (keyDecodingMap != null) {
-                ArrayUtil.writeIntArray(out, keyDecodingMap);
-            }
-			out.writeObject(accessedKeys);
-			out.writeBoolean(indexName!=null);
-			if (indexName!=null)
-				out.writeUTF(indexName);
-			out.writeBoolean(tableVersion!=null);
-			if (tableVersion!=null)
-				out.writeUTF(tableVersion);			
-
 		}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException,
 				ClassNotFoundException {
-			execRowTypeFormatIds = ArrayUtil.readIntArray(in);
-			scan = SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
-			rowColumnMap = ArrayUtil.readIntArray(in);
-			txn = TransactionOperations.getOperationFactory().readTxn(in);
-			keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
-            if (in.readBoolean()) {
-                keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+            try {
+                if (in.readBoolean()) {
+                    int n = in.readInt();
+                    execRowTypeFormatIds = new int[n];
+                    template = new ValueRow(n);
+                    DataValueDescriptor[] rowArray = template.getRowArray();
+                    for (int i = 0; i < n; ++i) {
+                        execRowTypeFormatIds[i] = in.readInt();
+                        rowArray[i] = LazyDataValueFactory.getLazyNull(execRowTypeFormatIds[i]);
+
+                        if (execRowTypeFormatIds[i] == StoredFormatIds.SQL_USERTYPE_ID_V3) {
+                            if (in.readBoolean()) {
+                                Object o = in.readObject();
+                                rowArray[i].setValue(o);
+                            }
+                        }
+                    }
+                }
+                scan = SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
+                rowColumnMap = ArrayUtil.readIntArray(in);
+                txn = TransactionOperations.getOperationFactory().readTxn(in);
+                keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
+                if (in.readBoolean()) {
+                    keyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+                }
+                keyColumnTypes = ArrayUtil.readIntArray(in);
+                if (in.readBoolean()) {
+                    keyDecodingMap = ArrayUtil.readIntArray(in);
+                }
+                accessedKeys = (FormatableBitSet) in.readObject();
+                if (in.readBoolean())
+                    indexName = in.readUTF();
+                if (in.readBoolean())
+                    tableVersion = in.readUTF();
+            } catch (StandardException e) {
+                throw new IOException(e.getCause());
             }
-			keyColumnTypes = ArrayUtil.readIntArray(in);
-            if (in.readBoolean()) {
-                keyDecodingMap = ArrayUtil.readIntArray(in);
-            }
-			accessedKeys = (FormatableBitSet) in.readObject();
-			if (in.readBoolean())
-				indexName = in.readUTF();
-			if (in.readBoolean())				
-				tableVersion = in.readUTF();
 		}
 		
 		public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {

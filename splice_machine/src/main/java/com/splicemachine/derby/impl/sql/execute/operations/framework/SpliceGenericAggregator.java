@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.UserDataValue;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
+import com.splicemachine.db.impl.sql.execute.UserDefinedAggregator;
 import org.apache.log4j.Logger;
 
 /**
@@ -94,7 +95,8 @@ public class SpliceGenericAggregator {
 		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
 		
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua ==null) ua = getAggregatorInstance();
+		if(ua ==null|| (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null))
+			ua = getAggregatorInstance();
 		
 		DataValueDescriptor result = ua.getResult();
 		if(result ==null) outputCol.setToNull();
@@ -112,7 +114,7 @@ public class SpliceGenericAggregator {
         UserDataValue aggColumn = (UserDataValue) row.getColumn(aggregatorColumnId);
 
         ExecAggregator ua = (ExecAggregator) aggColumn.getObject();
-        if (ua == null) {
+        if (ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)) {
             ua = getAggregatorInstance();
             aggColumn.setValue(ua);
             return true;
@@ -124,13 +126,17 @@ public class SpliceGenericAggregator {
         UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
 
         ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
-        return ua !=null;
+		if (ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)) {
+			return false;
+		}
+
+		return true;
     }
     
 	public void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
 																throws StandardException{
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua == null){
+		if(ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)){
 			ua = getAggregatorInstance();
 		}
 		ua.accumulate(inputCol,this);
@@ -138,7 +144,7 @@ public class SpliceGenericAggregator {
 
 	public void initializeAndAccumulateIfNeeded(DataValueDescriptor inputCol,DataValueDescriptor aggCol) throws StandardException{
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
-		if(ua == null){
+		if(ua == null || (ua instanceof UserDefinedAggregator && ((UserDefinedAggregator) ua).getAggregator() == null)){
 			ua = getAggregatorInstance();
 			ua.accumulate(inputCol,this);
 			aggCol.setValue(ua);

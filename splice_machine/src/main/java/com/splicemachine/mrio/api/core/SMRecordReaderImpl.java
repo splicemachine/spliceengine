@@ -136,8 +136,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan,htable);
 			this.hregion = splitRegionScanner.getRegion();
 			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.noOpMetricFactory());
-			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
-        	builder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());
+			builder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
 			siTableScanner = builder.build(); 
