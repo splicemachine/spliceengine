@@ -1,6 +1,10 @@
 package com.splicemachine.mrio.api.core;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -37,6 +41,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	protected ExecRow currentRow;
 	protected TableScannerBuilder builder;
 	protected RowLocation rowLocation;
+	private List<AutoCloseable> closeables = new ArrayList<>();
 	
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
@@ -106,15 +111,20 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 	@Override
 	public void close() throws IOException {
+		IOException lastThrown = null;
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "close");
-		try {
-			siTableScanner.close();
-			MeasuredRegionScanner mrs = siTableScanner.getRegionScanner();
-			if (mrs != null)
-				mrs.close();
-		} catch (StandardException e) {
-			throw new IOException(e);
+		for (AutoCloseable c : closeables) {
+			if (c != null) {
+				try {
+					c.close();
+				} catch (Exception e) {
+					lastThrown = e instanceof IOException ? (IOException) e : new IOException(e);
+				}
+			}
+		}
+		if (lastThrown != null) {
+			throw lastThrown;
 		}
 	}
 	
@@ -124,6 +134,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	
 	public void setHTable(HTableInterface htable) {
 		this.htable = htable;
+		addCloseable(htable);
 	}
 	
 	public void restart(byte[] firstRow) throws IOException {		
@@ -138,7 +149,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
         	builder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).template(template).scanner(mrs).scan(scan);
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-			siTableScanner = builder.build(); 
+			siTableScanner = builder.build();
+			addCloseable(siTableScanner);
+			addCloseable(siTableScanner.getRegionScanner());
 		} else {
 			throw new IOException("htable not set");
 		}
@@ -158,6 +171,10 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 		}
 		return builder.getExecRowTypeFormatIds();
+	}
+
+	public void addCloseable(AutoCloseable closeable) {
+		closeables.add(closeable);
 	}
 	
 }

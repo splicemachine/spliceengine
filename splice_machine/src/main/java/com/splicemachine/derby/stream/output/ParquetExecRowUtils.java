@@ -1,15 +1,9 @@
 package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import parquet.io.api.Binary;
 import parquet.io.api.RecordConsumer;
 import parquet.schema.MessageType;
-import parquet.schema.*;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by jleach on 5/17/15.
