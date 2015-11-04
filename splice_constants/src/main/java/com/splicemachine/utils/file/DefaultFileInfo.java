@@ -1,5 +1,6 @@
 package com.splicemachine.utils.file;
 
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -103,7 +104,7 @@ public class DefaultFileInfo implements FileInfo{
 								 */
 								String user = DEFAULT_USER;
 								String group = DEFAULT_GROUP;
-								Path homeDirectory = new Path(fs.getConf().get(HConstants.HBASE_DIR));
+								Path homeDirectory = new Path(SpliceConstants.config.get(HConstants.HBASE_DIR));
 								if(homeDirectory==null){
 										userGroupInfo = new String[]{user,group};
 										return userGroupInfo;
