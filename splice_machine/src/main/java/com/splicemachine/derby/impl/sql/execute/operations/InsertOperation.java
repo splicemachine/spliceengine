@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -17,6 +18,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -212,6 +214,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         TxnView txn = getCurrentTransaction();
         ExecRow execRow = getExecRowDefinition();
         int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
+        if (insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
+            throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
+
         InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .operationContext(operationContext)
