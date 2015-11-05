@@ -92,7 +92,6 @@ import java.util.Iterator;
 
                     @Override
                     public LocatedRow next() {
-                        System.out.println("Next called + " + nextRow);
                         stale = false;
                         return nextRow;
                     }

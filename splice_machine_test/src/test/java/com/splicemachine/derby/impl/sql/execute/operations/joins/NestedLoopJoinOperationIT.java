@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
@@ -50,20 +49,6 @@ public class NestedLoopJoinOperationIT {
                 " 3 |19 | 2 |28 |", toString(rs));
     }
 
-    /* Regression test for DB-1129 */
-    @Test
-    public void testNestedLoopIteratorCloseStatements() throws Exception {
-        methodWatcher.executeUpdate("create table DB1128(a int, b int, c int)");
-        methodWatcher.executeUpdate("insert into DB1128 values(1,1,1),(2,2,2),(3,3,3),(4,4,4)");
-
-        int statementCountBefore = getSysStatementCount();
-        ResultSet resultSet = methodWatcher.executeQuery("select * from DB1128 a, DB1128 b --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP");
-        assertEquals(16, SpliceUnitTest.resultSetSize(resultSet));
-        resultSet.close();
-        int statementCountAfter = getSysStatementCount();
-        assertEquals(statementCountBefore, statementCountAfter);
-    }
-
     @Test
     public void joinEmptyRightSideOnConstant() throws Exception {
         methodWatcher.executeUpdate("create table DB4003(a int)");
@@ -75,12 +60,6 @@ public class NestedLoopJoinOperationIT {
                 "----\n" +
                 " 0 |", toString(rs));
 
-    }
-
-
-    private int getSysStatementCount() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_STATEMENT_SUMMARY()");
-        return SpliceUnitTest.resultSetSize(rs);
     }
 
     private String toString(ResultSet rs) throws Exception {
