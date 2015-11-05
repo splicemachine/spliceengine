@@ -4,21 +4,15 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.tools.version.SpliceMachineVersion;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
-import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.management.StatementManagement;
-import com.splicemachine.derby.management.XPlainTrace;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.logging.Logging;
-
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -27,7 +21,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,8 +31,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
-
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
@@ -63,16 +54,13 @@ import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 
 /**
@@ -183,265 +171,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 List<StealableTaskSchedulerManagement> taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
                 for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
                     taskScheduler.setCurrentWorkers(maxWorkers);
-                }
-            }
-        });
-    }
-
-    public static void SYSCS_GET_ACTIVE_JOB_IDS(final ResultSet[] resultSet) throws SQLException {
-		ResultSetBuilder rsBuilder = new ResultSetBuilder();
-		try {
-			rsBuilder.getColumnBuilder()
-				.addColumn("JOB_ID", Types.BIGINT);
-
-			long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
-
-			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
-			if (activeOperations != null && activeOperations.length > 0) {
-				for (int i = 0; i < activeOperations.length; i++) {
-					rowBuilder.getDvd(0).setValue(activeOperations[i]);
-					rowBuilder.addRow();
-				}
-			}
-			
-			resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		} catch (ExecutionException ee) {
-			throw PublicAPI.wrapStandardException(Exceptions.parseException(ee));
-		}
-    }
-
-    public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
-
-                ExecRow dataTemplate = new ValueRow(16);
-                dataTemplate.setRowArray(new DataValueDescriptor[]{
-                        new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),
-                        new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
-                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLDouble()
-                });
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
-                for (Pair<String, StatementManagement> managementPair : statementManagers) {
-                    StatementManagement management = managementPair.getSecond();
-                    List<StatementInfo> completedStatements = management.getRecentCompletedStatements();
-                    for (StatementInfo completedStatement : completedStatements) {
-                        Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
-                        int numFailedJobs = 0;
-                        long maxJobTime = 0;
-                        long minJobTime = Long.MAX_VALUE;
-                        double avgJobTime = 0;
-                        int numCancelledJobs = 0;
-                        int count = 0;
-                        if (completedJobs != null) {
-                            for (JobInfo info : completedJobs) {
-                                count++;
-                                if (info.getJobState() == JobInfo.JobState.FAILED) {
-                                    numFailedJobs++;
-                                } else if (info.getJobState() == JobInfo.JobState.CANCELLED) {
-                                    numCancelledJobs++;
-                                } else {
-                                    long jobStart = info.getJobStartMs();
-                                    long jobFinish = info.getJobFinishMs();
-                                    long jobTimeTaken = jobFinish - jobStart;
-                                    if (maxJobTime < jobTimeTaken)
-                                        maxJobTime = jobTimeTaken;
-                                    if (minJobTime > jobTimeTaken)
-                                        minJobTime = jobTimeTaken;
-                                    avgJobTime += avgJobTime + (jobTimeTaken - avgJobTime) / count;
-                                }
-                            }
-                        }
-                        if (minJobTime == Long.MAX_VALUE)
-                            minJobTime = 0;
-                        int numJobs = completedJobs != null ? completedJobs.size() : 0;
-                        int successfulJobs = numJobs - numFailedJobs - numCancelledJobs;
-                        long startTimeMs = completedStatement.getStartTimeMs();
-                        long stopTimeMs = completedStatement.getStopTimeMs();
-                        dataTemplate.resetRowArray();
-                        DataValueDescriptor[] dvds = dataTemplate.getRowArray();
-                        try {
-                            dvds[0].setValue(completedStatement.getStatementUuid());
-                            dvds[1].setValue(managementPair.getFirst());
-                            dvds[2].setValue(completedStatement.getUser());
-                            dvds[3].setValue(completedStatement.getTxnId());
-                            dvds[4].setValue(numFailedJobs>0?"FAILED" : numCancelledJobs>0? "CANCELLED":"SUCCESS");
-                            dvds[5].setValue(completedStatement.getSql());
-                            dvds[6].setValue(numJobs);
-                            dvds[7].setValue(successfulJobs);
-                            dvds[8].setValue(numFailedJobs);
-                            dvds[9].setValue(numCancelledJobs);
-                            dvds[10].setValue(startTimeMs);
-                            dvds[11].setValue(stopTimeMs);
-                            dvds[12].setValue(stopTimeMs-startTimeMs);
-                            dvds[13].setValue(minJobTime);
-                            dvds[14].setValue(maxJobTime);
-                            dvds[15].setValue(avgJobTime);
-
-                            rows.add(dataTemplate.getClone());
-                        } catch (StandardException e) {
-                            throw PublicAPI.wrapStandardException(e);
-                        }
-                    }
-                }
-
-
-                //TODO -sf- make static
-                ResultColumnDescriptor[] columns = new ResultColumnDescriptor[16];
-                columns[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[3] = new GenericColumnDescriptor("transactionId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[4] = new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[5] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columns[6] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[7] = new GenericColumnDescriptor("successfulJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[8] = new GenericColumnDescriptor("numFailedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[9] = new GenericColumnDescriptor("numCancelledJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columns[10] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[11] = new GenericColumnDescriptor("stopTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[12] = new GenericColumnDescriptor("elapsedTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[13] = new GenericColumnDescriptor("maxJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[14] = new GenericColumnDescriptor("minJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columns[15] = new GenericColumnDescriptor("avgJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE));
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columns,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSets[0] = ers;
-            }
-        });
-    }
-
-    public static void SYSCS_GET_STATEMENT_SUMMARY(final ResultSet[] resultSets) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
-                List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(jmxConnector);
-
-                ExecRow template = new ValueRow(9);
-                template.setRowArray(new DataValueDescriptor[]{
-                        new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLLongint(),new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint()
-                });
-
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
-                for (Pair<String, StatementManagement> managementPair : statementManagers) {
-                    StatementManagement management = managementPair.getSecond();
-                    Collection<StatementInfo> executingStatements = management.getExecutingStatementInfo();
-                    SpliceLogUtils.debug(LOG, "Found %d executing statements", executingStatements != null ? executingStatements.size() : 0);
-                    
-                    for (StatementInfo executingStatement : executingStatements) {
-
-                        // Check for null.  My understanding was that ConcurrentHashMap would guarantee that the element would be there.
-                        // It appears that the guarantee is that the key element will be there but not necessarily the value element.
-                        // This was found to be true when running the ITs in parallel.  DB-1342
-                        if (executingStatement == null) {
-                            SpliceLogUtils.error(LOG, "Found NULL executingStatement. List returned by syscs.get_statement_summary() might not be accurate.");
-                        	continue;
-                        }
-
-                        // If SQL is null, we do not need to include this statement in the output.
-                        // Some operations explicitly invoke an OperationResultSet code path,
-                        // which ends up creating another StatementInfo. This is fine,
-                        // and it's ok to skip it here because the main StatementInfo
-                        // for the same statement will have the SQL.
-                        if (executingStatement.getSql() == null ||
-                        	executingStatement.getSql().equals("null") ||
-                        	executingStatement.getSql().isEmpty()) {
-                        	continue;
-                        }
-                        
-                        Set<JobInfo> completedJobs = executingStatement.getCompletedJobs();
-                        Set<JobInfo> runningJobs = executingStatement.getRunningJobs();
-                        template.resetRowArray();
-                        DataValueDescriptor[] dvds = template.getRowArray();
-                        try{
-                            dvds[0].setValue(executingStatement.getStatementUuid());
-                            dvds[1].setValue(managementPair.getFirst());
-                            dvds[2].setValue(executingStatement.getUser());
-                            dvds[3].setValue(executingStatement.getTxnId());
-                            dvds[4].setValue(executingStatement.getSql());
-                            dvds[5].setValue(executingStatement.getNumJobs());
-                            dvds[6].setValue(completedJobs!=null?completedJobs.size():0);
-                            dvds[7].setValue(runningJobs!=null?runningJobs.size():0);
-                            dvds[8].setValue(executingStatement.getStartTimeMs());
-                        }catch(StandardException se){
-                            throw PublicAPI.wrapStandardException(se);
-                        }
-                        rows.add(template.getClone());
-                    }
-                }
-
-                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
-                columnInfo[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[3] = new GenericColumnDescriptor("transactionid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[4] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[5] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[6] = new GenericColumnDescriptor("completedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[7] = new GenericColumnDescriptor("runningJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[8] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-
-
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSets[0] = ers;
-            }
-        });
-    }
-
-    public static void SYSCS_KILL_STATEMENT(final long statementUuid) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
-                boolean found = false;
-                for (Pair<String, StatementManagement> statementManagementPair : statementManagers) {
-                                /*
-								 * We don't know which server is actually executing the statement (or even
-								 * if it's still running), so just send it out to everyone.
-								 */
-                    if (statementManagementPair.getSecond().killStatement(statementUuid)) {
-                        found = true;	
-                    }
-                }
-                
-                // Executing statement not found, so throw exception. Typical user error
-				// would be to pass in a transaction id, not a statement uuid.
-				if (!found) {
-					throw new SQLException(String.format("Executing statement not found with statementUuid = %s", statementUuid));
-				}
-            }
-        });
-    }
-
-    public static void SYSCS_KILL_ALL_STATEMENTS() throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections)
-            	throws MalformedObjectNameException, IOException, SQLException {
-            	
-                List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
-                for (Pair<String, StatementManagement> statementManagementPair : statementManagers) {
-                    statementManagementPair.getSecond().killAllStatements();
                 }
             }
         });
@@ -1070,155 +799,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
         }
     }
 
-    /*
-     * Implementation for SYSCS_UTIL.XPLAIN_TRACE system procedure
-     *
-     * @param    statementId : unique identifier for the sql statement
-     * @param    mode        : 0 - operation tree only
-     *                         1 - execution plan with metrics
-     * @param    format      : 'TREE' - Text-based tree representation
-     *                         'JSON' - JSON document of nested operations
-     * @return   an execution plan in a result set
-     *
-     */
-    public static void SYSCS_GET_XPLAIN_TRACE(long statementId, int mode, String format, final ResultSet[] resultSet) throws Exception{
-    	if (statementId == 0) {
-			EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
-			LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
-			statementId = lcc.getXplainStatementId();    		
-    	}
-        XPlainTrace xPlainTrace = new XPlainTrace(statementId, mode, format);
-        resultSet[0] = xPlainTrace.getXPlainTraceOutput();
-    }
-
-    public static void SYSCS_GET_XPLAIN_STATEMENTID(final ResultSet[] resultSet) throws Exception{
-        EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
-        long statementId = lcc.getXplainStatementId();
-        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
-
-        ExecRow row = new ValueRow(1);
-        row.setRowArray(new DataValueDescriptor[]{
-                new SQLLongint()});
-        DataValueDescriptor[] dvds = row.getRowArray();
-        dvds[0].setValue(statementId);
-        rows.add(row);
-
-        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
-        columnInfo[0] = new GenericColumnDescriptor("STATEMENTID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-
-        Activation lastActivation = lcc.getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
-    }
-
-    public static void SYSCS_GET_RUNTIME_STATISTICS(final ResultSet[] resultSet) throws Exception{
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        boolean runTimeStatisticsMode = lcc.getRunTimeStatisticsMode();
-
-        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
-
-        ExecRow row = new ValueRow(1);
-        row.setRowArray(new DataValueDescriptor[]{
-                new SQLBoolean()});
-        DataValueDescriptor[] dvds = row.getRowArray();
-        dvds[0].setValue(runTimeStatisticsMode);
-        rows.add(row);
-
-        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
-        columnInfo[0] = new GenericColumnDescriptor("RUNTIMESTATISTICS", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
-
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
-    }
-
-    public static void SYSCS_GET_STATISTICS_TIMING(final ResultSet[] resultSet) throws Exception{
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        boolean statisticsTiming = lcc.getStatisticsTiming();
-
-        List<ExecRow> rows = Lists.newArrayListWithExpectedSize(1);
-
-        ExecRow row = new ValueRow(1);
-        row.setRowArray(new DataValueDescriptor[]{
-                new SQLBoolean()});
-        DataValueDescriptor[] dvds = row.getRowArray();
-        dvds[0].setValue(statisticsTiming);
-        rows.add(row);
-
-        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[1];
-        columnInfo[0] = new GenericColumnDescriptor("STATISTICSTIMING", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
-
-        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-        resultSet[0] = ers;
-    }
-
-    public static void SYSCS_PURGE_XPLAIN_TRACE() throws SQLException{
-        Connection connection = SpliceAdmin.getDefaultConn();
-        PreparedStatement s = connection.prepareStatement("delete from sys.sysstatementhistory");
-        s.execute();
-
-        s = connection.prepareStatement("delete from sys.sysoperationhistory");
-        s.execute();
-
-        s = connection.prepareStatement("delete from sys.systaskhistory");
-        s.execute();
-    }
-
-    public static void SYSCS_SET_AUTO_TRACE(int enable) throws SQLException, StandardException {
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        lcc.setAutoTrace(enable==0?false:true);
-    }
-
-    public static void SYSCS_GET_AUTO_TRACE(final ResultSet[] resultSet) throws Exception{
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-
-		ResultSetBuilder rsBuilder = new ResultSetBuilder();
-		try {
-			rsBuilder.getColumnBuilder()
-				.addColumn("AUTO_TRACE", Types.BOOLEAN);
-
-	        boolean isAutoTraced = lcc.isAutoTraced();
-
-			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
-			rowBuilder.getDvd(0).setValue(isAutoTraced);
-			rowBuilder.addRow();
-			
-			resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		}
-	}
-
-    public static void SYSCS_SET_XPLAIN_TRACE(int enable) throws SQLException, StandardException {
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        lcc.setRunTimeStatisticsMode(enable != 0 ? true : false);
-        lcc.setStatisticsTiming(enable != 0 ? true : false);
-    }
 
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key, final ResultSet[] resultSet) throws SQLException {
     	operate(new JMXServerOperation() {

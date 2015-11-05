@@ -4,14 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.apache.log4j.Logger;
-
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.impl.services.stream.SingleStream;
-import com.splicemachine.derby.management.StatementManager;
 
 /**
  * @author Scott Fines

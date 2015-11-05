@@ -1,17 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -19,16 +15,12 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceViewWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.SpliceXPlainTrace;
-import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
@@ -1387,44 +1379,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "  120  |  3  | 75000 |    3    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-    }
-
-    @Test
-    @Ignore("Xplain trace not supported in Spark datase")
-    public void testXPlainTrace() throws Exception {
-        SpliceXPlainTrace xPlainTrace = new SpliceXPlainTrace();
-        TestConnection conn = methodWatcher.getOrCreateConnection();
-        conn.setAutoCommit(false);
-        long txnId = conn.getCurrentTransactionId();
-        try{
-            xPlainTrace.setConnection(conn);
-            xPlainTrace.turnOnTrace();
-            String s = "SELECT empnum, dept, salary, count(salary) over (Partition by dept) as c from %s";
-            String sqlText = String.format(s, this.getTableReference(EMPTAB));
-            long count = conn.count(sqlText);
-            assertEquals(EMPTAB_ROWS.length, count);
-            xPlainTrace.turnOffTrace();
-
-            ResultSet rs = conn.query("select * from SYS.SYSSTATEMENTHISTORY where transactionid = " + txnId);
-            Assert.assertTrue("XPLAIN does not have a record for this transaction!",rs.next());
-            long statementId = rs.getLong("STATEMENTID");
-            Assert.assertFalse("No statement id is found!",rs.wasNull());
-
-            XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
-            Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.PROJECTRESTRICT)==0);
-            operation = operation.getChildren().getFirst();
-            Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.WINDOW)==0);
-            assertEquals(EMPTAB_ROWS.length, operation.getInputRows());
-            assertEquals(EMPTAB_ROWS.length, operation.getOutputRows());
-            assertEquals(EMPTAB_ROWS.length * 2, operation.getWriteRows());
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-        finally{
-            conn.rollback();
-        }
     }
 
     @Test

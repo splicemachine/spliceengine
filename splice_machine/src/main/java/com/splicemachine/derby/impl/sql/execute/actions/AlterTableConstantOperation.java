@@ -1609,9 +1609,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         String user = lcc.getSessionUserId();
         Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
         long sId = snowflake.nextUUID();
-        if (activation.isTraced()) {
-            activation.getLanguageConnectionContext().setXplainStatementId(sId);
-        }
         StatementInfo statementInfo =  new StatementInfo(String.format("alter table %s.%s %s %s",
                                                                        schemaName,
                                                                        tableName,
@@ -1623,7 +1620,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                                  String.format("Alter Table %s", actionName),
                                                  null, false, -1l);
         statementInfo.setOperationInfo(Collections.singletonList(opInfo));
-        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 
         JobFuture future = null;
         JobInfo info;
@@ -1656,13 +1652,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                     throw Exceptions.parseException(e.getCause());
                 }
             }
-            try {
-                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),txn);
-            } catch (IOException e) {
-                //noinspection ThrowFromFinallyBlock
-                throw Exceptions.parseException(e);
-            }
-
         }
 
     }

@@ -1,17 +1,13 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
-import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
-
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.db.catalog.UUID;
@@ -23,12 +19,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
-
-import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * System procedure generator implementation class that extends
@@ -312,49 +303,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getWriteIntakeInfo);
 
         			/*
-        			 * Procedure to show active operations ids, as represented by entries
-        			 * under /spliceJobs ZNode. For internal use only such as test code
-        			 * that checks to see if jobs get cleaned up properly.
-        			 */
-                    Procedure getActiveJobIds = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_JOB_IDS")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getActiveJobIds);
-                    
-        			/*Procedure to get the completed statement's summary*/
-                    Procedure getCompletedStatements = Procedure.newBuilder().name("SYSCS_GET_PAST_STATEMENT_SUMMARY")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getCompletedStatements);
-
-        			/*Procedure to get running statement's summary*/
-                    Procedure getRunningStatements = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_SUMMARY")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getRunningStatements);
-
-                    Procedure killStatement = Procedure.newBuilder().name("SYSCS_KILL_STATEMENT")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .bigint("statementUuid")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(killStatement);
-
-                    Procedure killAllStatements = Procedure.newBuilder().name("SYSCS_KILL_ALL_STATEMENTS")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(killAllStatements);
-
-        			/*
         			 * Procedures to kill stale transactions
         			 */
                     Procedure killTransaction = Procedure.newBuilder().name("SYSCS_KILL_TRANSACTION")
@@ -636,93 +584,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(vacuum);
-
-                    /*
-                     * Procedure to print out a query execution plan for the specified statement
-                     */
-                    Procedure xplainTrace = Procedure.newBuilder().name("SYSCS_GET_XPLAIN_TRACE")
-                            .bigint("statementID")       // statement to print out a query plan for
-                            .integer("mode")             // 0: only operation tree. 1: execution plan with metrics
-                            .varchar("format", 4)        // 0: Tree, 1: Json
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-
-                    procedures.add(xplainTrace);
-
-                    /*
-                     * Procedure to return the traced statement id
-                     */
-                    Procedure xplainStatementId = Procedure.newBuilder().name("SYSCS_GET_XPLAIN_STATEMENTID")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(xplainStatementId);
-
-                    /*
-                     * Procedure to return if runtime statistics is on or off
-                     */
-                    Procedure runTimeStatistics = Procedure.newBuilder().name("SYSCS_GET_RUNTIME_STATISTICS")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(runTimeStatistics);
-
-                    /*
-                     * Procedure to return if runtime statistics is on or off
-                     */
-                    Procedure statisticsTiming = Procedure.newBuilder().name("SYSCS_GET_STATISTICS_TIMING")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(statisticsTiming);
-
-                    /*
-                     * Procedure to turn on/off explain trace
-                     */
-                    Procedure setXplainTrace = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_TRACE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .integer("enable")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(setXplainTrace);
-
-                    /*
-                     * Procedure to purge explain tables
-                     */
-                    Procedure purgeXplainTrace = Procedure.newBuilder().name("SYSCS_PURGE_XPLAIN_TRACE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(purgeXplainTrace);
-
-                    /*
-                     * Procedure to set auto trace
-                     */
-                    Procedure setAutoTrace = Procedure.newBuilder().name("SYSCS_SET_AUTO_TRACE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .integer("autoTrace")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(setAutoTrace);
-
-                    /*
-                     * Procedure to get auto trace
-                     */
-                    Procedure getAutoTrace = Procedure.newBuilder().name("SYSCS_GET_AUTO_TRACE")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getAutoTrace);
 
                     /*
                      * Procedure to return timestamp generator info
