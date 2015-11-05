@@ -87,17 +87,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
 										RegionCache regionCache,
 										WriteConfiguration writeConfiguration,
 										ActionStatusReporter statusReporter,
-										BulkWritesInvoker.Factory invokerFactory){
-				this(tableName,writes,regionCache,
-								writeConfiguration,statusReporter,
-								invokerFactory,Sleeper.THREAD_SLEEPER);
-		}
-
-		BulkWriteAction(byte[] tableName,
-										BulkWrites writes,
-										RegionCache regionCache,
-										WriteConfiguration writeConfiguration,
-										ActionStatusReporter statusReporter,
 										BulkWritesInvoker.Factory invokerFactory,
 										Sleeper sleeper){
 				this.tableName = tableName;
