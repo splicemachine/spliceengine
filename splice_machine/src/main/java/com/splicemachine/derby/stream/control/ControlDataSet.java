@@ -25,7 +25,11 @@ import java.util.zip.GZIPOutputStream;
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 
 /**
- * Created by jleach on 4/13/15.
+ *
+ * Dataset for Client Side Control Processing
+ *
+ * @see com.splicemachine.derby.stream.iapi.DataSet
+ *
  */
 public class ControlDataSet<V> implements DataSet<V> {
     protected Iterable<V> iterable;
