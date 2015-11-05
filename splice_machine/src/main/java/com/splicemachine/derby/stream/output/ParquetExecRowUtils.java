@@ -2,8 +2,8 @@ package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import parquet.io.api.RecordConsumer;
-import parquet.schema.MessageType;
+import org.apache.parquet.io.api.RecordConsumer;
+import org.apache.parquet.schema.MessageType;
 
 /**
  * Created by jleach on 5/17/15.

@@ -9,7 +9,6 @@ import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -39,7 +38,6 @@ public class RowCountOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 1l;
     /* When the reduce scan is sequential this operation adds this column to the results to indicate
      * how many rows have been skipped in the current region. */
-    protected static final byte[] OFFSET_RESULTS_COL = Encoding.encode(-1000);
     private String offsetMethodName;
     private String fetchFirstMethodName;
     private SpliceMethod<DataValueDescriptor> offsetMethod;

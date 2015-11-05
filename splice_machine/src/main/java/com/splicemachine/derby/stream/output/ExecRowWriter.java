@@ -11,11 +11,11 @@ public class ExecRowWriter {
     private final RecordConsumer recordConsumer;
 
     public ExecRowWriter(RecordConsumer recordConsumer) {
-        this.recordConsumer = recordConsumer;
+       this.recordConsumer = recordConsumer;
     }
 
 
     public void write(ExecRow execRow) throws StandardException {
         ParquetExecRowUtils.writeRow(execRow,recordConsumer);
-    }
+   }
 }
