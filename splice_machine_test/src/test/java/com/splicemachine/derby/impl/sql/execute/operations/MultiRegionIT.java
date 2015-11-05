@@ -7,13 +7,9 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
-import com.splicemachine.test_dao.StatementHistory;
-import com.splicemachine.test_dao.StatementHistoryDAO;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,14 +17,9 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
-import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import static java.lang.String.format;
 import static org.junit.Assert.*;
 
@@ -76,30 +67,6 @@ public class MultiRegionIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
-    @Ignore
-    @Test
-    public void testStddevAndAutoTrace() throws Exception {
-        Connection conn = methodWatcher.createConnection();
-        StatementHistoryDAO statementHistoryDAO = new StatementHistoryDAO(conn);
-
-        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
-        conn.commit();
-
-        int numRegions = getNumOfRegions(SCHEMA_NAME, TABLE1_NAME);
-
-        Double popValue = methodWatcher.query(format("select stddev_pop(i) from %s", TABLE1_NAME));
-        assertEquals(2.8, popValue, .5);
-
-        Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE1_NAME));
-        assertEquals(2.8, sampleValue, .5);
-
-        if (numRegions > 3) {
-            StatementHistory hist1 = statementHistoryDAO.findStatement("stddev_samp", 20, TimeUnit.SECONDS);
-            StatementHistory hist2 = statementHistoryDAO.findStatement("stddev_pop", 20, TimeUnit.SECONDS);
-            assertTrue("hist1=" + hist1 + " hist2=" + hist2, hist1 != null && hist2 != null);
-        }
-    }
-
     @Test
     public void testDistinctCount() throws Exception {
         Long count = methodWatcher.query(format("select count(distinct i) from %s", TABLE1_NAME));
@@ -123,35 +90,6 @@ public class MultiRegionIT {
         ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", TABLE2_NAME));
         assertTrue(rs.next());
         assertEquals(1910, rs.getInt(1));
-    }
-
-    @Test
-    public void testAutoTraceOff() throws Exception {
-        Connection conn = methodWatcher.createConnection();
-        StatementHistoryDAO statementHistoryDAO = new StatementHistoryDAO(conn);
-
-        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
-
-        // turn OFF auto trace
-        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_AUTO_TRACE(0)");
-
-        Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE1_NAME));
-        assertEquals(2.8, sampleValue, .5);
-
-        // turn ON auto trace
-        conn.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_AUTO_TRACE(1)");
-
-        // while we are here, test SYSCS_GET_MAX_TASKS
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_AUTO_TRACE()");
-        ResultSet rs = cs.executeQuery();
-        boolean value = false;
-        while (rs.next()) {
-            value = rs.getBoolean(1);
-        }
-        Assert.assertEquals(true, value);
-
-        StatementHistory history = statementHistoryDAO.findStatement("stddev_samp", 6, TimeUnit.SECONDS);
-        assertNull("expected not to find it because auto trace was off", history);
     }
 
     private int getNumOfRegions(String schemaName, String tableName) throws Exception {

@@ -1050,32 +1050,6 @@ public class SpliceTransactionManager implements XATransactionController,
         return (conglom_id);
     }
 
-    /**
-     * Create a BackingStoreHashtable which contains all rows that qualify for
-     * the described scan.
-     **/
-    public BackingStoreHashtable createBackingStoreHashtableFromScan(
-            long conglomId, int open_mode, int lock_level, int isolation_level,
-            FormatableBitSet scanColumnList,
-            DataValueDescriptor[] startKeyValue, int startSearchOperator,
-            Qualifier qualifier[][], DataValueDescriptor[] stopKeyValue,
-            int stopSearchOperator, long max_rowcnt, int[] key_column_numbers,
-            boolean remove_duplicates, long estimated_rowcnt,
-            long max_inmemory_rowcnt, int initialCapacity, float loadFactor,
-            boolean collect_runtimestats, boolean skipNullKeyColumns,
-            boolean keepAfterCommit) throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace("createBackingStoreHashtableFromScan conglomId "
-                    + conglomId);
-        return (new BackingStoreHashTableFromScan(this, conglomId, open_mode,
-                lock_level, isolation_level, scanColumnList, startKeyValue,
-                startSearchOperator, qualifier, stopKeyValue,
-                stopSearchOperator, max_rowcnt, key_column_numbers,
-                remove_duplicates, estimated_rowcnt, max_inmemory_rowcnt,
-                initialCapacity, loadFactor, collect_runtimestats,
-                skipNullKeyColumns, keepAfterCommit));
-    }
-
     public GroupFetchScanController openGroupFetchScan(long conglomId,
                                                        boolean hold, int open_mode, int lock_level, int isolation_level,
                                                        FormatableBitSet scanColumnList,

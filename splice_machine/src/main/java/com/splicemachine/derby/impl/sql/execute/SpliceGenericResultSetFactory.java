@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import java.util.List;
-
+import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -16,14 +16,13 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
-import com.splicemachine.db.impl.sql.execute.GenericResultSetFactory;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
+public class SpliceGenericResultSetFactory implements ResultSetFactory {
     private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 
     public SpliceGenericResultSetFactory() {
@@ -1245,5 +1244,30 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         );
 
         return batchOnceOperation;
+    }
+
+    @Override
+    public ResultSet getInsertVTIResultSet(NoPutResultSet source, NoPutResultSet vtiRS, double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public ResultSet getDeleteVTIResultSet(NoPutResultSet source, double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public ResultSet getUpdateVTIResultSet(NoPutResultSet source, double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public NoPutResultSet getMaterializedResultSet(NoPutResultSet source, int resultSetNumber, double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber) {
+        throw new RuntimeException("Not Implemented");
     }
 }
