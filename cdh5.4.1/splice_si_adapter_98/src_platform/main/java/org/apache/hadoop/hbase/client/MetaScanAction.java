@@ -18,7 +18,4 @@ public class MetaScanAction {
         MetaScanner.metaScan(connection,visitor,tableName);
     }
 
-    public static void metaScan(MetaScanner.MetaScannerVisitor visitor,TableName tableName) throws IOException {
-        MetaScanner.metaScan(HConnectionManager.getConnection(SpliceConstants.config),visitor,tableName);
-    }
 }
