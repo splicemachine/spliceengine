@@ -5,7 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by jleach on 10/22/15.
+ *
+ * Accumulator for Bad Records in a Map.
+ *
+ * @see org.apache.spark.AccumulableParam
+ *
  */
 public class BadRecordsAccumulator implements AccumulableParam<List<String>,String> {
 
