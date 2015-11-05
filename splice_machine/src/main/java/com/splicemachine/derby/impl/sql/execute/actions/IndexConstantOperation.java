@@ -14,9 +14,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.impl.*;
 import org.apache.hadoop.hbase.client.Scan;
-
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -33,7 +31,6 @@ import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -41,7 +38,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -173,16 +169,11 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				 */
         //TODO -sf- replace this name with the actual SQL being issued
         Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
-        long sId = snowflake.nextUUID();
-        if (activation.isTraced()) {
-            activation.getLanguageConnectionContext().setXplainStatementId(sId);
-        }
         StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
                 ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
         OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
                 statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
         statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
-        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         boolean unique = tentativeIndexDesc.isUnique();
         boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
         long indexConglomId = tentativeIndexDesc.getConglomerateNumber();
@@ -218,15 +209,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
-        } finally {
-            if(activation.isTraced()){
-                GenericStorablePreparedStatement preparedStatement = (GenericStorablePreparedStatement) activation.getPreparedStatement();
-            }
-            try {
-                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),((SpliceTransactionManager) txnControl).getActiveStateTxn());
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
         }
     }
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{

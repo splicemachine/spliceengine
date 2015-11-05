@@ -784,7 +784,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     public TxnView getCurrentTransaction() throws StandardException {
-        if(this instanceof DMLWriteOperation || activation.isTraced()){
+        if(this instanceof DMLWriteOperation){
             return elevateTransaction();
         }else
             return getTransaction();
@@ -800,12 +800,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         TxnView currentTxn = rawTxn.getActiveStateTxn();
         if(this instanceof DMLWriteOperation)
             return ((SpliceTransaction)rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
-        else if (activation.isTraced()){
-            if(!currentTxn.allowsWrites())
-                return ((SpliceTransaction)rawTxn).elevate("xplain".getBytes());
-            else
-                return currentTxn; //no need to elevate, since we're already elevated with better information
-        }else
+        else
             throw new IllegalStateException("Programmer error: " +
                     "attempting to elevate an operation txn without specifying a destination table");
     }

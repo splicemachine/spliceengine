@@ -21,7 +21,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.common.io.Closeables;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
@@ -39,7 +38,6 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
@@ -63,7 +61,6 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
-import com.splicemachine.derby.management.StatementManager;
 import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -126,7 +123,6 @@ public class SpliceDriver {
 
     private volatile NetworkServerControl server;
     private volatile Snowflake snowflake;
-    private StatementManager statementManager;
     private Logging logging;
 
     private final ResourcePool<SpliceSequence, AbstractSequenceKey> sequences = CachedResourcePool.
@@ -201,10 +197,6 @@ public class SpliceDriver {
      */
     public SpliceMachineVersion getVersion() {
         return spliceVersion;
-    }
-
-    public StatementManager getStatementManager() {
-        return statementManager;
     }
 
     public ZkTaskMonitor getTaskMonitor() {
@@ -315,7 +307,6 @@ public class SpliceDriver {
                             return null;
                         }
 
-                        statementManager = new StatementManager();
                         logging = new LogManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
@@ -448,9 +439,6 @@ public class SpliceDriver {
     private void registerJMX() {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try {
-
-            ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManagement");
-            mbs.registerMBean(statementManager, statementInfoName);
             ObjectName loggingInfoName = new ObjectName("com.splicemachine.utils.logging:type=LogManager");
             mbs.registerMBean(logging, loggingInfoName);
 

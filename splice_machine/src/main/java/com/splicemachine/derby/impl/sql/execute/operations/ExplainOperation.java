@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -54,7 +53,6 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-        activation.setTraced(false);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
     }
