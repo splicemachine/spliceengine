@@ -85,7 +85,6 @@ public interface DerbyFactory<Transaction> {
 		ObjectName getRegionServerStatistics() throws MalformedObjectNameException;
 		ServerName getServerName(String serverName);
 		ExceptionTranslator getExceptionHandler();
-        SparkUtils getSparkUtils();
         SpliceRegionScanner getSplitRegionScanner(Scan scan, HTableInterface htable) throws IOException;
         KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
