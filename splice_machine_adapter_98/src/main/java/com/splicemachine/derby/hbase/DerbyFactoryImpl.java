@@ -48,7 +48,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
@@ -56,7 +55,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
-
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.splicemachine.constants.SpliceConstants;
@@ -88,7 +86,6 @@ import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
 import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
 import com.splicemachine.derby.utils.BaseAdminProcedures;
 import com.splicemachine.derby.utils.SpliceAdmin;
@@ -106,7 +103,6 @@ import com.splicemachine.mrio.api.core.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
-import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -549,11 +545,6 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		public ExceptionTranslator getExceptionHandler() {
 			return Hbase98ExceptionTranslator.INSTANCE;
 		}
-
-        @Override
-        public SparkUtils getSparkUtils() {
-            return new SparkUtilsImpl();
-        }
 
 		@Override
 		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTableInterface htable) throws IOException {
