@@ -8,10 +8,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Timestamp;
+import java.sql.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -52,6 +49,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 .withIndex("create index ts_low_cardinality_ix_3 on ts_low_cardinality(c1,c2)")
                 .withIndex("create index ts_low_cardinality_ix_4 on ts_low_cardinality(c1,c2,c3)")
                 .withIndex("create index ts_low_cardinality_ix_5 on ts_low_cardinality(c1,c2,c3,c4)")
+                .withIndex("create index ts_low_cardinality_ix_6 on ts_low_cardinality(c2,c1)")
                 .create();
         for (int i = 0; i < 10; i++) {
             spliceClassWatcher.executeUpdate("insert into ts_low_cardinality select * from ts_low_cardinality");
@@ -236,5 +234,33 @@ public class IndexSelectivityIT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testIndexScanSelectivity() throws Exception {
+        String query = "explain select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "ts_high_cardinality t1, ts_low_cardinality t2 --SPLICE-PROPERTIES index=%s, joinStrategy=SORTMERGE\n" +
+                "where t1.c1=t2.c1 and t2.c2='1'";
+        ResultSet rs = methodWatcher.executeQuery(String.format(query, "ts_low_cardinality_ix_3"));
+        double c1 = getIndexScanCost(rs);
+        rs = methodWatcher.executeQuery(String.format(query, "ts_low_cardinality_ix_6"));
+        double c2 = getIndexScanCost(rs);
+        Assert.assertTrue(c1>c2);
+    }
+
+    private double getIndexScanCost(ResultSet rs) throws SQLException {
+        String s=null;
+        while(rs.next()) {
+            s = rs.getString(1).trim();
+            if (s.contains("IndexScan")) break;
+        }
+        Assert.assertNotNull(s);
+        String[] indexScan = s.split(",");
+        for (String s1 : indexScan) {
+            if (s1.contains("totalCost")) {
+                String[] s2 = s1.split("=");
+                return Double.parseDouble(s2[1]);
+            }
+        }
+        return 0;
+    }
 
 }
