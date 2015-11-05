@@ -134,18 +134,16 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             badRecordsAccumulable = (Accumulable<List<String>,String>) in.readObject();
             boolean prepared = false;
             try {
-                if (ContextService.getFactory().getCurrentContextManager() == null) {
-                    impl = new SpliceTransactionResourceImpl();
-                    impl.prepareContextManager();
-                    prepared = true;
-                    impl.marshallTransaction(txn);
-                    if (isOp) {
-                        activation = soi.getActivation(impl.getLcc());
-                        context = SpliceOperationContext.newContext(activation);
-                        op.init(context);
-                    }
-                    readExternalInContext(in);
+                impl = new SpliceTransactionResourceImpl();
+                impl.prepareContextManager();
+                prepared = true;
+                impl.marshallTransaction(txn);
+                if (isOp) {
+                    activation = soi.getActivation(impl.getLcc());
+                    context = SpliceOperationContext.newContext(activation);
+                    op.init(context);
                 }
+                readExternalInContext(in);
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {

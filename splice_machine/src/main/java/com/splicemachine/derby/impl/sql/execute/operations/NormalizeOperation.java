@@ -7,6 +7,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import com.google.common.base.Strings;
+import com.splicemachine.derby.stream.function.NormalizeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -29,7 +30,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class NormalizeOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
 		private static final Logger LOG = Logger.getLogger(NormalizeOperation.class);
-		protected SpliceOperation source;
+		public SpliceOperation source;
 		private ExecRow normalizedRow;
 		private int numCols;
 		private int startCol;
@@ -139,7 +140,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				return source.isReferencingTable(tableNumber);
 		}
 
-		private ExecRow normalizeRow(ExecRow sourceRow,boolean requireNotNull) throws StandardException {
+		public ExecRow normalizeRow(ExecRow sourceRow,boolean requireNotNull) throws StandardException {
 				int colCount = resultDescription.getColumnCount();
 				for(int i=1;i<=colCount;i++){
 						DataValueDescriptor sourceCol = sourceRow.getColumn(i);
@@ -276,36 +277,10 @@ public class NormalizeOperation extends SpliceBaseOperation {
         try {
             operationContext.pushScope("Normalize");
             return
-                    sourceSet.map(new NormalizeSparkFunction(dsp.createOperationContext(this)));
+                    sourceSet.map(new NormalizeFunction(operationContext));
         } finally {
             operationContext.popScope();
         }
-    }
-
-    public static final class NormalizeSparkFunction extends SpliceFunction<NormalizeOperation, LocatedRow, LocatedRow> {
-        private static final long serialVersionUID = 7780564699906451370L;
-
-        public NormalizeSparkFunction() {
-        }
-
-        @Override
-        public LocatedRow call(LocatedRow sourceRow) throws Exception {
-
-            NormalizeOperation normalize = operationContext.getOperation();
-            normalize.source.setCurrentRow(sourceRow.getRow());
-            ExecRow normalized = null;
-            if (sourceRow != null) {
-                normalized = normalize.normalizeRow(sourceRow.getRow(), true);
-            }
-            SpliceLogUtils.trace(LOG,"normalized row %s", sourceRow);
-            getActivation().setCurrentRow(normalized, normalize.resultSetNumber);
-            return new LocatedRow(sourceRow.getRowLocation(), normalized.getClone());
-        }
-
-        public NormalizeSparkFunction(OperationContext<NormalizeOperation> operationContext) {
-            super(operationContext);
-        }
-
     }
 
     @Override
