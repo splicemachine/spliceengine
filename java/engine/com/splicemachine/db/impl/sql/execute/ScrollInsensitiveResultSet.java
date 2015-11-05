@@ -225,16 +225,9 @@ public class ScrollInsensitiveResultSet extends NoPutResultSetImpl
 		 * We need BackingStoreHashtable to actually go to disk when it doesn't fit.
 		 * This is a known limitation.
 		 */
-		ht = new BackingStoreHashtable(getTransactionController(),
-									   null,
-									   keyCols,
-									   false,
-										-1, // don't trust optimizer row count
-									   HashScanResultSet.DEFAULT_MAX_CAPACITY,
-									   HashScanResultSet.DEFAULT_INITIAL_CAPACITY,
-									   HashScanResultSet.DEFAULT_MAX_CAPACITY,
-									   false,
-                                       keepAfterCommit);
+
+        if (1!=2)
+            throw new RuntimeException("foo");
 
 		// When re-using language result sets (DERBY-827) we need to
 		// reset some member variables to the value they would have
