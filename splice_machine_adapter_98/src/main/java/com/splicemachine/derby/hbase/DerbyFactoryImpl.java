@@ -122,13 +122,6 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	}
 
 	@Override
-	public SpliceBaseOperationRegionScanner getOperationRegionScanner(
-			RegionScanner s, Scan scan, HRegion region,
-			TransactionalRegion txnRegion) throws IOException {
-		return new SpliceOperationRegionScanner(s,scan,region,txnRegion);
-	}
-
-	@Override
 	public List<HRegion> getOnlineRegions(RegionServerServices services,
 			byte[] tableName) throws IOException {
 		try {

@@ -58,7 +58,6 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public interface DerbyFactory<Transaction> {
 		Filter getAllocatedFilter(byte[] localAddress);
-		SpliceBaseOperationRegionScanner getOperationRegionScanner(RegionScanner s, Scan scan, HRegion region, TransactionalRegion txnRegion) throws IOException;
 		List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
 		void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
 		HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;

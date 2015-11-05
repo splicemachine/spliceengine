@@ -3,14 +3,15 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.spark.Partitioner;
 import org.apache.spark.util.Utils;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 /**
- * Created by jleach on 4/27/15.
+ *
+ * Partitioner based on partial keys in the PairDataSet
+ *
  */
 public class PartialKeyPartitioner extends Partitioner implements Externalizable {
     protected int[] keyColumns;
