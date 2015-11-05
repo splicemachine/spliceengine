@@ -23,7 +23,6 @@ package com.splicemachine.db.impl.sql.execute;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
@@ -41,9 +40,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.iapi.sql.execute.ResultSetStatisticsFactory;
-import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
-import com.splicemachine.db.iapi.sql.execute.xplain.XPLAINVisitor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
@@ -349,46 +345,6 @@ abstract class NoRowsResultSetImpl implements ResultSet
 	{ 
 		if (!isOpen)
 			return;
-
-		{
-			/*
-			** If run time statistics tracing is turned on, then now is the
-			** time to dump out the information.
-			** NOTE - We make a special exception for commit.  If autocommit
-			** is on, then the run time statistics from the autocommit is the
-			** only one that the user would ever see.  So, we don't overwrite
-			** the run time statistics object for a commit.
-            ** DERBY-2353: Also make an exception when the activation is
-            ** closed. If the activation is closed, the run time statistics
-            ** object is null and there's nothing to print. This may happen
-            ** if a top-level result set closes the activation and close() is
-            ** subsequently called on the child result sets. The information
-            ** about the children is also printed by the parent, so it's safe
-            ** to skip printing it.
-			*/
-			if (lcc.getRunTimeStatisticsMode() &&
-                !doesCommit() && !activation.isClosed() &&
-                !lcc.getStatementContext().getStatementWasInvalidated())
-			{
-				endExecutionTime = getCurrentTimeMillis();
-
-				ResultSetStatisticsFactory rssf =
-                    lcc.getLanguageConnectionFactory().
-                         getExecutionFactory().getResultSetStatisticsFactory();
-
-                // get the RuntimeStatisticsImpl object which is the wrapper for all 
-                // statistics
-                RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
-
-                // save RTS object in lcc
-                lcc.setRunTimeStatisticsObject(rsImpl);
-                
-                // explain gathered statistics
-                XPLAINVisitor visitor =  lcc.getLanguageConnectionFactory().getExecutionFactory().getXPLAINFactory().getXPLAINVisitor();
-                visitor.doXPLAIN(rsImpl,activation);
-
-			}
-		}
 
 		/* This is the top ResultSet, 
 		 * close all of the open subqueries.

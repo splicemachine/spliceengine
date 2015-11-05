@@ -228,8 +228,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	// constructors
 	//
 
-    protected boolean isTraced;
-
     public boolean ignoreSequence() {
         return ignoreSequence;
     }
@@ -1907,15 +1905,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 							 LanguageConnectionContext lcc)
 			throws StandardException {
 	}
-
-    public boolean isTraced() {
-        return isTraced;
-    }
-
-    public void setTraced(boolean traced) {
-        isTraced = traced;
-    }
-
     public void setDataSetProcessorType(DataSetProcessorType dataSetProcessorType) {
         this.dataSetProcessorType = dataSetProcessorType;
     }

@@ -23,40 +23,30 @@ package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.sql.Activation;
-
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
-import com.splicemachine.db.iapi.sql.execute.ResultSetStatisticsFactory;
-import com.splicemachine.db.iapi.sql.execute.xplain.XPLAINFactoryIF;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
-
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-
 import java.util.Properties;
 import java.util.Vector;
 
@@ -66,11 +56,6 @@ import java.util.Vector;
  * actions during the session.
  */
 public abstract class GenericExecutionFactory implements ModuleControl, ModuleSupportable, ExecutionFactory {
-
-    /**
-     * Statistics factory for this factory.
-     */
-    private ResultSetStatisticsFactory rssFactory;
 
     //
     // ModuleControl interface
@@ -122,19 +107,6 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
      * @return the factory for constant actions.
      */
     public abstract GenericConstantActionFactory getConstantActionFactory();
-
-    /**
-     * Get the ResultSetStatisticsFactory from this ExecutionFactory.
-     *
-     * @return The result set statistics factory associated with this ExecutionFactory
-     */
-    @Override
-    public ResultSetStatisticsFactory getResultSetStatisticsFactory() throws StandardException {
-        if (rssFactory == null) {
-            rssFactory = (ResultSetStatisticsFactory) Monitor.bootServiceModule(false, this, ResultSetStatisticsFactory.MODULE, null);
-        }
-        return rssFactory;
-    }
 
     /**
      * We want a dependency context so that we can push it onto
@@ -323,20 +295,5 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
     // fields
     //
     private ResultSetFactory rsFactory;
-    private XPLAINFactoryIF xplainFactory;
-
-
-    /**
-     * Get the XPLAINFactory from this ExecutionContext.
-     *
-     * @return The XPLAINFactory associated with this ExecutionContext
-     */
-    @Override
-    public XPLAINFactoryIF getXPLAINFactory() throws StandardException {
-        if (xplainFactory == null) {
-            xplainFactory = (XPLAINFactoryIF) Monitor.bootServiceModule(false, this, XPLAINFactoryIF.MODULE, null);
-        }
-        return xplainFactory;
-    }
 
 }

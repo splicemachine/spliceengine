@@ -31,10 +31,6 @@ import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.ResultSetStatisticsFactory;
-import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
-import com.splicemachine.db.iapi.sql.execute.xplain.XPLAINVisitor;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
@@ -154,29 +150,6 @@ extends BasicNoPutResultSetImpl
 			** time to dump out the information.
 			*/
 			LanguageConnectionContext lcc = getLanguageConnectionContext();
-			
-                // only if statistics is switched on, collect & derive them
-                if (lcc.getRunTimeStatisticsMode() &&
-                    !lcc.getStatementContext().getStatementWasInvalidated())
-				{   
-                    endExecutionTime = getCurrentTimeMillis();
-
-                    // get the ResultSetStatisticsFactory, which gathers RuntimeStatistics
-                    ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
-                    ResultSetStatisticsFactory rssf;
-                    rssf = ef.getResultSetStatisticsFactory();
-  
-                    // get the RuntimeStatisticsImpl object which is the wrapper for all 
-                    // gathered statistics about all the different resultsets
-                    RunTimeStatistics rsImpl = rssf.getRunTimeStatistics(activation, this, subqueryTrackingArray); 
-  
-                    // save the RTW (wrapper)object in the lcc
-                    lcc.setRunTimeStatisticsObject(rsImpl);
-                    
-                    // now explain gathered statistics, using an appropriate visitor
-                    XPLAINVisitor visitor = ef.getXPLAINFactory().getXPLAINVisitor();
-                    visitor.doXPLAIN(rsImpl,activation);
-  				}
 
 			int staLength = (subqueryTrackingArray == null) ? 0 :
 								subqueryTrackingArray.length;

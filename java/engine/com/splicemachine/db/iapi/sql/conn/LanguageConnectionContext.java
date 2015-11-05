@@ -32,7 +32,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -42,13 +41,10 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
-
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
-import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
-
 import java.util.Map;
 
 /**
@@ -812,17 +808,6 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	public boolean getStatisticsTiming();
 
-	/** 
-	 * Set the RUNTIMESTATISTICS object. 
-	 */
-	public void setRunTimeStatisticsObject(RunTimeStatistics runTimeStatisticsObject);
-
-	/** 
-	 * Get the RUNTIMESTATISTICS object. 
-	 */
-	public RunTimeStatistics getRunTimeStatisticsObject();
-
-
     /**
 	  *	Reports how many statement levels deep we are.
 	  *
@@ -1260,42 +1245,6 @@ public interface LanguageConnectionContext extends Context {
 	 */
     public Map getPrintedObjectsMap();
 	
-    /**
-     * sets the XplainOnlyMode.
-     *
-     * If a connection is in XplainOnlyMode, then the statements are not
-     * actually being executed, but are just being compiled and the
-     * runtime statistics collected into the XPLAIN tables. This can be
-     * set on and off by calling SYSCS_SET_XPLAIN_MODE.
-     *
-     * @param onOrOff true if statements are to be XPLAINed only.
-     */
-    public void setXplainOnlyMode(boolean onOrOff);
-
-    /**
-     * gets the current set XplainOnlyMode
-     */
-    public boolean getXplainOnlyMode();
-
-    /**
-     * sets the XplainSchema
-     * @param schema the schema to use for storing XPLAIN'd statements
-     * null means don't store the xplain information
-     * non-null means persistent style, use the indicated schema
-     */
-    public void setXplainSchema(String schema);
-
-    /**
-     * gets the current set XplainSchema
-     * @return the Schema of Xplain, may be null.
-     */
-    public String getXplainSchema();
-    public void setXplainStatement(String key, String stmt);
-    public String getXplainStatement(String key);
-    public void setXplainStatementId(long id);
-    public long getXplainStatementId();
-    public void setAutoTrace(boolean onOff);
-    public boolean isAutoTraced();
     /**
      * Set a Visitor which walks the AST at various stages. This is useful
      * for poking user-written inspectors into the parse, bind, and optimize phases.

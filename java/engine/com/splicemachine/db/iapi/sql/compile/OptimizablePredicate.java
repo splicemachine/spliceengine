@@ -163,7 +163,5 @@ public interface OptimizablePredicate
 	 */
 	int getIndexPosition();
 
-    String getText();
-
     boolean isRowId();
 }

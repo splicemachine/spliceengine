@@ -636,7 +636,4 @@ public interface Activation extends Dependent
 	 */
 	public Activation getParentActivation();
 
-    public boolean isTraced();
-
-    public void setTraced(boolean traced);
 }

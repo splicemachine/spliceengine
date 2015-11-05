@@ -2539,7 +2539,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         int numArgs=9;
         /* Qualifier's string representation */
-        consMB.push(pred.getText());
+        consMB.push("TODOJL");
 
         consMB.callMethod(VMOpcode.INVOKEINTERFACE,ExecutionFactory.MODULE,"getQualifier",ClassName.Qualifier,numArgs);
 

@@ -22,19 +22,15 @@
 package com.splicemachine.db.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.sql.Activation;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.execute.xplain.XPLAINFactoryIF;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
@@ -72,29 +68,6 @@ public interface ExecutionFactory {
 		@return the result set factory for this database.
 	 */
 	ResultSetFactory getResultSetFactory() throws StandardException;
-    
-    /**
-     * Get the ResultSetStatisticsFactory from this ExecutionFactory.
-     *
-     * @return  The result set statistics factory associated with this
-     *      ExecutionFactory
-     *
-     * @exception StandardException     Thrown on error
-     */
-    public ResultSetStatisticsFactory getResultSetStatisticsFactory()
-        throws StandardException;
-
-	/**
-	 * Get the XPLAINFactory from this ExecutionFactory.
-	 *
-	 * @return  The xplain factory associated with this
-	 *      ExecutionContext
-	 *
-	 * @exception StandardException     Thrown on error
-	 */
-	XPLAINFactoryIF getXPLAINFactory()
-                                throws StandardException;
-	
 	
   	/**
   	 * Get the ExecutionFactory from this ExecutionContext.

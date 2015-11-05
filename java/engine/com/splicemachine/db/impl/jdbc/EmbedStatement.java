@@ -22,9 +22,7 @@
 package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
@@ -32,14 +30,11 @@ import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.EngineStatement;
-
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Vector;
-
 import com.splicemachine.db.iapi.util.InterruptStatus;
-import com.splicemachine.db.impl.sql.compile.XPlainUtils;
 /*
  We would import these, but have name-overlap
 import java.sql.Statement;
@@ -615,7 +610,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
                             preparedStatement.getActivation(lcc, resultSetType ==
                                     java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE);
                     checkRequiresCallableStatement(activation);
-                    XPlainUtils.setXPlainTrace(lcc, preparedStatement, activation);
                     InterruptStatus.restoreIntrFlagIfSeen(lcc);
                 } catch (Throwable t) {
                     throw handleException(t);

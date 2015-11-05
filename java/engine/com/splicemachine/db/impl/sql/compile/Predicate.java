@@ -32,7 +32,6 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-
 import java.util.BitSet;
 import java.util.Hashtable;
 
@@ -1229,11 +1228,6 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return null;
     }
 
-    @Override
-    public String getText(){
-        ValueNode operand=getAndNode().getLeftOperand();
-        return XPlainUtils.opToString(operand);
-    }
     /**
          * Returns true if the predicate is a multi-probe qualifier.
          *

@@ -38,7 +38,6 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
-
 import java.util.*;
 
 /**
@@ -135,7 +134,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     protected int nextSavepointId;
 
-    private RunTimeStatistics runTimeStatisticsObject;
     private StringBuffer sb;
 
     private Database db;
@@ -2681,16 +2679,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return statisticsTiming;
     }
 
-    @Override
-    public void setRunTimeStatisticsObject(RunTimeStatistics runTimeStatisticsObject){
-        this.runTimeStatisticsObject=runTimeStatisticsObject;
-    }
-
-    @Override
-    public RunTimeStatistics getRunTimeStatisticsObject(){
-        return runTimeStatisticsObject;
-    }
-
     /**
      * Reports how many statement levels deep we are.
      *
@@ -3531,56 +3519,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             printedObjectsMap=new IdentityHashMap();
         }
         return printedObjectsMap;
-    }
-
-    @Override
-    public boolean getXplainOnlyMode(){
-        return xplainOnlyMode;
-    }
-
-    @Override
-    public void setXplainOnlyMode(boolean onOrOff){
-        xplainOnlyMode=onOrOff;
-    }
-
-    @Override
-    public String getXplainSchema(){
-        return xplain_schema;
-    }
-
-    @Override
-    public void setXplainSchema(String s){
-        xplain_schema=s;
-    }
-
-    @Override
-    public void setXplainStatement(String key,String stmt){
-        xplain_statements.put(key,stmt);
-    }
-
-    @Override
-    public String getXplainStatement(String key){
-        return xplain_statements.get(key);
-    }
-
-    @Override
-    public long getXplainStatementId(){
-        return xplainStatementId;
-    }
-
-    @Override
-    public void setXplainStatementId(long id){
-        xplainStatementId=id;
-    }
-
-    @Override
-    public void setAutoTrace(boolean onOff){
-        this.isAutoTraced=onOff;
-    }
-
-    @Override
-    public boolean isAutoTraced(){
-        return this.isAutoTraced;
     }
 
     @Override

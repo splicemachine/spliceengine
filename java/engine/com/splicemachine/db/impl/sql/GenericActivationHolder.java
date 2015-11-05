@@ -834,10 +834,4 @@ final public class GenericActivationHolder implements Activation
 	public int getMaxDynamicResults() {
 		return ac.getMaxDynamicResults();
 	}
-    public boolean isTraced() {
-        return ac.isTraced();
-    }
-    public void setTraced(boolean traced) {
-        ac.setTraced(traced);
-    }
 }

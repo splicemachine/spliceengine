@@ -30,22 +30,18 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.CacheManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.load.Export;
 import com.splicemachine.db.impl.load.Import;
-import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
-
 import java.security.AccessController;
 import java.security.Policy;
 import java.security.PrivilegedAction;
@@ -1220,20 +1216,6 @@ public class SystemProcedures  {
 		conn.close();
     }
 
-    public static String SYSCS_GET_RUNTIMESTATISTICS()
-		throws SQLException
-    {
-
-		Object rts = ConnectionUtil.getCurrentLCC().getRunTimeStatisticsObject();
-
-		if (rts == null)
-			return null;
-
-		return rts.toString();
-
-    }
-
-
 	/*
 	** SQLJ Procedures.
 	*/
@@ -2151,69 +2133,6 @@ public class SystemProcedures  {
            statementCache.ageOut();
     }
   
-	 /**
-     * this procedure switches between the different xplain modes 
-     * @param mode either 0 for explain only, or 1 for explain & execute (default)
-     * @throws SQLException
-     */
-    public static void SYSCS_SET_XPLAIN_MODE(int mode)
-                throws SQLException, StandardException
-            {
-		ConnectionUtil.getCurrentLCC().setXplainOnlyMode(mode != 0 ? true : false);
-            }
-    /**
-     * This procedure returns the current status of the xplain mode.
-     *
-     * If the XPLAIN mode is non-zero, meaning that it is ON, then statements
-     * are being XPLAIN'd only, not executed.
-     *
-     * @return 0 if XPLAIN mode is off, non-zero if on.
-     * @throws SQLException
-     */
-    public static int SYSCS_GET_XPLAIN_MODE()
-                throws SQLException, StandardException
-           {
-                return ConnectionUtil.getCurrentLCC().getXplainOnlyMode()?1:0;
-           }
-    
-    /**
-     * This procedure sets the current xplain schema.
-     * If the schema is not set, runtime statistics are captured as a
-     * textual stream printout. If it is set, statisitcs information is
-     * stored in that schema in user tables.
-     * @param schemaName May be an empty string.
-     * @throws SQLException
-     */
-    public static void SYSCS_SET_XPLAIN_SCHEMA(String schemaName)
-                throws SQLException, StandardException
-    {
-        LanguageConnectionContext lcc       = ConnectionUtil.getCurrentLCC();
-        TransactionController     tc        = lcc.getTransactionExecute();
-
-        if (schemaName == null || schemaName.trim().length() == 0)
-        {
-            lcc.setXplainSchema(null);
-            return;
-        }
-
-        boolean statsSave = lcc.getRunTimeStatisticsMode();
-        lcc.setRunTimeStatisticsMode(false);
-        createXplainSchema(schemaName);
-        createXplainTable(lcc, schemaName,
-                new XPLAINStatementDescriptor());
-        createXplainTable(lcc, schemaName,
-                new XPLAINStatementTimingsDescriptor());
-        createXplainTable(lcc, schemaName,
-                new XPLAINResultSetDescriptor());
-        createXplainTable(lcc, schemaName,
-                new XPLAINResultSetTimingsDescriptor());
-        createXplainTable(lcc, schemaName,
-                new XPLAINScanPropsDescriptor());
-        createXplainTable(lcc, schemaName,
-                new XPLAINSortPropsDescriptor());
-        lcc.setRunTimeStatisticsMode(statsSave);
-        lcc.setXplainSchema(schemaName);
-    }
     private static boolean hasSchema(Connection conn, String schemaName)
         throws SQLException
     {
@@ -2246,45 +2165,6 @@ public class SystemProcedures  {
             s.close();
         }
         conn.close();
-    }
-    // Create the XPLAIN table if it doesn't already exist. Also, make a first
-    // order check that we'll be able to insert rows into the table, by
-    // preparing the INSERT statement for the table. The actual INSERT
-    // statment is saved, as simple string text, in the LCC, to be executed
-    // later when the runtime statistics are being collected.
-    //
-    private static void createXplainTable(
-            LanguageConnectionContext lcc,
-            String schemaName,
-            XPLAINTableDescriptor t)
-        throws SQLException
-    {
-        String []ddl = t.getTableDDL(schemaName);
-        Connection conn = getDefaultConn();
-        if (!hasTable(conn, schemaName, t.getCatalogName()))
-        {
-            Statement s = conn.createStatement();
-            for (int i = 0; i < ddl.length; i++)
-                s.executeUpdate(ddl[i]);
-            s.close();
-        }
-        String ins = t.getTableInsert();
-        conn.prepareStatement(ins).close();
-        conn.close();
-        lcc.setXplainStatement(t.getCatalogName(), ins);
-    }
-    /**
-     * This procedure returns the current set XPLAIN_SCHEMA
-     * @return schema name, may be blank if no schema currently set.
-     * @throws SQLException
-     */
-    public static String SYSCS_GET_XPLAIN_SCHEMA()
-                throws SQLException, StandardException
-    {
-        String sd = ConnectionUtil.getCurrentLCC().getXplainSchema();
-        if (sd == null)
-            return "";
-        return sd;
     }
 
     /**

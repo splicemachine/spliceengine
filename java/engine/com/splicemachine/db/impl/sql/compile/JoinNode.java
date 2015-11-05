@@ -1816,7 +1816,7 @@ public class JoinNode extends TableOperatorNode{
 
             // Generate a method that returns the text format of a join predicate
             MethodBuilder userExprToStringFun=acb.newUserExprToStringFun();
-            userExprToStringFun.push(XPlainUtils.opToString(joinClause));
+            userExprToStringFun.push("TODOJL");
             userExprToStringFun.methodReturn();
             userExprToStringFun.complete();
 
