@@ -380,8 +380,8 @@ public class BulkWriteAction implements Callable<WriteStats> {
 				return new RetriesExhaustedWithDetailsException(Lists.newArrayList(errors),Collections.<Row>emptyList(),Collections.<String>emptyList());
 		}
 		private void addToRetryCallBuffer(Collection<KVPair> retryBuffer, TxnView txn, boolean refreshCache) throws Exception {
-				if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "[%d] addToRetryCallBuffer %d rows",id,retryBuffer==null?0:retryBuffer.size());
+				if (RETRY_LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(RETRY_LOG, "[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer==null?0:retryBuffer.size(),refreshCache);
 				if (retryPipingCallBuffer == null)
 						retryPipingCallBuffer = new PipingCallBuffer(tableName,txn,null,regionCache,PipelineConstants.noOpFlushHook,writeConfiguration,null, false);
 				if (refreshCache) {
