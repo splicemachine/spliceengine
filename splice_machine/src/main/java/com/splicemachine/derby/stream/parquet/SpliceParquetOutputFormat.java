@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.output;
+package com.splicemachine.derby.stream.parquet;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.parquet.hadoop.ParquetOutputFormat;
