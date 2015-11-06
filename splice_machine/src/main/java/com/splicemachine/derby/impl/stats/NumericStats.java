@@ -165,7 +165,7 @@ public class NumericStats extends BaseDvdStatistics{
             dataInput.writeBoolean(item!=null);
             if(item!=null){
                 byte[] dataEncoding=Encoding.encode(item);
-                dataInput.write(dataEncoding.length);
+                dataInput.writeInt(dataEncoding.length);
                 dataInput.write(dataEncoding);
             }
         }
