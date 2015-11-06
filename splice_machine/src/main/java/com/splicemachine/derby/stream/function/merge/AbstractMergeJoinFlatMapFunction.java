@@ -1,7 +1,7 @@
 package com.splicemachine.derby.stream.function.merge;
 
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
+import org.sparkproject.guava.collect.FluentIterable;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
