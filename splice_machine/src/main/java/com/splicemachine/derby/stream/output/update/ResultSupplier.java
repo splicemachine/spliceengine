@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary.update;
+package com.splicemachine.derby.stream.output.update;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;

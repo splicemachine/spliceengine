@@ -28,7 +28,7 @@ import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
-import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import org.apache.hadoop.hbase.HRegionInfo;

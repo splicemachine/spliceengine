@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary.update;
+package com.splicemachine.derby.stream.output.update;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -10,7 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
+import com.splicemachine.derby.stream.output.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;

@@ -7,7 +7,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 /**
- * Created by jleach on 5/12/15.
+ *
+ * Utils for logging a locatedRow
+ *
  */
 public class StreamLogUtils {
     private static Logger LOG = Logger.getLogger(StreamLogUtils.class);

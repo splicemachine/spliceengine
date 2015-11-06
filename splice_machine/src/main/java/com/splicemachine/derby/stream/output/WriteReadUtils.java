@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary;
+package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;

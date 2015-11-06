@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary.delete;
+package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -6,7 +6,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
+import com.splicemachine.derby.stream.output.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;

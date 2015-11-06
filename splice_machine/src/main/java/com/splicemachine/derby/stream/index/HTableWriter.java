@@ -1,7 +1,7 @@
 package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
+import com.splicemachine.derby.stream.output.AbstractTableWriter;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.exception.Exceptions;

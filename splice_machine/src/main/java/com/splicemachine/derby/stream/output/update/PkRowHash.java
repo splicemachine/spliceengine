@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary.update;
+package com.splicemachine.derby.stream.output.update;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;

@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary.delete;
+package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.OperationContext;
