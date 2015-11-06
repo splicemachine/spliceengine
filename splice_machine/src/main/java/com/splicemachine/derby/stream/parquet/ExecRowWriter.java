@@ -1,7 +1,8 @@
-package com.splicemachine.derby.stream.output;
+package com.splicemachine.derby.stream.parquet;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.parquet.ParquetExecRowUtils;
 import org.apache.parquet.io.api.RecordConsumer;
 
 /**
@@ -16,6 +17,6 @@ public class ExecRowWriter {
 
 
     public void write(ExecRow execRow) throws StandardException {
-        ParquetExecRowUtils.writeRow(execRow,recordConsumer);
+        ParquetExecRowUtils.writeRow(execRow, recordConsumer);
    }
 }

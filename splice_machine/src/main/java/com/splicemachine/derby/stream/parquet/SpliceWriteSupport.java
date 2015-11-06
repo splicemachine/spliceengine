@@ -1,6 +1,7 @@
-package com.splicemachine.derby.stream.output;
+package com.splicemachine.derby.stream.parquet;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.parquet.ExecRowWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.api.WriteSupport;
 import org.apache.parquet.io.api.RecordConsumer;
