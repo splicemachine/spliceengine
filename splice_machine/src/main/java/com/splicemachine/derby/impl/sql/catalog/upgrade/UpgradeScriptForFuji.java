@@ -1,11 +1,9 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.sql.catalog.SystemProcedureGenerator;
 import org.apache.log4j.Logger;
 
 /**
@@ -20,8 +18,6 @@ public class UpgradeScriptForFuji extends UpgradeScriptBase {
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        if (LOG.isInfoEnabled()) LOG.info("Creating 1.0.0 system tables");
-        sdd.createXplainTables(tc);
     }
 
     @Override
