@@ -76,10 +76,6 @@ public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,Splic
         return (K) r;
     }
 
-    public void add (DataValueDescriptor addend) throws StandardException{
-        variance = addend.getDouble();
-    }
-
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(count);

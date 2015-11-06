@@ -35,13 +35,6 @@ public class SpliceStddevSamp<K extends Double> extends SpliceUDAVariance<K>
     }
 
     @Override
-    public void add (DataValueDescriptor addend) throws StandardException{
-        if (!addend.isNull()){
-            result = addend.getDouble();
-        }
-    }
-
-    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeBoolean(result != null);

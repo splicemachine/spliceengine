@@ -146,6 +146,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
                         UDTInputStream inputStream = new UDTInputStream(in, cf);
                         Object o = inputStream.readObject();
                         rowTemplate[i].setValue(o);
+                        inputStream.close();
                     }
                 }
             }

@@ -464,6 +464,7 @@ public class ActivationSerializer {
                     ByteArrayInputStream input = new ByteArrayInputStream(bytes);
                     UDTInputStream inputStream = new UDTInputStream(input, classFactory);
                     dvd = (DataValueDescriptor)inputStream.readObject();
+                    inputStream.close();
                 }
 
             } else {

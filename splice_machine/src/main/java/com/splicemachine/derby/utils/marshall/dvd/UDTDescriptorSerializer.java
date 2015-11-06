@@ -22,8 +22,7 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
 
     public static final DescriptorSerializer INSTANCE = new UDTDescriptorSerializer();
 
-    private ByteArrayOutputStream outputBuffer;
-    private ObjectOutputStream objectOutputStream;
+
     private ClassFactory cf;
 
     public static final Factory INSTANCE_FACTORY = new Factory() {
@@ -59,10 +58,11 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
 
     @Override
     public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-        initializeForWrite();
         Object o = dvd.getObject();
 
         try {
+            ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
             objectOutputStream.writeObject(o);
             objectOutputStream.flush();
             fieldEncoder.encodeNextUnsorted(outputBuffer.toByteArray());
@@ -75,9 +75,10 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
 
     @Override
     public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-        initializeForWrite();
         Object o = dvd.getObject();
         try {
+            ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
             objectOutputStream.writeObject(o);
             objectOutputStream.flush();
             byte[] bytes = Encoding.encodeBytesUnsorted(outputBuffer.toByteArray());
@@ -97,6 +98,7 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
             UDTInputStream inputStream = new UDTInputStream(input, cf);
             Object o = inputStream.readObject();
             destDvd.setValue(o);
+            inputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
             throw StandardException.newException(e.getLocalizedMessage());
@@ -112,6 +114,7 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
             UDTInputStream inputStream = new UDTInputStream(input, cf);
             Object o = inputStream.readObject();
             dvd.setValue(o);
+            inputStream.close();
         } catch (Exception e) {
             throw StandardException.newException(e.getLocalizedMessage());
         }
@@ -123,17 +126,6 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
 
     @Override
     public void close() throws IOException {
-    }
-
-
-
-    private void initializeForWrite() throws StandardException {
-        try {
-            outputBuffer = new ByteArrayOutputStream();
-            objectOutputStream = new ObjectOutputStream(outputBuffer);
-        }catch (IOException e) {
-            throw StandardException.newException(e.getLocalizedMessage());
-        }
     }
 
     private void initializeForRead() throws StandardException {
