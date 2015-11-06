@@ -6,10 +6,7 @@ import com.splicemachine.test.FinalTest;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.experimental.categories.Category;
@@ -30,6 +27,7 @@ public class VerifyNoActiveOperationsFINALIT {
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
+    @Ignore
     public void testVerifyNoActiveJobs() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_JOB_IDS()");
         ResultSet rs = cs.executeQuery();
