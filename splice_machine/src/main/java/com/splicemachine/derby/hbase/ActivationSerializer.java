@@ -1,9 +1,6 @@
 package com.splicemachine.derby.hbase;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.shared.common.udt.UDTBase;
@@ -37,6 +34,10 @@ public class ActivationSerializer {
     private static final Logger LOG = Logger.getLogger(ActivationSerializer.class);
 
     public static void write(Activation source,ObjectOutput out) throws IOException {
+        if (classFactory == null) {
+            LanguageConnectionContext lcc = source.getLanguageConnectionContext();
+            classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
+        }
         Visitor visitor = new Visitor(source);
         try {
             visitor.visitAll();
@@ -48,6 +49,10 @@ public class ActivationSerializer {
 
     public static Activation readInto(ObjectInput in, Activation destination) throws IOException, StandardException {
         try {
+            if (classFactory == null) {
+                LanguageConnectionContext lcc = destination.getLanguageConnectionContext();
+                classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
+            }
             return new Visitor(destination).read(in);
         } catch (IllegalAccessException e) {
             throw new IOException(e);
@@ -60,7 +65,7 @@ public class ActivationSerializer {
 
     private static final List<FieldStorageFactory> factories;
     private static final ArrayFactory arrayFactory;
-    private static final ClassFactory classFactory;
+    private static ClassFactory classFactory;
 
     static{
         factories = Lists.newArrayList();
@@ -74,10 +79,6 @@ public class ActivationSerializer {
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
-        LanguageConnectionContext lcc = (LanguageConnectionContext)
-                ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-        classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
-
     }
 
     private static class Visitor{

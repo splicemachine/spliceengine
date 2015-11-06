@@ -100,4 +100,12 @@ public class UDTIT extends SpliceUnitTest {
         Assert.assertEquals(12, price.amount, 0.01);
         Assert.assertTrue(price.currencyCode.compareTo("USD") == 0);
     }
+
+    @Test
+    public void TestSelectStatistics() throws Exception {
+        methodWatcher.execute("analyze schema " + CLASS_NAME);
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syscolumnstatistics");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.getInt(1)>0);
+    }
 }
