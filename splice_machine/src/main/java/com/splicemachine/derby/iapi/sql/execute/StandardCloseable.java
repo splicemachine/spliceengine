@@ -1,7 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
-
 import java.io.IOException;
 
 /**
