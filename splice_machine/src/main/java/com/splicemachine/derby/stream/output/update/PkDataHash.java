@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream.temporary.update;
+package com.splicemachine.derby.stream.output.update;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.db.iapi.error.StandardException;

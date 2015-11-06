@@ -5,7 +5,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;

@@ -1,11 +1,11 @@
-package com.splicemachine.derby.stream.temporary.update;
+package com.splicemachine.derby.stream.output.update;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import org.apache.commons.lang.SerializationUtils;

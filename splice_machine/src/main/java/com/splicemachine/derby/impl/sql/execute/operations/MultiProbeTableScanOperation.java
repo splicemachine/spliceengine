@@ -13,7 +13,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.Scan;

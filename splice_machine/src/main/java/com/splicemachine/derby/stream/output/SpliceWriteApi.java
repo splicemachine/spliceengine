@@ -1,8 +1,8 @@
-package com.splicemachine.derby.stream.temporary;
+package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
+import com.splicemachine.derby.stream.output.insert.InsertTableWriter;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 

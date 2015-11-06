@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -15,9 +14,9 @@ import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.temporary.WriteReadUtils;
-import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
-import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.derby.stream.output.insert.InsertTableWriter;
+import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
