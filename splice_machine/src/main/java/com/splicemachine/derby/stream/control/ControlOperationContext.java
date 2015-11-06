@@ -40,7 +40,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         private boolean permissive;
         private boolean failed;
         private int numberBadRecords = 0;
-
+        private byte[] operationUUID;
 
 
     public ControlOperationContext() {
@@ -58,6 +58,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             rowsFiltered=0;
             rowsWritten = 0;
             badRecords = new ArrayList<String>();
+            operationUUID = spliceOperation.getUniqueSequenceID();
         }
 
         public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
@@ -194,6 +195,11 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public List<String> getBadRecords() {
         return badRecords;
+    }
+
+    @Override
+    public byte[] getOperationUUID() {
+        return operationUUID;
     }
 
     @Override

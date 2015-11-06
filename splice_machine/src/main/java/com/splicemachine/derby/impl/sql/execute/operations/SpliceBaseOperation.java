@@ -307,6 +307,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				this.activation = context.getActivation();
 				this.operationInformation.initialize(context);
 				this.resultSetNumber = operationInformation.getResultSetNumber();
+				this.uniqueSequenceID = operationInformation.getUUIDGenerator().nextBytes();
 				sequence = new DataValueDescriptor[1];
 				sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		}

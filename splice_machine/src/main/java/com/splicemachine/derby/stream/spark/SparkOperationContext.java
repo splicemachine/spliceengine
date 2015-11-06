@@ -31,7 +31,8 @@ import java.util.List;
  */
 public class SparkOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
         protected static Logger LOG = Logger.getLogger(SparkOperationContext.class);
-        public SpliceObserverInstructions soi;
+
+    public SpliceObserverInstructions soi;
         public SpliceTransactionResourceImpl impl;
         public Activation activation;
         public SpliceOperationContext context;
@@ -48,6 +49,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public boolean failed;
         public int numberBadRecords = 0;
         private int failBadRecordCount = -1;
+        private byte[] operationUUID;
 
         public SparkOperationContext() {
 
@@ -61,7 +63,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             } catch (StandardException se) {
                 throw new RuntimeException(se);
             }
-            String baseName = op.getName() + " (" + op.resultSetNumber() + ")";
+            String baseName = "(" + op.resultSetNumber() + ") " + op.getName();
             this.rowsRead = SpliceSpark.getContext().accumulator(0, baseName + " rows read");
             this.rowsFiltered = SpliceSpark.getContext().accumulator(0, baseName + " rows filtered");
             this.rowsWritten = SpliceSpark.getContext().accumulator(0, baseName + " rows written");
@@ -69,6 +71,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             this.rowsJoinedRight = SpliceSpark.getContext().accumulator(0, baseName + " rows joined right");
             this.rowsProduced= SpliceSpark.getContext().accumulator(0, baseName + " rows produced");
             this.badRecordsAccumulable = SpliceSpark.getContext().accumulable(new ArrayList<String>(), baseName+" BadRecords",new BadRecordsAccumulator());
+            this.operationUUID = spliceOperation.getUniqueSequenceID();
         }
 
         protected SparkOperationContext(Activation activation)  {
@@ -111,6 +114,12 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             out.writeObject(rowsJoinedRight);
             out.writeObject(rowsProduced);
             out.writeObject(badRecordsAccumulable);
+            if (operationUUID != null) {
+                out.writeInt(operationUUID.length);
+                out.write(operationUUID);
+            } else {
+                out.writeInt(-1);
+            }
         }
 
         @Override
@@ -148,8 +157,13 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
                 if (prepared) {
-                    impl.popContextManager();
+                    impl.resetContextManager();
                 }
+            }
+            int len = in.readInt();
+            if (len > 0) {
+                operationUUID = new byte[len];
+                in.readFully(operationUUID);
             }
         }
 
@@ -255,6 +269,11 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             }
         }
         return badRecords;
+    }
+
+    @Override
+    public byte[] getOperationUUID() {
+        return operationUUID;
     }
 
 
