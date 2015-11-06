@@ -1,13 +1,9 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -31,19 +27,15 @@ import java.io.IOException;
  */
 public class SpliceOperationContext {
     static final Logger LOG = Logger.getLogger(SpliceOperationContext.class);
-
     private final GenericStorablePreparedStatement preparedStatement;
     private final HRegion region;
     private final Activation activation;
     private final Scan scan;
     private MeasuredRegionScanner scanner;
     private LanguageConnectionContext lcc;
-    private boolean isSink;
     private SpliceOperation topOperation;
     private boolean cacheBlocks = true;
-    private SpliceRuntimeContext spliceRuntimeContext;
-
-		private TxnView txn;
+	private TxnView txn;
     private TransactionalRegion txnRegion;
 
     public SpliceOperationContext(HRegion region,
@@ -51,18 +43,16 @@ public class SpliceOperationContext {
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation,
-                                  SpliceRuntimeContext spliceRuntimeContext,
-																	TxnView txn){
+                                  LanguageConnectionContext lcc,
+                                  SpliceOperation topOperation,
+								  TxnView txn){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.lcc = lcc;
-        this.isSink = isSink;
         this.topOperation = topOperation;
-        this.spliceRuntimeContext = spliceRuntimeContext;
-				this.txn = txn;
+	    this.txn = txn;
         this.txnRegion = txnRegion;
     }
 
@@ -74,69 +64,21 @@ public class SpliceOperationContext {
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
-                                  boolean isSink,SpliceOperation topOperation,
-                                  SpliceRuntimeContext spliceRuntimeContext,
-																	TxnView txn){
+                                  SpliceOperation topOperation,
+    							TxnView txn){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-
-				if(SpliceConstants.useReadAheadScanner)
-						this.scanner = new ReadAheadRegionScanner(region, scan.getCaching(), scanner,spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
-				else
-						this.scanner = new BufferedRegionScanner(region, scanner, scan, scan.getCaching(),spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
-
         this.region=region;
         this.txnRegion = txnRegion;
         this.scan = scan;
         this.lcc = lcc;
-        this.isSink=isSink;
         this.topOperation = topOperation;
-        this.spliceRuntimeContext = spliceRuntimeContext;
-				this.txn = txn;
+	    this.txn = txn;
     }
 
 
     public HRegion getRegion(){
         return region;
-    }
-
-    public boolean isSink() {
-        return isSink;
-    }
-
-    /**
-     * Indicate whether passed operation is currently sinking rows
-     */
-    public boolean isOpSinking(SinkingOperation op){
-        return isSink && topOperation == op;
-    }
-
-    public MeasuredRegionScanner getScanner() throws IOException {
-        return getScanner(cacheBlocks);
-    }
-
-		public SpliceRuntimeContext getRuntimeContext() { return spliceRuntimeContext; }
-
-		public MeasuredRegionScanner getScanner(boolean enableBlockCache) throws IOException{
-        if(scanner==null){
-            if(region==null)return null;
-
-            Scan scan = new Scan(this.scan);
-            scan.setCacheBlocks(enableBlockCache);
-						RegionScanner baseScanner = region.getCoprocessorHost().preScannerOpen(scan);
-            if (baseScanner == null) {
-                baseScanner = region.getScanner(scan);
-            }
-            int caching = scan.getCaching();
-            if(caching<0)
-                caching=SpliceConstants.DEFAULT_CACHE_SIZE;
-
-						if(SpliceConstants.useReadAheadScanner)
-								scanner = new ReadAheadRegionScanner(region, caching, baseScanner,spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
-						else
-								scanner = new BufferedRegionScanner(region, baseScanner, scan, caching, spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
-        }
-        return scanner;
     }
 
     public LanguageConnectionContext getLanguageConnectionContext() {
@@ -156,14 +98,8 @@ public class SpliceOperationContext {
     }
 
     private void closeDerby() throws StandardException {
-        try{
-            if(activation!=null)
-                activation.close();
-        }finally{
-//            LanguageConnectionContext languageConnectionContext = getLanguageConnectionContext();
-//            if(languageConnectionContext.get)
-//            languageConnectionContext.popStatementContext(languageConnectionContext.getStatementContext(), null);
-        }
+        if(activation!=null)
+            activation.close();
     }
 
     public GenericStorablePreparedStatement getPreparedStatement() {
@@ -188,7 +124,7 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,false,null, new SpliceRuntimeContext(txn),txn);
+                null,null,txn);
     }
 
     public SpliceOperation getTopOperation() {

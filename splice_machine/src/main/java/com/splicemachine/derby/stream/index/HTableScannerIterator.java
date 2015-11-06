@@ -3,7 +3,6 @@ package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.hbase.KVPair;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -36,7 +35,7 @@ public class HTableScannerIterator implements Iterable<KVPair>, Iterator<KVPair>
                 hTableScanner = hTableBuilder.build();
                 hTableScanner.open();
             }
-            value = hTableScanner.next(null);
+            value = hTableScanner.next();
             if (value == null) {
                 close();
                 hasNext = false;

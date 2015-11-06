@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.si.data.api.SDataLib;
@@ -31,7 +30,7 @@ public class ScanIterator implements StandardIterator<ExecRow>{
     }
 
     @Override
-    public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow next() throws StandardException, IOException {
         Result result = scanner.next();
         if(result==null) return null;
         return rowDecoder.decode(dataLib.matchDataColumn(result));

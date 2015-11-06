@@ -127,7 +127,7 @@ public class Vacuum {
                 activeTxn = -1l;
 
                 TxnView next;
-                try (Stream<TxnView> activeTransactions = reader.getActiveTransactions(10)){
+                try (Stream<TxnView> activeTransactions = reader.getActiveTransactions()){
                     while((next = activeTransactions.next())!=null){
                         long txnId = next.getTxnId();
                         if(txnId!=txn.getTxnId()){

@@ -17,7 +17,6 @@ import com.splicemachine.derby.ddl.TentativeDropPKConstraintDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
@@ -338,8 +337,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(GenericParameterValueSet.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(GenericParameter.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SpliceRuntimeContext.class,EXTERNALIZABLE_SERIALIZER);
-
         instance.register(ProjectRestrictOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(TableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(BulkTableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
@@ -411,7 +408,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(DeleteConstantOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableLongHolder.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableInstanceGetter.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SpliceRuntimeContext.Path.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(IndexRowGenerator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MultiProbeDerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MultiProbeTableScanOperation.class,EXTERNALIZABLE_SERIALIZER);

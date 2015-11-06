@@ -8,20 +8,17 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
-
 import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import com.google.common.io.Closeables;
-
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -148,8 +145,6 @@ public class Restore {
                 throw t;
             }
 
-            // DB-3089
-            restoreTempTable();
             populateRestoreItemsTable(admin);
             deleteSnapshots(admin);
             restoreTransaction.commit();
@@ -372,10 +367,6 @@ public class Restore {
         catch (Exception e) {
             throw StandardException.newException(e.getMessage());
         }
-    }
-
-    private static void restoreTempTable() throws SQLException {
-        TempSplit.SYSCS_SPLIT_TEMP();
     }
 
     private void populateRestoreItemsTable(HBaseAdmin admin) throws StandardException{

@@ -1,10 +1,8 @@
 package com.splicemachine.mrio.api.core;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -79,7 +77,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
 		try {
-			ExecRow nextRow = siTableScanner.next(null);
+			ExecRow nextRow = siTableScanner.next();
             RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
 			if (nextRow != null) {
 				currentRow = nextRow.getClone(); 

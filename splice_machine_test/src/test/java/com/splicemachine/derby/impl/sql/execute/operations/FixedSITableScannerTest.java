@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -311,8 +310,7 @@ public class FixedSITableScannerTest {
 				}
 				SITableScanner tableScanner = builder.build();
 
-				SpliceRuntimeContext ctx = mock(SpliceRuntimeContext.class);
-				ExecRow next = tableScanner.next(ctx);
+				ExecRow next = tableScanner.next();
 				if(correct==null)
 						correct = row.getRowArray();
 				Assert.assertArrayEquals("Incorrect scan decoding!",correct,next.getRowArray());

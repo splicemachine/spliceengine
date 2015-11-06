@@ -2,19 +2,16 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.async.*;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.DerbyAsyncScannerUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.RowKeyDistributor;
 import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -34,7 +31,7 @@ public class AsyncScanIterator implements StandardIterator<ExecRow> {
     @Override public void open() throws StandardException, IOException { scanner.open(); }
 
     @Override
-    public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow next() throws StandardException, IOException {
         try {
             List<KeyValue> kvs = scanner.nextKeyValues();
             if(kvs==null) return null;

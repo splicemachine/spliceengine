@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -32,15 +31,9 @@ import java.util.List;
  */
 public class UnionOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
-
 		/* Pull rows from firstResultSet, then rightResultSet*/
 		public SpliceOperation leftResultSet;
 		public SpliceOperation rightResultSet;
-		public int rowsSeenLeft = 0;
-		public int rowsSeenRight = 0;
-		public int rowsReturned= 0;
-		private SpliceRuntimeContext.Side side = SpliceRuntimeContext.Side.LEFT;
-
 	    protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
 
 		@Override
@@ -86,18 +79,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-			switch (side) {
-				case LEFT:
-					return leftResultSet.getExecRowDefinition();
-				case RIGHT:
-					return rightResultSet.getExecRowDefinition();
-				case MERGED: {
-					ExecRow leftExecRow = leftResultSet.getExecRowDefinition();
-					return leftExecRow != null ? leftExecRow : rightResultSet.getExecRowDefinition();
-				}
-				default:
-					return null;
-			}
+		    return null;
 		}
 
 		@Override
@@ -115,7 +97,6 @@ public class UnionOperation extends SpliceBaseOperation {
 				super.init(context);
 				leftResultSet.init(context);
 				rightResultSet.init(context);
-				this.side = context.getRuntimeContext().getPathSide(resultSetNumber);
 		}
 
 		@Override

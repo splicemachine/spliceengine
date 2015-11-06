@@ -10,7 +10,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
@@ -32,7 +31,6 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.List;
@@ -87,10 +85,10 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
     }
 
     @Override
-    public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow next() throws StandardException, IOException {
         ExecRow next = null;
         if (!initialized) {
-            initialize(spliceRuntimeContext);
+            initialize();
         }
         if(rows.size() == 0)
             return null;
@@ -109,11 +107,11 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
         return SMSQLUtil.getExecRow(formatIds);
 
     }
-    private void initialize(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    private void initialize() throws StandardException, IOException {
         try {
             ExecRow next = null;
             tableStatsConglomId = getConglomerateId("SYSTABLESTATS");
-            while ((next = super.next(spliceRuntimeContext)) != null) {
+            while ((next = super.next()) != null) {
                 collector.collect(next);
             }
             statistics = collector.getStatistics();

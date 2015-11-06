@@ -13,7 +13,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
-import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.si.api.TxnView;
@@ -30,7 +29,6 @@ import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
 /**
  * Class utilized to serialize the Splice Operation onto the scan for hbase.  It attaches the
@@ -46,7 +44,6 @@ public class SpliceObserverInstructions implements Externalizable {
     private ActivationContext activationContext;
     protected SchemaDescriptor defaultSchemaDescriptor;
     protected String sessionUserName;
-    protected SpliceRuntimeContext spliceRuntimeContext;
     private TriggerExecutionStack triggerStack;
 
     public SpliceObserverInstructions() {
@@ -276,6 +273,8 @@ public class SpliceObserverInstructions implements Externalizable {
             /*
 			 * Set the populated operations with their comparable operation
 			 */
+
+/*
                 List<SpliceOperation> ops = new ArrayList<>();
                 topOperation.generateAllOperationStack(ops);
                 for (String setField : setOps.keySet()) {
@@ -285,7 +284,7 @@ public class SpliceObserverInstructions implements Externalizable {
                     ConversionResultSet crs = new ConversionResultSet(op, activation);
                     fieldToSet.set(activation, crs);
                 }
-
+*/
 
                 if (pvs != null) activation.setParameters(pvs, statement.getParameterTypes());
                 /*
@@ -294,7 +293,7 @@ public class SpliceObserverInstructions implements Externalizable {
                 activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
                                                                                statementReadOnly, stmtText, pvs, stmtRollBackParentContext, stmtTimeout);
                 return activation;
-            } catch (IOException | IllegalAccessException | NoSuchFieldException e) {
+            } catch (IOException e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             }
             return null;

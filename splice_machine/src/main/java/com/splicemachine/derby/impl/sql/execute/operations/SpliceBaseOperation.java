@@ -38,13 +38,11 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
-import com.google.common.collect.Lists;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
@@ -57,8 +55,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         protected XplainOperationChainInfo operationChainInfo;
 		/* Run time statistics variables */
 		public int numOpens;
-		public int inputRows;
-		public int rowsFiltered;
 		public long beginTime;
 		public long constructorTime;
 		public long openTime;
@@ -516,28 +512,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
             public String getMethodName() {
                 return methodName;
-            }
-        }
-
-        protected void addToOperationChain(SpliceRuntimeContext spliceRuntimeContext, String methodName, byte[] parentOperationUUID) {
-            if (operationChainInfo == null) {
-                operationChainInfo = new XplainOperationChainInfo(
-                        spliceRuntimeContext.getStatementId(),
-                        Bytes.toLong(parentOperationUUID));
-                operationChainInfo.setMethodName(methodName);
-            }
-            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-            if (operationChain == null) {
-                operationChain = Lists.newLinkedList();
-                SpliceBaseOperation.operationChain.set(operationChain);
-            }
-            operationChain.add(operationChainInfo);
-        }
-
-        protected void removeFromOperationChain() {
-            List<XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-            if (operationChain != null && operationChain.size() > 0) {
-                operationChain.remove(operationChain.size() - 1);
             }
         }
 

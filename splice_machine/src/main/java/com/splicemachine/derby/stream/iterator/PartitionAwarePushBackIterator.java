@@ -1,20 +1,17 @@
 package com.splicemachine.derby.stream.iterator;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stream.iapi.PartitionAwareIterator;
 
 /**
  * Created by jleach on 4/28/15.
  */
 public class PartitionAwarePushBackIterator<T> implements PartitionAwareIterator<T> {
-    protected SpliceRuntimeContext ctx;
     private final PartitionAwareIterator<T> iterator;
     private final T EMPTY = (T) new Object();
     private T pushedBack = EMPTY;
 
-    public PartitionAwarePushBackIterator(SpliceRuntimeContext ctx,PartitionAwareIterator<T> iterator){
+    public PartitionAwarePushBackIterator(PartitionAwareIterator<T> iterator){
         this.iterator = iterator;
-        this.ctx = ctx;
     }
 
     @Override

@@ -59,7 +59,6 @@ import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
 import com.splicemachine.derby.utils.ErrorReporter;
@@ -101,7 +100,6 @@ public class SpliceDriver {
     private static final String ENDPOINT_CLASS_NAME = "com.splicemachine.derby.hbase.SpliceIndexEndpoint";
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-    private static final TempTable tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
     private static final SpliceMachineVersion spliceVersion = new ManifestReader().createVersion();
     private static volatile SpliceDriver INSTANCE;
 
@@ -209,10 +207,6 @@ public class SpliceDriver {
 
     public Properties getProperties() {
         return props;
-    }
-
-    public TempTable getTempTable() {
-        return tempTable;
     }
 
     public <T extends Task> TaskScheduler<T> getTaskScheduler() {
