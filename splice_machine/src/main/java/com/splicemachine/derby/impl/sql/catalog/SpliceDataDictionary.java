@@ -214,23 +214,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 //        addConstraintDescriptor(physicalStatsPk,tc);
     }
 
-
-    public void createXplainTables(TransactionController tc) throws StandardException{
-        SchemaDescriptor systemSchemaDescriptor=getSystemSchemaDescriptor();
-
-        //create SYSSTATEMENTHISTORY
-        TabInfoImpl stmtHistTabInfo=getStatementHistoryTable();
-        addTableIfAbsent(tc,systemSchemaDescriptor,stmtHistTabInfo,null);
-
-        //create SYSOPERATIONHISTORY
-        TabInfoImpl opHistTabInfo=getOperationHistoryTable();
-        addTableIfAbsent(tc,systemSchemaDescriptor,opHistTabInfo,null);
-
-        //SYSTASKHISTORY
-        TabInfoImpl taskHistTabInfo=getTaskHistoryTable();
-        addTableIfAbsent(tc,systemSchemaDescriptor,taskHistTabInfo,null);
-    }
-
     private TabInfoImpl getBackupTable() throws StandardException{
         if(backupTable==null){
             backupTable=new TabInfoImpl(new SYSBACKUPRowFactory(uuidFactory,exFactory,dvf));
@@ -337,7 +320,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         //create SYSPRIMARYKEYS
         makeCatalog(getPkTable(),getSystemSchemaDescriptor(),tc);
 
-        createXplainTables(tc);
         createLassenTables(tc);
 
         //create the Statistics tables
@@ -558,33 +540,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return store;
     }
 
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-
-    /*Table fetchers for XPLAIN tables*/
-    private TabInfoImpl getStatementHistoryTable() throws StandardException{
-        if(statementHistoryTable==null){
-            statementHistoryTable=new TabInfoImpl(new SYSSTATEMENTHISTORYRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(statementHistoryTable);
-        return statementHistoryTable;
-    }
-
-    private TabInfoImpl getOperationHistoryTable() throws StandardException{
-        if(operationHistoryTable==null){
-            operationHistoryTable=new TabInfoImpl(new SYSOPERATIONHISTORYRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(operationHistoryTable);
-        return operationHistoryTable;
-    }
-
-    private TabInfoImpl getTaskHistoryTable() throws StandardException{
-        if(taskHistoryTable==null){
-            taskHistoryTable=new TabInfoImpl(new SYSTASKHISTORYRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(taskHistoryTable);
-        return taskHistoryTable;
-    }
 
     /*Table fetchers for Statistics tables*/
     private TabInfoImpl getPhysicalStatisticsTable() throws StandardException{
