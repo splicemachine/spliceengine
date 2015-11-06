@@ -12,8 +12,6 @@ import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.HashPrefix;
@@ -42,7 +40,7 @@ public class TransactionAdminTest {
     private static final String DB_CONNECTION = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
     private static final Snowflake snowflake = new Snowflake((short)1);
 
-    private static KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    private static KeyEncoder getKeyEncoder() throws StandardException {
         HashPrefix prefix;
         DataHash dataHash;
         KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -53,7 +51,7 @@ public class TransactionAdminTest {
         return new KeyEncoder(prefix,dataHash,postfix);
     }
 
-    private static DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    private static DataHash getRowHash() throws StandardException {
         //get all columns that are being set
         int[] columns = null;
         DataValueDescriptor dvds[] = new DataValueDescriptor[2];
@@ -131,9 +129,9 @@ public class TransactionAdminTest {
 
         value.setRowArray(newData);
 
-        KeyEncoder keyEncoder = getKeyEncoder(null);
+        KeyEncoder keyEncoder = getKeyEncoder();
         byte[] key = keyEncoder.getKey(value);
-        DataHash rowHash = getRowHash(null);
+        DataHash rowHash = getRowHash();
 
         rowHash.setRow(value);
 

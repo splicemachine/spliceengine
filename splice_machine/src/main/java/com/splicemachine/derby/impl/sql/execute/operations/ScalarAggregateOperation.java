@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
 import com.splicemachine.derby.stream.function.ScalarAggregateFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -29,8 +28,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		protected boolean singleInputRow;
 		protected boolean isOpen=false;
         boolean returnDefault = true;
-        private ScalarAggregator scanAggregator;
-		private ScalarAggregator sinkAggregator;
 
 	    protected static final String NAME = ScalarAggregateOperation.class.getSimpleName().replaceAll("Operation","");
 

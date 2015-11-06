@@ -77,7 +77,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair> {
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
         try {
-            KVPair nextRow = hTableScanner.next(null);
+            KVPair nextRow = hTableScanner.next();
             if (nextRow != null) {
                 currentRow = nextRow;
                 rowKey = nextRow.getRowKey();

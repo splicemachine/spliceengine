@@ -7,8 +7,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
-import com.splicemachine.utils.SpliceLogUtils;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -60,7 +58,7 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
                     }
                 });
             }
-            execRow = tableScanner.next(null);
+            execRow = tableScanner.next();
             if (execRow==null) {
                 tableScanner.close();
                 initialized = false;

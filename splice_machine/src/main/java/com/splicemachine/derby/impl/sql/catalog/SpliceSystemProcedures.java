@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.catalog;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
-import com.splicemachine.derby.impl.storage.TempSplit;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
@@ -200,13 +199,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .integer("numSplits")
                             .build();
                     procedures.add(splitProc2);
-
-                    /*
-        			 * Procedure to disable, recreate, and split SPLICETEMP table into 16 evenly distributed buckets
-        			 */
-					Procedure splitTemp = Procedure.newBuilder().name("SYSCS_SPLIT_TEMP")
-					        .numOutputParams(0).numResultSets(0).ownerClass(TempSplit.class.getCanonicalName()).build();
-					procedures.add(splitTemp);
 
          			/*
         			 * Procedure get all active services

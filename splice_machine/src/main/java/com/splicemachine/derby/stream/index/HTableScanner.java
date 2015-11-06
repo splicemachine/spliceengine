@@ -1,14 +1,10 @@
 package com.splicemachine.derby.stream.index;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.carrotsearch.hppc.BitSet;
-
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -74,7 +70,7 @@ public class HTableScanner<Data> implements StandardIterator<KVPair>,AutoCloseab
     }
 
     @Override
-    public KVPair next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public KVPair next() throws StandardException, IOException {
         TxnFilter filter = getTxnFilter();
         if(keyValues==null)
             keyValues = Lists.newArrayListWithExpectedSize(2);

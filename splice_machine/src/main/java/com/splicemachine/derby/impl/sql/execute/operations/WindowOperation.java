@@ -14,25 +14,11 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.BaseFrameBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFrameBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.window.WindowFunctionIterator;
-import com.splicemachine.derby.impl.storage.SpliceResultScanner;
-import com.splicemachine.derby.utils.PartitionAwareIterator;
-import com.splicemachine.derby.utils.PartitionAwarePushBackIterator;
-import com.splicemachine.derby.utils.StandardIterators;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.HashPrefix;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -53,19 +39,9 @@ public class WindowOperation extends SpliceBaseOperation {
     private static Logger LOG = Logger.getLogger(WindowOperation.class);
     protected boolean isInSortedOrder;
     private WindowContext windowContext;
-    private Scan baseScan;
     protected SpliceOperation source;
     protected ExecRow sortTemplateRow;
     private ExecRow templateRow;
-    private List keyValues;
-    private PairDecoder rowDecoder;
-    private byte[] extraUniqueSequenceID;
-    private WindowFunctionIterator windowFunctionIterator;
-    private SpliceResultScanner step2Scanner;
-    private DescriptorSerializer[] serializers;
-    private HashPrefix firstStepHashPrefix;
-    private HashPrefix secondStepHashPrefix;
-    private DataHash dataHash;
 
     protected static final String NAME = WindowOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -124,14 +100,9 @@ public class WindowOperation extends SpliceBaseOperation {
         if (source != null) {
             source.init(context);
         }
-        baseScan = context.getScan();
         windowContext.init(context);
         sortTemplateRow = windowContext.getSortTemplateRow();
         templateRow = windowContext.getSourceIndexRow();
-        serializers = VersionedSerializers.latestVersion(false).getSerializers(templateRow);
-        dataHash = null;
-        firstStepHashPrefix = null;
-        secondStepHashPrefix = null;
     }
 
     @Override
@@ -143,30 +114,6 @@ public class WindowOperation extends SpliceBaseOperation {
                 .flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()));
     }
 
-    private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
-        PartitionAwareIterator<ExecRow> iterator =
-            StandardIterators.wrap(step2Scanner, rowDecoder, windowContext.getPartitionColumns(), templateRow.getRowArray());
-        PartitionAwarePushBackIterator<ExecRow> frameSource = new PartitionAwarePushBackIterator<ExecRow>(iterator);
-
-        // test the frame source
-        if (! frameSource.test(spliceRuntimeContext)) {
-            // tests false - bail
-            return null;
-        }
-
-        // create the frame buffer that will use the frame source
-        WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(
-            spliceRuntimeContext,
-            windowContext.getWindowFunctions(),
-            frameSource,
-            windowContext.getFrameDefinition(),
-            windowContext.getSortColumns(),
-            templateRow.getClone());
-
-        // create and return the frame iterator
-        return new WindowFunctionIterator(frameBuffer);
-    }
 
     @Override
     public ExecRow getExecRowDefinition() {

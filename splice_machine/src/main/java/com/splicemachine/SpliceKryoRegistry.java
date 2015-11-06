@@ -7,8 +7,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.catalog.types.*;
-import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.FkTask;
@@ -54,14 +52,12 @@ import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.TransactionReadTask;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.dvd.*;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
@@ -90,7 +86,6 @@ import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -445,8 +440,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(GenericParameterValueSet.class,EXTERNALIZABLE_SERIALIZER,54);
         instance.register(GenericParameter.class,EXTERNALIZABLE_SERIALIZER,55);
         instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER,56);
-        instance.register(SpliceRuntimeContext.class,EXTERNALIZABLE_SERIALIZER,57);
-
         instance.register(ProjectRestrictOperation.class, EXTERNALIZABLE_SERIALIZER,58);
         instance.register(TableScanOperation.class, EXTERNALIZABLE_SERIALIZER,59);
         instance.register(BulkTableScanOperation.class, EXTERNALIZABLE_SERIALIZER,60);
@@ -519,7 +512,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DeleteConstantOperation.class,EXTERNALIZABLE_SERIALIZER,122);
         instance.register(FormatableLongHolder.class,EXTERNALIZABLE_SERIALIZER,123);
         instance.register(FormatableInstanceGetter.class,EXTERNALIZABLE_SERIALIZER,124);
-        instance.register(SpliceRuntimeContext.Path.class,EXTERNALIZABLE_SERIALIZER,125);
         instance.register(IndexRowGenerator.class,EXTERNALIZABLE_SERIALIZER,126);
         instance.register(MultiProbeDerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,127);
         instance.register(MultiProbeTableScanOperation.class,EXTERNALIZABLE_SERIALIZER,128);
@@ -616,6 +608,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return new KVPair(rowKey,value,t);
             }
         }, 143);
+        instance.register(SpliceStddevPop.class,144);
+        instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class, new MapSerializer(), 146);
 
         //instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
@@ -802,7 +796,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);  
        // instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212);
         instance.register(CreateIndexTask.class, EXTERNALIZABLE_SERIALIZER,217);
-        instance.register(TransactionReadTask.class, EXTERNALIZABLE_SERIALIZER,218);
         // 220 is open
         // 221 is open
         instance.register(CreateBackupTask.class, EXTERNALIZABLE_SERIALIZER,222);
@@ -858,7 +851,5 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyLongVarchar.class, EXTERNALIZABLE_SERIALIZER, 268);
         instance.register(LazyDouble.class, EXTERNALIZABLE_SERIALIZER,269);
         instance.register(LazyDecimal.class, EXTERNALIZABLE_SERIALIZER,270);
-        instance.register(UDTAliasInfo.class, EXTERNALIZABLE_SERIALIZER, 271);
-        instance.register(UDTBase.class, EXTERNALIZABLE_SERIALIZER, 272);
     }
 }

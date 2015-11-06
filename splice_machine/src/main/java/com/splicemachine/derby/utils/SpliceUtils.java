@@ -8,7 +8,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
@@ -195,7 +194,7 @@ public class SpliceUtils extends SpliceUtilities {
         return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
     }
 
-    public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
+    public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
         SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
         return generateInstructions(instructions);
     }
@@ -208,8 +207,8 @@ public class SpliceUtils extends SpliceUtilities {
     	}
     }
 
-    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext){
-        scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation,spliceRuntimeContext));
+    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
+        scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
     }
 
     public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){

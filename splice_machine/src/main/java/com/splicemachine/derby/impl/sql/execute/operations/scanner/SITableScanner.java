@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.codahale.metrics.Metric;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
@@ -13,7 +12,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Scans;
@@ -150,7 +148,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     @Override
-    public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public ExecRow next() throws StandardException, IOException {
         SIFilter filter = getSIFilter();
         if(keyValues==null)
             keyValues = Lists.newArrayListWithExpectedSize(2);

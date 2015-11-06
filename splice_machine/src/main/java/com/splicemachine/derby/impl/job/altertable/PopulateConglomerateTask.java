@@ -14,7 +14,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
@@ -33,7 +32,6 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.ddl.DDLChange;
@@ -62,7 +60,6 @@ public class PopulateConglomerateTask extends ZkTask {
     private RecordingCallBuffer<KVPair> writeBuffer;
     private RowTransformer transformer;
     private SITableScanner scanner;
-    private SpliceRuntimeContext runtimeContext;
 
     private byte[] scanStart;
     private byte[] scanStop;
@@ -117,10 +114,10 @@ public class PopulateConglomerateTask extends ZkTask {
     public void doExecute() throws ExecutionException {
         try {
             try (SITableScanner scanner = getTableScanner(Metrics.noOpMetricFactory())) {
-                ExecRow nextRow = scanner.next(runtimeContext);
+                ExecRow nextRow = scanner.next();
                 while (nextRow != null) {
                     getWriteBuffer().add(getTransformer(getKeyEncoder(scanner)).transform(nextRow));
-                    nextRow = scanner.next(runtimeContext);
+                    nextRow = scanner.next();
                 }
             } finally {
                 if (writeBuffer != null) {
@@ -171,7 +168,6 @@ public class PopulateConglomerateTask extends ZkTask {
             TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
 
             this.scanner = tdl.setScannerBuilderProperties(builder).build();
-            this.runtimeContext = new SpliceRuntimeContext(ddlChange.getTxn());
         }
         return scanner;
 
