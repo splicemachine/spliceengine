@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -139,7 +140,13 @@ public class UnionOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return leftResultSet.getDataSet(dsp).union(rightResultSet.getDataSet(dsp))
-                .map(new SetCurrentLocatedRowFunction<SpliceOperation>(dsp.createOperationContext(this)));
+		OperationContext operationContext = dsp.createOperationContext(this);
+		DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
+		DataSet<LocatedRow> right = rightResultSet.getDataSet(dsp);
+		operationContext.pushScope("Union");
+		DataSet<LocatedRow> result = left.union(right)
+				.map(new SetCurrentLocatedRowFunction<SpliceOperation>(dsp.createOperationContext(this)));
+		operationContext.popScope();
+		return result;
     }
 }

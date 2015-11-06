@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -154,33 +155,38 @@ public class BroadcastJoinOperation extends JoinOperation{
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp).map(new CountJoinedLeftFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp).map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
+        DataSet<LocatedRow> rds = rightResultSet.getDataSet(dsp);
+
+        operationContext.pushScope("Broadcast Join");
+        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+        PairDataSet<ExecRow,LocatedRow> keyedLeftDataSet = leftDataSet.keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rds.map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
         DataSet<LocatedRow> result;
         if (isOuterJoin) { // Outer Join with and without restriction
-                    result = leftDataSet.broadcastCogroup(rightDataSet)
+                    result = keyedLeftDataSet.broadcastCogroup(rightDataSet)
                             .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                             .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    result = leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                    result = keyedLeftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
                             .flatmap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    result = leftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
+                    result = keyedLeftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
 
                 if (isOneRowRightSide()) {
-                    result = leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                    result = keyedLeftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
                             .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 } else {
-                    result = leftDataSet.broadcastJoin(rightDataSet)
+                    result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
 
                     if (restriction !=null) { // with restriction
@@ -189,6 +195,16 @@ public class BroadcastJoinOperation extends JoinOperation{
                 }
             }
         }
-        return result.map(new CountProducedFunction(operationContext));
+        result = result.map(new CountProducedFunction(operationContext));
+        operationContext.popScope();
+        return result;
+    }
+
+    public int[] getRightHashKeys() {
+        return rightHashKeys;
+    }
+
+    public int[] getLeftHashKeys() {
+        return leftHashKeys;
     }
 }
