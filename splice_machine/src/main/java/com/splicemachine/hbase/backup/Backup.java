@@ -15,9 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import com.splicemachine.constants.bytes.BytesUtil;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -465,23 +463,13 @@ public class Backup implements InternalTable {
 
         for (HTableDescriptor descriptor: descriptorArray) {
         	// DB-3089
-        	if(isTempTable(descriptor) || isTemporaryTable(descriptor.getNameAsString())) continue;
+        	if(isTemporaryTable(descriptor.getNameAsString())) continue;
             BackupItem item = new BackupItem(descriptor,this);
             item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet, 0);
             item.setLastSnapshotName(snapshotNameSet);
             addBackupItem(item);
         }
     }
-
-    private boolean isTempTable(HTableDescriptor descriptor) {
-		byte[] tableName = descriptor.getName();
-		String strName = new String(tableName);
-		if(strName.equals(SpliceConstants.TEMP_TABLE)) {
-			LOG.info("Skipping "+strName);
-			return true;
-		}
-    	return false;
-	}
 
     /**
      * Whether a table is a temporary table?
