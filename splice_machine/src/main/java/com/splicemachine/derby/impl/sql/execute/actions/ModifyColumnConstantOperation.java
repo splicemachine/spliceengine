@@ -60,8 +60,6 @@ import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.impl.job.altertable.AlterTableJob;
-import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateJob;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -419,21 +417,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "AddColumn("+colInfo.name+")");
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
 
-            // Populate new table with additional column with data from old table
-            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
-                                                                     tableDescriptor.getNumberOfColumns(),
-                                                                     populateTxn.getBeginTimestamp(),
-                                                                     ddlChange);
-            startCoprocessorJob(activation,
-                                "Add Column",
-                                schemaName,
-                                tableName,
-                                Collections.singletonList(colInfo.name),
-                                populateJob,
-                                parentTxn);
-            populateTxn.commit();
-        } catch (IOException e) {
+
+        } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
 
@@ -1657,20 +1644,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                 parentTxn);
 
             //wait for all past txns to complete
-            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn("+columnName+")");
+            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn(" + columnName + ")");
 
-            // Populate new table with additional column with data from old table
-            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
-                                                                     tableDescriptor.getNumberOfColumns(),
-                                                                     populateTxn.getBeginTimestamp(),
-                                                                     ddlChange);
-            startCoprocessorJob(activation,
-                                "DropColumn",
-                                schemaName,
-                                tableName,
-                                Collections.singletonList(columnName),
-                                populateJob,
-                                parentTxn);
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
+
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

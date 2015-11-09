@@ -46,17 +46,19 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
                 initialized = true;
                 tableScanner = siTableBuilder.build();
                 tableScanner.open();
-                operation.registerCloseable(new Closeable() {
-                    @Override
-                    public void close() throws IOException {
-                        try {
-                            if (tableScanner != null && initialized)
-                                tableScanner.close();
-                        } catch (Exception e) {
-                            throw new IOException(e);
+                if (operation!= null) {
+                    operation.registerCloseable(new Closeable() {
+                        @Override
+                        public void close() throws IOException {
+                            try {
+                                if (tableScanner != null && initialized)
+                                    tableScanner.close();
+                            } catch (Exception e) {
+                                throw new IOException(e);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
             execRow = tableScanner.next();
             if (execRow==null) {
@@ -78,8 +80,10 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
         slotted = false;
         rows++;
         LocatedRow locatedRow = new LocatedRow(tableScanner.getCurrentRowLocation(),execRow.getClone());
-        StreamLogUtils.logOperationRecord(locatedRow,operation);
-        operation.setCurrentLocatedRow(locatedRow);
+        if (operation != null) {
+            StreamLogUtils.logOperationRecord(locatedRow, operation);
+            operation.setCurrentLocatedRow(locatedRow);
+        }
         return locatedRow;
     }
 

@@ -26,6 +26,7 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.impl.DDLTxnView;
 import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.*;
@@ -71,11 +72,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private ExecRowAccumulator keyAccumulator;
     private int[] keyDecodingMap;
     private FormatableBitSet accessedKeys;
-    private final SIFilterFactory filterFactory;
+    private SIFilterFactory filterFactory;
     private ExecRowAccumulator accumulator;
     private final SDataLib dataLib;
     private EntryDecoder entryDecoder;
     private final Counter outputBytesCounter;
+    private long demarcationPoint;
 
     protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
@@ -118,7 +120,63 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                                                 EntryDecoder rowEntryDecoder,
                                                 EntryAccumulator accumulator,
                                                 boolean isCountStar) throws IOException {
+
                     TxnFilter<Data> txnFilter = region.unpackedFilter(txn);
+
+                    HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib,predicateFilter,
+                            rowEntryDecoder, accumulator,
+                            isCountStar);
+                    //noinspection unchecked
+                    return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator){
+                        @Override
+                        public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
+                            if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+                                if (!accumulator.accumulate(dataKeyValue)) {
+                                    return Filter.ReturnCode.NEXT_ROW;
+                                }
+                                return Filter.ReturnCode.INCLUDE;
+                            }else return Filter.ReturnCode.INCLUDE;
+                        }
+                    };
+                }
+            };
+        }
+        else
+            this.filterFactory = filterFactory;
+    }
+
+    protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
+                             final TransactionalRegion region,
+                             final ExecRow template,
+                             Scan scan,
+                             final int[] rowDecodingMap,
+                             final TxnView txn,
+                             int[] keyColumnEncodingOrder,
+                             boolean[] keyColumnSortOrder,
+                             int[] keyColumnTypes,
+                             int[] keyDecodingMap,
+                             FormatableBitSet accessedPks,
+                             boolean reuseRowLocation,
+                             String indexName,
+                             final String tableVersion,
+                             SIFilterFactory filterFactory,
+                             final long demarcationPoint) {
+        this(dataLib, scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+                keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
+                tableVersion, filterFactory);
+        this.demarcationPoint = demarcationPoint;
+        if(filterFactory==null){
+            this.filterFactory = new SIFilterFactory<Data>() {
+                @Override
+                public SIFilter<Data> newFilter(EntryPredicateFilter predicateFilter,
+                                                EntryDecoder rowEntryDecoder,
+                                                EntryAccumulator accumulator,
+                                                boolean isCountStar) throws IOException {
+                    TxnView txnView = txn;
+                    if (demarcationPoint > 0) {
+                        txnView = new DDLTxnView(txn,demarcationPoint);
+                    }
+                    TxnFilter<Data> txnFilter = region.unpackedFilter(txnView);
 
                     HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib,predicateFilter,
                                                                                       rowEntryDecoder, accumulator,

@@ -81,6 +81,7 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
         FormatableBitSet accessedPKColumns = getAccessedKeyColumns(keyColumnEncodingOrder);
 
         builder.template(templateRow).tableVersion(tableVersion)
+                .execRowTypeFormatIds(getFormatIds(templateRow))
                .rowDecodingMap(baseColumnOrder).keyColumnEncodingOrder(keyColumnEncodingOrder)
                .keyColumnSortOrder(getKeyColumnSortOrder(nColumns))
                .keyColumnTypes(getKeyColumnTypes(templateRow, keyColumnEncodingOrder))

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -86,6 +87,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         FormatableBitSet accessedPKColumns = getAccessedKeyColumns(keyColumnEncodingOrder);
 
         builder.template(templateRow).tableVersion(tableVersion)
+                .execRowTypeFormatIds(getFormatIds(templateRow))
                .rowDecodingMap(baseColumnOrder).keyColumnEncodingOrder(keyColumnEncodingOrder)
                .keyColumnSortOrder(getKeyColumnSortOrder(nColumns))
                .keyColumnTypes(getKeyColumnTypes(templateRow, keyColumnEncodingOrder))

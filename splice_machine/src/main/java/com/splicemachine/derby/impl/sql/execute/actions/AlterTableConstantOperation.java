@@ -10,7 +10,17 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.KVPairFunction;
+import com.splicemachine.derby.stream.function.RowTransformFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.index.HTableWriterBuilder;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -60,7 +70,6 @@ import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.altertable.AlterTableJob;
-import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -369,10 +378,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
          * modify the conglomerate descriptor and add constraint
          */
         updateTableConglomerateDescriptor(tableDescriptor,
-                                          oldCongNum,
-                                          sd,
-                                          lcc,
-                                          newConstraint);
+                oldCongNum,
+                sd,
+                lcc,
+                newConstraint);
         // refresh the activation's TableDescriptor now that we've modified it
         activation.setDDLTableDescriptor(tableDescriptor);
 
@@ -519,18 +528,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
                 constraintColumnNames + ")");
 
-            // Populate new table with additional column with data from old table
-            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
-                                                                     tableDescriptor.getNumberOfColumns(),
-                                                                     populateTxn.getBeginTimestamp(),
-                                                                     ddlChange);
-            startCoprocessorJob(activation,
-                                changeMsg,
-                                schemaName,
-                                tableName,
-                                constraintColumnNames,
-                                populateJob,
-                                parentTxn);
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -788,18 +786,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
                 constraintColumnNames + ")");
 
-            // Populate new table with additional column with data from old table
-            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
-                                                                     tableDescriptor.getNumberOfColumns(),
-                                                                     populateTxn.getBeginTimestamp(),
-                                                                     ddlChange);
-            startCoprocessorJob(activation,
-                                changeMsg,
-                                schemaName,
-                                tableName,
-                                constraintColumnNames,
-                                populateJob,
-                                parentTxn);
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -1712,5 +1699,65 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             throw Exceptions.parseException(e);
         }
         return populateTxn;
+    }
+
+    protected void transformAndWriteToNewConglomerate(Activation activation,
+                                                      TxnView parentTxn,
+                                                      DDLChange ddlChange,
+                                                      long demarcationPoint) throws IOException, StandardException {
+
+        Txn childTxn = beginChildTransaction(parentTxn, ddlChange);
+        TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(childTxn, demarcationPoint, ddlChange);
+        long baseConglomerateNumber = ddlChange.getTentativeDDLDesc().getBaseConglomerateNumber();
+        DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
+        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, new Long(baseConglomerateNumber).toString());
+
+        HTableWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);
+
+        dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction()).writeKVPair(tableWriter);
+
+        childTxn.commit();
+    }
+
+    private HTableWriterBuilder createTableWriterBuilder(TxnView txn, DDLChange ddlChange) {
+        HTableWriterBuilder tableWriterBuilder = new HTableWriterBuilder()
+                .txn(txn)
+                .skipIndex(true)
+                .heapConglom(ddlChange.getTentativeDDLDesc().getConglomerateNumber());
+
+        return tableWriterBuilder;
+
+    }
+
+    private TableScannerBuilder createTableScannerBuilder(Txn txn, long demarcationPoint, DDLChange ddlChange) throws IOException{
+
+        TableScannerBuilder builder =
+                new TableScannerBuilder()
+                        .scan(createScan())
+                        .transaction(txn)
+                        .demarcationPoint(demarcationPoint);
+
+        TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
+        tdl.setScannerBuilderProperties(builder);
+
+        return builder;
+    }
+
+    private Scan createScan() {
+        Scan scan = SpliceUtils.createScan(null);
+        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
+        scan.setStartRow(new byte[0]);
+        scan.setStopRow(new byte[0]);
+        scan.setCacheBlocks(false);
+        scan.setMaxVersions();
+
+        return scan;
+    }
+
+    private Txn beginChildTransaction(TxnView parentTxn, DDLChange ddlChange) throws IOException {
+        TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+        return tc.beginChildTransaction(parentTxn, Long.toString(ddlChange.getTentativeDDLDesc()
+                .getConglomerateNumber()).getBytes());
     }
 }

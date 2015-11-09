@@ -38,7 +38,7 @@ public interface PairDataSet<K,V> {
     public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext);
-    public DataSet<V> writeIndex(HTableWriterBuilder builder);
+    public DataSet<V> writeKVPair(HTableWriterBuilder builder);
     public String toString();
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<Tuple2<K,V>>, U> f);
 

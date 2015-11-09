@@ -259,7 +259,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> writeIndex(HTableWriterBuilder builder){
+    public DataSet<V> writeKVPair(HTableWriterBuilder builder){
 
         try {
             Configuration conf = new Configuration(SIConstants.config);

@@ -52,6 +52,7 @@ public class TableScannerBuilder implements Externalizable {
         protected int[] fieldLengths;
         protected int[] columnPositionMap;
         protected long baseTableConglomId = -1l;
+        protected long demarcationPoint = -1;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -240,6 +241,11 @@ public class TableScannerBuilder implements Externalizable {
             return this;
         }
 
+        public TableScannerBuilder demarcationPoint(long demarcationPoint) {
+            this.demarcationPoint = demarcationPoint;
+            return this;
+        }
+
 		public SITableScanner build(){
             if (fieldLengths != null) {
                 return new StatisticsScanner(
@@ -280,9 +286,9 @@ public class TableScannerBuilder implements Externalizable {
                         reuseRowLocation,
                         indexName,
                         tableVersion,
-                        filterFactory);
+                        filterFactory,
+                        demarcationPoint);
             }
-
 		}
 
 		@Override
@@ -351,6 +357,7 @@ public class TableScannerBuilder implements Externalizable {
                     }
                     out.writeLong(baseTableConglomId);
                 }
+                out.writeLong(demarcationPoint);
             } catch (StandardException e) {
                 throw new IOException(e.getCause());
             }
@@ -414,6 +421,7 @@ public class TableScannerBuilder implements Externalizable {
                 }
                 baseTableConglomId = in.readLong();
             }
+            demarcationPoint = in.readLong();
         } catch (StandardException e) {
             throw new IOException(e.getCause());
         }

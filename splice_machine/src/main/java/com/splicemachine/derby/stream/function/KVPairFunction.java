@@ -14,13 +14,13 @@ import scala.Tuple2;
 /**
  * Created by jyuan on 10/19/15.
  */
-public class IndexPairFunction extends SplicePairFunction<SpliceOperation,KVPair,byte[],KVPair> {
+public class KVPairFunction extends SplicePairFunction<SpliceOperation,KVPair,byte[],KVPair> {
     private int counter = 0;
-    public IndexPairFunction() {
+    public KVPairFunction() {
         super();
     }
 
-    public IndexPairFunction(OperationContext<SpliceOperation> operationContext) {
+    public KVPairFunction(OperationContext<SpliceOperation> operationContext) {
         super(operationContext);
     }
 
