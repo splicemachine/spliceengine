@@ -190,9 +190,6 @@ public class SpliceUtilities extends SIConstants {
 
 		try {
 			admin = getAdmin();
-			if (!admin.tableExists(TEMP_TABLE_BYTES)) {
-				createTempTable(admin);
-			}
 			if (!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)) {
 				HTableDescriptor td = generateTransactionTable();
 				admin.createTable(td, generateTransactionSplits());
@@ -252,27 +249,8 @@ public class SpliceUtilities extends SIConstants {
             Closeables.closeQuietly(admin);
         }
     }
-	public static void createTempTable(HBaseAdmin admin) throws IOException {
-		HTableDescriptor td = generateTempTable(TEMP_TABLE);
-		// td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
-		byte[][] prefixes = getAllPossibleBucketPrefixes();
-		byte[][] splitKeys = new byte[prefixes.length - 1][];
-		System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
-		admin.createTable(td, splitKeys);
-		SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE + " created");
-	}
 
 	static {
-		PREFIXES = new byte[tempTableBucketCount][];
-		final int x = 256 / tempTableBucketCount;
-		for (int i = 0; i < tempTableBucketCount; i++) {
-			PREFIXES[i] = new byte[] { (byte) (i * x) };
-			// System.out.println("prefix " + i + " = " + BytesUtil.debug(PREFIXES[i]));
-		}
-	}
-
-	public static byte[][] getAllPossibleBucketPrefixes() {
-		return PREFIXES;
 	}
 
 	public static void closeHTableQuietly(HTableInterface table) {
