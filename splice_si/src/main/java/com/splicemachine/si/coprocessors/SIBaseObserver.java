@@ -9,7 +9,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Scan;
@@ -52,8 +51,7 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
         if(SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEnv)||
                 SpliceConstants.TableEnv.META_TABLE.equals(tableEnv)||
                 SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv)) return false;
-        if(SpliceConstants.TEMP_TABLE.equals(tableName)||
-                SpliceConstants.TEST_TABLE.equals(tableName)) return false;
+        if(SpliceConstants.TEST_TABLE.equals(tableName)) return false;
 
         return true;
     }
