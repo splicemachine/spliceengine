@@ -644,6 +644,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	}
 
 	@Test
+    @Ignore
 	public void testNewImportCheckDirectory() throws Exception {
         testNewImportCheck(spliceSchemaWatcher.schemaName, TABLE_17, getResourceDirectory() + "importdir", "NAME,TITLE,AGE", baddir.newFolder().getCanonicalPath(), 0, 0);
 	}
