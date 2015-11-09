@@ -20,10 +20,10 @@ import java.sql.ResultSet;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
-public class UDTIT extends SpliceUnitTest {
+public class SpliceUDTIT extends SpliceUnitTest {
 
-    private static Logger LOG = Logger.getLogger(UDTIT.class);
-    public static final String CLASS_NAME = UDTIT.class.getSimpleName().toUpperCase();
+    private static Logger LOG = Logger.getLogger(SpliceUDTIT.class);
+    public static final String CLASS_NAME = SpliceUDTIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -102,6 +102,7 @@ public class UDTIT extends SpliceUnitTest {
     }
 
     @Test
+    // DB-4086:Testing selection of a UDA column
     public void TestSelectStatistics() throws Exception {
         methodWatcher.execute("analyze schema " + CLASS_NAME);
         ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syscolumnstatistics");
