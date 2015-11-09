@@ -349,7 +349,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> writeIndex(HTableWriterBuilder writerBuilder) {
+    public DataSet<V> writeKVPair(HTableWriterBuilder writerBuilder) {
 
         HTableWriter writer = null;
         try{

@@ -73,7 +73,15 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         return new ControlDataSet(tableScannerIterator);
     }
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
-        throw new RuntimeException("not implemented");
+        TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+                TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
+
+
+        siTableBuilder
+                .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),siTableBuilder.getScan()))
+                .region(localRegion);
+        TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,null);
+        return new ControlDataSet(tableScannerIterator);
     }
 
     @Override

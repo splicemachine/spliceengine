@@ -53,7 +53,6 @@ import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
-import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
@@ -810,7 +809,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(AlterTableTask.class, EXTERNALIZABLE_SERIALIZER,231);
         instance.register(TentativeAddConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,232);
         instance.register(TentativeAddColumnDesc.class,EXTERNALIZABLE_SERIALIZER,233);
-        instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,234);
 
         //statistics
         instance.register(BooleanStats.class,EXTERNALIZABLE_SERIALIZER,236);

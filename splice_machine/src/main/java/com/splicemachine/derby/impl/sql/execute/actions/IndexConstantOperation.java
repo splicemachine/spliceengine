@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.function.IndexPairFunction;
+import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -205,7 +205,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                             descColumns,
                             columnOrdering,
                             formatIds);
-            DataSet<LocatedRow> result = dataset.map(indexTransformerFunction).index(new IndexPairFunction()).writeIndex(builder);
+            DataSet<LocatedRow> result = dataset.map(indexTransformerFunction).index(new KVPairFunction()).writeKVPair(builder);
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

@@ -14,17 +14,24 @@ import java.util.Iterator;
 public class HTableWriter extends AbstractTableWriter<KVPair> {
 
     private long rowsWritten;
+    private boolean skipIndex;
 
-    public HTableWriter (TxnView txn, long heapConglom) {
+    public HTableWriter (TxnView txn, long heapConglom, boolean skipIndex) {
         super(txn, heapConglom);
+        this.skipIndex = skipIndex;
     }
 
 
     @Override
     public void open() throws StandardException {
         try {
-            writeBuffer = writeCoordinator.writeBuffer(destinationTable,
-                    txn, Metrics.noOpMetricFactory());
+            if (skipIndex) {
+                writeBuffer = writeCoordinator.noIndexWriteBuffer(destinationTable, txn, Metrics.noOpMetricFactory());
+            }
+            else {
+                writeBuffer = writeCoordinator.writeBuffer(destinationTable,
+                        txn, Metrics.noOpMetricFactory());
+            }
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

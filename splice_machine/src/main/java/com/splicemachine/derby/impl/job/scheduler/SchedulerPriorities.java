@@ -4,7 +4,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.RollForwardTask;
 import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
-import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.hbase.backup.CreateBackupTask;
@@ -134,8 +133,7 @@ public class SchedulerPriorities {
                 basePriorityMap.put(CreateIndexTask.class,priority);
             priority = config.getInt(BASE_PRIORITY_PREFIX + "alter.table", defaultDdlWritePriority);
             basePriorityMap.put(AlterTableTask.class,priority);
-            basePriorityMap.put(PopulateConglomerateTask.class,priority);
-
+            
             //maintenance operations
         priority = config.getInt(BASE_PRIORITY_PREFIX+"maintenance",maxPriority);
         basePriorityMap.put(RollForwardTask.class,priority);

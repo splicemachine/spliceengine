@@ -18,6 +18,7 @@ public class HTableWriterBuilder implements Externalizable {
 
     private long heapConglom;
     private TxnView txn;
+    private boolean skipIndex;
 
     public HTableWriterBuilder() {}
 
@@ -31,8 +32,13 @@ public class HTableWriterBuilder implements Externalizable {
         return this;
     }
 
+    public HTableWriterBuilder skipIndex(boolean skipIndex) {
+        this.skipIndex = skipIndex;
+        return this;
+    }
+
     public HTableWriter build() {
-        return new HTableWriter(txn, heapConglom);
+        return new HTableWriter(txn, heapConglom, skipIndex);
     }
 
     public static HTableWriterBuilder getHTableWriterBuilderFromBase64String(String base64String) throws IOException {
@@ -50,6 +56,7 @@ public class HTableWriterBuilder implements Externalizable {
         try {
             TransactionOperations.getOperationFactory().writeTxn(txn, out);
             out.writeLong(heapConglom);
+            out.writeBoolean(skipIndex);
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -60,5 +67,6 @@ public class HTableWriterBuilder implements Externalizable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         txn = TransactionOperations.getOperationFactory().readTxn(in);
         heapConglom = in.readLong();
+        skipIndex = in.readBoolean();
     }
 }
