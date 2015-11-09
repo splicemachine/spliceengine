@@ -67,8 +67,6 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG_SPLIT = Logger.getLogger(AbstractSpliceIndexObserver.class.getName() + ".Split");
 
     protected long conglomId;
-    protected boolean isTemp;
-    protected long blockingStoreFiles;
     protected TransactionalRegion region;
     protected TxnOperationFactory operationFactory;
 
@@ -89,10 +87,8 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             operationFactory = new SimpleOperationFactory();
             region = TransactionalRegions.get(e.getEnvironment().getRegion());
         } catch (NumberFormatException nfe) {
-            SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
+            SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing will not be set up", tableName);
             conglomId = -1;
-            blockingStoreFiles = SpliceConstants.config.getInt("hbase.hstore.blockingStoreFiles", 10);
-            isTemp = SpliceConstants.TEMP_TABLE.equals(tableName);
             return;
         }
 
