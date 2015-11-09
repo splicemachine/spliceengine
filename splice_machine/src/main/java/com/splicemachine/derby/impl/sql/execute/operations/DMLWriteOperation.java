@@ -8,6 +8,12 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.types.TypeId;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -168,11 +174,31 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				ResultColumnDescriptor[] rcd = description.getColumnInfo();
 				DataValueDescriptor[] dvds = new DataValueDescriptor[rcd.length];
 				for(int i=0;i<rcd.length;i++){
-						dvds[i] = rcd[i].getType().getNull();
+                    dvds[i] = rcd[i].getType().getNull();
+                    TypeId typeId = rcd[i].getType().getTypeId();
+                    if (typeId.getTypeFormatId() == StoredFormatIds.USERDEFINED_TYPE_ID_V3) {
+                        UserDefinedTypeIdImpl udt = (UserDefinedTypeIdImpl)typeId.getBaseTypeId();
+                        try {
+                            if (udt != null) {
+                                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+                                ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+                                Class UDTBaseClazz = cf.loadApplicationClass(ClassName.UDTBase);
+                                Class clazz = cf.loadApplicationClass(udt.getClassName());
+                                if (UDTBaseClazz.isAssignableFrom(clazz)) {
+                                    // For UDTs, create an instance of concrete type, so that UDTSerializer will
+                                    // be pick to serialize/deserialize it.
+                                    Object o = clazz.newInstance();
+                                    dvds[i].setValue(o);
+                                }
+                            }
+                        } catch (Exception e) {
+                            throw StandardException.newException(e.getLocalizedMessage());
+                        }
+                    }
 				}
 				ExecRow row = new ValueRow(dvds.length);
 				row.setRowArray(dvds);
-				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
+				SpliceLogUtils.trace(LOG, "execRowDefinition=%s", row);
 				return row;
 		}
 

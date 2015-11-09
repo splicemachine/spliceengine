@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;

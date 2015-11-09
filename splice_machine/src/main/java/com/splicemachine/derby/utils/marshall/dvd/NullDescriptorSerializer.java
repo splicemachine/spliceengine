@@ -95,9 +95,6 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 						if (!sparse) encodeEmpty(fieldEncoder);
 						return;
 				}
-                if (dvd.getObject() instanceof UDTBase) {
-                    delegate = UDTDescriptorSerializer.INSTANCE;
-                }
 				delegate.encode(fieldEncoder,dvd,desc);
 		}
 

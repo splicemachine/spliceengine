@@ -6,7 +6,9 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.FkTask;
@@ -26,17 +28,6 @@ import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-import com.splicemachine.db.catalog.types.AggregateAliasInfo;
-import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
-import com.splicemachine.db.catalog.types.DecimalTypeIdImpl;
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
-import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-import com.splicemachine.db.catalog.types.RowMultiSetImpl;
-import com.splicemachine.db.catalog.types.SynonymAliasInfo;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -849,5 +840,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyLongVarchar.class, EXTERNALIZABLE_SERIALIZER, 268);
         instance.register(LazyDouble.class, EXTERNALIZABLE_SERIALIZER,269);
         instance.register(LazyDecimal.class, EXTERNALIZABLE_SERIALIZER,270);
+        instance.register(UDTAliasInfo.class, EXTERNALIZABLE_SERIALIZER, 271);
+        instance.register(UDTBase.class, EXTERNALIZABLE_SERIALIZER, 272);
     }
 }
