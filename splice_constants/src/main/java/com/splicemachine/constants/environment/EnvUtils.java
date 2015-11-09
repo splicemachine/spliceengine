@@ -23,8 +23,6 @@ public class EnvUtils {
 			return TableEnv.ROOT_TABLE;
 		else if (isMetaOrNamespaceTable(tableName))
 			return TableEnv.META_TABLE;
-		else if (tableName.equals(SpliceConstants.TEMP_TABLE))
-			return TableEnv.DERBY_SYS_TABLE;
 		else {
 			try {
 				long tableNumber = Long.parseLong(tableName);			
