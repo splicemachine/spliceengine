@@ -70,37 +70,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 						LOG.trace("Instantiate Splice Scan for conglomerate ");
 		}
 
-		public SpliceScan(FormatableBitSet scanColumnList,
-											DataValueDescriptor[] startKeyValue,
-											int startSearchOperator,
-											Qualifier[][] qualifier,
-											DataValueDescriptor[] stopKeyValue,
-											int stopSearchOperator,
-											Transaction trans,
-											boolean isKeyed) {
-				this.isKeyed = isKeyed;
-				this.scanColumnList = scanColumnList;
-				this.startKeyValue = startKeyValue;
-				this.startSearchOperator = startSearchOperator;
-				this.qualifier = qualifier;
-				this.stopKeyValue = stopKeyValue;
-				this.stopSearchOperator = stopSearchOperator;
-				try {
-						((BaseSpliceTransaction)trans).setActiveState(false, false, null);
-				} catch (Exception e) {
-						e.printStackTrace();
-				}
-        this.trans = (BaseSpliceTransaction)trans;
-				setupScan();
-				attachFilter();
-				tableName = Bytes.toString(SpliceConstants.TEMP_TABLE_BYTES);
-        if(LOG.isTraceEnabled()){
-            SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s", Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
-        }
-//				setupRowColumns();
-//		table = SpliceAccessManager.getHTable(SpliceOperationCoprocessor.TEMP_TABLE);
-		}
-
 		public SpliceScan(OpenSpliceConglomerate spliceConglomerate,
 											FormatableBitSet scanColumnList,
 											DataValueDescriptor[] startKeyValue,
