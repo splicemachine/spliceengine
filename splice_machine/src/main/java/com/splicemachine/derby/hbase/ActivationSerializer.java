@@ -105,7 +105,6 @@ public class ActivationSerializer {
             try{
                 visit(baseActClass.getDeclaredField("row"),baseFields);
                 visit(baseActClass.getDeclaredField("resultSet"),baseFields);
-                visit(baseActClass.getDeclaredField("isTraced"),baseFields);
             } catch (NoSuchFieldException e) {
                 SpliceLogUtils.warn(LOG, "Could not serialize current row list");
             }
