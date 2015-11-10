@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.load.ColumnInfo;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
@@ -229,16 +230,11 @@ public class HdfsImport {
         if (charset ==null)
             charset = StandardCharsets.UTF_8.name();
 
-        Connection conn = SpliceAdmin.getDefaultConn();
+        Connection conn = null;
         try {
-            assert conn != null;
-            schemaName = schemaName == null?
-                    ((EngineConnection) conn).getCurrentSchemaName().toUpperCase():
-                    schemaName.toUpperCase();
-            Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();
-            if (tableName == null)
-                throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-            tableName = tableName.toUpperCase();
+            schemaName = SpliceUtils.validateSchema(schemaName);
+            tableName = SpliceUtils.validateTable(tableName);
+            conn = SpliceAdmin.getDefaultConn();
             // This needs to be found by the database locale, not hard coded.
             if (timestampFormat == null)
                 timestampFormat = "yyyy-MM-dd HH:mm:ss";
@@ -294,6 +290,7 @@ public class HdfsImport {
                         new SQLVarchar("badFile"),
                         new SQLVarchar(((EmbedConnection) conn).getLanguageConnection().getBadFile())
                 });
+                Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();
                 IteratorNoPutResultSet rs =
                         new IteratorNoPutResultSet(Arrays.asList(result),
                                 (isCheckScan?CHECK_RESULT_COLUMNS:IMPORT_RESULT_COLUMNS),act);

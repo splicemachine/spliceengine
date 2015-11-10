@@ -6,21 +6,17 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
@@ -40,12 +36,10 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
     private int[] columnPositionMap;
     private String conglomId;
     private String regionId;
-    private transient long openScannerTimeMicros = -1l;
-    private transient long closeScannerTimeMicros = -1l;
-    private long tableStatsConglomId;
     private TxnView txn;
     private StatisticsCollector collector;
     SimpleOverheadManagedPartitionStatistics statistics;
+    private long baseConglomId;
 
     public StatisticsScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
@@ -68,22 +62,19 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
         super(dataLib, scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
                 tableVersion, filterFactory);
+        assert baseConglomId != -1:"Base Conglom ID passed in incorrectly.";
         this.columnPositionMap = columnPositionMap;
         this.txn = txn;
         MeasuredRegionScanner regionScanner = getRegionScanner();
         HRegionInfo r = regionScanner.getRegionInfo();
         conglomId = r.getTable().toString();
         regionId = r.getEncodedName();
-        if (baseConglomId <=0) {
-            this.collector = new StatisticsCollector(txn, template, columnPositionMap, fieldLengths, this);
-        }
-        else
-            this.collector = new IndexStatisticsCollector(txn, template, columnPositionMap, fieldLengths, this, baseConglomId);
+        this.baseConglomId = baseConglomId;
+        collector = new StatisticsCollector(txn, template, columnPositionMap, fieldLengths, this);
     }
 
     @Override
     public ExecRow next() throws StandardException, IOException {
-        ExecRow next = null;
         if (!initialized) {
             initialize();
         }
@@ -94,25 +85,14 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
         return rows.remove(0);
     }
 
-    private ExecRow getColumnStatsExecRow(String name) throws StandardException, IOException, ExecutionException{
-        EmbedConnection conn = (EmbedConnection)SpliceDriver.driver().getInternalConnection();
-        TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
-        long conglomId = getConglomerateId(name);
-        SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) transactionExecute)
-                .findConglomerate(conglomId);
-        int[] formatIds = conglomerate.getFormat_ids();
-        return SMSQLUtil.getExecRow(formatIds);
-
-    }
     private void initialize() throws StandardException, IOException {
         try {
             ExecRow next = null;
-            tableStatsConglomId = getConglomerateId("SYSTABLESTATS");
             while ((next = super.next()) != null) {
                 collector.collect(next);
             }
             statistics = collector.getStatistics();
-            ExecRow row = getColumnStatsExecRow("SYSCOLUMNSTATS");
+            ExecRow row = SYSCOLUMNSTATISTICSRowFactory.makeGenericRow();
             List<ColumnStatistics> columnStatisticsList = statistics.columnStatistics();
             rows = Lists.newArrayList();
             int i = 0;
@@ -121,6 +101,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
                     continue;
                 row.resetRowArray();
                 DataValueDescriptor[] rowArray = row.getRowArray();
+                System.out.println("columnStatistics ->" + columnStatistics);
                 rowArray[0] = new SQLLongint(new Long(conglomId));
                 rowArray[1] = new SQLVarchar(regionId);
                 rowArray[2] = new SQLInteger(columnPositionMap[i++]);
@@ -130,7 +111,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
             initialized = true;
         }
         catch (ExecutionException e) {
-            throw StandardException.newException(e.getLocalizedMessage());
+            throw StandardException.plainWrapException(e);
         }
     }
 
@@ -143,10 +124,9 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
     protected void collectTableStatistics() throws StandardException{
 
         try {
-            CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(tableStatsConglomId).getBytes(), txn);
+            CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(baseConglomId).getBytes(), txn);
             byte[] rowKey = getRowKey();
             byte[] row = getRow(this);
-
             KVPair kvPair = new KVPair(rowKey, row, KVPair.Type.UPSERT);
             buffer.add(kvPair);
             buffer.flushBuffer();
@@ -165,7 +145,6 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
     }
 
     private byte[] getRow(SITableScanner scanner) throws ExecutionException {
-
         BitSet nonNullRowFields = new BitSet();
         nonNullRowFields.set(2,14);
         BitSet scalarFields = new BitSet();
@@ -199,19 +178,4 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
         return row;
     }
 
-    private long getConglomerateId(String name) throws ExecutionException {
-        try {
-            Connection conn = SpliceDriver.driver().getInternalConnection();
-            String sql = "select conglomeratenumber from sys.sysschemas s, sys.systables t, sys.sysconglomerates c "
-                    + "where s.schemaid = t.schemaid and t.tableid=c.tableid and s.schemaname='SYS' and t.tablename=?";
-            PreparedStatement s = conn.prepareStatement(sql);
-            s.setString(1, name);
-            ResultSet rs = s.executeQuery();
-            assert  (rs.next());
-            long    id = rs.getLong(1);
-            return id;
-        } catch (Exception e) {
-            throw new ExecutionException(e);
-        }
-    }
 }

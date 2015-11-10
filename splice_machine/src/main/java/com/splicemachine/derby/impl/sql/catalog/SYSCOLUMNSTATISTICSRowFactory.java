@@ -127,4 +127,17 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             "s.schemaname" +
             ",t.tablename" +
             ",co.columnname";
+
+
+
+    public static ExecRow makeGenericRow() throws StandardException {
+        ExecRow row = new ValueRow(4);
+        row.setColumn(1,new SQLLongint());
+        row.setColumn(2,new SQLVarchar());
+        row.setColumn(3,new SQLInteger());
+        row.setColumn(4,new UserType());
+        return row;
+    }
+
+
 }
