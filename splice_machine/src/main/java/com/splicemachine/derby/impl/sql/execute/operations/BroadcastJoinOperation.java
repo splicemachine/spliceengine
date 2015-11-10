@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
+import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -174,8 +175,8 @@ public class BroadcastJoinOperation extends JoinOperation{
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    result = keyedLeftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
-                            .flatmap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
+                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                            .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     result = keyedLeftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
@@ -183,8 +184,8 @@ public class BroadcastJoinOperation extends JoinOperation{
             } else { // Inner Join
 
                 if (isOneRowRightSide()) {
-                    result = keyedLeftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
-                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
+                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                            .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
                 } else {
                     result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));

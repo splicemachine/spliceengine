@@ -31,11 +31,7 @@ import java.util.concurrent.Callable;
 /**
  * Created by dgomezferro on 11/4/15.
  */
-public class BroadcastJoinFlatMapFunction extends SpliceFlatMapFunction<BroadcastJoinOperation, Iterator<LocatedRow>, Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> {
-    private static final BroadcastJoinCache broadcastJoinCache = new BroadcastJoinCache();
-    private boolean initialized;
-    private BroadcastJoinOperation operation;
-    private JoinTable joinTable;
+public class BroadcastJoinFlatMapFunction extends AbstractBroadcastJoinFlatMapFunction<LocatedRow, Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> {
 
     public BroadcastJoinFlatMapFunction() {
     }
@@ -45,46 +41,11 @@ public class BroadcastJoinFlatMapFunction extends SpliceFlatMapFunction<Broadcas
     }
 
     @Override
-    public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> call(Iterator<LocatedRow> locatedRows) throws Exception {
-        final PeekingIterator<LocatedRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
-        if (!initialized) {
-            operation = getOperation();
-            initialized = true;
-            Callable<Stream<ExecRow>> rhsLoader = new Callable<Stream<ExecRow>>() {
-                @Override
-                public Stream<ExecRow> call() throws Exception {
-                    final DataSetProcessor dsp = StreamUtils.getLocalDataSetProcessorFromActivation(BroadcastJoinFlatMapFunction.this.getOperation().getActivation(), operation.getRightOperation());
-                    return Streams.wrap(FluentIterable.from(new Iterable<LocatedRow>() {
-                        @Override
-                        public Iterator<LocatedRow> iterator() {
-                            try {
-                                return operation.getRightOperation().getDataSet(dsp).toLocalIterator();
-                            } catch (StandardException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }).transform(new Function<LocatedRow, ExecRow>() {
-                        @Nullable
-                        @Override
-                        public ExecRow apply(@Nullable LocatedRow locatedRow) {
-                            operationContext.recordJoinedRight();
-                            return locatedRow.getRow();
-                        }
-                    }));
-                }
-            };
-            ExecRow firstLeft;
-            if (leftPeekingIterator.peek() == null) {
-                firstLeft = operation.getLeftOperation().getExecRowDefinition();
-            } else {
-                firstLeft = leftPeekingIterator.peek().getRow();
-            }
-            joinTable = broadcastJoinCache.get(operationContext.getOperationUUID(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), firstLeft).newTable();
-        }
+    public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
         Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> result = FluentIterable.from(new Iterable<LocatedRow>() {
             @Override
             public Iterator<LocatedRow> iterator() {
-                return leftPeekingIterator;
+                return locatedRows;
             }
         }).transformAndConcat(
                 new Function<LocatedRow, Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>>>() {
