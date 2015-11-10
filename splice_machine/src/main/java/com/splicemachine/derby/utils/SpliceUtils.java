@@ -4,10 +4,14 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
@@ -34,6 +38,7 @@ import org.apache.zookeeper.ZooDefs;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -175,44 +180,8 @@ public class SpliceUtils extends SpliceUtilities {
         return operationFactory.newPut(txn,newRowKey);
     }
 
-    public static boolean isDelete(Mutation mutation) {
-        return mutation instanceof Delete || mutation.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
-    }
-
-    public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
-    	try {
-        byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
-        if(instructions==null) 
-        	return null;
-        return PipelineUtils.fromCompressedBytes(instructions, SpliceObserverInstructions.class);
-    	} catch (Exception e) {
-        	throw new RuntimeException();
-        }
-    }
-
     public static byte[] getUniqueKey(){
         return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-    }
-
-    public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
-        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
-        return generateInstructions(instructions);
-    }
-
-    public static byte[] generateInstructions(SpliceObserverInstructions instructions) {
-    	try {
-    		return PipelineUtils.toCompressedBytes(instructions);
-    	} catch (Exception e) {
-    		throw new RuntimeException(e);
-    	}
-    }
-
-    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
-        scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
-    }
-
-    public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){
-        scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(instructions));
     }
 
     public static boolean propertyExists(String propertyName) throws StandardException {
@@ -294,13 +263,6 @@ public class SpliceUtils extends SpliceUtilities {
         return hostName;
     }
 
-    private static void copyAttributes(OperationWithAttributes source, OperationWithAttributes dest) {
-        Map<String,byte[]> attributesMap = source.getAttributesMap();
-        for(Map.Entry<String,byte[]> attribute:attributesMap.entrySet()){
-            dest.setAttribute(attribute.getKey(),attribute.getValue());
-        }
-    }
-
     public static int[] getFormatIds(DataValueDescriptor[] dvds) {
         int[] ids = new int [dvds.length];
         for (int i = 0; i < dvds.length; ++i) {
@@ -308,4 +270,39 @@ public class SpliceUtils extends SpliceUtilities {
         }
         return ids;
     }
+
+    public static String validateSchema(String schema) throws SQLException {
+        if (schema == null)
+            schema = getCurrentSchema();
+        else
+            schema = schema.toUpperCase();
+        return schema;
+    }
+
+    public static String validateTable(String table) throws SQLException {
+        if (table == null)
+            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
+        else
+            table = table.toUpperCase();
+        return table;
+    }
+
+    public static String validateColumnName(String columnName) throws SQLException {
+        if (columnName == null)
+            throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
+        else
+            columnName = columnName.toUpperCase();
+        return columnName;
+    }
+
+    public static String getCurrentSchema() throws SQLException {
+        EmbedConnection connection = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        assert connection != null;
+        LanguageConnectionContext lcc = connection.getLanguageConnection();
+        assert lcc != null;
+        String schema = lcc.getCurrentSchemaName();
+        return schema;
+    }
+
+
 }
