@@ -1,13 +1,13 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.sparkproject.guava.collect.FluentIterable;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -17,7 +17,11 @@ import java.util.Iterator;
  * Created by dgomezferro on 11/6/15.
  */
 public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFunction<LocatedRow, Tuple2<LocatedRow,Iterable<LocatedRow>>> {
+    public CogroupBroadcastJoinFunction() {
+    }
+
     public CogroupBroadcastJoinFunction(OperationContext operationContext) {
+        super(operationContext);
     }
 
     @Override
@@ -32,7 +36,7 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                     @Nullable
                     @Override
                     public Tuple2<LocatedRow, Iterable<LocatedRow>> apply(@Nullable final LocatedRow left) {
-                        Iterable<ExecRow> inner = new Iterable<ExecRow>() {
+                        FluentIterable<LocatedRow> inner = FluentIterable.from(new Iterable<ExecRow>() {
                             @Override
                             public Iterator<ExecRow> iterator() {
                                 try {
@@ -41,7 +45,13 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                                     throw new RuntimeException(e);
                                 }
                             }
-                        };
+                        }).transform(new Function<ExecRow, LocatedRow>() {
+                            @Nullable
+                            @Override
+                            public LocatedRow apply(@Nullable ExecRow execRow) {
+                                return new LocatedRow(execRow);
+                            }
+                        });
                         return new Tuple2(left, inner);
                     }
                 });

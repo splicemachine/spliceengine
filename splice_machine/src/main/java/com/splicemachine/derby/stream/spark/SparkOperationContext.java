@@ -157,7 +157,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
                 if (prepared) {
-                    impl.resetContextManager();
+                    impl.popContextManager();
                 }
             }
             int len = in.readInt();

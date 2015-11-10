@@ -1,7 +1,6 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -20,6 +19,7 @@ import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
+import org.sparkproject.guava.collect.FluentIterable;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
