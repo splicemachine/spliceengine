@@ -13,7 +13,6 @@ import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
@@ -83,13 +82,6 @@ public class TableScannerBuilder implements Externalizable {
 			return this;
 	}
 
-		public TableScannerBuilder transactionID(String transactionID) {
-				throw new UnsupportedOperationException("REMOVE");
-//				assert transactionID!=null: "No transaction id specified";
-//				this.transactionID = transactionID;
-//				return this;
-		}
-
 		public TableScannerBuilder transaction(TxnView txn){
 				assert txn!=null: "No Transaction specified";
 				this.txn = txn;
@@ -103,7 +95,7 @@ public class TableScannerBuilder implements Externalizable {
 		 * that you are returning rows (a,c,d); then, the row decoding map would be [-1,-1,-1,2] (d's position
 		 * in the entire row is 3, so it has to be located at that index, and it's location in the decoded row is 2,
 		 * so that's the value).
-		 *
+
 		 * Note that the row decoding map should be -1 for all row elements which are kept in the key.
 		 *
 		 * @param rowDecodingMap the map for decoding the row values.

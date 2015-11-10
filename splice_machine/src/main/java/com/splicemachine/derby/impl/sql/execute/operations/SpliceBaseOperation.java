@@ -50,9 +50,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         private static Logger LOG_CLOSE = Logger.getLogger(SpliceBaseOperation.class.getName() + ".close");
         protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
 		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-		public static ThreadLocal<List<XplainOperationChainInfo>> operationChain =
-                new ThreadLocal<List<XplainOperationChainInfo>>();
-        protected XplainOperationChainInfo operationChainInfo;
 		/* Run time statistics variables */
 		public int numOpens;
 		public long beginTime;
@@ -525,14 +522,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
             isOpen = true;
-            // Skip all this for non Spark...  TODO JL
             String sql = activation.getPreparedStatement().getSource();
             long txnId = getCurrentTransaction().getTxnId();
             sql = sql==null?this.toString():sql;
             String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
             String jobName = userId + " <" + txnId + ">";
             dsp.setJobGroup(jobName,sql);
-
             this.locatedRowIterator = getDataSet(dsp).toLocalIterator();
         } catch (Exception e) { // This catches all the iterator errors for things that are not lazy.
             throw Exceptions.parseException(e);
