@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
+import com.splicemachine.derby.stream.function.broadcast.SubtractByKeyBroadcastJoinFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -157,19 +158,16 @@ public class BroadcastJoinOperation extends JoinOperation{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
-        DataSet<LocatedRow> rds = rightResultSet.getDataSet(dsp);
 
         operationContext.pushScope("Broadcast Join");
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
-        PairDataSet<ExecRow,LocatedRow> keyedLeftDataSet = leftDataSet.keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rds.map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
+            SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
         DataSet<LocatedRow> result;
         if (isOuterJoin) { // Outer Join with and without restriction
-                    result = keyedLeftDataSet.broadcastCogroup(rightDataSet)
-                            .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                    result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                            .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                             .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
@@ -178,7 +176,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                     result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                             .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    result = keyedLeftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
+                    result = leftDataSet.mapPartitions(new SubtractByKeyBroadcastJoinFunction(operationContext))
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join

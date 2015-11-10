@@ -80,7 +80,7 @@ public class UnionOperation extends SpliceBaseOperation {
 
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-		    return null;
+		    return leftResultSet.getExecRowDefinition();
 		}
 
 		@Override
