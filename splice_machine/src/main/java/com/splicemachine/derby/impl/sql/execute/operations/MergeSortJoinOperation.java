@@ -186,8 +186,8 @@ public class MergeSortJoinOperation extends JoinOperation {
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet)
-                            .flatmap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet).values()
+                            .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
@@ -195,8 +195,8 @@ public class MergeSortJoinOperation extends JoinOperation {
             } else { // Inner Join
 
                 if (isOneRowRightSide()) {
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet)
-                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet).values()
+                            .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
 
 
