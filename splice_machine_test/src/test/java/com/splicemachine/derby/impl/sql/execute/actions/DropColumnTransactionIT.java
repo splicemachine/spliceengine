@@ -286,7 +286,7 @@ public class DropColumnTransactionIT {
             Assert.fail("No write conflict detected!");
         }catch(SQLException se){
             Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
-                                ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
+                                ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
         }
     }
 

@@ -185,6 +185,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             int[] columnOrdering = conglomerate.getColumnOrdering();
 
             DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
+            StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
             childTxn = beginChildTransaction(indexTransaction, indexConglomId);
             Scan tableScan = createScan();
             HTableScannerBuilder hTableScannerBuilder = new HTableScannerBuilder()

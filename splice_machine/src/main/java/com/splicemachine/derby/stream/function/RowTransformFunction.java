@@ -39,6 +39,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
 
         KVPair kvPair = rowTransformer.transform(row);
         if (kvPair.getRowKey().length == 0) {
+            // If this is a dummy row key, reuse the original row key
             kvPair.setKey(locatedRow.getRowLocation().getBytes());
         }
 

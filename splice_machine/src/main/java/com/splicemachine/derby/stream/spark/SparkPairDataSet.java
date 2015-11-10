@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.SQLInteger;
@@ -268,10 +269,10 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             JavaSparkContext context = SpliceSpark.getContext();
             rdd.saveAsNewAPIHadoopDataset(conf);
             ValueRow valueRow = new ValueRow(1);
-            //valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
+            valueRow.setColumn(1,new SQLInteger(0));
             return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(Throwables.getRootCause(e));
         }
     }
 }

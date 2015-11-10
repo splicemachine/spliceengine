@@ -412,6 +412,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         Activation activation = conn.getLanguageConnection().getLastActivation();
         long[] statsTableIds = getStatsConglomerateIds();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
+        StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
         OperationContext context = dsp.createOperationContext(activation);
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn,statsTableIds[0]);
         InsertTableWriterBuilder tableWriterBuilder = getTableWriterBuilder(conn, txn, statsTableIds[1]);

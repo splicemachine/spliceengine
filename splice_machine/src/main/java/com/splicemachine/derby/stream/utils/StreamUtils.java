@@ -1,13 +1,19 @@
 package com.splicemachine.derby.stream.utils;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.control.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
+import com.splicemachine.si.api.TxnView;
 import org.apache.log4j.Logger;
 
 /**
@@ -61,4 +67,20 @@ public class StreamUtils {
     }
 
 
+    public static void setupSparkJob(DataSetProcessor dsp, Activation activation, String description,
+                                     String schedulePool) throws StandardException {
+        String sql = activation.getPreparedStatement().getSource();
+        long txnId = getCurrentTransaction(activation).getTxnId();
+        sql = (sql == null) ? description : sql;
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        String jobName = userId + " <" + txnId + ">";
+        dsp.setJobGroup(jobName,sql);
+        dsp.setSchedulerPool(schedulePool);
+    }
+
+    private static TxnView getCurrentTransaction(Activation activation) throws StandardException {
+        TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+        return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+    }
 }

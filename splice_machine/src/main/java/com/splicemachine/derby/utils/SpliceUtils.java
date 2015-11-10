@@ -2,22 +2,17 @@ package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -26,7 +21,6 @@ import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.*;
@@ -40,7 +34,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 
 /**
  *
