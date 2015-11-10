@@ -68,14 +68,12 @@ import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -90,19 +88,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void DISABLE_COLUMN_STATISTICS(String schema,
                                                  String table,
                                                  String columnName) throws SQLException {
-
-        if (schema == null)
-            schema = getCurrentSchema();
-        else
-            schema = schema.toUpperCase();
-        if (table == null)
-            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-        else
-            table = table.toUpperCase();
-        if (columnName == null)
-            throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
-        else
-            columnName = columnName.toUpperCase();
+        schema = SpliceUtils.validateSchema(schema);
+        table = SpliceUtils.validateTable(table);
+        columnName = SpliceUtils.validateColumnName(columnName);
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn, schema, table);
@@ -135,19 +123,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void ENABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException {
-        if (schema == null)
-            schema = getCurrentSchema();
-        else
-            schema = schema.toUpperCase();
-        if (table == null)
-            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-        else
-            table = table.toUpperCase();
-        if (columnName == null)
-            throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
-        else
-            columnName = columnName.toUpperCase();
-
+        schema = SpliceUtils.validateSchema(schema);
+        table = SpliceUtils.validateTable(table);
+        columnName = SpliceUtils.validateColumnName(columnName);
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn, schema, table);
@@ -266,13 +244,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ResultSet[] outputResults) throws SQLException {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
-            if (schema == null)
-                schema = getCurrentSchema();
-            if (table == null)
-                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
-
-            schema = schema.toUpperCase();
-            table = table.toUpperCase();
+            schema = SpliceUtils.validateSchema(schema);
+            table = SpliceUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
             List<TableDescriptor> tableDescriptorList = new ArrayList<>();
             tableDescriptorList.add(tableDesc);
@@ -418,147 +391,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                          EmbedConnection conn,
                                                          boolean staleOnly) throws StandardException, ExecutionException {
 
-        List<ExecRow> tableStatisticsrows = collectBaseTableStatistics(table, txn, templateOutputRow, conn, staleOnly);
-        List<ExecRow> indexStatisticsRows = Lists.newArrayList();
-
-        long heapConglomerateId = table.getHeapConglomerateId();
-        List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
-        //get the indices for the table
-        IndexLister indexLister = table.getIndexLister();
-        IndexRowGenerator[] indexGenerators;
-        if (indexLister != null) {
-            indexGenerators = indexLister.getDistinctIndexRowGenerators();
-        } else
-            indexGenerators = new IndexRowGenerator[]{};
-
-        // collect statistics for all indexes
-        if (indexGenerators.length > 0) {
-            //we know this is safe because we've actually already checked for it
-            @SuppressWarnings("ConstantConditions") long[] indexConglomIds = indexLister
-                    .getDistinctIndexConglomerateNumbers();
-            String[] distinctIndexNames = indexLister.getDistinctIndexNames();
-            for (int i = 0; i < indexGenerators.length; i++) {
-                IndexRowGenerator irg = indexGenerators[i];
-                long indexConglomId = indexConglomIds[i];
-                Collection<HRegionInfo> indexRegions = getCollectedRegions(conn, indexConglomId, staleOnly);
-                indexStatisticsRows.addAll(collectIndexStatistics(conn, irg, indexConglomId, distinctIndexNames[i], table,
-                        colsToCollect, templateOutputRow, txn, staleOnly));
-            }
-        }
-        indexStatisticsRows.addAll(tableStatisticsrows);
-        return indexStatisticsRows;
-    }
-
-    private static List<ExecRow> collectIndexStatistics(EmbedConnection conn,
-                                                        IndexRowGenerator irg,
-                                                        long indexConglomerateId,
-                                                        String indexName,
-                                                        TableDescriptor table,
-                                                        List<ColumnDescriptor> columnsToCollect,
-                                                        ExecRow templateOutputRow,
-                                                        TxnView txn,
-                                                        boolean staleOnly) throws StandardException, ExecutionException  {
-
-        DataValueDescriptor[] dvds = templateOutputRow.getRowArray();
-        dvds[0].setValue(table.getSchemaName());
-        Collection<HRegionInfo> regionsToCollect = getCollectedRegions(conn, indexConglomerateId, staleOnly);
-        int partitionSize = regionsToCollect.size();
-        dvds[1].setValue(indexName);
-        dvds[2].setValue(partitionSize);
-        dvds[3].setValue(partitionSize);
-
-        long[] statsTableIds = getStatsConglomerateIds();
-        Activation activation = conn.getLanguageConnection().getLastActivation();
-        List<ExecRow> rows = Lists.newArrayList();
-        DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
-        OperationContext context = dsp.createOperationContext(activation);
-        TableScannerBuilder tableScannerBuilder = createIndexStatisticsScanner(table, irg, columnsToCollect, txn);
-
-        SparkDataSet dataSet = (SparkDataSet)dsp.getTableScanner(activation, tableScannerBuilder, (new Long(indexConglomerateId).toString()));
-
-        InsertTableWriterBuilder tableWriterBuilder = getTableWriterBuilder(conn, txn, statsTableIds[1]);
-
-        dataSet.index(new InsertPairFunction()).insertData(tableWriterBuilder, context);
-        dvds[4].setValue(dataSet.count());
-        rows.add(templateOutputRow.getClone());
-        invalidateStatisticsCache(indexConglomerateId);
-        return rows;
-    }
-
-    private static TableScannerBuilder createIndexStatisticsScanner(TableDescriptor baseTable,
-                                                                    IndexRowGenerator irg,
-                                                                    List<ColumnDescriptor> columnsToCollect,
-                                                                    TxnView txn) throws StandardException, ExecutionException{
-        ExecRow indexRow = irg.getIndexRowTemplate();
-        int[] baseColumnPositions = irg.baseColumnPositions();
-        int keyCols = indexRow.nColumns();
-        if (irg.isUnique()) keyCols--;
-
-        int[] fieldLengths = new int[indexRow.nColumns()];
-        int[] keyBasePositionMap = new int[indexRow.nColumns()];
-
-        int[] keyTypes = new int[keyCols];
-        int[] keyEncodingOrder = new int[keyCols];
-        boolean[] keySortOrder = new boolean[keyCols];
-        System.arraycopy(irg.isAscending(), 0, keySortOrder, 0, irg.isAscending().length);
-        int[] keyDecodingMap = IntArrays.count(keyCols);
-        int nextColPos = 1;
-        for (int keyColumn : baseColumnPositions) {
-            for (ColumnDescriptor cd : columnsToCollect) {
-                int colPos = cd.getPosition();
-                if (colPos == keyColumn) {
-                    /*
-                     * We have the column information for this position in the row, so fill
-                     * the value
-                     */
-                    DataTypeDescriptor type = cd.getType();
-                    DataValueDescriptor val = type.getNull();
-                    indexRow.setColumn(nextColPos, val);
-                    keyTypes[nextColPos - 1] = val.getTypeFormatId();
-                    keyEncodingOrder[nextColPos - 1] = colPos - 1;
-                    fieldLengths[nextColPos - 1] = type.getMaximumWidth();
-                    keyBasePositionMap[nextColPos - 1] = colPos;
-                    nextColPos++;
-                    break;
-                }
-            }
-        }
-        HBaseRowLocation value = new HBaseRowLocation();
-        indexRow.setColumn(indexRow.nColumns(), value);
-        int[] rowDecodingMap;
-        if (!irg.isUnique()) {
-            keySortOrder[indexRow.nColumns() - 1] = true;
-            keyTypes[indexRow.nColumns() - 1] = value.getTypeFormatId();
-            rowDecodingMap = new int[0];
-        } else {
-            keyBasePositionMap[nextColPos - 1] = -1;
-            rowDecodingMap = new int[]{indexRow.nColumns() - 1};
-        }
-        FormatableBitSet collectedKeyColumns = new FormatableBitSet(baseColumnPositions.length);
-        for (int i = 0; i < keyEncodingOrder.length; i++) {
-            collectedKeyColumns.grow(i + 1);
-            collectedKeyColumns.set(i);
-        }
-
-        int[] execRowFormatIds = new int[indexRow.nColumns()];
-        for (int i = 0; i < indexRow.nColumns(); ++i) {
-            execRowFormatIds[i] = indexRow.getColumn(i+1).getFormat().getStoredFormatId();
-        }
-        Scan scan = createScan(txn);
-        return new TableScannerBuilder()
-                .transaction(txn)
-                .execRowTypeFormatIds(execRowFormatIds)
-                .scan(scan)
-                .rowDecodingMap(rowDecodingMap)
-                .keyColumnEncodingOrder(keyEncodingOrder)
-                .keyColumnSortOrder(keySortOrder)
-                .keyColumnTypes(keyTypes)
-                .keyDecodingMap(keyDecodingMap)
-                .accessedKeyColumns(collectedKeyColumns)
-                .tableVersion(baseTable.getVersion())
-                .fieldLengths(fieldLengths)
-                .columnPositionMap(keyBasePositionMap)
-                .baseTableConglomId(baseTable.getHeapConglomerateId());
+        return collectBaseTableStatistics(table, txn, templateOutputRow, conn, staleOnly);
+        // Add Index Cardinality Calculation
     }
 
     private static List <ExecRow> collectBaseTableStatistics(TableDescriptor table,
@@ -575,12 +409,11 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         dvds[1].setValue(table.getName());
         dvds[2].setValue(partitionSize);
         dvds[3].setValue(partitionSize);
-
         Activation activation = conn.getLanguageConnection().getLastActivation();
         long[] statsTableIds = getStatsConglomerateIds();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
         OperationContext context = dsp.createOperationContext(activation);
-        TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn);
+        TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn,statsTableIds[0]);
         InsertTableWriterBuilder tableWriterBuilder = getTableWriterBuilder(conn, txn, statsTableIds[1]);
         SparkDataSet dataSet = (SparkDataSet)dsp.getTableScanner(activation, tableScannerBuilder, (new Long(heapConglomerateId).toString()));
         dataSet.index(new InsertPairFunction()).insertData(tableWriterBuilder, context);
@@ -671,7 +504,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     private static TableScannerBuilder createTableScannerBuilder(EmbedConnection conn,
                                                               TableDescriptor table,
-                                                              TxnView txn) throws StandardException {
+                                                              TxnView txn, long conglomId) throws StandardException {
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
         ExecRow row = new ValueRow(colsToCollect.size());
@@ -723,7 +556,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             }
         }
-
         Scan scan = createScan(txn);
         return new TableScannerBuilder()
                 .transaction(txn)
@@ -734,6 +566,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .keyColumnSortOrder(keyColumnSortOrder)
                 .keyColumnTypes(keyColumnTypes)
                 .keyDecodingMap(keyDecodingMap)
+                .baseTableConglomId(conglomId)
                 .accessedKeyColumns(collectedKeyColumns)
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
@@ -897,14 +730,5 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             }
         }
-    }
-
-    private static String getCurrentSchema() throws SQLException {
-
-        EmbedConnection connection = (EmbedConnection) SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = connection.getLanguageConnection();
-        String schema = lcc.getCurrentSchemaName();
-
-        return schema;
     }
 }
