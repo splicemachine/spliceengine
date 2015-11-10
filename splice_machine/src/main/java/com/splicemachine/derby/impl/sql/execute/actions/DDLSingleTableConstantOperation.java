@@ -12,9 +12,14 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.si.api.TxnView;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -52,7 +57,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	 */
 	void dropConstraint(ConstraintDescriptor consDesc,Activation activation, LanguageConnectionContext lcc,
 		boolean clearDeps) throws StandardException {
-		SpliceLogUtils.trace(LOG, "dropConstraint %s",consDesc);
+		SpliceLogUtils.trace(LOG, "dropConstraint %s", consDesc);
 		dropConstraint(consDesc, null, null, activation, lcc, clearDeps);
 	}
 

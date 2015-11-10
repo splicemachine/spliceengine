@@ -12,7 +12,10 @@ import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -528,6 +531,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
                 constraintColumnNames + ")");
 
+            // Read from old conglomerate, transform each row and write to new conglomerate.
             transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
@@ -786,6 +790,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
                 constraintColumnNames + ")");
 
+            // Read from old conglomerate, transform each row and write to new conglomerate.
             transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
@@ -1371,16 +1376,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         int			   numRows = 0;
 
         ScanController sc = tc.openScan(td.getHeapConglomerateId(),
-                                        false,    // hold
-                                        0,        // open read only
-                                        TransactionController.MODE_TABLE,
-                                        TransactionController.ISOLATION_SERIALIZABLE,
-                                        RowUtil.EMPTY_ROW_BITSET, // scanColumnList
-                                        null,    // start position
-                                        ScanController.GE,      // startSearchOperation
-                                        null, // scanQualifier
-                                        null, //stop position - through last row
-                                        ScanController.GT);     // stopSearchOperation
+                false,    // hold
+                0,        // open read only
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_SERIALIZABLE,
+                RowUtil.EMPTY_ROW_BITSET, // scanColumnList
+                null,    // start position
+                ScanController.GE,      // startSearchOperation
+                null, // scanQualifier
+                null, //stop position - through last row
+                ScanController.GT);     // stopSearchOperation
 
         while (sc.next()) {
             numRows++;
@@ -1701,17 +1706,21 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return populateTxn;
     }
 
+
     protected void transformAndWriteToNewConglomerate(Activation activation,
                                                       TxnView parentTxn,
                                                       DDLChange ddlChange,
                                                       long demarcationPoint) throws IOException, StandardException {
 
         Txn childTxn = beginChildTransaction(parentTxn, ddlChange);
+        // create a scanner to scan old conglomerate
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(childTxn, demarcationPoint, ddlChange);
         long baseConglomerateNumber = ddlChange.getTentativeDDLDesc().getBaseConglomerateNumber();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
+        StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
         DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, new Long(baseConglomerateNumber).toString());
 
+        //Create table writer for new conglomerate
         HTableWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);
 
         dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction()).writeKVPair(tableWriter);
@@ -1719,6 +1728,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         childTxn.commit();
     }
 
+    // Create a table writer to wrte KVPairs to new conglomerate, skipping index writing.
     private HTableWriterBuilder createTableWriterBuilder(TxnView txn, DDLChange ddlChange) {
         HTableWriterBuilder tableWriterBuilder = new HTableWriterBuilder()
                 .txn(txn)
@@ -1729,6 +1739,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
     }
 
+    // Create a table scanner for old conglomerate. Make sure to pass in demarcation point to pick up writes before it.
     private TableScannerBuilder createTableScannerBuilder(Txn txn, long demarcationPoint, DDLChange ddlChange) throws IOException{
 
         TableScannerBuilder builder =
@@ -1743,6 +1754,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return builder;
     }
 
+    // Create a table scan for old conglomerate. Make sure to create a NonSI table scan. Transaction filtering
+    // will happen at client side
     private Scan createScan() {
         Scan scan = SpliceUtils.createScan(null);
         scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);

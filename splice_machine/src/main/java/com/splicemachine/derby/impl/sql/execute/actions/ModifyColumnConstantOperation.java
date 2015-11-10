@@ -417,9 +417,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "AddColumn("+colInfo.name+")");
+            // Read from old conglomerate, transform each row and write to new conglomerate.
             transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
-
-
+            populateTxn.commit();
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
@@ -1646,8 +1646,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn(" + columnName + ")");
 
+            // Read from old conglomerate, transform each row and write to new conglomerate.
             transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
-
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
