@@ -108,34 +108,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> broadcastLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
-        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
-        JavaSparkContext context = SpliceSpark.getContext();
-        Multimap<K,W> rightBroadcast = generateMultimap(rightPairDataSet);
-        final Broadcast<Multimap<K,W>> broadcast = context.broadcast(rightBroadcast);
-        return new SparkPairDataSet(rdd.flatMapToPair(new LeftOuterJoinPairFlatMapFunction(broadcast)));
-    }
-
-
-    @Override
-    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> broadcastRightOuterJoin(PairDataSet< K, W> rightDataSet) {
-        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
-        JavaSparkContext context = SpliceSpark.getContext();
-        Multimap<K,V> leftDataSet = generateMultimap(rdd);
-        Broadcast<Multimap<K,V>> broadcast = context.broadcast(leftDataSet);
-        return new SparkPairDataSet(rightPairDataSet.flatMapToPair(new RightOuterJoinPairFlatMapFunction(broadcast)));
-    }
-
-    @Override
-    public <W> PairDataSet< K, Tuple2<V, W>> broadcastJoin(PairDataSet< K, W> rightDataSet) {
-        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
-        JavaSparkContext context = SpliceSpark.getContext();
-        Multimap<K, W> rightBroadcast = generateMultimap(rightPairDataSet);
-        final Broadcast<Multimap<K, W>> broadcast = context.broadcast(rightBroadcast);
-        return new SparkPairDataSet(rdd.flatMapToPair(new JoinPairFlatMapFunction(broadcast)));
-    }
-
-    @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.subtractByKey(((SparkPairDataSet) rightDataSet).rdd));
     }
@@ -146,26 +118,8 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet<K, V> broadcastSubtractByKey(PairDataSet<K, W> rightDataSet) {
-        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
-        JavaSparkContext context = SpliceSpark.getContext();
-        Set<K> keyBroadcast = generateKeySet(rightPairDataSet);
-        Broadcast<Set<K>> broadcast = context.broadcast(keyBroadcast);
-        return new SparkPairDataSet(rdd.flatMapToPair(new SubtractByKeyPairFlatMapFunction(broadcast)));
-    }
-
-    @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd));
-    }
-
-    @Override
-    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
-        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
-        JavaSparkContext context = SpliceSpark.getContext();
-        Multimap<K,W> rightBroadcast = generateMultimap(rightPairDataSet);
-        final Broadcast<Multimap<K,W>> broadcast = context.broadcast(rightBroadcast);
-        return new SparkPairDataSet(rdd.groupByKey().mapToPair(new CoGroupPairFunction(broadcast)));
     }
 
     @Override

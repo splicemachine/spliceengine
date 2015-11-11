@@ -186,21 +186,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> broadcastLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
-        return hashLeftOuterJoin(rightDataSet);
-    }
-
-    @Override
-    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> broadcastRightOuterJoin(PairDataSet< K, W> rightDataSet) {
-        return hashRightOuterJoin(rightDataSet);
-    }
-
-    @Override
-    public <W> PairDataSet< K, Tuple2<V, W>> broadcastJoin(PairDataSet< K, W> rightDataSet) {
-        return hashJoin(rightDataSet);
-    }
-
-    @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
@@ -248,11 +233,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet<K, V> broadcastSubtractByKey(PairDataSet<K, W> rightDataSet) {
-        return subtractByKey(rightDataSet);
-    }
-
-    @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         Multimap<K, V> left = multimapFromIterable(source);
         Multimap<K, W> right = multimapFromIterable(((ControlPairDataSet<K, W>) rightDataSet).source);
@@ -261,11 +241,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         for (K key: Sets.union(left.keySet(),right.keySet()))
             result.add(new Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>(key, new Tuple2(left.get(key), right.get(key))));
         return new ControlPairDataSet<>(result);
-    }
-
-    @Override
-    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
-        return cogroup(rightDataSet);
     }
 
     @Override
