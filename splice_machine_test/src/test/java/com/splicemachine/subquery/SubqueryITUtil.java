@@ -58,18 +58,29 @@ public class SubqueryITUtil {
     public static void assertSubqueryNodeCount(Connection connection,
                                                String query,
                                                int expectedSubqueryCountInPlan) throws Exception {
-        ResultSet rs2 = connection.createStatement().executeQuery("explain " + query);
-        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs2);
-        assertEquals(expectedSubqueryCountInPlan, countSubqueriesInPlan(explainPlanText));
+        ResultSet resultSet = connection.createStatement().executeQuery("explain " + query);
+        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(resultSet);
+        assertEquals(expectedSubqueryCountInPlan, countNodesInPlan(explainPlanText, "Subquery"));
     }
 
     /**
-     * Counts the number of Subquery nodes that appear in the explain plan text for a given query.
+     * Assert that the plan for the specified query has the expected number of Distinct nodes.
      */
-    private static int countSubqueriesInPlan(String a) {
-        Pattern pattern = Pattern.compile("^.*?Subquery\\s*\\(", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+    public static void assertDistinctNodeCount(Connection connection,
+                                               String query,
+                                               int expectedDistinctCountInPlan) throws Exception {
+        ResultSet resultSet = connection.createStatement().executeQuery("explain " + query);
+        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(resultSet);
+        assertEquals(expectedDistinctCountInPlan, countNodesInPlan(explainPlanText, "Distinct"));
+    }
+
+    /**
+     * Counts the number of nodes that appear in the explain plan text for a given query.
+     */
+    private static int countNodesInPlan(String explainPlanOutput, String nodeName) {
+        Pattern pattern = Pattern.compile("^.*?" + nodeName + "\\s*\\(", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
         int count = 0;
-        Matcher matcher = pattern.matcher(a);
+        Matcher matcher = pattern.matcher(explainPlanOutput);
         while (matcher.find()) {
             count++;
 

@@ -719,6 +719,22 @@ public class Subquery_Flattening_Exists_IT {
     }
 
     @Test
+    public void notFlattened_subqueryHasAggregates() throws Exception {
+        assertUnorderedResult(conn(), "select * from A where exists (select d1,sum(d2) from D where d1=a1 group by d1)", ONE_SUBQUERY_NODE, "" +
+                "A1 |A2  |\n" +
+                "---------\n" +
+                " 0 | 0  |\n" +
+                " 1 |10  |\n" +
+                "11 |110 |\n" +
+                "12 |120 |\n" +
+                "12 |120 |\n" +
+                " 5 |50  |\n" +
+                " 6 |60  |\n" +
+                " 7 |70  |"
+        );
+    }
+
+    @Test
     public void notFlattened_unCorrelatedWithLimits() throws Exception {
         assertUnorderedResult(conn(), "select * from A where exists (select 1 from D {limit 1})", ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
     }
