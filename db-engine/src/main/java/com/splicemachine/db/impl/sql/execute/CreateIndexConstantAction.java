@@ -40,7 +40,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.TypeId;
-
 import java.util.Properties;
 
 // Used only to access a debug flag, will be removed or replaced.
@@ -876,22 +875,6 @@ class CreateIndexConstantAction extends IndexConstantAction
         CardinalityCounter cCount = (CardinalityCounter)rowSource;
 
         long numRows = cCount.getRowCount();
-        if (addStatistics(dd, indexRowGenerator, numRows))
-        {
-            long[] c = cCount.getCardinality();
-            for (int i = 0; i < c.length; i++)
-            {
-                StatisticsDescriptor statDesc =
-                    new StatisticsDescriptor(dd,
-                        dd.getUUIDFactory().createUUID(),
-                        conglomerateUUID, td.getUUID(), "I",
-                        new StatisticsImpl(numRows, c[i]), i + 1);
-
-                dd.addDescriptor(statDesc, null,
-                                 DataDictionary.SYSSTATISTICS_CATALOG_NUM,
-                                 true, tc);
-            }
-        }
     }
 
     /**

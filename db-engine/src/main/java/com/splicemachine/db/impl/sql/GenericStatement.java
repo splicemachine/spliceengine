@@ -2,7 +2,6 @@ package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.daemon.IndexStatisticsDaemon;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -14,7 +13,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -23,7 +21,6 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -613,28 +610,11 @@ public class GenericStatement implements Statement{
             preparedStmt.completeCompile(qt);
             preparedStmt.setCompileTimeWarnings(cc.getWarnings());
 
-            scheduleStatsUpdates(lcc,qt);
-
         }catch(StandardException e){    // hold it, throw it
             lcc.commitNestedTransaction();
             throw e;
         }
         return endTimestamp;
-    }
-
-    private void scheduleStatsUpdates(LanguageConnectionContext lcc,StatementNode qt) throws StandardException{
-        // Schedule updates of any stale index statistics we may
-        // have detected when creating the plan.
-        TableDescriptor[] tds=qt.updateIndexStatisticsFor();
-        if(tds.length>0){
-            IndexStatisticsDaemon isd=lcc.getDataDictionary().
-                    getIndexStatsRefresher(true);
-            if(isd!=null){
-                for(TableDescriptor td : tds){
-                    isd.schedule(td);
-                }
-            }
-        }
     }
 
     private void printStatementLine(LanguageConnectionContext lcc,HeaderPrintWriter istream,String endStatement){

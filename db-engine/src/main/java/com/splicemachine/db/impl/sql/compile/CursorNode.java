@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.CursorTableReference;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -69,12 +68,6 @@ public class CursorNode extends DMLStatementNode{
     private List<String> updatableColumns;
     private FromTable updateTable;
     private ResultColumnDescriptor[] targetColumnDescriptors;
-    /**
-     * List of {@code TableDescriptor}s for base tables whose associated
-     * indexes should be checked for stale statistics.
-     */
-    private List<TableDescriptor> statsToUpdate;
-    private boolean checkIndexStats;
 
     //If cursor references session schema tables, save the list of those table names in savedObjects in compiler context
     //Following is the position of the session table names list in savedObjects in compiler context
@@ -187,7 +180,6 @@ public class CursorNode extends DMLStatementNode{
         DataDictionary dataDictionary;
 
         dataDictionary=getDataDictionary();
-        checkIndexStats=(dataDictionary.getIndexStatsRefresher(true)!=null);
 
         // This is how we handle queries like: SELECT A FROM T ORDER BY B.
         // We pull up the order by columns (if they don't appear in the SELECT
@@ -508,38 +500,6 @@ public class CursorNode extends DMLStatementNode{
         return null;
     }
 
-    /**
-     * Returns a list of base tables for which the index statistics of the
-     * associated indexes should be updated.
-     *
-     * @return A list of table descriptors (potentially empty).
-     * @throws StandardException if accessing the index descriptors of a base
-     *                           table fails
-     */
-    @Override
-    public TableDescriptor[] updateIndexStatisticsFor() throws StandardException{
-        if(!checkIndexStats || statsToUpdate==null){
-            return EMPTY_TD_LIST;
-        }
-        // Remove table descriptors whose statistics are considered up-to-date.
-        // Iterate backwards to remove elements, chances are high the stats are
-        // mostly up-to-date (minor performance optimization to avoid copy).
-        for(int i=statsToUpdate.size()-1;i>=0;i--){
-            TableDescriptor td=statsToUpdate.get(i);
-            if(td.getAndClearIndexStatsIsUpToDate()){
-                statsToUpdate.remove(i);
-            }
-        }
-        if(statsToUpdate.isEmpty()){
-            return EMPTY_TD_LIST;
-        }else{
-            TableDescriptor[] tmp=new TableDescriptor[statsToUpdate.size()];
-            statsToUpdate.toArray(tmp);
-            statsToUpdate.clear();
-            return tmp;
-        }
-    }
-
     public ConstantAction makeConstantAction() throws StandardException{
         if(resultSet==null) return null;
         return resultSet.makeConstantAction();
@@ -627,17 +587,6 @@ public class CursorNode extends DMLStatementNode{
             //    MIN_SELECT_PRIV requirement.
             getCompilerContext().addRequiredColumnPriv(
                     td.getColumnDescriptor(1));
-        }
-        // Save a list of base tables to check the index statistics for at a
-        // later time. We want to compute statistics for base user tables only,
-        // not for instance system tables or VTIs (see TableDescriptor for a
-        // list of all available "table types").
-        if(checkIndexStats &&
-                td.getTableType()==TableDescriptor.BASE_TABLE_TYPE){
-            if(statsToUpdate==null){
-                statsToUpdate=new ArrayList<TableDescriptor>();
-            }
-            statsToUpdate.add(td);
         }
     }
 

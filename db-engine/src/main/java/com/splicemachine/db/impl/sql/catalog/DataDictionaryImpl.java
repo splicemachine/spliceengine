@@ -34,7 +34,6 @@ import com.splicemachine.db.iapi.services.cache.CacheManager;
 import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.daemon.IndexStatisticsDaemon;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.locks.*;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -135,11 +134,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     protected ExecutionFactory exFactory;
     protected UUIDFactory uuidFactory;
-    /**
-     * Daemon creating and refreshing index cardinality statistics.
-     */
-    private IndexStatisticsDaemon indexRefresher;
-
     Properties startupParameters;
     int engineType;
 
@@ -194,16 +188,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     private boolean readOnlyUpgrade;
 
-    /**
-     * Tells if the automatic index statistics refresher has been disabled.
-     * <p/>
-     * The refresher can be disabled explicitly by the user by setting a
-     * property (system wide or database property), or if the daemon encounters
-     * an exception it doesn't know how to recover from.
-     */
-    private boolean indexStatsUpdateDisabled;
-    private boolean indexStatsUpdateLogging;
-    private String indexStatsUpdateTracing;
 
     //systemSQLNameNumber is the number used as the last digit during the previous call to getSystemSQLName.
     //If it is 9 for a given calendarForLastSystemSQLName, we will restart the counter to 0
@@ -380,21 +364,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         value=startParams.getProperty(Property.LANG_PERMISSIONS_CACHE_SIZE);
         permissionsCacheSize=PropertyUtil.intPropertyValue(Property.LANG_PERMISSIONS_CACHE_SIZE,value,
                 0,Integer.MAX_VALUE,Property.LANG_PERMISSIONS_CACHE_SIZE_DEFAULT);
-
-        // See if automatic index statistics update is disabled through a
-        // system wide property. May be overridden by a database specific
-        // property later on.
-        // The default is that automatic index statistics update is enabled.
-        indexStatsUpdateDisabled=!PropertyUtil.getSystemBoolean(
-                Property.STORAGE_AUTO_INDEX_STATS,true);
-
-        // See if we should enable logging of index stats activities.
-        indexStatsUpdateLogging=PropertyUtil.getSystemBoolean(
-                Property.STORAGE_AUTO_INDEX_STATS_LOGGING);
-
-        // See if we should enable tracing of index stats activities.
-        indexStatsUpdateTracing=PropertyUtil.getSystemProperty(
-                Property.STORAGE_AUTO_INDEX_STATS_TRACING,"off");
 
 		/*
          * data dictionary contexts are only associated with connections.
@@ -573,33 +542,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // Get the ids for non-core tables
                 loadDictionaryTables(bootingTC,startParams);
 
-                // See if index stats update is disabled by a database prop.
-                String dbIndexStatsUpdateAuto=
-                        PropertyUtil.getDatabaseProperty(bootingTC,
-                                Property.STORAGE_AUTO_INDEX_STATS);
-                if(dbIndexStatsUpdateAuto!=null){
-                    indexStatsUpdateDisabled=!Boolean.valueOf(dbIndexStatsUpdateAuto);
-                }
-                String dbEnableIndexStatsLogging=
-                        PropertyUtil.getDatabaseProperty(bootingTC,
-                                Property.STORAGE_AUTO_INDEX_STATS_LOGGING);
-                if(dbEnableIndexStatsLogging!=null){
-                    indexStatsUpdateLogging=Boolean.valueOf(dbEnableIndexStatsLogging);
-                }
-                String dbEnableIndexStatsTracing=
-                        PropertyUtil.getDatabaseProperty(bootingTC,
-                                Property.STORAGE_AUTO_INDEX_STATS_TRACING);
-                if(dbEnableIndexStatsTracing!=null){
-                    if(!(dbEnableIndexStatsTracing.equalsIgnoreCase("off") ||
-                            dbEnableIndexStatsTracing.equalsIgnoreCase("log") ||
-                            dbEnableIndexStatsTracing.equalsIgnoreCase("stdout") ||
-                            dbEnableIndexStatsTracing.equalsIgnoreCase("both"))){
-                        indexStatsUpdateTracing="off";
-                    }else{
-                        indexStatsUpdateTracing=dbEnableIndexStatsTracing;
-                    }
-                }
-
                 String sqlAuth=PropertyUtil.getDatabaseProperty(bootingTC,
                         Property.SQL_AUTHORIZATION_PROPERTY);
 
@@ -722,13 +664,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void stop(){
-        // Shut down the index statistics refresher, mostly to make it print
-        // processing stats
-        // Not sure if the reference can be null here, but it may be possible
-        // if multiple threads are competing to boot and shut down the db.
-        if(indexRefresher!=null){
-            indexRefresher.stop();
-        }
     }
 
     /*
@@ -4615,40 +4550,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
-     * Returns all the statistics descriptors for the given table.
-     * <p/>
-     * NOTE: As opposed to most other data dictionary lookups, this operation is
-     * performed with isolation level READ_UNCOMMITTED. The reason is to avoid
-     * deadlocks with inserts into the statistics system table.
-     *
-     * @param td {@code TableDescriptor} for which I need statistics
-     * @return A list of tuple descriptors, possibly empty.
-     */
-    @Override
-    public List<StatisticsDescriptor> getStatisticsDescriptors(TableDescriptor td) throws StandardException{
-        TabInfoImpl ti=getNonCoreTI(SYSSTATISTICS_CATALOG_NUM);
-        List<StatisticsDescriptor> statDescriptorList=newSList();
-        DataValueDescriptor UUIDStringOrderable;
-
-		/* set up the start/stop position for the scan */
-        UUIDStringOrderable=getIDValueAsCHAR(td.getUUID());
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,UUIDStringOrderable);
-
-        getDescriptorViaIndex(SYSSTATISTICSRowFactory.SYSSTATISTICS_INDEX1_ID,
-                keyRow,
-                null,
-                ti,
-                null,
-                statDescriptorList,
-                false,
-                TransactionController.ISOLATION_READ_UNCOMMITTED,
-                getTransactionCompile());
-
-        return statDescriptorList;
-    }
-
-    /**
      * Load up the constraint descriptor list for this table
      * descriptor and return it.  If the descriptor list
      * is already loaded up, it is retuned without further
@@ -7740,9 +7641,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTRIGGERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTRIGGERSRowFactory(luuidFactory,exFactory,dvf));
                     break;
-                case SYSSTATISTICS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
-                    break;
                 case SYSDUMMY1_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
                     break;
@@ -8269,29 +8167,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    @Override
-    public void dropStatisticsDescriptors(UUID tableUUID,
-                                          UUID referenceUUID,
-                                          TransactionController tc) throws StandardException{
-        TabInfoImpl ti=getNonCoreTI(SYSSTATISTICS_CATALOG_NUM);
-        DataValueDescriptor first, second;
-        first=getIDValueAsCHAR(tableUUID);
-
-        ExecIndexRow keyRow;
-        if(referenceUUID!=null){
-            keyRow=exFactory.getIndexableRow(2);
-            second=getIDValueAsCHAR(referenceUUID);
-            keyRow.setColumn(2,second);
-        }else{
-            keyRow=exFactory.getIndexableRow(1);
-        }
-
-        keyRow.setColumn(1,first);
-
-        ti.deleteRow(tc,keyRow,
-                SYSSTATISTICSRowFactory.SYSSTATISTICS_INDEX1_ID);
-
-    }
 
     private static LanguageConnectionContext getLCC(){
         return (LanguageConnectionContext)ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
@@ -10574,35 +10449,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public PermDescriptor getGenericPermissions(UUID permUUID) throws StandardException{
         PermDescriptor key=new PermDescriptor(this,permUUID);
         return getUncachedGenericPermDescriptor(key);
-    }
-
-    @Override
-    public IndexStatisticsDaemon getIndexStatsRefresher(boolean asDaemon){
-        if(indexStatsUpdateDisabled && asDaemon){
-            return null;
-        }else{
-            return indexRefresher;
-        }
-    }
-
-    @Override
-    public void disableIndexStatsRefresher(){
-        if(!indexStatsUpdateDisabled){
-            indexStatsUpdateDisabled=true;
-            // NOTE: This will stop the automatic updates of index statistics,
-            //       but users can still do this explicitly (i.e. by invoking
-            //       the SYSCS_UTIL.SYSCS_UPDATE_STATISTICS system procedure).
-            indexRefresher.stop();
-        }
-    }
-
-    @Override
-    public boolean doCreateIndexStatsRefresher(){
-        // Note that we are using the index refresher to serve explicit calls
-        // to SYSCS_UTIL.SYSCS_UPDATE_STATISTICS. This means that we must
-        // always create the daemon (unless the database is read-only) even if
-        // automatic updates of the cardinality statistics are disabled.
-        return (indexRefresher==null);
     }
 
     @Override

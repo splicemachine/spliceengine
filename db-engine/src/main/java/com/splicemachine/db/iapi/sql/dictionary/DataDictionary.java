@@ -24,9 +24,7 @@ package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.daemon.IndexStatisticsDaemon;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -35,7 +33,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-
 import java.sql.Types;
 import java.util.Dictionary;
 import java.util.List;
@@ -207,15 +204,14 @@ public interface DataDictionary{
     int SYSSTATEMENTS_CATALOG_NUM=11;
     int SYSFILES_CATALOG_NUM=12;
     int SYSTRIGGERS_CATALOG_NUM=13;
-    int SYSSTATISTICS_CATALOG_NUM=14;
-    int SYSDUMMY1_CATALOG_NUM=15;
-    int SYSTABLEPERMS_CATALOG_NUM=16;
-    int SYSCOLPERMS_CATALOG_NUM=17;
-    int SYSROUTINEPERMS_CATALOG_NUM=18;
-    int SYSROLES_CATALOG_NUM=19;
-    int SYSSEQUENCES_CATALOG_NUM=20;
-    int SYSPERMS_CATALOG_NUM=21;
-    int SYSUSERS_CATALOG_NUM=22;
+    int SYSDUMMY1_CATALOG_NUM=14;
+    int SYSTABLEPERMS_CATALOG_NUM=15;
+    int SYSCOLPERMS_CATALOG_NUM=16;
+    int SYSROUTINEPERMS_CATALOG_NUM=17;
+    int SYSROLES_CATALOG_NUM=18;
+    int SYSSEQUENCES_CATALOG_NUM=19;
+    int SYSPERMS_CATALOG_NUM=20;
+    int SYSUSERS_CATALOG_NUM=21;
 
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
@@ -1581,22 +1577,7 @@ public interface DataDictionary{
      */
     Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
 
-    /**
-     * Gets all statistics Descriptors for a given table.
-     */
-    List<StatisticsDescriptor> getStatisticsDescriptors(TableDescriptor td) throws StandardException;
-
     StatisticsStore getStatisticsStore();
-    /**
-     * Drops all statistics descriptors for a given table/index column
-     * combination. If the index is not specified, then all statistics for the
-     * table are dropped.
-     *
-     * @param tableUUID     UUID of the table
-     * @param referenceUUID UUID of the index. This can be null.
-     * @param tc            Transcation Controller to use.
-     */
-    void dropStatisticsDescriptors(UUID tableUUID,UUID referenceUUID,TransactionController tc) throws StandardException;
 
     /**
      * Returns the dependency manager for this DataDictionary. Associated with
@@ -1963,46 +1944,6 @@ public interface DataDictionary{
      * @throws StandardException
      */
     PermDescriptor getGenericPermissions(UUID permUUID) throws StandardException;
-
-    /**
-     * Tells if an index statistics refresher should be created for this
-     * database.
-     * <p/>
-     * The only reason not to create an index statistics refresher is if one
-     * already exists.
-     *
-     * @return {@code true} if an index statistics refresher should be created,
-     * {@code false} if one already exists.
-     */
-    boolean doCreateIndexStatsRefresher();
-
-    /**
-     * Returns the index statistics refresher.
-     *
-     * @param asDaemon whether the usage is automatic ({@code true}) or
-     *                 explicit ({@code false})
-     * @return The index statistics refresher instance, or {@code null} if
-     * disabled. If {@code asDaemon} is {@code false}, an instance will
-     * always be returned.
-     */
-    IndexStatisticsDaemon getIndexStatsRefresher(boolean asDaemon);
-
-    /**
-     * Disables automatic refresh/creation of index statistics at runtime.
-     * <p/>
-     * If the daemon is disabled, it can only be enabled again by rebooting
-     * the database. Note that this method concerns diabling the daemon at
-     * runtime, and only the automatic updates of statistics. If wanted, the
-     * user would disable the daemon at boot-time by setting a property
-     * (system-wide or database property).
-     * <p/>
-     * <em>Usage note:</em> This method was added to allow the index refresher
-     * itself to notify the data dictionary that it should be disabled. This
-     * only happens if the refresher/daemon experiences severe errors, or a
-     * large amount of errors. It would then disable itself to avoid eating up
-     * system resources and potentially cause side-effects due to the errors.
-     */
-    void disableIndexStatsRefresher();
 
     /**
      * Get a {@code DependableFinder} instance.

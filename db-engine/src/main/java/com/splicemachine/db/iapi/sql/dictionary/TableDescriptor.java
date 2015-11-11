@@ -195,11 +195,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     }
 
     /**
-     * A list of statistics pertaining to this table--
-     */
-    private volatile List<StatisticsDescriptor> statisticsDescriptorList;
-
-    /**
      * Constructor for a TableDescriptor (this is for a temporary table).
      *
      * @param dataDictionary       The data dictionary that this descriptor lives in

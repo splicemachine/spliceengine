@@ -65,9 +65,6 @@ final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
             // files that can't be deleted until the VM exits.
             DataDictionary dd = db.getDataDictionary();
             // dd is null if the db is an active slave db (replication)
-            if (dd != null) {
-                dd.disableIndexStatsRefresher();
-            }
         }
 
         if (se.getSeverity() == ExceptionSeverity.DATABASE_SEVERITY) {
