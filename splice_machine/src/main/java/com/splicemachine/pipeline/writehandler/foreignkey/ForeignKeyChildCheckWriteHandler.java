@@ -2,8 +2,6 @@ package com.splicemachine.pipeline.writehandler.foreignkey;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -11,6 +9,7 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
@@ -23,7 +22,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -58,7 +56,7 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
                 try {
                     List rowsReferencingParent = scanForReferences(kvPair, ctx);
                     if (!rowsReferencingParent.isEmpty()) {
-                        String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
+                        String failedKvAsHex = Bytes.toHex(kvPair.getRowKey());
                         ConstraintContext context = ConstraintContext.foreignKey(fkConstraintInfo).withInsertedMessage(0, failedKvAsHex);
                         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
                         ctx.failed(kvPair, foreignKeyConstraint);
