@@ -1136,29 +1136,6 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
 
     /**
-     * Returns a list of statistics for this table.
-     */
-    public List<StatisticsDescriptor> getStatistics() throws StandardException{
-        // if table already has the statistics descriptors initialized
-        // no need to do anything
-        List<StatisticsDescriptor> statsList = statisticsDescriptorList; //first volatile read
-        if(statsList==null){
-            synchronized(this){
-                statsList = statisticsDescriptorList; //second volatile read
-                if(statsList!=null) return statsList;
-                DataDictionary dd = getDataDictionary();
-                statsList = statisticsDescriptorList = dd.getStatisticsDescriptors(this);
-            }
-        }
-        return statsList;
-//        if(statisticsDescriptorList!=null)
-//            return statisticsDescriptorList;
-//
-//        DataDictionary dd=getDataDictionary();
-//        return statisticsDescriptorList=dd.getStatisticsDescriptors(this);
-    }
-
-    /**
      * Tells if the index statistics for the indexes associated with this table
      * are consideres up-to-date, and clears the state.
      *

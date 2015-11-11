@@ -463,7 +463,7 @@ public class IndexStatisticsDaemonImpl
         // Note that the algorithm would drop valid statistics entries if
         // working on a subset of the table conglomerates/indexes.
         if (identifyDisposableStats) {
-            List existingStats = td.getStatistics();
+            List existingStats = new ArrayList();
             StatisticsDescriptor[] stats = (StatisticsDescriptor[])
                     existingStats.toArray(
                         new StatisticsDescriptor[existingStats.size()]);
