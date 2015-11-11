@@ -6420,15 +6420,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 cm.pushContext(ec);
                 ContextService.getFactory().setCurrentContextManager(cm);
                 int catalogNumber=noncoreCtr+NUM_CORE;
-                boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
-                makeCatalog(ti,isDummy?sysIBMSchemaDesc:systemSchemaDesc,tc);
-                if(isDummy)
-                    populateSYSDUMMY1();
-                // Clear the table entry for this non-core table,
-                // to allow it to be garbage-collected. The idea
-                // is that a running database might never need to
-                // reference a non-core table after it was created.
+                makeCatalog(ti,systemSchemaDesc,tc);
                 clearNoncoreTable(noncoreCtr);
             }catch(Exception e){
                 e.printStackTrace();
@@ -6634,7 +6627,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else
             ti=coreInfo[catalogNumber];
 
-        makeCatalog(ti,(catalogNumber==SYSDUMMY1_CATALOG_NUM)?getSysIBMSchemaDescriptor():getSystemSchemaDescriptor(),tc);
+        makeCatalog(ti,getSystemSchemaDescriptor(),tc);
     }
 
 
@@ -6980,15 +6973,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);
-    }
-
-    /**
-     * Populate SYSDUMMY1 table with a single row.
-     *
-     * @throws StandardException Standard Derby error policy
-     */
-    protected void populateSYSDUMMY1() throws StandardException{
-        getNonCoreTI(SYSDUMMY1_CATALOG_NUM);
     }
 
     /**
@@ -7640,9 +7624,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     break;
                 case SYSTRIGGERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTRIGGERSRowFactory(luuidFactory,exFactory,dvf));
-                    break;
-                case SYSDUMMY1_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSTABLEPERMS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTABLEPERMSRowFactory(luuidFactory,exFactory,dvf));

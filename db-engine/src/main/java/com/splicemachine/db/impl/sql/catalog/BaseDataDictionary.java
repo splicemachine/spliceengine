@@ -111,7 +111,6 @@ public abstract class BaseDataDictionary implements DataDictionary, CacheableFac
 									"SYSSTATEMENTS",
 									"SYSFILES",
 									"SYSTRIGGERS",
-									"SYSDUMMY1",
                                     "SYSTABLEPERMS",
                                     "SYSCOLPERMS",
                                     "SYSROUTINEPERMS",
