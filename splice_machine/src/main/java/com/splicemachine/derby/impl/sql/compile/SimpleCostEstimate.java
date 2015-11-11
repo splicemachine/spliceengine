@@ -44,7 +44,7 @@ public class SimpleCostEstimate implements CostEstimate{
     public SimpleCostEstimate(double localCost,double remoteCost,double numRows,double singleScanRowCount,int numPartitions){
         this.localCost=localCost;
         this.remoteCost=remoteCost;
-        this.numRows=numRows;
+        this.numRows=numRows>1?numRows:1;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
     }
@@ -63,7 +63,7 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public void setCost(double cost,double rowCount,double singleScanRowCount,int numPartitions){
         this.localCost = cost;
-        this.numRows = rowCount;
+        this.numRows = rowCount > 1 ? rowCount : 1;
         this.singleScanRowCount = singleScanRowCount;
         this.numPartitions = numPartitions;
     }
@@ -147,7 +147,9 @@ public class SimpleCostEstimate implements CostEstimate{
                 ",predicateList="+predicateList+")";
     }
 
-    @Override public void setRowCount(double outerRows){ this.numRows = outerRows;  }
+    @Override public void setRowCount(double outerRows){
+        this.numRows = outerRows > 1 ? outerRows : 1;
+    }
     @Override public void setRemoteCost(double remoteCost){ this.remoteCost = remoteCost; }
     @Override public void setSingleScanRowCount(double singleRowScanCount){this.singleScanRowCount = singleRowScanCount;}
     @Override public void setNumPartitions(int numPartitions){ this.numPartitions = numPartitions; }
@@ -180,7 +182,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public void setEstimatedRowCount(long count){
-        this.numRows = count;
+        this.numRows = count>1?count:1;
         this.singleScanRowCount = count;
     }
 
