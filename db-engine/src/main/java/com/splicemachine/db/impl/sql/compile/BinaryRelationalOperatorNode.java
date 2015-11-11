@@ -27,7 +27,9 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -1420,10 +1422,19 @@ public class BinaryRelationalOperatorNode
         StoreCostController innerTableCostController = getStoreCostController(innerColumn);
         StoreCostController outerTableCostController = getStoreCostController(outerColumn);
 
-        DataValueDescriptor minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
-        DataValueDescriptor maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
-        DataValueDescriptor minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
-        DataValueDescriptor maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+        DataValueDescriptor minOuterColumn = null;
+        DataValueDescriptor maxOuterColumn = null;
+        DataValueDescriptor minInnerColumn = null;
+        DataValueDescriptor maxInnerColumn = null;
+        if (outerTableCostController != null) {
+            minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
+            maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
+        }
+
+        if (innerTableCostController != null) {
+            minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
+            maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+        }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
         DataValueDescriptor endKey = getKeyBoundary(maxInnerColumn, maxOuterColumn, false);
@@ -1462,9 +1473,15 @@ public class BinaryRelationalOperatorNode
 
 
     private StoreCostController getStoreCostController(ColumnReference cr) throws StandardException{
-        ConglomerateDescriptor outercCD = cr.getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-        return getCompilerContext().getStoreCostController(outercCD);
+        StoreCostController storeCostController = null;
+        ColumnDescriptor cd = cr.getSource().getTableColumnDescriptor();
+        if (cd != null) {
+            ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+            storeCostController = getCompilerContext().getStoreCostController(outercCD);
+        }
+        return storeCostController;
     }
+
     @Override
     public boolean isRelationalOperator(){
 		/* If this rel op is for a probe predicate then we do not call
