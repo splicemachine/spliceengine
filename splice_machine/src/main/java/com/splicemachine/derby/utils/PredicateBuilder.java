@@ -2,9 +2,6 @@ package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.io.Closeables;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.*;

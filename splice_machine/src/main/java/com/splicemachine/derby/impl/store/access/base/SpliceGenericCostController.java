@@ -5,13 +5,12 @@ import java.util.concurrent.ExecutionException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
@@ -24,7 +23,7 @@ public abstract class SpliceGenericCostController implements StoreCostController
     public static boolean isRegionInScan(Scan scan, HRegionInfo regionInfo) {
         assert (scan != null);
         assert (regionInfo != null);
-        return BytesUtil.overlap(regionInfo.getStartKey(), regionInfo.getEndKey(), scan.getStartRow(), scan.getStopRow());
+        return Bytes.overlap(regionInfo.getStartKey(), regionInfo.getEndKey(), scan.getStartRow(), scan.getStopRow());
     }
 
     public static SortedSet<Pair<HRegionInfo,ServerName>> getRegions(long conglomId) {

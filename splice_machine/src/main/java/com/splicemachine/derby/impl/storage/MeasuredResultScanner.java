@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.metrics.*;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.Cell;
@@ -63,7 +63,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 				} catch (IOException e) {
 						if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
 								if(LOG.isTraceEnabled())
-										SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
+										SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", Bytes.toHex(getLastRow()));
 								incrementNumRetries();
 								delegate = reopenResultScanner(delegate, scan, htable);
 								next = next();
@@ -92,7 +92,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 						}
 				} catch (IOException e) {
 						if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
-								SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(getLastRow()));
+								SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", Bytes.toHex(getLastRow()));
 								incrementNumRetries();
 								delegate = reopenResultScanner(delegate, scan, htable);
 								results = delegate.next(nbRows);
