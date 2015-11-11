@@ -170,63 +170,10 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     }
 
     @Test
-    public void testBroadcastLeftOuterJoin() throws StandardException {
-        PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
-        PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<Tuple2<ExecRow,Optional<ExecRow>>> it = set1.broadcastLeftOuterJoin(set2).values().toLocalIterator();
-        int i =0;
-        while (it.hasNext()) {
-            Tuple2<ExecRow,Optional<ExecRow>> tuple = it.next();
-            if (tuple._1.getColumn(1).getInt()%2==0)
-                Assert.assertTrue("Join Issue", tuple._2.isPresent());
-            else
-                Assert.assertTrue("Join Issue", !tuple._2.isPresent());
-            i++;
-        }
-        Assert.assertEquals("Incorrect Number of Rows", 30, i);
-    }
-
-    @Test
-    public void testBroadcastJoin() throws StandardException {
-        PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
-        PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<Tuple2<ExecRow,ExecRow>> it = set1.broadcastJoin(set2).values().toLocalIterator();
-        int i =0;
-        while (it.hasNext()) {
-            Tuple2<ExecRow,ExecRow> tuple = it.next();
-            if (tuple._1.getColumn(1).getInt()%2==0) {
-                Assert.assertTrue("Join Issue", true);
-                Assert.assertEquals("Join Issue", 0,tuple._2.getColumn(1).getInt()%2);
-            }
-            else
-                Assert.assertTrue("Join Issue", false);
-            i++;
-        }
-        Assert.assertEquals("Incorrect Number of Rows", 25, i);
-    }
-
-    @Test
     public void testSubtractByKey() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
         Iterator<ExecRow> it = set1.subtractByKey(set2).values().toLocalIterator();
-        int i =0;
-        while (it.hasNext()) {
-            ExecRow row = it.next();
-            if (row.getColumn(1).getInt()%2==0)
-                Assert.assertTrue("Not Subtracted", false);
-            else
-                Assert.assertEquals("Join Issue", 1,row.getColumn(1).getInt()%2);
-            i++;
-        }
-        Assert.assertEquals("Incorrect Number of Rows", 5, i);
-    }
-
-    @Test
-    public void testBroadcastSubtractByKey() throws StandardException {
-        PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
-        PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<ExecRow> it = set1.broadcastSubtractByKey(set2).values().toLocalIterator();
         int i =0;
         while (it.hasNext()) {
             ExecRow row = it.next();
