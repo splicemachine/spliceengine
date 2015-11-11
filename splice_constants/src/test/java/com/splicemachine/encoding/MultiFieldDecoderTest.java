@@ -1,12 +1,9 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.primitives.Bytes;
 import org.junit.Test;
-
 import java.math.BigDecimal;
-
 import static org.junit.Assert.*;
-
-import com.splicemachine.constants.bytes.BytesUtil;
 
 public class MultiFieldDecoderTest {
 
@@ -242,7 +239,7 @@ public class MultiFieldDecoderTest {
         // scan of INDEX for t shows: \x00\xA3\xC0\x88\xF0\x82\x9C    column=V:7, timestamp=3239, value=\x84\x00\xA3\xC0\x88\xF0\x82\x9C
 
         String hexIndexRowKeySuffix = "\\xA3\\xC0\\x88\\xF0\\x82\\x9C".replace("\\", "").replaceAll("x", "");
-        byte[] indexRowKeySuffixBytes = BytesUtil.fromHex(hexIndexRowKeySuffix);
+        byte[] indexRowKeySuffixBytes = Bytes.fromHex(hexIndexRowKeySuffix);
         byte[] baseTableRowKeyBytes = ByteEncoding.decodeUnsorted(indexRowKeySuffixBytes, 0, indexRowKeySuffixBytes.length);
 
         MultiFieldDecoder d = MultiFieldDecoder.create();

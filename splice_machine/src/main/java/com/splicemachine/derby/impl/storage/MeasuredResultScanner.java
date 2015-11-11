@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.metrics.*;
-import com.splicemachine.hbase.HBaseStatUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import java.io.IOException;
 import java.util.Iterator;
@@ -54,7 +54,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 								rowsRead++;
 								remoteTimer.tick(1);
 								setLastRow(next.getRow());
-								HBaseStatUtils.countBytes(remoteBytesCounter, next);
+								countBytes(remoteBytesCounter, next);
 						} else{
 								remoteTimer.stopTiming();
 								if(LOG.isTraceEnabled())
@@ -83,7 +83,7 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 						if (results != null && results.length > 0) {
 								rowsRead+=results.length;
 								remoteTimer.tick(results.length);
-								HBaseStatUtils.countBytes(remoteBytesCounter, results);
+								countBytes(remoteBytesCounter, results);
 								setLastRow(results[results.length-1].getRow());
 						} else{
 								remoteTimer.stopTiming();
@@ -132,4 +132,17 @@ public class MeasuredResultScanner extends ReopenableScanner implements SpliceRe
 
 				@Override public void remove() { throw new UnsupportedOperationException(); }
 		}
+
+    public static void countBytes(com.splicemachine.metrics.Counter counter, Result...results){
+        if(counter.isActive()){
+            long bytes =0l;
+            for(Result result:results){
+                for(Cell kv:result.rawCells()){
+                    bytes+=kv.getRowLength()+kv.getFamilyLength()+kv.getQualifierLength()+kv.getTagsLength()+
+                            kv.getValueLength()+8;
+                }
+            }
+            counter.add(bytes);
+        }
+    }
 }

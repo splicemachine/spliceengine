@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import com.google.common.base.Throwables;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SIConstants;
@@ -29,7 +30,6 @@ import com.splicemachine.derby.utils.marshall.NoOpPrefix;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.ReadAheadRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
@@ -91,7 +91,7 @@ public class PopulateConglomerateTask extends ZkTask {
     @Override
     public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
         throws ExecutionException {
-        this.region = rce.getRegion();
+        this.region = (HRegion) rce.getRegion();
         super.prepareTask(start,end,rce, zooKeeper);
         this.scanStart = start;
         this.scanStop = end;
@@ -147,18 +147,13 @@ public class PopulateConglomerateTask extends ZkTask {
 
             RegionScanner regionScanner = region.getScanner(scan);
 
-            MeasuredRegionScanner mrs = SpliceConstants.useReadAheadScanner ?
-                                                            new ReadAheadRegionScanner(region,
-                                                                                       SpliceConstants.DEFAULT_CACHE_SIZE,
-                                                                                       regionScanner,metricFactory,
-                                                                                       dataLib)
-                                                            : new BufferedRegionScanner(region,
-                                                                                        regionScanner,
-                                                                                        scan,
-                                                                                        SpliceConstants.DEFAULT_CACHE_SIZE,
-                                                                                        SpliceConstants.DEFAULT_CACHE_SIZE,
-                                                                                        metricFactory,
-                                                                                        dataLib);
+            MeasuredRegionScanner mrs = new BufferedRegionScanner(region,
+                                            regionScanner,
+                                            scan,
+                                            SpliceConstants.DEFAULT_CACHE_SIZE,
+                                            SpliceConstants.DEFAULT_CACHE_SIZE,
+                                            metricFactory,
+                                            dataLib);
 
             TxnView txnView = new DDLTxnView(txn, this.demarcationTimestamp);
 

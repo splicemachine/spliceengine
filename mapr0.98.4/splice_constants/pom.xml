@@ -17,14 +17,6 @@
 			<version>1.4.2</version>
 		</dependency>
 		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>asynchbase</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.stumbleupon</groupId>
-			<artifactId>async</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
 		</dependency>

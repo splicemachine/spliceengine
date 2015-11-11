@@ -3,15 +3,13 @@ package com.splicemachine.si.data.hbase;
 import com.google.common.collect.Iterables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.*;
 import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.si.coprocessors.SICompactionScanner;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.utils.ByteSlice;
-
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -20,9 +18,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,7 +35,7 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
         for (Object a : args) {
             bytes.add(convertToBytes(a, a.getClass()));
         }
-        return BytesUtil.concat(bytes);
+        return Bytes.concat(bytes);
     }
 
 		@Override
@@ -96,7 +92,7 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 						return null;
 				}
 				if (type.equals(Boolean.class)) {
-						return (T)(Boolean)BytesUtil.toBoolean(value,offset);
+						return (T)(Boolean)Bytes.toBoolean(value,offset);
 				} else if (type.equals(Short.class)) {
 						return (T)(Short)Bytes.toShort(value,offset);
 				} else if (type.equals(Integer.class)) {
@@ -529,17 +525,6 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 				RegionScanner delegate, Scan scan, int bufferSize,
 				MetricFactory metricFactory) {
 			return new BufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory,this);
-		}
-
-		@Override
-		public MeasuredRegionScanner<Cell> getRateLimitedRegionScanner(HRegion region,
-																																	 RegionScanner delegate,
-																																	 Scan scan,
-																																	 int bufferSize,
-																																	 int readsPerSecond,
-																																	 MetricFactory metricFactory) {
-				MeasuredRegionScanner<Cell> d = getBufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory);
-				return new RateLimitedRegionScanner(d,readsPerSecond);
 		}
 
 		@Override

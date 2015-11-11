@@ -72,7 +72,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void start(CoprocessorEnvironment env){
-        region=((RegionCoprocessorEnvironment)env).getRegion();
+        region=(HRegion)((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
             lockStriper=LongStripedSynchronizer.stripedReadWriteLock(SIConstants.transactionlockStripes,false);
@@ -81,7 +81,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             timestampSource=TransactionTimestamps.getTimestampSource();
             isTxnTable=true;
         }
-        regionNameAsString=region.getRegionNameAsString();
+        regionNameAsString=region.getRegionInfo().getRegionNameAsString();
     }
 
     @Override

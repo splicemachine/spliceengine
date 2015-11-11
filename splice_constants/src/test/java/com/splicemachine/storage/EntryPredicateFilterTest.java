@@ -6,12 +6,12 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import java.math.BigDecimal;
-import com.carrotsearch.hppc.BitSet;
+import java.util.BitSet;
+import com.splicemachine.primitives.Bytes;
 import com.carrotsearch.hppc.ObjectArrayList;
 
 /**

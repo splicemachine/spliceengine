@@ -116,7 +116,7 @@ public class HRegionUtil extends BaseHRegionUtil {
     }
 
     public static boolean containsRange(HRegion region, byte[] taskStart, byte[] taskEnd) {
-        byte[] regionStart = region.getStartKey();
+        byte[] regionStart = region.getRegionInfo().getStartKey();
 
         if (regionStart.length != 0) {
             if (taskStart.length == 0) return false;
@@ -127,7 +127,7 @@ public class HRegionUtil extends BaseHRegionUtil {
             if (Bytes.compareTo(regionStart, taskStart) > 0) return false; //task start is before region start
         }
 
-        byte[] regionStop = region.getEndKey();
+        byte[] regionStop = region.getRegionInfo().getEndKey();
         if (regionStop.length != 0) {
             if (taskEnd.length == 0) return false;
             if (taskStart.length != 0 && Bytes.compareTo(taskStart, regionStop) >= 0)

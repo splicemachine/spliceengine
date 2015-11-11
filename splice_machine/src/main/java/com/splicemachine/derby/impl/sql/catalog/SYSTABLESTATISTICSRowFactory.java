@@ -20,7 +20,7 @@ import java.util.Properties;
  */
 public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final String TABLENAME_STRING = "SYSTABLESTATS";
-    private static final int SYSTABLESTATISTICS_COLUMN_COUNT = 9;
+    private static final int SYSTABLESTATISTICS_COLUMN_COUNT = 14;
     private static final int CONGLOMID = 1;
     private static final int PARTITIONID = 2;
     private static final int TIMESTAMP = 3;
@@ -36,14 +36,35 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     private static final int OPENSCANNERLATENCY = 13;
     private static final int CLOSESCANNERLATENCY = 14;
 
+    protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;
+    protected static final int		SYSTABLESTATISTICS_INDEX2_ID = 1;
+    protected static final int		SYSTABLESTATISTICS_INDEX3_ID = 2;
+
+
     private String[] uuids = {
             "08264012-014b-c29b-a826-000003009390",
-            "08264012-014b-c29b-a826-000003009390"
+            "0826401a-014b-c29b-a826-000003009390",
+            "08264014-014b-c29b-a826-000003009390",
+            "08264016-014b-c29b-a826-000003009390",
+            "08264018-014b-c29b-a826-000003009390"
     };
+
+    private	static	final	boolean[]	uniqueness = {
+            true,
+            false,
+            false
+    };
+
+    private static final int[][] indexColumnPositions =
+            {
+                    {CONGLOMID, PARTITIONID,TIMESTAMP},
+                    {CONGLOMID, PARTITIONID},
+                    {CONGLOMID},
+            };
 
     public SYSTABLESTATISTICSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
-        initInfo(SYSTABLESTATISTICS_COLUMN_COUNT,TABLENAME_STRING,null,null,uuids);
+        initInfo(SYSTABLESTATISTICS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override

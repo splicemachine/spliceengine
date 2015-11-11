@@ -334,18 +334,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
-        /*
-    	Cache cache = SpliceDriver.driver().getCache(SpliceConstants.SYSSCHEMAS_INDEX1_ID_CACHE);
-    	Element element;
-    	if ( (element = cache.get(schemaName)) != null) {
-    		if (tc == null)
-    				tc = getTransactionCompile();
-    		tc.getActiveStateTxIdString();
-    		if (element.getVersion() >= Long.parseLong(tc.getActiveStateTxIdString())) {
-    			return (SchemaDescriptor) element.getObjectValue();
-    		}
-    	}
-    	*/
         DataValueDescriptor schemaNameOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
@@ -353,8 +341,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,schemaNameOrderable);
-
-        // XXX - TODO Cache Lookup
 
         return (SchemaDescriptor)
                 getDescriptorViaIndex(
@@ -368,6 +354,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                         TransactionController.ISOLATION_REPEATABLE_READ,
                         tc);
     }
+
+
 
     @Override
     protected void loadDictionaryTables(TransactionController tc,

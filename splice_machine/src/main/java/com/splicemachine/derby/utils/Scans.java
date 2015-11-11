@@ -1,12 +1,11 @@
 package com.splicemachine.derby.utils;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.hbase.AbstractSkippingScanFilter;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -14,7 +13,6 @@ import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -26,8 +24,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -60,7 +58,7 @@ public class Scans extends SpliceUtils {
         byte[] start = new byte[prefix.length];
         System.arraycopy(prefix, 0, start, 0, start.length);
 
-        byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
+        byte[] finish = Bytes.unsignedCopyAndIncrement(start);
         return newScan(start, finish, txn);
     }
 
@@ -147,13 +145,13 @@ public class Scans extends SpliceUtils {
                 DataValueDescriptor[] dvd = null;
                 if (startKeyValue != null && startKeyValue.length > 0) {
                     dvd = new DataValueDescriptor[1];
-                    dvd[0] = new HBaseRowLocation(BytesUtil.fromHex(startKeyValue[0].getString()));
+                    dvd[0] = new HBaseRowLocation(Bytes.fromHex(startKeyValue[0].getString()));
                     startKeyValue = dvd;
                 }
 
                 if (stopKeyValue != null && stopKeyValue.length > 0) {
                     dvd = new DataValueDescriptor[1];
-                    dvd[0] = new HBaseRowLocation(BytesUtil.fromHex(stopKeyValue[0].getString()));
+                    dvd[0] = new HBaseRowLocation(Bytes.fromHex(stopKeyValue[0].getString()));
                     stopKeyValue = dvd;
                 }
             }
@@ -358,7 +356,7 @@ public class Scans extends SpliceUtils {
             if (generateStopKey) {
                 byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
                 if (stopKeyPrefix != null) {
-                    stopRow = BytesUtil.unsignedCopyAndIncrement(stopRow);
+                    stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
                 }
                 scan.setStopRow(stopRow);
                 if (stopRow == null)

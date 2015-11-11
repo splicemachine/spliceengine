@@ -1,9 +1,7 @@
 package com.splicemachine.encoding.debug;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
-import org.apache.hadoop.hbase.util.Bytes;
-
+import com.splicemachine.primitives.Bytes;
 import java.math.BigDecimal;
 
 /**
@@ -94,7 +92,7 @@ public enum DataType{
         public String decode(byte[] bytes, boolean printRawHex) {
             byte[] decoded = Encoding.decodeBytes(bytes);
             if(printRawHex)
-                return BytesUtil.toHex(decoded);
+                return Bytes.toHex(decoded);
             return Bytes.toStringBinary(decoded,0,decoded.length);
         }
     },
@@ -109,7 +107,7 @@ public enum DataType{
         public String decode(byte[] bytes, boolean printRawHex) {
             byte[] decoded = Encoding.decodeBytesUnsortd(bytes,0,bytes.length);
             if(printRawHex)
-                return BytesUtil.toHex(decoded);
+                return Bytes.toHex(decoded);
 
             return Bytes.toStringBinary(decoded, 0, decoded.length);
         }

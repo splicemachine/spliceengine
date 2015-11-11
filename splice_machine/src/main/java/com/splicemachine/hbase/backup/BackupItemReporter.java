@@ -1,8 +1,6 @@
 package com.splicemachine.hbase.backup;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -13,6 +11,7 @@ import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerialize
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
@@ -21,8 +20,7 @@ import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-
-import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * Created by jyuan on 4/13/15.
@@ -101,7 +99,7 @@ public class BackupItemReporter extends TransactionalSysTableWriter<BackupItem> 
             HTable table = new HTable(SpliceConstants.config, conglom);
             Scan scan = factory.newScan(txn);
             byte[] startRow = MultiFieldEncoder.create(1).encodeNext(backupId).build();
-            byte[] stopRow = BytesUtil.unsignedCopyAndIncrement(startRow);
+            byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
             scan.setStartRow(startRow);
             scan.setStopRow(stopRow);
             resultScanner = table.getScanner(scan);

@@ -22,7 +22,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

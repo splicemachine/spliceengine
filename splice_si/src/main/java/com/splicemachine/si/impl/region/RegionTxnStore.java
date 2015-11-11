@@ -2,28 +2,23 @@ package com.splicemachine.si.impl.region;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.RegionScanIterator;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +38,6 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		 * The region in which to access data
 		 */
 		private final HRegion region;
-		private final TxnDecoder<TxnInfo,Transaction,Data,Put,Delete,Get,Scan> oldTransactionDecoder;
 		private final TxnDecoder<TxnInfo,Transaction,Data,Put,Delete,Get,Scan> newTransactionDecoder;
 		private final SDataLib<Data,Put,Delete,Get,Scan> dataLib;
 		private final TransactionResolver<Transaction,TableBuffer> resolver;
@@ -53,7 +47,6 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 		public RegionTxnStore(HRegion region,TransactionResolver resolver,TxnSupplier txnStore,SDataLib<Data,Put,Delete,Get,Scan> dataLib,STransactionLib transactionlib) {
 				this.region = region;
 				this.transactionlib =transactionlib; 
-				this.oldTransactionDecoder = transactionlib.getV1TxnDecoder();
 				this.newTransactionDecoder = transactionlib.getV2TxnDecoder();
 				this.resolver = resolver;
 				this.txnStore = txnStore;
@@ -191,9 +184,6 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 				//add the columns for the new encoding
 				get.addColumn(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
 				get.addColumn(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
-				//add the columns for the old encoding
-				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_STATUS_COLUMN);
-				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
 
 				Result result = region.get(get);
 				if(result==null)
@@ -202,14 +192,7 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 				boolean oldForm = false;
 				Data keepAliveKv;
 				Data stateKv = dataLib.getColumnLatest(result, FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
-				if(stateKv==null){
-						oldForm=true;
-					//used the old encoding
-						stateKv =dataLib.getColumnLatest(result, FAMILY,AbstractV1TxnDecoder.OLD_STATUS_COLUMN);
-						keepAliveKv = dataLib.getColumnLatest(result, FAMILY,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
-				}else{
 						keepAliveKv = dataLib.getColumnLatest(result, FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
-				}
 				Txn.State state = Txn.State.decode(dataLib.getDataValueBuffer(stateKv),
 						dataLib.getDataValueOffset(stateKv),dataLib.getDataValuelength(stateKv));
 				if(state== Txn.State.ACTIVE)
@@ -270,18 +253,13 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 				SpliceLogUtils.trace(LOG, "getCommitTimestamp txnId=%d",txnId);
 			org.apache.hadoop.hbase.client.Get get = new org.apache.hadoop.hbase.client.Get(TxnUtils.getRowKey(txnId));
 				get.addColumn(FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES);
-				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
-
 				Result result = region.get(get);
 				if(result==null) return -1l; //no commit timestamp for read-only transactions
-
 				Data kv;
 				if((kv=dataLib.getColumnLatest(result,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES))!=null)
 						return Encoding.decodeLong(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),false);
 				else{
-						kv = dataLib.getColumnLatest(result,FAMILY,AbstractV1TxnDecoder.OLD_COMMIT_TIMESTAMP_COLUMN);
-						return Bytes.toLong(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),
-								dataLib.getDataValuelength(kv));
+                    throw new IOException("V1 Decoder Required?");
 				}
 		}
 
@@ -369,12 +347,6 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
             @Override
             public Transaction apply(@Nullable List<Data> keyValues) throws IOException{
                 Transaction txn = newTransactionDecoder.decode(dataLib,keyValues);
-                boolean oldForm = false;
-                if(txn==null){
-                    oldForm = true;
-                    txn = oldTransactionDecoder.decode(dataLib,keyValues);
-                }
-
                 /*
                  * In normal circumstances, we would say that this transaction is active
                  * (since it passed the ActiveTxnFilter).
@@ -395,10 +367,10 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
                     case ACTIVE:
                         return txn;
                     case ROLLEDBACK:
-                        resolver.resolveTimedOut(region,txn,oldForm);
+                        resolver.resolveTimedOut(region,txn);
                         return null;
                     case COMMITTED:
-                        resolver.resolveGlobalCommitTimestamp(region,txn,oldForm);
+                        resolver.resolveGlobalCommitTimestamp(region,txn);
                         return null;
                 }
 
@@ -422,18 +394,18 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 			   * The way the transaction table is built, a region may have an empty start
 			   * OR an empty end, but will never have both
 			   */
-        byte[] regionKey = region.getStartKey();
+        byte[] regionKey = region.getRegionInfo().getStartKey();
         byte bucket;
         if(regionKey.length<=0)
             bucket = 0;
         else
             bucket = regionKey[0];
-        byte[] startKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(afterTs)));
-        if(BytesUtil.startComparator.compare(region.getStartKey(),startKey)>0)
-            startKey = region.getStartKey();
-        byte[] stopKey = BytesUtil.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(beforeTs+1)));
-        if(BytesUtil.endComparator.compare(region.getEndKey(),stopKey)<0)
-            stopKey = region.getEndKey();
+        byte[] startKey = Bytes.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(afterTs)));
+        if(Bytes.startComparator.compare(region.getRegionInfo().getStartKey(),startKey)>0)
+            startKey = region.getRegionInfo().getStartKey();
+        byte[] stopKey = Bytes.concat(Arrays.asList(new byte[]{bucket}, Bytes.toBytes(beforeTs+1)));
+        if(Bytes.endComparator.compare(region.getRegionInfo().getEndKey(),stopKey)<0)
+            stopKey = region.getRegionInfo().getEndKey();
         org.apache.hadoop.hbase.client.Scan scan = new org.apache.hadoop.hbase.client.Scan(startKey,stopKey);
         scan.setMaxVersions(1);
         return scan;
@@ -442,32 +414,21 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 
     private Transaction decode(long txnId,Result result) throws IOException {
         Transaction txn = newTransactionDecoder.decode(dataLib,txnId,result);
-        boolean oldForm = false;
-        if(txn==null){
-            oldForm = true;
-            txn = oldTransactionDecoder.decode(dataLib,txnId,result);
-        }
-        resolveTxn(txn, oldForm);
+        resolveTxn(txn);
         return txn;
 
     }
     private Transaction decode(List<Data> keyValues) throws IOException {
         Transaction txn = newTransactionDecoder.decode(dataLib,keyValues);
-        boolean oldForm = false;
-        if(txn==null){
-            oldForm = true;
-            txn = oldTransactionDecoder.decode(dataLib,keyValues);
-        }
-
-        resolveTxn(txn, oldForm);
+        resolveTxn(txn);
         return txn;
     }
 
-    private void resolveTxn(Transaction txn, boolean oldForm) {
+    private void resolveTxn(Transaction txn) {
         switch(transactionlib.getTransactionState(txn)){
             case ROLLEDBACK:
                 if(transactionlib.isTimedOut(txn)){
-                    resolver.resolveTimedOut(region,txn,oldForm);
+                    resolver.resolveTimedOut(region,txn);
                 }
                 break;
             case COMMITTED:
@@ -477,7 +438,7 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
                  * has been committed; still, submit this to the resolver on the off chance that it
                  * has been fully committed, so we can get away with the global commit work.
                  */
-                    resolver.resolveGlobalCommitTimestamp(region,txn,oldForm);
+                    resolver.resolveGlobalCommitTimestamp(region,txn);
                 }
         }
     }

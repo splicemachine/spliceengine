@@ -2,8 +2,8 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.SRowLock;
@@ -146,7 +146,7 @@ public class TxnRegion implements TransactionalRegion {
         return false;
     }
 
-    @Override public String getRegionName() { return region.getRegionNameAsString(); }
+    @Override public String getRegionName() { return region.getRegionInfo().getRegionNameAsString(); }
 
     @Override public TxnSupplier getTxnSupplier() { return txnSupplier; }
     @Override public ReadResolver getReadResolver() { return readResolver; }

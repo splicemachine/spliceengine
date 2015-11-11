@@ -4,11 +4,10 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -28,7 +27,6 @@ import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.hfile.*;
 import org.apache.hadoop.hbase.regionserver.*;
-
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -47,7 +45,7 @@ public class BackupUtils {
     public static String isBackupRunning() throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
         if (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
-            long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+            long id = Bytes.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
             return String.format("A concurrent backup with id of %d is running.", id);
         }
         return null;
@@ -62,7 +60,7 @@ public class BackupUtils {
     public static HashMap<byte[], Collection<StoreFile>> getStoreFiles(HRegion region) throws ExecutionException {
         try {
             HashMap<byte[], Collection<StoreFile>> storeFiles = new HashMap<>();
-            Map<byte[],Store> stores = region.getStores();
+            Map<byte[],Store> stores = HBasePlatformUtils.getStores(region);
 
             for (byte[] family : stores.keySet()) {
                 Store store = stores.get(family);

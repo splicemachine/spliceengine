@@ -3,8 +3,6 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.annotations.ThreadSafe;
-import com.splicemachine.async.AsyncHbase;
-import com.splicemachine.async.HBaseClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
@@ -87,21 +85,17 @@ public class StatisticsStorage {
                 .build();
         ScheduledExecutorService refreshExecutor = Executors.newScheduledThreadPool(4, refreshThreadFactory);
 
-        HBaseClient hbaseClient = AsyncHbase.HBASE_CLIENT;
         byte[] physStatTable = Long.toString(physStatsConglomId).getBytes();
-        PhysicalStatisticsStore physicalStore = new CachedPhysicalStatsStore(refreshExecutor, hbaseClient, physStatTable);
+        PhysicalStatisticsStore physicalStore = new CachedPhysicalStatsStore(refreshExecutor);
         //TODO -sf- uncomment this when you want to start using Physical Statistics
 //        physicalStore.start();
 
         byte[] colStatTable = Long.toString(columnStatsConglomId).getBytes();
-        ColumnStatisticsStore columnStatsStore = new HBaseColumnStatisticsStore(refreshExecutor,colStatTable,hbaseClient);
+        ColumnStatisticsStore columnStatsStore = new HBaseColumnStatisticsStore(refreshExecutor);
         columnStatsStore.start();
 
         byte[] tableStatTable = Long.toString(tableStatsId).getBytes();
-        TableStatisticsStore tableStatsStore = new HBaseTableStatisticsStore(refreshExecutor,
-                tableStatTable,
-                hbaseClient,
-                TableStatsDecoder.decoder());
+        TableStatisticsStore tableStatsStore = new HBaseTableStatisticsStore(refreshExecutor);
         tableStatsStore.start();
 
         partitionStore = new PartitionStatsStore(HBaseRegionCache.getInstance(),tableStatsStore,columnStatsStore);

@@ -2,11 +2,9 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.impl.*;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
-import com.splicemachine.pipeline.impl.*;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
@@ -17,15 +15,13 @@ import com.splicemachine.utils.TrafficControl;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,11 +90,11 @@ public class SpliceBaseIndexEndpoint {
             public boolean start() {
                 factory.prepare();
                 if (conglomId >= 0) {
-                    region = TransactionalRegions.get(rce.getRegion());
+                    region = TransactionalRegions.get((HRegion) rce.getRegion());
                 } else {
-                    region = TransactionalRegions.nonTransactionalRegion(rce.getRegion());
+                    region = TransactionalRegions.nonTransactionalRegion((HRegion)rce.getRegion());
                 }
-                regionWritePipeline = new RegionWritePipeline(rce, rce.getRegion(), factory, region, pipelineMeter);
+                regionWritePipeline = new RegionWritePipeline(rce, (HRegion)rce.getRegion(), factory, region, pipelineMeter);
                 SpliceDriver.driver().deregisterService(this);
                 return true;
             }
@@ -121,7 +117,7 @@ public class SpliceBaseIndexEndpoint {
      */
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "BulkWrites %s for region %s", bulkWrites, rce.getRegion().getRegionNameAsString());
+            SpliceLogUtils.trace(LOG, "BulkWrites %s for region %s", bulkWrites, rce.getRegion().getRegionInfo().getRegionNameAsString());
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
         int numBulkWrites = bulkWrites.getBulkWrites().size();
         List<BulkWriteResult> result = new ArrayList<>(numBulkWrites);
@@ -129,7 +125,7 @@ public class SpliceBaseIndexEndpoint {
 
         if (numBulkWrites==0) {
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "The number of bulk writes is 0 for the region %s.  Do not retry this.", rce.getRegion().getRegionNameAsString());
+                SpliceLogUtils.debug(LOG, "The number of bulk writes is 0 for the region %s.  Do not retry this.", rce.getRegion().getRegionInfo().getRegionNameAsString());
             throw new DoNotRetryIOException("Should Never Send Empty Call to Endpoint");
         }
 
@@ -141,7 +137,7 @@ public class SpliceBaseIndexEndpoint {
         	throw new IOException(e1);
         }
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "BulkWrites will be %s for region %s", (dependent ? "dependent" : "independent"), rce.getRegion().getRegionNameAsString());
+            SpliceLogUtils.trace(LOG, "BulkWrites will be %s for region %s", (dependent ? "dependent" : "independent"), rce.getRegion().getRegionInfo().getRegionNameAsString());
 
         SpliceWriteControl.Status status;
         int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
@@ -150,7 +146,7 @@ public class SpliceBaseIndexEndpoint {
         if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             //we cannot write to this
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "All bulk writes have been rejected by the write control for the region %s.", rce.getRegion().getRegionNameAsString());
+                SpliceLogUtils.debug(LOG, "All bulk writes have been rejected by the write control for the region %s.", rce.getRegion().getRegionInfo().getRegionNameAsString());
             rejectAll(result,numBulkWrites);
             rejectedCount.addAndGet(numBulkWrites);
             return new BulkWritesResult(result);
@@ -218,7 +214,7 @@ public class SpliceBaseIndexEndpoint {
     private void rejectAll(Collection<BulkWriteResult> result, int numResults) {
     	this.rejectedMeter.mark();
     	for (int i = 0; i < numResults; i++) {
-    		result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
+    		result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionInfo().getRegionNameAsString())));
     	}
     }
 
@@ -236,7 +232,7 @@ public class SpliceBaseIndexEndpoint {
                 writeResult = new BulkWriteResult();
             } else {
                 if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG, "Endpoint (or write pipeline) not found for encoded region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
+                    SpliceLogUtils.debug(LOG, "Endpoint (or write pipeline) not found for encoded region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionInfo().getRegionNameAsString());
                 writeResult = new BulkWriteResult(WriteResult.notServingRegion());
             }
             writePairMap.put(bw, Pair.newPair(writeResult, writePipeline));

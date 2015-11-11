@@ -13,7 +13,6 @@ import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.RegionScanIterator;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.STransactionLib;
@@ -48,7 +47,7 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
         RegionScanner baseScanner = region.getScanner(scan);
 
         final RegionScanner scanner = new BufferedRegionScanner(region, baseScanner, scan, 1024, Metrics.noOpMetricFactory(),SIFactoryDriver.siFactory.getDataLib() );
-        return new RegionScanIterator<>(scanner, new RegionScanIterator.IOFunction<Transaction,Data>() {
+        return new RegionScanIterator(scanner, new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
             public Transaction apply(@Nullable List<Data> keyValues) throws IOException {
             	Transaction txn = decode(keyValues);
@@ -86,8 +85,8 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
 		/*private helper methods*/
 
     private Scan setupScan() {
-        byte[] startKey = region.getStartKey();
-        byte[] stopKey = region.getEndKey();
+        byte[] startKey = region.getRegionInfo().getStartKey();
+        byte[] stopKey = region.getRegionInfo().getEndKey();
         Scan scan = new Scan(startKey, stopKey);
         scan.setMaxVersions(1);
         return scan;

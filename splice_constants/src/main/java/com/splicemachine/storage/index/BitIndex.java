@@ -1,7 +1,8 @@
 package com.splicemachine.storage.index;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.Indexed;
+
+import java.util.BitSet;
 
 /**
  *

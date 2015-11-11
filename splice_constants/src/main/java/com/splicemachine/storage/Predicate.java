@@ -1,16 +1,12 @@
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.BitSet;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
  * Created on: 7/8/13
  */
 public interface Predicate{
-
-//    boolean isFinished();
-//
-//    boolean isFailed();
 
     boolean applies(int column);
 

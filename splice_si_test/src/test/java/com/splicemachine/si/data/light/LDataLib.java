@@ -3,7 +3,6 @@ package com.splicemachine.si.data.light;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.hbase.MeasuredRegionScanner;
@@ -11,7 +10,7 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
-
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -20,13 +19,21 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.*;
 
 public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
+
+    public static boolean isKeyValueInRange(KeyValue kv, Pair<byte[], byte[]> range) {
+        byte[] kvBuffer = kv.getRowArray();
+        int rowKeyOffset = kv.getRowOffset();
+        short rowKeyLength = kv.getRowLength();
+        byte[] start = range.getFirst();
+        byte[] stop = range.getSecond();
+        return (start.length == 0 || Bytes.BASE_COMPARATOR.compare(start, 0, start.length, kvBuffer, rowKeyOffset, rowKeyLength) <= 0) &&
+                (stop.length == 0 || Bytes.BASE_COMPARATOR.compare(stop, 0, stop.length, kvBuffer, rowKeyOffset, rowKeyLength) >= 0);
+    }
 
     @Override
     public byte[] newRowKey(Object... args) {
@@ -42,7 +49,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
             }
             builder.append(toAppend);
         }
-        return Bytes.toBytes(builder.toString());
+        return builder.toString().getBytes();
     }
 
 		private boolean nullSafeComparison(Object o1, Object o2) {
@@ -61,9 +68,9 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 	@Override
     public byte[] encode(Object value) {
 				if(value instanceof String){
-						return Bytes.toBytes((String)value);
+						return ((String)value).getBytes();
 				}else if(value instanceof Boolean)
-						return Bytes.toBytes((Boolean)value);
+						return new byte[] { ((Boolean)value) ? (byte) -1 : (byte) 0 };
 				else if(value instanceof Integer)
 						return Bytes.toBytes((Integer)value);
 				else if(value instanceof Long)
@@ -119,7 +126,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 								return (T)new Integer(-1);
 						return (T)(Integer)Bytes.toInt(value,offset);
 				}else if(Boolean.class.equals(type))
-						return (T)(Boolean) BytesUtil.toBoolean(value, offset);
+						return (T)(Boolean) Bytes.toBoolean(value, offset);
 				else if(Byte.class.equals(type))
 						return (T)(Byte) value[offset];
 				else
@@ -479,11 +486,6 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		}
 
 		@Override
-		public MeasuredRegionScanner<KeyValue> getRateLimitedRegionScanner(HRegion region, RegionScanner delegate, LGet lGet, int bufferSize, int readsPerSecond, MetricFactory metricFactory) {
-				throw new UnsupportedOperationException("IMPLEMENT");
-		}
-
-		@Override
 		public Filter getActiveTransactionFilter(long beforeTs, long afterTs,
 				byte[] destinationTable) {
 			throw new RuntimeException("Not Implemented");
@@ -503,7 +505,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
 		@Override
 		public boolean isDataInRange(KeyValue data, Pair<byte[], byte[]> range) {
-			return BytesUtil.isKeyValueInRange(data, range);
+			return isKeyValueInRange(data, range);
 		}
 
 		@Override
@@ -560,5 +562,6 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		@Override
 		public boolean matchingQualifier(KeyValue element, byte[] qualifier) {
 			return CellUtil.matchingQualifier(element,qualifier);
-		}		
+		}
+
 }

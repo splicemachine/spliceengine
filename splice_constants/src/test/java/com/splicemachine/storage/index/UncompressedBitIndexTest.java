@@ -1,7 +1,8 @@
 package com.splicemachine.storage.index;
 
-import com.carrotsearch.hppc.BitSet;
 import org.junit.Test;
+
+import java.util.BitSet;
 
 import static com.splicemachine.utils.BitSets.newBitSet;
 import static org.junit.Assert.*;

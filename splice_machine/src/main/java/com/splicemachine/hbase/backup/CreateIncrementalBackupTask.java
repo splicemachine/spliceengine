@@ -12,6 +12,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.io.HFileLink;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -208,7 +209,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
 
         int count = 0;
         FileSystem regionfs = region.getFilesystem();
-        Map<byte[], Store> stores = region.getStores();
+        Map<byte[], Store> stores = HBasePlatformUtils.getStores(region);
         Configuration conf = SpliceConstants.config;
         FileSystem backupfs = FileSystem.get(URI.create(backupFileSystem), conf);
 

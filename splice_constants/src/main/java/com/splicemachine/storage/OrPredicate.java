@@ -1,12 +1,10 @@
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.bytes.BytesUtil;
-
-import org.apache.hadoop.hbase.util.Pair;
-
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -156,9 +154,9 @@ public class OrPredicate implements Predicate {
     }
 
     public static Pair<OrPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
-        int size = BytesUtil.bytesToInt(data,offset);
+        int size = Bytes.bytesToInt(data, offset);
         Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.fromBytes(data,offset+4,size);
-        return Pair.newPair(new OrPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
+        return Pair.newPair(new OrPredicate(predicates.getFirst()), predicates.getSecond() - offset + 1);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package com.splicemachine.encoding;
 
 import com.splicemachine.utils.ByteSlice;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 

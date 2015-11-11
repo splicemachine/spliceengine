@@ -15,7 +15,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import com.splicemachine.constants.bytes.BytesUtil;
+
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -24,7 +25,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.util.StringUtils;
@@ -693,12 +693,12 @@ public class Backup implements InternalTable {
     public void registerBackup() throws KeeperException, InterruptedException, StandardException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
         try {
-            byte[] backupId = BytesUtil.longToBytes(backupTransaction.getTxnId());
+            byte[] backupId = Bytes.longToBytes(backupTransaction.getTxnId());
             zooKeeper.create(SpliceConstants.DEFAULT_BACKUP_PATH, backupId, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         } catch (KeeperException e) {
             if(e.code()== KeeperException.Code.NODEEXISTS){
                 //it's already been created, so nothing to do
-                long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+                long id = Bytes.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
                 throw StandardException.newException(String.format("A concurrent backup with id of %d is running.", id));
             }
             else {
@@ -710,7 +710,7 @@ public class Backup implements InternalTable {
     public void deregisterBackup() throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
         if (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
-            long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+            long id = Bytes.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
             if (id == this.backupId) {
                 zooKeeper.delete(SpliceConstants.DEFAULT_BACKUP_PATH, -1);
             }

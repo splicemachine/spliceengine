@@ -108,7 +108,7 @@ public class RestoreBackupTask extends ZkTask {
     private BackupItem.RegionInfo getRegionInfo() {
         Bytes.ByteArrayComparator comparator = new Bytes.ByteArrayComparator();
         for (BackupItem.RegionInfo ri : backupItem.getRegionInfoList()) {
-            if (comparator.compare(ri.getHRegionInfo().getEndKey(), region.getEndKey()) == 0) {
+            if (comparator.compare(ri.getHRegionInfo().getEndKey(), region.getRegionInfo().getEndKey()) == 0) {
                 return ri;
             }
         }

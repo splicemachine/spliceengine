@@ -4,9 +4,8 @@ import java.io.IOException;
 import java.util.List;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
@@ -151,7 +150,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
             if(keepState)
                 this.indexToMainMutationMap.put(indexDelete,mutation);
             if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "performing index delete on row %s", BytesUtil.toHex(indexDelete.getRowKey()));
+                SpliceLogUtils.trace(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
             ensureBufferReader(indexDelete, ctx);
             indexBuffer.add(indexDelete);
         } catch (Exception e) {

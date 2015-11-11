@@ -38,11 +38,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
+// TODO FIX HIVE INTEGRATION JL
+
 public class SMSerDe implements SerDe {
 	protected StructTypeInfo rowTypeInfo;
     protected ObjectInspector rowOI;
     protected SMSQLUtil sqlUtil = null;
-    protected LazySimpleSerDe.SerDeParameters serdeParams;
+//    protected SerDeParameters serdeParams;
     protected List<String> colNames = new ArrayList<String>(); // hive names
     protected List<TypeInfo> colTypes; // hive types, not Splice Types
     protected static Logger Log = Logger.getLogger(SMSerDe.class.getName());
@@ -113,7 +115,7 @@ public class SMSerDe implements SerDe {
         
         rowTypeInfo = (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(colNames, colTypes);
         rowOI = TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
-        serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
+        //serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
         Log.info("--------Finished initialize");
     }
 

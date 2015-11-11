@@ -5,7 +5,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import com.carrotsearch.hppc.BitSet;
+
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Random;
 

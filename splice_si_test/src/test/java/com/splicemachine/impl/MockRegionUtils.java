@@ -2,8 +2,6 @@ package com.splicemachine.impl;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
-import com.splicemachine.si.data.light.LDataLib;
-
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -13,14 +11,12 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.*;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
+import com.splicemachine.impl.IteratorRegionScanner;
 
 /**
  * @author Scott Fines
@@ -32,8 +28,8 @@ public class MockRegionUtils {
 		public static HRegion getMockRegion() throws IOException {
 			final Map<byte[],Set<Cell>> rowMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
 			HRegion fakeRegion = mock(HRegion.class);
-    when(fakeRegion.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
-    when(fakeRegion.getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+    when(fakeRegion.getRegionInfo().getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+    when(fakeRegion.getRegionInfo().getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
 
 			when(fakeRegion.get(any(Get.class))).thenAnswer(new Answer<Result>(){
 					@Override

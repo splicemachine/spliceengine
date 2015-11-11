@@ -1,13 +1,12 @@
 package com.splicemachine.hbase.backup;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
@@ -19,6 +18,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.Cell;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -90,7 +90,7 @@ public class BackupFileSetReporter extends TransactionalSysTableWriter<BackupFil
             HTable table = new HTable(SpliceConstants.config, conglom);
             Scan scan = factory.newScan(txn);
             byte[] startRow = MultiFieldEncoder.create(2).encodeNext(tableName).encodeNext(regionName).build();
-            byte[] stopRow = BytesUtil.unsignedCopyAndIncrement(startRow);
+            byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
             scan.setStartRow(startRow);
             scan.setStopRow(stopRow);
             resultScanner = table.getScanner(scan);

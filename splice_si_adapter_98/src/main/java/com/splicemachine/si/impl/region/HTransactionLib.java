@@ -59,11 +59,6 @@ public class HTransactionLib implements STransactionLib<TxnMessage.Txn,ByteStrin
 	}
 
 	@Override
-	public TxnDecoder getV1TxnDecoder() {
-		return V1TxnDecoder.INSTANCE;
-	}
-
-	@Override
 	public TxnDecoder getV2TxnDecoder() {
 		return V2TxnDecoder.INSTANCE;
 	}

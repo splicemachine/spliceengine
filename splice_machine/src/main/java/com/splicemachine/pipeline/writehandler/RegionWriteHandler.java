@@ -137,7 +137,7 @@ public class RegionWriteHandler implements WriteHandler {
 
     private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getRegionNameAsString(), toProcess != null ? toProcess.size() : 0);
+            SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getRegionInfo().getRegionNameAsString(), toProcess != null ? toProcess.size() : 0);
 
         OperationStatus[] status = region.bulkWrite(
                 ctx.getTxn(),

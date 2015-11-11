@@ -9,7 +9,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -168,7 +167,7 @@ public class SegmentedRollForward implements RollForward{
 		 *
 		 * The strategy is to repeatedly subdivide the ranges until we reach the number of sugments specified.
 		 */
-        List<Pair<byte[], byte[]>> endPoints=split(region.getStartKey(),region.getEndKey(),numSegments);
+        List<Pair<byte[], byte[]>> endPoints=split(region.getRegionInfo().getStartKey(),region.getRegionInfo().getEndKey(),numSegments);
 
         RegionSegment[] segments=new RegionSegment[endPoints.size()];
         //e is in sorted order, so just make an entry

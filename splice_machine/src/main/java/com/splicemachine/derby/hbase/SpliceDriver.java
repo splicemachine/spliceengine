@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -47,15 +46,6 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
-import com.splicemachine.derby.impl.job.scheduler.ExpandingTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -65,12 +55,6 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.backup.BackupHFileCleaner;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskMonitor;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.job.TaskSchedulerManagement;
-import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.impl.TransactionStorage;
@@ -108,9 +92,6 @@ public class SpliceDriver {
     private final List<Service> services = new CopyOnWriteArrayList<>();
     private final Properties props = new Properties();
     private final SnowflakeLoader snowLoader = new SnowflakeLoader();
-    private final TaskMonitor taskMonitor;
-    private final JobScheduler jobScheduler;
-    private final TaskScheduler threadTaskScheduler;
     private final ExecutorService lifecycleExecutor;
     private final WriteCoordinator writeCoordinator;
     private final DDLWatcher ddlWatcher;
@@ -145,26 +126,16 @@ public class SpliceDriver {
     }
 
     private SpliceDriver() throws IOException {
-        this(
-                new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath, ZkUtils.getRecoverableZooKeeper()),
-                WriteCoordinator.create(SpliceUtils.config),
+        this(WriteCoordinator.create(SpliceUtils.config),
                 DDLCoordinationFactory.getWatcher()
         );
     }
 
-    protected SpliceDriver(ZkTaskMonitor taskMonitor, WriteCoordinator writeCoordinator, DDLWatcher ddlWatcher) {
+    protected SpliceDriver(WriteCoordinator writeCoordinator, DDLWatcher ddlWatcher) {
         this.lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager", true);
-        this.taskMonitor = taskMonitor;
         this.ddlWatcher = ddlWatcher;
         this.writeCoordinator = writeCoordinator;
         props.put(EmbedConnection.INTERNAL_CONNECTION, "true");
-
-        TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
-        TieredTaskScheduler.OverflowHandler overflowHandler = new SpliceDriverOverflowHandler();
-        StealableTaskScheduler<RegionTask> overflowScheduler = new ExpandingTaskScheduler<>();
-        threadTaskScheduler = new TieredTaskScheduler(setup, overflowHandler, overflowScheduler);
-        jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(), SpliceUtils.config);
-
         /* Make version information available to code in the derby codebase. */
         System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
         System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
@@ -197,29 +168,12 @@ public class SpliceDriver {
         return spliceVersion;
     }
 
-    public ZkTaskMonitor getTaskMonitor() {
-        return (ZkTaskMonitor) taskMonitor;
-    }
-
     public WriteCoordinator getTableWriter() {
         return writeCoordinator;
     }
 
     public Properties getProperties() {
         return props;
-    }
-
-    public <T extends Task> TaskScheduler<T> getTaskScheduler() {
-        return (TaskScheduler<T>) threadTaskScheduler;
-    }
-
-    public TaskSchedulerManagement getTaskSchedulerManagement() {
-        //this only works IF threadTaskScheduler implements the interface!
-        return (TaskSchedulerManagement) threadTaskScheduler;
-    }
-
-    public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler() {
-        return (JobScheduler<J>) jobScheduler;
     }
 
     public void registerService(Service service) {
@@ -237,7 +191,7 @@ public class SpliceDriver {
     }
 
     private HRegion getOnlineRegion(String encodedRegionName) {
-        return regionServerServices == null ? null : regionServerServices.getFromOnlineRegions(encodedRegionName);
+        return regionServerServices == null ? null : (HRegion) regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
     private RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
@@ -349,15 +303,8 @@ public class SpliceDriver {
         if (testTaskFailureRate <= 0 || testTaskFailureRate > 1)
             return; //don't fail anything if the rate is out of our range
 
-        final Random random = new Random(System.currentTimeMillis());
-        SchedulerTracer.registerTaskStart(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                if (random.nextDouble() < testTaskFailureRate)
-                    throw new Exception("Intentional task invalidation");
-                return null;
-            }
-        });
+        // TODO JL: How to fail spark tasks randomly?
+
     }
 
     private boolean bootDatabase() throws Exception {
@@ -425,7 +372,7 @@ public class SpliceDriver {
      */
     public void shutdown() {
         if(stateHolder.getAndSet(State.SHUTDOWN) != State.SHUTDOWN) {
-            lifecycleExecutor.submit(new SpliceDriverShutdownRunnable(metricsReporter, server, services, (TieredTaskScheduler) threadTaskScheduler));
+            lifecycleExecutor.submit(new SpliceDriverShutdownRunnable(metricsReporter, server, services));
             lifecycleExecutor.shutdown();
         }
     }
@@ -445,17 +392,6 @@ public class SpliceDriver {
             //registry metricsRegistry
             metricsReporter = new JmxReporter(spliceMetricsRegistry);
             metricsReporter.start();
-
-            //register TaskScheduler
-            ((TieredTaskScheduler) threadTaskScheduler).registerJMX(mbs);
-
-            //register TaskMonitor
-            ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");
-            mbs.registerMBean(taskMonitor, taskMonitorName);
-
-            //register JobScheduler
-            ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
-            mbs.registerMBean(jobScheduler.getJobMetrics(), jobSchedulerName);
 
             //register transaction stuff
             ObjectName rollForwardName = new ObjectName("com.splicemachine.txn:type=RollForwardManagement");
@@ -550,10 +486,4 @@ public class SpliceDriver {
         }
     }
 
-    private static class SpliceDriverOverflowHandler implements TieredTaskScheduler.OverflowHandler {
-        @Override
-        public OverflowPolicy shouldOverflow(Task t) {
-            return t.getParentTaskId() == null ? OverflowPolicy.ENQUEUE : OverflowPolicy.OVERFLOW;
-        }
-    }
 }

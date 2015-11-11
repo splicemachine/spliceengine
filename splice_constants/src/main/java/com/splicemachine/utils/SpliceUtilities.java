@@ -3,12 +3,10 @@ package com.splicemachine.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.io.compress.*;
 import org.apache.hadoop.conf.Configuration;
@@ -17,13 +15,11 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 public class SpliceUtilities extends SIConstants {
 	private static final Logger LOG = Logger.getLogger(SpliceUtilities.class);
-	private static byte[][] PREFIXES;
 
 	public static HBaseAdmin getAdmin() {
 		try {
@@ -109,25 +105,14 @@ public class SpliceUtilities extends SIConstants {
 
 	public static HTableDescriptor generateDefaultSIGovernedTable(
 			String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
 		desc.addFamily(createDataFamily());
-		// desc.addFamily(createTransactionFamily()); // Removed transaction
-		// family
 		return desc;
 	}
 
 	public static HTableDescriptor generateNonSITable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
 		desc.addFamily(createDataFamily());
-		return desc;
-	}
-
-	public static HTableDescriptor generateTempTable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(tableName);
-		desc.addFamily(createTempDataFamily());
-		// desc.setValue(HTableDescriptor.SPLIT_POLICY,
-		// ConstantSizeRegionSplitPolicy.class.getName());
-		// desc.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
 		return desc;
 	}
 
@@ -165,21 +150,6 @@ public class SpliceUtilities extends SIConstants {
 		snapshot.setInMemory(DEFAULT_IN_MEMORY);
 		snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
 		snapshot.setBloomFilterType(BloomType.ROW);
-		snapshot.setTimeToLive(DEFAULT_TTL);
-		return snapshot;
-	}
-
-	public static HColumnDescriptor createTempDataFamily() {
-		HColumnDescriptor snapshot = new HColumnDescriptor(
-				SpliceConstants.DEFAULT_FAMILY_BYTES);
-		// splice_temp does not require any versioning so give max of 1. Avoids some overhead.
-		snapshot.setMaxVersions(1);
-		snapshot.setCompressionType(Compression.Algorithm.valueOf(compression
-				.toUpperCase()));
-		snapshot.setInMemory(DEFAULT_IN_MEMORY);
-		snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-		// splice_temp does not benefit from bloom filter. Disable it to avoid performance overhead.
-		snapshot.setBloomFilterType(BloomType.NONE);
 		snapshot.setTimeToLive(DEFAULT_TTL);
 		return snapshot;
 	}
@@ -249,18 +219,6 @@ public class SpliceUtilities extends SIConstants {
             Closeables.closeQuietly(admin);
         }
     }
-
-	static {
-	}
-
-	public static void closeHTableQuietly(HTableInterface table) {
-		try {
-			if (table != null)
-				table.close();
-		} catch (Exception e) {
-			SpliceLogUtils.error(LOG, e);
-		}
-	}
 
 	public static String escape(String first) {
 		// escape single quotes | compress multiple whitespace chars into one,

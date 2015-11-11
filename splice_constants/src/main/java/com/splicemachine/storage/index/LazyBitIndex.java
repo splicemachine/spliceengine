@@ -2,7 +2,7 @@ package com.splicemachine.storage.index;
 
 import com.splicemachine.storage.BitReader;
 
-import com.carrotsearch.hppc.BitSet;
+import java.util.BitSet;
 
 
 /**

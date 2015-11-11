@@ -3,27 +3,17 @@ package com.splicemachine.si.data.api;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
-
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.si.coprocessors.BaseSICompactionScanner;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
-
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 /**
@@ -104,16 +94,10 @@ public interface SDataLib<Data,
 	void setThreadReadPoint(RegionScanner delegate);
 	boolean regionScannerNextRaw(RegionScanner regionScanner,List<Data> data) throws IOException;
 	MeasuredRegionScanner<Data> getBufferedRegionScanner(HRegion region,
-																											 RegionScanner delegate,
-																											 Scan scan,
-																											 int bufferSize,
-																											 MetricFactory metricFactory);
-		MeasuredRegionScanner<Data> getRateLimitedRegionScanner(HRegion region,
-																														RegionScanner delegate,
-																														Scan scan,
-																														int bufferSize,
-																														int readsPerSecond,
-																														MetricFactory metricFactory);
+         RegionScanner delegate,
+         Scan scan,
+         int bufferSize,
+         MetricFactory metricFactory);
 	Filter getActiveTransactionFilter(long beforeTs,long afterTs,byte[] destinationTable);
 	public InternalScanner getCompactionScanner(InternalScanner scanner, SICompactionState state);
 	boolean internalScannerNext(InternalScanner internalScanner,List<Data> data) throws IOException;	

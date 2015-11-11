@@ -5,7 +5,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.index.*;
 import com.splicemachine.utils.kryo.KryoPool;
 import java.io.IOException;
-import com.carrotsearch.hppc.BitSet;
+import java.util.BitSet;
 
 
 /**
@@ -44,19 +44,11 @@ public class EntryEncoder {
 
     public byte[] encode() throws IOException {
         byte[] finalData = encoder.build();
-
         byte[] bitData = bitIndex.encode();
-//        if(finalData.length>DATA_COMPRESSION_THRESHOLD){
-//            finalData = Snappy.compress(finalData);
-//            //mark the header bit for compressed data
-//            bitData[0] = (byte)(bitData[0] | COMPRESSED_DATA_BIT);
-//        }
-
         byte[] entry = new byte[bitData.length+finalData.length+1];
         System.arraycopy(bitData, 0, entry, 0, bitData.length);
         entry[bitData.length] = 0;
         System.arraycopy(finalData,0,entry,bitData.length+1,finalData.length);
-
         return entry;
     }
 

@@ -2,9 +2,9 @@ package com.splicemachine.si.impl.store;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryDecoder;
@@ -13,7 +13,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.client.ResultScanner;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,7 +80,7 @@ public class IgnoreTxnCacheSupplier {
         HTable hTable = new HTable(SpliceConstants.config, SpliceConstants.RESTORE_TABLE_NAME);
         Scan scan = new Scan();
         byte[] startRow = MultiFieldEncoder.create(1).encodeNext(tableName).build();
-        byte[] stopRow = BytesUtil.unsignedCopyAndIncrement(startRow);
+        byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
         scan.setStartRow(startRow);
         scan.setStopRow(stopRow);
         resultScanner = hTable.getScanner(scan);

@@ -1,13 +1,10 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.async.AsyncHbase;
 import com.splicemachine.db.drda.NetworkServerControl;
-import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.yammer.metrics.reporting.JmxReporter;
 import org.apache.log4j.Logger;
-
 import java.util.List;
 
 /**
@@ -26,14 +23,12 @@ class SpliceDriverShutdownRunnable implements Runnable {
     private final JmxReporter metricsReporter;
     private final NetworkServerControl server;
     private final List<Service> services;
-    private final TieredTaskScheduler threadTaskScheduler;
 
     public SpliceDriverShutdownRunnable(JmxReporter metricsReporter, NetworkServerControl server,
-                                        List<Service> services, TieredTaskScheduler threadTaskScheduler) {
+                                        List<Service> services) {
         this.metricsReporter = metricsReporter;
         this.server = server;
         this.services = services;
-        this.threadTaskScheduler = threadTaskScheduler;
     }
 
     @Override
@@ -48,16 +43,6 @@ class SpliceDriverShutdownRunnable implements Runnable {
                 if(server != null) {
                     server.shutdown();
                 }
-            }
-        });
-
-        /**
-         * Shutdown existing task framework task scheduler.
-         */
-        shutDown("task framework threads", new ShutdownTask() {
-            @Override
-            public void run() {
-                threadTaskScheduler.shutdown();
             }
         });
 
@@ -81,16 +66,6 @@ class SpliceDriverShutdownRunnable implements Runnable {
                 if (metricsReporter != null) {
                     metricsReporter.shutdown();
                 }
-            }
-        });
-
-        /**
-         * Shutdown the shared async hbase client
-         */
-        shutDown("async hbase", new ShutdownTask() {
-            @Override
-            public void run() throws Exception {
-                AsyncHbase.HBASE_CLIENT.shutdown().wait(5000);
             }
         });
 

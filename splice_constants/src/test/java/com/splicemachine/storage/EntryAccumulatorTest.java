@@ -1,11 +1,11 @@
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.junit.Assert;
 import org.junit.Test;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines

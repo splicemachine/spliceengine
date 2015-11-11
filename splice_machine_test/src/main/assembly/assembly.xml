@@ -21,7 +21,6 @@
 			</unpackOptions>
 			<includes>
 				<!-- splice artifacts -->
-				<include>com.splicemachine:asynchbase</include>
 				<include>com.splicemachine:utilities</include>
 				<include>com.splicemachine:stats</include>
 				<include>com.splicemachine:splice_constants-${envClassifier}</include>
@@ -38,7 +37,6 @@
 				<include>com.google.code.gson:gson</include> 
 				<include>com.google.protobuf:protobuf-java</include>
 				<include>com.lmax:disruptor</include>
-				<include>com.stumbleupon:async</include>
 				<include>de.javakaffee:kryo-serializers</include>
 				<include>net.sf.ehcache:ehcache-core</include>
 				<include>net.sf.opencsv:opencsv</include>

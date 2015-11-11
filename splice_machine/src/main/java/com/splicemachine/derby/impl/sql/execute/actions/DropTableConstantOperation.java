@@ -5,8 +5,6 @@ import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -133,7 +131,6 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
                     // not dropped
                     dropped[numDropped++] = thisConglom;
                     tc.dropConglomerate(thisConglom);
-                    dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), tc);
                 }
             }
         }

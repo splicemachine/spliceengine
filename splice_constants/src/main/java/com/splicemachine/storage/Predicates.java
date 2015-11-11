@@ -1,10 +1,9 @@
 package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteDataInput;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
 
 /**
@@ -33,7 +32,7 @@ public class Predicates {
     }
 
     public static Pair<ObjectArrayList<Predicate>,Integer> allFromBytes(byte[] bytes, int offset) throws IOException{
-        int length = BytesUtil.bytesToInt(bytes,offset);
+        int length = Bytes.bytesToInt(bytes,offset);
         return fromBytes(bytes,offset+4,length);
     }
 
@@ -72,7 +71,7 @@ public class Predicates {
             size+=data[i].length;
         }
         byte[] finalData = new byte[size+4];
-        BytesUtil.intToBytes(predicates.size(),finalData,0);
+        Bytes.intToBytes(predicates.size(), finalData, 0);
         int offset=4;
         for(byte[] datum:data){
             System.arraycopy(datum,0,finalData,offset,datum.length);

@@ -71,7 +71,7 @@ public class NonTransactionalCounterTask extends DebugTask{
             writer.write(outputText);
             writer.flush();
         } catch (IOException e) {
-            throw new ExecutionException("Unable to write output for region "+ region.getRegionNameAsString()+". Answer is "+ totalCount,e);
+            throw new ExecutionException("Unable to write output for region "+ region.getRegionInfo().getRegionNameAsString()+". Answer is "+ totalCount,e);
         } finally{
             Closeables.closeQuietly(writer);
         }

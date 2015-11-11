@@ -17,11 +17,8 @@ import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
-import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.utils.DatabasePropertyManagement;
-import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.impl.timestamp.TimestampMasterManagement;
 import com.splicemachine.si.impl.timestamp.TimestampRegionManagement;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
@@ -33,12 +30,8 @@ public class JMXUtils {
 
 	public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
-    public static final String GLOBAL_TASK_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=TieredSchedulerManagement";
-    public static final String TIER_TASK_SCHEDULER_MANAGEMENT_BASE = "com.splicemachine.job.tasks.tier-";
 	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
-    public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
-    public static final String IMPORT_TASK_MANAGEMENT = "com.splicemachine.job:type=ImportTaskManagement";
     public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=SpliceMachineVersion";
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement";
@@ -90,31 +83,6 @@ public class JMXUtils {
             versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, SpliceMachineVersion.class));
         }
         return versions;
-    }
-
-    public static List<Pair<String,JobSchedulerManagement>> getJobSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<Pair<String,JobSchedulerManagement>> jobMonitors = Lists.newArrayListWithCapacity(mbscArray.size());
-        for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            jobMonitors.add(new Pair<String, JobSchedulerManagement>(mbsc.getFirst(),getNewMBeanProxy(mbsc.getSecond(), JOB_SCHEDULER_MANAGEMENT, JobSchedulerManagement.class)));
-        }
-        return jobMonitors;
-    }
-
-    public static List<TieredSchedulerManagement> getTaskSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<TieredSchedulerManagement> taskSchedules = Lists.newArrayListWithCapacity(mbscArray.size());
-        for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            taskSchedules.add(getNewMBeanProxy(mbsc.getSecond(), GLOBAL_TASK_SCHEDULER_MANAGEMENT,TieredSchedulerManagement.class));
-        }
-        return taskSchedules;
-    }
-
-    public static List<StealableTaskSchedulerManagement> getTieredSchedulerManagement(int tier,List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<StealableTaskSchedulerManagement> taskSchedules = Lists.newArrayListWithCapacity(mbscArray.size());
-        String mbeanName = TIER_TASK_SCHEDULER_MANAGEMENT_BASE + tier + ":type=StealableTaskSchedulerManagement";
-        for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            taskSchedules.add(getNewMBeanProxy(mbsc.getSecond(), mbeanName,StealableTaskSchedulerManagement.class));
-        }
-        return taskSchedules;
     }
 
 	public static List<Pair<String,StatementManagement>> getStatementManagers(List<Pair<String, JMXConnector>> connections) throws IOException, MalformedObjectNameException {

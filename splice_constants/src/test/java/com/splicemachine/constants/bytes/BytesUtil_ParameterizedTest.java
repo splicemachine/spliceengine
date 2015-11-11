@@ -1,11 +1,11 @@
 package com.splicemachine.constants.bytes;
 
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.utils.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -40,9 +40,9 @@ public class BytesUtil_ParameterizedTest {
     public void testCanEncodeAndDecodeIntegersCorrectly() throws Exception {
         for(int toTest:intsToTest){
             byte[] data = new byte[4];
-            BytesUtil.intToBytes(toTest, data, 0);
+            Bytes.intToBytes(toTest, data, 0);
 
-            int decoded = BytesUtil.bytesToInt(data,0);
+            int decoded = Bytes.bytesToInt(data,0);
             Assert.assertEquals("Incorrect decoded value!",toTest,decoded);
         }
     }
@@ -53,7 +53,7 @@ public class BytesUtil_ParameterizedTest {
     }
 
     private void checkIntersectOneWay(byte[] a, byte[] b, byte[] x, byte[] y, byte[] r1, byte[] r2) {
-        final Pair<byte[],byte[]> intersect = BytesUtil.intersect(a, b, x, y);
+        final Pair<byte[],byte[]> intersect = Bytes.intersect(a, b, x, y);
         Assert.assertArrayEquals(r1, intersect.getFirst());
         Assert.assertArrayEquals(r2, intersect.getSecond());
     }
@@ -64,7 +64,7 @@ public class BytesUtil_ParameterizedTest {
     }
 
     private void checkIntersectOneWay(byte[] a, byte[] b, byte[] x, byte[] y) {
-        final Pair<byte[],byte[]> intersect = BytesUtil.intersect(a, b, x, y);
+        final Pair<byte[],byte[]> intersect = Bytes.intersect(a, b, x, y);
         Assert.assertNull(intersect);
     }
 

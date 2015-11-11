@@ -79,10 +79,6 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
@@ -106,7 +102,6 @@ import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
@@ -143,12 +138,6 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		return HRegionFileSystem.loadRegionInfoFileContent(fileSystem, path);
 	}
 	
-	@Override
-	public BaseJobControl getJobControl(CoprocessorJob job, String jobPath,
-			SpliceZooKeeperManager zkManager, int maxResubmissionAttempts,
-			JobMetrics jobMetrics) {
-		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
-	}
 	@Override
 	public void writeScanExternal(ObjectOutput output, Scan scan)
 			throws IOException {

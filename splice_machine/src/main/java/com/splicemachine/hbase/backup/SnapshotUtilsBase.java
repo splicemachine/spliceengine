@@ -1,23 +1,14 @@
 package com.splicemachine.hbase.backup;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
 import org.apache.hadoop.hbase.io.HFileLink;
-import org.apache.hadoop.hbase.io.HalfStoreFileReader;
 import org.apache.hadoop.hbase.io.Reference;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.io.hfile.*;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.log4j.Logger;
-
-import java.util.*;
-
 import java.io.IOException;
 
 /**
@@ -141,6 +132,6 @@ public abstract class SnapshotUtilsBase implements SnapshotUtils {
      * @return true if yes
      */
     protected boolean isCurrentRegion(HRegion region, HRegionInfo regInfo) {
-        return region.getRegionNameAsString().equals(regInfo.getRegionNameAsString());
+        return region.getRegionInfo().getRegionNameAsString().equals(regInfo.getRegionNameAsString());
     }
 }
