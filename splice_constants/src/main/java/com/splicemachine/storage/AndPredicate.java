@@ -1,11 +1,9 @@
 package com.splicemachine.storage;
 
-import org.apache.hadoop.hbase.util.Pair;
-
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -49,16 +47,6 @@ public class AndPredicate implements Predicate{
     public int hashCode() {
         return ands != null ? ands.hashCode() : 0;
     }
-
-//    @Override
-//    public boolean isFinished(){
-//        return matchedCount==ands.size();
-//    }
-//
-//    @Override
-//    public boolean isFailed(){
-//        return failed;
-//    }
 
     @Override
     public boolean applies(int column) {
@@ -125,16 +113,16 @@ public class AndPredicate implements Predicate{
         matchedCount = 0;
     }
 
-
+    /**
+    * Format is
+    *
+    * 1-byte type (PredicateType.AND)
+    * 4-byte length field
+    * n-byte predicates
+    */
     @Override
     public byte[] toBytes() {
-        /*
-         * Format is
-         *
-         * 1-byte type (PredicateType.AND)
-         * 4-byte length field
-         * n-byte predicates
-         */
+
         byte[] listData = Predicates.toBytes(ands);
         byte[] data  = new byte[listData.length+1];
         data[0] = PredicateType.AND.byteValue();
@@ -144,7 +132,7 @@ public class AndPredicate implements Predicate{
 
     public static Pair<AndPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
         Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.allFromBytes(data,offset);
-        return Pair.newPair(new AndPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
+        return Pair.newPair(new AndPredicate(predicates.getFirst()), predicates.getSecond() - offset + 1);
     }
 
     @Override

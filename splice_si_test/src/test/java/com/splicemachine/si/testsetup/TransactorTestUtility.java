@@ -1,6 +1,5 @@
 package com.splicemachine.si.testsetup;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -25,13 +24,8 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
+import java.util.*;
 import static org.junit.Assert.assertTrue;
 
 /**

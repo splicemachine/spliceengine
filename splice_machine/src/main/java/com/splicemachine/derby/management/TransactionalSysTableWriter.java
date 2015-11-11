@@ -1,6 +1,5 @@
 package com.splicemachine.derby.management;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -30,7 +29,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.SQLException;
 

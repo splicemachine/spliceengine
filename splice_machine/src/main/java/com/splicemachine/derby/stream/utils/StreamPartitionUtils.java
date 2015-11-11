@@ -1,8 +1,8 @@
 package com.splicemachine.derby.stream.utils;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.stream.partitioner.MergePartitioner;
 import com.splicemachine.mrio.api.core.SMSplit;
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
@@ -26,7 +26,7 @@ public class StreamPartitionUtils {
             SMSplit ss = (SMSplit) is;
             splits.add(ss.getSplit().getEndRow());
         }
-        Collections.sort(splits, BytesUtil.endComparator);
+        Collections.sort(splits, Bytes.endComparator);
 
         return new MergePartitioner(splits, formatIds);
     }

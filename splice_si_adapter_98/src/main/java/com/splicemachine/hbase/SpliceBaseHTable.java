@@ -3,26 +3,21 @@ package com.splicemachine.hbase;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Message;
 import com.google.protobuf.Service;
 import com.google.protobuf.ServiceException;
 import com.splicemachine.concurrent.KeyedCompletionService;
 import com.splicemachine.concurrent.KeyedFuture;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.ExecContext;
 import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RegionCoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
@@ -30,7 +25,6 @@ import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.*;
@@ -272,7 +266,7 @@ public abstract class SpliceBaseHTable implements HTableInterface, TableRegionsI
         for (int i = 0; i < starts.length; i++) {
             byte[] start = starts[i];
             byte[] end = ends[i];
-            Pair<byte[], byte[]> intersect = BytesUtil.intersect(startKey, endKey, start, end);
+            Pair<byte[], byte[]> intersect = intersect(startKey, endKey, start, end);
             if (intersect != null) {
                 keysToUse.add(intersect);
             }
@@ -618,5 +612,21 @@ public abstract class SpliceBaseHTable implements HTableInterface, TableRegionsI
     public <T extends Service, R> Map<byte[], R> coprocessorService(Class<T> service, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws ServiceException, Throwable {
         return table.coprocessorService(service,startKey,endKey,callable);
     }
+
+
+    /**
+     * @return a [start, end) pair identifying the ranges of values that are in both [start1, end1) and [start2, end2)
+     * under lexicographic sorting of values.
+     */
+    public static Pair<byte[], byte[]> intersect(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
+        if (com.splicemachine.primitives.Bytes.overlap(start1, end1, start2, end2)) {
+            return Pair.newPair(
+                    com.splicemachine.primitives.Bytes.max(com.splicemachine.primitives.Bytes.startComparator, start1, start2),
+                    com.splicemachine.primitives.Bytes.min(com.splicemachine.primitives.Bytes.endComparator, end1, end2));
+        } else {
+            return null;
+        }
+    }
+
 
 }

@@ -6,9 +6,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.reflect.ConstructorUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.exceptions.RegionMovedException;
 import org.apache.log4j.Logger;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -124,12 +122,6 @@ public class ErrorTransport implements Externalizable {
             String className = args[0].toString();
             // Async Hbase Error Handling
             Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(className);
-            if (className.contains("com.splicemachine.async")) {
-                if (com.splicemachine.async.RecoverableException.class.isAssignableFrom(errorClazz))
-                    errorClazz = RegionMovedException.class;
-                // Blow up
-            }
-
             /* one-arg string constructor */
             Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, String.class);
             if (constructor != null) {

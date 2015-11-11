@@ -17,7 +17,7 @@ import com.splicemachine.utils.ByteSlice;
  * @author Scott Fines
  *         Created on: 7/5/13
  */
-public class EntryDecoder implements FieldSkipper, Supplier<MultiFieldDecoder> {
+public class EntryDecoder implements Supplier<MultiFieldDecoder> {
 
     /* The bytes we are currently decoding. */
     private ByteSlice currentData;
@@ -208,11 +208,6 @@ public class EntryDecoder implements FieldSkipper, Supplier<MultiFieldDecoder> {
         if (length <= 0) return;
 
         rowSlice.set(mutationDecoder.array(), offset, length);
-    }
-
-    @Override
-    public void skipField(MultiFieldDecoder decoder, int position) {
-        seekForward(decoder, position);
     }
 
     @Override

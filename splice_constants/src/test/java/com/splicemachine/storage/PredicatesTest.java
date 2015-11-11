@@ -1,7 +1,7 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Test;
 import com.carrotsearch.hppc.ObjectArrayList;
 /**

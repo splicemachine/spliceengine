@@ -25,25 +25,43 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
     private static final int COLUMNID       = 3;
     private static final int DATA           = 4;
 
+    protected static final int SYSCOLUMNSTATISTICS_INDEX1_ID = 0;
+    protected static final int SYSCOLUMNSTATISTICS_INDEX2_ID = 1;
+    protected static final int SYSCOLUMNSTATISTICS_INDEX3_ID = 2;
+
+    private	static	final	boolean[]	uniqueness = {
+            true,
+            false,
+            false
+    };
 
     private String[] uuids = {
             "08264012-014b-c29c-0d2e-000003009390",
-            "08264012-014b-c29c-0d2e-000003009390"
+            "0826401a-014b-c29c-0d2e-000003009390",
+            "08264014-014b-c29c-0d2e-000003009390",
+            "08264016-014b-c29c-0d2e-000003009390",
+            "08264018-014b-c29c-0d2e-000003009390",
     };
+
+    private static final int[][] indexColumnPositions =
+            {
+                    {CONGLOMID, PARTITIONID,COLUMNID},
+                    {CONGLOMID,PARTITIONID},
+                    {CONGLOMID},
+            };
+
     public SYSCOLUMNSTATISTICSRowFactory(UUIDFactory uuidFactory, ExecutionFactory exFactory, DataValueFactory dvf) {
         super(uuidFactory,exFactory,dvf);
-        initInfo(SYSCOLUMNSTATISTICS_COLUMN_COUNT,TABLENAME_STRING,null,null,uuids);
+        initInfo(SYSCOLUMNSTATISTICS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
-
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICS_COLUMN_COUNT);
         row.setColumn(CONGLOMID,new SQLLongint());
         row.setColumn(PARTITIONID,new SQLVarchar());
         row.setColumn(COLUMNID,new SQLInteger());
         row.setColumn(DATA,new UserType());
-
         return row;
     }
 
@@ -139,5 +157,8 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         return row;
     }
 
+    public	int	getPrimaryKeyIndexNumber() {
+        return SYSCOLUMNSTATISTICS_INDEX1_ID;
+    }
 
 }

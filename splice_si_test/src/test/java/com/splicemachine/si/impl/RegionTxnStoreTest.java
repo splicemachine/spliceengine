@@ -4,18 +4,13 @@ import com.splicemachine.impl.MockRegionUtils;
 import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.si.impl.SparseTxn;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.TransactionResolver;
-
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
-
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
@@ -111,8 +106,8 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 
     protected TransactionResolver getTransactionResolver() {
         TransactionResolver resolver = mock(TransactionResolver.class);
-        doNothing().when(resolver).resolveGlobalCommitTimestamp(any(HRegion.class), any(SparseTxn.class), anyBoolean());
-        doNothing().when(resolver).resolveTimedOut(any(HRegion.class), any(SparseTxn.class), anyBoolean());
+        doNothing().when(resolver).resolveGlobalCommitTimestamp(any(HRegion.class), any(SparseTxn.class));
+        doNothing().when(resolver).resolveTimedOut(any(HRegion.class), any(SparseTxn.class));
         return resolver;
     }
 

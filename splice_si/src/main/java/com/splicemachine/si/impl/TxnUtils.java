@@ -1,8 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * @author Scott Fines
@@ -15,7 +14,7 @@ public class TxnUtils {
 		public static byte[] getRowKey(long txnId) {
 				byte[] rowKey = new byte[9];
 				rowKey[0] = (byte)(txnId & (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1));
-				BytesUtil.longToBytes(txnId, rowKey, 1);
+				Bytes.longToBytes(txnId, rowKey, 1);
 				return rowKey;
 		}
 

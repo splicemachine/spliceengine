@@ -133,10 +133,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
         DependencyManager dm = dd.getDependencyManager();
         dm.invalidateFor(cd, DependencyManager.DROP_INDEX, lcc);
-
-        dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), userTxnManager);
         dd.dropConglomerateDescriptor(cd,userTxnManager);
-
         td.removeConglomerateDescriptor(cd);
     }
 }

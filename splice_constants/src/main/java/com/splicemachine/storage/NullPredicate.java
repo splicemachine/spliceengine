@@ -1,8 +1,8 @@
 package com.splicemachine.storage;
 
-import com.splicemachine.constants.bytes.BytesUtil;
-import org.apache.hadoop.hbase.util.Pair;
-import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.utils.Pair;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -119,7 +119,7 @@ public class NullPredicate implements Predicate{
         data[2] = isNullNumericalComparison ? (byte)0x01: 0x00;
         data[3] = isDoubleColumn? (byte)0x01:0x00;
         data[4] = isFloatColumn? (byte)0x01:0x00;
-        BytesUtil.intToBytes(column,data,5);
+        Bytes.intToBytes(column, data, 5);
         return data;
     }
 
@@ -128,7 +128,7 @@ public class NullPredicate implements Predicate{
         boolean isNullNumericalComparison = data[offset+1]==0x01;
         boolean isDoubleColumn = data[offset+2]==0x01;
         boolean isFloatColumn = data[offset+3]==0x01;
-        int column = BytesUtil.bytesToInt(data,offset+4);
+        int column = Bytes.bytesToInt(data,offset+4);
         return Pair.newPair(new NullPredicate(filterIfMissing,isNullNumericalComparison,column,isDoubleColumn,isFloatColumn),9);
     }
 

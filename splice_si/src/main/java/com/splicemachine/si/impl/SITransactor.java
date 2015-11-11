@@ -9,8 +9,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.SDataLib;
@@ -20,16 +20,13 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -153,12 +150,12 @@ public class SITransactor<Data, Table,
                 byte[] value = dataLib.getDataValue(data);
                 Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
                 if (familyMap == null) {
-                    familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    familyMap = Maps.newTreeMap(Bytes.BASE_COMPARATOR);
                     kvPairMap.put(txnId, familyMap);
                 }
                 Map<byte[], List<KVPair>> columnMap = familyMap.get(family);
                 if (columnMap == null) {
-                    columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    columnMap = Maps.newTreeMap(Bytes.BASE_COMPARATOR);
                     familyMap.put(family, columnMap);
                 }
                 List<KVPair> kvPairs = columnMap.get(column);
@@ -178,12 +175,12 @@ public class SITransactor<Data, Table,
                 byte[] value = new byte[]{};
                 Map<byte[], Map<byte[], List<KVPair>>> familyMap = kvPairMap.get(txnId);
                 if (familyMap == null) {
-                    familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    familyMap = Maps.newTreeMap(Bytes.BASE_COMPARATOR);
                     kvPairMap.put(txnId, familyMap);
                 }
                 Map<byte[], List<KVPair>> columnMap = familyMap.get(family);
                 if (columnMap == null) {
-                    columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+                    columnMap = Maps.newTreeMap(Bytes.BASE_COMPARATOR);
                     familyMap.put(family, columnMap);
                 }
                 List<KVPair> kvPairs = columnMap.get(column);
@@ -194,7 +191,7 @@ public class SITransactor<Data, Table,
                 kvPairs.add(new KVPair(row, value, isDelete ? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
             }
         }
-        final Map<byte[], OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+        final Map<byte[], OperationStatus> statusMap = Maps.newTreeMap(Bytes.BASE_COMPARATOR);
         for (Map.Entry<Long, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()) {
             long txnId = entry.getKey();
             Map<byte[], Map<byte[], List<KVPair>>> familyMap = entry.getValue();
@@ -580,7 +577,7 @@ public class SITransactor<Data, Table,
                     case SIBLING:
                         if (LOG.isTraceEnabled()) {
                             SpliceLogUtils.trace(LOG, "Write conflict on row "
-                                    + BytesUtil.toHex(dataLib.getDataRow(dataCommitKeyValue)));
+                                    + Bytes.toHex(dataLib.getDataRow(dataCommitKeyValue)));
                         }
 
                         throw new WriteConflict(dataTransactionId, updateTransaction.getTxnId());
@@ -593,7 +590,7 @@ public class SITransactor<Data, Table,
                 if (dataCommitTimestamp > updateTransaction.getBeginTimestamp()) {
                     if (LOG.isTraceEnabled()) {
                         SpliceLogUtils.trace(LOG, "Write conflict on row "
-                                + BytesUtil.toHex(dataLib.getDataRow(dataCommitKeyValue)));
+                                + Bytes.toHex(dataLib.getDataRow(dataCommitKeyValue)));
                     }
                     throw new WriteConflict(dataTransactionId, updateTransaction.getTxnId());
                 }
@@ -629,7 +626,7 @@ public class SITransactor<Data, Table,
                 case SIBLING:
                     if (LOG.isTraceEnabled()) {
                         SpliceLogUtils.trace(LOG, "Write conflict on row "
-                                + BytesUtil.toHex(dataLib.getDataRow(dataCommitKeyValue)));
+                                + Bytes.toHex(dataLib.getDataRow(dataCommitKeyValue)));
                     }
                     throw new WriteConflict(dataTransactionId, updateTransaction.getTxnId());
             }

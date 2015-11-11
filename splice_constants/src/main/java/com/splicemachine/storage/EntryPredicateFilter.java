@@ -1,13 +1,13 @@
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Supplier;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -164,7 +164,7 @@ public class EntryPredicateFilter {
          * 1-byte returnIndex
          * n-bytes predicates
          */
-        byte[] bitSetBytes = BytesUtil.toByteArray(fieldsToReturn);
+        byte[] bitSetBytes = Bytes.toByteArray(fieldsToReturn);
         byte[] predicates = Predicates.toBytes(valuePredicates);
         int size = predicates.length+bitSetBytes.length+1;
 
@@ -180,7 +180,7 @@ public class EntryPredicateFilter {
     public static EntryPredicateFilter fromBytes(byte[] data) throws IOException {
         if(data==null||data.length==0) return EMPTY_PREDICATE;
 
-        Pair<BitSet,Integer> fieldsToReturn = BytesUtil.fromByteArray(data,0);
+        Pair<BitSet,Integer> fieldsToReturn = Bytes.fromByteArray(data, 0);
         boolean returnIndex = data[fieldsToReturn.getSecond()] > 0;
         Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.allFromBytes(data,fieldsToReturn.getSecond()+1);
 				return new EntryPredicateFilter(fieldsToReturn.getFirst(),predicates.getFirst(),returnIndex);

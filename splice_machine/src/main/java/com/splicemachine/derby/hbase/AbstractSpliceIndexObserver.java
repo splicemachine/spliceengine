@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.async.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -24,7 +23,6 @@ import com.splicemachine.si.impl.SimpleOperationFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -39,6 +37,7 @@ import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import com.splicemachine.hbase.backup.BackupFileSet;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -85,7 +84,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         try {
             conglomId = Long.parseLong(tableName);
             operationFactory = new SimpleOperationFactory();
-            region = TransactionalRegions.get(e.getEnvironment().getRegion());
+            region = TransactionalRegions.get((HRegion)e.getEnvironment().getRegion());
         } catch (NumberFormatException nfe) {
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing will not be set up", tableName);
             conglomId = -1;
@@ -111,7 +110,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         super.postCompact(e, store, resultFile, request);
     }
     
-    @Override
+
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
         while (true) {
             MemstoreAware latest = memstoreAware.get();
@@ -120,7 +119,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         }
         recordRegionSplitForBackup(e, l, r);
     }
-    
+
     /**
      * ***************************************************************************************************************
      */
@@ -183,7 +182,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
             Configuration conf = SpliceConstants.config;
             SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
-            HRegion region = e.getEnvironment().getRegion();
+            HRegion region = (HRegion) e.getEnvironment().getRegion();
             FileSystem fs = region.getFilesystem();
 
             String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
@@ -243,7 +242,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                 }
                 LOG_COMPACT.trace("resultFile = :" + resultFile.getPath().toString());
             }
-            HRegion region = e.getEnvironment().getRegion();
+            HRegion region = (HRegion) e.getEnvironment().getRegion();
             FileSystem fs = region.getFilesystem();
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
             Set<String> pathSet = new HashSet<>();
@@ -353,7 +352,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
     private boolean stopRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] stopRow) {
     	return HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), stopRow)
-    			|| Bytes.equals(c.getEnvironment().getRegion().getRegionInfo().getEndKey(),stopRow);
+    			|| Bytes.equals(c.getEnvironment().getRegion().getRegionInfo().getEndKey(), stopRow);
     	
     }
 
@@ -380,7 +379,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 	        while (true) {
 				MemstoreAware currentState = memstoreAware.get();
 				if (currentState.splitMerge || currentState.compactionCount>0) {
-					SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s",c.getEnvironment().getRegion().getRegionNameAsString());
+					SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
 					throw new DoNotRetryIOException();
 				}					
 	            if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)));
@@ -393,14 +392,14 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 						if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)));
 							break;
 					}
-					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionNameAsString());
+					SpliceLogUtils.warn(LOG, "scan missed do to split after task creation beginKey=%s, endKey=%s, region=%s",scan.getStartRow(), scan.getStopRow(),c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
 					throw new DoNotRetryIOException();
 				}
 			
 			InternalScan iscan = new InternalScan(scan);
 			iscan.checkOnlyMemStore();
-			return factory.getMemstoreFlushAwareScanner(c.getEnvironment().getRegion(),store, store.getScanInfo(), iscan, targetCols,
-					getReadpoint(c.getEnvironment().getRegion()),memstoreAware,memstoreAware.get());
+			return factory.getMemstoreFlushAwareScanner((HRegion)c.getEnvironment().getRegion(),store, store.getScanInfo(), iscan, targetCols,
+					getReadpoint((HRegion)c.getEnvironment().getRegion()),memstoreAware,memstoreAware.get());
 		}		
 		return super.preStoreScannerOpen(c, store, scan, targetCols, s);
 	}	

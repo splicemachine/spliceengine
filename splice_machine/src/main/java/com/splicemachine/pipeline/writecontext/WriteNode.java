@@ -111,7 +111,7 @@ public class WriteNode implements WriteContext {
 
     @Override
     public HRegion getRegion() {
-        return getCoprocessorEnvironment().getRegion();
+        return (HRegion) getCoprocessorEnvironment().getRegion();
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -13,12 +13,9 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -94,7 +91,7 @@ public class TransactionResolver<Transaction,TableBuffer> {
         disruptor.start();
     }
 
-    public void resolveTimedOut(HRegion txnRegion,Transaction txn,boolean oldForm){
+    public void resolveTimedOut(HRegion txnRegion,Transaction txn){
         long sequence;
         try{
             sequence = ringBuffer.tryNext();
@@ -109,13 +106,12 @@ public class TransactionResolver<Transaction,TableBuffer> {
             event.txnRegion = txnRegion;
             event.timedOut = true;
             event.txn = txn;
-            event.oldForm = oldForm;
         }finally{
             ringBuffer.publish(sequence);
         }
     }
 
-    public void resolveGlobalCommitTimestamp(HRegion txnRegion, Transaction txn,boolean oldForm){
+    public void resolveGlobalCommitTimestamp(HRegion txnRegion, Transaction txn){
         long sequence;
         try{
             sequence = ringBuffer.tryNext();
@@ -130,7 +126,6 @@ public class TransactionResolver<Transaction,TableBuffer> {
             event.txnRegion = txnRegion;
             event.timedOut = false;
             event.txn = txn;
-            event.oldForm = oldForm;
         }finally{
             ringBuffer.publish(sequence);
         }
@@ -144,7 +139,6 @@ public class TransactionResolver<Transaction,TableBuffer> {
     private static class TxnResolveEvent <Transaction>{
         private boolean timedOut;
         private HRegion txnRegion;
-        private boolean oldForm;
         private Transaction txn;
     }
 
@@ -153,14 +147,14 @@ public class TransactionResolver<Transaction,TableBuffer> {
         @Override
         public void onEvent(TxnResolveEvent<Transaction> event, long sequence, boolean endOfBatch) throws Exception {
             if(event.timedOut){
-                resolveTimeOut(event.txnRegion,event.txn,event.oldForm);
+                resolveTimeOut(event.txnRegion,event.txn);
             }
             else
-                resolveCommit(event.txnRegion,event.txn,event.oldForm);
+                resolveCommit(event.txnRegion,event.txn);
         }
     }
 
-    private void resolveCommit(HRegion txnRegion, Transaction txn,boolean oldForm) throws IOException {
+    private void resolveCommit(HRegion txnRegion, Transaction txn) throws IOException {
         assert txn!=null;
     	
     	if(transactionLib.getTransactionState(txn)!= Txn.State.COMMITTED) return; //not committed, don't do anything
@@ -178,32 +172,23 @@ public class TransactionResolver<Transaction,TableBuffer> {
 
             SpliceLogUtils.trace(LOG,"Adding global commit timestamp to transaction %d", txnId);
             Put put = new Put(TxnUtils.getRowKey(txnId));
-            if(oldForm)
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV1TxnDecoder.OLD_GLOBAL_COMMIT_TIMESTAMP_COLUMN, Bytes.toBytes(globalCommitTs));
-            else
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES, Encoding.encode(globalCommitTs));
+            put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES, Encoding.encode(globalCommitTs));
             //don't write to the WAL to avoid the write performance penalty
             put.setWriteToWAL(false);
-
             txnRegion.put(put);
         }catch(Exception e){
             logError(txnId, e);
         }
     }
 
-    private void resolveTimeOut(HRegion txnRegion,Transaction txn,boolean oldForm) {
+    private void resolveTimeOut(HRegion txnRegion,Transaction txn) {
         long txnId = transactionLib.getTxnId(txn);
         try{
             Put put = new Put(TxnUtils.getRowKey(txnId));
 
             SpliceLogUtils.trace(LOG,"Moving Txn %d from timed out to outright rolled back",txnId);
-            if(oldForm)
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV1TxnDecoder.OLD_STATUS_COLUMN, Txn.State.ROLLEDBACK.encode());
-            else
-                put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
-
+            put.add(SIConstants.DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
             put.setWriteToWAL(false);
-
             txnRegion.put(put);
         }catch(Exception e){
             logError(txnId,e);

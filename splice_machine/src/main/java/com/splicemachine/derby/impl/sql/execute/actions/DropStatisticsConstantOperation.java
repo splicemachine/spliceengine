@@ -57,8 +57,6 @@ public class DropStatisticsConstantOperation extends DDLConstantOperation {
 		 */
 		dm.invalidateFor(td, DependencyManager.DROP_STATISTICS, lcc);
 
-		dd.dropStatisticsDescriptors(td.getUUID(), ((cd != null) ? cd.getUUID() :
-									 null), tc);
 	}
 	
 	public String toString() {

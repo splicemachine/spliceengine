@@ -12,18 +12,13 @@ import java.io.IOException;
 
 public class HTableReader implements STableReader<IHTable, Get, Scan> {
     private final HTableSource tableSource;
-//    private final IHTable transactionTable;
 
     public HTableReader(HTableSource tableSource) throws IOException {
         this.tableSource = tableSource;
-//        this.transactionTable = new TxnTable(tableSource.getTable(SIConstants.TRANSACTION_TABLE), AsyncHbase.HBASE_CLIENT);
     }
 
     @Override
     public IHTable open(String tableName) throws IOException {
-//        if(SIConstants.TRANSACTION_TABLE.equals(tableName))
-//            return transactionTable;
-
         return new HbTable(tableSource.getTable(tableName));
     }
 

@@ -1,9 +1,8 @@
 package com.splicemachine.encoding;
 
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.primitives.Bytes;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.UnicodeUtil;
-
 import java.nio.ByteBuffer;
 
 /**

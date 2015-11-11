@@ -1,10 +1,8 @@
 package com.splicemachine.utils;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
-import org.apache.hadoop.hbase.util.Bytes;
-
+import com.splicemachine.primitives.Bytes;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -90,7 +88,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
     public byte[] getByteCopy() {
         if(length<=0) return EMPTY_BYTE_ARRAY;
-        return BytesUtil.slice(buffer, offset, length);
+        return Bytes.slice(buffer, offset, length);
     }
 
     public ByteBuffer asBuffer(){
@@ -157,7 +155,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
     public byte[] data(boolean reverse){
         if(length<=0) return EMPTY_BYTE_ARRAY;
-        byte[] data = BytesUtil.slice(buffer,offset,length);
+        byte[] data = Bytes.slice(buffer,offset,length);
         if(reverse){
             for(int i=0;i<data.length;i++){
                 data[i] ^=0xff;
@@ -188,7 +186,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
     @Override
     public String toString() {
-        return String.format("ByteSlice {buffer=%s}", BytesUtil.toHex(buffer, offset, length));
+        return String.format("ByteSlice {buffer=%s}", Bytes.toHex(buffer, offset, length));
     }
 
     public boolean equals(ByteSlice currentData, int equalsLength) {
@@ -211,7 +209,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
     public int compareTo(byte[] bytes,int offset, int length) {
         //we need comparisons to occur in an unsigned manner
-        return Bytes.compareTo(buffer,this.offset,this.length,bytes,offset,length);
+        return Bytes.BASE_COMPARATOR.compare(buffer,this.offset,this.length,bytes,offset,length);
     }
 
     @Override
@@ -285,7 +283,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
     public String toHexString() {
         if(this.length<=0) return "";
-        return BytesUtil.toHex(buffer,offset,length);
+        return Bytes.toHex(buffer,offset,length);
     }
 
     private static void assertLengthCorrect(byte[] buffer, int offset, int length) {

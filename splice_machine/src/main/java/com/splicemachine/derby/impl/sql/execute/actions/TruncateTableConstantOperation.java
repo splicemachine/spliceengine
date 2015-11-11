@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.db.catalog.UUID;
@@ -11,15 +10,12 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-
 import java.util.Properties;
 
 /**
@@ -210,10 +206,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         TransactionController.IS_DEFAULT);
 
 
-        //on truncate drop the statistics because we know for sure
-        //rowscount is zero and existing statistic will be invalid.
-        if (td.statisticsExist(cd))
-            dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), tc);
     }
 
     @Override

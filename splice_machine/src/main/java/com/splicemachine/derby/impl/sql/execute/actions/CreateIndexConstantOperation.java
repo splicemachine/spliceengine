@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -37,7 +36,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.impl.services.daemon.IndexStatisticsDaemonImpl;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -834,33 +832,4 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         return ddlChange;
     }
 
-    /*
-     * Determines if a statistics entry is to be added for the index.
-     * <p>
-     * As an optimization, it may be better to not write a statistics entry to
-     * SYS.SYSSTATISTICS. If it isn't needed by Derby as part of query
-     * optimization there is no reason to spend resources keeping the
-     * statistics up to date.
-     *
-     * @param dd the data dictionary
-     * @param irg the index row generator
-     * @param numRows the number of rows in the index
-     * @return {@code true} if statistics should be written to
-     *      SYS.SYSSTATISTICS, {@code false} otherwise.
-     * @throws StandardException if accessing the data dictionary fails
-     */
-    @SuppressWarnings("UnusedDeclaration")
-    private boolean addStatistics(DataDictionary dd,IndexRowGenerator irg,long numRows) throws StandardException {
-        SpliceLogUtils.trace(LOG, "addStatistics for index %s",irg.getIndexDescriptor());
-        boolean add = (numRows > 0);
-        if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null) &&
-                // This horrible piece of code will hopefully go away soon!
-                ((IndexStatisticsDaemonImpl)dd.getIndexStatsRefresher(false)).skipDisposableStats) {
-            if (add && irg.isUnique() && irg.numberOfOrderedColumns() == 1) {
-                // Do not add statistics for single-column unique indexes.
-                add = false;
-            }
-        }
-        return add;
-    }
 }

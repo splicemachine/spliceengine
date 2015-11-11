@@ -10,7 +10,6 @@ import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.FkTask;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -44,7 +43,6 @@ import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
-import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
@@ -57,12 +55,10 @@ import com.splicemachine.derby.impl.stats.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.ErrorTransport;
-import com.splicemachine.job.TaskStatus;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.impl.*;
@@ -415,7 +411,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,44);
         instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,45);
         instance.register(LazyStringDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,46);
-        instance.register(TaskStatus.class,EXTERNALIZABLE_SERIALIZER,47);
 
 
         //register Activation-related classes
@@ -493,7 +488,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FormatableArrayHolder.class,EXTERNALIZABLE_SERIALIZER,112);
         instance.register(IndexColumnOrder.class,EXTERNALIZABLE_SERIALIZER,113);
         instance.register(HBaseRowLocation.class,EXTERNALIZABLE_SERIALIZER,114);
-        instance.register(TaskStats.class,EXTERNALIZABLE_SERIALIZER,115);
         instance.register(AggregatorInfoList.class,EXTERNALIZABLE_SERIALIZER,117);
         instance.register(AggregatorInfo.class,EXTERNALIZABLE_SERIALIZER,118);
         instance.register(UserType.class,EXTERNALIZABLE_SERIALIZER,119);
@@ -730,7 +724,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
        // instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
        // instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
         instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,182);
-        instance.register(SizedInterval.class,EXTERNALIZABLE_SERIALIZER,183);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,184);
         instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,185);
         instance.register(WindowFunctionInfoList.class,EXTERNALIZABLE_SERIALIZER,186);
@@ -818,7 +811,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DateStatistics.class,EXTERNALIZABLE_SERIALIZER,249);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,250);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,251);
-        instance.register(TaskFutureContext.class, EXTERNALIZABLE_SERIALIZER,252);
 
         instance.register(TriggerInfo.class, EXTERNALIZABLE_SERIALIZER, 253);
         instance.register(TriggerDescriptor.class, EXTERNALIZABLE_SERIALIZER, 254);

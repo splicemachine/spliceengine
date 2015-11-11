@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.async.KeyValue;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
 
 /**
@@ -46,14 +46,14 @@ public abstract class TableStatsDecoder{
         return stats;
     }
 
-    public TableStatisticsDescriptor decode(KeyValue kv,EntryDecoder cachedDecoder){
+    public TableStatisticsDescriptor decode(Cell kv,EntryDecoder cachedDecoder){
         MultiFieldDecoder decoder=cachedDecoder.get();
-        decoder.set(kv.key());
+        decoder.set(kv.getRowArray(),kv.getRowOffset(),kv.getRowLength());
         long conglomId = decoder.decodeNextLong();
         String partitionId = decoder.decodeNextString();
 
 
-        cachedDecoder.set(kv.value());
+        cachedDecoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
         BitIndex index=cachedDecoder.getCurrentIndex();
         decoder=cachedDecoder.get();
         long timestamp;

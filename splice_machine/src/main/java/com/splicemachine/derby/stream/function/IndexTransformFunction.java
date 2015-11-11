@@ -1,12 +1,10 @@
 package com.splicemachine.derby.stream.function;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.hbase.KVPair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

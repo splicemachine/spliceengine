@@ -55,7 +55,7 @@ public class TransactionalRegions {
     public static void setTrafficControl(TrafficControl control) {trafficControl = control;}
 
     public static TransactionalRegion get(HRegion region){
-        String regionNameAsString = region.getRegionNameAsString();
+        String regionNameAsString = region.getRegionInfo().getRegionNameAsString();
         DiscardingTransactionalRegion txnRegion = regionMap.get(regionNameAsString);
         if(txnRegion==null){
             txnRegion = new DiscardingTransactionalRegion(get(region,actionFactory.newAction(region)),regionNameAsString);

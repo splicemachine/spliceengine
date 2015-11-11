@@ -16,6 +16,9 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
+import org.apache.hadoop.hbase.regionserver.StoreEngine;
+import org.apache.hadoop.hbase.regionserver.StripeStoreEngine;
+
 import java.util.List;
 import static com.google.common.collect.Lists.transform;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -78,6 +81,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.regionserver.info.port", regionServerInfoPort);
         config.setInt("hbase.master.jmx.port", SpliceConstants.DEFAULT_JMX_BIND_PORT); // this is set because the HBase master and regionserver are running on the same machine and in the same JVM
         config.setInt(SpliceConstants.DERBY_BIND_PORT, derbyPort);
+
 
         //
         // Networking -- interfaces

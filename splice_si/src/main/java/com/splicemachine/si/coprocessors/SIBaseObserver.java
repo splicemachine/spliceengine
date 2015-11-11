@@ -37,8 +37,8 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
 				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
         if(tableEnvMatch){
             txnOperationFactory = new SimpleOperationFactory();
-            region = SIFactoryDriver.siFactory.getTransactionalRegion(((RegionCoprocessorEnvironment) e).getRegion());
-            Tracer.traceRegion(region.getTableName(), ((RegionCoprocessorEnvironment)e).getRegion());
+            region = SIFactoryDriver.siFactory.getTransactionalRegion((HRegion)((RegionCoprocessorEnvironment) e).getRegion());
+            Tracer.traceRegion(region.getTableName(), (HRegion)((RegionCoprocessorEnvironment)e).getRegion());
         }
 				super.start(e);
 

@@ -1,11 +1,11 @@
 package com.splicemachine.derby.stream.partitioner;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.IntArrays;
 import org.apache.spark.Partitioner;
 import java.io.Externalizable;
@@ -55,7 +55,7 @@ public class MergePartitioner extends Partitioner implements Externalizable {
                 throw new RuntimeException(e);
             }
             for (int i = 0; i<splits.size(); ++i) {
-                if (BytesUtil.endComparator.compare(result, splits.get(i)) < 0) {
+                if (Bytes.endComparator.compare(result, splits.get(i)) < 0) {
                     return i;
                 }
             }

@@ -2,14 +2,12 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.async.Bytes;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
@@ -18,13 +16,12 @@ import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;

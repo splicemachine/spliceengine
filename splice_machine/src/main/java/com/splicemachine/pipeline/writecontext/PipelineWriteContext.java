@@ -106,7 +106,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public HRegion getRegion() {
-        return getCoprocessorEnvironment().getRegion();
+        return (HRegion)getCoprocessorEnvironment().getRegion();
     }
 
     @Override
@@ -134,7 +134,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public void flush() throws IOException {
         if (env != null && env.getRegion() != null)
-            derbyFactory.checkCallerDisconnect(env.getRegion());
+            derbyFactory.checkCallerDisconnect((HRegion)env.getRegion());
 
         try {
             WriteNode next = head.getNext();

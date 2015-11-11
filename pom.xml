@@ -35,39 +35,7 @@
 	</properties>
 	<dependencyManagement>
 		<dependencies>
-			<!-- internally built dependencies -->
-			<dependency>
-				<groupId>com.splicemachine</groupId>
-				<artifactId>asynchbase</artifactId>
-				<version>1.5.6</version>
-				<exclusions>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>slf4j-api</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>slf4j-log4j12</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>log4j-over-slf4j</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>com.google.protobuf</groupId>
-						<artifactId>protobuf-java</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>com.stumbleupon</groupId>
-						<artifactId>async</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>org.apache.zookeeper</groupId>
-						<artifactId>zookeeper</artifactId>
-					</exclusion>
-				</exclusions>
- </dependency>
-	<dependency>
+    	<dependency>
 				<groupId>com.splicemachine</groupId>
 				<artifactId>utilities</artifactId>
 				<version>1.2.1-SNAPSHOT</version>
@@ -164,25 +132,6 @@
 				<groupId>com.lmax</groupId>
 				<artifactId>disruptor</artifactId>
 				<version>3.2.1</version>
-			</dependency>
-			<dependency>
-				<groupId>com.stumbleupon</groupId>
-				<artifactId>async</artifactId>
-				<version>1.4.0</version>
-				<exclusions>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>slf4j-api</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>slf4j-log4j12</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>log4j-over-slf4j</artifactId>
-					</exclusion>
-				</exclusions>
 			</dependency>
 			<dependency>
 				<groupId>com.sun.jersey</groupId>
@@ -857,30 +806,17 @@
 		<profile>
 			<id>all</id>
 			<modules>
-				<module>cdh5.3.2</module>
 				<module>cdh5.4.1</module>
 				<module>hdp2.2.4</module>
-				<!--module>hdp2.3.0</module-->
+				<module>hdp2.3.0</module>
 				<module>mapr0.98.4</module>
-				<!--<module>mapr0.98.12</module>-->
-			</modules>
-		</profile>
-		<profile>
-			<id>cdh5.3.2</id>
-			<modules>
-				<module>cdh5.3.2</module>
+				<module>mapr0.98.12</module>
 			</modules>
 		</profile>
 		<profile>
 			<id>cdh5.4.1</id>
 			<modules>
 				<module>cdh5.4.1</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>hdp2.1.7</id>
-			<modules>
-				<module>hdp2.1.7</module>
 			</modules>
 		</profile>
 		<profile>

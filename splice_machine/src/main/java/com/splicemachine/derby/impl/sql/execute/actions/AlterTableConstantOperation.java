@@ -937,39 +937,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         null,
                         null);
 
-        //For an index, if the statistics already exist, then drop them.
-        //The statistics might not exist for an index if the index was
-        //created when the table was empty.
-        //
-        //For all alter table actions, including ALTER TABLE COMPRESS,
-        //for both kinds of indexes (ie. one with preexisting statistics
-        //and with no statistics), create statistics for them if the table
-        //is not empty.
-        if (statisticsExist)
-            dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), tc);
-
-//        long numRows;
-//        if ((numRows = ((CardinalityCounter)cCount).getRowCount()) > 0) {
-//            long[] c = ((CardinalityCounter)cCount).getCardinality();
-//            for (int i = 0; i < c.length; i++) {
-//                StatisticsDescriptor statDesc =
-//                        new StatisticsDescriptor(
-//                                dd,
-//                                dd.getUUIDFactory().createUUID(),
-//                                cd.getUUID(),
-//                                td.getUUID(),
-//                                "I",
-//                                new StatisticsImpl(numRows, c[i]),
-//                                i + 1);
-//
-//                dd.addDescriptor(
-//                        statDesc,
-//                        null,   // no parent descriptor
-//                        DataDictionary.SYSSTATISTICS_CATALOG_NUM,
-//                        true,   // no error on duplicate.
-//                        tc);
-//            }
-//        }
     }
 
     private Properties getIndexProperties(long newHeapConglom, int index, ConglomerateDescriptor cd, ConglomerateController indexCC) throws StandardException {

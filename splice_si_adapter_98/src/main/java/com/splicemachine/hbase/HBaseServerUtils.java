@@ -21,7 +21,7 @@ public class HBaseServerUtils {
 						long afterTime =  currentCall.disconnectSince();
 						if(afterTime>0){
 								throw new CallerDisconnectedException(
-												"Aborting on region " + region.getRegionNameAsString() + ", call " +
+												"Aborting on region " + region.getRegionInfo().getRegionNameAsString() + ", call " +
 																task + " after " + afterTime + " ms, since " +
 																"caller disconnected");
 						}

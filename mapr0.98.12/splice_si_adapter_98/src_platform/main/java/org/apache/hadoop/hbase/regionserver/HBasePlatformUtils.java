@@ -28,5 +28,8 @@ public class HBasePlatformUtils{
 			readRequestsCount.add(numReads);
 	}
 
+    public static Map<byte[],Store> getStores(HRegion region) {
+        return region.getStores();
+    }
 
 }

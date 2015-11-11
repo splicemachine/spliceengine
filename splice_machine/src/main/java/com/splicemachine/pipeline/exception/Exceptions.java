@@ -22,9 +22,7 @@ import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.hbase.client.ScannerTimeoutException;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkException;
-
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.ConnectException;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -50,30 +48,6 @@ public class Exceptions {
             return parseException((RetriesExhaustedWithDetailsException) rootCause);
         } else if (rootCause instanceof ConstraintViolation.ConstraintViolationException) {
             return toStandardException((ConstraintViolation.ConstraintViolationException) rootCause);
-        } else if (rootCause instanceof com.splicemachine.async.RemoteException) {
-            com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException) rootCause;
-            String fullMessage = re.getMessage();
-            String type = re.getType();
-            try {
-                return parseException((Throwable) Class.forName(type).getConstructor(String.class).newInstance(fullMessage));
-            } catch (ClassNotFoundException cnfe) {
-                //just parse  the actual remote directly
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (NoSuchMethodException e1) {
-                //just parse  the actual remote directly
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (InvocationTargetException e1) {
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (InstantiationException e1) {
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (IllegalAccessException e1) {
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            }
         } else if(rootCause instanceof SparkException) {
             if (rootCause.getMessage().contains("com.splicemachine.db.iapi.error.StandardException")) {
                 // the root cause of the Spark failure was a standard exception, let's parse it
@@ -149,29 +123,8 @@ public class Exceptions {
     public static IOException getIOException(Throwable t){
         t = Throwables.getRootCause(t);
         if(t instanceof StandardException) return getIOException((StandardException)t);
-        else if(t instanceof com.splicemachine.async.RemoteException){
-            return getRemoteIOException((com.splicemachine.async.RemoteException)t);
-        }
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
-    }
-
-    protected static IOException getRemoteIOException(com.splicemachine.async.RemoteException t) {
-        String text = t.getMessage();
-        String type = t.getType();
-        try{
-            return getIOException((Throwable)Class.forName(type).getConstructor(String.class).newInstance(text));
-        } catch (InvocationTargetException e) {
-            return new IOException(t);
-        } catch (NoSuchMethodException e) {
-            return new IOException(t);
-        } catch (ClassNotFoundException e) {
-            return new IOException(t);
-        } catch (InstantiationException e) {
-            return new IOException(t);
-        } catch (IllegalAccessException e) {
-            return new IOException(t);
-        }
     }
 
     /**

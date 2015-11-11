@@ -6,6 +6,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.Cell;
 
 import java.io.IOException;
 
@@ -27,12 +28,10 @@ public class PairDecoder<Data> {
 				this.templateRow = templateRow;
 		}
 
-    public ExecRow decode(com.splicemachine.async.KeyValue data) throws StandardException{
+    public ExecRow decode(Cell data) throws StandardException{
         templateRow.resetRowArray();
-        byte[] key = data.key();
-        keyDecoder.decode(key,0,key.length,templateRow);
-        byte[] row = data.value();
-        rowDecoder.set(row,0,row.length);
+        keyDecoder.decode(data.getRowArray(),data.getRowOffset(),data.getRowLength(),templateRow);
+        rowDecoder.set(data.getValueArray(),data.getValueOffset(),data.getValueLength());
         rowDecoder.decode(templateRow);
         return templateRow;
     }

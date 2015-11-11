@@ -45,7 +45,7 @@ public class EnvUtils {
     }
 
     public static String getRegionId(HRegion region) {
-		return getRegionId(region.getRegionNameAsString());
+		return getRegionId(region.getRegionInfo().getRegionNameAsString());
 	}
 	
 	public static String getRegionId(String regionName) {

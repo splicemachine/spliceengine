@@ -1,12 +1,12 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 /**
@@ -45,7 +45,7 @@ class ForeignKeyViolationProcessor {
 
     private void doFail(WriteContext ctx, ConstraintViolation.ForeignKeyConstraintViolation cause) {
         String hexEncodedFailedRowKey = cause.getConstraintContext().getMessages()[0];
-        byte[] failedRowKey = BytesUtil.fromHex(hexEncodedFailedRowKey);
+        byte[] failedRowKey = Bytes.fromHex(hexEncodedFailedRowKey);
         ConstraintContext constraintContext = fkConstraintContextProvider.get(cause);
         ctx.result(failedRowKey, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
     }

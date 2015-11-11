@@ -87,11 +87,6 @@ public class SpliceConstants {
 
     public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
-    @Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
-    @DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
-    public static long sequentialImportThreashold;
-    public static int sampleTimingSize = 10000;
-
     @Parameter public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
     @DefaultValue(IMPORT_MAX_QUOTED_COLUMN_LINES) public static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 50000;
     public static int importMaxQuotedColumnLines;
@@ -99,10 +94,6 @@ public class SpliceConstants {
     @SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
     @DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
     public static volatile boolean constraintsEnabled;
-
-    @Parameter public static final String IMPORT_LOG_QUEUE_SIZE = "splice.import.badRecords.queueSize";
-    @DefaultValue(IMPORT_LOG_QUEUE_SIZE) private static final int DEFAULT_IMPORT_LOG_QUEUE_SIZE = 1000;
-    public static int importLogQueueSize;
 
     @Parameter public static final String PUSH_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.pushForwardRingBufferSize";
     @DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE = 4096;
@@ -136,10 +127,6 @@ public class SpliceConstants {
     @DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
     public static long importLogQueueWaitTimeMs;
 
-    @Parameter public static final String USE_READ_AHEAD_SCANNER = "splice.scan.useReadAhead";
-    @DefaultValue(USE_READ_AHEAD_SCANNER) private static final boolean DEFAULT_USE_READ_AHEAD_SCANNER = false;
-    public static boolean useReadAheadScanner;
-
     @Retention(RetentionPolicy.SOURCE)
     protected @interface Parameter{
 
@@ -152,14 +139,6 @@ public class SpliceConstants {
 
     // Splice Configuration
     public static Configuration config = SpliceConfiguration.create();
-
-    // Zookeeper Default Paths
-    /**
-     * The Path in zookeeper to store task information. Defaults to /spliceTasks
-     */
-    @Parameter public static final String BASE_TASK_QUEUE_NODE = "splice.task_queue_node";
-    @DefaultValue(BASE_TASK_QUEUE_NODE) public static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
-    public static String zkSpliceTaskPath;
 
     /**
      * The Path in zookeeper for broadcasting messages to all servers
@@ -1109,7 +1088,6 @@ public class SpliceConstants {
     public static int ipcThreads;
 
     public static List<String> zookeeperPaths = Lists.newArrayList(
-            zkSpliceTaskPath,
             zkSpliceJobPath,
             zkSpliceConglomeratePath,
             zkSpliceConglomerateSequencePath,
@@ -1121,7 +1099,6 @@ public class SpliceConstants {
     );
 
     public static void setParameters() {
-        zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
         zkSpliceDDLPath = config.get(DDL_PATH,DEFAULT_DDL_PATH);
         zkSpliceDDLActiveServersPath = zkSpliceDDLPath + "/activeServers";
         zkSpliceDDLOngoingTransactionsPath = zkSpliceDDLPath + "/ongoingChanges";
@@ -1276,20 +1253,11 @@ public class SpliceConstants {
 
         tempTableBucketCount = config.getInt(TEMP_TABLE_BUCKET_COUNT, DEFAULT_TEMP_TABLE_BUCKET_COUNT);
 
-        sequentialImportThreashold = config.getLong(SEQUENTIAL_IMPORT_THREASHOLD,DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD);
-
         importMaxQuotedColumnLines = config.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES,DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
 
         constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
 
-        importLogQueueSize = config.getInt(IMPORT_LOG_QUEUE_SIZE, DEFAULT_IMPORT_LOG_QUEUE_SIZE);
-        if(importLogQueueSize<=0){
-            Logger.getRootLogger().error("Unable to set import log queue size to a value <= 0. Setting it to the default of "+ DEFAULT_IMPORT_LOG_QUEUE_SIZE);
-            importLogQueueSize = DEFAULT_IMPORT_LOG_QUEUE_SIZE;
-        }
-
         importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
-        useReadAheadScanner = config.getBoolean(USE_READ_AHEAD_SCANNER,DEFAULT_USE_READ_AHEAD_SCANNER);
 
         ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT,DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
         ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT,DEFAULT_DDL_DRAINING_INITIAL_WAIT);

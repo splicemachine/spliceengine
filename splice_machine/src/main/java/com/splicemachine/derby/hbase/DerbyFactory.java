@@ -45,9 +45,6 @@ import org.apache.log4j.Logger;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
@@ -61,7 +58,6 @@ public interface DerbyFactory<Transaction> {
 		List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
 		void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
 		HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
-		BaseJobControl getJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics);
 		void writeScanExternal(ObjectOutput output, Scan scan) throws IOException;
 		Scan readScanExternal(ObjectInput in) throws IOException;
 		void checkCallerDisconnect(HRegion region) throws IOException;

@@ -2,11 +2,9 @@ package com.splicemachine.si.api;
 
 import java.io.IOException;
 import java.util.List;
-
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
-import com.splicemachine.async.KeyValue;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;

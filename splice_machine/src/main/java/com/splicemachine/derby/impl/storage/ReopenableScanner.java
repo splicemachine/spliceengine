@@ -1,22 +1,20 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import java.io.IOException;
 
 /**
@@ -59,7 +57,7 @@ public abstract class ReopenableScanner {
             }
         } catch (IOException e) {
             if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
-                SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(lastRow));
+                SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", Bytes.toHex(lastRow));
                 incrementNumRetries();
                 delegate = reopenResultScanner(delegate, scan, htable);
             }
@@ -83,7 +81,7 @@ public abstract class ReopenableScanner {
             }
         } catch (IOException e) {
             if (Exceptions.isScannerTimeoutException(e) && getNumRetries() < MAX_RETIRES) {
-                SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", BytesUtil.toHex(lastRow));
+                SpliceLogUtils.trace(LOG, "Re-create scanner with startRow = %s", Bytes.toHex(lastRow));
                 incrementNumRetries();
                 delegate = reopenRegionScanner(delegate, region, scan, metricFactory);
             }

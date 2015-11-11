@@ -27,8 +27,7 @@ public class SpliceBaseDerbyCoprocessor {
         regionServerZNode = regionServerServices.getServerName().getServerName();
 
         //make sure the factory is correct
-        long rollForwardrate = SIConstants.rollForwardRate;
-        ActionFactory af = rollForwardrate>0? RollForwardAction.FACTORY:ActionFactory.NOOP_ACTION_FACTORY;
+        ActionFactory af = ActionFactory.NOOP_ACTION_FACTORY;
         TransactionalRegions.setActionFactory(af);
         //use the independent write control from the write pipeline
         TransactionalRegions.setTrafficControl(SpliceBaseIndexEndpoint.independentTrafficControl);

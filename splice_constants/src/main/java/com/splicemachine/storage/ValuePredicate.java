@@ -1,12 +1,10 @@
 package com.splicemachine.storage;
 
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.filter.CompareFilter;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import com.carrotsearch.hppc.BitSet;
-
 import java.util.Arrays;
+import java.util.BitSet;
 
 
 /**
@@ -105,7 +103,7 @@ public class ValuePredicate implements Predicate {
     }
 
 		protected int doComparison(byte[] data, int offset, int length) {
-				int baseCompare = Bytes.compareTo(compareValue, 0, compareValue.length, data, offset, length);
+				int baseCompare = Bytes.BASE_COMPARATOR.compare(compareValue, 0, compareValue.length, data, offset, length);
 				if(desc)
 						baseCompare*=-1; //swap the order for descending columns
 				return baseCompare;
@@ -145,12 +143,12 @@ public class ValuePredicate implements Predicate {
          */
 				byte[] data = new byte[compareValue.length + 15];
 				data[0] = getType().byteValue();
-				BytesUtil.intToBytes(column, data, 1);
+				Bytes.intToBytes(column, data, 1);
 
 				data[5] = removeNullEntries ? (byte) 0x01 : 0x00;
 				data[6] = desc? (byte)0x01: 0x00;
-				BytesUtil.intToBytes(compareOp.ordinal(), data, 7);
-				BytesUtil.intToBytes(compareValue.length, data, 11);
+				Bytes.intToBytes(compareOp.ordinal(), data, 7);
+				Bytes.intToBytes(compareValue.length, data, 11);
 				System.arraycopy(compareValue, 0, data, 15, compareValue.length);
 
 				return data;
@@ -162,7 +160,7 @@ public class ValuePredicate implements Predicate {
 				offset++;
 				int length =1;
         //first bytes are the Column
-        int column = BytesUtil.bytesToInt(data, offset);
+        int column = Bytes.bytesToInt(data, offset);
 				offset+=4;
 				length+=4;
         boolean removeNullEntries = data[offset] ==0x01;
@@ -171,11 +169,11 @@ public class ValuePredicate implements Predicate {
 				boolean desc = data[offset] == 0x01;
 				offset++;
 				length++;
-        CompareFilter.CompareOp compareOp = getCompareOp(BytesUtil.bytesToInt(data, offset));
+        CompareFilter.CompareOp compareOp = getCompareOp(Bytes.bytesToInt(data, offset));
 				offset+=4;
 				length+=4;
 
-        int compareValueSize = BytesUtil.bytesToInt(data, offset);
+        int compareValueSize = Bytes.bytesToInt(data, offset);
 				offset+=4;
 				length+=4;
         byte[] compareValue = new byte[compareValueSize];

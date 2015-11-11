@@ -1,7 +1,8 @@
 package com.splicemachine.storage;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.index.BitIndex;
+
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -25,14 +26,12 @@ public class AlwaysAcceptAccumulationSet extends EntryAccumulationSet {
 
 				remainingFields.andNot(occupiedFields);
 				return remainingFields;
-//				for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1))
-//						bitSet.clear(i);
 		}
 
 		@Override
 		public void reset() {
 				if(remainingFields!=null)
-						remainingFields.union(occupiedFields); //set back the occupied fields
+						remainingFields =(BitSet)occupiedFields.clone(); // JL TODO Remove clone op
 				super.reset();
 		}
 

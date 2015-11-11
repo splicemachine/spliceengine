@@ -1,6 +1,6 @@
 package com.splicemachine.encoding;
 
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.primitives.Bytes;
 
 import java.math.BigDecimal;
 
@@ -728,7 +728,7 @@ public final class Encoding {
 
     public static void main(String... args) throws Exception{
 				byte b = (byte)0x01;
-				System.out.println(BytesUtil.toHex(new byte[]{(byte)(b^0xff)}));
+				System.out.println(Bytes.toHex(new byte[]{(byte) (b ^ 0xff)}));
     }
 
 		public static boolean isNullDOuble(byte[] data, int offset, int length) {
