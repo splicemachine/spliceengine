@@ -55,7 +55,7 @@ public class StandardException extends Exception
 	/*
 	 * Exception State
 	 */
-	private transient Object[] arguments;
+	private Object[] arguments;
 	private int severity;
 	private String textMessage;
 	private String sqlState;
