@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.*;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -114,9 +115,10 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
         double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList);
-        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
+        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity * scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setNumPartitions(outerCost.partitionCount());
-        innerCost.setLocalCost(SelectivityUtil.mergeJoinStrategyLocalCost(innerCost,outerCost));
+        boolean empty = isOuterTableEmpty(innerTable, predList);
+        innerCost.setLocalCost(SelectivityUtil.mergeJoinStrategyLocalCost(innerCost,outerCost, empty));
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
@@ -127,6 +129,36 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
+    private boolean isOuterTableEmpty(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException{
+        for (int i = 0; i < predList.size(); i++) {
+            Predicate p = (Predicate) predList.getOptPredicate(i);
+            if (!p.isJoinPredicate()) continue;
+            BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)p.getAndNode().getLeftOperand();
+            ColumnReference outerColumn = null;
+            if (bron.getLeftOperand() instanceof ColumnReference) {
+                ColumnReference cr = (ColumnReference) bron.getLeftOperand();
+                if (cr.getTableNumber() != innerTable.getTableNumber()) {
+                    outerColumn = cr;
+                }
+            }
+            if (bron.getRightOperand() instanceof ColumnReference) {
+                ColumnReference cr = (ColumnReference) bron.getRightOperand();
+                if (cr.getTableNumber() != innerTable.getTableNumber()) {
+                    outerColumn = cr;
+                }
+            }
+            if (outerColumn != null) {
+                StoreCostController outerTableCostController = outerColumn.getStoreCostController();
+                if(outerTableCostController != null) {
+                    long rc = (long)outerTableCostController.baseRowCount();
+                    if (rc == 0)
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
     private boolean mergeable(RowOrdering outerRowOrdering,
                                 IndexRowGenerator innerRowGenerator,
                                 OptimizablePredicateList predList,
