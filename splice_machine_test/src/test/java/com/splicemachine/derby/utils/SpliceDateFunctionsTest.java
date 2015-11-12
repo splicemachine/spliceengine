@@ -118,7 +118,7 @@ public class SpliceDateFunctionsTest {
             assertEquals(date, SpliceDateFunctions.TO_DATE(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
         } catch (SQLException e) {
-           assertEquals("Error parsing datatime 2014/06/24 with pattern: null. Try using an ISO8601 pattern such " +
+           assertEquals("Error parsing datetime 2014/06/24 with pattern: null. Try using an ISO8601 pattern such " +
                             "as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
         }
@@ -182,7 +182,7 @@ public class SpliceDateFunctionsTest {
             assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
         } catch (SQLException e) {
-           assertEquals("Error parsing datatime 2014-06-24 12:13:14.123 with pattern: null. Try using an ISO8601 " +
+           assertEquals("Error parsing datetime 2014-06-24 12:13:14.123 with pattern: null. Try using an ISO8601 " +
                             "pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
         }
