@@ -125,14 +125,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher,CommunicationListener {
        signalRefresh();
     }
 
-//    public void process(WatchedEvent event) {
-//        if (event.getType().equals(EventType.NodeChildrenChanged)) {
-//            if(LOG.isTraceEnabled())
-//                LOG.trace("Received watch event, signalling refresh");
-//            signalRefresh();
-//        }
-//    }
-
     @Override
     public Collection<DDLChange> getTentativeDDLs() {
         return refresher.tentativeDDLChanges();

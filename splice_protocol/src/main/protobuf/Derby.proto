@@ -1,0 +1,11 @@
+option java_package = "com.splicemachine.derby";
+option java_outer_classname = "DerbyMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message UUID {
+	optional uint64 majorId = 1;
+	optional uint64 timemillis = 2;
+	optional int32 sequence = 3;
+}

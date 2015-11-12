@@ -17,17 +17,12 @@ import org.apache.hadoop.hbase.client.Scan;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -41,7 +36,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -165,25 +159,15 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				 * Backfill the index with any existing data.
 				 *
 				 * It's possible that the index will be created on the same node as some system tables are located.
-				 * This means that there
 				 */
-        //TODO -sf- replace this name with the actual SQL being issued
-        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
-        StatementInfo statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-                ((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn(),1, SpliceDriver.driver().getUUIDGenerator());
-        OperationInfo populateIndexOp = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-                statementInfo.getStatementUuid(), "PopulateIndex", null, false,-1l);
-        statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
         boolean unique = tentativeIndexDesc.isUnique();
         boolean uniqueWithDuplicateNulls = tentativeIndexDesc.isUniqueWithDuplicateNulls();
         long indexConglomId = tentativeIndexDesc.getConglomerateNumber();
         Txn childTxn = null;
         try {
             SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) txnControl).findConglomerate(tableConglomId);
-
             int[] formatIds = conglomerate.getFormat_ids();
             int[] columnOrdering = conglomerate.getColumnOrdering();
-
             DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
             StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
             childTxn = beginChildTransaction(indexTransaction, indexConglomId);
@@ -196,7 +180,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             HTableWriterBuilder builder = new HTableWriterBuilder()
                     .heapConglom(indexConglomId)
                     .txn(childTxn);
-
             DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder, (new Long(tableConglomId)).toString());
             IndexTransformFunction indexTransformerFunction =
                     new IndexTransformFunction(
@@ -228,22 +211,10 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
     protected void createIndex(Activation activation, DDLChange ddlChange,
                                HTableInterface table, TableDescriptor td) throws StandardException {
-        JobFuture future = null;
-        JobInfo info = null;
-        /*StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
-                activation.getTransactionController().getActiveStateTxIdString(),1, SpliceDriver.driver().getUUIDGenerator());*/
-
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         int[] columnOrdering = null;
-        int[] formatIds;
-        ColumnDescriptorList cdList = td.getColumnDescriptorList();
-        int numCols =  cdList.size();
-        formatIds = new int[numCols];
-        for (int j = 0; j < numCols; ++j) {
-            ColumnDescriptor columnDescriptor = cdList.elementAt(j);
-            formatIds[j] = columnDescriptor.getType().getNull().getTypeFormatId();
-        }
+        int[] formatIds = td.getFormatIds();
         ConstraintDescriptorList constraintDescriptors = dd.getConstraintDescriptors(td);
         for(int i=0;i<constraintDescriptors.size();i++){
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
@@ -255,9 +226,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 }
             }
         }
-
-        /*statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "CreateIndex", null, false, -1l)));*/
         try {
             long start = System.currentTimeMillis();
             CreateIndexJob job = new CreateIndexJob(table, ddlChange, columnOrdering, formatIds);
@@ -272,7 +240,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 info.failJob();
                 throw t;
             }
-            //statementInfo.completeJob(info);
         } catch (Throwable e) {
             if(info!=null) info.failJob();
             LOG.error("Couldn't create indexes on existing regions", e);
@@ -287,17 +254,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         }
     }
 
-    private void cleanupFuture(JobFuture future) throws StandardException {
-        if (future!=null) {
-            try {
-                future.cleanup();
-            } catch (ExecutionException e) {
-                LOG.error("Couldn't cleanup future", e);
-                //noinspection ThrowFromFinallyBlock
-                throw Exceptions.parseException(e.getCause());
-            }
-        }
-    }
 
     private int[] transformColumnOrdering(ColumnOrdering[] columnOrdering) {
         int[] columnOrder = new int[columnOrdering.length];

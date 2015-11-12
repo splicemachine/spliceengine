@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -16,7 +16,6 @@ import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -41,9 +40,7 @@ import com.splicemachine.db.impl.sql.execute.RowUtil;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
@@ -785,7 +782,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 baseColumnPositions, unique,
                 uniqueWithDuplicateNulls,
                 SpliceUtils.bitSetFromBooleanArray(descColumns));
-        DDLChange ddlChange = performMetadataChange(tentativeTransaction, tentativeIndexDesc);
+        DDLChange ddlChange = DDLUtils.performMetadataChange(tentativeTransaction, tentativeIndexDesc);
 
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(heapConglomerateId).getBytes());
         try{
@@ -823,13 +820,5 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         }
     }
 
-    private DDLChange performMetadataChange(Txn tentativeTransaction, TentativeIndexDesc tentativeIndexDesc) throws StandardException {
-        DDLChange ddlChange = new DDLChange(tentativeTransaction,
-                DDLChangeType.CREATE_INDEX);
-        ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
-
-        notifyMetadataChangeAndWait(ddlChange);
-        return ddlChange;
-    }
 
 }
