@@ -1323,5 +1323,28 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return formatIds;
     }
 
+    /**
+     *
+     * Retrieves the columnOrdering
+     *
+     * @param dd
+     * @return
+     */
+    public int[] getColumnOrdering(DataDictionary dd) throws StandardException {
+        int[] columnOrdering = null;
+        ConstraintDescriptorList constraintDescriptors = dd.getConstraintDescriptors(this);
+        for(int i=0;i<constraintDescriptors.size();i++){
+            ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
+            if (cDescriptor.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
+                int[] referencedColumns = cDescriptor.getReferencedColumns();
+                columnOrdering = new int[referencedColumns.length];
+                for (int j = 0; j < referencedColumns.length; ++j){
+                    columnOrdering[j] = referencedColumns[j] - 1;
+                }
+            }
+        }
+        return columnOrdering;
+    }
+
 }
 
