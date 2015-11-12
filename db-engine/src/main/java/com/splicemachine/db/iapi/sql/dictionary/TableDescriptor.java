@@ -1309,5 +1309,19 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return getConglomerateDescriptorList()==null?null:getConglomerateDescriptorList().getBaseConglomerateDescriptor();
     }
 
+    /**
+     * Retrieve the formatIds from the TableDescriptor
+     *
+     * @return
+     * @throws StandardException
+     */
+    public int[] getFormatIds() throws StandardException {
+        int numCols =  columnDescriptorList.size();
+        int[] formatIds = new int[numCols];
+        for (int j = 0; j < numCols; ++j)
+            formatIds[j] = columnDescriptorList.elementAt(j).getType().getNull().getTypeFormatId();
+        return formatIds;
+    }
+
 }
 
