@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
 /**
  * This class represents a table descriptor. The external interface to this
@@ -1316,11 +1317,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException
      */
     public int[] getFormatIds() throws StandardException {
-        int numCols =  columnDescriptorList.size();
-        int[] formatIds = new int[numCols];
-        for (int j = 0; j < numCols; ++j)
-            formatIds[j] = columnDescriptorList.elementAt(j).getType().getNull().getTypeFormatId();
-        return formatIds;
+        return columnDescriptorList.getFormatIds();
     }
 
     /**
@@ -1344,6 +1341,27 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
             }
         }
         return columnOrdering;
+    }
+
+    public ColumnInfo[] getColumnInfo() {
+        int len = columnDescriptorList.size();
+        ColumnInfo[] columnInfo = new ColumnInfo[len];
+        for (int i = 0; i < len; ++i) {
+            ColumnDescriptor desc = columnDescriptorList.get(i);
+            columnInfo[i] =
+                    new ColumnInfo(desc.getColumnName(),
+                            desc.getType(),
+                            desc.getDefaultValue(),
+                            desc.getDefaultInfo(),
+                            null,
+                            desc.getDefaultUUID(),
+                            null,
+                            0,
+                            desc.getAutoincStart(),
+                            desc.getAutoincInc(),
+                            desc.getAutoinc_create_or_modify_Start_Increment());
+        }
+        return columnInfo;
     }
 
 }
