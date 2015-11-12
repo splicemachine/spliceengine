@@ -412,12 +412,18 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         Activation activation = conn.getLanguageConnection().getLastActivation();
         long[] statsTableIds = getStatsConglomerateIds();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
-        StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
+        String displayable = String.format("Collect statistics for table: %s", table.getName());
+        StreamUtils.setupSparkJob(dsp, activation, displayable, "admin");
         OperationContext context = dsp.createOperationContext(activation);
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn,statsTableIds[0]);
         InsertTableWriterBuilder tableWriterBuilder = getTableWriterBuilder(conn, txn, statsTableIds[1]);
         SparkDataSet dataSet = (SparkDataSet)dsp.getTableScanner(activation, tableScannerBuilder, (new Long(heapConglomerateId).toString()));
-        dataSet.index(new InsertPairFunction()).insertData(tableWriterBuilder, context);
+        try {
+            context.pushScope(displayable);
+            dataSet.index(new InsertPairFunction()).insertData(tableWriterBuilder, context);
+        } finally {
+            context.popScope();
+        }
         dvds[4].setValue(dataSet.count());
         rows.add(templateOutputRow.getClone());
         invalidateStatisticsCache(heapConglomerateId);
