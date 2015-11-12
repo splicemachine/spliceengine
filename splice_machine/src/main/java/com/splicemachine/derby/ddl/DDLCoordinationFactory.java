@@ -7,13 +7,11 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
-
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 

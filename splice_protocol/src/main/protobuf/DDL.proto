@@ -1,0 +1,106 @@
+option java_package = "com.splicemachine.ddl";
+option java_outer_classname = "DDLMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+import "Derby.proto";
+
+message AlterTable {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+}
+
+message ClearStats {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        repeated int64 conglomerateIds = 3;
+}
+
+message DropIndex {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+
+}
+
+message DropSchema {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        required string schemaName = 3;
+}
+
+message DropTable {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        optional UUID tableId = 3;
+}
+
+message FKTentative {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        /* Info about the constraint that is ultimately used in constraint violation error messages */
+        optional FKConstraintInfo fkConstraintInfo = 3;
+        /* formatIds for the backing index of the FK we are creating */
+        repeated int32 backingIndexFormatIds = 4;
+       /* conglom number of unique index or base table primary key our FK references */
+        optional int64 referencedConglomerateNumber = 5;
+        /* conglom number of the backing-index associated with the FK */
+        optional int64 referencingConglomerateNumber = 6;
+        /* users visible name of the table new FK references */
+        optional string referencedTableName = 7;
+        /* Referenced table's encoding version ('1.0', '2.0', etc) */
+        optional string referencedTableVersion = 8;
+}
+
+message TentativeAddColumn {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        optional string tableVersion = 3;
+        optional int64 newConglomId = 4;
+        optional int64 oldConglomId = 5;
+        repeated int32 columnOrdering = 6;
+        repeated bytes columnInfo = 7;
+}
+
+message TentativeAddConstraint {
+        optional string tableVersion = 1;
+        optional int64 newConglomId = 2;
+        optional int64 oldConglomId = 3;
+        optional int64 indexConglomerateId = 4;
+        repeated int32 srcColumnOrdering = 5;
+        repeated int32 targetColumnOrdering = 6;
+        repeated bytes columnInfos = 7;
+}
+
+message TentativeDropColumn {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        optional string tableVersion = 3;
+        repeated int32 srcColumnOrdering = 4;
+        repeated int32 targetColumnOrdering = 5;
+        repeated bytes columnInfos = 6;
+        optional int32 droppedColumnPosition = 7;
+}
+
+message TentativeDropPKConstraint {
+        optional int64 newConglomId = 1;
+        optional int64 oldConglomId = 2;
+        optional string tableVersion = 3;
+        repeated int32 srcColumnOrdering = 4;
+        repeated int32 targetColumnOrdering = 5;
+        repeated bytes columnInfos = 6;
+}
+
+message TentativeIndex {
+        optional int64 baseConglomerate = 1;
+        optional int64 conglomerate = 2;
+        repeated int32 indexColsToMainColMap = 3;
+        optional bool unique = 4;
+        optional bool uniqueWithDuplicateNulls = 5;
+        optional bytes descColumns = 6;
+}
+
+message FKConstraintInfo {
+    optional string constraintName = 1;
+    optional string tableName = 2;
+    optional string columnNames = 3;
+}
