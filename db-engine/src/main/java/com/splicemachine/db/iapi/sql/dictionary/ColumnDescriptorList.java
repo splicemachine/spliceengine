@@ -23,6 +23,8 @@ package com.splicemachine.db.iapi.sql.dictionary;
 
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -137,4 +139,19 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
 		}
 		return strings;
 	}
+
+    public int[] getFormatIds() throws StandardException {
+        int[] formatIds;
+        int numCols = size();
+        formatIds = new int[numCols];
+        for (int j = 0; j < numCols; ++j) {
+            ColumnDescriptor columnDescriptor = elementAt(j);
+            if(columnDescriptor != null) {
+                DataTypeDescriptor type = columnDescriptor.getType();
+                formatIds[j] = type.getNull().getTypeFormatId();
+            }
+        }
+        return formatIds;
+    }
+
 }
