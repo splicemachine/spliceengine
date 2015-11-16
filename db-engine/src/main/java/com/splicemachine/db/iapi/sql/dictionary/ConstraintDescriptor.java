@@ -741,4 +741,17 @@ public abstract class ConstraintDescriptor
 	public String getDescriptorName() { return constraintName; }
 	
 	public String getDescriptorType() { return "Constraint"; }
+
+
+    public int[] getColumnOrdering() {
+        int[] columnOrdering = null;
+        if (referencedColumns != null && referencedColumns.length > 0) {
+            columnOrdering = new int[referencedColumns.length];
+            for (int i = 0; i < referencedColumns.length; ++i) {
+                columnOrdering[i] = referencedColumns[i] - 1;
+            }
+        }
+        return columnOrdering;
+    }
+
 }
