@@ -22,6 +22,8 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+
 import java.util.ArrayList;
 
 public class ConstraintDescriptorList extends ArrayList<ConstraintDescriptor>
@@ -257,4 +259,19 @@ public class ConstraintDescriptorList extends ArrayList<ConstraintDescriptor>
 		}
 		return cdl;
 	}
+
+    public int[] getBaseColumnOrdering() {
+        int[] columnOrdering = null;
+        for (int i = 0; i < size(); i++) {
+            ConstraintDescriptor cDescriptor = elementAt(i);
+            if (cDescriptor.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
+                int[] referencedColumns = cDescriptor.getReferencedColumns();
+                columnOrdering = new int[referencedColumns.length];
+                for (int j = 0; j < referencedColumns.length; ++j) {
+                    columnOrdering[j] = referencedColumns[j] - 1;
+                }
+            }
+        }
+        return columnOrdering;
+    }
 }
