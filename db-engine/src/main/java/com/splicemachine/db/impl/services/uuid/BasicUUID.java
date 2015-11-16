@@ -39,9 +39,9 @@ public class BasicUUID implements UUID, Formatable
 	** Fields of BasicUUID
 	*/
 	
-	private long majorId; // only using 48 bits
-	private long timemillis;
-	private int sequence;
+	public long majorId; // only using 48 bits
+    public long timemillis;
+    public int sequence;
 
 	/*
 	** Methods of BasicUUID
