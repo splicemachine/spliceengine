@@ -222,25 +222,25 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         /* Wrappers */
             case StoredFormatIds.SQL_BIT_ID: return new SQLBit();
             case StoredFormatIds.SQL_BOOLEAN_ID: return new SQLBoolean();
-            case StoredFormatIds.SQL_CHAR_ID: return new LazyChar(new SQLChar());
-            case StoredFormatIds.SQL_DATE_ID: return new LazyDate(new SQLDate());
-            case StoredFormatIds.SQL_DOUBLE_ID: return new LazyDouble(new SQLDouble());
-            case StoredFormatIds.SQL_DECIMAL_ID: return new LazyDecimal(new SQLDecimal());
+            case StoredFormatIds.SQL_CHAR_ID: return new LazyChar();
+            case StoredFormatIds.SQL_DATE_ID: return new LazyDate();
+            case StoredFormatIds.SQL_DOUBLE_ID: return new LazyDouble();
+            case StoredFormatIds.SQL_DECIMAL_ID: return new LazyDecimal();
             case StoredFormatIds.SQL_INTEGER_ID: return new SQLInteger();
             case StoredFormatIds.SQL_LONGINT_ID: return new SQLLongint();
             case StoredFormatIds.SQL_REAL_ID: return new SQLReal();
             case StoredFormatIds.SQL_REF_ID: return new SQLRef();
             case StoredFormatIds.SQL_SMALLINT_ID: return new SQLSmallint();
             case StoredFormatIds.SQL_TIME_ID: return new SQLTime();
-            case StoredFormatIds.SQL_TIMESTAMP_ID: return new LazyTimestamp(new SQLTimestamp());
+            case StoredFormatIds.SQL_TIMESTAMP_ID: return new LazyTimestamp();
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
-            case StoredFormatIds.SQL_VARCHAR_ID: return new LazyVarchar(new SQLVarchar());
-            case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyLongVarchar(new SQLLongvarchar());
+            case StoredFormatIds.SQL_VARCHAR_ID: return new LazyVarchar();
+            case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyLongVarchar();
             case StoredFormatIds.SQL_VARBIT_ID: return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: return new SQLLongVarbit();
             case StoredFormatIds.SQL_USERTYPE_ID_V3: return new UserType();
             case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
-            case StoredFormatIds.SQL_CLOB_ID: return new LazyClob(new SQLClob());
+            case StoredFormatIds.SQL_CLOB_ID: return new LazyClob();
             case StoredFormatIds.XML_ID: return new XML();
             default:return null;
         }
