@@ -98,7 +98,6 @@ import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
@@ -871,5 +870,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyDecimal.class, EXTERNALIZABLE_SERIALIZER,268);
         instance.register(UDTAliasInfo.class, EXTERNALIZABLE_SERIALIZER, 269);
         instance.register(UDTBase.class, EXTERNALIZABLE_SERIALIZER, 270);
+        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER,271);
     }
 }

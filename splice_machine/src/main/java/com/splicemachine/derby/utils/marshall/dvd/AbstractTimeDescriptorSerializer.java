@@ -40,7 +40,7 @@ public abstract class AbstractTimeDescriptorSerializer implements TimeValuedSeri
     @Override
     public void close() { calendar = null; }
 
-    protected static abstract class Factory implements DescriptorSerializer.Factory {
+    public static abstract class Factory implements DescriptorSerializer.Factory {
         @Override
         public boolean applies(DataValueDescriptor dvd) {
             return dvd != null && applies(dvd.getTypeFormatId());

@@ -98,6 +98,59 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
     }
 
     @Override
+    public DateTimeDataValue getDataValue(java.sql.Date value,
+                                          DateTimeDataValue previous)
+            throws StandardException {
+        if (previous != null && previous instanceof LazyDate) {
+            previous.setValue(value);
+        } else {
+            previous = new LazyDate(new SQLDate(value));
+        }
+        return previous;
+    }
+
+    @Override
+    public DateTimeDataValue getDateValue(String dateStr, boolean isJdbcEscape) throws StandardException {
+        SQLDate d = new SQLDate(dateStr, isJdbcEscape, getLocaleFinder());
+        return new LazyDate(d);
+    }
+
+    @Override
+    public DateTimeDataValue getDate(DataValueDescriptor operand) throws StandardException {
+        if (operand == null) {
+            return new LazyDate();
+        } else if (operand.isLazy() && operand instanceof DateTimeDataValue) {
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) operand;
+            if (ldvd.isSerialized()) {
+                //copy bytes from one to another
+                LazyDataValueDescriptor lazyDate = new LazyDate();
+                lazyDate.initForDeserialization(ldvd);
+                return (DateTimeDataValue)lazyDate;
+            } else {
+                //we aren't serialized, so use the deserialized value instead
+                return new LazyDate(super.getDate(operand));
+            }
+        } else {
+            //will do eager-beaver stuff
+            return new LazyDate(super.getDate(operand));
+        }
+    }
+
+    @Override
+    public DateTimeDataValue getNullDate(DateTimeDataValue dataValue) {
+        if (dataValue == null) {
+            try {
+                return new LazyDate(new SQLDate((java.sql.Date) null));
+            } catch (StandardException se) {
+                return null;
+            }
+        } else {
+            dataValue.setToNull();
+            return dataValue;
+        }
+    }
+
+    @Override
     public DateTimeDataValue getDataValue(Timestamp value,
                                           DateTimeDataValue previous)
             throws StandardException
@@ -143,6 +196,26 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             return dataValue;
         }
     }
+    public DateTimeDataValue getTimestamp(DataValueDescriptor operand) throws StandardException {
+        if (operand == null) {
+            return new LazyTimestamp();
+        } else if (operand.isLazy() && operand instanceof DateTimeDataValue) {
+            LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) operand;
+            if (ldvd.isSerialized()) {
+                //copy bytes from one to another
+                LazyDataValueDescriptor lazyTimestamp = new LazyTimestamp();
+                lazyTimestamp.initForDeserialization(ldvd);
+                return (DateTimeDataValue)lazyTimestamp;
+            } else {
+                //we aren't serialized, so use the deserialized value instead
+                return new LazyTimestamp(super.getDate(operand));
+            }
+        } else {
+            //will do eager-beaver stuff
+            return new LazyTimestamp(super.getDate(operand));
+        }
+    }
+
 
     public static DataValueDescriptor getLazyNull(int formatId) throws StandardException {
         switch (formatId) {
@@ -150,7 +223,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_BIT_ID: return new SQLBit();
             case StoredFormatIds.SQL_BOOLEAN_ID: return new SQLBoolean();
             case StoredFormatIds.SQL_CHAR_ID: return new LazyChar(new SQLChar());
-            case StoredFormatIds.SQL_DATE_ID: return new SQLDate();
+            case StoredFormatIds.SQL_DATE_ID: return new LazyDate(new SQLDate());
             case StoredFormatIds.SQL_DOUBLE_ID: return new LazyDouble(new SQLDouble());
             case StoredFormatIds.SQL_DECIMAL_ID: return new LazyDecimal(new SQLDecimal());
             case StoredFormatIds.SQL_INTEGER_ID: return new SQLInteger();
@@ -185,17 +258,4 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             default: throw new UnsupportedOperationException("No Serializer for format ID: " + formatId);
         }
     }
-
-	@Override
-	public DateTimeDataValue getDate(DataValueDescriptor operand) throws StandardException {
-//		if (operand instanceof LazyTimestampDataValueDescriptor) {
-//			DateTimeDataValue dtdv = this.getNullDate(null);
-//			ByteSlice bs = ((LazyDataValueDescriptor) operand).bytes;
-//			DerbyBytesUtil.decode(dtdv, bs.array(), bs.offset(), bs.length());
-//			return dtdv;
-//		}
-		return super.getDate(operand);
-	}
-    
-    
 }

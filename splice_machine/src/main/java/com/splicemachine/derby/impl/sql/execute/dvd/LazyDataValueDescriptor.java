@@ -79,6 +79,12 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
 //        }else isNull = false;
     }
 
+    public void initForDeserialization(LazyDataValueDescriptor ldvd) {
+        initForDeserialization(ldvd.tableVersion, ldvd.serializer,
+                ldvd.bytes, ldvd.offset, ldvd.length, ldvd.descendingOrder);
+
+    }
+
     public void initForDeserialization(String tableVersion,
                                        DescriptorSerializer serializer,
                                        byte[] bytes,int offset,int length,boolean desc){
@@ -174,12 +180,16 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
     @Override
     public int getLength() throws StandardException{
         forceDeserialization();
+        if (dvd == null)
+            return 0;
         return dvd.getLength();
     }
 
     @Override
     public String getString() throws StandardException{
         forceDeserialization();
+        if (dvd == null)
+            return null;
         return dvd.getString();
     }
 
@@ -234,6 +244,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
     @Override
     public int typeToBigDecimal() throws StandardException{
         forceDeserialization();
+        if (dvd == null)
+            return 0;
         return dvd.typeToBigDecimal();
     }
 
