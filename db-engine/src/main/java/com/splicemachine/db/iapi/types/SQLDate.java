@@ -75,6 +75,10 @@ public final class SQLDate extends DataType
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLDate.class);
 
+	private static boolean skipDBContext = false;
+
+	public static void setSkipDBContext(boolean value) { skipDBContext = value; }
+
     public int estimateMemoryUsage()
     {
         return BASE_MEMORY_USAGE;
@@ -586,7 +590,7 @@ public final class SQLDate extends DataType
 
 		if (theValue != null)
 		{
-            DatabaseContext databaseContext = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
+			DatabaseContext databaseContext = (skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID));
             parseDate( theValue,
                        false,
                        (databaseContext == null) ? null : databaseContext.getDatabase(),

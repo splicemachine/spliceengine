@@ -85,6 +85,10 @@ public final class SQLTimestamp extends DataType
     public static final long MIN_TIMESTAMP = Long.MIN_VALUE / MICROS_TO_SECOND + 1;
 
 
+	private static boolean skipDBContext = false;
+
+	public static void setSkipDBContext(boolean value) { skipDBContext = value; }
+
     private int	encodedDate;
 	private int	encodedTime;
 	private int	nanos;
@@ -678,7 +682,7 @@ public final class SQLTimestamp extends DataType
 
 		if (theValue != null)
 		{
-            DatabaseContext databaseContext = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
+            DatabaseContext databaseContext = skipDBContext ? null : (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
             parseTimestamp( theValue,
                             false,
                             (databaseContext == null) ? null : databaseContext.getDatabase(),
@@ -1032,17 +1036,13 @@ public final class SQLTimestamp extends DataType
 		{
             checkBounds(value);
 
-            if( cal == null){
-            	DateTime dt = new DateTime(value);
-            	encodedDate = computeEncodedDate(dt);
-    			encodedTime = computeEncodedTime(dt);
-    			nanos = value.getNanos();
-            }else{
-            	encodedDate = computeEncodedDate(value, cal);
-    			encodedTime = computeEncodedTime(value, cal);
-    			nanos = value.getNanos();
-            }
-			
+            if( cal == null) {
+				cal = Calendar.getInstance();
+			}
+            encodedDate = computeEncodedDate(value, cal);
+            encodedTime = computeEncodedTime(value, cal);
+            nanos = value.getNanos();
+
 		}
 		/* encoded date should already be 0 for null */
 	}
