@@ -58,6 +58,7 @@ public class LazyTimestampTest{
     /*
      * year selection: JODA year-1, JODA year, date in future, random year
      * day selection: earliest day of year, latest day of year, random day in year
+     * time select: earliest, latest, random
      * extraordinary: leap day
      */
     public static String[] dataPoints(){
@@ -71,6 +72,9 @@ public class LazyTimestampTest{
                 "1960-01-01 01:01:01.0",
                 "1960-02-12 01:01:01.0",
                 "1960-12-31 01:01:01.0",
+                "1960-01-01 13:33:24.1",
+                "1960-02-12 13:33:24.1",
+                "1960-12-31 13:33:24.1",
                 "2099-01-01 01:01:01.0",
                 "2099-02-12 01:01:01.0",
                 "2099-12-31 01:01:01.0",
