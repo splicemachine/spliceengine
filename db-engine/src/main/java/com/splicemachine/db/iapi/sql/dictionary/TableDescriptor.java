@@ -414,7 +414,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return the highest column ID in the table
      * @throws StandardException Thrown on error
      */
-    public int getMaxColumnID() throws StandardException{
+    public int getMaxColumnID() {
         int maxColumnID=1;
         int cdlSize=getColumnDescriptorList().size();
         for(int index=0;index<cdlSize;index++){
