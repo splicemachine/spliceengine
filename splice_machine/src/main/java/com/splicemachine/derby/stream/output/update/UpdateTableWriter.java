@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.output.update;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -25,6 +24,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.ArrayList;
+import com.carrotsearch.hppc.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
 

@@ -1,6 +1,5 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -11,8 +10,8 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TransactionalRegion;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -69,7 +68,7 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
     }
 
     private void failWrite(KVPair kvPair, WriteContext ctx) {
-        String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
+        String failedKvAsHex = Bytes.toHex(kvPair.getRowKey());
         ConstraintContext context = new ConstraintContext(failedKvAsHex);
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
         ctx.failed(kvPair, foreignKeyConstraint);

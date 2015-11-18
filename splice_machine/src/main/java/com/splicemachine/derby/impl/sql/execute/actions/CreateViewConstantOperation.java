@@ -20,7 +20,6 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -128,7 +127,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		 * (Pass in row locking, even though meaningless for views.)
 		 */
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY);
+		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
 
 		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
 		toid = td.getUUID();
@@ -137,16 +136,18 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
 		int index = 1;
 		for (int ix = 0; ix < columnInfo.length; ix++) {
+            index++;
 			columnDescriptor = new ColumnDescriptor(
 				                   columnInfo[ix].name,
-								   index++,
+								   index,
 								   columnInfo[ix].dataType,
 								   columnInfo[ix].defaultValue,
 								   columnInfo[ix].defaultInfo,
 								   td,
 								   (UUID) null,
 								   columnInfo[ix].autoincStart,
-								   columnInfo[ix].autoincInc
+								   columnInfo[ix].autoincInc,
+                                    index
 							   );
 			cdlArray[ix] = columnDescriptor;
 		}

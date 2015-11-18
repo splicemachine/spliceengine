@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableList;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.*;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.hbase.backup.BackupHFileCleaner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
@@ -18,7 +17,6 @@ import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.StoreEngine;
 import org.apache.hadoop.hbase.regionserver.StripeStoreEngine;
-
 import java.util.List;
 import static com.google.common.collect.Lists.transform;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -34,12 +32,9 @@ class SpliceTestPlatformConfig {
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
-            SpliceOperationRegionObserver.class,
             SpliceIndexObserver.class,
             SpliceDerbyCoprocessor.class,
-            SpliceIndexManagementEndpoint.class,
             SpliceIndexEndpoint.class,
-            CoprocessorTaskScheduler.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class);
 

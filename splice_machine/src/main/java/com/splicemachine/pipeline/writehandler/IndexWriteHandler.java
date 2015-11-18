@@ -1,9 +1,8 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
-import java.util.List;
-
 import com.carrotsearch.hppc.BitSet;
+import java.util.List;
 import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
@@ -20,22 +19,19 @@ import com.splicemachine.utils.SpliceLogUtils;
  *         Created on: 5/1/13
  */
 public class IndexWriteHandler extends AbstractIndexWriteHandler {
-
     private static final Logger LOG = Logger.getLogger(IndexWriteHandler.class);
-
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
+    private BitSet indexedColumns;
 
-    public IndexWriteHandler(BitSet indexedColumns,
-                             byte[] indexConglomBytes,
-                             BitSet descColumns,
-                             boolean keepState,
+    public IndexWriteHandler(boolean keepState,
                              int expectedWrites,
                              IndexTransformer transformer){
-        super(indexedColumns, indexConglomBytes, descColumns, keepState);
+        super(transformer.getIndexConglomBytes(),keepState);
         this.expectedWrites = expectedWrites;
         this.transformer = transformer;
+        this.indexedColumns = transformer.gitIndexedCols();
     }
 
     @Override
@@ -45,10 +41,8 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected void subFlush(WriteContext ctx) throws Exception {
-        if (indexBuffer != null && ! ctx.skipIndexWrites()) {
+        if (indexBuffer != null && ! ctx.skipIndexWrites())
             indexBuffer.flushBuffer();
-            // indexBuffer.close(); // Do not block
-        }
     }
 
     @Override
@@ -67,9 +61,8 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     public void subClose(WriteContext ctx) throws Exception {
-        if (indexBuffer != null) {
+        if (indexBuffer != null)
             indexBuffer.close(); // Blocks
-        }
     }
 
     @Override

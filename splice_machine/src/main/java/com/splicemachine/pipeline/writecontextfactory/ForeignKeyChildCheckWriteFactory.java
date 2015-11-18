@@ -1,16 +1,14 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyChildCheckWriteHandler;
-
 import java.io.IOException;
 
 /**
  * LocalWriteFactory for ForeignKeyCheckWriteHandler -- see that class for details.
  */
 class ForeignKeyChildCheckWriteFactory implements LocalWriteFactory {
-
     private final FKConstraintInfo fkConstraintInfo;
 
     ForeignKeyChildCheckWriteFactory(FKConstraintInfo fkConstraintInfo) {

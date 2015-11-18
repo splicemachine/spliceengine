@@ -1,6 +1,5 @@
 package com.splicemachine.tools;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.debug.DataType;
@@ -15,8 +14,8 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.util.Arrays;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Debugging utility that allows one to scan a table and look for any row which has an entry in a specific column.

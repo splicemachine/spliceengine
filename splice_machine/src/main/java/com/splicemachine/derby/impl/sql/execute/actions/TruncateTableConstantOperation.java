@@ -181,7 +181,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE, lcc);
 
         // Drop the old conglomerate
-        cleanUp();
+//        cleanUp(); TODO JL FIX
     }
 
     @Override
@@ -206,11 +206,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         TransactionController.IS_DEFAULT);
 
 
-    }
-
-    @Override
-    protected int getIndexedColumnSize(TableDescriptor td) {
-        return td.getNumberOfColumns()+1;
     }
 
     @Override

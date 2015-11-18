@@ -1,15 +1,14 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 

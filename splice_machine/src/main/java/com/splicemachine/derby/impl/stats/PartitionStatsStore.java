@@ -3,13 +3,11 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
-import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
@@ -57,16 +55,15 @@ public class PartitionStatsStore {
                 @Override public void changeFailed(String changeId){ }
 
 			    @Override
-			    public void startChange(DDLChange change) throws StandardException {
-			        DDLChangeType changeType = change.getChangeType();
+			    public void startChange(DDLMessage.DDLChange change) throws StandardException {
+			        DDLMessage.DDLChangeType changeType = change.getDdlChangeType();
 			        if (changeType == null) return;
 			  	    switch (changeType) {
 			        case CLEAR_STATS_CACHE:
 			        	String tableName = null;
 			        	try {
-			        		long[] conglomIds = ((ClearStatsCacheDDLDesc)change.getTentativeDDLDesc()).getConglomerateIds();
 			        		SpliceLogUtils.debug(LOG, "Invalidating cached statistics in response to CLEAR_STATS_CACHE change type");
-			        		for (long conglomId : conglomIds) {
+			        		for (long conglomId : change.getClearStats().getConglomerateIdsList()) {
 				        		invalidateCachedStatistics(conglomId);
 			        		}
 			        	} catch (ExecutionException e) {

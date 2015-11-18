@@ -485,33 +485,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         public String getInfo() {return info;}
 
-        public class XplainOperationChainInfo {
-
-            private long statementId;
-            private long operationId;
-            private String methodName;
-
-            public XplainOperationChainInfo(long statementId, long operationId) {
-                this.statementId = statementId;
-                this.operationId = operationId;
-            }
-
-            public long getStatementId() {
-                return statementId;
-            }
-
-            public long getOperationId() {
-                return operationId;
-            }
-
-            public void setMethodName(String name) {
-                this.methodName = name;
-            }
-
-            public String getMethodName() {
-                return methodName;
-            }
-        }
 
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {
             DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);

@@ -1,12 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -32,17 +28,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stream.Stream;
-import com.splicemachine.stream.StreamException;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.*;
 
@@ -857,15 +843,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 			return value;
 		}
 	}
-
-    protected String notifyMetadataChange(DDLChange change) throws StandardException {
-	    return DDLCoordinationFactory.getController().notifyMetadataChange(change);
-    }
-
-    protected void notifyMetadataChangeAndWait(DDLChange change) throws StandardException{
-        String changeId = notifyMetadataChange(change);
-        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
-    }
 
 	/**
 	 * @return list of tables affected by this DDL operation that have to be forbidden to write by concurrent transactions. 

@@ -1,9 +1,9 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
 import com.google.common.primitives.Longs;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyChildInterceptWriteHandler;
-
 import java.io.IOException;
 
 /**

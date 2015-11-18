@@ -3,18 +3,15 @@ package com.splicemachine.hbase.backup;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -24,47 +21,21 @@ import java.util.concurrent.ExecutionException;
  *
  *
  */
-public class RestoreBackupTask extends ZkTask {
+public class RestoreBackupTask {
+    private static Logger LOG = Logger.getLogger(RestoreBackupTask.class);
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final long serialVersionUID = 5l;
+    HRegion region = null;
     private BackupItem backupItem;
 
     public RestoreBackupTask() {
     }
 
     public RestoreBackupTask(BackupItem backupItem, String jobId) {
-        super(jobId, SpliceConstants.operationTaskPriority);
         this.backupItem = backupItem;
     }
 
-    @Override
-    protected String getTaskType() {
-        return "restoreBackupTask";
-    }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(backupItem); // TODO Needs to be replaced with protobuf
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        backupItem = (BackupItem) in.readObject(); // TODO Needs to be replaced with protobuf
-    }
-
-    @Override
-    public boolean invalidateOnClose() {
-        return true;
-    }
-
-    @Override
-    public RegionTask getClone() {
-        return new RestoreBackupTask(backupItem, jobId);
-    }
-
-    @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s", backupItem.getBackup().isIncrementalBackup() ? "incremental" : "full", region.toString()));
@@ -114,11 +85,6 @@ public class RestoreBackupTask extends ZkTask {
         }
         SpliceLogUtils.warn(LOG, "Couldn't find matching backup data for region " + region);
         return null;
-    }
-
-    @Override
-    public int getPriority() {
-        return SchedulerPriorities.INSTANCE.getBasePriority(RestoreBackupTask.class);
     }
 
     static Path getRandomFilename(final FileSystem fs,

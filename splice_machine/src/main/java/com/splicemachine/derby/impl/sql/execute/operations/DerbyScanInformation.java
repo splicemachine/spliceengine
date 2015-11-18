@@ -1,8 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
@@ -15,33 +12,24 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -64,12 +52,10 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     protected int stopSearchOperator;
     protected boolean rowIdKey;
 
-
     //fields which are cached for performance
     private FormatableBitSet accessedCols;
     private FormatableBitSet accessedNonPkCols;
     private FormatableBitSet accessedPkCols;
-
     private SpliceMethod<ExecRow> resultRowAllocator;
     private SpliceMethod<ExecIndexRow> startKeyGetter;
     private SpliceMethod<ExecIndexRow> stopKeyGetter;
@@ -77,14 +63,6 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private int colRefItem;
     private int indexColItem;
     private String tableVersion;
-
-    public static final Cache<Long, String> tableVersionCache = CacheBuilder.newBuilder()
-            .maximumSize(4096)
-            .build();
-    public static final Cache<Long, String> tableNameCache = CacheBuilder.newBuilder()
-            .maximumSize(4096)
-            .build();
-    private String tableName;
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated
@@ -101,7 +79,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                                 boolean sameStartStopPosition,
                                 int startSearchOperator,
                                 int stopSearchOperator,
-                                boolean rowIdKey) {
+                                boolean rowIdKey,String tableVersion) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -113,32 +91,13 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.scanQualifiersField = scanQualifiersField;
         this.stopSearchOperator = stopSearchOperator;
         this.rowIdKey = rowIdKey;
+        this.tableVersion = tableVersion;
     }
 
     @Override
     public void initialize(SpliceOperationContext opContext) throws StandardException {
         this.gsps = opContext.getPreparedStatement();
         this.activation = opContext.getActivation();
-
-        if (tableVersion == null) {
-            try {
-                this.tableVersion = fetchTableVersion(conglomId, activation.getLanguageConnectionContext());
-            } catch (ExecutionException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-    }
-
-    public static String fetchTableVersion(final long conglomerateId, final LanguageConnectionContext lcc) throws ExecutionException {
-        return tableVersionCache.get(conglomerateId, new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-                DataDictionary dataDictionary = lcc.getDataDictionary();
-                UUID tableID = dataDictionary.getConglomerateDescriptor(conglomerateId).getTableID();
-                TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-                return td.getVersion();
-            }
-        });
     }
 
     @Override
@@ -157,31 +116,6 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         if (conglomerate == null)
             conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
         return conglomerate;
-    }
-
-    @Override
-    public String getTableVersion() throws StandardException {
-        return tableVersion;
-    }
-
-    @Override
-    public String getTableName() throws StandardException {
-        if (tableName == null) {
-            try {
-                tableName = tableNameCache.get(conglomId, new Callable<String>() {
-                    @Override
-                    public String call() throws Exception {
-                        DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
-                        UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
-                        TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-                        return td.getSchemaName() + "." + td.getName();
-                    }
-                });
-            } catch (ExecutionException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-        return tableName;
     }
 
     @Override
@@ -363,17 +297,6 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         return conglomId;
     }
 
-    public String printStartPosition(int numOpens) throws StandardException {
-        return printPosition(startSearchOperator, startKeyGetter, getStartPosition(), numOpens);
-    }
-
-    public String printStopPosition(int numOpens) throws StandardException {
-        if (sameStartStopPosition)
-            return printPosition(stopSearchOperator, startKeyGetter, getStartPosition(), numOpens);
-        else
-            return printPosition(stopSearchOperator, stopKeyGetter, getStopPosition(), numOpens);
-    }
-
     protected Qualifier[][] populateQualifiers() throws StandardException {
 
         Qualifier[][] scanQualifiers = null;
@@ -460,78 +383,6 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         return null;
     }
 
-    /**
-     * Return a start or stop positioner as a String.
-     *
-     * If we already generated the information, then use
-     * that.  Otherwise, invoke the activation to get it.
-     */
-    private String printPosition(int searchOperator,
-                                 SpliceMethod<ExecIndexRow> positionGetter,
-                                 ExecIndexRow positioner,
-                                 int numOpens) {
-        String output = "";
-        if (positionGetter == null)
-            return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
-
-        if (positioner == null) {
-            if (numOpens == 0)
-                return "\t" + MessageService.getTextMessage(
-                        SQLState.LANG_POSITION_NOT_AVAIL) +
-                        "\n";
-            try {
-                positioner = positionGetter.invoke();
-            } catch (StandardException e) {
-                return "\t" + MessageService.getTextMessage(
-                        SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,
-                        e.toString());
-            }
-        }
-        if (positioner == null)
-            return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
-        String searchOp;
-
-        switch (searchOperator) {
-            case ScanController.GE:
-                searchOp = ">=";
-                break;
-
-            case ScanController.GT:
-                searchOp = ">";
-                break;
-
-            default:
-
-                // NOTE: This does not have to be internationalized because
-                // this code should never be reached.
-                searchOp = "unknown value (" + searchOperator + ")";
-                break;
-        }
-
-        output = output + "\t" +
-                MessageService.getTextMessage(
-                        SQLState.LANG_POSITIONER,
-                        searchOp,
-                        String.valueOf(positioner.nColumns())) +
-                "\n";
-
-        output = output + "\t" +
-                MessageService.getTextMessage(
-                        SQLState.LANG_ORDERED_NULL_SEMANTICS) +
-                "\n";
-        boolean colSeen = false;
-        for (int position = 0; position < positioner.nColumns(); position++) {
-            if (positioner.areNullsOrdered(position)) {
-                output = output + position + " ";
-                colSeen = true;
-            }
-
-            if (colSeen && position == positioner.nColumns() - 1)
-                output = output + "\n";
-        }
-
-        return output;
-    }
 
     @Override
     public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {

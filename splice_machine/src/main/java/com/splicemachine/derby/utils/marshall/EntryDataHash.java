@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -10,6 +9,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import java.io.IOException;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines

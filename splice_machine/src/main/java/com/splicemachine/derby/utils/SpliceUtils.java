@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -33,6 +32,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
+import com.carrotsearch.hppc.BitSet;
 import java.util.List;
 
 /**

@@ -32,7 +32,6 @@ import java.util.ArrayList;
 public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
     private static final String IMPORT_DATA_NAME = "SYSCS_IMPORT_DATA";
-    private static final String XPLAIN_SCHEMA_NAME = "SYSCS_SET_XPLAIN_SCHEMA";
     public static final String RESTORE_DATABASE_NAME = "SYSCS_RESTORE_DATABASE";
     public static final String BACKUP_DATABASE_NAME = "SYSCS_BACKUP_DATABASE";
 
@@ -116,8 +115,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .catalog("tableName")
                                 .build();
                         procedures.add(getAutoIncLocs);
-                    }else if(XPLAIN_SCHEMA_NAME.equalsIgnoreCase(sysProc.getName())){
-                        //Remove set_xplain_schema procedure
                     } else if(RESTORE_DATABASE_NAME.equals(sysProc.getName())) {
                         Procedure restore = Procedure.newBuilder().name(RESTORE_DATABASE_NAME)
                                 .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
@@ -430,35 +427,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getLoggers);
 
-        			/*
-        			 * Procedure set the max task workers
-        			 */
-                    Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .integer("workerTier")
-                            .integer("maxWorkers")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(setMaxTasks);
-
-                    Procedure getMaxTasks = Procedure.newBuilder().name("SYSCS_GET_GLOBAL_MAX_TASKS")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getMaxTasks);
-
-        			/*
-        			 * Procedure get the max task workers
-        			 */
-                    Procedure getTieredMaxTasks = Procedure.newBuilder().name("SYSCS_GET_MAX_TASKS")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .integer("workerTier")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getTieredMaxTasks);
 
         			/*
         			 * Procedure set max write thread pool count

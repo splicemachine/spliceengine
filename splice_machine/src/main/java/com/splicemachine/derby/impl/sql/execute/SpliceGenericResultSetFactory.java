@@ -115,7 +115,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                         GeneratedMethod restriction,
                                                         boolean forUpdate,
                                                         double optimizerEstimatedRowCount,
-                                                        double optimizerEstimatedCost)
+                                                        double optimizerEstimatedCost,
+                                                        String tableVersion)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
         try{
@@ -135,7 +136,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     restriction,
                     forUpdate,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    tableVersion);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -298,7 +300,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int isolationLevel,
                                                 boolean oneRowScan,
                                                 double optimizerEstimatedRowCount,
-                                                double optimizerEstimatedCost)
+                                                double optimizerEstimatedCost, String tableVersion)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -330,7 +332,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     1,	// rowsPerRead is 1 if not a bulkTableScan
                     oneRowScan,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,tableVersion);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -363,7 +365,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                     boolean disableForHoldable,
                                                     boolean oneRowScan,
                                                     double optimizerEstimatedRowCount,
-                                                    double optimizerEstimatedCost) throws StandardException {
+                                                    double optimizerEstimatedCost, String tableVersion) throws StandardException {
         SpliceLogUtils.trace(LOG, "getBulkTableScanResultSet");
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
@@ -393,7 +395,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rowsPerRead,
                     oneRowScan,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,tableVersion);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -574,7 +576,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             boolean tableLocked,
             int isolationLevel,
             double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost) throws StandardException {
+            double optimizerEstimatedCost,
+            String tableVersion) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             return new DistinctScanOperation(
@@ -593,7 +596,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     tableLocked,
                     isolationLevel,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    tableVersion);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -691,7 +695,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String indexName, boolean isConstraint, boolean forUpdate,
             int colRefItem, int indexColItem, int lockMode,
             boolean tableLocked, int isolationLevel, boolean oneRowScan,
-            double optimizerEstimatedRowCount, double optimizerEstimatedCost)
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion)
             throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)
@@ -724,7 +728,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     isolationLevel,
                     oneRowScan,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    tableVersion);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1032,12 +1037,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              GeneratedMethod generationClauses, GeneratedMethod checkGM,
                                              String insertMode, String statusDirectory, int failBadRecordCount,
                                              double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost)
+                                             double optimizerEstimatedCost, String tableVersion)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
-                    statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost);
+                    statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             return top;
@@ -1049,10 +1054,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     @Override
     public NoPutResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
                                              GeneratedMethod checkGM,double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost) throws StandardException {
+                                             double optimizerEstimatedCost, String tableVersion) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation(),optimizerEstimatedCost,optimizerEstimatedRowCount);
+            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation(),optimizerEstimatedCost,optimizerEstimatedRowCount,tableVersion);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             return top;
@@ -1069,11 +1074,11 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 
     @Override
     public NoPutResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost)
+                                             double optimizerEstimatedCost, String tableVersion)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost);
+            SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
             top.markAsTopResultSet();
             return top;
         }catch(Exception e){
@@ -1126,7 +1131,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 		boolean				tableLocked,
 		int					isolationLevel,
 		double				optimizerEstimatedRowCount,
-		double 				optimizerEstimatedCost
+		double 				optimizerEstimatedCost,
+        String              tableVersion
 	) throws StandardException
 	{
 		SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
@@ -1143,7 +1149,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 					tableLocked,
 					isolationLevel,
 					optimizerEstimatedRowCount,
-					optimizerEstimatedCost);
+					optimizerEstimatedCost, tableVersion);
 	}
 
     public NoPutResultSet getWindowResultSet(NoPutResultSet source,

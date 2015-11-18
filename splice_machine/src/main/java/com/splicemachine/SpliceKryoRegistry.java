@@ -10,7 +10,6 @@ import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.job.fk.FkTask;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
@@ -23,7 +22,6 @@ import com.splicemachine.hbase.backup.CreateBackupTask;
 import com.splicemachine.hbase.backup.CreateIncrementalBackupTask;
 import com.splicemachine.hbase.backup.PurgeTransactionsTask;
 import com.splicemachine.hbase.backup.RestoreBackupTask;
-import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
@@ -42,8 +40,6 @@ import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
-import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -60,7 +56,6 @@ import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.impl.*;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.si.impl.WritableTxn;
@@ -728,19 +723,13 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,185);
         instance.register(WindowFunctionInfoList.class,EXTERNALIZABLE_SERIALIZER,186);
         instance.register(WindowFunctionInfo.class,EXTERNALIZABLE_SERIALIZER,187);
-        instance.register(DDLChange.class,EXTERNALIZABLE_SERIALIZER,188);
-        instance.register(TentativeIndexDesc.class,EXTERNALIZABLE_SERIALIZER,189);
         instance.register(TentativeDropColumnDesc.class,EXTERNALIZABLE_SERIALIZER,190);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,191);
         instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,192);
         instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,193);
-        instance.register(DropTableDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,194);
         instance.register(DDLChangeType.class,195);
-        instance.register(NoTentativeDDLChange.class,196);
         instance.register(ExportOperation.class, EXTERNALIZABLE_SERIALIZER, 197);
         instance.register(ExportParams.class, 198);
-        instance.register(DropSchemaDDLChangeDesc.class,EXTERNALIZABLE_SERIALIZER,200);
-        instance.register(DropIndexDDLDesc.class,EXTERNALIZABLE_SERIALIZER,201);
         instance.register(SQLRowId.class, EXTERNALIZABLE_SERIALIZER,202);
         instance.register(Splice_DD_Version.class, EXTERNALIZABLE_SERIALIZER,203);
         instance.register(BulkWriteResult.class, BulkWriteResult.kryoSerializer(),204);
@@ -778,7 +767,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
         instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);  
        // instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212);
-        instance.register(CreateIndexTask.class, EXTERNALIZABLE_SERIALIZER,217);
         // 220 is open
         // 221 is open
         instance.register(CreateBackupTask.class, EXTERNALIZABLE_SERIALIZER,222);
@@ -788,9 +776,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(Backup.class, EXTERNALIZABLE_SERIALIZER,226);
         instance.register(BackupItem.RegionInfo.class, EXTERNALIZABLE_SERIALIZER,227);
         instance.register(Pair.class, 228);
-        instance.register(FkTask.class, EXTERNALIZABLE_SERIALIZER,229);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,230);
-        instance.register(AlterTableTask.class, EXTERNALIZABLE_SERIALIZER,231);
         instance.register(TentativeAddConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,232);
         instance.register(TentativeAddColumnDesc.class,EXTERNALIZABLE_SERIALIZER,233);
 
@@ -818,12 +804,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TentativeDropPKConstraintDesc.class, EXTERNALIZABLE_SERIALIZER, 256);
         instance.register(TriggerExecutionStack.class, EXTERNALIZABLE_SERIALIZER, 257);
         instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 258);
-
-        instance.register(FKTentativeDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 259);
-        instance.register(FKConstraintInfo.class, EXTERNALIZABLE_SERIALIZER, 260);
-
         instance.register(BatchOnceOperation.class, EXTERNALIZABLE_SERIALIZER, 261);
-        instance.register(ClearStatsCacheDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 262);
         instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER, 263);
         instance.register(VTIOperation.class, EXTERNALIZABLE_SERIALIZER, 264);
         instance.register(LazyVarchar.class, EXTERNALIZABLE_SERIALIZER, 265);

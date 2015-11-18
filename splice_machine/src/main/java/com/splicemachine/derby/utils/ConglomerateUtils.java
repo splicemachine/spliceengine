@@ -1,11 +1,11 @@
 package com.splicemachine.derby.utils;
 
-import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.hbase.table.SpliceConnectionPool;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -30,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import com.carrotsearch.hppc.BitSet;
 import java.util.List;
 
 /**
@@ -215,10 +216,11 @@ public class ConglomerateUtils extends SpliceConstants {
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
-        HBaseAdmin admin = SpliceUtils.getAdmin();
+        HBaseAdmin admin = null;
         HTableInterface table = null;
         EntryEncoder entryEncoder = null;
         try{
+            admin = (HBaseAdmin) SpliceConnectionPool.INSTANCE.getConnection().getAdmin();
             HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
             admin.createTable(td);
             table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);

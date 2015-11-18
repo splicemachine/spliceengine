@@ -5,7 +5,7 @@ import java.io.Externalizable;
 /**
  * Interface common to our DDL descriptions.
  */
-public interface TentativeDDLDesc extends Externalizable{
+public interface TentativeDDLDesc {
 
     long getBaseConglomerateNumber();
 

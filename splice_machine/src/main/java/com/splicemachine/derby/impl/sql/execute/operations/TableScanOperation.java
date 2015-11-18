@@ -3,8 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -27,7 +25,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 
 public class TableScanOperation extends ScanOperation {
         protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
@@ -36,8 +33,6 @@ public class TableScanOperation extends ScanOperation {
 		protected int indexColItem;
 		public String userSuppliedOptimizerOverrides;
 		public int rowsPerRead;
-		protected boolean runTimeStatisticsOn;
-		private Properties scanProperties;
 		public ByteSlice slice;
 		protected int[] baseColumnMap;
 	    protected static final String NAME = TableScanOperation.class.getSimpleName().replaceAll("Operation","");
@@ -50,13 +45,6 @@ public class TableScanOperation extends ScanOperation {
 
 
     public TableScanOperation() { super(); }
-
-		public TableScanOperation(ScanInformation scanInformation,
-															OperationInformation operationInformation,
-															int lockMode,
-															int isolationLevel) throws StandardException {
-				super(scanInformation, operationInformation, lockMode, isolationLevel);
-		}
 
 		@SuppressWarnings("UnusedParameters")
 		public  TableScanOperation(long conglomId,
@@ -82,10 +70,10 @@ public class TableScanOperation extends ScanOperation {
                                    int rowsPerRead,
                                    boolean oneRowScan,
                                    double optimizerEstimatedRowCount,
-                                   double optimizerEstimatedCost) throws StandardException {
+                                   double optimizerEstimatedCost, String tableVersion) throws StandardException {
 				super(conglomId, activation, resultSetNumber, startKeyGetter, startSearchOperator, stopKeyGetter, stopSearchOperator,
                         sameStartStopPosition, rowIdKey, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-                        colRefItem, indexColItem, oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                        colRefItem, indexColItem, oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);
 				this.forUpdate = forUpdate;
@@ -97,9 +85,8 @@ public class TableScanOperation extends ScanOperation {
                 this.tableNameBytes = Bytes.toBytes(this.tableName);
 				this.indexColItem = indexColItem;
 				this.indexName = indexName;
-				runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
 				if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn,optimizerEstimatedCost,optimizerEstimatedRowCount);
+						SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",statisticsTimingOn,isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
 				try {
 						init(SpliceOperationContext.newContext(activation));
 				} catch (IOException e) {
@@ -198,11 +185,10 @@ public class TableScanOperation extends ScanOperation {
 		public TableScannerBuilder getTableScannerBuilder(DataSetProcessor dsp) throws StandardException {
             TxnView txn = getCurrentTransaction();
 			return new TableScannerBuilder()
-                           // .operationContext(dsp.createOperationContext(this))
 							.transaction(txn)
 							.scan(getNonSIScan())
 							.template(currentTemplate)
-							.tableVersion(scanInformation.getTableVersion())
+							.tableVersion(tableVersion)
 							.indexName(indexName)
 							.reuseRowLocation(false)
 							.keyColumnEncodingOrder(scanInformation.getColumnOrdering())

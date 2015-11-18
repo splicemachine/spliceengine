@@ -1,19 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.IOException;
 import java.util.Arrays;
-
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
-
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -31,6 +29,7 @@ import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
+import org.sparkproject.guava.primitives.Ints;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -55,93 +54,40 @@ import com.splicemachine.storage.index.BitIndex;
  *         Date: 4/17/14
  */
 public class IndexTransformer {
-
-    /* Index for which we are transforming may be unique or not */
-    private final boolean isUnique;
-    /* If true then we append srcRowKey to our emitted indexRowKey, even for unique indexes, for rows with nulls */
-    private final boolean isUniqueWithDuplicateNulls;
-    /* Source table column types */
-    private final int[] columnTypes;
-    /* Indices of the primary keys in source table */
-    private final int[] srcPrimaryKeyIndices;
-    /* Sort order or primary keys in src table */
-    private final boolean[] srcKeyColumnSortOrder;
-    /* For each column index in the src table either -1 or the position of that column in the index  */
-    private final int[] indexKeyEncodingMap;
-    /* Sort order for each column encoded in indexRowKey */
-    private final boolean[] indexKeySortOrder;
-
-    private final TypeProvider typeProvider;
-
+    private TypeProvider typeProvider;
     private MultiFieldDecoder srcKeyDecoder;
     private EntryDecoder srcValueDecoder;
-
     private ByteEntryAccumulator indexKeyAccumulator;
     private EntryEncoder indexValueEncoder;
-
-    public IndexTransformer(boolean isUnique,
-                            boolean isUniqueWithDuplicateNulls,
-                            String tableVersion,
-                            int[] srcPrimaryKeyIndices,
-                            int[] columnTypes,
-                            boolean[] srcKeyColumnSortOrder,
-                            int[] mainColToIndexPosMap,
-                            BitSet descColumns,
-                            BitSet indexedColumns) {
-
-        checkArgument(!isUniqueWithDuplicateNulls || isUnique, "isUniqueWithDuplicateNulls only for use with unique indexes");
-
-        this.isUnique = isUnique;
-        this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
-        this.srcPrimaryKeyIndices = srcPrimaryKeyIndices;
-        this.columnTypes = columnTypes;
-        this.srcKeyColumnSortOrder = srcKeyColumnSortOrder;
-        this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
-
-        boolean[] destKeySortOrder = new boolean[columnTypes.length];
-        Arrays.fill(destKeySortOrder, true);
-        for (int i = descColumns.nextSetBit(0); i >= 0; i = descColumns.nextSetBit(i + 1)) {
-            destKeySortOrder[i] = false;
-        }
-        this.indexKeySortOrder = destKeySortOrder;
-
-        int[] keyDecodingMap = new int[(int) indexedColumns.length()];
-        Arrays.fill(keyDecodingMap, -1);
-        for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
-            keyDecodingMap[i] = mainColToIndexPosMap[i];
-        }
-        this.indexKeyEncodingMap = keyDecodingMap;
-    }
-
-    // For testing only
-    IndexTransformer(boolean isUnique,
-                            boolean isUniqueWithDuplicateNulls,
-                            String tableVersion,
-                            int[] srcPrimaryKeyIndices,
-                            int[] columnTypes,
-                            boolean[] srcKeyColumnSortOrder,
-                            int[] indexKeyEncodingMap,
-                            boolean[] indexKeySortOrder) {
-
-        checkArgument(!isUniqueWithDuplicateNulls || isUnique, "isUniqueWithDuplicateNulls only for use with unique indexes");
-
-        this.isUnique = isUnique;
-        this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
-        this.srcPrimaryKeyIndices = srcPrimaryKeyIndices;
-        this.columnTypes = columnTypes;
-        this.srcKeyColumnSortOrder = srcKeyColumnSortOrder;
-        this.indexKeyEncodingMap = indexKeyEncodingMap;
-        this.indexKeySortOrder = indexKeySortOrder;
-        this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
+    private DDLMessage.Index index;
+    private DDLMessage.Table table;
+    private int [] mainColToIndexPosMap;
+    private BitSet indexedCols;
+    private byte[] indexConglomBytes;
+    public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
+        index = tentativeIndex.getIndex();
+        table = tentativeIndex.getTable();
+        checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
+        this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
+        indexedCols = DDLUtils.getIndexedCols(Ints.toArray(index.getIndexColsToMainColMapList()));
+        mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
+        indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
     }
 
     /**
      * @return true if this is a unique index.
      */
     public boolean isUniqueIndex() {
-        return isUnique;
+        return index.getUnique();
     }
 
+    public BitSet gitIndexedCols() {
+        return indexedCols;
+    }
+
+    public byte[] getIndexConglomBytes() {
+        return indexConglomBytes;
+    }
     /**
      * Create a KVPair that can be used to issue a delete on an index record associated with the given main
      * table mutation.
@@ -210,14 +156,15 @@ public class IndexTransformer {
         /*
          * Handle index columns from the source table's primary key.
          */
-        if (srcPrimaryKeyIndices != null) {
+        if (table.getColumnOrderingList() != null) {
             //we have key columns to check
             MultiFieldDecoder keyDecoder = getSrcKeyDecoder();
             keyDecoder.set(mutation.getRowKey());
-            for (int sourceKeyColumnPos : srcPrimaryKeyIndices) {
-                int indexKeyPos = sourceKeyColumnPos < indexKeyEncodingMap.length ? indexKeyEncodingMap[sourceKeyColumnPos] : -1;
+            for (int sourceKeyColumnPos : table.getColumnOrderingList()) {
+                int indexKeyPos = sourceKeyColumnPos < mainColToIndexPosMap.length ?
+                        mainColToIndexPosMap[sourceKeyColumnPos] : -1;
                 int offset = keyDecoder.offset();
-                boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
+                boolean isNull = skip(keyDecoder, table.getFormatIds(sourceKeyColumnPos));
                 if(indexKeyPos>=0){
                     /*
                      * since primary keys have an implicit NOT NULL constraint here, we don't need to check for it,
@@ -233,8 +180,8 @@ public class IndexTransformer {
                      * ASCENDING order. In an ideal world, that wouldn't matter because
                      */
                     accumulate(keyAccumulator, indexKeyPos,
-                            columnTypes[sourceKeyColumnPos],
-                            !indexKeySortOrder[indexKeyPos],
+                            table.getFormatIds(sourceKeyColumnPos),
+                            !index.getDescColumns(indexKeyPos),
                             keyDecoder.array(), offset, length);
                 }
             }
@@ -248,10 +195,11 @@ public class IndexTransformer {
          */
         EntryDecoder rowDecoder = getSrcValueDecoder();
         rowDecoder.set(mutation.getValue());
-        BitIndex index = rowDecoder.getCurrentIndex();
+        BitIndex bitIndex = rowDecoder.getCurrentIndex();
         MultiFieldDecoder rowFieldDecoder = rowDecoder.getEntryDecoder();
-        for (int i = index.nextSetBit(0); i >= 0; i = index.nextSetBit(i + 1)) {
-            int keyColumnPos = i < indexKeyEncodingMap.length ? indexKeyEncodingMap[i] : -1;
+        for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
+            int keyColumnPos = i < mainColToIndexPosMap.length ?
+                    mainColToIndexPosMap[i] : -1;
             if (keyColumnPos < 0) {
                 rowDecoder.seekForward(rowFieldDecoder, i);
             } else {
@@ -263,8 +211,8 @@ public class IndexTransformer {
                     length = rowFieldDecoder.offset() - offset - 1;
                     accumulate(keyAccumulator,
                             keyColumnPos,
-                            columnTypes[i],
-                            !indexKeySortOrder[keyColumnPos],
+                            table.getFormatIds(i),
+                            !index.getDescColumns(keyColumnPos),
                             rowFieldDecoder.array(), offset, length);
                 } else{
                     /*
@@ -283,7 +231,7 @@ public class IndexTransformer {
                      */
                     accumulateNull(keyAccumulator,
                             keyColumnPos,
-                            columnTypes[i]);
+                            table.getFormatIds(i));
                 }
             }
         }
@@ -291,10 +239,10 @@ public class IndexTransformer {
         /*
          * Handle NULL index columns from the source tables non-primary key columns.
          */
-        for (int srcColIndex = 0; srcColIndex < indexKeyEncodingMap.length; srcColIndex++) {
+        for (int srcColIndex = 0; srcColIndex < mainColToIndexPosMap.length; srcColIndex++) {
             /* position of the source column within the index encoding */
-            int indexColumnPosition = indexKeyEncodingMap[srcColIndex];
-            if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !index.isSet(srcColIndex)) {
+            int indexColumnPosition = mainColToIndexPosMap[srcColIndex];
+            if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !bitIndex.isSet(srcColIndex)) {
                 hasNullKeyFields = true;
                 keyAccumulator.add(indexColumnPosition, new byte[]{}, 0, 0);
             }
@@ -310,8 +258,8 @@ public class IndexTransformer {
         byte[] indexValue = rowEncoder.encode();
 
         byte[] indexRowKey;
-        if (isUnique) {
-            boolean nonUnique = isUniqueWithDuplicateNulls && (hasNullKeyFields || !keyAccumulator.isFinished());
+        if (index.getUnique()) {
+            boolean nonUnique = index.getUniqueWithDuplicateNulls() && (hasNullKeyFields || !keyAccumulator.isFinished());
             indexRowKey = getIndexRowKey(srcRowKey, nonUnique);
         } else
             indexRowKey = getIndexRowKey(srcRowKey, true);
@@ -338,8 +286,8 @@ public class IndexTransformer {
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
-        if (srcPrimaryKeyIndices != null) {
-            for (int srcPrimaryKeyIndex : srcPrimaryKeyIndices) {
+        if (table.getColumnOrderingList() != null) {
+            for (int srcPrimaryKeyIndex : table.getColumnOrderingList()) {
                 if (srcPrimaryKeyIndex == sourceColumnIndex) {
                     return true;
                 }
@@ -364,13 +312,13 @@ public class IndexTransformer {
         if (indexValueEncoder == null) {
             BitSet nonNullFields = new BitSet();
             int highestSetPosition = 0;
-            for (int keyColumn : indexKeyEncodingMap) {
+            for (int keyColumn : mainColToIndexPosMap) {
                 if (keyColumn > highestSetPosition)
                     highestSetPosition = keyColumn;
             }
             nonNullFields.set(highestSetPosition + 1);
             indexValueEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), 1, nonNullFields,
-                    BitSet.newInstance(), BitSet.newInstance(), BitSet.newInstance());
+                    new BitSet(), new BitSet(), new BitSet());
         }
         return indexValueEncoder;
     }
@@ -439,8 +387,8 @@ public class IndexTransformer {
 
     private ByteEntryAccumulator getKeyAccumulator() {
         if (indexKeyAccumulator == null) {
-            BitSet keyFields = BitSet.newInstance();
-            for (int keyColumn : indexKeyEncodingMap) {
+            BitSet keyFields = new BitSet();
+            for (int keyColumn : mainColToIndexPosMap) {
                 if (keyColumn >= 0)
                     keyFields.set(keyColumn);
             }

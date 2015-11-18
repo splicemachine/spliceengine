@@ -70,8 +70,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public InsertOperation(SpliceOperation source,
 													 GeneratedMethod generationClauses,
 													 GeneratedMethod checkGM,String insertMode, String statusDirectory, int failBadRecordCount,double optimizerEstimatedRowCount,
-                                                     double optimizerEstimatedCost) throws StandardException{
-				super(source, generationClauses, checkGM, source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost);
+                                                     double optimizerEstimatedCost, String tableVersion) throws StandardException{
+				super(source, generationClauses, checkGM, source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
                 this.insertMode = InsertNode.InsertMode.valueOf(insertMode);
                 this.statusDirectory = statusDirectory;
                 this.failBadRecordCount = failBadRecordCount;
@@ -225,7 +225,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .spliceSequences(spliceSequences)
                 .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
                 .pkCols(pkCols)
-                .tableVersion(writeInfo.getTableVersion())
+                .tableVersion(tableVersion)
                 .txn(txn);
         try {
             operationContext.pushScope("Insert ["+heapConglom+"]");

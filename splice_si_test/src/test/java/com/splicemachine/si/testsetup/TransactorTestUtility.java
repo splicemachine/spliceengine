@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import java.io.IOException;
+import com.carrotsearch.hppc.BitSet;
 import java.util.*;
 import static org.junit.Assert.assertTrue;
 

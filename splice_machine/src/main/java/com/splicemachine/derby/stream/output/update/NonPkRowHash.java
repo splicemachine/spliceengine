@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.output.update;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -11,6 +10,7 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
+import com.carrotsearch.hppc.BitSet;
 
 /*
 * Entity for encoding rows when primary keys have not been modified

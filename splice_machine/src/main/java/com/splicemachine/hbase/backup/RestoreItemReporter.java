@@ -1,6 +1,5 @@
 package com.splicemachine.hbase.backup;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
@@ -17,8 +16,8 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Created by jyuan on 4/16/15.

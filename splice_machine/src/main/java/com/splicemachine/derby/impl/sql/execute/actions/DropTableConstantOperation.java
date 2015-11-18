@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.protobuf.ProtoUtil;
 
 
 /**
@@ -147,10 +148,11 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
 
         /* Invalidate dependencies remotely. */
-        DDLChange ddlChange = new DDLChange(((SpliceTransactionManager) tc).getActiveStateTxn(), DDLChangeType.DROP_TABLE);
-        ddlChange.setTentativeDDLDesc(new DropTableDDLChangeDesc(this.conglomerateNumber, this.tableId));
 
-        notifyMetadataChangeAndWait(ddlChange);
+        DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                this.conglomerateNumber,(BasicUUID) this.tableId);
+
+        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
 
         // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.
         adjustUDTDependencies(activation, null, true);

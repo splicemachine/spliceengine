@@ -34,7 +34,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 import java.util.Collections;
 import java.util.List;
@@ -48,21 +47,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     protected static final Logger LOG=Logger.getLogger(SpliceDataDictionary.class);
     private volatile TabInfoImpl pkTable=null;
-
-    private volatile TabInfoImpl statementHistoryTable=null;
-    private volatile TabInfoImpl operationHistoryTable=null;
     private volatile TabInfoImpl backupTable=null;
     private volatile TabInfoImpl backupItemsTable=null;
     private volatile TabInfoImpl backupStatesTable=null;
     private volatile TabInfoImpl backupJobsTable=null;
-    private volatile TabInfoImpl taskHistoryTable=null;
     private volatile TabInfoImpl tableStatsTable=null;
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
     private Splice_DD_Version spliceSoftwareVersion;
-    private Properties defaultProperties;
-    @SuppressWarnings("deprecation")
-    private HTableInterface spliceSequencesTable;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private volatile StatisticsStore statsStore;
@@ -169,21 +161,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         };
         addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder);
 
-        // Don't create PKs for the stats related system tables. Doing so exposes nasty issue
-        // where trying to delete rows fails at a low level while derby tries to resolve its
-        // constraints. This action works fine when the primary key is created through a SQL DDL statement,
-        // but not when the primary key is programatically like this. Uncomment this later if
-        // this issue can be resolved, but even without this, the logical primary keys
-        // implemented at the row key definition level should be sufficient even without
-        // this meta data.
-
-//        TableDescriptor tableStatsDescriptor=getTableDescriptor(tableStatsInfo.getTableName(),systemSchema,tc);
-//        int pks=new int[]{0,1};
-//        ReferencedKeyConstraintDescriptor tablestatspk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(tableStatsDescriptor,
-//                "TABLESTATSPK",false,false,pks,uuidFactory.createUUID(),tableStatsDescriptor.getUUID(),systemSchema,true,0);
-//        addConstraintDescriptor(tablestatspk,tc);
-
-        createSysTableStatsView(tc);
+//        createSysTableStatsView(tc);
 
         //sys_column_statistics
         ColumnOrdering[] columnPkOrder=new ColumnOrdering[]{
@@ -193,13 +171,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         };
         TabInfoImpl columnStatsInfo=getColumnStatisticsTable();
         addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
-//        TableDescriptor columnStatsDescriptor=getTableDescriptor(columnStatsInfo.getTableName(),systemSchema,tc);
-//        pks=new int[]{0,1,2};
-//        ReferencedKeyConstraintDescriptor columnStatsPk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(columnStatsDescriptor,
-//                "COLUMNSTATSPK",false,false,pks,uuidFactory.createUUID(),columnStatsDescriptor.getUUID(),systemSchema,true,0);
-//        addConstraintDescriptor(columnStatsPk,tc);
 
-        createSysColumnStatsView(tc);
+//        createSysColumnStatsView(tc);
 
         //sys_physical_statistics
         ColumnOrdering[] physicalPkOrder=new ColumnOrdering[]{
@@ -207,11 +180,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         };
         TabInfoImpl physicalStatsInfo=getPhysicalStatisticsTable();
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
-//        TableDescriptor physicalStatsDescriptor=getTableDescriptor(physicalStatsInfo.getTableName(),systemSchema,tc);
-//        pks=new int[]{0};
-//        ReferencedKeyConstraintDescriptor physicalStatsPk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(physicalStatsDescriptor,
-//                "PHYSICALSTATSPK",false,false,pks,uuidFactory.createUUID(),physicalStatsDescriptor.getUUID(),systemSchema,true,0);
-//        addConstraintDescriptor(physicalStatsPk,tc);
     }
 
     private TabInfoImpl getBackupTable() throws StandardException{
@@ -622,7 +590,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSTABLESTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
         UUID viewId=view.getUUID();
         ColumnDescriptor[] tableViewCds=SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
@@ -630,6 +598,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
         Collections.addAll(viewDl,tableViewCds);
+
 
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSTABLESTATISTICS",
                 SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
@@ -642,7 +611,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
         UUID viewId=view.getUUID();
         ColumnDescriptor[] tableViewCds=SYSCOLUMNSTATISTICSRowFactory.getViewColumns(view,viewId);

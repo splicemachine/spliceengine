@@ -2,11 +2,9 @@ package com.splicemachine.pipeline.writecontextfactory;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import com.splicemachine.ddl.DDLMessage;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TxnView;
 
@@ -61,17 +59,7 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     }
 
     @Override
-    public void dropIndex(long indexConglomId, TxnView txn) {
-        delegate.dropIndex(indexConglomId, txn);
-    }
-
-    @Override
-    public void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] typeIds) {
-        delegate.addIndex(ddlChange, columnOrdering, typeIds);
-    }
-
-    @Override
-    public void addDDLChange(DDLChange ddlChange) {
+    public void addDDLChange(DDLMessage.DDLChange ddlChange) {
         delegate.addDDLChange(ddlChange);
     }
 

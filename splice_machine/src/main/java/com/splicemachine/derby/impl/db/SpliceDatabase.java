@@ -17,27 +17,23 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
-import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
-import com.splicemachine.derby.impl.ast.XPlainTraceVisitor;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
-
 import javax.security.auth.login.Configuration;
 import java.sql.SQLException;
 import java.util.*;
@@ -52,7 +48,7 @@ public class SpliceDatabase extends BasicDatabase{
       //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         if(DatabaseConstants.logStatementContext)
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
-        if(DatabaseConstants.dumpClassFile)
+        //if(DatabaseConstants.dumpClassFile)
             SanityManager.DEBUG_SET("DumpClassFile");
         if(DatabaseConstants.dumpBindTree)
             SanityManager.DEBUG_SET("DumpBindTree");
@@ -97,7 +93,7 @@ public class SpliceDatabase extends BasicDatabase{
                  * tables dropped and re-added with the same name, but would include in them stale information from the
                  * DD caches (conglomerate ID, for example) */
 
-                DDLChangeType changeType=change.getChangeType();
+                DDLChangeType changeType=change.getDdlChangeType();
                 if(changeType==null) return;
                 switch(changeType){
                     case DROP_TABLE:
@@ -125,7 +121,6 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(BatchOnceVisitor.class);
  //       afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(PlanPrinter.class);
-        afterOptVisitors.add(XPlainTraceVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
@@ -291,7 +286,7 @@ public class SpliceDatabase extends BasicDatabase{
 
             @Override
             public void startChange(DDLChange change) throws StandardException{
-                if(change.getChangeType()==DDLChangeType.DROP_TABLE){
+                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
                     try{
                         Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
                         for(LanguageConnectionContext context : allContexts){
@@ -300,7 +295,7 @@ public class SpliceDatabase extends BasicDatabase{
                     }catch(ShutdownException e){
                         LOG.warn("could not get contexts, database shutting down",e);
                     }
-                }else if(change.getChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
+                }else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
                     TransactionLifecycle.getLifecycleManager().enterRestoreMode();
                     Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
                     for(LanguageConnectionContext context : allContexts){

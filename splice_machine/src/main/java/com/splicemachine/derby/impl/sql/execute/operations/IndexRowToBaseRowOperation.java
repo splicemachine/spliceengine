@@ -18,14 +18,11 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
@@ -40,8 +37,6 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 /**
  * Maps between an Index Table and a data Table.
@@ -86,7 +81,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     private static final MetricName scanName = new MetricName("com.splicemachine.operations","indexLookup","totalTime");
     private final Timer totalTimer = SpliceDriver.driver().getRegistry().newTimer(scanName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private IndexRowReaderBuilder readerBuilder;
-    private String mainTableVersion;
+    private String tableVersion;
 
     protected static final String NAME = "IndexLookup";
 
@@ -106,7 +101,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                                       String indexName, int heapColRefItem, int allColRefItem,
                                       int heapOnlyColRefItem, int indexColMapItem,
                                       GeneratedMethod restriction, boolean forUpdate,
-                                      double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
+                                      double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion) throws StandardException {
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         SpliceLogUtils.trace(LOG,"instantiate with parameters");
         this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
@@ -120,6 +115,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         this.heapOnlyColRefItem = heapOnlyColRefItem;
         this.indexColMapItem = indexColMapItem;
         this.restrictionMethodName = restriction==null? null: restriction.getMethodName();
+        this.tableVersion = tableVersion;
         try {
             init(SpliceOperationContext.newContext(activation));
         } catch (IOException e) {
@@ -142,6 +138,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         resultRowAllocatorMethodName = in.readUTF();
         indexName = in.readUTF();
         restrictionMethodName = readNullableString(in);
+        tableVersion = in.readUTF();
     }
 
     @Override
@@ -158,6 +155,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         out.writeUTF(resultRowAllocatorMethodName);
         out.writeUTF(indexName);
         writeNullableString(restrictionMethodName, out);
+        out.writeUTF(tableVersion);
     }
 
     @Override
@@ -231,23 +229,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             SpliceLogUtils.trace(LOG,"accessedAllCols=%s,accessedHeapCols=%s,heapOnlyCols=%s,accessedCols=%s",accessedAllCols,accessedHeapCols,heapOnlyCols,accessedCols);
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                     Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
-
-            //get the mainTable version
-            if(mainTableVersion==null){
-                try {
-                    this.mainTableVersion = DerbyScanInformation.tableVersionCache.get(conglomId,new Callable<String>() {
-                        @Override
-                        public String call() throws Exception {
-                            DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
-                            UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
-                            TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-                            return td.getVersion();
-                        }
-                    });
-                } catch (ExecutionException e) {
-                    throw Exceptions.parseException(e);
-                }
-            }
             if (info == null) {
                 info = "baseTable:"+indexName+"";
             }
@@ -301,7 +282,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .mainTableKeyColumnSortOrder(getConglomerate().getAscDescInfo())
                     .mainTableKeyDecodingMap(getMainTableKeyDecodingMap())
                     .mainTableAccessedKeyColumns(getMainTableAccessedKeyColumns())
-                    .mainTableVersion(mainTableVersion)
+                    .mainTableVersion(tableVersion)
                     .mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
                     .mainTableAccessedRowColumns(getMainTableRowColumns())
                     .numConcurrentLookups((getEstimatedRowCount() > 2*SpliceConstants.indexBatchSize?SpliceConstants.indexLookupBlocks:-1))

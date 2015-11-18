@@ -105,15 +105,15 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         DataTypeDescriptor floatType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL);
         return new ColumnDescriptor[]{
-                new ColumnDescriptor("SCHEMANAME"   ,1,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TABLENAME"    ,2,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("COLUMNNAME"   ,3,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("CARDINALITY"  ,4,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("NULL_COUNT"   ,5,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("NULL_FRACTION",6,floatType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("MIN_VALUE"    ,7,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("MAX_VALUE"    ,8,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOP_K"        ,9,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("SCHEMANAME"   ,1,varcharType,null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("TABLENAME"    ,2,varcharType,null,null,view,viewId,0,0,1),
+                new ColumnDescriptor("COLUMNNAME"   ,3,varcharType,null,null,view,viewId,0,0,2),
+                new ColumnDescriptor("CARDINALITY"  ,4,longType,null,null,view,viewId,0,0,3),
+                new ColumnDescriptor("NULL_COUNT"   ,5,longType,null,null,view,viewId,0,0,4),
+                new ColumnDescriptor("NULL_FRACTION",6,floatType,null,null,view,viewId,0,0,5),
+                new ColumnDescriptor("MIN_VALUE"    ,7,varcharType,null,null,view,viewId,0,0,6),
+                new ColumnDescriptor("MAX_VALUE"    ,8,varcharType,null,null,view,viewId,0,0,7),
+                new ColumnDescriptor("TOP_K"        ,9,varcharType,null,null,view,viewId,0,0,8),
         };
     }
 

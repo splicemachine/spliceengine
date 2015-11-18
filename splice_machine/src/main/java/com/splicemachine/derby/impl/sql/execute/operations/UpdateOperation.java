@@ -64,9 +64,9 @@ public class UpdateOperation extends DMLWriteOperation{
 
     public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
                            GeneratedMethod checkGM, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost)
+                           double optimizerEstimatedCost, String tableVersion)
             throws StandardException, IOException {
-        super(source, generationClauses, checkGM, activation,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        super(source, generationClauses, checkGM, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime();
     }
@@ -205,7 +205,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 .formatIds(format_ids)
                 .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
                 .heapList(getHeapList())
-                .tableVersion(writeInfo.getTableVersion())
+                .tableVersion(tableVersion)
                 .txn(txn);
         try {
             operationContext.pushScope("Update");

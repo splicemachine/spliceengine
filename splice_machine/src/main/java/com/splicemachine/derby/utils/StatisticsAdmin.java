@@ -21,6 +21,7 @@ import com.google.common.base.Joiner;
 import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
@@ -31,6 +32,7 @@ import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
@@ -63,14 +65,11 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
-import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -364,8 +363,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         SpliceLogUtils.debug(LOG, "Notifying region servers to clear statistics caches.");
         String changeId = null;
-        DDLChange change = new DDLChange(txn, DDLChangeType.CLEAR_STATS_CACHE);
-        change.setTentativeDDLDesc(new ClearStatsCacheDDLDesc(conglomIds));
+
+        DDLChange change = ProtoUtil.clearStats(txn.getTxnId(),conglomIds);
         try {
             changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
         } catch (StandardException se) {
