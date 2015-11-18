@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.splicemachine.concurrent.ReentrantLockFactory;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.catalog.UUID;
@@ -12,7 +13,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 
 public class DDLCoordinationFactory {
@@ -67,7 +67,7 @@ public class DDLCoordinationFactory {
             }
 
             @Override
-            public void startChange(DDLChange change) {
+            public void startChange(DDLMessage.DDLChange change) {
                 accessManager.startDDLChange(change);
             }
 

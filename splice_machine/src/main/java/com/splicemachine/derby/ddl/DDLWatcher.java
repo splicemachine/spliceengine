@@ -1,10 +1,8 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
-
+import com.splicemachine.ddl.DDLMessage;
 import java.util.Collection;
-import java.util.Set;
 
 public interface DDLWatcher {
 
@@ -27,7 +25,7 @@ public interface DDLWatcher {
          * @param change the change to initiate
          * @throws StandardException if something goes wrong
          */
-        void startChange(DDLChange change) throws StandardException;
+        void startChange(DDLMessage.DDLChange change) throws StandardException;
 
         /**
          * indicates that the specified change completed successfully, and the listener can behave appropriately (
@@ -50,7 +48,7 @@ public interface DDLWatcher {
 
     void start() throws StandardException;
 
-    Collection<DDLChange> getTentativeDDLs();
+    Collection<DDLMessage.DDLChange> getTentativeDDLs();
 
     void registerDDLListener(DDLListener listener);
 

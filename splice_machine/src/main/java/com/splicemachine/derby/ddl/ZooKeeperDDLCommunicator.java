@@ -1,14 +1,9 @@
 package com.splicemachine.derby.ddl;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Output;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.utils.kryo.KryoPool;
+import com.splicemachine.ddl.DDLMessage;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-
 import java.util.Collection;
 
 /**
@@ -17,9 +12,8 @@ import java.util.Collection;
  */
 public class ZooKeeperDDLCommunicator implements DDLCommunicator{
     @Override
-    public String createChangeNode(DDLChange change) throws StandardException{
-        byte[] data= encode(change);
-        return DDLZookeeperClient.createChangeNode(data);
+    public String createChangeNode(DDLMessage.DDLChange change) throws StandardException{
+        return DDLZookeeperClient.createChangeNode(change.toByteArray());
     }
 
     @Override
@@ -39,19 +33,6 @@ public class ZooKeeperDDLCommunicator implements DDLCommunicator{
         DDLZookeeperClient.deleteChangeNode(changeId);
     }
 
-    protected byte[] encode(DDLChange change) {
-        KryoPool kp = SpliceKryoRegistry.getInstance();
-        Kryo kryo = kp.get();
-        byte[] data;
-        try{
-            Output output = new Output(128,-1);
-            kryo.writeObject(output,change);
-            data = output.toBytes();
-        }finally{
-            kp.returnInstance(kryo);
-        }
-        return data;
-    }
 
     /* ****************************************************************************************************************/
     /*private helper classes*/

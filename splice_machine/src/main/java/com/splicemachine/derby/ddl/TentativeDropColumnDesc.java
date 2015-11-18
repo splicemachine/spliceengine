@@ -1,15 +1,9 @@
 package com.splicemachine.derby.ddl;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.ddl.DDLMessage;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
@@ -21,11 +15,12 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import org.sparkproject.guava.primitives.Ints;
 
 /**
  * Drop column.
  */
-public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor, Externalizable{
+public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor {
     private long conglomerateNumber;
     private long baseConglomerateNumber;
     private String tableVersion;
@@ -34,22 +29,14 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
 
-    public TentativeDropColumnDesc() {}
-
-    public TentativeDropColumnDesc(long baseConglomerateNumber,
-                                   long conglomerateNumber,
-                                   String tableVersion,
-                                   int[] srcColumnOrdering,
-                                   int[] targetColumnOrdering,
-                                   ColumnInfo[] columnInfos,
-                                   int droppedColumnPosition) {
-        this.conglomerateNumber = conglomerateNumber;
-        this.baseConglomerateNumber = baseConglomerateNumber;
-        this.tableVersion = tableVersion;
-        this.srcColumnOrdering = srcColumnOrdering;
-        this.targetColumnOrdering = targetColumnOrdering;
-        this.columnInfos = columnInfos;
-        this.droppedColumnPosition = droppedColumnPosition;
+    public TentativeDropColumnDesc(DDLMessage.TentativeDropColumn tentativeDropColumn) {
+        this.conglomerateNumber = tentativeDropColumn.getNewConglomId();
+        this.baseConglomerateNumber = tentativeDropColumn.getOldConglomId();
+        this.tableVersion = tentativeDropColumn.getTableVersion();
+        this.srcColumnOrdering = Ints.toArray(tentativeDropColumn.getOldColumnOrderingList());
+        this.targetColumnOrdering = Ints.toArray(tentativeDropColumn.getNewColumnOrderingList());
+        this.columnInfos = DDLUtils.deserializeColumnInfoArray(tentativeDropColumn.getColumnInfos().toByteArray());;
+        this.droppedColumnPosition = tentativeDropColumn.getDroppedColumnPosition();
 
     }
 
@@ -95,36 +82,6 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
                .keyDecodingMap(getKeyDecodingMap(accessedPKColumns, baseColumnOrder, keyColumnEncodingOrder));
 
         return builder;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeLong(conglomerateNumber);
-        out.writeLong(baseConglomerateNumber);
-        out.writeInt(droppedColumnPosition);
-        out.writeObject(tableVersion);
-        ArrayUtil.writeIntArray(out, srcColumnOrdering);
-        ArrayUtil.writeIntArray(out, targetColumnOrdering);
-        int size = columnInfos.length;
-        out.writeInt(size);
-        for (ColumnInfo col:columnInfos) {
-            out.writeObject(col);
-        }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        conglomerateNumber = in.readLong();
-        baseConglomerateNumber = in.readLong();
-        droppedColumnPosition = in.readInt();
-        tableVersion = (String) in.readObject();
-        srcColumnOrdering = ArrayUtil.readIntArray(in);
-        targetColumnOrdering = ArrayUtil.readIntArray(in);
-        int size = in.readInt();
-        columnInfos = new ColumnInfo[size];
-        for (int i = 0; i < size; ++i) {
-            columnInfos[i] = (ColumnInfo)in.readObject();
-        }
     }
 
     private ExecRow createSourceTemplate() throws IOException {

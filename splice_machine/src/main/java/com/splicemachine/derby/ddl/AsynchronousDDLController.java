@@ -4,19 +4,16 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LockFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
-
-import static com.splicemachine.derby.ddl.DDLZookeeperClient.deleteChangeNode;
 
 /**
  * Used on the node where DDL changes are initiated to communicate changes to other nodes.

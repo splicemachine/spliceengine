@@ -1,17 +1,12 @@
 package com.splicemachine.derby.ddl;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 import com.google.common.collect.Lists;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ZkUtils;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -22,10 +17,8 @@ import java.util.List;
  */
 public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     private static final String CHANGES_PATH = SpliceConstants.zkSpliceDDLOngoingTransactionsPath;
-
     private static final Logger LOG=Logger.getLogger(ZooKeeperDDLWatchChecker.class);
     private String id;
-
     private Watcher changeIdWatcher;
 
     @Override
@@ -67,21 +60,21 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     }
 
     @Override
-    public DDLChange getChange(String changeId) throws IOException{
+    public DDLMessage.DDLChange getChange(String changeId) throws IOException{
         byte[] data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+changeId);
-        DDLChange change = decode(data);
-        change.setChangeId(changeId);
-        return change;
+        return DDLMessage.DDLChange.newBuilder()
+                .mergeFrom(DDLMessage.DDLChange.parseFrom(data))
+                .setChangeId(changeId).build();
     }
 
     @Override
-    public void notifyProcessed(Collection<DDLChange> processedChanges) throws IOException{
+    public void notifyProcessed(Collection<DDLMessage.DDLChange> processedChanges) throws IOException{
         /*
          * Notify the relevant controllers that their change has been processed
          */
         List<Op> ops = Lists.newArrayListWithExpectedSize(processedChanges.size());
-        List<DDLChange> changeList = Lists.newArrayList();
-        for (DDLChange change : processedChanges) {
+        List<DDLMessage.DDLChange> changeList = Lists.newArrayList();
+        for (DDLMessage.DDLChange change : processedChanges) {
             String path=SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+change.getChangeId()+"/"+id;
             Op op = Op.create(path, new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
             ops.add(op);
@@ -125,19 +118,4 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
        DDLZookeeperClient.deleteChangeNode(key);
     }
 
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private DDLChange decode(byte[] data) {
-        DDLChange ddlChange;
-        KryoPool kp = SpliceKryoRegistry.getInstance();
-        Kryo kryo = kp.get();
-
-        try{
-            Input input = new Input(data);
-            ddlChange = kryo.readObject(input, DDLChange.class);
-        }finally{
-            kp.returnInstance(kryo);
-        }
-        return ddlChange;
-    }
 }

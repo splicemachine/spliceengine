@@ -6,6 +6,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.ddl.DDLMessage;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -21,6 +22,7 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import org.sparkproject.guava.primitives.Ints;
 
 /**
  * Tentative constraint descriptor. Serves for both add and drop constraint currently.
@@ -35,17 +37,12 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
 
     public TentativeDropPKConstraintDesc() {}
 
-    public TentativeDropPKConstraintDesc(String tableVersion,
-                                         long newConglomId,
-                                         long oldConglomId,
-                                         int[] srcColumnOrdering,
-                                         int[] targetColumnOrdering,
-                                         ColumnInfo[] columnInfos) {
-        this.tableVersion = tableVersion;
-        this.newConglomId = newConglomId;
-        this.oldConglomId = oldConglomId;
-        this.srcColumnOrdering = srcColumnOrdering;
-        this.targetColumnOrdering = targetColumnOrdering;
+    public TentativeDropPKConstraintDesc(DDLMessage.TentativeDropPKConstraint tentativeDropPKConstraint) {
+        this.tableVersion = tentativeDropPKConstraint.getTableVersion();
+        this.newConglomId = tentativeDropPKConstraint.getNewConglomId();
+        this.oldConglomId = tentativeDropPKConstraint.getOldConglomId();
+        this.srcColumnOrdering = Ints.toArray(tentativeDropPKConstraint.getSrcColumnOrderingList());
+        this.targetColumnOrdering = Ints.toArray(tentativeDropPKConstraint.getTargetColumnOrderingList());
         this.columnInfos = columnInfos;
     }
 
