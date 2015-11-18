@@ -871,7 +871,8 @@ public interface ResultSetFactory {
 								boolean tableLocked,
 								int isolationLevel,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String tableVersion)
 			throws StandardException;
 
 	/**
@@ -962,7 +963,8 @@ public interface ResultSetFactory {
 								int isolationLevel,
 								boolean oneRowScan,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String tableVersion)
 			throws StandardException;
 
 	/**
@@ -1058,7 +1060,7 @@ public interface ResultSetFactory {
                                 boolean disableForHoldable,
 								boolean oneRowScan,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost, String tableVersion)
 			throws StandardException;
 
     /**
@@ -1103,7 +1105,8 @@ public interface ResultSetFactory {
 								int isolationLevel,
 								boolean oneRowScan,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String tableVersion)
 			throws StandardException;
     /**
 		An index row to base row result set gets an index row from its source
@@ -1158,7 +1161,8 @@ public interface ResultSetFactory {
 								GeneratedMethod restriction,
 								boolean forUpdate,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String tableVersion)
 			throws StandardException;
 
 
@@ -1705,7 +1709,8 @@ public interface ResultSetFactory {
 		boolean				tableLocked,
 		int					isolationLevel,
 		double				optimizerEstimatedRowCount,
-		double 				optimizerEstimatedCost
+		double 				optimizerEstimatedCost,
+        String              tableVersion
 	) throws StandardException;
 
 
