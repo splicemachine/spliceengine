@@ -2,16 +2,15 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.TickingClock;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.WritableTxn;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -31,9 +30,8 @@ public class DDLWatchRefresherTest{
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,clock,10l);
 
         //add a new change
-        final DDLChange testChange = new DDLChange(txn);
-        testChange.setChangeId("change");
-        checker.addChange(testChange);
+
+        final DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change");
 
         //now refresh, and make sure it gets picked up
         CountingListener assertionListener = new CountingListener();
@@ -61,8 +59,7 @@ public class DDLWatchRefresherTest{
             if(type.isPreCommit()) continue; //ignore tentative ones for this test
 
             //add a new change
-            DDLChange testChange=new DDLChange(txn,type);
-            testChange.setChangeId(type.toString());
+            final DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),type.toString());
             checker.addChange(testChange);
 
             //now refresh, and make sure it gets picked up
@@ -93,8 +90,7 @@ public class DDLWatchRefresherTest{
             if(type.isPostCommit()) continue; //ignore tentative ones for this test
 
             //add a new change
-            DDLChange testChange=new DDLChange(txn,type);
-            testChange.setChangeId(type.toString());
+            DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),type.toString());
             checker.addChange(testChange);
 
             //now refresh, and make sure it gets picked up
@@ -120,8 +116,7 @@ public class DDLWatchRefresherTest{
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,clock,10l);
 
         //add a new change
-        final DDLChange testChange = new DDLChange(txn);
-        testChange.setChangeId("change");
+        DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change");
         checker.addChange(testChange);
 
         //now refresh, and make sure it gets picked up
@@ -163,10 +158,8 @@ public class DDLWatchRefresherTest{
 
         long timeoutMs=10l;
         DDLWatchRefresher refresher = new DDLWatchRefresher(checker,clock,timeoutMs);
-
         //add a new change
-        final DDLChange testChange = new DDLChange(txn);
-        testChange.setChangeId("change");
+        final DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change");
         CountingListener assertionListener = new CountingListener();
 
         //check it and run it

@@ -1,12 +1,11 @@
 package com.splicemachine.derby.ddl;
 
-import com.splicemachine.pipeline.ddl.DDLChange;
 
+import com.splicemachine.ddl.DDLMessage.*;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 

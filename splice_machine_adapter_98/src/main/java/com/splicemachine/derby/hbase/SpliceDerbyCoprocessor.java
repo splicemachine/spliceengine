@@ -9,24 +9,16 @@ import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessorService;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceRequest;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceResponse;
-import com.splicemachine.derby.impl.job.coprocessor.BytesCopyTaskSplitter;
 import com.splicemachine.derby.impl.stats.Hbase98TableStatsDecoder;
 import com.splicemachine.derby.impl.stats.TableStatsDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.MetaMutationAnnotation;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.*;
-import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
-import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.replication.ReplicationEndpoint;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -100,7 +92,8 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
     }
 
     private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
-        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
+        throw new RuntimeException("Not Implemented");
+//        return null;//BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
     }
 
     /**

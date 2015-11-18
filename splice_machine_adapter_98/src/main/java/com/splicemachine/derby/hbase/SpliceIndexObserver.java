@@ -52,6 +52,8 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 
 	@Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, Durability durability) throws IOException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "prePut %s",put);
         if(conglomId>0){        	
             if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
 

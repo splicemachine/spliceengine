@@ -34,7 +34,7 @@ message DropTable {
         optional UUID tableId = 3;
 }
 
-message FKTentative {
+message TentativeFK {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
         /* Info about the constraint that is ultimately used in constraint violation error messages */
@@ -49,6 +49,7 @@ message FKTentative {
         optional string referencedTableName = 7;
         /* Referenced table's encoding version ('1.0', '2.0', etc) */
         optional string referencedTableVersion = 8;
+        optional int64 backingIndexConglomerateId = 9;
 }
 
 message TentativeAddColumn {
@@ -58,7 +59,7 @@ message TentativeAddColumn {
         optional int64 newConglomId = 4;
         optional int64 oldConglomId = 5;
         repeated int32 columnOrdering = 6;
-        repeated bytes columnInfo = 7;
+        required bytes columnInfo = 7;
 }
 
 message TentativeAddConstraint {
@@ -68,16 +69,26 @@ message TentativeAddConstraint {
         optional int64 indexConglomerateId = 4;
         repeated int32 srcColumnOrdering = 5;
         repeated int32 targetColumnOrdering = 6;
-        repeated bytes columnInfos = 7;
+        required bytes columnInfos = 7;
 }
 
+message TentativeDropConstraint {
+        optional string tableVersion = 1;
+        optional int64 oldConglomId = 2;
+        optional int64 indexConglomerateId = 4;
+        repeated int32 srcColumnOrdering = 5;
+        repeated int32 targetColumnOrdering = 6;
+        required bytes columnInfos = 7;
+}
+
+
 message TentativeDropColumn {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 oldConglomId = 1;
+        optional int64 newConglomId = 2;
         optional string tableVersion = 3;
-        repeated int32 srcColumnOrdering = 4;
-        repeated int32 targetColumnOrdering = 5;
-        repeated bytes columnInfos = 6;
+        repeated int32 oldColumnOrdering = 4;
+        repeated int32 newColumnOrdering = 5;
+        required bytes columnInfos = 6;
         optional int32 droppedColumnPosition = 7;
 }
 
@@ -87,20 +98,71 @@ message TentativeDropPKConstraint {
         optional string tableVersion = 3;
         repeated int32 srcColumnOrdering = 4;
         repeated int32 targetColumnOrdering = 5;
-        repeated bytes columnInfos = 6;
+        required bytes columnInfos = 6;
+}
+
+message Index {
+        required int64 conglomerate = 1; // Index Conglomerate
+        repeated int32 indexColsToMainColMap = 2; // Map from index cols to maint table columns
+        optional bool unique = 3; // Is the Index Unique
+        optional bool uniqueWithDuplicateNulls = 4; // Does the unique index support duplicate nullls
+        repeated bool descColumns = 5; // Whether the columns are descending
+}
+
+message Table {
+        required int64 conglomerate = 1; // Table Conglomerate
+        repeated int32 formatIds = 2; // Format ids
+        repeated int32 columnOrdering = 3; // The ordering of the columns in the table
+        repeated bool descColumns = 4; // The source tables columnSort, all ascending right now
+        required string tableVersion = 5; // Table Version for SerDe
 }
 
 message TentativeIndex {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
-        repeated int32 indexColsToMainColMap = 3;
-        optional bool unique = 4;
-        optional bool uniqueWithDuplicateNulls = 5;
-        optional bytes descColumns = 6;
+    required Index index = 1;
+    required Table table = 2;
 }
 
 message FKConstraintInfo {
     optional string constraintName = 1;
     optional string tableName = 2;
     optional string columnNames = 3;
+}
+
+enum DDLChangeType {
+    CHANGE_PK = 0;
+    ADD_CHECK = 1;
+    ADD_FOREIGN_KEY = 2;
+    CREATE_INDEX = 3;
+    ADD_NOT_NULL = 4;
+    ADD_COLUMN = 5;
+    ADD_PRIMARY_KEY = 6;
+    ADD_UNIQUE_CONSTRAINT = 7;
+    DROP_COLUMN = 8;
+    DROP_CONSTRAINT = 9;
+    DROP_PRIMARY_KEY = 10;
+    DROP_TABLE = 11;
+    DROP_SCHEMA = 12;
+    DROP_INDEX = 13;
+    DROP_FOREIGN_KEY = 14;
+    CLEAR_STATS_CACHE = 15;
+    ENTER_RESTORE_MODE = 16;
+    DICTIONARY_UPDATE = 17;
+}
+
+message DDLChange {
+    required DDLChangeType ddlChangeType = 1;
+    optional string changeId = 2;
+    required int64 txnId = 3;
+    optional AlterTable alterTable = 4;
+    optional ClearStats clearStats = 5;
+    optional DropIndex dropIndex = 6;
+    optional DropSchema dropSchema = 7;
+    optional DropTable dropTable = 8;
+    optional TentativeFK tentativeFK = 9;
+    optional TentativeAddColumn tentativeAddColumn = 10;
+    optional TentativeAddConstraint tentativeAddConstraint = 11;
+    optional TentativeDropColumn tentativeDropColumn = 12;
+    optional TentativeDropPKConstraint tentativeDropPKConstraint = 13;
+    optional TentativeIndex tentativeIndex = 14;
+    optional TentativeDropConstraint tentativeDropConstraint = 15;
 }

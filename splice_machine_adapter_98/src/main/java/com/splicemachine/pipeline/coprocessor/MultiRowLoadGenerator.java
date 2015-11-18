@@ -4,13 +4,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.conf.Configuration;
@@ -19,13 +19,11 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.ClientCnxn;
 import org.apache.zookeeper.ZooKeeper;
-
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -158,10 +156,10 @@ public class MultiRowLoadGenerator {
             byte[] maxKey = null;
             for(int i=0;i<size;i++){
                 byte[] compare = buffer[i].getKey().toByteArray();
-                if(minKey==null || Bytes.compareTo(minKey,compare)>0){
+                if(minKey==null || Bytes.BASE_COMPARATOR.compare(minKey,compare)>0){
                     minKey =compare;
                 }
-                if(maxKey==null || Bytes.compareTo(maxKey,compare)<0){
+                if(maxKey==null || Bytes.BASE_COMPARATOR.compare(maxKey, compare)<0){
                     maxKey = compare;
                 }
             }
@@ -181,7 +179,7 @@ public class MultiRowLoadGenerator {
                         long totalBytes = 0;
                         for(int i=0;i<size;i++){
                             SpliceMessage.KV kv = buffer[i];
-                            if(BytesUtil.isRowInRange(kv.getKey().toByteArray(),startKey,stopKey)) {
+                            if(Bytes.isRowInRange(kv.getKey().toByteArray(), startKey, stopKey)) {
                                 totalBytes += kv.getRow().size() + kv.getKey().size();
                                 mrwb.addKvs(kv);
                             }
