@@ -234,7 +234,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals) throws StandardException {
+            boolean genInListVals, String tableVersion) throws StandardException {
         ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
         int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
@@ -244,17 +244,17 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * sorted.
 		 */
         if (genInListVals) {
-            numArgs = 27;
+            numArgs = 28;
         }
         else if (bulkFetch > 1) {
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
-            numArgs = 27;
+            numArgs = 28;
         }
         else {
-            numArgs = 25 ;
+            numArgs = 26 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList
@@ -283,7 +283,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
 
-        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel);
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion);
         return numArgs;
     }
 
