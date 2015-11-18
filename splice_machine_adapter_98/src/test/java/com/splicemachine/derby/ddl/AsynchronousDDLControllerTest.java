@@ -4,7 +4,8 @@ import com.splicemachine.concurrent.LockFactory;
 import com.splicemachine.concurrent.SingleInstanceLockFactory;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.WritableTxn;
@@ -12,7 +13,6 @@ import com.splicemachine.util.concurrent.TestCondition;
 import com.splicemachine.util.concurrent.TestLock;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.util.*;
 import java.util.concurrent.locks.Condition;
 
@@ -56,7 +56,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         try{
             controller.notifyMetadataChange(change);
             Assert.fail("The coordination did not time out!");
@@ -97,7 +97,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         try{
             controller.notifyMetadataChange(change);
             Assert.fail("The coordination did not time out!");
@@ -149,7 +149,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
         Assert.assertTrue("Some servers are missing!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));
@@ -203,7 +203,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
         Assert.assertTrue("Some servers are missing!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));
@@ -249,7 +249,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         try{
             controller.notifyMetadataChange(change);
             Assert.fail("The coordination did not time out!");
@@ -286,7 +286,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
         Assert.assertTrue("Some servers are missing!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));
@@ -327,7 +327,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
         Assert.assertTrue("Some servers are missing!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));
@@ -360,7 +360,7 @@ public class AsynchronousDDLControllerTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,lf,clock,1,10);
         TxnView txn = new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,false);
-        DDLChange change = new DDLChange(txn);
+        DDLChange change = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),null);
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
         Assert.assertTrue("Some servers are missing!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));

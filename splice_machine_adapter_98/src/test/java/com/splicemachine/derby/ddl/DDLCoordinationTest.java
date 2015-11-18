@@ -4,15 +4,15 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SingleInstanceLockFactory;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.WritableTxn;
 import com.splicemachine.util.concurrent.TestCondition;
 import com.splicemachine.util.concurrent.TestLock;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,8 +69,7 @@ public class DDLCoordinationTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,new SingleInstanceLockFactory(lock),clock,1l,10l);
 
-        DDLChange change=new DDLChange(txn);
-        change.setChangeId("testChange");
+        DDLChange change  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(), "testChange");
 
         //initiate the sequence
         try{
@@ -101,8 +100,7 @@ public class DDLCoordinationTest{
         final DDLWatchRefresher refresher=getRefresher(clock,changes,ddlCommunicator);
         final CountingListener listener=new CountingListener();
 
-        final DDLChange change=new DDLChange(txn);
-        change.setChangeId("testChange");
+        final DDLChange change  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(), "testChange");
         final TestCondition condition=new TestCondition(clock){
             @Override
             protected void waitUninterruptibly(){
@@ -211,9 +209,7 @@ public class DDLCoordinationTest{
 
         AsynchronousDDLController controller=new AsynchronousDDLController(ddlCommunicator,new SingleInstanceLockFactory(lock),clock,1l,10l);
 
-        DDLChange change=new DDLChange(txn);
-        change.setChangeId("testChange");
-
+        DDLChange change  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(), "testChange");
         //initiate the sequence
         String id=controller.notifyMetadataChange(change);
         Assert.assertEquals("Incorrect returned id!",change.getChangeId(),id);

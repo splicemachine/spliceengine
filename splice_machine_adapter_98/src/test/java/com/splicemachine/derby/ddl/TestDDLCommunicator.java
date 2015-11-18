@@ -1,8 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
-
+import com.splicemachine.ddl.DDLMessage.*;
 import java.util.*;
 
 /**

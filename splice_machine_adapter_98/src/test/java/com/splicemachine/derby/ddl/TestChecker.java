@@ -2,7 +2,7 @@ package com.splicemachine.derby.ddl;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
 import org.junit.Assert;
 
 import javax.annotation.Nullable;
