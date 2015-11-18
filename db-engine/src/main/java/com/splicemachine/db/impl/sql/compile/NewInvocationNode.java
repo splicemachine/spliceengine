@@ -146,7 +146,7 @@ public class NewInvocationNode extends MethodCallNode
 					vtiName.getTableName(),
 					getSchemaDescriptor(vtiName.getSchemaName()),
 					TableDescriptor.VTI_TYPE,
-					TableDescriptor.DEFAULT_LOCK_GRANULARITY);
+					TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1);
 		}
 
 		/* Use the table descriptor to figure out what the corresponding
