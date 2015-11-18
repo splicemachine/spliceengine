@@ -21,34 +21,23 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-
 import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
 import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import java.sql.Types;
 
 /**
  * Factory for creating a SYSTABLES row.
@@ -61,7 +50,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 {
 	private static final String		TABLENAME_STRING = "SYSTABLES";
 
-	protected static final int		SYSTABLES_COLUMN_COUNT = 6;
+	protected static final int		SYSTABLES_COLUMN_COUNT = 7;
 	/* Column #s for systables (1 based) */
 	protected static final int		SYSTABLES_TABLEID = 1;
 	protected static final int		SYSTABLES_TABLENAME = 2;
@@ -69,6 +58,8 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_SCHEMAID = 4;
 	protected static final int		SYSTABLES_LOCKGRANULARITY = 5;
 	protected static final int		SYSTABLES_VERSION = 6;
+    /* Sequence for understanding coding/decoding with altering tables*/
+    protected static final int		SYSTABLES_COLUMN_SEQUENCE = 7;
 
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
 	protected static final int		SYSTABLES_INDEX1_TABLENAME = 1;
@@ -139,7 +130,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 		String					tableID = null;
 		String					schemaID = null;
 		String					tableName = null;
-
+        int                     columnSequence = 0;
 
 		if (td != null)
 		{
@@ -150,6 +141,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 			TableDescriptor descriptor = (TableDescriptor)td;
 			SchemaDescriptor schema = (SchemaDescriptor)parent;
 
+            columnSequence = descriptor.getColumnSequence();
 			oid = descriptor.getUUID();
 			if ( oid == null )
 		    {
@@ -231,6 +223,8 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 
 		/* 6th column is VERSION (varchar(128)) */
 		row.setColumn(SYSTABLES_VERSION,new SQLVarchar(CURRENT_TABLE_VERSION));
+
+        row.setColumn(SYSTABLES_COLUMN_SEQUENCE,new SQLInteger(columnSequence));
 
 		return row;
 	}
@@ -418,8 +412,9 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 		DataValueDescriptor versionDescriptor = row.getColumn(SYSTABLES_VERSION);
 
 		// RESOLVE - Deal with lock granularity
-		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0));
+		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),row.getColumn(SYSTABLES_COLUMN_SEQUENCE).getInt());
 		tabDesc.setUUID(tableUUID);
+
 		if(versionDescriptor!=null){
 			tabDesc.setVersion(versionDescriptor.getString());
 		}else
@@ -447,10 +442,10 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 
 
 	/**
-	 * Builds a list of columns suitable for creating this Catalog.
+	 * builds a list of columns suitable for creating this catalog.
 	 *
 	 *
-	 * @return array of SystemColumn suitable for making this catalog.
+	 * @return array of systemcolumn suitable for making this catalog.
 	 */
 	public SystemColumn[]	buildColumnList()
         throws StandardException
@@ -462,6 +457,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
             SystemColumnImpl.getIndicatorColumn("LOCKGRANULARITY"),
             SystemColumnImpl.getIdentifierColumn("VERSION",true),
+            SystemColumnImpl.getColumn("COLSEQUENCE", Types.INTEGER, false)
         };
 	}
 

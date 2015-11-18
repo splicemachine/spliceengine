@@ -23,7 +23,6 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import java.sql.Types;
 import java.util.Properties;
-
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
@@ -54,7 +53,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     static final String		TABLENAME_STRING = "SYSCOLUMNS";
 
-    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 9;
+    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 11;
 	/* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use
@@ -70,6 +69,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     protected static final int 		SYSCOLUMNS_AUTOINCREMENTSTART = 8;
     protected static final int		SYSCOLUMNS_AUTOINCREMENTINC = 9;
     protected static final int		SYSCOLUMNS_COLLECTSTATS = 10;
+    protected static final int		SYSCOLUMNS_COLUMNSEQUENCE = 11;
 
     //private static final String	SYSCOLUMNS_INDEX1_NAME = "SYSCOLUMNS_INDEX1";
     protected static final int		SYSCOLUMNS_INDEX1_ID = 0;
@@ -146,6 +146,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         long					autoincStart = 0;
         long					autoincInc = 0;
         long					autoincValue = 0;
+        int                     columnSequence = -1;
         //The SYSCOLUMNS table's autoinc related columns change with different
         //values depending on what happened to the autoinc column, ie is the
         //user adding an autoincrement column, or is user changing the existing
@@ -178,6 +179,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 defaultID = column.getDefaultUUID().toString();
             }
             collectStats = column.collectStatistics();
+            columnSequence = column.getColumnSequence();
         }
 
 		/* Insert info into syscolumns */
@@ -241,6 +243,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             row.setColumn(SYSCOLUMNS_AUTOINCREMENTINC, new SQLLongint());
         }
         row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
+        row.setColumn(SYSCOLUMNS_COLUMNSEQUENCE,new SQLInteger(columnSequence));
         return row;
     }
 
@@ -399,10 +402,12 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         if(collectStatsColumn!=null && !collectStatsColumn.isNull())
             collectStats = collectStatsColumn.getBoolean();
 
+
+
         colDesc = new ColumnDescriptor(columnName, columnNumber,
                 dataTypeServices, defaultValue, defaultInfo, uuid,
                 defaultUUID, autoincStart, autoincInc,
-                autoincValue,collectStats);
+                autoincValue,collectStats,row.getColumn(SYSCOLUMNS_COLUMNSEQUENCE).getInt());
         return colDesc;
     }
 
@@ -433,11 +438,11 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getJavaColumn("COLUMNDEFAULT",
                         "java.io.Serializable", true),
                 SystemColumnImpl.getUUIDColumn("COLUMNDEFAULTID", true),
-
                 SystemColumnImpl.getColumn("AUTOINCREMENTVALUE", Types.BIGINT, true),
                 SystemColumnImpl.getColumn("AUTOINCREMENTSTART", Types.BIGINT, true),
                 SystemColumnImpl.getColumn("AUTOINCREMENTINC", Types.BIGINT, true),
-                SystemColumnImpl.getColumn("COLLECTSTATS", Types.BOOLEAN, true)
+                SystemColumnImpl.getColumn("COLLECTSTATS", Types.BOOLEAN, true),
+                SystemColumnImpl.getColumn("COLUMNSEQUENCE", Types.INTEGER, true)
         };
     }
 }
