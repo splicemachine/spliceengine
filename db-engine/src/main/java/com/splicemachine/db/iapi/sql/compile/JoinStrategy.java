@@ -267,7 +267,8 @@ public interface JoinStrategy {
 							boolean tableLocked,
 							int isolationLevel,
 							int maxMemoryPerTable,
-							boolean genInListVals
+							boolean genInListVals,
+                            String tableVersion
 							)
 					throws StandardException;
 
