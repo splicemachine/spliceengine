@@ -141,6 +141,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     UUID oid;
     int tableType;
     String tableVersion;
+    private int columnSequence;
 
     /**
      * <p>
@@ -211,9 +212,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            SchemaDescriptor schema,
                            int tableType,
                            boolean onCommitDeleteRows,
-                           boolean onRollbackDeleteRows){
-        this(dataDictionary,tableName,schema,tableType,'\0');
-
+                           boolean onRollbackDeleteRows, int numberOfColumns){
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -233,14 +233,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String tableName,
                            SchemaDescriptor schema,
                            int tableType,
-                           char lockGranularity){
+                           char lockGranularity, int numberOfColumns){
         super(dataDictionary);
 
         this.schemaDesctiptor=schema;
         this.tableName=tableName;
         this.tableType=tableType;
         this.lockGranularity=lockGranularity;
-
+        this.columnSequence = numberOfColumns;
         this.conglomerateDescriptorList=new ConglomerateDescriptorList();
         this.columnDescriptorList=new ColumnDescriptorList();
         this.constraintDescriptorList=new ConstraintDescriptorList();
@@ -259,6 +259,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public String getSchemaName(){
         return schemaDesctiptor.getSchemaName();
+    }
+
+    public int getColumnSequence() {
+        return columnSequence;
     }
 
     /**
