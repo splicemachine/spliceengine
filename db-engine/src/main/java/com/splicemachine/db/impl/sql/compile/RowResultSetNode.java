@@ -863,12 +863,12 @@ public class RowResultSetNode extends FromTable {
 
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("Values").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
         sb.append(")");
         return sb.toString();
     }

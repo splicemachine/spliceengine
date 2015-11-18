@@ -316,7 +316,8 @@ public interface ResultSetFactory {
 		boolean reuseResult,
 		boolean doesProjection,
 		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) throws StandardException;
+		double optimizerEstimatedCost,
+		String explainPlan) throws StandardException;
 
 	/**
 		A hash table result set builds a hash table on its source,
@@ -404,7 +405,8 @@ public interface ResultSetFactory {
 		int rowSize,
 		int resultSetNumber, 
 		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) 
+		double optimizerEstimatedCost,
+		String explainPlan) 
 			throws StandardException;
 
 	/**
@@ -437,7 +439,8 @@ public interface ResultSetFactory {
 		int resultSetNumber, 
 		boolean singleInputRow,
 		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) 
+		double optimizerEstimatedCost,
+		String explainPlan) 
 			throws StandardException;
 
 	/**
@@ -473,7 +476,8 @@ public interface ResultSetFactory {
 		int resultSetNumber, 
 		boolean singleInputRow,
 		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) 
+		double optimizerEstimatedCost,
+		String explainPlan) 
 			throws StandardException;
 
 	/**
@@ -506,7 +510,8 @@ public interface ResultSetFactory {
 		int resultSetNumber, 
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-		boolean isRollup) 
+		boolean isRollup,
+		String explainPlan) 
 			throws StandardException;
 
 	/**
@@ -542,7 +547,8 @@ public interface ResultSetFactory {
 		int resultSetNumber, 
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-		boolean isRollup) 
+        boolean isRollup,
+        String explainPlan) 
 			throws StandardException;
 
 	/**
@@ -962,7 +968,8 @@ public interface ResultSetFactory {
 								int isolationLevel,
 								boolean oneRowScan,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1033,7 +1040,7 @@ public interface ResultSetFactory {
 	 */
 	NoPutResultSet getBulkTableScanResultSet(
 			                    Activation activation,
-								long conglomId,
+			                    long conglomId,
 								int scociItem,
 								GeneratedMethod resultRowAllocator,
 								int resultSetNumber,
@@ -1058,7 +1065,8 @@ public interface ResultSetFactory {
                                 boolean disableForHoldable,
 								boolean oneRowScan,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String explainPlan)
 			throws StandardException;
 
     /**
@@ -1103,7 +1111,8 @@ public interface ResultSetFactory {
 								int isolationLevel,
 								boolean oneRowScan,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+                                String explainPlan)
 			throws StandardException;
     /**
 		An index row to base row result set gets an index row from its source
@@ -1238,7 +1247,8 @@ public interface ResultSetFactory {
 								   boolean notExistsRightSide,
 								   double optimizerEstimatedRowCount,
 								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides)
+								   String userSuppliedOptimizerOverrides,
+					               String explainPlan)
 			throws StandardException;
 
     public NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
@@ -1253,7 +1263,8 @@ public interface ResultSetFactory {
 			   boolean notExistsRightSide,
 			   double optimizerEstimatedRowCount,
 			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides)
+			   String userSuppliedOptimizerOverrides,
+	           String explainPlan)
 					   throws StandardException;
 
     public NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
@@ -1268,7 +1279,8 @@ public interface ResultSetFactory {
 			   boolean notExistsRightSide,
 			   double optimizerEstimatedRowCount,
 			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides)
+			   String userSuppliedOptimizerOverrides,
+               String explainPlan)
 					   throws StandardException;
 
     public NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
@@ -1283,8 +1295,9 @@ public interface ResultSetFactory {
 			   boolean notExistsRightSide,
 			   double optimizerEstimatedRowCount,
 			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides)
-					   throws StandardException;
+			   String userSuppliedOptimizerOverrides,
+			   String explainPlan)
+			           throws StandardException;
 
 	/**
 		A hash join.
@@ -1317,15 +1330,16 @@ public interface ResultSetFactory {
 								   int leftNumCols,
 								   NoPutResultSet rightResultSet,
 								   int rightNumCols,
-                   int leftHashKeyitem,
-                   int rightHashKeyItem,
+                                   int leftHashKeyitem,
+                                   int rightHashKeyItem,
 								   GeneratedMethod joinClause,
 								   int resultSetNumber,
 								   boolean oneRowRightSide,
 								   boolean notExistsRightSide,
 								   double optimizerEstimatedRowCount,
 								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides)
+								   String userSuppliedOptimizerOverrides,
+					               String explainPlan)
 			throws StandardException;
 
 
@@ -1378,7 +1392,8 @@ public interface ResultSetFactory {
 								   boolean notExistsRightSide,
 								   double optimizerEstimatedRowCount,
 								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides)
+								   String userSuppliedOptimizerOverrides,
+					               String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1425,7 +1440,8 @@ public interface ResultSetFactory {
 								   boolean notExistsRightSide,
 								   double optimizerEstimatedRowCount,
 								   double optimizerEstimatedCost,
-								   String userSuppliedOptimizerOverrides)
+								   String userSuppliedOptimizerOverrides,
+					               String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1465,12 +1481,14 @@ public interface ResultSetFactory {
 
 	 	@exception StandardException		Thrown on failure
 	 */
-	NoPutResultSet getScrollInsensitiveResultSet(NoPutResultSet source, Activation activation, 
+	NoPutResultSet getScrollInsensitiveResultSet(NoPutResultSet source,
+	                                        Activation activation, 
 											int resultSetNumber,
 											int sourceRowWidth,
 											boolean scrollable,
 											double optimizerEstimatedRowCount,
-											double optimizerEstimatedCost) 
+											double optimizerEstimatedCost,
+											String explainPlan) 
 		throws StandardException;
 	/**
 	 A left outer join using a sort merge join.
@@ -1516,7 +1534,8 @@ public interface ResultSetFactory {
 				boolean noExistsRightSide,
 				double optimizerEstimatedRowCount,
 				double optimizerEstimatedCost,
-				String userSuppliedOptimizerOverrides)
+				String userSuppliedOptimizerOverrides,
+				String explainPlan)
 	throws StandardException;
 
 	public NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
@@ -1533,7 +1552,8 @@ public interface ResultSetFactory {
 				boolean noExistsRightSide,
 				double optimizerEstimatedRowCount,
 				double optimizerEstimatedCost,
-				String userSuppliedOptimizerOverrides)
+                String userSuppliedOptimizerOverrides,
+                String explainPlan)
 	throws StandardException;
 
 	public NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
@@ -1550,7 +1570,8 @@ public interface ResultSetFactory {
 				boolean noExistsRightSide,
 				double optimizerEstimatedRowCount,
 				double optimizerEstimatedCost,
-				String userSuppliedOptimizerOverrides)
+				String userSuppliedOptimizerOverrides,
+				String explainPlan)
 	throws StandardException;
 
 	/**
@@ -1834,7 +1855,8 @@ public interface ResultSetFactory {
 		GeneratedMethod fetchFirstMethod,
         boolean hasJDBClimitClause,
 		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) throws StandardException;
+		double optimizerEstimatedCost,
+		String explainPlan) throws StandardException;
 
     public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException;
 

@@ -646,12 +646,12 @@ public class UnionNode extends SetOperatorNode{
         return "UNION";
     }
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Union").append("(")
                 .append("n=").append(order);
-        sb.append(",").append(costEstimate.prettyProcessingString());
+        sb.append(attrDelim).append(costEstimate.prettyProcessingString());
         sb = sb.append(")");
         return sb.toString();
     }

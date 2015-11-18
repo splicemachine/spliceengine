@@ -2410,17 +2410,17 @@ public class SubqueryNode extends ValueNode{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         // TODO JL Costs?
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Subquery(")
                 .append("n=").append(order);
                 if (resultSet!=null) {
-                    sb.append(",").append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString());
+                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString());
                 }
-                sb.append(String.format(", correlated=%b, expression=%b, invariant=%b",
-                        hasCorrelatedCRs(),getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,isInvariant()))
+                sb.append(attrDelim).append(String.format("correlated=%b%sexpression=%b%sinvariant=%b",
+                        hasCorrelatedCRs(),attrDelim,getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,attrDelim,isInvariant()))
                 .append(")");
         return sb.toString();
     }

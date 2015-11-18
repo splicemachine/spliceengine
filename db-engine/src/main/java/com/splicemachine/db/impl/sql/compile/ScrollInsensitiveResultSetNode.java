@@ -95,18 +95,19 @@ public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
 
 		mb.push(costEstimate.rowCount());
 		mb.push(costEstimate.getEstimatedCost());
-
+		mb.push(printExplainInformationForActivation());
+		
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getScrollInsensitiveResultSet",
-						ClassName.NoPutResultSet, 7);
+						ClassName.NoPutResultSet, 8);
 	}
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("ScrollInsensitive").append("(")
                 .append("n=").append(order);
-            sb.append(",").append(getFinalCostEstimate().prettyScrollInsensitiveString());
+            sb.append(attrDelim).append(getFinalCostEstimate().prettyScrollInsensitiveString());
         sb = sb.append(")");
         return sb.toString();
     }

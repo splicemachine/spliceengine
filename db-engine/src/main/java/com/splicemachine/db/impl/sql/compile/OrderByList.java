@@ -129,6 +129,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      */
     public void generate(ActivationClassBuilder acb,
                          MethodBuilder mb,
+                         ResultSetNode orderByNode,
                          ResultSetNode child,
                          CostEstimate sortEstimate) throws StandardException{
         /*
@@ -169,6 +170,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 		 *  arg7: resultSetNumber
 		 *  arg8: estimated row count
 		 *  arg9: estimated cost
+         *  arg10: explain plan
 		 */
 
         acb.pushGetResultSetFactoryExpression(mb);
@@ -194,8 +196,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 
         mb.push(sortEstimate.rowCount());
         mb.push(sortEstimate.getEstimatedCost());
+        mb.push(orderByNode == null ? "" : orderByNode.printExplainInformationForActivation());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getSortResultSet",ClassName.NoPutResultSet,9);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getSortResultSet",ClassName.NoPutResultSet,10);
     }
 
     @Override

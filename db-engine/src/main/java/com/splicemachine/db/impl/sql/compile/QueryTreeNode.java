@@ -1618,11 +1618,15 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public String printExplainInformation(int order) throws StandardException {
-        throw new RuntimeException("Not implemented" + this.getClass());
+        return printExplainInformation(",", order);
+    }
+
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+        throw new RuntimeException("Not implemented in: " + this.getClass());
     }
 
     public String printRuntimeInformation() throws StandardException {
-        throw new RuntimeException("Not implemented" + this.getClass());
+        throw new RuntimeException("Not implemented in: " + this.getClass());
     }
 
 

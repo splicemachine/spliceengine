@@ -788,17 +788,17 @@ public class HalfOuterJoinNode extends JoinNode{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(isRightOuterJoin()?"RightOuter":"LeftOuter").append("Join(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (!joinPreds.isEmpty()) {
-                sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+                sb.append(attrDelim).append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
             }
         }
         sb.append(")");

@@ -1692,6 +1692,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return newResultColumn;
     }
 
+    public String printExplainInformation() throws StandardException {
+        return printExplainInformation(getResultSetNumber());
+    }
+    
+    public String printExplainInformationForActivation() throws StandardException {
+        return printExplainInformation("\n", getResultSetNumber());
+    }
 
 
 }

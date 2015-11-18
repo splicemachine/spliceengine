@@ -386,12 +386,12 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("IndexLookup").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyIndexLookupString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyIndexLookupString());
         sb.append(")");
         return sb.toString();
     }

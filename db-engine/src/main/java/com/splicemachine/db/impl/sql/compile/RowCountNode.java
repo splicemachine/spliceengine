@@ -197,8 +197,9 @@ public final class RowCountNode extends SingleChildResultSetNode{
 
         mb.push(costEstimate.rowCount()); // arg7
         mb.push(costEstimate.getEstimatedCost()); // arg8
+        mb.push(printExplainInformationForActivation()); // arg9
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getRowCountResultSet", ClassName.NoPutResultSet, 8);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getRowCountResultSet", ClassName.NoPutResultSet, 9);
     }
 
 
@@ -242,17 +243,17 @@ public final class RowCountNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("Limit(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
                 if (offset != null && offset instanceof NumericConstantNode) {
-                    sb.append(",offset=").append( ((NumericConstantNode)offset).getValue());
+                    sb.append(attrDelim).append("offset=").append( ((NumericConstantNode)offset).getValue());
                 }
                 if (fetchFirst != null && fetchFirst instanceof NumericConstantNode) {
-                    sb.append(",fetchFirst=").append( ((NumericConstantNode)fetchFirst).getValue());
+                    sb.append(attrDelim).append("fetchFirst=").append( ((NumericConstantNode)fetchFirst).getValue());
                 }
                 sb.append(")");
         return sb.toString();

@@ -463,12 +463,12 @@ public class IntersectOrExceptNode extends SetOperatorNode
 
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append(getExplainDisplay()).append("(")
                 .append("n=").append(order);
-        sb.append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
         sb = sb.append(")");
         return sb.toString();
     }

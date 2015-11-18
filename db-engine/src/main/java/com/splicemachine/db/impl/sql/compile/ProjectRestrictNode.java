@@ -1361,8 +1361,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(doesProjection);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
+        mb.push(printExplainInformationForActivation());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,11);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,12);
     }
 
     /**
@@ -1637,15 +1638,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("ProjectRestrict").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProjectionString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProjectionString());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
-            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+            sb.append(attrDelim).append("preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
         sb.append(")");
         return sb.toString();
     }
