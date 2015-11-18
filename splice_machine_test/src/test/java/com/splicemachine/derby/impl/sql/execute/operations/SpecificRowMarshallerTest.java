@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -16,6 +15,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.junit.Assert;
 import org.junit.Test;
+import com.carrotsearch.hppc.BitSet;
 
 
 /**

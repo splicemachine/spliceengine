@@ -1,14 +1,11 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -37,11 +34,7 @@ public interface WriteContextFactory<T> {
                                    int expectedWrites,
                                    RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
-    void dropIndex(long indexConglomId, TxnView txn);
-
-    void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] typeIds);
-
-    void addDDLChange(DDLChange ddlChange);
+    void addDDLChange(DDLMessage.DDLChange ddlChange);
 
     void close();
 

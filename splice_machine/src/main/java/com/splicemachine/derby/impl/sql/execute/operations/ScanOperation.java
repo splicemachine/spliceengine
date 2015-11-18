@@ -7,7 +7,6 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -18,7 +17,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -31,7 +29,6 @@ import java.util.NavigableSet;
 public abstract class ScanOperation extends SpliceBaseOperation {
 		private static Logger LOG = Logger.getLogger(ScanOperation.class);
 		private static long serialVersionUID=7l;
-
 		public int lockMode;
 		public int isolationLevel;
 		protected boolean oneRowScan;
@@ -49,6 +46,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         protected Scan scan;
         protected boolean scanSet = false;
         protected String scanQualifiersField;
+        protected String tableVersion;
 
 		public ScanOperation () {
 				super();
@@ -66,13 +64,13 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 													int indexColItem,
 													boolean oneRowScan,
 													double optimizerEstimatedRowCount,
-													double optimizerEstimatedCost) throws StandardException {
+													double optimizerEstimatedCost, String tableVersion) throws StandardException {
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.lockMode = lockMode;
 				this.isolationLevel = isolationLevel;
 				this.oneRowScan = oneRowScan;
                 this.scanQualifiersField = scanQualifiersField;
-
+                this.tableVersion = tableVersion;
 				this.scanInformation = new DerbyScanInformation(resultRowAllocator.getMethodName(),
 								startKeyGetter!=null? startKeyGetter.getMethodName(): null,
 								stopKeyGetter!=null ? stopKeyGetter.getMethodName(): null,
@@ -83,18 +81,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 								sameStartStopPosition,
 								startSearchOperator,
 								stopSearchOperator,
-                                rowIdKey
+                                rowIdKey,
+                                tableVersion
 				);
-		}
-
-		public ScanOperation(ScanInformation scanInformation,
-												 OperationInformation operationInformation,
-												 int lockMode,
-												 int isolationLevel) throws StandardException {
-				super(operationInformation);
-				this.lockMode = lockMode;
-				this.isolationLevel = isolationLevel;
-				this.scanInformation = scanInformation;
 		}
 
 		protected int[] getColumnOrdering() throws StandardException{
@@ -111,6 +100,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				lockMode = in.readInt();
 				isolationLevel = in.readInt();
 				scanInformation = (ScanInformation)in.readObject();
+                tableVersion = in.readUTF();
 		}
 
 		@Override
@@ -120,6 +110,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				out.writeInt(lockMode);
 				out.writeInt(isolationLevel);
 				out.writeObject(scanInformation);
+                out.writeUTF(tableVersion);
 		}
 
 		@Override
@@ -139,34 +130,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				}
 		}
 
-        private void getScanQualifiersInStringFormat() throws StandardException{
-            Qualifier[][] scanQualifiers;
-
-            try {
-                scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-            } catch (Exception e) {
-                throw StandardException.unexpectedUserException(e);
-            }
-
-            if (scanQualifiers != null) {
-                String qualifiersString = "Scan filter:";
-                for (Qualifier[] qualifiers : scanQualifiers) {
-                    for (Qualifier q : qualifiers) {
-                        String text = q.getText();
-                        if (text != null) {
-                            qualifiersString += text;
-                        }
-                    }
-                }
-                if (info == null) {
-                    info = qualifiersString;
-                }
-                else if (!info.contains(qualifiersString)) {
-                    info +=", " + qualifiersString;
-                }
-            }
-        }
-
 		@Override
 		public SpliceOperation getLeftOperation() {
 				return null;
@@ -176,7 +139,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "initIsolationLevel");
 		}
 
-		public Scan getNonSIScan() {
+		public Scan getNonSIScan() throws StandardException {
 				/*
 				 * Intended to get a scan which does NOT set up SI underneath us (since
 				 * we are doing it ourselves).
@@ -184,14 +147,14 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				Scan scan = buildScan();
 				if (oneRowScan) {
                     		scan.setSmall(true);
-				scan.setCaching(2); // Limit the batch size for performance
+				            scan.setCaching(2); // Limit the batch size for performance
                     		// Setting caching to 2 instead of 1 removes an extra RPC during Single Row Result Scans
 				}
 				deSiify(scan);
 				return scan;
 		}
 
-        public Scan getReversedNonSIScan() {
+        public Scan getReversedNonSIScan() throws StandardException {
             Scan scan = getNonSIScan();
             scan.setReversed(true);
             return scan;
@@ -263,13 +226,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				}
 		}
 
-		protected Scan buildScan() {
-				try{
-						return getScan();
-				} catch (StandardException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,e);
-				}
-				return null;
+		protected Scan buildScan() throws StandardException {
+		    return getScan();
 		}
 
 		protected Scan getScan() throws StandardException {
@@ -287,43 +245,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return tableName.equals(String.valueOf(tableNumber));
 		}
 
-		public FormatableBitSet getAccessedCols()  {
-				try {
-						return scanInformation.getAccessedColumns();
-				} catch (StandardException e) {
-						LOG.error(e);
-						throw new RuntimeException(e);
-				}
-		}
-
-		public Qualifier[][] getScanQualifiers()  {
-				try {
-						return scanInformation.getScanQualifiers();
-				} catch (StandardException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,e);
-						return null;
-				}
-		}
-
-		/*@Override
-		public String getName() {
-				/*
-				 * TODO -sf- tableName and indexName are actually conglomerate ids, not
-				 * human-readable table names. Unfortunately, there doesn't appear
-				 * to be any mechanism to get the human readable name short of
-				 * issuing a query to find it (which isn't really an option). For now,
-				 * we'll just set the conglomerate id on here, and then allow people
-				 * to look for them later; at some point the Query Optimizer will
-				 * need to be invoked to ensure that the human readable name gets
-				 * passed through.
-				 *
-				String baseName =  super.getName();
-				if(this.tableName!=null){
-						baseName+="(table="+tableName+")";
-				}else if(this.indexName!=null)
-						baseName+="(index="+indexName+")";
-				return baseName;
-		}*/
 
 		public String getTableName(){
 				return this.tableName;
@@ -331,21 +252,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		public String getIndexName() {
 				return this.indexName;
-		}
-		public String printStartPosition() {
-				try {
-						return scanInformation.printStartPosition(numOpens);
-				} catch (StandardException e) {
-						throw new RuntimeException(e);
-				}
-		}
-
-		public String printStopPosition() {
-            try {
-						return scanInformation.printStopPosition(numOpens);
-				} catch (StandardException e) {
-						throw new RuntimeException(e);
-				}
 		}
 
 		@Override
@@ -373,4 +279,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 	public ExecIndexRow getStartPosition() throws StandardException {
 		return scanInformation.getStartPosition();
 	}
+
+    public String getTableVersion() {
+        return tableVersion;
+    }
 }

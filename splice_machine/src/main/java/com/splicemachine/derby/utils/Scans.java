@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Utility methods and classes related to building HBase Scans

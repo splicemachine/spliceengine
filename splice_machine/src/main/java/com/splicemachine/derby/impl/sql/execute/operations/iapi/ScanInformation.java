@@ -47,10 +47,6 @@ public interface ScanInformation<T> {
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
-    String printStartPosition(int numOpens) throws StandardException;
-
-    String printStopPosition(int numOpens) throws StandardException;
-
     long getConglomerateId();
     
     List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
@@ -59,8 +55,5 @@ public interface ScanInformation<T> {
 
     SpliceConglomerate getConglomerate() throws StandardException;
 
-		String getTableVersion() throws StandardException;
-
-    String getTableName() throws StandardException;
     ExecIndexRow getStartPosition() throws StandardException;
 }

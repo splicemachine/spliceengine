@@ -1,20 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.google.common.io.Closeables;
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.primitives.BooleanArrays;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -37,8 +34,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -333,7 +328,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         if (td == null) {
             td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, userTransaction);
         }
-        validateTableDescriptor(td);
+        DDLUtils.validateTableDescriptor(td, indexName, tableName);
         try {
             // invalidate any prepared statements that
             // depended on this table (including this one)
@@ -549,9 +544,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             // in and add it--if we don't have one already.
             //
             createConglomerateDescriptor(dd, userTransaction, sd, td, indexRowGenerator, alreadyHaveConglomDescriptor, ddg);
-            boolean[] descColumns = BooleanArrays.not(isAscending);
-            createAndPopulateIndex(activation, userTransaction, userTransaction, td, baseColumnPositions, heapConglomerateId, descColumns);
-
+            createAndPopulateIndex(activation, userTransaction, td, heapConglomerateId, indexRowGenerator);
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
         }
@@ -729,8 +722,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             indexProperties = new Properties();
         }
 
-        SpliceLogUtils.trace(LOG, "Here XXX");
-
         // Tell it the conglomerate id of the base table
         indexProperties.put("baseConglomerateId",Long.toString(heapConglomerateId));
 
@@ -760,12 +751,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
     }
 
     private void createAndPopulateIndex(Activation activation,
-                                          TransactionController parent,
                                           TransactionController tc,
                                           TableDescriptor td,
-                                          int[] baseColumnPositions,
-                                          long heapConglomerateId,
-                                          boolean[] descColumns) throws StandardException, IOException {
+                                          long indexConglomerate,
+                                          IndexDescriptor indexDescriptor) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
          */
@@ -773,52 +762,16 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
-            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(heapConglomerateId)));
+            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomerate));
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
         }
-        TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, heapConglomerateId,
-                baseColumnPositions, unique,
-                uniqueWithDuplicateNulls,
-                SpliceUtils.bitSetFromBooleanArray(descColumns));
-        DDLChange ddlChange = DDLUtils.performMetadataChange(tentativeTransaction, tentativeIndexDesc);
-
-        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(heapConglomerateId).getBytes());
-        try{
-            // Add the indexes to the existing regions
-            createIndex(activation, ddlChange, table, td);
-
-            Txn indexTransaction = getIndexTransaction(tc, tentativeTransaction, heapConglomerateId);
-
-            populateIndex(activation, baseColumnPositions,
-                    descColumns,
-                    heapConglomerateId,
-                    table,
-                    tc,
-                    indexTransaction,
-                    tentativeTransaction.getCommitTimestamp(),
-                    tentativeIndexDesc);
-            //only commit the index transaction if the job actually completed
-            indexTransaction.commit();
-        }finally{
-            Closeables.closeQuietly(table);
-        }
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(), td.getHeapConglomerateId(), indexConglomerate, td, indexDescriptor);
+        ddlChange = DDLUtils.performMetadataChange(ddlChange);
+        Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, indexConglomerate,indexName);
+        populateIndex(activation, indexTransaction,tentativeTransaction.getCommitTimestamp(),ddlChange.getTentativeIndex());
+        indexTransaction.commit();
     }
-
-
-
-    private void validateTableDescriptor(TableDescriptor td) throws StandardException {
-        /*
-         * Make sure that the table exists and that it isn't a system table. Otherwise, KA-BOOM
-         */
-        if (td == null)
-            throw StandardException.newException(SQLState.LANG_CREATE_INDEX_NO_TABLE, indexName, tableName);
-
-        if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
-            throw StandardException.newException(SQLState.LANG_CREATE_SYSTEM_INDEX_ATTEMPTED, indexName, tableName);
-        }
-    }
-
 
 }

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -39,6 +38,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import com.carrotsearch.hppc.BitSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -231,8 +231,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
 
-    //TODO -sf- add a nextBatch() method
-
     @Override
     public void close() throws StandardException, IOException {
         if(keyAccumulator!=null)
@@ -258,7 +256,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     public void setRegionScanner(MeasuredRegionScanner scanner){
         this.regionScanner = scanner;
     }
-
 
     public long getBytesVisited() {
         return regionScanner.getBytesVisited();
@@ -310,7 +307,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
         return siFilterFactory;
     }
-
     private Supplier<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
                                                       int[] allPkColumns,
                                                       int[] keyColumnTypes,

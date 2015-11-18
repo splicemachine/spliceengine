@@ -29,7 +29,6 @@ import java.util.List;
 public class DistinctScanOperation extends ScanOperation {
     private static final long serialVersionUID = 3l;
     private static Logger LOG = Logger.getLogger(DistinctScanOperation.class);
-
 	protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -61,7 +60,8 @@ public class DistinctScanOperation extends ScanOperation {
                                  boolean tableLocked,
                                  int isolationLevel,
                                  double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost) throws StandardException {
+                                 double optimizerEstimatedCost,
+                                 String tableVersion) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -80,7 +80,8 @@ public class DistinctScanOperation extends ScanOperation {
                 -1,
                 false,
                 optimizerEstimatedRowCount,
-                optimizerEstimatedCost);
+                optimizerEstimatedCost,
+                tableVersion);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.indexName = indexName;
@@ -166,7 +167,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .transaction(getCurrentTransaction())
                 .scan(getNonSIScan())
                 .template(currentRow)
-                .tableVersion(scanInformation.getTableVersion())
+                .tableVersion(tableVersion)
                 .indexName(indexName)
                 .reuseRowLocation(false)
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())

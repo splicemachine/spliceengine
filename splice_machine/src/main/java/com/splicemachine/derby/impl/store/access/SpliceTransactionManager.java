@@ -1,18 +1,18 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.si.api.ReadOnlyModificationException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Stack;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -32,8 +32,6 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 
 public class SpliceTransactionManager implements XATransactionController,
@@ -2103,13 +2101,13 @@ public class SpliceTransactionManager implements XATransactionController,
         TxnView txn = getActiveStateTxn();
         if(!txn.allowsWrites())
             throw Exceptions.parseException(new ReadOnlyModificationException("Unable to perform 2PC data dictionary change with a read-only transaction: "+ txn));
-
-        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(txn));
+        currentDDLChangeId = DDLUtils.notifyMetadataChange(
+                DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.DICTIONARY_UPDATE).setTxnId(txn.getTxnId()).build());
     }
 
     @Override
     public void commitDataDictionaryChange() throws StandardException {
-        DDLCoordinationFactory.getController().finishMetadataChange(currentDDLChangeId);
+        DDLUtils.finishMetadataChange(currentDDLChangeId);
     }
 
     @Override

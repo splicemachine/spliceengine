@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl.rollforward;
 
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.junit.Test;
 import java.util.concurrent.ScheduledExecutorService;
@@ -20,9 +21,10 @@ public class SegmentedRollForwardTest {
     @Test
     public void testCanProperlySplitARollForward() throws Exception {
         HRegion region = mock(HRegion.class);
-        when(region.getRegionInfo().getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
-        when(region.getRegionInfo().getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
-
+        HRegionInfo regionInfo = mock(HRegionInfo.class);
+        when(regionInfo.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+        when(regionInfo.getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+        when(region.getRegionInfo()).thenReturn(regionInfo);
         ScheduledExecutorService noopService = mock(ScheduledExecutorService.class);
         when(noopService.schedule(any(Runnable.class),anyLong(),any(TimeUnit.class))).thenReturn(null);
 

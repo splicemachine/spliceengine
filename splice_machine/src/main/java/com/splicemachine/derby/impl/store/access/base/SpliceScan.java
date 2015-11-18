@@ -44,10 +44,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected static Logger LOG = Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;
-
 		protected Scan scan;
 		protected FormatableBitSet scanColumnList;
-		//    protected RowDecoder rowDecoder;
 		protected DataValueDescriptor[] startKeyValue;
 		protected int startSearchOperator;
 		protected Qualifier[][] qualifier;
@@ -251,8 +249,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		}
 
 		public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
-//				if(entryDecoder==null)
-//						entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 				try{
 						if(destRow!=null){
 								ExecRow row = new ValueRow(destRow.length);
@@ -407,8 +403,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				SpliceLogUtils.trace(LOG, "replace values for these valid Columns %s", validColumns);
 				try {
 						int[] validCols = SpliceUtils.bitSetToMap(validColumns);
-//            assert trans instanceof SpliceTransaction: "Programmer error, attempting update with incorrect Transaction type";
-//            ((SpliceTransaction)trans).elevate(table.getTableName());
 						Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),trans.getActiveStateTxn());
 
 						DescriptorSerializer[] serializers = VersionedSerializers.forVersion("1.0",true).getSerializers(row);
@@ -442,8 +436,6 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		@Override
 		public void initialize() {
 				if(scannerInitialized) return;
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("initialize on the LazyScan interface");
 				if(table==null)
 						table = SpliceAccessManager.getHTable(spliceConglomerate.getConglomerate().getContainerid());
 				try {

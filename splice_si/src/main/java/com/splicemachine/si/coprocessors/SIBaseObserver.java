@@ -78,7 +78,7 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
 
     @Override
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan, RegionScanner s) throws IOException {
-        SpliceLogUtils.trace(LOG, "preScannerOpen %s", scan);
+        SpliceLogUtils.trace(LOG, "preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s", scan, tableEnvMatch, shouldUseSI(scan));
         if (tableEnvMatch && shouldUseSI(scan)) {
             HTransactorFactory.getTransactionReadController().preProcessScan(scan);
             assert (scan.getMaxVersions() == Integer.MAX_VALUE);

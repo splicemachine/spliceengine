@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -28,9 +29,10 @@ public class MockRegionUtils {
 		public static HRegion getMockRegion() throws IOException {
 			final Map<byte[],Set<Cell>> rowMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
 			HRegion fakeRegion = mock(HRegion.class);
-    when(fakeRegion.getRegionInfo().getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
-    when(fakeRegion.getRegionInfo().getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
-
+            HRegionInfo fakeInfo = mock(HRegionInfo.class);
+            when(fakeInfo.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+            when(fakeInfo.getEndKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
+            when(fakeRegion.getRegionInfo()).thenReturn(fakeInfo);
 			when(fakeRegion.get(any(Get.class))).thenAnswer(new Answer<Result>(){
 					@Override
 					public Result answer(InvocationOnMock invocationOnMock) throws Throwable {

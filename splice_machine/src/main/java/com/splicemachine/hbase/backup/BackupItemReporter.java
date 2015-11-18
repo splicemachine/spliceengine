@@ -20,7 +20,7 @@ import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Created by jyuan on 4/13/15.

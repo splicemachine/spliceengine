@@ -7,7 +7,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
-import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -22,7 +21,6 @@ import java.io.IOException;
  */
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
-    private static final FixedDataHash EMPTY_VALUES_ENCODER = new FixedDataHash(new byte[]{});
 	protected  boolean cascadeDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -36,14 +34,14 @@ public class DeleteOperation extends DMLWriteOperation {
 	}
 
 	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost) throws StandardException {
-		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost);
+                           double optimizerEstimatedCost, String tableVersion) throws StandardException {
+		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
 		recordConstructorTime();
 	}
 
 	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost) throws StandardException {
-		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost);
+                           double optimizerEstimatedCost, String tableVersion) throws StandardException {
+		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
 		recordConstructorTime();
 	}
 

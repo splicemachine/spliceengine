@@ -18,7 +18,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.Cell;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 import java.util.List;
 
 /**

@@ -19,7 +19,6 @@ import java.util.List;
 
 /**
  *
- * XXX - TODO JL Move Scan to implementation detail.
  *
  * @author Scott Fines
  *         Created on: 10/1/13
@@ -36,9 +35,9 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           boolean sameStartStopPosition,
                                           int startSearchOperator,
                                           int stopSearchOperator,
-                                          DataValueDescriptor[] probeValues) {
+                                          DataValueDescriptor[] probeValues, String tableVersion) {
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
-                scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false);
+                scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion);
         this.probeValues = probeValues;
     }
 

@@ -7,8 +7,10 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.db.jdbc.ClientDriver;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -155,8 +157,9 @@ public class BackupSystemProcedures {
 
             Restore restore = Restore.createRestore(directory, backupId);
             // enter restore mode
-            DDLChange change = new DDLChange(restore.getRestoreTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
-            changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
+
+            DDLChange change = ProtoUtil.createRestoreMode(restore.getRestoreTransaction().getTxnId());
+            changeId = DDLUtils.notifyMetadataChange(change);
 
             restore.restore();
 
@@ -191,7 +194,7 @@ public class BackupSystemProcedures {
         } finally {
             try {
                 if (changeId != null) {
-                    DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+                    DDLUtils.finishMetadataChange(changeId);
                 }
             } catch (StandardException e) {
                 SpliceLogUtils.error(LOG, "Error recovering backup", e);

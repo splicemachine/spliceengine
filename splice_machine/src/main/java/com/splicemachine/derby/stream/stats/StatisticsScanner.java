@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.stats;
 
-import com.carrotsearch.hppc.BitSet;
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -27,6 +26,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import java.io.IOException;
 import java.sql.*;
+import com.carrotsearch.hppc.BitSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 

@@ -2,11 +2,9 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.ddl.DDLWatcher;
-import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import org.junit.Test;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -58,10 +56,9 @@ public class SpliceDriverTest {
     }
 
     private SpliceDriver createTestSpliceDriver() {
-        ZkTaskMonitor taskMonitor = mock(ZkTaskMonitor.class);
         WriteCoordinator writeCoordinator = mock(WriteCoordinator.class);
         DDLWatcher ddlWatcher = mock(DDLWatcher.class);
-        return new SpliceDriver(taskMonitor, writeCoordinator, ddlWatcher);
+        return new SpliceDriver(writeCoordinator, ddlWatcher);
     }
 
     private Service mockService() {

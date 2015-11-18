@@ -5,10 +5,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.derby.ddl.FKTentativeDDLDesc;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.pipeline.ddl.DDLChange;
-
+import com.splicemachine.protobuf.ProtoUtil;
+import org.sparkproject.guava.primitives.Ints;
 import java.util.List;
 import java.util.Map;
 
@@ -61,28 +61,28 @@ class FKWriteFactoryHolder {
      * above to add factories for the parent or child table as appropriate.
      */
     public void handleForeignKeyAdd(DDLChange ddlChange, long onConglomerateNumber) {
-        FKTentativeDDLDesc d = (FKTentativeDDLDesc) ddlChange.getTentativeDDLDesc();
+        TentativeFK tentativeFKAdd = ddlChange.getTentativeFK();
         // We are configuring a write context on the PARENT base-table or unique-index.
-        if (onConglomerateNumber == d.getReferencedConglomerateNumber()) {
-            addParentCheckWriteFactory(d.getBackingIndexFormatIds(), d.getReferencedTableVersion());
-            addParentInterceptWriteFactory(d.getReferencedTableName(), ImmutableList.of(d.getReferencingConglomerateNumber()));
+        if (onConglomerateNumber == tentativeFKAdd.getReferencedConglomerateNumber()) {
+            addParentCheckWriteFactory(Ints.toArray(tentativeFKAdd.getBackingIndexFormatIdsList()), tentativeFKAdd.getReferencedTableVersion());
+            addParentInterceptWriteFactory(tentativeFKAdd.getReferencedTableName(), ImmutableList.of(tentativeFKAdd.getReferencingConglomerateNumber()));
         }
         // We are configuring a write context on the CHILD fk backing index.
-        if (onConglomerateNumber == d.getReferencingConglomerateNumber()) {
-            addChildCheck(d.getFkConstraintInfo());
-            addChildIntercept(d.getReferencedConglomerateNumber(), d.getFkConstraintInfo());
+        if (onConglomerateNumber == tentativeFKAdd.getReferencingConglomerateNumber()) {
+            addChildCheck(tentativeFKAdd.getFkConstraintInfo());
+            addChildIntercept(tentativeFKAdd.getReferencedConglomerateNumber(), tentativeFKAdd.getFkConstraintInfo());
         }
     }
 
     public void handleForeignKeyDrop(DDLChange ddlChange, long onConglomerateNumber) {
-        FKTentativeDDLDesc d = (FKTentativeDDLDesc) ddlChange.getTentativeDDLDesc();
+        TentativeFK tentativeFKAdd = ddlChange.getTentativeFK();
         // We are configuring a write context on the PARENT base-table or unique-index.
-        if (onConglomerateNumber == d.getReferencedConglomerateNumber()) {
-            parentInterceptWriteFactory.removeReferencingIndexConglomerateNumber(d.getReferencingConglomerateNumber());
+        if (onConglomerateNumber == tentativeFKAdd.getReferencedConglomerateNumber()) {
+            parentInterceptWriteFactory.removeReferencingIndexConglomerateNumber(tentativeFKAdd.getReferencingConglomerateNumber());
         }
         // We are configuring a write context on the CHILD fk backing index.
-        if (onConglomerateNumber == d.getReferencingConglomerateNumber()) {
-            childInterceptWriteFactories.remove(d.getReferencedConglomerateNumber());
+        if (onConglomerateNumber == tentativeFKAdd.getReferencingConglomerateNumber()) {
+            childInterceptWriteFactories.remove(tentativeFKAdd.getReferencedConglomerateNumber());
         }
     }
 
@@ -105,8 +105,9 @@ class FKWriteFactoryHolder {
         else {
             referencedKeyConglomerateNum = referencedConstraint.getTableDescriptor().getHeapConglomerateId();
         }
-        addChildIntercept(referencedKeyConglomerateNum, new FKConstraintInfo(fkConstraintDesc));
-        addChildCheck(new FKConstraintInfo(fkConstraintDesc));
+        FKConstraintInfo info = ProtoUtil.createFKConstraintInfo(fkConstraintDesc);
+        addChildIntercept(referencedKeyConglomerateNum, info);
+        addChildCheck(info);
     }
 
     /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
@@ -116,8 +117,7 @@ class FKWriteFactoryHolder {
             return;
         }
         ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
-        int backingIndexFormatIds[] = DataDictionaryUtils.getFormatIds(backingIndexColDescriptors);
-
+        int backingIndexFormatIds[] = backingIndexColDescriptors.getFormatIds();
         String parentTableName = cDescriptor.getTableDescriptor().getName();
         String parentTableVersion = cDescriptor.getTableDescriptor().getVersion();
         addParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);

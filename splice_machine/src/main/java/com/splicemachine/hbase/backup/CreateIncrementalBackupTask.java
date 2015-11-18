@@ -5,9 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -38,7 +35,7 @@ import java.util.Map;
 /**
  * Created by jyuan on 3/4/15.
  */
-public class CreateIncrementalBackupTask extends ZkTask {
+public class CreateIncrementalBackupTask {
 
     private static Logger LOG = Logger.getLogger(CreateIncrementalBackupTask.class);
 
@@ -61,7 +58,6 @@ public class CreateIncrementalBackupTask extends ZkTask {
                                        String backupFileSystem,
                                        String snapshotName,
                                        String lastSnapshotName) {
-        super(jobId, SpliceConstants.operationTaskPriority);
         this.backupItem = backupItem;
         this.backupFileSystem = backupFileSystem;
         this.snapshotName = snapshotName;
@@ -73,14 +69,8 @@ public class CreateIncrementalBackupTask extends ZkTask {
         excludeFileSet = new HashSet<>();
         includeFileSet = new HashSet<>();
     }
-    @Override
-    protected String getTaskType() {
-        return "createIncrementalBackupTask";
-    }
 
-    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
         out.writeObject(backupItem); // TODO Needs to be replaced with protobuf
         out.writeUTF(backupFileSystem);
         out.writeUTF(snapshotName);
@@ -88,36 +78,15 @@ public class CreateIncrementalBackupTask extends ZkTask {
         init();
     }
 
-    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
         backupItem = (BackupItem) in.readObject(); // TODO Needs to be replaced with protobuf
         backupFileSystem = in.readUTF();
         snapshotName = in.readUTF();
         lastSnapshotName = in.readUTF();
     }
 
-    @Override
-    public boolean invalidateOnClose() {
-        return true;
-    }
-
-    @Override
-    public RegionTask getClone() {
-        return new CreateBackupTask(backupItem, jobId, backupFileSystem);
-    }
-
-    @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", region.toString()));
-
         incrementalBackup();
-    }
-
-    @Override
-    public int getPriority() {
-        return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);
     }
 
     /**
@@ -131,8 +100,9 @@ public class CreateIncrementalBackupTask extends ZkTask {
      */
     private void incrementalBackup() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", region.toString()));
-
+            SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", "TODO"));
+        // JL TODO
+        /*
         boolean throttleEnabled =
                 getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
         tableName = region.getTableDesc().getNameAsString();
@@ -190,6 +160,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
         catch (Exception e) {
             throw new ExecutionException(Throwables.getRootCause(e));
         }
+        */
     }
 
     private Configuration getConfiguration() {
@@ -202,7 +173,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
      * HFile changes between two consecutive incremental backups.
      */
     private int copyArchivedHFiles() throws IOException, StandardException{
-
+        /*
         if (includeFileSet.size() == 0) {
             return 0;
         }
@@ -243,6 +214,8 @@ public class CreateIncrementalBackupTask extends ZkTask {
             }
         }
         return count;
+        */
+        return -1;
     }
 
     /*
@@ -250,6 +223,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
      * snapshot AND not in BACKUP.BACKUP_FILESET with include column being false
      */
     private List<Path> getIncrementalChanges() throws ExecutionException{
+        /*
 
         List<Path> hFiles = null;
         List<Object> paths = null;
@@ -296,6 +270,8 @@ public class CreateIncrementalBackupTask extends ZkTask {
         }
 
         return hFiles;
+        */
+        return null;
     }
 
     private void populateFileSet() throws StandardException {

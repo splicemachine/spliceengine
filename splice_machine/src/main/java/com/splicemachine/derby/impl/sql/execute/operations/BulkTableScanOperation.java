@@ -50,7 +50,8 @@ public class BulkTableScanOperation extends TableScanOperation {
 	        boolean disableForHoldable,
 			boolean oneRowScan,
 			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost)
+			double optimizerEstimatedCost,
+            String tableVersion)
 				throws StandardException
 	    {
 			super(conglomId,
@@ -78,7 +79,7 @@ public class BulkTableScanOperation extends TableScanOperation {
 	            adjustBulkFetchSize(activation, rowsPerRead, disableForHoldable),
 				oneRowScan,
 				optimizerEstimatedRowCount,
-				optimizerEstimatedCost);
+				optimizerEstimatedCost,tableVersion);
 			SpliceLogUtils.trace(LOG,"Instantiating");
 			recordConstructorTime(); 
 	}

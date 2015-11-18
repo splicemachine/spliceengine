@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.metrics.Metrics;
@@ -17,8 +16,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
 
 /**
  *
@@ -29,7 +26,6 @@ public class CallStatementOperation extends NoRowsOperation {
         private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
 		private String methodName;
 		private SpliceMethod<Object> methodCall;
-        private List<StatementInfo> dynamicStatementInfo;
         protected static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
 
 		@Override
@@ -87,7 +83,6 @@ public class CallStatementOperation extends NoRowsOperation {
             Object invoked = methodCall.invoke();
             ResultSet[][] dynamicResults = activation.getDynamicResults();
             if(dynamicResults==null) {
-                dynamicStatementInfo = Collections.emptyList();
                 timer.stopTiming();
                 stopExecutionTime = System.currentTimeMillis();
                 return;

@@ -33,5 +33,4 @@ public interface DMLWriteInfo extends Externalizable {
 
 		ResultDescription getResultDescription();
 
-		String getTableVersion();
 }

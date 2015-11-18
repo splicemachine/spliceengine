@@ -30,7 +30,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.pipeline.exception.Exceptions;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
@@ -45,7 +44,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
 		private static final Logger LOG = Logger.getLogger(DMLWriteOperation.class);
 		protected SpliceOperation source;
-		public SpliceOperation savedSource;
 		protected long heapConglom;
 		protected DataDictionary dd;
 		protected TableDescriptor td;
@@ -56,6 +54,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         private String generationClausesFunMethodName;
         private SpliceMethod<ExecRow> checkGM;
         private String checkGMFunMethodName;
+        protected String tableVersion;
 
 
     public DMLWriteOperation(){
@@ -64,10 +63,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
 		public DMLWriteOperation(SpliceOperation source, Activation activation,
                                  double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost) throws StandardException{
+                                 double optimizerEstimatedCost, String tableVersion) throws StandardException{
 				super(activation, -1, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				this.source = source;
 				this.activation = activation;
+                this.tableVersion = tableVersion;
 				this.writeInfo = new DerbyDMLWriteInfo();
 				try {
 						init(SpliceOperationContext.newContext(activation));
@@ -81,8 +81,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 														 GeneratedMethod generationClauses,
 														 GeneratedMethod checkGM,
 														 Activation activation,double optimizerEstimatedRowCount,
-                                                         double optimizerEstimatedCost) throws StandardException{
-				this(source, activation, optimizerEstimatedRowCount,optimizerEstimatedCost);
+                                                         double optimizerEstimatedCost, String tableVersion) throws StandardException{
+				this(source, activation, optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
 
             if(generationClauses != null) {
                 this.generationClausesFunMethodName = generationClauses.getMethodName();
@@ -95,14 +95,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
         }
 
-		DMLWriteOperation(SpliceOperation source,
-											OperationInformation opInfo,
-											DMLWriteInfo writeInfo) throws StandardException{
-				super(opInfo);
-				this.writeInfo = writeInfo;
-				this.source = source;
-		}
-
 		@Override
 		public void readExternal(ObjectInput in) throws IOException,
 						ClassNotFoundException {
@@ -112,6 +104,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             generationClausesFunMethodName = readNullableString(in);
             checkGMFunMethodName = readNullableString(in);
             heapConglom = in.readLong();
+            tableVersion = in.readUTF();
 		}
 
 		@Override
@@ -122,6 +115,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             writeNullableString(generationClausesFunMethodName, out);
             writeNullableString(checkGMFunMethodName, out);
             out.writeLong(heapConglom);
+            out.writeUTF(tableVersion);
 		}
 
 		@Override

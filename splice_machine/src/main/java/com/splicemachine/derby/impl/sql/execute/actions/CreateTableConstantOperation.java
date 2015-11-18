@@ -15,7 +15,6 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import org.apache.log4j.Logger;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -211,9 +210,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-            td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity);
+            td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length);
         } else {
-            td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows);
+            td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
             td.setUUID(dd.getUUIDFactory().createUUID());
         }
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
@@ -243,11 +242,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
                 defaultUUID = dd.getUUIDFactory().createUUID();
             }
-
             if (columnInfo[ix].autoincInc != 0)//dealing with autoinc column
                 columnDescriptor = new ColumnDescriptor(
                         columnInfo[ix].name,
-                        index++,
+                        index,
                         columnInfo[ix].dataType,
                         columnInfo[ix].defaultValue,
                         columnInfo[ix].defaultInfo,
@@ -255,21 +253,24 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         defaultUUID,
                         columnInfo[ix].autoincStart,
                         columnInfo[ix].autoincInc,
-                        columnInfo[ix].autoinc_create_or_modify_Start_Increment
+                        columnInfo[ix].autoinc_create_or_modify_Start_Increment,
+                        index-1
                 );
             else {
                 columnDescriptor = new ColumnDescriptor(
                         columnInfo[ix].name,
-                        index++,
+                        index,
                         columnInfo[ix].dataType,
                         columnInfo[ix].defaultValue,
                         columnInfo[ix].defaultInfo,
                         td,
                         defaultUUID,
                         columnInfo[ix].autoincStart,
-                        columnInfo[ix].autoincInc
+                        columnInfo[ix].autoincInc,
+                        index-1
                 );
             }
+            index++;
             /*
              * By default, we enable statistics collection on all keyed columns
              */

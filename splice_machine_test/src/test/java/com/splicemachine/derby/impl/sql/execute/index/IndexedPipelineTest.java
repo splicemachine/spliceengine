@@ -6,14 +6,11 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
+import com.carrotsearch.hppc.BitSet;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -563,13 +560,14 @@ public class IndexedPipelineTest {
 
 //        Snowflake snowflake = new Snowflake((short)1);
 //        Snowflake.Generator generator = snowflake.newGenerator(100);
-
-        return new IndexWriteHandler(indexedColumns,
+        return null;
+/*        return new IndexWriteHandler(indexedColumns,
                                      indexConglomBytes,
                                      descColumns,
                                      keepState,
                                      expectedWrites,
                                      transformer);
+                                     */
     }
 
     private IndexTransformer createIndexTransformer(BitSet indexedColumns) {
@@ -579,7 +577,8 @@ public class IndexedPipelineTest {
         boolean unique = false;
         boolean uniqueWithDuplicateNulls = false;
         BitSet descColumns = new BitSet(1);
-        return new IndexTransformer(unique,
+        return null;
+/*        return new IndexTransformer(unique,
                                     uniqueWithDuplicateNulls,
                                     null,
                                     srcPKIndicies,
@@ -588,6 +587,7 @@ public class IndexedPipelineTest {
                                     mainColToIndexPos,
                                     descColumns,
                                     indexedColumns);
+          */
     }
 
     private void assertMainAndIndexRowsMatch(ObjectArrayList<Mutation> mainTableWrites,

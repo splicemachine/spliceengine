@@ -1,9 +1,8 @@
 package com.splicemachine.pipeline.constraint;
 
-import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
+import com.splicemachine.ddl.DDLMessage.*;
 import org.apache.commons.lang.ArrayUtils;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

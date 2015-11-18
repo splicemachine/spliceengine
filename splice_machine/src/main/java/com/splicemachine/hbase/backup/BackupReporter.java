@@ -4,7 +4,6 @@ package com.splicemachine.hbase.backup;
  * Created by jyuan on 4/12/15.
  */
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -27,8 +26,8 @@ import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.storage.EntryDecoder;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.hbase.client.Get;
+import com.carrotsearch.hppc.BitSet;
 import java.util.List;
-
 import java.io.IOException;
 
 public class BackupReporter extends TransactionalSysTableWriter<Backup>  {

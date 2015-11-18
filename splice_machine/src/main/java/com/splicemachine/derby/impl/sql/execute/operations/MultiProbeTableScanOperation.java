@@ -114,7 +114,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         int isolationLevel,
         boolean oneRowScan,
         double optimizerEstimatedRowCount,
-        double optimizerEstimatedCost)
+        double optimizerEstimatedCost, String tableVersion)
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -146,7 +146,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             1, // rowsPerRead
             oneRowScan,
             optimizerEstimatedRowCount,
-            optimizerEstimatedCost);
+            optimizerEstimatedCost,tableVersion);
 
         if (SanityManager.DEBUG)
         {
@@ -167,7 +167,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 sameStartStopPosition,
                 startSearchOperator,
                 stopSearchOperator,
-                probingVals
+                probingVals,
+                tableVersion
         );
         try {
             init(SpliceOperationContext.newContext(activation));
@@ -218,7 +219,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .transaction(txn)
                     .scan(scan)
                     .template(currentTemplate)
-                    .tableVersion(scanInformation.getTableVersion())
+                    .tableVersion(tableVersion)
                     .indexName(indexName)
                     .reuseRowLocation(false)
                     .keyColumnEncodingOrder(scanInformation.getColumnOrdering())

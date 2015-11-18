@@ -1,7 +1,5 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.job.TaskSchedulerManagement;
 import org.apache.hadoop.metrics.MetricsContext;
 import org.apache.hadoop.metrics.MetricsRecord;
 import org.apache.hadoop.metrics.MetricsUtil;
@@ -19,27 +17,7 @@ public class SpliceMetrics implements Updater {
     private final MetricsRecord jobMetrics;
     private final MetricsRecord writerMetrics;
 
-    private MetricsRegistry taskRegistry = new MetricsRegistry();
-    private MetricsRegistry jobRegistry = new MetricsRegistry();
     private MetricsRegistry writerRegistry = new MetricsRegistry();
-
-    /*Task scheduler metrics*/
-    private final MetricsIntValue numPendingTasks = new MetricsIntValue("numPending",taskRegistry);
-    private final MetricsIntValue currentTaskWorkers = new MetricsIntValue("currentWorkers",taskRegistry);
-    private final MetricsIntValue maxTaskWorkers = new MetricsIntValue("maxWorkers",taskRegistry);
-    private final MetricsIntValue numRunningTasks = new MetricsIntValue("numRunning",taskRegistry);
-    private final MetricsLongValue totalSubmittedTasks = new MetricsLongValue("totalSubmitted",taskRegistry);
-    private final MetricsLongValue totalCompletedTasks = new MetricsLongValue("totalCompleted",taskRegistry);
-    private final MetricsLongValue totalFailedTasks = new MetricsLongValue("totalFailed",taskRegistry);
-    private final MetricsLongValue totalInvalidatedTasks = new MetricsLongValue("totalInvalidated",taskRegistry);
-    private final MetricsLongValue totalCancelledTasks = new MetricsLongValue("totalCancelled",taskRegistry);
-
-    /*Job scheduler metrics*/
-    private final MetricsLongValue totalSubmittedJobs = new MetricsLongValue("totalSubmitted",jobRegistry);
-    private final MetricsLongValue totalCompletedJobs = new MetricsLongValue("totalCompleted",jobRegistry);
-    private final MetricsLongValue totalFailedJobs = new MetricsLongValue("totalFailed",jobRegistry);
-    private final MetricsLongValue totalCancelledJobs = new MetricsLongValue("totalCancelled",jobRegistry);
-    private final MetricsIntValue numRunningJobs = new MetricsIntValue("numRunning",jobRegistry);
 
     /*Table Writer metrics*/
     private final MetricsLongValue maxBufferHeapSizeWriter = new MetricsLongValue("maxBufferHeapSize",writerRegistry);
@@ -66,33 +44,6 @@ public class SpliceMetrics implements Updater {
     public void doUpdates(MetricsContext context) {
         synchronized (this){
             //Get current view of the Task Scheduler
-            TaskSchedulerManagement taskManagement = SpliceDriver.driver().getTaskSchedulerManagement();
-            numPendingTasks.set(taskManagement.getNumPendingTasks());
-            numRunningTasks.set(taskManagement.getNumRunningTasks());
-            currentTaskWorkers.set(taskManagement.getCurrentWorkers());
-            maxTaskWorkers.set(taskManagement.getCurrentWorkers());
-
-            totalSubmittedTasks.set(taskManagement.getTotalSubmittedTasks());
-            totalCompletedTasks.set(taskManagement.getTotalCompletedTasks());
-            totalFailedTasks.set(taskManagement.getTotalFailedTasks());
-            totalInvalidatedTasks.set(taskManagement.getTotalInvalidatedTasks());
-            totalCancelledTasks.set(taskManagement.getTotalCancelledTasks());
-
-            numPendingTasks.pushMetric(this.taskMetrics);
-            numRunningTasks.pushMetric(this.taskMetrics);
-            currentTaskWorkers.pushMetric(this.taskMetrics);
-            maxTaskWorkers.pushMetric(this.taskMetrics);
-            totalSubmittedTasks.pushMetric(this.taskMetrics);
-            totalCompletedTasks.pushMetric(this.taskMetrics);
-            totalFailedTasks.pushMetric(this.taskMetrics);
-            totalInvalidatedTasks.pushMetric(this.taskMetrics);
-            totalCancelledTasks.pushMetric(this.taskMetrics);
-            
-            numRunningJobs.pushMetric(this.jobMetrics);
-            totalSubmittedJobs.pushMetric(this.jobMetrics);
-            totalCancelledJobs.pushMetric(this.jobMetrics);
-            totalFailedJobs.pushMetric(this.jobMetrics);
-            totalCompletedJobs.pushMetric(this.jobMetrics);
 
             maxBufferHeapSizeWriter.pushMetric(this.writerMetrics);
             maxBufferEntriesWriter.pushMetric(this.writerMetrics);

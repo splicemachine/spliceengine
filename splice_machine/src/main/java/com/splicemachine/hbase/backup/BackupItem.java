@@ -5,11 +5,7 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.CancellationException;
-
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -23,7 +19,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import org.apache.hadoop.hbase.util.Pair;
-
 import org.apache.log4j.Logger;
 
 public class BackupItem implements InternalTable {
@@ -240,27 +235,30 @@ public class BackupItem implements InternalTable {
     }
 
     public boolean doBackup() throws StandardException {
-        JobInfo info = null;
         boolean backedUp = false;
         try {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
 
             if (backup.getParentBackupId() > 0) {
+                // incremental JL TODO DDL
+                /*
                 CreateIncrementalBackupJob job =
                         new CreateIncrementalBackupJob(this, table, getBackupItemFilesystem(),
                                 snapshotName, lastSnapshotName);
-                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
                 info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
                 info.setJobFuture(future);
                 future.completeAll(info);
+                */
             }
             else {
+                // JL TODO DDL
+                /*
+                Full Backup
+
                 CreateBackupJob job = new CreateBackupJob(this, table, getBackupItemFilesystem());
                 JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-                info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
-                info.setJobFuture(future);
-                future.completeAll(info);
+                */
             }
 
             // Check backup directory for this item. If it does not exists, nothing was backed up incrementally.
@@ -281,8 +279,6 @@ public class BackupItem implements InternalTable {
         } catch (CancellationException ce) {
             throw Exceptions.parseException(ce);
         } catch (Exception e) {
-            if (info != null) info.failJob();
-            throw Exceptions.parseException(e);
         }
 
         return backedUp;

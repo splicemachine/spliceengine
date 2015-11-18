@@ -3,30 +3,21 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
@@ -57,42 +48,23 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.GroupFetchScanController;
-import com.splicemachine.db.iapi.store.access.RowLocationRetRowSource;
 import com.splicemachine.db.iapi.store.access.RowSource;
-import com.splicemachine.db.iapi.store.access.RowUtil;
-import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
-import com.splicemachine.derby.ddl.TentativeDropPKConstraintDesc;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.job.altertable.AlterTableJob;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.primitives.BooleanArrays;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.uuid.Snowflake;
 
 /**
  *	This class  describes actions that are ALWAYS performed for an
@@ -100,7 +72,7 @@ import com.splicemachine.uuid.Snowflake;
  *
  */
 
-public class AlterTableConstantOperation extends IndexConstantOperation implements RowLocationRetRowSource {
+public class AlterTableConstantOperation extends IndexConstantOperation {
     private static final Logger LOG = Logger.getLogger(AlterTableConstantOperation.class);
     // copied from constructor args and stored locally.
     protected SchemaDescriptor			sd;
@@ -108,14 +80,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     protected UUID						schemaId;
     protected ColumnInfo[]				columnInfo;
     protected ConstantAction[]	constraintActions;
-    private	    char						lockGranularity;
     protected int						    behavior;
-
     protected String						indexNameForStatistics;
-
     private     int						    numIndexes;
     private     long[]					    indexConglomerateNumbers;
-    private     ConglomerateController	    compressHeapCC;
     private     ExecIndexRow[]			    indexRows;
     private	    GroupFetchScanController    compressHeapGSC;
     protected IndexRowGenerator[]		    compressIRGs;
@@ -152,7 +120,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         this.tableName              = tableName;
         this.columnInfo             = columnInfo;
         this.constraintActions      = constraintActions;
-        this.lockGranularity        = lockGranularity;
         this.behavior               = behavior;
         this.indexNameForStatistics = indexNameForStatistics;
         if (SanityManager.DEBUG)
@@ -239,28 +206,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         int numRows = 0;
         // adjust dependencies on user defined types
-        adjustUDTDependencies(activation, columnInfo, false );
-
+        adjustUDTDependencies(activation, columnInfo, false);
         executeConstraintActions(activation, numRows);
-        adjustLockGranularity(activation);
-    }
-
-    protected void adjustLockGranularity(Activation activation) throws StandardException {
-        // Are we changing the lock granularity?
-        if (lockGranularity != '\0') {
-            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-            DataDictionary dd = lcc.getDataDictionary();
-            TableDescriptor td = activation.getDDLTableDescriptor();
-            if (SanityManager.DEBUG) {
-                if (lockGranularity != 'T' && lockGranularity != 'R') {
-                    SanityManager.THROWASSERT("lockGranularity expected to be 'T'or 'R', not " + lockGranularity);
-                }
-            }
-            // update the TableDescriptor
-            td.setLockGranularity(lockGranularity);
-            // update the DataDictionary
-            dd.updateLockGranularity(td, sd, lockGranularity, lcc.getTransactionExecute());
-        }
     }
 
     protected void executeConstraintActions(Activation activation, int numRows) throws StandardException {
@@ -305,17 +252,14 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         fkConstraints.add(cca);
                         break;
                     case DataDictionary.CHECK_CONSTRAINT:
-                        // TODO: Make this transactional
                         // create the check constraint
                         createCheckConstraint(activation, cca);
-
                         // Validate the constraint
                         ConstraintConstantOperation.validateConstraint(
                             cca.getConstraintName(), cca.getConstraintText(),
                             td, activation.getLanguageConnectionContext(), true);
 
                         break;
-                        // failure should roll back txn, lets test it eh.
                 }
             } else {
                 // It's a DropConstraintConstantOperation (there are only two types)
@@ -498,34 +442,20 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             LOG.error("Couldn't start transaction for tentative Drop Primary Key operation");
             throw Exceptions.parseException(e);
         }
-        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
-        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
-        TransformingDDLDescriptor interceptColumnDesc = new TentativeDropPKConstraintDesc(tableVersion,
-                                                                                       newCongNum,
-                                                                                       oldCongNum,
-                                                                                       oldColumnOrdering,
-                                                                                       newColumnOrdering,
-                                                                                       newColumnInfo);
 
-        DDLChange ddlChange = new DDLChange(tentativeTransaction, changeType);
-        // set descriptor on the ddl change
-        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
+
+
+        DDLChange ddlChange = ProtoUtil.createDropPKConstraint(tentativeTransaction.getTxnId(),
+                newCongNum,oldCongNum,oldColumnOrdering,DataDictionaryUtils.getColumnOrdering(parentTxn, tableId),
+                tableDescriptor.getColumnInfo(),lcc,(BasicUUID) tableId);
 
         // Initiate the copy from old conglomerate to new conglomerate and the interception
         // from old schema writes to new table with new column appended
-        try (HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes())) {
+        try {
             String schemaName = tableDescriptor.getSchemaName();
             String tableName = tableDescriptor.getName();
 
-            //Add a handler to intercept writes to old schema on all regions and forward them to new
-            startCoprocessorJob(activation,
-                                changeMsg,
-                                schemaName,
-                                tableName,
-                                constraintColumnNames,
-                                new AlterTableJob(hTable, ddlChange),
-                                parentTxn);
+            DDLUtils.notifyMetadataChange(ddlChange);
 
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
@@ -537,9 +467,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-
         //notify other servers of the change
-        notifyMetadataChangeAndWait(ddlChange);
+        DDLUtils.notifyMetadataChange(ddlChange);
 
     }
 
@@ -608,44 +537,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
         int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
-        TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
-                                                                                       oldCongNum,
-                                                                                       oldCongNum,
-                                                                                       indexConglomerateId,
-                                                                                       oldColumnOrdering,
-                                                                                       newColumnOrdering,
-                                                                                       newColumnInfo);
+        ColumnInfo[] newColumnInfo = tableDescriptor.getColumnInfo();
 
-        DDLChange ddlChange = new DDLChange(tentativeTransaction, changeType);
-        // set descriptor on the ddl change
-        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
-
-        // Initiate the copy from old conglomerate to new conglomerate and the interception
-        // from old schema writes to new table with new column appended
-        try (HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes())) {
-            String schemaName = tableDescriptor.getSchemaName();
-            String tableName = tableDescriptor.getName();
-
-            //Add a handler to intercept writes to old schema on all regions and forward them to new
-            startCoprocessorJob(activation,
-                                changeMsg,
-                                schemaName,
-                                tableName,
-                                constraintColumnNames,
-                                new AlterTableJob(hTable, ddlChange),
-                                parentTxn);
-
-            // wait for all in-flight txns to complete
-            // FIXME: JC - just commit tentative txn after wait
+        DDLChange ddlChange = ProtoUtil.createTentativeDropConstraint(tentativeTransaction.getTxnId(),oldCongNum,
+                indexConglomerateId,lcc,(BasicUUID) tableId);
+        try {
+            DDLUtils.notifyMetadataChangeAndWait(ddlChange);
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"("+constraintColumnNames+")");
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
 
-        //notify other servers of the change
-        notifyMetadataChangeAndWait(ddlChange);
     }
 
     private void createConstraint(Activation activation,
@@ -758,34 +661,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
         int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
-        TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
-                                                                                       newCongNum,
-                                                                                       oldCongNum,
-                                                                                       -1l,
-                                                                                       oldColumnOrdering,
-                                                                                       newColumnOrdering,
-                                                                                       newColumnInfo);
+        ColumnInfo[] newColumnInfo = tableDescriptor.getColumnInfo();
 
-        DDLChange ddlChange = new DDLChange(tentativeTransaction, changeType);
-        // set descriptor on the ddl change
-        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
+        DDLChange ddlChange = ProtoUtil.createTentativeAddConstraint(parentTxn.getTxnId(),oldCongNum,
+                newCongNum,-1l,oldColumnOrdering,newColumnOrdering,newColumnInfo,lcc,(BasicUUID) tableId);
 
-        // Initiate the copy from old conglomerate to new conglomerate and the interception
-        // from old schema writes to new table with new column appended
-        try (HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes())) {
-            String schemaName = tableDescriptor.getSchemaName();
-            String tableName = tableDescriptor.getName();
-
-            //Add a handler to intercept writes to old schema on all regions and forward them to new
-            startCoprocessorJob(activation,
-                                changeMsg,
-                                schemaName,
-                                tableName,
-                                constraintColumnNames,
-                                new AlterTableJob(hTable, ddlChange),
-                                parentTxn);
-
+        try {
+            DDLUtils.notifyMetadataChangeAndWait(ddlChange);
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
                 constraintColumnNames + ")");
@@ -797,8 +679,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             throw Exceptions.parseException(e);
         }
 
-        //notify other servers of the change
-        notifyMetadataChangeAndWait(ddlChange);
     }
 
     protected void updateAllIndexes(Activation activation,
@@ -848,13 +728,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         doIndexUpdate(dd,td,tc, index, newIndexCongloms, cd, properties, false,rowArray,columnOrder,collationIds);
         try{
             // Populate indexes
-            IndexRowGenerator indexDescriptor = cd.getIndexDescriptor();
-            boolean[] isAscending = indexDescriptor.isAscending();
-            int[] baseColumnPositions = indexDescriptor.baseColumnPositions();
-            boolean unique = indexDescriptor.isUnique();
-            boolean uniqueWithDuplicateNulls = indexDescriptor.isUniqueWithDuplicateNulls();
-            boolean[] descColumns = BooleanArrays.not(isAscending);
-
+            IndexDescriptor indexDescriptor = cd.getIndexDescriptor();
             byte[] writeTable = Long.toString(newHeapConglom).getBytes();
             TxnView parentTxn = ((SpliceTransactionManager) tc).getActiveStateTxn();
             Txn tentativeTransaction;
@@ -864,30 +738,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
             }
-            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(newIndexCongloms[index], newHeapConglom,
-                    baseColumnPositions, unique,
-                    uniqueWithDuplicateNulls,
-                    SpliceUtils.bitSetFromBooleanArray(descColumns));
-            DDLChange ddlChange = new DDLChange(tentativeTransaction,
-                    DDLChangeType.CREATE_INDEX);
-            ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
 
-            notifyMetadataChangeAndWait(ddlChange);
-
-            try (HTableInterface table = SpliceAccessManager.getHTable(writeTable)) {
-                // Add the indexes to the exisiting regions
-                createIndex(activation, ddlChange, table, td);
-
-                Txn indexTransaction = getIndexTransaction(tc, tentativeTransaction, newHeapConglom);
-
-                populateIndex(activation, baseColumnPositions, descColumns,
-                        newHeapConglom, table,tc,
-                        indexTransaction, tentativeTransaction.getCommitTimestamp(),tentativeIndexDesc);
+            DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(),
+                    newIndexCongloms[index], newHeapConglom, td, indexDescriptor);
+            DDLUtils.notifyMetadataChangeAndWait(ddlChange);
+            Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, newHeapConglom,indexName);
+             populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex());
                 //only commit the index transaction if the job actually completed
                 indexTransaction.commit();
-            }
-        }catch (Throwable t) {
-            throw Exceptions.parseException(t);
+        } catch (Throwable t) {
+         throw Exceptions.parseException(t);
         }
 
 		/* Update the DataDictionary
@@ -914,17 +774,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                  DataValueDescriptor[] rowArray,
                                  ColumnOrdering[] columnOrder,
                                  int[] collationIds) throws StandardException {
-//        RowLocationRetRowSource cCount;
-//        sorters[index].completedInserts();
-//        sorters[index] = null;
-
-//        if (td.statisticsExist(cd)) {
-//            cCount = new CardinalityCounter( tc.openSortRowSource(sortIds[index]));
-//
-//            statisticsExist = true;
-//        } else {
-//            cCount = new CardinalityCounter( tc.openSortRowSource(sortIds[index]));
-//        }
 
         newIndexCongloms[index] =
                 tc.createAndLoadConglomerate(
@@ -1017,305 +866,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 collation[index] = curIndex.getColumnCollationIds(td.getColumnDescriptorList());
             }
         }
-//
-////        if (! (compressTable))		// then it's drop column
-////        {
-//            ArrayList newCongloms = new ArrayList();
-//            for (int i = 0; i < compressIRGs.length; i++)
-//            {
-//                int[] baseColumnPositions = compressIRGs[i].baseColumnPositions();
-//                int j;
-//                for (j = 0; j < baseColumnPositions.length; j++)
-//                    if (baseColumnPositions[j] == droppedColumnPosition) break;
-//                if (j == baseColumnPositions.length)	// not related
-//                    continue;
-//
-//                if (baseColumnPositions.length == 1 ||
-//                        (behavior == StatementType.DROP_CASCADE && compressIRGs[i].isUnique()))
-//                {
-//                    numIndexes--;
-//					/* get first conglomerate with this conglom number each time
-//					 * and each duplicate one will be eventually all dropped
-//					 */
-//                    ConglomerateDescriptor cd = td.getConglomerateDescriptor
-//                            (indexConglomerateNumbers[i]);
-//
-//                    dropConglomerate(cd, td, true, newCongloms, activation,
-//                            activation.getLanguageConnectionContext());
-//
-//                    compressIRGs[i] = null;		// mark it
-//                    continue;
-//                }
-//                // give an error for unique index on multiple columns including
-//                // the column we are to drop (restrict), such index is not for
-//                // a constraint, because constraints have already been handled
-//                if (compressIRGs[i].isUnique())
-//                {
-//                    ConglomerateDescriptor cd = td.getConglomerateDescriptor
-//                            (indexConglomerateNumbers[i]);
-//                    throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
-//                            dm.getActionString(DependencyManager.DROP_COLUMN),
-//                            columnInfo[0].name, "UNIQUE INDEX",
-//                            cd.getConglomerateName() );
-//                }
-//            }
-//
-//			/* If there are new backing conglomerates which must be
-//			 * created to replace a dropped shared conglomerate
-//			 * (where the shared conglomerate was dropped as part
-//			 * of a "drop conglomerate" call above), then create
-//			 * them now.  We do this *after* dropping all dependent
-//			 * conglomerates because we don't want to waste time
-//			 * creating a new conglomerate if it's just going to be
-//			 * dropped again as part of another "drop conglomerate"
-//			 * call.
-//			 */
-//            createNewBackingCongloms(newCongloms, indexConglomerateNumbers);
-//
-//            IndexRowGenerator[] newIRGs = new IndexRowGenerator[numIndexes];
-//            long[] newIndexConglomNumbers = new long[numIndexes];
-//
-//            for (int i = 0, j = 0; i < numIndexes; i++, j++)
-//            {
-//                while (compressIRGs[j] == null)
-//                    j++;
-//
-//                int[] baseColumnPositions = compressIRGs[j].baseColumnPositions();
-//                newIRGs[i] = compressIRGs[j];
-//                newIndexConglomNumbers[i] = indexConglomerateNumbers[j];
-//
-//                boolean[] isAscending = compressIRGs[j].isAscending();
-//                boolean reMakeArrays = false;
-//                int size = baseColumnPositions.length;
-//                for (int k = 0; k < size; k++)
-//                {
-//                    if (baseColumnPositions[k] > droppedColumnPosition)
-//                        baseColumnPositions[k]--;
-//                    else if (baseColumnPositions[k] == droppedColumnPosition)
-//                    {
-//                        baseColumnPositions[k] = 0;		// mark it
-//                        reMakeArrays = true;
-//                    }
-//                }
-//                if (reMakeArrays)
-//                {
-//                    size--;
-//                    int[] newBCP = new int[size];
-//                    boolean[] newIsAscending = new boolean[size];
-//                    for (int k = 0, step = 0; k < size; k++)
-//                    {
-//                        if (step == 0 && baseColumnPositions[k + step] == 0)
-//                            step++;
-//                        newBCP[k] = baseColumnPositions[k + step];
-//                        newIsAscending[k] = isAscending[k + step];
-//                    }
-//                    IndexDescriptor id = compressIRGs[j].getIndexDescriptor();
-//                    id.setBaseColumnPositions(newBCP);
-//                    id.setIsAscending(newIsAscending);
-//                    id.setNumberOfOrderedColumns(id.numberOfOrderedColumns() - 1);
-//                }
-//            }
-//            compressIRGs = newIRGs;
-//            indexConglomerateNumbers = newIndexConglomNumbers;
-////        }
-//
-//		/* Now we are done with updating each index descriptor entry directly
-//		 * in SYSCONGLOMERATES (for duplicate index as well), from now on, our
-//		 * work should apply ONLY once for each real conglomerate, so we
-//		 * compress any duplicate indexes now.
-//		 */
-//        Object[] compressIndexResult =
-//                compressIndexArrays(indexConglomerateNumbers, compressIRGs);
-//
-//        if (compressIndexResult != null)
-//        {
-//            indexConglomerateNumbers = (long[]) compressIndexResult[1];
-//            compressIRGs = (IndexRowGenerator[]) compressIndexResult[2];
-//            numIndexes = indexConglomerateNumbers.length;
-//        }
-//
-//        getIndexedColumns(index,td);
         return numIndexes;
-    }
-
-    private FormatableBitSet getIndexedColumns(int index,TableDescriptor td) {
-        FormatableBitSet indexedCols = new FormatableBitSet(getIndexedColumnSize(td));
-//        for (int index = 0; index < numIndexes; index++) {
-            int[] colIds = compressIRGs[index].getIndexDescriptor().baseColumnPositions();
-
-            for (int colId : colIds) {
-                indexedCols.set(colId);
-            }
-        return indexedCols;
-//        }
-    }
-
-    protected int getIndexedColumnSize(TableDescriptor td) {
-        return td.getNumberOfColumns();
-    }
-
-    // RowSource interface
-
-
-    /**
-     * @see RowSource#getNextRowFromRowSource
-     * @exception StandardException on error
-     */
-    public DataValueDescriptor[] getNextRowFromRowSource() throws StandardException {
-        return null;
-//        SpliceLogUtils.trace(LOG, "getNextRowFromRowSource");
-//        currentRow = null;
-//        // Time for a new bulk fetch?
-//        if ((! doneScan) &&
-//                (currentCompressRow == bulkFetchSize || !validRow[currentCompressRow]))
-//        {
-//            int bulkFetched;
-//
-//            bulkFetched = compressHeapGSC.fetchNextGroup(baseRowArray, compressRL);
-//
-//            doneScan = (bulkFetched != bulkFetchSize);
-//            currentCompressRow = 0;
-//            for (int index = 0; index < bulkFetched; index++)
-//            {
-//                validRow[index] = true;
-//            }
-//            for (int index = bulkFetched; index < bulkFetchSize; index++)
-//            {
-//                validRow[index] = false;
-//            }
-//        }
-//
-//        if (validRow[currentCompressRow])
-//        {
-////            if (compressTable)
-////            {
-////                currentRow = baseRow[currentCompressRow];
-////            }
-////            else
-////            {
-//                if (currentRow == null)
-//                {
-//                    currentRow =
-//                            activation.getExecutionFactory().getValueRow(
-//                                    baseRowArray[currentCompressRow].length - 1);
-//                }
-//
-//                for (int i = 0; i < currentRow.nColumns(); i++)
-//                {
-//                    currentRow.setColumn(
-//                            i + 1,
-//                            i < droppedColumnPosition - 1 ?
-//                                    baseRow[currentCompressRow].getColumn(i+1) :
-//                                    baseRow[currentCompressRow].getColumn(i+1+1));
-//                }
-////            }
-//            currentCompressRow++;
-//        }
-//
-//        if (currentRow != null)
-//        {
-//			/* Let the target preprocess the row.  For now, this
-//			 * means doing an in place clone on any indexed columns
-//			 * to optimize cloning and so that we don't try to drain
-//			 * a stream multiple times.
-//			 */
-//            if (compressIRGs.length > 0)
-//            {
-//				/* Do in-place cloning of all of the key columns */
-//                currentRow =  currentRow.getClone(indexedCols);
-//            }
-//
-//            return currentRow.getRowArray();
-//        }
-
-//        return null;
-    }
-
-    /**
-     * @see RowSource#needsToClone
-     */
-    public boolean needsToClone() {
-        SpliceLogUtils.trace(LOG, "needsToClone");
-        return(true);
-    }
-
-    /**
-     * @see RowSource#closeRowSource
-     */
-    public void closeRowSource() {
-        SpliceLogUtils.trace(LOG, "closeRowSource");
-        // Do nothing here - actual work will be done in close()
-    }
-
-
-    // RowLocationRetRowSource interface
-
-    /**
-     * @see RowLocationRetRowSource#needsRowLocation
-     */
-    public boolean needsRowLocation() {
-        SpliceLogUtils.trace(LOG, "needsRowLocation");
-        // Only true if table has indexes
-        return (numIndexes > 0);
-    }
-
-    /**
-     * @see RowLocationRetRowSource#rowLocation
-     * @exception StandardException on error
-     */
-    public void rowLocation(RowLocation rl)
-            throws StandardException
-    {
-//        SpliceLogUtils.trace(LOG, "rowLocation");
-//		/* Set up sorters, etc. if 1st row and there are indexes */
-//        if (compressIRGs.length > 0)
-//        {
-//            objectifyStreamingColumns();
-//
-//			/* Put the row into the indexes.  If sequential,
-//			 * then we only populate the 1st sorter when compressing
-//			 * the heap.
-//			 */
-//            int maxIndex = compressIRGs.length;
-//            if (maxIndex > 1 && sequential)
-//            {
-//                maxIndex = 1;
-//            }
-//            for (int index = 0; index < maxIndex; index++)
-//            {
-//                insertIntoSorter(index, rl);
-//            }
-//        }
-    }
-
-    protected void	cleanUp() throws StandardException {
-        if (compressHeapCC != null) {
-            compressHeapCC.close();
-            compressHeapCC = null;
-        }
-
-        if (compressHeapGSC != null) {
-            closeBulkFetchScan();
-        }
-
-        // Close each sorter
-//        if (sorters != null) {
-//            for (int index = 0; index < compressIRGs.length; index++) {
-//                if (sorters[index] != null) {
-//                    sorters[index].completedInserts();
-//                }
-//                sorters[index] = null;
-//            }
-//        }
-
-//        if (needToDropSort != null) {
-//            for (int index = 0; index < needToDropSort.length; index++) {
-//                if (needToDropSort[index]) {
-//                    tc.dropSort(sortIds[index]);
-//                    needToDropSort[index] = false;
-//                }
-//            }
-//        }
     }
 
     protected TableDescriptor getTableDescriptor(LanguageConnectionContext lcc) throws StandardException {
@@ -1325,45 +876,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
         }
         return td;
-    }
-
-    // class implementation
-
-    /**
-     * Return the "semi" row count of a table.  We are only interested in
-     * whether the table has 0, 1 or > 1 rows.
-     *
-     *
-     * @return Number of rows (0, 1 or > 1) in table.
-     *
-     * @exception StandardException		Thrown on failure
-     */
-    protected int getSemiRowCount(TransactionController tc,TableDescriptor td) throws StandardException {
-        SpliceLogUtils.trace(LOG, "getSemiRowCount");
-        int			   numRows = 0;
-
-        ScanController sc = tc.openScan(td.getHeapConglomerateId(),
-                false,    // hold
-                0,        // open read only
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE,
-                RowUtil.EMPTY_ROW_BITSET, // scanColumnList
-                null,    // start position
-                ScanController.GE,      // startSearchOperation
-                null, // scanQualifier
-                null, //stop position - through last row
-                ScanController.GT);     // stopSearchOperation
-
-        while (sc.next()) {
-            numRows++;
-            // We're only interested in whether the table has 0, 1 or > 1 rows
-            if (numRows == 2) {
-                break;
-            }
-        }
-        sc.close();
-
-        return numRows;
     }
 
     protected static void executeUpdate(LanguageConnectionContext lcc, String updateStmt) throws StandardException {
@@ -1380,72 +892,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     private void closeBulkFetchScan() throws StandardException {
         compressHeapGSC.close();
         compressHeapGSC = null;
-    }
-
-    /**
-     * Get rid of duplicates from a set of index conglomerate numbers and
-     * index descriptors.
-     *
-     * @param	indexCIDS	array of index conglomerate numbers
-     * @param	irgs		array of index row generaters
-     *
-     * @return value:		If no duplicates, returns NULL; otherwise,
-     *						a size-3 array of objects, first element is an
-     *						array of duplicates' indexes in the input arrays;
-     *						second element is the compact indexCIDs; third
-     *						element is the compact irgs.
-     */
-    private Object[] compressIndexArrays( long[] indexCIDS, IndexRowGenerator[] irgs) {
-        SpliceLogUtils.trace(LOG, "compressIndexArrays");
-		/* An efficient way to compress indexes.  From one end of workSpace,
-		 * we save unique conglom IDs; and from the other end we save
-		 * duplicate indexes' indexes.  We save unique conglom IDs so that
-		 * we can do less amount of comparisons.  This is efficient in
-		 * space as well.  No need to use hash table.
-		 */
-        long[] workSpace = new long[indexCIDS.length];
-        int j = 0, k = indexCIDS.length - 1;
-        for (int i = 0; i < indexCIDS.length; i++) {
-            int m;
-            for (m = 0; m < j; m++){		// look up our unique set
-                if (indexCIDS[i] == workSpace[m]){	// it's a duplicate
-                    workSpace[k--] = i;		// save dup index's index
-                    break;
-                }
-            }
-            if (m == j)
-                workSpace[j++] = indexCIDS[i];	// save unique conglom id
-        }
-
-        if(j>=indexCIDS.length) return null; //no duplicates
-
-        long[] newIndexCIDS = new long[j];
-        IndexRowGenerator[] newIrgs = new IndexRowGenerator[j];
-        int[] duplicateIndexes = new int[indexCIDS.length - j];
-        k = 0;
-        // do everything in one loop
-        for (int m = 0, n = indexCIDS.length - 1; m < indexCIDS.length; m++) {
-            // we already gathered our indexCIDS and duplicateIndexes
-            if (m < j)
-                newIndexCIDS[m] = workSpace[m];
-            else
-                duplicateIndexes[indexCIDS.length - m - 1] = (int) workSpace[m];
-
-            // stack up our irgs, indexSCOCIs, indexDCOCIs
-            if ((n >= j) && (m == (int) workSpace[n]))
-                n--;
-            else {
-                newIrgs[k] = irgs[m];
-                k++;
-            }
-        }
-
-        // construct return value
-        Object[] returnValue = new Object[3]; // [indexSCOCIs == null ? 3 : 5];
-        returnValue[0] = duplicateIndexes;
-        returnValue[1] = newIndexCIDS;
-        returnValue[2] = newIrgs;
-        return returnValue;
     }
 
     /**
@@ -1556,64 +1002,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return modifiedConglomerateDescriptor;
     }
 
-    protected void startCoprocessorJob(Activation activation,
-                                       String actionName, // "Add Column", "Drop Column", "Add Primary Key", etc
-                                       String schemaName,
-                                       String tableName,
-                                       Collection<String> columnNames,
-                                       CoprocessorJob job,
-                                       TxnView txn) throws StandardException {
-
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        String user = lcc.getSessionUserId();
-        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
-        long sId = snowflake.nextUUID();
-        StatementInfo statementInfo =  new StatementInfo(String.format("alter table %s.%s %s %s",
-                                                                       schemaName,
-                                                                       tableName,
-                                                                       actionName,
-                                                                       columnNames),
-                                                         user,txn, 1, sId);
-        OperationInfo opInfo = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-                                                 statementInfo.getStatementUuid(),
-                                                 String.format("Alter Table %s", actionName),
-                                                 null, false, -1l);
-        statementInfo.setOperationInfo(Collections.singletonList(opInfo));
-
-        JobFuture future = null;
-        JobInfo info;
-        try{
-            long start = System.currentTimeMillis();
-            future = SpliceDriver.driver().getJobScheduler().submit(job);
-            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-            info.setJobFuture(future);
-            statementInfo.addRunningJob(opInfo.getOperationUuid(),info);
-            try{
-                future.completeAll(info);
-            }catch(ExecutionException e){
-                info.failJob();
-                throw e;
-            }catch(CancellationException ce){
-                throw Exceptions.parseException(ce);
-            }
-            statementInfo.completeJob(info);
-
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        }finally {
-            if (future!=null) {
-                try {
-                    future.cleanup();
-                } catch (ExecutionException e) {
-                    //noinspection ThrowFromFinallyBlock
-                    throw Exceptions.parseException(e.getCause());
-                }
-            }
-        }
-
-    }
 
     protected Txn getChainedTransaction(TransactionController tc,
                                       Txn txnToWaitFor,
@@ -1679,10 +1067,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                                       DDLChange ddlChange,
                                                       long demarcationPoint) throws IOException, StandardException {
 
-        Txn childTxn = beginChildTransaction(parentTxn, ddlChange);
+        Txn childTxn = beginChildTransaction(parentTxn, ddlChange.getTxnId());
         // create a scanner to scan old conglomerate
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(childTxn, demarcationPoint, ddlChange);
-        long baseConglomerateNumber = ddlChange.getTentativeDDLDesc().getBaseConglomerateNumber();
+        long baseConglomerateNumber = ddlChange.getTentativeIndex().getTable().getConglomerate();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
         StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
         DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, new Long(baseConglomerateNumber).toString());
@@ -1700,7 +1088,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         HTableWriterBuilder tableWriterBuilder = new HTableWriterBuilder()
                 .txn(txn)
                 .skipIndex(true)
-                .heapConglom(ddlChange.getTentativeDDLDesc().getConglomerateNumber());
+                .heapConglom(ddlChange.getTentativeIndex().getIndex().getConglomerate());
 
         return tableWriterBuilder;
 
@@ -1711,33 +1099,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         TableScannerBuilder builder =
                 new TableScannerBuilder()
-                        .scan(createScan())
+                        .scan(DDLUtils.createFullScan())
                         .transaction(txn)
                         .demarcationPoint(demarcationPoint);
 
-        TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
-        tdl.setScannerBuilderProperties(builder);
-
+       // TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
+       // tdl.setScannerBuilderProperties(builder);
         return builder;
-    }
-
-    // Create a table scan for old conglomerate. Make sure to create a NonSI table scan. Transaction filtering
-    // will happen at client side
-    private Scan createScan() {
-        Scan scan = SpliceUtils.createScan(null);
-        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-        scan.setStartRow(new byte[0]);
-        scan.setStopRow(new byte[0]);
-        scan.setCacheBlocks(false);
-        scan.setMaxVersions();
-
-        return scan;
-    }
-
-    private Txn beginChildTransaction(TxnView parentTxn, DDLChange ddlChange) throws IOException {
-        TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
-        return tc.beginChildTransaction(parentTxn, Long.toString(ddlChange.getTentativeDDLDesc()
-                .getConglomerateNumber()).getBytes());
     }
 }

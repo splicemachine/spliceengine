@@ -2,14 +2,14 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-
-import org.apache.hadoop.hbase.client.HTableInterface;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -56,15 +56,8 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.impl.job.altertable.AlterTableJob;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
@@ -158,12 +151,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
         int numRows = manageColumnInfo(activation);
-
         // adjust dependencies on user defined types
         adjustUDTDependencies(activation, columnInfo, false );
-
         executeConstraintActions(activation, numRows);
-        adjustLockGranularity(activation);
     }
 
     private int manageColumnInfo(Activation activation) throws StandardException{
@@ -213,7 +203,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
             switch(columnInfo[ix].action){
                 case ColumnInfo.CREATE:
-                    addNewColumnToTable(activation,td,ix);
+                    addNewColumnToTableV2(activation, td, ix);
                     break;
                 case ColumnInfo.MODIFY_COLUMN_DEFAULT_RESTART:
                 case ColumnInfo.MODIFY_COLUMN_DEFAULT_VALUE:
@@ -248,13 +238,81 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     }
                     break;
                 case ColumnInfo.DROP:
-                    dropColumnFromTable(activation,td,columnInfo[ix].name);
+                    dropColumnFromTableV2(activation, td, columnInfo[ix].name);
                     break;
                 default:
                     SanityManager.THROWASSERT("Unexpected action in AlterTableConstantAction");
             }
         }
         return numRows;
+    }
+
+    private void addNewColumnToTableV2(Activation activation, TableDescriptor tableDescriptor, int infoIndex) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        ColumnInfo colInfo = columnInfo[infoIndex];
+        ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
+
+         /* We need to verify that the table does not have an existing
+         * column with the same name before we try to add the new
+         * one as addColumnDescriptor() is a void method.
+         */
+        if (columnDescriptor != null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,columnDescriptor.getDescriptorType(),
+                    colInfo.name,tableDescriptor.getDescriptorType(),tableDescriptor.getQualifiedName());
+        }
+        DataValueDescriptor storableDV = colInfo.defaultValue != null?colInfo.defaultValue:colInfo.dataType.getNull();
+        int colNumber = tableDescriptor.getMaxColumnID()+1;
+        // Add the column to the conglomerate.(Column ids in store are 0-based)
+        tc.addColumnToConglomerate(tableDescriptor.getHeapConglomerateId(), colNumber, storableDV, colInfo.dataType.getCollationType());
+
+
+        // Generate a UUID for the default, if one exists and there is no default id yet.
+        UUID defaultUUID = colInfo.newDefaultUUID;
+        if (colInfo.defaultInfo != null && defaultUUID == null) {
+            defaultUUID = dd.getUUIDFactory().createUUID();
+        }
+
+        LOG.warn("Still need to update td");
+        // Add the column to syscolumns.
+        // Column ids in system tables are 1-based
+        columnDescriptor =  new ColumnDescriptor(colInfo.name,
+                colNumber,
+                colInfo.dataType,
+                colInfo.defaultValue,
+                colInfo.defaultInfo,
+                tableDescriptor,
+                defaultUUID,
+                colInfo.autoincStart,
+                colInfo.autoincInc,
+                tableDescriptor.getColumnSequence());
+
+        dd.addDescriptor(columnDescriptor, tableDescriptor, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+        // now add the column to the tables column descriptor list.
+        tableDescriptor.getColumnDescriptorList().add(columnDescriptor);
+
+        if (columnDescriptor.isAutoincrement()) {
+            // TODO: JC - is there a better way to do autoinc?
+            updateNewAutoincrementColumn(lcc,tableDescriptor,colInfo);
+        }
+
+        //
+        // Add dependencies. These can arise if a generated column depends
+        // on a user created function.
+        //
+        addColumnDependencies( lcc, dd, tableDescriptor, colInfo);
+
+        // Update SYSCOLPERMS table which tracks the permissions granted
+        // at columns level. The system table has a bit map of all the columns
+        // in the user table to help determine which columns have the
+        // permission granted on them. Since we are adding a new column,
+        // that bit map needs to be expanded and initialize the bit for it
+        // to 0 since at the time of ADD COLUMN, no permissions have been
+        // granted on that new column.
+        //
+        dd.updateSYSCOLPERMSforAddColumnToUserTable(tableDescriptor.getUUID(), tc);
     }
 
     /*private helper methods*/
@@ -348,7 +406,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                                  tableDescriptor,
                                                  defaultUUID,
                                                  colInfo.autoincStart,
-                                                 colInfo.autoincInc);
+                                                 colInfo.autoincInc,
+                                                 colNumber);
 
         dd.addDescriptor(columnDescriptor, tableDescriptor, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
@@ -386,35 +445,16 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             LOG.error("Couldn't start transaction for tentative Add Column operation");
             throw Exceptions.parseException(e);
         }
-        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
+
+
+
         int[] columnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
-        TransformingDDLDescriptor interceptColumnDesc = new TentativeAddColumnDesc(tableVersion,
-                                                                                   newCongNum,
-                                                                                   oldCongNum,
-                                                                                   columnOrdering,
-                                                                                   newColumnInfo);
+        ColumnInfo[] newColumnInfo = tableDescriptor.getColumnInfo();
+        DDLChange ddlChange = ProtoUtil.createTentativeAddColumn(parentTxn.getTxnId(),newCongNum,
+                oldCongNum,columnOrdering,newColumnInfo,lcc, (BasicUUID) tableId);
 
-        DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.ADD_COLUMN);
-        // set descriptor on the ddl change
-        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
 
-        // Initiate the copy from old conglomerate to new conglomerate and the interception
-        // from old schema writes to new table with new column appended
         try {
-            String schemaName = tableDescriptor.getSchemaName();
-            String tableName = tableDescriptor.getName();
-            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
-
-            //Add a handler to intercept writes to old schema on all regions and forward them to new
-            startCoprocessorJob(activation,
-                                "Add Column",
-                                schemaName,
-                                tableName,
-                                Collections.singletonList(colInfo.name),
-                                new AlterTableJob(hTable, ddlChange),
-                                parentTxn);
-
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "AddColumn("+colInfo.name+")");
             // Read from old conglomerate, transform each row and write to new conglomerate.
@@ -423,15 +463,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
-
         // Now that the updated information is available in the system tables,
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.ALTER_TABLE, lcc);
         // refresh the activation's TableDescriptor
         activation.setDDLTableDescriptor(tableDescriptor);
-
         //notify other servers of the change
-        notifyMetadataChangeAndWait(ddlChange);
+        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
     }
 
     private static boolean columnHasPrimaryKeyConstraint(String columnName, ConstantAction[] actions) {
@@ -564,7 +602,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 defaultUUID,
                 colInfo.autoincStart,
                 colInfo.autoincInc,
-                colInfo.autoinc_create_or_modify_Start_Increment
+                colInfo.autoinc_create_or_modify_Start_Increment,
+                columnPosition
         );
 
         // Update the ColumnDescriptor with new default info
@@ -587,6 +626,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 td.getColumnDescriptor(columnInfo[ix].name),
                 newColumnDescriptor;
 
+        LOG.warn("Need to update TD!");
         newColumnDescriptor =
                 new ColumnDescriptor(columnInfo[ix].name,
                         columnDescriptor.getPosition(),
@@ -596,7 +636,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         td,
                         columnDescriptor.getDefaultUUID(),
                         columnInfo[ix].autoincStart,
-                        columnInfo[ix].autoincInc
+                        columnInfo[ix].autoincInc,
+                        td.getColumnSequence()+1
                 );
 
 
@@ -699,7 +740,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 }
             }
         }
-
+        LOG.warn("Something not right here");
         newColumnDescriptor = new ColumnDescriptor(colName,
                         columnDescriptor.getPosition(),
                         dataType,
@@ -708,7 +749,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         td,
                         columnDescriptor.getDefaultUUID(),
                         columnDescriptor.getAutoincStart(),
-                        columnDescriptor.getAutoincInc());
+                        columnDescriptor.getAutoincInc(),
+                    columnDescriptor.getPosition());
 
         // Update the ColumnDescriptor with new default info
         dd.dropColumnDescriptor(td.getUUID(), colName, tc);
@@ -792,7 +834,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      * @exception StandardException 	thrown on failure.
      */
     @SuppressWarnings("unchecked")
-    private void dropColumnFromTable(Activation activation,TableDescriptor tableDescriptor,String columnName ) throws StandardException {
+    private void dropColumnFromTableV2(Activation activation,TableDescriptor tableDescriptor,String columnName ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
@@ -879,6 +921,201 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Now handle constraints
         List<ConstantAction> newCongloms = handleConstraints(activation, tableDescriptor, columnName, lcc, dd, dm, cascade, tc,
                                                              droppedColumnPosition);
+
+        /* If there are new backing conglomerates which must be
+         * created to replace a dropped shared conglomerate
+         * (where the shared conglomerate was dropped as part
+         * of a "drop constraint" call above), then create them
+         * now.  We do this *after* dropping all dependent
+         * constraints because we don't want to waste time
+         * creating a new conglomerate if it's just going to be
+         * dropped again as part of another "drop constraint".
+         */
+        createNewBackingCongloms(activation,tableDescriptor,newCongloms, null);
+
+        /*
+         * The work we've done above, specifically the possible
+         * dropping of primary key, foreign key, and unique constraints
+         * and their underlying indexes, may have affected the table
+         * descriptor. By re-reading the table descriptor here, we
+         * ensure that the compressTable code is working with an
+         * accurate table descriptor. Without this line, we may get
+         * conglomerate-not-found errors and the like due to our
+         * stale table descriptor.
+         */
+        tableDescriptor = dd.getTableDescriptor(tableId);
+
+        ColumnDescriptorList tab_cdl = tableDescriptor.getColumnDescriptorList();
+
+        // drop the column from syscolumns
+        dd.dropColumnDescriptor(tableDescriptor.getUUID(), columnName, tc);
+        ColumnDescriptor[] cdlArray =
+                new ColumnDescriptor[size - columnDescriptor.getPosition()];
+
+        List depsOnAlterTableList = dd.getProvidersDescriptorList(tableDescriptor.getObjectID().toString());
+        for (Object aDepsOnAlterTableList : depsOnAlterTableList) {
+            //Go through all the dependent objects on the table being altered
+            DependencyDescriptor depOnAlterTableDesc =
+                    (DependencyDescriptor) aDepsOnAlterTableList;
+            DependableFinder dependent = depOnAlterTableDesc.getDependentFinder();
+            //For the given dependent, we are only interested in it if it is a
+            // stored prepared statement.
+            if (dependent.getSQLObjectType().equals(Dependable.STORED_PREPARED_STATEMENT)) {
+                //Look for all the dependent objects that are using this
+                // stored prepared statement as provider. We are only
+                // interested in dependents that are triggers.
+                List depsTrigger = dd.getProvidersDescriptorList(depOnAlterTableDesc.getUUID().toString());
+                for (Object aDepsTrigger : depsTrigger) {
+                    DependencyDescriptor depsTriggerDesc =
+                            (DependencyDescriptor) aDepsTrigger;
+                    DependableFinder providerIsTrigger = depsTriggerDesc.getDependentFinder();
+                    //For the given dependent, we are only interested in it if
+                    // it is a trigger
+                    if (providerIsTrigger.getSQLObjectType().equals(Dependable.TRIGGER)) {
+                        //Drop and recreate the trigger after regenerating
+                        // it's trigger action plan. If the trigger action
+                        // depends on the column being dropped, it will be
+                        // caught here.
+                        TriggerDescriptor trdToBeDropped = dd.getTriggerDescriptor(depsTriggerDesc.getUUID());
+                        columnDroppedAndTriggerDependencies(trdToBeDropped,tableDescriptor, cascade, columnName,activation);
+                    }
+                }
+            }
+        }
+        // Adjust the column permissions rows in SYSCOLPERMS to reflect the
+        // changed column positions due to the dropped column:
+        dd.updateSYSCOLPERMSforDropColumn(tableDescriptor.getUUID(), tc, columnDescriptor);
+
+        // remove column descriptor from table descriptor. this fixes up the
+        // list in case we were called recursively in order to cascade-drop a
+        // dependent generated column.
+        tab_cdl.remove( tableDescriptor.getColumnDescriptor( columnName ) );
+
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+//        DataDictionary dd = lcc.getDataDictionary();
+//        dd.startWriting(lcc);
+
+        // Update the DataDictionary
+        // Get the ConglomerateDescriptor for the heap
+        long oldHeapConglom = tableDescriptor.getHeapConglomerateId();
+        ConglomerateDescriptor cd =
+            tableDescriptor.getConglomerateDescriptor(oldHeapConglom);
+
+        /*
+        // Update sys.sysconglomerates with new conglomerate #
+        dd.updateConglomerateDescriptor(cd, ddlChange.getTentativeDropColumn().getNewConglomId(), tc);
+
+        // Now that the updated information is available in the system tables,
+        // we should invalidate all statements that use the old conglomerates
+        dd.getDependencyManager().invalidateFor(tableDescriptor,
+                                                (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),
+                                                lcc);
+        // refresh the activation's TableDescriptor
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        //notify other servers of the change
+        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
+        */
+    }
+
+
+
+
+    private void dropColumnFromTable(Activation activation,TableDescriptor tableDescriptor,String columnName ) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+        boolean cascade = (behavior == StatementType.DROP_CASCADE);
+        // drop any generated columns which reference this column
+        ColumnDescriptorList generatedColumnList = tableDescriptor.getGeneratedColumns();
+        int generatedColumnCount = generatedColumnList.size();
+        List<String> cascadedDroppedColumns = new ArrayList<>(generatedColumnCount);
+        for ( int i = 0; i < generatedColumnCount; i++ ) {
+            ColumnDescriptor generatedColumn = generatedColumnList.elementAt( i );
+            String[] referencedColumnNames = generatedColumn.getDefaultInfo().getReferencedColumnNames();
+            for (String referencedColumnName : referencedColumnNames) {
+                if (columnName.equals(referencedColumnName)) {
+                    String generatedColumnName = generatedColumn.getColumnName();
+
+                    // ok, the current generated column references the column
+                    // we're trying to drop
+                    if (!cascade) {
+                        // Reject the DROP COLUMN, because there exists a
+                        // generated column which references this column.
+                        //
+                        throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
+                                dm.getActionString(DependencyManager.DROP_COLUMN),
+                                columnName,"GENERATED COLUMN", generatedColumnName);
+                    } else {
+                        cascadedDroppedColumns.add(generatedColumnName);
+                    }
+                }
+            }
+        }
+
+        // can NOT drop a column if it is the only one in the table
+        if ((tableDescriptor.getColumnDescriptorList().size() - cascadedDroppedColumns.size()) == 1) {
+            throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
+                    dm.getActionString(DependencyManager.DROP_COLUMN),
+                    "THE *LAST* COLUMN " + columnName,"TABLE",tableDescriptor.getQualifiedName());
+        }
+
+        // now drop dependent generated columns
+        for (String generatedColumnName : cascadedDroppedColumns) {
+            activation.addWarning(StandardException.newWarning(SQLState.LANG_GEN_COL_DROPPED, generatedColumnName, tableDescriptor.getName()));
+
+            //
+            // We can only recurse 2 levels since a generation clause cannot
+            // refer to other generated columns.
+            //
+            dropColumnFromTable(activation,tableDescriptor,generatedColumnName);
+        }
+
+        /*
+         * Cascaded drops of dependent generated columns may require us to
+         * rebuild the table descriptor.
+         */
+        tableDescriptor = dd.getTableDescriptor(tableId);
+        TransactionController tc = lcc.getTransactionExecute();
+
+        ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor( columnName );
+
+        // We already verified this in bind, but do it again
+        if (columnDescriptor == null) {
+            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,tableDescriptor.getQualifiedName());
+        }
+
+        int size = tableDescriptor.getColumnDescriptorList().size();
+        int droppedColumnPosition = columnDescriptor.getPosition();
+
+        FormatableBitSet toDrop = new FormatableBitSet(size + 1);
+        toDrop.set(droppedColumnPosition);
+        tableDescriptor.setReferencedColumnMap(toDrop);
+
+//        dm.invalidateFor(tableDescriptor, (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),lcc);
+
+        // If column has a default we drop the default and any dependencies
+        if (columnDescriptor.getDefaultInfo() != null) {
+            dm.clearDependencies(lcc, columnDescriptor.getDefaultDescriptor(dd));
+        }
+
+        //Now go through each trigger on this table and see if the column
+        //being dropped is part of it's trigger columns or trigger action
+        //columns which are used through REFERENCING clause
+        handleTriggers(activation, tableDescriptor, columnName, droppedColumnPosition, lcc, dd,
+                dm.getActionString(DependencyManager.DROP_COLUMN), cascade, tc);
+
+        // Now handle constraints
+        List<ConstantAction> newCongloms = handleConstraints(activation, tableDescriptor, columnName, lcc, dd, dm, cascade, tc,
+                droppedColumnPosition);
 
         /* If there are new backing conglomerates which must be
          * created to replace a dropped shared conglomerate
@@ -1030,22 +1267,24 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Get the ConglomerateDescriptor for the heap
         long oldHeapConglom = tableDescriptor.getHeapConglomerateId();
         ConglomerateDescriptor cd =
-            tableDescriptor.getConglomerateDescriptor(oldHeapConglom);
+                tableDescriptor.getConglomerateDescriptor(oldHeapConglom);
 
         // Update sys.sysconglomerates with new conglomerate #
-        dd.updateConglomerateDescriptor(cd, ddlChange.getTentativeDDLDesc().getConglomerateNumber(), tc);
+        dd.updateConglomerateDescriptor(cd, ddlChange.getTentativeDropColumn().getNewConglomId(), tc);
 
         // Now that the updated information is available in the system tables,
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(tableDescriptor,
-                                                (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),
-                                                lcc);
+                (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),
+                lcc);
         // refresh the activation's TableDescriptor
         activation.setDDLTableDescriptor(tableDescriptor);
 
         //notify other servers of the change
-        notifyMetadataChangeAndWait(ddlChange);
+        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
     }
+
+
 
     private List<ConstantAction> handleConstraints(Activation activation,
                                                    TableDescriptor td,
@@ -1563,8 +1802,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Create an array to put base row template
 
-        /* Set up index info */
-        getAffectedIndexes(tableDescriptor); // FIXME: JC - this does nothing. what was the intent?
 
         // Get an array of RowLocation template
         // must be a drop column, thus the number of columns in the
@@ -1620,28 +1857,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw Exceptions.parseException(e);
         }
 
-        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
-        ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
-        TransformingDDLDescriptor tentativeDropColumnDesc =
-                new TentativeDropColumnDesc(tableDescriptor.getHeapConglomerateId(), newHeapConglom, tableVersion,
-                                            oldColumnOrder, newColumnOrder, allColumnInfo, droppedColumnPosition);
-
-        DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.DROP_COLUMN);
-        ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
-
+        ColumnInfo[] allColumnInfo = tableDescriptor.getColumnInfo();
+        DDLChange ddlChange = ProtoUtil.createTentativeDropColumn(tentativeTransaction.getTxnId(),newHeapConglom,tableDescriptor.getHeapConglomerateId(),
+                oldColumnOrder,newColumnOrder,allColumnInfo,droppedColumnPosition,lcc,(BasicUUID) tableId);
         try {
-            String schemaName = tableDescriptor.getSchemaName();
-            String tableName = tableDescriptor.getName();
-            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
-
-            //Add a handler to intercept writes to old schema on all regions and forward them to new
-            startCoprocessorJob(activation,
-                                "DropColumn",
-                                schemaName,
-                                tableName,
-                                Collections.singletonList(columnName),
-                                new AlterTableJob(hTable, ddlChange),
-                                parentTxn);
+            DDLUtils.notifyMetadataChange(ddlChange);
 
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn(" + columnName + ")");
@@ -1654,4 +1874,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
         return ddlChange;
     }
+
+    private int getSemiRowCount(TransactionController tc, TableDescriptor td) {
+        return 0;
+    }
+
 }

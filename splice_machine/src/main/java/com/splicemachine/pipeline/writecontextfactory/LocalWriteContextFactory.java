@@ -3,7 +3,6 @@ package com.splicemachine.pipeline.writecontextfactory;
 import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isIndex;
 import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isUniqueIndex;
 import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.numberFunction;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -14,13 +13,14 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-
 import com.google.common.base.Optional;
 import com.google.common.collect.*;
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -35,18 +35,14 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
 import com.splicemachine.pipeline.constraint.ChainConstraintChecker;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.PrimaryKeyConstraint;
 import com.splicemachine.pipeline.constraint.UniqueConstraint;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
@@ -203,36 +199,6 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         return context;
     }
 
-    @Override
-    public void dropIndex(long indexConglomId, TxnView txn) {
-        //ensure that all writes that need to be paused are paused
-        synchronized (tableWriteLatch) {
-            tableWriteLatch.reset();
-
-            /*
-             * Drop the index. We cannot outright drop it, because
-             * existing transactions may be still using it. Instead,
-             * we replace it with a wrapped transaction
-             */
-            try {
-                synchronized (indexFactories) {
-                    for (int i = 0; i < indexFactories.size(); i++) {
-                        LocalWriteFactory factory = indexFactories.get(i);
-                        if (factory.getConglomerateId() == indexConglomId) {
-                            DropIndexFactory wrappedFactory = new DropIndexFactory(txn, factory, indexConglomId);
-                            indexFactories.set(i, wrappedFactory);
-                            return;
-                        }
-                    }
-                    //it hasn't been added yet, so make sure that we add the index
-                    indexFactories.add(new DropIndexFactory(txn, null, indexConglomId));
-                }
-            } finally {
-                tableWriteLatch.countDown();
-            }
-        }
-    }
-
     /**
      * This is the write context for a base table and we are adding or replacing an IndexFactory for one specific
      * index.  IndexFactory equality is based on the index conglomerate number so we end up with at most one IndexFactory
@@ -258,26 +224,12 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     }
 
     @Override
-    public void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] formatIds) {
-        synchronized (tableWriteLatch) {
-            tableWriteLatch.reset();
-            try {
-                IndexFactory index = IndexFactory.create(ddlChange, columnOrdering, formatIds);
-                replace(index);
-            } finally {
-                tableWriteLatch.countDown();
-            }
-        }
-    }
-
-    @Override
     public void addDDLChange(DDLChange ddlChange) {
-
-        DDLChangeType ddlChangeType = ddlChange.getChangeType();
+        DDLChangeType ddlChangeType = ddlChange.getDdlChangeType();
         synchronized (tableWriteLatch) {
             tableWriteLatch.reset();
             try {
-                switch (ddlChangeType) {
+                switch(ddlChangeType) {
                     case DROP_COLUMN:
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
@@ -286,12 +238,49 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     case ADD_FOREIGN_KEY:
-                        fkWriteFactoryHolder.handleForeignKeyAdd(ddlChange, this.conglomId);
+                        fkWriteFactoryHolder.handleForeignKeyAdd(ddlChange,conglomId);
                         break;
                     case DROP_FOREIGN_KEY:
-                        fkWriteFactoryHolder.handleForeignKeyDrop(ddlChange, this.conglomId);
+                        fkWriteFactoryHolder.handleForeignKeyDrop(ddlChange,conglomId);
                         break;
-                    default:
+                    case CHANGE_PK:
+                        break;
+                    case ADD_CHECK:
+                        break;
+                    case CREATE_INDEX:
+                        IndexFactory index = IndexFactory.create(ddlChange);
+                        replace(index);
+                        break;
+                    case ADD_NOT_NULL:
+                        break;
+                    case DROP_CONSTRAINT:
+                        break;
+                    case DROP_TABLE:
+                        break;
+                    case DROP_SCHEMA:
+                        break;
+                    case DROP_INDEX:
+                        TentativeIndex ti = ddlChange.getTentativeIndex();
+                        TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+                        long indexConglomId = ti.getIndex().getConglomerate();
+                        synchronized (indexFactories) {
+                            for (int i = 0; i < indexFactories.size(); i++) {
+                                LocalWriteFactory factory = indexFactories.get(i);
+                                if (factory.getConglomerateId() == indexConglomId) {
+                                    DropIndexFactory wrappedFactory = new DropIndexFactory(
+                                            txn, factory,
+                                            indexConglomId);
+                                    indexFactories.set(i, wrappedFactory);
+                                    return;
+                                }
+                            }
+                            //it hasn't been added yet, so make sure that we add the index
+                            indexFactories.add(new DropIndexFactory(txn, null, indexConglomId));
+                        }
+                        break;
+                    case CLEAR_STATS_CACHE:
+                        break;
+                    case ENTER_RESTORE_MODE:
                         break;
                 }
             } finally {
@@ -398,8 +387,6 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         // descriptors.  The constraint descriptors (from sys.sysconstraints) provide limited
         // information however-- see notes in part 2.
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        int[] columnOrdering = null;
-        int[] formatIds = DataDictionaryUtils.getFormatIds(td.getColumnDescriptorList());
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for (ConstraintDescriptor cDescriptor : constraintDescriptors) {
             UUID conglomerateId = cDescriptor.getConglomerateId();
@@ -409,7 +396,6 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
             switch (cDescriptor.getConstraintType()) {
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
-                    columnOrdering = DataDictionaryUtils.getColumnOrdering(cDescriptor);
                     constraintFactories.add(buildPrimaryKey(cDescriptor));
                     fkWriteFactoryHolder.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor) cDescriptor);
                     break;
@@ -442,13 +428,10 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         // unique index.
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+        //
         // This is how we tell if the current context is being configured for a base or index table.
-        boolean isIndexTableContext = cd.isIndex();
-
         //
-        // This is a context for an index.
-        //
-        if(isIndexTableContext) {
+        if(cd.isIndex()) {
             // we are an index, so just map a constraint rather than an attached index
             addUniqueIndexConstraint(td, cd);
             // safe to clear here because we don't chain indices -- we don't send index writes to other index tables.
@@ -473,7 +456,10 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     // conglom descriptor for the current conglom number.
                     ConglomerateDescriptor srcConglomDesc = uniqueIndexConglom.isPresent() ? uniqueIndexConglom.get() : currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor = srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
-                    IndexFactory indexFactory = IndexFactory.create(srcConglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, formatIds);
+
+                    TentativeIndex ti = ProtoUtil.createTentativeIndex(null,srcConglomDesc.getConglomerateNumber(),
+                            indexConglom.get().getConglomerateNumber(),td,indexDescriptor);
+                    IndexFactory indexFactory = IndexFactory.create(ti);
                     replace(indexFactory);
                 }
             }
@@ -485,36 +471,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         //
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         for (DDLChange ddlChange : DDLCoordinationFactory.getWatcher().getTentativeDDLs()) {
-            TentativeDDLDesc ddlDesc = ddlChange.getTentativeDDLDesc();
-            TxnView txn = ddlChange.getTxn();
+            TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
             if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
             } else {
-                assert ddlDesc != null : "Cannot have a null ddl descriptor!";
-                switch (ddlChange.getChangeType()) {
-                    case CHANGE_PK:
-                    case ADD_CHECK:
-                    case ADD_FOREIGN_KEY:
-                    case ADD_NOT_NULL:
-                    case DROP_TABLE:
-                        break; //TODO -sf- implement
-                    case CREATE_INDEX:
-                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
-                        break;
-                    case DROP_COLUMN:
-                    case ADD_COLUMN:
-                    case ADD_PRIMARY_KEY:
-                    case ADD_UNIQUE_CONSTRAINT:
-                    case DROP_PRIMARY_KEY:
-                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
-                        break;
-                    case DROP_INDEX:
-                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            dropIndex(ddlDesc.getConglomerateNumber(), txn);
-
-                }
+                addDDLChange(ddlChange);
             }
         }
     }

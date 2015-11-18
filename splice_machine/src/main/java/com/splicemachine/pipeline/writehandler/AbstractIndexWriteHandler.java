@@ -1,11 +1,8 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
-
-import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -23,19 +20,10 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
     private final byte[] indexConglomBytes;
     private boolean failed = false;
     protected final ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap = ObjectObjectOpenHashMap.newInstance();
-
-    /*
-     * The columns in the main table which are indexed (ordered by the position in the main table).
-     */
-    protected final BitSet indexedColumns;
-
-    protected final BitSet descColumns;
     protected final boolean keepState;
 
-    protected AbstractIndexWriteHandler(BitSet indexedColumns, byte[] indexConglomBytes, BitSet descColumns, boolean keepState) {
-        this.indexedColumns = indexedColumns;
+    protected AbstractIndexWriteHandler(byte[] indexConglomBytes, boolean keepState) {
         this.indexConglomBytes = indexConglomBytes;
-        this.descColumns = descColumns;
         this.keepState = keepState;
     }
 

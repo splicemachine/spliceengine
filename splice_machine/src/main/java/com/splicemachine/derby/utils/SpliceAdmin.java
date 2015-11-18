@@ -1,12 +1,9 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.tools.version.SpliceMachineVersion;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
-import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -164,18 +161,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
         });
     }
 
-    public static void SYSCS_SET_MAX_TASKS(final int workerTier, final int maxWorkers) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<StealableTaskSchedulerManagement> taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
-                for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
-                    taskScheduler.setCurrentWorkers(maxWorkers);
-                }
-            }
-        });
-    }
-
     public static void SYSCS_GET_WRITE_PIPELINE_INFO(ResultSet[] resultSets) throws SQLException{
         PipelineAdmin.SYSCS_GET_WRITE_PIPELINE_INFO(resultSets);
     }
@@ -200,50 +185,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
          * backwards compatibility. However, the logic has been moved to TransactionAdmin
          */
         TransactionAdmin.killAllActiveTransactions(maximumTransactionId);
-    }
-
-    public static void SYSCS_GET_MAX_TASKS(final int workerTier, final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<StealableTaskSchedulerManagement> taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
-                for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("('%s',%d)",
-                            connections.get(i).getFirst(),
-                            taskScheduler.getCurrentWorkers()));
-                    i++;
-                }
-                sb.append(") foo (hostname, maxTaskWorkers)");
-                resultSet[0] = executeStatement(sb);
-            }
-        });
-    }
-
-    public static void SYSCS_GET_GLOBAL_MAX_TASKS(final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<TieredSchedulerManagement> taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
-                for (TieredSchedulerManagement taskScheduler : taskSchedulers) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("('%s',%d)",
-                            connections.get(i).getFirst(),
-                            taskScheduler.getTotalWorkerCount()));
-                    i++;
-                }
-                sb.append(") foo (hostname, maxTaskWorkers)");
-                resultSet[0] = executeStatement(sb);
-            }
-        });
     }
 
     public static void SYSCS_SET_WRITE_POOL(final int writePool) throws SQLException {
@@ -346,80 +287,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
 	    		} catch (StandardException se) {
 	    			throw PublicAPI.wrapStandardException(se);
 	    		}
-            }
-        });
-    }
-
-
-    public static void SYSCS_GET_REGION_SERVER_TASK_INFO(final ResultSet[] resultSet) throws SQLException {
-        operate(new JMXServerOperation() {
-            @Override
-            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<TieredSchedulerManagement> taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
-
-                ExecRow template = new ValueRow(13);
-                template.setRowArray(new DataValueDescriptor[]{
-                        new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
-                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),
-                        new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLInteger(), new SQLInteger()
-                });
-                List<ExecRow> rows = Lists.newArrayListWithExpectedSize(taskSchedulers.size());
-
-                int i = 0;
-                for (TieredSchedulerManagement taskSchedule : taskSchedulers) {
-                    template.resetRowArray();
-                    DataValueDescriptor[] dvds = template.getRowArray();
-                    try {
-                        dvds[0].setValue(connections.get(i).getFirst());
-                        dvds[1].setValue(taskSchedule.getTotalWorkerCount());
-                        dvds[2].setValue(taskSchedule.getPending());
-                        dvds[3].setValue(taskSchedule.getExecuting());
-                        dvds[4].setValue(taskSchedule.getTotalSubmittedTasks());
-                        dvds[5].setValue(taskSchedule.getTotalCompletedTasks());
-                        dvds[6].setValue(taskSchedule.getTotalFailedTasks());
-                        dvds[7].setValue(taskSchedule.getTotalCancelledTasks());
-                        dvds[8].setValue(taskSchedule.getTotalInvalidatedTasks());
-                        dvds[9].setValue(taskSchedule.getTotalShruggedTasks());
-                        dvds[10].setValue(taskSchedule.getTotalStolenTasks());
-                        dvds[11].setValue(taskSchedule.getMostLoadedTier());
-                        dvds[12].setValue(taskSchedule.getLeastLoadedTier());
-                    } catch (StandardException e) {
-                        throw PublicAPI.wrapStandardException(e);
-                    }
-
-                    rows.add(template.getClone());
-                    i++;
-                }
-
-                ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[13];
-                columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
-                columnInfo[1] = new GenericColumnDescriptor("totalWorkers",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[2] = new GenericColumnDescriptor("pending",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[3] = new GenericColumnDescriptor("running",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[4] = new GenericColumnDescriptor("totalSubmitted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[5] = new GenericColumnDescriptor("totalCompleted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[6] = new GenericColumnDescriptor("totalFailed",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[7] = new GenericColumnDescriptor("totalCancelled",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[8] = new GenericColumnDescriptor("totalInvalidated",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[9] = new GenericColumnDescriptor("totalShrugged",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[10] = new GenericColumnDescriptor("totalStolen",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-                columnInfo[11] = new GenericColumnDescriptor("mostLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-                columnInfo[12] = new GenericColumnDescriptor("leastLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
-
-                EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
-                Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
-                IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
-                try {
-                    resultsToWrap.openCore();
-                } catch (StandardException e) {
-                    throw PublicAPI.wrapStandardException(e);
-                }
-                EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
-
-                resultSet[0] = ers;
-//                sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
-//                        + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted,totalShrugged,totalStolen,mostLoadedTier,leastLoadedTier)");
-//                resultSet[0] = executeStatement(sb);
             }
         });
     }

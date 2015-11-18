@@ -116,51 +116,13 @@ public class DataDictionaryUtils {
         SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
         impl.marshallTransaction(txn);
         LanguageConnectionContext lcc = impl.getLcc();
-
         DataDictionary dd = lcc.getDataDictionary();
         TableDescriptor td = dd.getTableDescriptor(tableId);
-
         if (td != null) {
-            return getFormatIds(td.getColumnDescriptorList());
+            return td.getFormatIds();
         } else {
             return new int[0];
         }
-    }
-
-    public static int[] getFormatIds(ColumnDescriptorList cdList) throws StandardException {
-        int[] formatIds;
-        int numCols = cdList.size();
-        formatIds = new int[numCols];
-        for (int j = 0; j < numCols; ++j) {
-            ColumnDescriptor columnDescriptor = cdList.elementAt(j);
-            if(columnDescriptor != null) {
-                DataTypeDescriptor type = columnDescriptor.getType();
-                formatIds[j] = type.getNull().getTypeFormatId();
-            }
-        }
-        return formatIds;
-    }
-
-    public static ColumnInfo[] getColumnInfo(TableDescriptor td) {
-        ColumnDescriptorList cdl = td.getColumnDescriptorList();
-        int len = cdl.size();
-        ColumnInfo[] columnInfo = new ColumnInfo[len];
-        for (int i = 0; i < len; ++i) {
-            ColumnDescriptor desc = cdl.get(i);
-            columnInfo[i] =
-                    new ColumnInfo(desc.getColumnName(),
-                                   desc.getType(),
-                                   desc.getDefaultValue(),
-                                   desc.getDefaultInfo(),
-                                   null,
-                                   desc.getDefaultUUID(),
-                                   null,
-                                   0,
-                                   desc.getAutoincStart(),
-                                   desc.getAutoincInc(),
-                                   desc.getAutoinc_create_or_modify_Start_Increment());
-        }
-        return columnInfo;
     }
 
     /**
@@ -182,18 +144,4 @@ public class DataDictionaryUtils {
         return backingIndexConglomerateIds;
     }
 
-    /**
-     * Given a constraint (primary key, unique index) return a zero based array of referenced column ids.
-     */
-    public static int[] getColumnOrdering(ConstraintDescriptor cDescriptor) {
-        int[] referencedColumns = cDescriptor.getReferencedColumns();
-        int[] columnOrdering = null;
-        if (referencedColumns != null && referencedColumns.length > 0) {
-            columnOrdering = new int[referencedColumns.length];
-            for (int i = 0; i < referencedColumns.length; ++i) {
-                columnOrdering[i] = referencedColumns[i] - 1;
-            }
-        }
-        return columnOrdering;
-    }
 }

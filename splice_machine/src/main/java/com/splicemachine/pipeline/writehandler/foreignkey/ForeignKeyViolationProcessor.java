@@ -1,11 +1,11 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 

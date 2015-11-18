@@ -1,6 +1,5 @@
 package com.splicemachine.hbase.backup;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.management.TransactionalSysTableWriter;
@@ -8,6 +7,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Created by jyuan on 4/13/15.

@@ -1,7 +1,6 @@
 package com.splicemachine.hbase.batch;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MockRegion;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
@@ -86,7 +85,7 @@ public class RegionWriteHandlerTest {
                 if(found)
                     break;
             }
-            Assert.assertTrue("Row "+ BytesUtil.toHex(mutation.getRow())+" magically appeared",found);
+            Assert.assertTrue("Row "+ Bytes.toHex(mutation.getRow())+" magically appeared",found);
         }
         buffer = pairs.buffer;
         for (int i = 0; i< pairs.size(); i++) {
@@ -99,7 +98,7 @@ public class RegionWriteHandlerTest {
                 if(found)
                     break;
             }
-            Assert.assertTrue("Row "+ BytesUtil.toHex(pair.getRowKey())+" magically appeared",found);
+            Assert.assertTrue("Row "+ Bytes.toHex(pair.getRowKey())+" magically appeared",found);
         }
     }
 

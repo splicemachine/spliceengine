@@ -1,8 +1,6 @@
 package com.splicemachine.hbase.backup;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -12,9 +10,6 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -50,7 +45,7 @@ import org.apache.log4j.Logger;
  *
  *
  */
-public class CreateBackupTask extends ZkTask {
+public class CreateBackupTask {
 	    
 	private static final long serialVersionUID = 5l;
     private BackupItem backupItem;
@@ -60,45 +55,14 @@ public class CreateBackupTask extends ZkTask {
     public CreateBackupTask() { }
 
     public CreateBackupTask(BackupItem backupItem, String jobId, String backupFileSystem) {
-        super(jobId, SpliceConstants.operationTaskPriority);
         this.backupItem = backupItem;
         this.backupFileSystem = backupFileSystem;
-        
     }
 
-	@Override
-    protected String getTaskType() {
-        return "createBackupTask";
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(backupItem); // TODO Needs to be replaced with protobuf
-        out.writeUTF(backupFileSystem);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        backupItem = (BackupItem) in.readObject(); // TODO Needs to be replaced with protobuf
-        backupFileSystem = in.readUTF();
-    }
-
-    @Override
-    public boolean invalidateOnClose() {
-        return true;
-    }
-
-    @Override
-    public RegionTask getClone() {
-        return new CreateBackupTask(backupItem, jobId, backupFileSystem);
-    }
-
-    @Override
     public void doExecute() throws ExecutionException, InterruptedException {
+        /*
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", "TODO"));
         FileSystem fs = null;
         try {
             fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
@@ -116,14 +80,17 @@ public class CreateBackupTask extends ZkTask {
             }
             throw new ExecutionException(e);
         }
+        */
     }
 
 	private void writeRegionInfoOnFilesystem() throws IOException
     {
+        /*
         FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
 
         BackupUtils.derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(),
                 new Path(backupFileSystem), fs, SpliceConstants.config);
+                */
     }
     
     private Configuration getConfiguration()
@@ -134,6 +101,7 @@ public class CreateBackupTask extends ZkTask {
 	
 	private void doFullBackup() throws IOException
     {
+        /*
     	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
     	boolean throttleEnabled = 
     			getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
@@ -165,6 +133,7 @@ public class CreateBackupTask extends ZkTask {
                 SpliceLogUtils.trace(LOG, "copied %s to %s", file.toString(), destPath.toString());
             }
     	}
+    	*/
     }
     
 
@@ -183,17 +152,9 @@ public class CreateBackupTask extends ZkTask {
 		}
 	}
 
-
-
-    
     private String getSnapshotName()
     {
     	return backupItem.getBackupItem() + "_"+ backupItem.getBackup().getBackupTimestamp();
-    }
-    
-    @Override
-    public int getPriority() {
-        return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);
     }
 
 }

@@ -27,8 +27,6 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
      * The region in which to access data
      */
     private final HRegion region;
-
-    private final TxnDecoder<TxnInfo,Transaction, Data, Put, Delete, Get, Scan> oldTransactionDecoder;
     private final TxnDecoder<TxnInfo,Transaction, Data, Put, Delete, Get, Scan> newTransactionDecoder;
     private final SDataLib dataLib;
     private final STransactionLib transactionLib;
@@ -36,7 +34,6 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
     public RegionTxnPurger(HRegion region) {
         this.region = region;
         this.transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
-        this.oldTransactionDecoder = transactionLib.getV1TxnDecoder();
         this.newTransactionDecoder = transactionLib.getV2TxnDecoder();
         this.dataLib = SIFactoryDriver.siFactory.getDataLib();
     }
@@ -93,11 +90,6 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
     }
 
     private Transaction decode(List<Data> keyValues) throws IOException {
-    	Object txn = newTransactionDecoder.decode(dataLib,keyValues);
-        if (txn == null) {
-            txn = oldTransactionDecoder.decode(dataLib,keyValues);
-        }
-
-        return (Transaction)txn;
+    	return (Transaction) newTransactionDecoder.decode(dataLib,keyValues);
     }
 }

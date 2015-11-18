@@ -5,12 +5,14 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import com.google.common.base.Preconditions;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.*;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.db.catalog.UUID;
@@ -65,7 +67,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private CacheManager    conglom_cache;
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
-    private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
+    private ConcurrentMap<String, DDLMessage.DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLMessage.DDLChange>();
     private static final HTableInterfaceFactory tableFactory;
 
     static {
@@ -466,32 +468,25 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return getAndNameTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME);
     }
 
-    public void startDDLChange(DDLChange ddlChange) {
+    public void startDDLChange(DDLMessage.DDLChange ddlChange) {
         cacheDisabled = true;
         ongoingDDLChanges.put(ddlChange.getChangeId(), ddlChange);
         conglomCacheInvalidate();
     }
 
     public void cancelDDLChange(String changeId){
-        DDLChange change = ongoingDDLChanges.remove(changeId);
+        DDLMessage.DDLChange change = ongoingDDLChanges.remove(changeId);
         cacheDisabled = ongoingDDLChanges.size()>0;
     }
 
     public void finishDDLChange(String identifier) {
-        DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
+        DDLMessage.DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
         if (ddlChange != null) {
             try {
-                TxnView txn = ddlChange.getTxn();
+                TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
                 assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
-//                try{
-//                    txn.allowsWrites();
-//                }catch(RuntimeException re){
-//                    if(re.getCause() instanceof ReadOnlyModificationException)
-//                        throw new IOException("DDLChange "+ddlChange+" does not have a writable transaction");
-//                    else throw re;
-//                }
                 TransactionReadController txController = HTransactorFactory.getTransactionReadController();
-                DDLFilter ddlFilter = txController.newDDLFilter(ddlChange.getTxn());
+                DDLFilter ddlFilter = txController.newDDLFilter(txn);
                 if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {
                     ddlDemarcationPoint = ddlFilter;
                 }

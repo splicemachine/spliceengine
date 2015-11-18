@@ -7,9 +7,7 @@ package com.splicemachine.hbase.backup;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
@@ -102,7 +100,7 @@ public class Restore {
                 BackupItem backupItem = backUpItems.get(key);
                 backupItem.recreateItem(admin);
             }
-
+            /*
             JobFuture future;
             JobInfo info;
             long start = System.currentTimeMillis();
@@ -144,7 +142,7 @@ public class Restore {
                 info.failJob();
                 throw t;
             }
-
+            */
             populateRestoreItemsTable(admin);
             deleteSnapshots(admin);
             restoreTransaction.commit();

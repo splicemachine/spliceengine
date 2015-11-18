@@ -48,12 +48,13 @@ public class LastIndexKeyOperation extends ScanOperation {
                     boolean tableLocked,
                     int isolationLevel,
                     double optimizerEstimatedRowCount,
-                    double optimizerEstimatedCost
+                    double optimizerEstimatedCost,
+                    String tableVersion
             ) throws StandardException {
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
                 true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
 
-                colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost);
+                colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
             this.tableName = Long.toString(scanInformation.getConglomerateId());
             this.indexName = indexName;
 				try {
@@ -110,7 +111,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
                 .template(currentTemplate)
-                .tableVersion(scanInformation.getTableVersion())
+                .tableVersion(tableVersion)
                 .indexName(indexName)
                 .reuseRowLocation(false)
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())

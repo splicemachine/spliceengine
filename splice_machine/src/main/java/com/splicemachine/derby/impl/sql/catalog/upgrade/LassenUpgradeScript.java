@@ -73,7 +73,7 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
                 sysColumns,
                 defaultUuid,
                 0,
-                0);
+                0,10);
 
         try{
             /*
