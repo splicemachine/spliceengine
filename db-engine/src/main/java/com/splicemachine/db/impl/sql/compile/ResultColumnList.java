@@ -768,20 +768,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     public FormatableBitSet bindResultColumnsByName(TableDescriptor targetTableDescriptor,
                                                     DMLStatementNode statement) throws StandardException{
         int size=size();
-        FormatableBitSet columnBitSet=new FormatableBitSet(targetTableDescriptor.getNumberOfColumns());
+        FormatableBitSet columnBitSet=new FormatableBitSet(targetTableDescriptor.getMaxColumnID());
 
         for(int index=0;index<size;index++){
             ResultColumn rc=elementAt(index);
-
             rc.bindResultColumnByName(targetTableDescriptor, index+1);
             int colIdx=rc.getColumnPosition()-1;
-            if(SanityManager.DEBUG)
-                SanityManager.ASSERT(colIdx>=0 && colIdx<targetTableDescriptor.getNumberOfColumns(),
-                        "Invalid column position found for "+rc.getName());
-			/* Verify that this column's name is unique within the list if requested */
             if(statement!=null && columnBitSet.isSet(colIdx)){
                 String colName=rc.getName();
-
                 if(statement instanceof UpdateNode){
                     throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_UPDATE,colName);
                 }else{
@@ -837,12 +831,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
                         rc.getName(),
                         targetVTI.getMethodCall().getJavaClassName());
-            }
+        }
 
 			/* We have a match.  We need to create a dummy ColumnDescriptor
 			 * since calling code expects one to get column info.
 			 */
-            ColumnDescriptor cd=new ColumnDescriptor(rc.getName(),matchRC.getVirtualColumnId(),matchRC.getType(),null,null,null,null,0,0);
+            ColumnDescriptor cd=new ColumnDescriptor(rc.getName(),matchRC.getVirtualColumnId(),matchRC.getType(),null,null,null,null,0,0,-1);
             rc.setColumnDescriptor(null,cd);
             rc.setVirtualColumnId(index+1);
         }
@@ -3149,6 +3143,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    private int getMaxSize() {
+        int i = 0;
+        for (ResultColumn rc: this) {
+            i= Math.max(rc.getColumnPosition(),i);
+        }
+        return i;
+    }
+
     /**
      * Generate a FormatableBitSet representing the columns that are referenced in this RCL.
      * The caller decides if they want this FormatableBitSet if every RC is referenced.
@@ -3164,10 +3166,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     FormatableBitSet getReferencedFormatableBitSet(boolean positionedUpdate,boolean always,boolean onlyBCNs){
         int index;
-        int colsAdded=0;
         int size=size();
-
-        FormatableBitSet newReferencedCols=new FormatableBitSet(size);
+        FormatableBitSet newReferencedCols=new FormatableBitSet(getMaxSize());
 
 		/*
 		** For an updatable cursor, we need
@@ -3176,8 +3176,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         if(positionedUpdate){
             if(always){
 				/* Set all bits in the bit map */
-                for(index=0;index<size;index++){
-                    newReferencedCols.set(index);
+                for(ResultColumn rc: this){
+                    newReferencedCols.set(rc.getColumnPosition()-1);
                 }
 
                 return newReferencedCols;
@@ -3195,19 +3195,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 if(onlyBCNs && !(oldCol.getExpression() instanceof BaseColumnNode)){
                     continue;
                 }
-                newReferencedCols.set(index);
-                colsAdded++;
+                newReferencedCols.set(oldCol.getColumnPosition()-1);
             }
         }
 
 		/* Return the FormatableBitSet if not all RCs are referenced or if
 		 * the caller always wants the FormatableBitSet returned.
 		 */
-        if(colsAdded!=index || always){
-            return newReferencedCols;
-        }else{
-            return null;
-        }
+        return newReferencedCols;
     }
 
     /**

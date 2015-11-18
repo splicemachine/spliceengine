@@ -797,7 +797,7 @@ public class CompilerContextImpl extends ContextImpl
 		{
 			tableColumnPrivileges = new StatementColumnPermission( tableUUID,
 																   currPrivType,
-																   new FormatableBitSet( td.getNumberOfColumns()));
+																   new FormatableBitSet( td.getMaxColumnID()));
 			requiredColumnPrivileges.put(key, tableColumnPrivileges);
 		}
 		tableColumnPrivileges.getColumns().set(column.getPosition() - 1);

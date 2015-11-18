@@ -1413,7 +1413,7 @@ public class FromBaseTable extends FromTable {
                     FormatableBitSet referencedColumnMap=tableDescriptor.getReferencedColumnMap();
                     if(referencedColumnMap==null)
                         referencedColumnMap=new FormatableBitSet(
-                                tableDescriptor.getNumberOfColumns()+1);
+                                tableDescriptor.getMaxColumnID()+1);
                     referencedColumnMap.set(resultColumn.getColumnPosition());
                     tableDescriptor.setReferencedColumnMap(referencedColumnMap);
                 }
@@ -2005,8 +2005,9 @@ public class FromBaseTable extends FromTable {
 		 */
 
         if(raDependentScan){
-            generateRefActionDependentTableScan(acb,mb);
-            return;
+            throw new RuntimeException("not implemented");
+//            generateRefActionDependentTableScan(acb,mb);
+//            return;
 
         }
 
@@ -2079,7 +2080,24 @@ public class FromBaseTable extends FromTable {
             mb.pushNull("java.lang.String");
         }
     }
-
+		/**
+		** getLastIndexKeyResultSet
+		** (
+		**		activation,
+		**		resultSetNumber,
+		**		resultRowAllocator,
+		**		conglomereNumber,
+		**		tableName,
+		**		optimizeroverride
+		**		indexName,
+		**		colRefItem,
+		**		lockMode,
+		**		tableLocked,
+		**		isolationLevel,
+		**		optimizerEstimatedRowCount,
+		**		optimizerEstimatedRowCost,
+		**	);
+		*/
     private void generateMaxSpecialResultSet ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
         CostEstimate costEstimate=getFinalCostEstimate();
@@ -2088,24 +2106,6 @@ public class FromBaseTable extends FromTable {
                 acb.addItem(referencedCols);
         boolean tableLockGranularity=tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY;
 	
-		/*
-		** getLastIndexKeyResultSet
-		** (
-		**		activation,			
-		**		resultSetNumber,			
-		**		resultRowAllocator,			
-		**		conglomereNumber,			
-		**		tableName,
-		**		optimizeroverride			
-		**		indexName,			
-		**		colRefItem,			
-		**		lockMode,			
-		**		tableLocked,
-		**		isolationLevel,
-		**		optimizerEstimatedRowCount,
-		**		optimizerEstimatedRowCost,
-		**	);
-		*/
 
         acb.pushGetResultSetFactoryExpression(mb);
 
@@ -2128,9 +2128,8 @@ public class FromBaseTable extends FromTable {
         mb.push(getCompilerContext().getScanIsolationLevel());
         mb.push(costEstimate.singleScanRowCount());
         mb.push(costEstimate.getEstimatedCost());
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,13);
-
+        mb.push(tableDescriptor.getVersion());
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,14);
 
     }
 
@@ -2210,9 +2209,9 @@ public class FromBaseTable extends FromTable {
         mb.push(getCompilerContext().getScanIsolationLevel());
         mb.push(costEstimate.singleScanRowCount());
         mb.push(costEstimate.getEstimatedCost());
-
+        mb.push(tableDescriptor.getVersion());
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,16);
+                ClassName.NoPutResultSet,17);
     }
 
 
@@ -2321,7 +2320,8 @@ public class FromBaseTable extends FromTable {
                 (tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY),
                 getCompilerContext().getScanIsolationLevel(),
                 ap.getOptimizer().getMaxMemoryPerTable(),
-                multiProbing
+                multiProbing,
+                tableDescriptor.getVersion()
         );
     }
 

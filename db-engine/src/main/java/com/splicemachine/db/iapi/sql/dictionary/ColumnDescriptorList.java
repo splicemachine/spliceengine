@@ -90,22 +90,9 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
 	 *
 	 * @return the column descriptor if found
 	 */	
-	public ColumnDescriptor getColumnDescriptor(UUID tableID, int columnID)
-	{
-		ColumnDescriptor	returnValue = null;
-
-		for (Iterator iterator = iterator(); iterator.hasNext(); )
-		{
-			ColumnDescriptor columnDescriptor = (ColumnDescriptor) iterator.next();
-			if ( ( columnID == columnDescriptor.getPosition() ) &&
-				tableID.equals( columnDescriptor.getReferencingUUID() ) )
-			{
-				returnValue = columnDescriptor;
-				break;
-			}
-		}
-
-		return returnValue;
+	public ColumnDescriptor getColumnDescriptor(UUID tableID, int columnID) {
+		ColumnDescriptor returnValue = get(columnID-1);
+        return (returnValue !=null && tableID.equals(returnValue.getReferencingUUID()))?returnValue:null;
 	}
 
 	/**

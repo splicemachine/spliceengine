@@ -114,7 +114,7 @@ public interface ResultSetFactory {
 	ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
 								 GeneratedMethod checkGM, String insertMode, String statusDirectory, int failBadRecordCount,
                                  double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
+                                 double optimizerEstimatedCost, String tableVersion)
         throws StandardException;
 
 	/**
@@ -164,7 +164,7 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the delete
 	 */
 	ResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
+                                 double optimizerEstimatedCost, String tableVersion)
 							throws StandardException;
 
 	/**
@@ -209,7 +209,7 @@ public interface ResultSetFactory {
 	 */
 	ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
 								 GeneratedMethod checkGM,double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
+                                 double optimizerEstimatedCost, String tableVersion)
         throws StandardException;
 
 	/**

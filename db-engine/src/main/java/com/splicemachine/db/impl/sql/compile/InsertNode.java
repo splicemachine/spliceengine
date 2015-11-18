@@ -874,8 +874,9 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(badRecordsAllowed);
             mb.push((double) this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+            mb.push(targetTableDescriptor.getVersion());
 
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 8);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 9);
 		}
 		else
 		{
@@ -900,7 +901,6 @@ public final class InsertNode extends DMLModStatementNode {
 			targetVTI.generate(acb, mb);
             mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-
             mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertVTIResultSet", ClassName.ResultSet, 4);
 		}
 	}

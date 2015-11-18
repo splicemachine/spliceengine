@@ -642,8 +642,8 @@ public class DeleteNode extends DMLModStatementNode
 
         mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
         mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+2);
+        mb.push(targetTableDescriptor.getVersion());
+		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
 
 
 		if(!isDependentTable && cascadeDelete)

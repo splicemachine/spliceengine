@@ -1616,7 +1616,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
                 sd.getSchemaName())){
-            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY);
+            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1);
 
             // ensure a vti class exists
             if(getVTIClass(td,false)!=null)
@@ -2212,14 +2212,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 		 * walk the copy and put the elements back into the original in the
 		 * expected locations.
 		 */
-        int cdlSize=cdl.size();
-        for(ColumnDescriptor aCdl : cdl){
-            cdlCopy.add(aCdl);
-        }
-        for(int index=0;index<cdlSize;index++){
-            cd=cdlCopy.elementAt(index);
-            cdl.set(cd.getPosition()-1,cd);
-        }
+
+        Collections.sort(cdl,new Comparator<ColumnDescriptor>() {
+            @Override
+            public int compare(ColumnDescriptor o1, ColumnDescriptor o2) {
+                return Integer.compare(o1.getPosition(),o2.getPosition());
+            }
+        });
     }
 
     /**
@@ -3458,7 +3457,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                     (DataValueDescriptor)parameterDefaults[index],
                             null,
                             uuid,
-                            null,0,0,0);
+                            null,0,0,0,parameterId-1);
             // no chance of duplicates here
             addDescriptor(cd,null,SYSCOLUMNS_CATALOG_NUM,false,tc);
         }
@@ -3616,7 +3615,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         uuid,
                         null,
-                        0,0,0);
+                        0,0,0,parameterId-1);
 
                 updateColumnDescriptor(cd,cd.getReferencingUUID(),cd.getColumnName(),columnsToSet,tc);
             }
@@ -7029,7 +7028,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // add table to the data dictionary
 
         columnCount=columnList.length;
-        td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY);
+        td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc);
         toid=td.getUUID();
@@ -7078,7 +7077,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                     TableDescriptor td) throws StandardException{
         //RESOLVEAUTOINCREMENT
         // No defaults yet for system columns
-        return new ColumnDescriptor(column.getName(),columnPosition,column.getType(),null,null,td,null,0,0);
+        return new ColumnDescriptor(column.getName(),columnPosition,column.getType(),null,null,td,null,0,0,columnPosition);
     }
 
 
