@@ -102,11 +102,12 @@ public class DataDescriptorGenerator
 		String 				tableName,
 		SchemaDescriptor	schema,
 		int					tableType,
-		char				lockGranularity
+		char				lockGranularity,
+        int                 columnSequence
     )
 	{
 		return new TableDescriptor
-			(dataDictionary, tableName, schema, tableType, lockGranularity);
+			(dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence);
 	}
 
 	/**
@@ -126,11 +127,12 @@ public class DataDescriptorGenerator
 		SchemaDescriptor	schema,
 		int					tableType,
 		boolean				onCommitDeleteRows,
-		boolean				onRollbackDeleteRows
+		boolean				onRollbackDeleteRows,
+        int                 columnSequence
     )
 	{
 		return new TableDescriptor
-			(dataDictionary, tableName, schema, tableType, onCommitDeleteRows, onRollbackDeleteRows);
+			(dataDictionary, tableName, schema, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnSequence);
 	}
 
 	/**
