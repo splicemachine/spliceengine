@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import java.util.Arrays;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 import java.util.Collection;
 import java.util.Random;
 import static org.mockito.Mockito.mock;

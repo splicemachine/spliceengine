@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 
 public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
-	private static final long FIRST_USER_TABLE_NUMBER = 1168;
+	private static final long FIRST_USER_TABLE_NUMBER = 1800;
 
     public static TableEnv getTableEnv(RegionCoprocessorEnvironment e) {
         return EnvUtils.getTableEnv(e.getRegion().getTableDesc().getNameAsString());

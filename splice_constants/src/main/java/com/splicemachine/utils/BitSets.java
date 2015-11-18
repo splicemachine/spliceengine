@@ -1,7 +1,7 @@
 package com.splicemachine.utils;
 
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Convenience methods for working with com.carrotsearch.hppc.BitSet.

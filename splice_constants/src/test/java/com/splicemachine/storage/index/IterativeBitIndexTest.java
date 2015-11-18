@@ -1,12 +1,12 @@
 package com.splicemachine.storage.index;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Random;
 

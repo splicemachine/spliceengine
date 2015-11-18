@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -10,7 +11,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import java.math.BigDecimal;
-import java.util.BitSet;
 import com.splicemachine.primitives.Bytes;
 import com.carrotsearch.hppc.ObjectArrayList;
 

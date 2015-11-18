@@ -1,10 +1,10 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.Pair;
 import java.io.IOException;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
