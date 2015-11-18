@@ -5,9 +5,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.concurrent.ExecutionException;
 import com.google.common.base.Throwables;
+import com.splicemachine.ddl.DDLMessage.*;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SIConstants;
@@ -15,9 +14,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -34,7 +30,6 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -44,13 +39,15 @@ import com.splicemachine.si.impl.DDLTxnView;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.log4j.Logger;
 
 /**
  * @author Jeff Cunningham
  *         Date: 3/19/15
  */
-public class PopulateConglomerateTask extends ZkTask {
+public class PopulateConglomerateTask{
+    private static Logger LOG = Logger.getLogger(PopulateConglomerateTask.class);
+
     private static final long serialVersionUID = 1L;
 
     private int expectedScanReadWidth;
@@ -72,46 +69,13 @@ public class PopulateConglomerateTask extends ZkTask {
                                     int expectedScanReadWidth,
                                     long demarcationTimestamp,
                                     DDLChange ddlChange) {
-        super(jobId, SpliceConstants.operationTaskPriority,null);
         this.expectedScanReadWidth = expectedScanReadWidth;
         this.demarcationTimestamp = demarcationTimestamp;
         this.ddlChange = ddlChange;
     }
 
-    @Override
-    public RegionTask getClone() {
-        return new PopulateConglomerateTask(jobId, expectedScanReadWidth, demarcationTimestamp, ddlChange);
-    }
-
-    @Override
-    public boolean isSplittable() {
-        return true;
-    }
-
-    @Override
-    public void prepareTask(byte[] start, byte[] end,RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
-        throws ExecutionException {
-        this.region = (HRegion) rce.getRegion();
-        super.prepareTask(start,end,rce, zooKeeper);
-        this.scanStart = start;
-        this.scanStop = end;
-        this.writeBuffer = null;
-        this.transformer = null;
-        this.scanner = null;
-    }
-
-    @Override
-    protected String getTaskType() {
-        return getClass().getSimpleName();
-    }
-
-    @Override
-    public boolean invalidateOnClose() {
-        return true;
-    }
-
-    @Override
     public void doExecute() throws ExecutionException {
+        /*
         try {
             try (SITableScanner scanner = getTableScanner(Metrics.noOpMetricFactory())) {
                 ExecRow nextRow = scanner.next();
@@ -132,8 +96,9 @@ public class PopulateConglomerateTask extends ZkTask {
             SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(Throwables.getRootCause(e));
         }
+        */
     }
-
+/*
     private SITableScanner getTableScanner(MetricFactory metricFactory) throws IOException {
         if (scanner == null) {
             Txn txn = getTxn();
@@ -185,31 +150,11 @@ public class PopulateConglomerateTask extends ZkTask {
     }
 
     @Override
-    public int getPriority() {
-        return SchedulerPriorities.INSTANCE.getBasePriority(PopulateConglomerateTask.class);
-    }
-
-    @Override
     protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
         return tc.beginChildTransaction(parentTxn, Long.toString(ddlChange.getTentativeDDLDesc()
                                                                           .getConglomerateNumber()).getBytes());
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeInt(expectedScanReadWidth);
-        out.writeLong(demarcationTimestamp);
-        out.writeObject(ddlChange);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        expectedScanReadWidth = in.readInt();
-        demarcationTimestamp = in.readLong();
-        ddlChange = (DDLChange) in.readObject();
-    }
 
     public KeyEncoder getKeyEncoder(final SITableScanner scanner) throws StandardException {
         if (noPKKeyEncoder == null) {
@@ -240,4 +185,5 @@ public class PopulateConglomerateTask extends ZkTask {
         }
         return noPKKeyEncoder;
     }
+    */
 }
