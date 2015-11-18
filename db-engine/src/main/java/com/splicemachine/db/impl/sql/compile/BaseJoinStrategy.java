@@ -116,7 +116,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       int indexColItem,
                                       int lockMode,
                                       boolean tableLocked,
-                                      int isolationLevel)
+                                      int isolationLevel, String tableVersion)
             throws StandardException{
         mb.push(innerTable.getBaseTableName());
         //User may have supplied optimizer overrides in the sql
@@ -184,6 +184,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         mb.push(
                 innerTable.getTrulyTheBestAccessPath().
                         getCostEstimate().getEstimatedCost());
+        mb.push(tableVersion);
     }
 
     /**
