@@ -7,8 +7,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import java.io.IOException;
-import java.util.BitSet;
-
+import com.carrotsearch.hppc.BitSet;
 /**
  * @author Scott Fines
  * Created on: 7/8/13

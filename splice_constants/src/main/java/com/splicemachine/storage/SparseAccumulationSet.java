@@ -1,8 +1,8 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.index.BitIndex;
 
-import java.util.BitSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -61,6 +61,6 @@ public class SparseAccumulationSet extends EntryAccumulationSet {
 		@Override
 		public void reset() {
 				super.reset();
-				remainingFields = (BitSet)allFields.clone(); // JL TODO Remove clone op
+				remainingFields.union(allFields);
 		}
 }

@@ -1,8 +1,7 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.utils.ByteSlice;
-
-import java.util.BitSet;
 
 /**
  * @author Scott Fines

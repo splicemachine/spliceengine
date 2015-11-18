@@ -1,9 +1,8 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
-
-import java.util.BitSet;
 
 
 /**

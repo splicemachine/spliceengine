@@ -5,7 +5,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.index.*;
 import com.splicemachine.utils.kryo.KryoPool;
 import java.io.IOException;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 
 /**

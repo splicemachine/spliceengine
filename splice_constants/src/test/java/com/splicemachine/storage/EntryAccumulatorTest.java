@@ -5,7 +5,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.junit.Assert;
 import org.junit.Test;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
