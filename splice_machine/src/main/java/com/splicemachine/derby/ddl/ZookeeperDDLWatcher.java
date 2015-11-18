@@ -4,10 +4,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;

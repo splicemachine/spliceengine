@@ -1,30 +1,329 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.LazyTxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.si.impl.TransactionStorage;
+import com.splicemachine.stream.Stream;
+import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+import java.io.*;
+import java.util.Arrays;
+import com.carrotsearch.hppc.BitSet;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by jleach on 11/12/15.
  */
 public class DDLUtils {
+    private static final Logger LOG = Logger.getLogger(DDLUtils.class);
 
-    public static DDLChange performMetadataChange(Txn tentativeTransaction, TentativeIndexDesc tentativeIndexDesc) throws StandardException {
-        DDLChange ddlChange = new DDLChange(tentativeTransaction,
-                DDLChangeType.CREATE_INDEX);
-        ddlChange.setTentativeDDLDesc(tentativeIndexDesc);
+    public static DDLMessage.DDLChange performMetadataChange(DDLMessage.DDLChange ddlChange) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.trace(LOG,"performMetadataChange ddlChange=%s",ddlChange);
         notifyMetadataChangeAndWait(ddlChange);
         return ddlChange;
     }
 
-    public static String notifyMetadataChange(DDLChange change) throws StandardException {
-        return DDLCoordinationFactory.getController().notifyMetadataChange(change);
+    public static String notifyMetadataChange(DDLMessage.DDLChange ddlChange) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.trace(LOG,"notifyMetadataChange ddlChange=%s",ddlChange);
+        return DDLCoordinationFactory.getController().notifyMetadataChange(ddlChange);
     }
 
-    public static void notifyMetadataChangeAndWait(DDLChange change) throws StandardException{
-        String changeId = notifyMetadataChange(change);
+    public static void finishMetadataChange(String changeId) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.trace(LOG,"finishMetadataChange changeId=%s",changeId);
         DDLCoordinationFactory.getController().finishMetadataChange(changeId);
     }
 
 
+    public static void notifyMetadataChangeAndWait(DDLMessage.DDLChange ddlChange) throws StandardException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.trace(LOG,"notifyMetadataChangeAndWait ddlChange=%s",ddlChange);
+        String changeId = notifyMetadataChange(ddlChange);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.trace(LOG,"notifyMetadataChangeAndWait changeId=%s",changeId);
+        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+    }
+
+
+    /**
+     *
+     * Forbid Past Writes to the region.
+     *
+     * @param ddlChange
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
+    /*
+    public static void forbidPastWrites(DDLMessage.DDLChange ddlChange) throws ExecutionException, InterruptedException {
+        try{
+            TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
+            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(tentativeIndexDesc.getBaseConglomerateNumber());
+            try {
+                contextFactory.addIndex(ddlChange, null, null);
+            }finally{
+                contextFactory.close();
+            }
+        } catch (Exception e) {
+            throw new ExecutionException(Throwables.getRootCause(e));
+        }
+    }
+    */
+
+    /*
+    public static void alterTable(DDLMessage.DDLChange ddlChange) throws ExecutionException, InterruptedException {
+
+        try {
+            TentativeDDLDesc tentativeAddColumnDesc = ddlChange.getTentativeDDLDesc();
+            WriteContextFactory contextFactory =
+                    WriteContextFactoryManager.getWriteContext(tentativeAddColumnDesc.getBaseConglomerateNumber());
+            try {
+                if (ddlChange.getChangeType() == DDLChangeType.DROP_CONSTRAINT) {
+                    // For drop constraint task, we just need to remove the constraint index
+                    long indexConglomId = ((TentativeAddConstraintDesc) ddlChange.getTentativeDDLDesc()).getIndexConglomerateId();
+                    contextFactory.dropIndex(indexConglomId, ddlChange.getTxn());
+                } else {
+                    contextFactory.addDDLChange(ddlChange);
+                }
+            } finally {
+                contextFactory.close();
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, e);
+            throw new ExecutionException(Throwables.getRootCause(e));
+        }
+    }
+    */
+
+    public static TxnView getLazyTransaction(long txnId) {
+        return new LazyTxnView(txnId, TransactionStorage.getTxnSupplier());
+    }
+
+    public static String outIntArray(int[] values) {
+        return values==null?"null":Arrays.toString(values);
+    }
+
+    public static String outBoolArray(boolean[] values) {
+        return values==null?"null":Arrays.toString(values);
+    }
+
+
+
+    public static Txn getIndexTransaction(TransactionController tc, Txn tentativeTransaction, long tableConglomId, String indexName) throws StandardException {
+        final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        /*
+         * We have an additional waiting transaction that we use to ensure that all elements
+         * which commit after the demarcation point are committed BEFORE the populate part.
+         */
+        byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+        Txn waitTxn;
+        try{
+            waitTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
+        }catch(IOException ioe){
+            LOG.error("Could not create a wait transaction",ioe);
+            throw Exceptions.parseException(ioe);
+        }
+
+        //get the absolute user transaction
+        TxnView uTxn = wrapperTxn;
+        TxnView n = uTxn.getParentTxnView();
+        while(n.getTxnId()>=0){
+            uTxn = n;
+            n = n.getParentTxnView();
+        }
+        // Wait for past transactions to die
+        long oldestActiveTxn;
+        try {
+            oldestActiveTxn = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
+        } catch (IOException e) {
+            LOG.error("Unexpected error while waiting for past transactions to complete", e);
+            throw Exceptions.parseException(e);
+        }
+        if (oldestActiveTxn>=0) {
+            throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("CreateIndex("+indexName+")",oldestActiveTxn);
+        }
+        Txn indexTxn;
+        try{
+            /*
+             * We need to make the indexTxn a child of the wrapper, so that we can be sure
+             * that the write pipeline is able to see the conglomerate descriptor. However,
+             * this makes the SI logic more complex during the populate phase.
+             */
+            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
+                    wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
+        } catch (IOException e) {
+            LOG.error("Couldn't commit transaction for tentative DDL operation");
+            // TODO must cleanup tentative DDL change
+            throw Exceptions.parseException(e);
+        }
+        return indexTxn;
+    }
+
+
+    /**
+     * Waits for concurrent transactions that started before the tentative
+     * change completed.
+     *
+     * Performs an exponential backoff until a configurable timeout triggers,
+     * then returns the list of transactions still running. The caller has to
+     * forbid those transactions to ever write to the tables subject to the DDL
+     * change.
+     *
+     * @param maximum
+     *            wait for all transactions started before this one. It should
+     *            be the transaction created just after the tentative change
+     *            committed.
+     * @param userTxn the <em>user-level</em> transaction of the ddl operation. It is important
+     *                that it be the user-level, otherwise some child transactions may be treated
+     *                as active when they are not actually active.
+     * @return list of transactions still running after timeout
+     * @throws IOException
+     */
+    public static long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
+        byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
+
+        ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
+        long waitTime = SpliceConstants.ddlDrainingInitialWait; //the initial time to wait
+        long maxWait = SpliceConstants.ddlDrainingMaximumWait; // the maximum time to wait
+        long scale = 2; //the scale factor for the exponential backoff
+        long timeAvailable = maxWait;
+        long activeTxnId = -1l;
+        do{
+            try(Stream<TxnView> activeTxns = transactionReader.getActiveTransactions()){
+                TxnView txn;
+                while((txn = activeTxns.next())!=null){
+                    if(!txn.descendsFrom(userTxn)){
+                        activeTxnId = txn.getTxnId();
+                    }
+                }
+            } catch (StreamException e) {
+                throw new IOException(e.getCause());
+            }
+            if(activeTxnId<0) return activeTxnId;
+            /*
+             * It is possible for a sleep to pick up before the
+             * waitTime is expired. Therefore, we measure that actual
+             * time spent and use that for our time remaining period
+             * instead.
+             */
+            long start = System.currentTimeMillis();
+            try {
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+            long stop = System.currentTimeMillis();
+            timeAvailable-=(stop-start);
+            /*
+             * We want to exponentially back off, but only to the limit imposed on us. Once
+             * our backoff exceeds that limit, we want to just defer to that limit directly.
+             */
+            waitTime = Math.min(timeAvailable,scale*waitTime);
+        } while(timeAvailable>0);
+
+        if (activeTxnId>=0) {
+            LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %d", "operation Running", activeTxnId));
+        }
+        return activeTxnId;
+    }
+
+    /**
+     * Make sure that the table exists and that it isn't a system table. Otherwise, KA-BOOM
+     */
+    public static  void validateTableDescriptor(TableDescriptor td,String indexName, String tableName) throws StandardException {
+        if (td == null)
+            throw StandardException.newException(SQLState.LANG_CREATE_INDEX_NO_TABLE, indexName, tableName);
+        if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE)
+            throw StandardException.newException(SQLState.LANG_CREATE_SYSTEM_INDEX_ATTEMPTED, indexName, tableName);
+    }
+
+    /**
+     *
+     * Create a table scan for old conglomerate. Make sure to create a NonSI table scan. Transaction filtering
+     * will happen at client side
+     * @return
+     */
+    public static Scan createFullScan() {
+        Scan scan = SpliceUtils.createScan(null);
+        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
+        scan.setStartRow(new byte[0]);
+        scan.setStopRow(new byte[0]);
+        scan.setCacheBlocks(false);
+        scan.setMaxVersions();
+        return scan;
+    }
+
+    public static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, BitSet indexedCols) {
+        int[] mainColToIndexPosMap = new int[(int) indexedCols.length()];
+        for (int indexCol = 0; indexCol < indexColsToMainColMap.length; indexCol++) {
+            int mainCol = indexColsToMainColMap[indexCol];
+            mainColToIndexPosMap[mainCol - 1] = indexCol;
+        }
+        return mainColToIndexPosMap;
+    }
+
+    public static BitSet getIndexedCols(int[] indexColsToMainColMap) {
+        BitSet indexedCols = new BitSet();
+        for (int indexCol : indexColsToMainColMap) {
+            indexedCols.set(indexCol - 1);
+        }
+        return indexedCols;
+    }
+
+    public static byte[] getIndexConglomBytes(long indexConglomerate) {
+        return Bytes.toBytes(Long.toString(indexConglomerate));
+    }
+
+    public static byte[] serializeColumnInfoArray(ColumnInfo[] columnInfos) throws StandardException {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeInt(columnInfos.length);
+            for (int i =0; i< columnInfos.length;i++) {
+                oos.writeObject(columnInfos[i]);
+            }
+            oos.flush();
+            oos.close();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static ColumnInfo[] deserializeColumnInfoArray(byte[] bytes) {
+        ObjectInputStream oos = null;
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+            ObjectInputStream is = new ObjectInputStream(bis);
+            ColumnInfo[] columnInfos = new ColumnInfo[is.readInt()];
+            for (int i =0; i< columnInfos.length;i++) {
+                columnInfos[i] = (ColumnInfo) is.readObject();
+            }
+            is.close();
+            return columnInfos;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

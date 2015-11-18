@@ -1,8 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
-
+import com.splicemachine.ddl.DDLMessage;
 import java.util.Collection;
 
 /**
@@ -17,7 +16,7 @@ import java.util.Collection;
 public interface DDLCommunicator{
 
 
-    String createChangeNode(DDLChange change) throws StandardException;
+    String createChangeNode(DDLMessage.DDLChange change) throws StandardException;
 
     /**
      * @param asyncListener a listener to be notified of future events. Once the listener

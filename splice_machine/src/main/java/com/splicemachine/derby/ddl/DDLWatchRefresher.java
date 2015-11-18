@@ -2,9 +2,8 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.ddl.DDLMessage.*;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,6 +60,7 @@ public class DDLWatchRefresher{
                 LOG.debug("New change with id "+changeId+":"+change);
                 newChanges.add(change);
                 seenDDLChanges.add(changeId);
+                /*
                 if(change.isPreCommit()){
                     processPreCommitChange(change,callbacks);
                 } else if(change.isPostCommit()){
@@ -74,6 +74,7 @@ public class DDLWatchRefresher{
                         listener.startChange(change);
                     }
                 }
+                */
             }
         }
 
@@ -110,8 +111,6 @@ public class DDLWatchRefresher{
 
     private void processPreCommitChange(DDLChange ddlChange,
                                         Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
-        assert ddlChange.getChangeType()!=null: "Cannot have a tentative change with a null type!";
-        assert ddlChange.getChangeType().isPreCommit(): "Change "+ ddlChange + " is not a precommit change!";
 
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){

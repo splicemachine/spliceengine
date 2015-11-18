@@ -1,15 +1,9 @@
 package com.splicemachine.derby.ddl;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.ddl.DDLMessage;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
@@ -21,11 +15,12 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import org.sparkproject.guava.primitives.Ints;
 
 /**
  * Tentative constraint descriptor. Serves for both add and drop constraint currently.
  */
-public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor, Externalizable {
+public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor {
     private String tableVersion;
     private long newConglomId;
     private long oldConglomId;
@@ -34,22 +29,14 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
 
-    public TentativeAddConstraintDesc() {}
-
-    public TentativeAddConstraintDesc(String tableVersion,
-                                   long newConglomId,
-                                   long oldConglomId,
-                                   long indexConglomerateId,
-                                   int[] srcColumnOrdering,
-                                   int[] targetColumnOrdering,
-                                   ColumnInfo[] columnInfos) {
-        this.tableVersion = tableVersion;
-        this.newConglomId = newConglomId;
-        this.oldConglomId = oldConglomId;
-        this.indexConglomerateId = indexConglomerateId;
-        this.srcColumnOrdering = srcColumnOrdering;
-        this.targetColumnOrdering = targetColumnOrdering;
-        this.columnInfos = columnInfos;
+    public TentativeAddConstraintDesc(DDLMessage.TentativeAddConstraint tentativeAddConstraint) {
+        this.tableVersion = tentativeAddConstraint.getTableVersion();
+        this.newConglomId = tentativeAddConstraint.getNewConglomId();
+        this.oldConglomId = tentativeAddConstraint.getOldConglomId();
+        this.indexConglomerateId = tentativeAddConstraint.getIndexConglomerateId();
+        this.srcColumnOrdering = Ints.toArray(tentativeAddConstraint.getSrcColumnOrderingList());
+        this.targetColumnOrdering = Ints.toArray(tentativeAddConstraint.getTargetColumnOrderingList());
+        this.columnInfos = DDLUtils.deserializeColumnInfoArray(tentativeAddConstraint.getColumnInfos().toByteArray());
     }
 
     @Override
@@ -95,35 +82,6 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                .keyDecodingMap(getKeyDecodingMap(accessedPKColumns, baseColumnOrder, keyColumnEncodingOrder));
 
         return builder;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(tableVersion);
-        out.writeLong(newConglomId);
-        out.writeLong(oldConglomId);
-        out.writeLong(indexConglomerateId);
-        ArrayUtil.writeIntArray(out, srcColumnOrdering);
-        ArrayUtil.writeIntArray(out, targetColumnOrdering);
-        out.writeInt(columnInfos.length);
-        for (ColumnInfo col:columnInfos) {
-            out.writeObject(col);
-        }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        tableVersion = (String) in.readObject();
-        newConglomId = in.readLong();
-        oldConglomId = in.readLong();
-        indexConglomerateId = in.readLong();
-        srcColumnOrdering = ArrayUtil.readIntArray(in);
-        targetColumnOrdering = ArrayUtil.readIntArray(in);
-        int size = in.readInt();
-        columnInfos = new ColumnInfo[size];
-        for (int i = 0; i < size; ++i) {
-            columnInfos[i] = (ColumnInfo)in.readObject();
-        }
     }
 
     public long getIndexConglomerateId() {
