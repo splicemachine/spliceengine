@@ -38,7 +38,9 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -60,6 +62,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected boolean statisticsTimingOn;
         protected Iterator<LocatedRow> locatedRowIterator;
 		protected Activation activation;
+		protected String explainPlan = "";
 		protected Timer timer;
 		protected long stopExecutionTime;
 		protected double optimizerEstimatedRowCount;
@@ -180,6 +183,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return activation;
 		}
 
+        public String getExplainPlan() {
+            return explainPlan;
+        }
+
+        public String getPrettyExplainPlan() {
+            return (explainPlan == null ? "" : explainPlan.replace("n=",  "RS="));
+        }
+
+		public void setExplainPlan(String plan) {
+		    explainPlan = plan;
+		}
+		
     @Override
     public void clearCurrentRow() {
         if(activation!=null){
@@ -513,6 +528,24 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             }
         }
 
+    public String getSparkStageName() {
+        if (this.getResultSetNumber() > -1)
+            return String.format("%s (RS %d)", this.getClass().getSimpleName(), this.getResultSetNumber());
+        else
+            return String.format("%s", this.getClass().getSimpleName());
+        // return String.format("%s (rs %d)", this.getClass().getSimpleName().replace("Operation", ""), this.getResultSetNumber());
+    }
+    
+    public String getSparkStageNameWithPlan() {
+        if (this.getResultSetNumber() > -1)
+            return String.format("%s (RS %d)\n%s", this.getClass().getSimpleName(), this.getResultSetNumber(),
+                this.getPrettyExplainPlan());
+        else
+            return String.format("%s\n%s", this.getClass().getSimpleName(),
+                this.getPrettyExplainPlan());
+        // return String.format("%s (rs %d)", this.getClass().getSimpleName().replace("Operation", ""), this.getResultSetNumber());
+    }
+    
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {
             DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);
             return getDataSet(dsp);

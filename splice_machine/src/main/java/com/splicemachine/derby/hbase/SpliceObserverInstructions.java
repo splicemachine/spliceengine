@@ -117,7 +117,7 @@ public class SpliceObserverInstructions implements Externalizable {
 
     public static SpliceObserverInstructions create(Activation activation,
                                                     SpliceOperation topOperation) {
-        ActivationContext activationContext = ActivationContext.create(activation, topOperation);
+        ActivationContext activationContext = ActivationContext.create(activation, topOperation); // wjk - try printing plan here
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TriggerExecutionStack triggerExecutionStack = null;
         if (lcc.hasTriggers()) {

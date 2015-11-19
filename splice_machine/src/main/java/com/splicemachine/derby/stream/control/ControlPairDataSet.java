@@ -63,6 +63,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public DataSet<V> values(String name) {
+        // Ignore name on the control side
+        return values();
+    }
+
+    @Override
     public DataSet<K> keys() {
         return new ControlDataSet(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, K>() {
             @Nullable
@@ -105,6 +111,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 return comparator.compare(o1._1(), o2._1());
             }
         }));
+    }
+
+    @Override
+    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator, String name) {
+        // 'name' is not used on control side
+        return sortByKey(comparator);
     }
 
     @Override
@@ -186,6 +198,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
+        // Ignore name on control side
+        return hashJoin(rightDataSet);
+    }
+    
+    @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
@@ -195,6 +213,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 return rightSide.get(t._1()).isEmpty();
             }
         }));
+    }
+
+    @Override
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet, String name) {
+        // Ignore name on control side
+        return subtractByKey(rightDataSet);
     }
 
     @Override
@@ -241,6 +265,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         for (K key: Sets.union(left.keySet(),right.keySet()))
             result.add(new Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>(key, new Tuple2(left.get(key), right.get(key))));
         return new ControlPairDataSet<>(result);
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name) {
+        // Ignore name on control side
+        return cogroup(rightDataSet);
     }
 
     @Override

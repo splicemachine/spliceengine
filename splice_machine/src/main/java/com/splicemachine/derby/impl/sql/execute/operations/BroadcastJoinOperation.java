@@ -157,13 +157,16 @@ public class BroadcastJoinOperation extends JoinOperation{
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
+
         DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
-        operationContext.pushScope("Broadcast Join");
-        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+        operationContext.pushScope();
+        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext), this.getPrettyExplainPlan());
+
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+
         DataSet<LocatedRow> result;
         if (isOuterJoin) { // Outer Join with and without restriction
                     result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))

@@ -46,4 +46,9 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
         operationContext.reset();
     }
 
+    public String getSparkName() {
+        return this.getClass().getSimpleName();
+        // return this.getClass().getSimpleName().replace("Function", "");
+    }
+    
 }

@@ -48,6 +48,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
+        // Ignore name on control side
         try {
             return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
         } catch (Exception e) {
@@ -56,8 +57,20 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
+        // Ignore name on control side
+        return mapPartitions(f);
+    }
+
+    @Override
     public DataSet<V> distinct() {
         return new ControlDataSet(Sets.newHashSet(iterable));
+    }
+
+    @Override
+    public DataSet<V> distinct(String name) {
+        // Ignore name on control side
+        return distinct();
     }
 
     @Override
@@ -93,6 +106,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
+        // Ignore name on control side
+        return map(function);
+    }
+
+    @Override
     public Iterator<V> toLocalIterator() {
         return iterable.iterator();
     }
@@ -100,6 +119,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function) {
         return new ControlPairDataSet<K,V>(entryToTuple(FluentIterable.from(iterable).index(function).entries()));
+    }
+
+    @Override
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
+        // Ignore name on control side
+        return keyBy(function);
     }
 
     @Override
@@ -142,6 +167,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
         return new ControlDataSet(FluentIterable.from(iterable).transformAndConcat(f));
+    }
+
+    @Override
+    public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f, String name) {
+        // Ignore 'name' on control side
+        return flatMap(f);
     }
 
     @Override

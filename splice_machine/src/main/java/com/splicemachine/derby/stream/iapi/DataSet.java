@@ -14,20 +14,26 @@ import java.util.List;
  */
 public interface DataSet<V> {
     /**
-     * Transform the dataset into a list of items.
+     * Transforms the dataset into a list of items.
      */
     List<V> collect();
+
     /**
-     * Apply a flatmapfunction to entire partitions of data.
+     * Applies a flatmapfunction to entire partitions of data.
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
+
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name);
+
     /**
-     * Remove duplicates from dataset
+     * Removes duplicates from dataset
      */
     DataSet<V> distinct();
+
+    DataSet<V> distinct(String name);
+
     /**
-     * Decrease the number of partitions
-     *
+     * Decreases the number of partitions
      */
     DataSet<V> coalesce(int numPartitions, boolean shuffle);
 
@@ -35,17 +41,23 @@ public interface DataSet<V> {
      * Iterate over all values and produce a single value.
      */
     <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
+    
     /**
-     * Apply function to dataset to produce an indexed dataset.  Does not require
+     * Applies function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
      */
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
+    
     /**
-     * Apply map function.
+     * Applies map function.
      */
     <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function);
 
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name);
+
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
+
+    <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name);
 
     /**
      * Returns a localiterator for computation.
@@ -68,7 +80,7 @@ public interface DataSet<V> {
     DataSet<V> union (DataSet<V> dataSet);
 
     /**
-     * Apply a filter to the results, possible removing a row.
+     * Applies a filter to the results, possible removing a row.
      *
      * @param f
      * @return
@@ -106,14 +118,16 @@ public interface DataSet<V> {
      */
    <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
 
+   <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f, String name);
+   
     /**
-     * Release any resources of the dataset
+     * Releases any resources of the dataset
      *
      */
     void close();
 
     /**
-     * Perform a fetch with offset
+     * Performs a fetch with offset
      *
      * @return
      */

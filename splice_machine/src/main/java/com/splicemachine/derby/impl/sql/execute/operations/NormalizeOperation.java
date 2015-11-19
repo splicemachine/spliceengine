@@ -275,7 +275,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         try {
-            operationContext.pushScope("Normalize");
+            operationContext.pushScope();
             return
                     sourceSet.map(new NormalizeFunction(operationContext));
         } finally {

@@ -3,9 +3,11 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
@@ -39,6 +41,10 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     public void setOperationContext(OperationContext operationContext);
 
+    public String getSparkStageName();
+    
+    public String getSparkStageDetail();
+    
     /**
      * @return a descriptive name for this operation. Used for reporting information.
      */
