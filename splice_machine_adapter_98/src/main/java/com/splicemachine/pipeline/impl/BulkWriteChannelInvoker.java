@@ -34,12 +34,11 @@ public class BulkWriteChannelInvoker {
 
     public BulkWritesResult invoke(BulkWrites write) throws IOException {
         NoRetryCoprocessorRpcChannel channel
-                = new NoRetryCoprocessorRpcChannel(HBaseConnectionFactory.getInstance().getConnection(), TableName.valueOf(tableName), write.getRegionKey());
+                = new NoRetryCoprocessorRpcChannel(HBaseConnectionFactory.getInstance().getConnection(), HBaseTableInfoFactory.getInstance().getTableInfo(tableName), write.getRegionKey());
 
         boolean cacheCheck = false;
         try {
             SpliceMessage.SpliceIndexService service = ProtobufUtil.newServiceStub(SpliceMessage.SpliceIndexService.class, channel);
-
             SpliceMessage.BulkWriteRequest.Builder builder = SpliceMessage.BulkWriteRequest.newBuilder();
             byte[] requestBytes = PipelineEncoding.encode(write);
 //            byte[] requestBytes = PipelineUtils.toCompressedBytes(write);
