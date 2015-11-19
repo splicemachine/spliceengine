@@ -4,10 +4,9 @@ import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TxnView;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import java.io.IOException;
 import java.util.Map;
 
@@ -54,7 +53,7 @@ public interface WriteContext {
     /**
      * Retrieve the HTableInterface based on the index bytes[] name
      */
-    HTableInterface getHTable(byte[] indexConglomBytes);
+    Table getHTable(byte[] indexConglomBytes);
 
     /**
      * Retrieve the sharedWriteBuffer for the index upsert handler

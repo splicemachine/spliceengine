@@ -10,8 +10,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
-import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
@@ -20,17 +18,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -84,38 +74,6 @@ public class PipelineUtils extends PipelineConstants {
                     return snappy.createOutputStream(outputStream);
                 }
 				return outputStream;
-		}
-
-		public static long getWaitTime(int tryNum,long pause) {
-    			return SpliceHTableUtil.getWaitTime(tryNum,pause);
-		}
-
-	    /**
-	     * Get the cached regions for the table.  If the cache returns zero regions, invalidate the cache entry for the table and
-	     * retry a number of times assuming that the information is temporarily unavailable.  If after the retries,
-	     * there are still zero regions, throw an IOException since all tables should have at least one region.
-	     * @param regionCache
-	     * @param tableName
-	     * @return
-	     * @throws IOException if unable to get region information for the table (if the # of regions is zero)
-	     * @throws ExecutionException
-	     * @throws InterruptedException
-	     */
-		public static SortedSet<Pair<HRegionInfo,ServerName>> getRegions(RegionCache regionCache, byte[] tableName) throws IOException, ExecutionException, InterruptedException {
-				SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegions(tableName);
-				if(regions.size()<=0){
-						int numTries=50; // TODO Configurable, increased to 50 from 5 JL
-						while(numTries>0){
-								Thread.sleep(PipelineUtils.getWaitTime(numTries,200));
-								regionCache.invalidate(tableName);
-								regions = regionCache.getRegions(tableName);
-								if(regions.size()>0) break;
-								numTries--;
-						}
-						if(regions.size()<=0)
-								throw new IOException("Unable to get region information for table "+ Bytes.toString(tableName));
-				}
-				return regions;
 		}
 
 		public static String getHostName() {

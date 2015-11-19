@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -11,10 +11,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.table.BetterHTablePool;
-import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.TransactionalRegion;
@@ -29,7 +26,6 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
-import com.splicemachine.si.data.hbase.HPoolTableSource;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
@@ -90,13 +86,9 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
 
 	@Override
 	public STableReader getTableReader() {
-		BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
-				SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
-				SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
-		final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
 		final STableReader reader;
 		try {
-			return new HTableReader(tableSource);
+			return new HTableReader(HBaseTableFactory.getInstance());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 	}

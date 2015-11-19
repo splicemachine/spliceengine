@@ -3,6 +3,7 @@ package com.splicemachine.pipeline.impl;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.pipeline.api.BulkWritesInvoker;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 
 import java.io.IOException;
@@ -17,8 +18,8 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 
     private BulkWriteChannelInvoker bulkWriteChannelInvoker;
 
-    public BulkWritesRPCInvoker(HConnection connection, byte[] tableName) {
-        this.bulkWriteChannelInvoker = new BulkWriteChannelInvoker(connection, tableName);
+    public BulkWritesRPCInvoker(byte[] tableName) {
+        this.bulkWriteChannelInvoker = new BulkWriteChannelInvoker(tableName);
     }
 
     @Override
@@ -45,17 +46,15 @@ public class BulkWritesRPCInvoker implements BulkWritesInvoker {
 
 
     public static final class Factory implements BulkWritesInvoker.Factory {
-        private final HConnection connection;
         private final byte[] tableName;
 
-        public Factory(HConnection connection, byte[] tableName) {
-            this.connection = connection;
+        public Factory(byte[] tableName) {
             this.tableName = tableName;
         }
 
         @Override
         public BulkWritesInvoker newInstance() {
-            return new BulkWritesRPCInvoker(connection, tableName);
+            return new BulkWritesRPCInvoker(tableName);
         }
     }
 }

@@ -44,7 +44,7 @@ public class SpliceBaseIndexEndpoint {
     public static final TrafficControl independentTrafficControl;
 
     static {
-        int ipcThreads = SpliceConstants.ipcThreads - SpliceConstants.taskWorkers - ipcReserved;
+        int ipcThreads = SpliceConstants.ipcThreads - ipcReserved;
         int maxIndependentWrites = SpliceConstants.maxIndependentWrites;
         int maxDependentWrites = SpliceConstants.maxDependentWrites;
         writeControl = new SpliceWriteControl(ipcThreads / 2, ipcThreads / 2, maxDependentWrites, maxIndependentWrites);

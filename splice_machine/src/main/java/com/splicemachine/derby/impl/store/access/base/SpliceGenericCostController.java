@@ -1,20 +1,14 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class SpliceGenericCostController implements StoreCostController {
     private static final Logger LOG = Logger.getLogger(SpliceGenericCostController.class);
@@ -26,15 +20,6 @@ public abstract class SpliceGenericCostController implements StoreCostController
         return Bytes.overlap(regionInfo.getStartKey(), regionInfo.getEndKey(), scan.getStartRow(), scan.getStopRow());
     }
 
-    public static SortedSet<Pair<HRegionInfo,ServerName>> getRegions(long conglomId) {
-        String table = Long.toString(conglomId);
-        try {
-            return HBaseRegionCache.getInstance().getRegions(Bytes.toBytes(table));
-        } catch (ExecutionException e) {
-            SpliceLogUtils.error(LOG, "Erorr in getRegions on the cost controller, should not happen", e);
-            return null;
-        }
-    }
     /**
      * Scratch Estimate...
      */

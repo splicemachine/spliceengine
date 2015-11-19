@@ -72,4 +72,6 @@ public interface TxnStore extends TxnSupplier {
      */
     long commitCount();
 
+    void setCache(TxnSupplier cache);
+
 }

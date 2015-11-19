@@ -1,6 +1,5 @@
 package com.splicemachine.pipeline.writer;
 
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.impl.ActionStatusReporter;
@@ -8,11 +7,7 @@ import com.splicemachine.pipeline.impl.BulkWriteAction;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.writeconfiguration.CountingWriteConfiguration;
 import com.splicemachine.pipeline.writerstatus.ActionStatusMonitor;
-
-import org.apache.hadoop.hbase.client.HConnection;
-
 import javax.management.*;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -26,8 +21,7 @@ public class SynchronousBucketingWriter extends BucketingWriter{
     private final ActionStatusReporter statusMonitor;
     private ActionStatusMonitor monitor;
 
-    public SynchronousBucketingWriter(RegionCache regionCache, HConnection connection) {
-        super(regionCache, connection);
+    public SynchronousBucketingWriter() {
         this.statusMonitor = new ActionStatusReporter();
         this.monitor = new ActionStatusMonitor(statusMonitor);
 
@@ -40,9 +34,7 @@ public class SynchronousBucketingWriter extends BucketingWriter{
         WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration, statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrites,
-                regionCache,
                 countingWriteConfiguration,
-                connection,
                 statusMonitor);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();
         Exception e = null;

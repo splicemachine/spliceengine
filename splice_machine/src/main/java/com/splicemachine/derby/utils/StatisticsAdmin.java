@@ -13,12 +13,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Joiner;
 import com.google.common.primitives.Longs;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.ddl.DDLMessage.*;
@@ -33,10 +32,8 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -68,8 +65,6 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -403,7 +398,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         DataValueDescriptor[] dvds = templateOutputRow.getRowArray();
         dvds[0].setValue(table.getSchemaName());
         long heapConglomerateId = table.getHeapConglomerateId();
-        Collection<HRegionInfo> regionsToCollect = getCollectedRegions(conn, heapConglomerateId, staleOnly);
+        Collection<HRegionLocation> regionsToCollect = null;
+        try {
+            regionsToCollect = HBaseTableFactory.getInstance().getRegions(Long.toString(heapConglomerateId), true);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
         int partitionSize = regionsToCollect.size();
         dvds[1].setValue(table.getName());
         dvds[2].setValue(partitionSize);
@@ -691,29 +691,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
         Collections.sort(toCollect, order); //sort the columns into adjacent position order
         return toCollect;
-    }
-
-    private static Collection<HRegionInfo> getCollectedRegions(Connection conn, long heapConglomerateId, boolean
-        staleOnly) throws StandardException {
-        //TODO -sf- adjust the regions if staleOnly == true
-        return getAllRegions(heapConglomerateId);
-    }
-
-    private static Collection<HRegionInfo> getAllRegions(long heapConglomerateId) throws StandardException {
-        RegionCache instance = HBaseRegionCache.getInstance();
-        byte[] tableName = Long.toString(heapConglomerateId).getBytes();
-        instance.invalidate(tableName); //invalidate to force the most up-to-date listing
-        try {
-            SortedSet<Pair<HRegionInfo, ServerName>> regions = instance.getRegions(tableName);
-            SortedSet<HRegionInfo> toCollect = new TreeSet<>();
-            for (Pair<HRegionInfo, ServerName> region : regions) {
-                //fetch the latest staleness data for that
-                toCollect.add(region.getFirst());
-            }
-            return toCollect;
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        }
     }
 
     private static void ensureNotKeyed(ColumnDescriptor descriptor, TableDescriptor td) throws StandardException {

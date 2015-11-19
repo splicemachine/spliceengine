@@ -5,6 +5,8 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
@@ -14,6 +16,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -236,9 +239,10 @@ public class BackupItem implements InternalTable {
 
     public boolean doBackup() throws StandardException {
         boolean backedUp = false;
+        Table table = null;
         try {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
-            HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
+            table = SpliceAccessManager.getHTable(getBackupItemBytes());
 
             if (backup.getParentBackupId() > 0) {
                 // incremental JL TODO DDL
@@ -279,6 +283,9 @@ public class BackupItem implements InternalTable {
         } catch (CancellationException ce) {
             throw Exceptions.parseException(ce);
         } catch (Exception e) {
+        } finally {
+            if (table!=null)
+                Closeables.closeQuietly(table);
         }
 
         return backedUp;

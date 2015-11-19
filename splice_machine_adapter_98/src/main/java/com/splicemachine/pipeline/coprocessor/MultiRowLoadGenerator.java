@@ -5,9 +5,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.table.BoundCall;
-import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -34,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *         Date: 1/14/15
  */
 public class MultiRowLoadGenerator {
+    /*
     private static final Logger LOG = Logger.getLogger(MultiRowLoadGenerator.class);
 
     private static final int BUFFER_SIZE = 8192;
@@ -241,5 +240,6 @@ public class MultiRowLoadGenerator {
             return responseCallback.get();
         }
     }
+    */
 
 }

@@ -52,7 +52,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		protected DataValueDescriptor[] stopKeyValue;
 		protected int stopSearchOperator;
 		protected ResultScanner scanner;
-		protected HTableInterface table;
+		protected Table table;
 		protected boolean currentRowDeleted = false;
 		protected HBaseRowLocation currentRowLocation;
 		protected DataValueDescriptor[] currentRow;

@@ -2,10 +2,10 @@ package com.splicemachine.derby.utils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.hbase.table.SpliceConnectionPool;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -55,7 +55,7 @@ public class ConglomerateUtils extends SpliceConstants {
         SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);
-        HTableInterface table = null;
+        Table table = null;
         try {
             table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
             Get get = SpliceUtils.createGet(txn, Bytes.toBytes(conglomId));
@@ -216,11 +216,11 @@ public class ConglomerateUtils extends SpliceConstants {
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
-        HBaseAdmin admin = null;
-        HTableInterface table = null;
+        Admin admin = null;
+        Table table = null;
         EntryEncoder entryEncoder = null;
         try{
-            admin = (HBaseAdmin) SpliceConnectionPool.INSTANCE.getConnection().getAdmin();
+            admin = HBaseConnectionFactory.getInstance().getAdmin();
             HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
             admin.createTable(td);
             table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
@@ -250,7 +250,7 @@ public class ConglomerateUtils extends SpliceConstants {
     public static void updateConglomerate(Conglomerate conglomerate, Txn txn) throws StandardException {
         String tableName = Long.toString(conglomerate.getContainerid());
         SpliceLogUtils.debug(LOG, "updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
-        HTableInterface table = null;
+        Table table = null;
         EntryEncoder entryEncoder = null;
         try{
             table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);

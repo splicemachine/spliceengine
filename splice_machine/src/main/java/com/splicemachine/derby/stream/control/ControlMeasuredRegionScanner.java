@@ -6,10 +6,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -22,7 +19,7 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
     private static final Logger LOG = Logger.getLogger(ControlMeasuredRegionScanner.class);
     protected byte[] tableName;
     protected Scan scan;
-    private HTableInterface htable;
+    private Table htable;
     private ResultScanner scanner;
     private boolean opened = false;
 

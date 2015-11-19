@@ -10,9 +10,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SYSPHYSICALSTATISTICSRowFactory;
 import com.splicemachine.derby.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,9 +25,6 @@ public class StatisticsStorage {
     //the autoboxing is necessary, despite what the compiler says
     @SuppressWarnings("UnnecessaryBoxing")
     private static final Object lock = new Integer(-1);
-//    private static volatile @ThreadSafe PhysicalStatisticsStore physicalStore;
-//    private static volatile @ThreadSafe ColumnStatisticsStore columnStatsStore;
-//    private static volatile @ThreadSafe TableStatisticsStore tableStatsStore;
 
     private static volatile @ThreadSafe PartitionStatsStore partitionStore;
 
@@ -98,7 +93,7 @@ public class StatisticsStorage {
         TableStatisticsStore tableStatsStore = new HBaseTableStatisticsStore(refreshExecutor);
         tableStatsStore.start();
 
-        partitionStore = new PartitionStatsStore(HBaseRegionCache.getInstance(),tableStatsStore,columnStatsStore);
+        partitionStore = new PartitionStatsStore(tableStatsStore,columnStatsStore);
     }
 
 }

@@ -3,16 +3,15 @@ package com.splicemachine.hbase;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.protobuf.SpliceZeroCopyByteString;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.hbase.table.SpliceConnectionPool;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
@@ -20,7 +19,6 @@ import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,6 +40,7 @@ public class HBaseRegionLoads {
     private static final AtomicBoolean started = new AtomicBoolean(false);
     // The cache is a map from tablename to map of regionname to RegionLoad
     private static final AtomicReference<Map<String, Map<String,RegionLoad>>> cache = new AtomicReference<>();
+
 
     private static final Runnable updater = new Runnable() {
         @Override
@@ -124,8 +123,7 @@ public class HBaseRegionLoads {
                     return value;
                 }
             };
-        HConnection conn = SpliceConnectionPool.INSTANCE.getConnection();
-        try(HBaseAdmin admin = new HBaseAdmin(conn.getConfiguration())){
+        try(Admin admin = HBaseConnectionFactory.getInstance().getConnection().getAdmin()){
             ClusterStatus clusterStatus=admin.getClusterStatus();
             for(ServerName serverName : clusterStatus.getServers()){
                 final ServerLoad serverLoad=clusterStatus.getLoad(serverName);
@@ -149,26 +147,23 @@ public class HBaseRegionLoads {
     // Lookups
 
     public static Map<String, RegionLoad> getCostWhenNoCachedRegionLoadsFound(String tableName){
-        try{
-            HConnection conn = SpliceConnectionPool.INSTANCE.getConnection();
-            HTableInterface t = conn.getTable(tableName);
-
+        try (Table t =  HBaseTableFactory.getInstance().getTable(tableName)){
             Map<byte[], Pair<String, Long>> ret = t.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, HConstants.EMPTY_START_ROW,
                     HConstants.EMPTY_END_ROW, new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, Pair<String, Long>>() {
                         @Override
-                        public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException{
+                        public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException {
                             SpliceRpcController controller = new SpliceRpcController();
                             SpliceMessage.SpliceRegionSizeRequest message = SpliceMessage.SpliceRegionSizeRequest.newBuilder().build();
                             BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback<>();
                             inctance.computeRegionSize(controller, message, rpcCallback);
-                            if(controller.failed()){
-                                Throwable t =Throwables.getRootCause(controller.getThrowable());
-                                if(t instanceof IOException) throw (IOException)t;
+                            if (controller.failed()) {
+                                Throwable t = Throwables.getRootCause(controller.getThrowable());
+                                if (t instanceof IOException) throw (IOException) t;
                                 else throw new IOException(t);
                             }
                             SpliceMessage.SpliceRegionSizeResponse response = rpcCallback.get();
 
-                            return Pair.newPair(response.getEncodedName(),response.getSizeInBytes());
+                            return Pair.newPair(response.getEncodedName(), response.getSizeInBytes());
                         }
                     });
             Collection<Pair<String, Long>> collection = ret.values();

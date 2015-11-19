@@ -2,23 +2,20 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
@@ -32,17 +29,14 @@ import java.util.concurrent.ExecutionException;
  */
 public class PartitionStatsStore {
     private static final Logger LOG = Logger.getLogger(PartitionStatsStore.class);
-    private final RegionCache regionCache;
     private final TableStatisticsStore tableStatsReader;
     private final ColumnStatisticsStore columnStatsReader;
     private static final Function<? super HRegionInfo,? extends String> partitionNameTransform = new Function<HRegionInfo, String>(){
         @Override public String apply(HRegionInfo hRegionInfo){ return hRegionInfo.getEncodedName(); }
     };
 
-    public PartitionStatsStore(RegionCache regionCache,
-                               TableStatisticsStore tableStatsReader,
+    public PartitionStatsStore(TableStatisticsStore tableStatsReader,
                                ColumnStatisticsStore columnStatsReader) {
-    	this.regionCache = regionCache;
         this.tableStatsReader = tableStatsReader;
         this.columnStatsReader = columnStatsReader;
 
@@ -309,49 +303,15 @@ public class PartitionStatsStore {
     }
 
     private int getPartitions(byte[] table, List<HRegionInfo> partitions) throws ExecutionException {
-        /*
-         * Returns the number of partitions which cannot be found from the RegionCache.
-         *
-         * This will attempt to retry and find any holes which exist in the found region cache,
-         * but only for a few times--after that, it will give up and return the number of holes
-         * it found. Then the caller can just use the averaging scheme to replace the missing regions
-         */
-        SortedSet<Pair<HRegionInfo, ServerName>> regions = regionCache.getRegions(table);
-        int tryNum = 0;
-        int missingSize = regions.size();
-        while(missingSize>0 && tryNum<5) {
-            byte[] lastEndKey = HConstants.EMPTY_START_ROW;
-            List<Pair<byte[],byte[]>> missingRanges = new LinkedList<>();
-            for (Pair<HRegionInfo, ServerName> servers : regions) {
-                byte[] start = servers.getFirst().getStartKey();
-                if (!Bytes.equals(start, lastEndKey)) {
-                    /*
-                     * We have a gap in the region cache. Let's try to fetch that range again, just
-                     * to see if we can get it
-                     */
-                    missingRanges.add(Pair.newPair(lastEndKey,start));
-                }else{
-                    partitions.add(servers.getFirst());
-                }
-                lastEndKey = servers.getFirst().getEndKey();
+        try {
+            Collection<HRegionLocation> regions = HBaseTableFactory.getInstance().getRegions(table);
+            for (HRegionLocation region: regions) {
+                partitions.add(region.getRegionInfo());
             }
-            missingSize = missingRanges.size();
-            regions = new TreeSet<>(new Comparator<Pair<HRegionInfo,ServerName>>() {
-                @Override
-                public int compare(Pair<HRegionInfo, ServerName> o1, Pair<HRegionInfo, ServerName> o2) {
-                    return o1.getFirst().compareTo(o2.getFirst());
-                }
-            });
-            regionCache.invalidate(table);
-            for(Pair<byte[],byte[]> range:missingRanges){
-                SortedSet<Pair<HRegionInfo, ServerName>> regionsInRange = regionCache.getRegionsInRange(table, range.getFirst(), range.getSecond());
-                if(regionsInRange.size()>0) missingSize--;
-                regions.addAll(regionsInRange);
-            }
-
-            tryNum++;
+        } catch (Exception ioe) {
+            throw new ExecutionException(ioe);
         }
-        return missingSize;
+        return 0;
     }
 
     private PartitionAverage averageKnown(String tableId,List<OverheadManagedPartitionStatistics> statistics) {

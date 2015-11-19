@@ -2,11 +2,9 @@ package com.splicemachine.pipeline.writecontext;
 
 import java.io.IOException;
 import java.util.Map;
-
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
@@ -83,7 +81,7 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public HTableInterface getHTable(byte[] indexConglomBytes) {
+    public Table getHTable(byte[] indexConglomBytes) {
         return pipelineWriteContext.getHTable(indexConglomBytes);
     }
 

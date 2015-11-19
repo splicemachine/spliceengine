@@ -8,8 +8,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
@@ -21,7 +21,7 @@ import com.splicemachine.mrio.MRConstants;
  * 
  */
 public class ClientSideRegionScanner extends BaseClientSideRegionScanner<Cell> {	
-	public ClientSideRegionScanner(HTableInterface table, Configuration conf, FileSystem fs,
+	public ClientSideRegionScanner(Table table, Configuration conf, FileSystem fs,
 			Path rootDir, HTableDescriptor htd, HRegionInfo hri, Scan scan,
 			ScanMetrics scanMetrics)
 			throws IOException {

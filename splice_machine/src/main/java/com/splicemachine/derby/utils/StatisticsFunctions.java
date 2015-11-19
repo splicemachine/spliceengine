@@ -2,17 +2,8 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.frequency.FrequentElements;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.util.Pair;
-
-import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -65,19 +56,6 @@ public class StatisticsFunctions {
         DataValueDescriptor dvd = (DataValueDescriptor)columnStatistics.minValue();
         if(dvd==null || dvd.isNull()) return null;
         return dvd.getString();
-    }
-
-    public static boolean PARTITION_EXISTS(long conglomerateId,String partitionId) throws StandardException {
-        RegionCache regionCache = HBaseRegionCache.getInstance();
-        try {
-            SortedSet<Pair<HRegionInfo, ServerName>> regions = regionCache.getRegions(Long.toString(conglomerateId).getBytes());
-            for(Pair<HRegionInfo,ServerName> region:regions){
-                if(region.getFirst().getEncodedName().equals(partitionId)) return true;
-            }
-            return false;
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        }
     }
 
 }

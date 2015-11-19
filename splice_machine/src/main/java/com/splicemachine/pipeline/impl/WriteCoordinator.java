@@ -2,8 +2,6 @@ package com.splicemachine.pipeline.impl;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
@@ -14,12 +12,8 @@ import com.splicemachine.pipeline.writer.AsyncBucketingWriter;
 import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
 import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-
 import javax.management.*;
 import java.io.IOException;
-
 import static com.splicemachine.pipeline.utils.PipelineConstants.WRITE_COORDINATOR_OBJECT_LOCATION;
 import static com.splicemachine.pipeline.utils.PipelineConstants.noOpFlushHook;
 
@@ -31,7 +25,6 @@ import static com.splicemachine.pipeline.utils.PipelineConstants.noOpFlushHook;
  */
 public class WriteCoordinator {
 
-    private final RegionCache regionCache;
     private final Writer asynchronousWriter;
     private final Writer synchronousWriter;
     private final Monitor monitor;
@@ -39,21 +32,17 @@ public class WriteCoordinator {
 
     public static WriteCoordinator create(Configuration config) throws IOException {
         assert config != null;
-        HConnection connection = HConnectionManager.createConnection(config);
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
-        RegionCache regionCache = HBaseRegionCache.getInstance();
         int maxEntries = SpliceConstants.maxBufferEntries;
-        Writer writer = new AsyncBucketingWriter(writerPool, regionCache, connection);
-        Writer syncWriter = new SynchronousBucketingWriter(regionCache, connection);
+        Writer writer = new AsyncBucketingWriter(writerPool);
+        Writer syncWriter = new SynchronousBucketingWriter();
         Monitor monitor = new Monitor(SpliceConstants.writeBufferSize, maxEntries, SpliceConstants.numRetries, SpliceConstants.pause, SpliceConstants.maxFlushesPerRegion);
 
-        return new WriteCoordinator(regionCache, writer, syncWriter, monitor);
+        return new WriteCoordinator(writer, syncWriter, monitor);
     }
 
-    private WriteCoordinator(RegionCache regionCache,
-                             Writer asynchronousWriter,
+    private WriteCoordinator(Writer asynchronousWriter,
                              Writer synchronousWriter, Monitor monitor) {
-        this.regionCache = regionCache;
         this.asynchronousWriter = asynchronousWriter;
         this.synchronousWriter = synchronousWriter;
         this.monitor = monitor;
@@ -66,17 +55,14 @@ public class WriteCoordinator {
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         ObjectName coordinatorName = new ObjectName(WRITE_COORDINATOR_OBJECT_LOCATION);
         mbs.registerMBean(monitor, coordinatorName);
-        regionCache.registerJMX(mbs);
         asynchronousWriter.registerJMX(mbs);
         synchronousWriter.registerJMX(mbs);
     }
 
     public void start() {
-        regionCache.start();
     }
 
     public void shutdown() {
-        regionCache.shutdown();
         asynchronousWriter.stopWrites();
     }
 
@@ -90,7 +76,7 @@ public class WriteCoordinator {
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, PreFlushHook preFlushHook) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, preFlushHook, defaultWriteConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, preFlushHook, defaultWriteConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> noIndexWriteBuffer(byte[] tableName, TxnView txn, final MetricFactory metricFactory) {
@@ -105,7 +91,7 @@ public class WriteCoordinator {
             };
         }
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, config, monitor, true);
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, noOpFlushHook, config, monitor, true);
    }
 
 
@@ -130,7 +116,7 @@ public class WriteCoordinator {
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn,
                                                    PreFlushHook flushHook, WriteConfiguration writeConfiguration) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, flushHook, writeConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, flushHook, writeConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final int maxEntries) {
@@ -156,14 +142,14 @@ public class WriteCoordinator {
             }
         };
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, defaultWriteConfiguration, config, false);
+        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, noOpFlushHook, defaultWriteConfiguration, config, false);
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                               TxnView txn, PreFlushHook flushHook,
                                                               WriteConfiguration writeConfiguration) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, regionCache, flushHook, writeConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, flushHook, writeConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
@@ -193,7 +179,7 @@ public class WriteCoordinator {
             }
         };
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, regionCache, flushHook, writeConfiguration, config, false);
+        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, flushHook, writeConfiguration, config, false);
     }
 
     private class MonitoredPipingCallBuffer extends PipingCallBuffer {
@@ -201,12 +187,11 @@ public class WriteCoordinator {
         public MonitoredPipingCallBuffer(byte[] tableName,
                                          TxnView txn,
                                          Writer writer,
-                                         RegionCache regionCache,
                                          PreFlushHook preFlushHook,
                                          WriteConfiguration writeConfiguration,
                                          BufferConfiguration bufferConfiguration,
                                          boolean skipIndexWrites) {
-            super(tableName, txn, writer, regionCache, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites);
+            super(tableName, txn, writer, preFlushHook, writeConfiguration, bufferConfiguration, skipIndexWrites);
         }
 
         @Override

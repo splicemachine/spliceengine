@@ -154,10 +154,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         //only add constraints and indices when we are in a RUNNING state
         if (state.get() == State.RUNNING) {
             //add Constraint checks before anything else
-            if (SpliceConstants.constraintsEnabled) {
-                for (ConstraintFactory constraintFactory : constraintFactories) {
-                    context.addLast(constraintFactory.create(expectedWrites));
-                }
+            for (ConstraintFactory constraintFactory : constraintFactories) {
+                context.addLast(constraintFactory.create(expectedWrites));
             }
 
             //add index handlers

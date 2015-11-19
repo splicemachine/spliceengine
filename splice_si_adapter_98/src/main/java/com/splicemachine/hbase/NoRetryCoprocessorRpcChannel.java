@@ -16,7 +16,6 @@ import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 
@@ -26,14 +25,14 @@ import java.lang.reflect.UndeclaredThrowableException;
  */
 public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 	private static final Logger LOG = Logger.getLogger(NoRetryCoprocessorRpcChannel.class);
-	private final HConnection connection;
+	private final Connection connection;
 	private final TableName table;
 	private final byte[] row;
 	private byte[] lastRegion;
 
 	private SpliceRetryingCallerFactory rpcFactory;
 
-	public NoRetryCoprocessorRpcChannel(HConnection connection, TableName table, byte[] row) {
+	public NoRetryCoprocessorRpcChannel(Connection connection, TableName table, byte[] row) {
 		this.connection = connection;
 		this.table = table;
 		this.row = row;
@@ -73,7 +72,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 						.setMethodName(method.getName())
 						.setRequest(request.toByteString()).build();
 		RegionServerCallable<ClientProtos.CoprocessorServiceResponse> callable =
-				new RegionServerCallable<ClientProtos.CoprocessorServiceResponse>(connection, table, row) {
+				new RegionServerCallable<ClientProtos.CoprocessorServiceResponse>((HConnection)connection, table, row) {
 					public ClientProtos.CoprocessorServiceResponse call(int i) throws Exception{
 						return call(); //TODO -sf- is this correct? I think we need to do something with timeouts here
 					}

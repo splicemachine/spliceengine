@@ -14,11 +14,10 @@ import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
@@ -36,7 +35,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     private final Map<KVPair, WriteResult> resultsMap;
     private final TransactionalRegion rce;
-    private final Map<byte[], HTableInterface> tableCache = Maps.newHashMapWithExpectedSize(0);
+    private final Map<byte[], Table> tableCache = Maps.newHashMapWithExpectedSize(0);
     private final TxnView txn;
     private final IndexCallBufferFactory indexSharedCallBuffer;
     private final int id = idGen.incrementAndGet();
@@ -110,8 +109,8 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
-    public HTableInterface getHTable(byte[] indexConglomBytes) {
-        HTableInterface table = tableCache.get(indexConglomBytes);
+    public Table getHTable(byte[] indexConglomBytes) {
+        Table table = tableCache.get(indexConglomBytes);
         if (table == null) {
             try {
                 table = derbyFactory.getTable(getCoprocessorEnvironment(), indexConglomBytes);
@@ -150,7 +149,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
         } finally {
             //clean up any outstanding table resources
-            for (HTableInterface table : tableCache.values()) {
+            for (Table table : tableCache.values()) {
                 try {
                     table.close();
                 } catch (Exception e) {
