@@ -12,7 +12,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -41,7 +40,6 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.SpliceIndexService service = ProtobufUtil.newServiceStub(SpliceMessage.SpliceIndexService.class, channel);
             SpliceMessage.BulkWriteRequest.Builder builder = SpliceMessage.BulkWriteRequest.newBuilder();
             byte[] requestBytes = PipelineEncoding.encode(write);
-//            byte[] requestBytes = PipelineUtils.toCompressedBytes(write);
             builder.setBytes(ZeroCopyLiteralByteString.copyFrom(requestBytes));
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 
