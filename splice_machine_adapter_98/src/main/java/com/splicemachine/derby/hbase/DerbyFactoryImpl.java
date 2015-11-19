@@ -20,7 +20,9 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.hbase.TableRegionsInRange;
+import groovy.swing.factory.TableFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -112,7 +114,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	public List<HRegion> getOnlineRegions(RegionServerServices services,
 			byte[] tableName) throws IOException {
 		try {
-		return services.getOnlineRegions(TableName.valueOf(tableName));
+		return services.getOnlineRegions(HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
 		} catch (Exception e) {
 			throw new IOException(e);
 		}
@@ -122,7 +124,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	public void removeTableFromDescriptors(MasterServices masterServices,
 			String tableName) {
 		try {
-	      masterServices.getTableDescriptors().remove(TableName.valueOf(tableName));
+	      masterServices.getTableDescriptors().remove(HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
 		} catch (Exception e) {
 			new RuntimeException(e);
 		}
@@ -256,9 +258,9 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		}
 		
 		@Override
-		public HTableInterface getTable(RegionCoprocessorEnvironment rce,
+		public Table getTable(RegionCoprocessorEnvironment rce,
 				byte[] tableName) throws IOException {
-			return rce.getTable(TableName.valueOf(tableName));
+			return rce.getTable(HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
 		}
 		@Override
 		public int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException {
