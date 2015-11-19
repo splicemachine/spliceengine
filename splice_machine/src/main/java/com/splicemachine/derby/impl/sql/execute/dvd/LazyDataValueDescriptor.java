@@ -180,17 +180,14 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
     @Override
     public int getLength() throws StandardException{
         forceDeserialization();
+        if (dvd == null)
+            return 0;
         return dvd.getLength();
     }
 
     @Override
     public String getString() throws StandardException{
         forceDeserialization();
-        /*
-         * forceDeserialization should ensure dvd is not null but does not
-         * for test LazyTimestampTest.testCanSerializeNullsCorrectly
-         * so we are leaving this null check in for now
-         */
         if (dvd == null)
             return null;
         return dvd.getString();
@@ -247,6 +244,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
     @Override
     public int typeToBigDecimal() throws StandardException{
         forceDeserialization();
+        if (dvd == null)
+            return 0;
         return dvd.typeToBigDecimal();
     }
 

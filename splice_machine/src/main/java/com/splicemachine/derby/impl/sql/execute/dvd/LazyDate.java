@@ -212,10 +212,6 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
     @Override
     public int getLength() throws StandardException{
         forceDeserialization();
-        /*
-         * this matches SQLDate which returns 4 (hardcoded)
-         * even when the dvd is null
-         */
         if (dvd == null)
             return 4;
         return dvd.getLength();

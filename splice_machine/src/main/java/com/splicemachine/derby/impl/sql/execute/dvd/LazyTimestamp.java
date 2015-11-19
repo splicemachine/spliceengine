@@ -209,10 +209,6 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
     @Override
     public int getLength() throws StandardException{
         forceDeserialization();
-        /*
-         * this matches SQLTimestamp which returns 12 (hardcoded)
-         * even when the dvd is null
-         */
         if (dvd == null)
             return 12;
         return dvd.getLength();
