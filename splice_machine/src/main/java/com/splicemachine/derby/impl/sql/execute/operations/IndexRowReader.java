@@ -15,8 +15,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -170,7 +170,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
 
         private class Lookup implements Callable<List<Pair<LocatedRow,Result>>> {
             private final List<LocatedRow> sourceRows;
-            private HTableInterface table;
+            private Table table;
 
             public Lookup(List<LocatedRow> sourceRows) {
                 this.sourceRows = sourceRows;

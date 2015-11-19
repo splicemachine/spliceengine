@@ -160,7 +160,7 @@ public class SpliceUtils extends SpliceUtilities {
      * @param row the row to delete.
      * @throws IOException if something goes wrong during deletion.
      */
-    public static void doDelete(HTableInterface table, TxnView txn, byte[] row) throws IOException {
+    public static void doDelete(Table table, TxnView txn, byte[] row) throws IOException {
         Mutation mutation = operationFactory.newDelete(txn, row);
         if(mutation instanceof Put)
             table.put((Put)mutation);

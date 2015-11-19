@@ -334,4 +334,9 @@ public class InMemoryTxnStore implements TxnStore {
                     '}';
         }
     }
+
+    @Override
+    public void setCache(TxnSupplier cache) {
+        // no op
+    }
 }

@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -41,7 +42,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
     protected Configuration conf;
-    protected HTableInterface table;
+    protected Table table;
     protected Scan scan;
     protected SMSQLUtil util;
     protected SMRecordReaderImpl rr;
@@ -175,7 +176,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
     /**
      * Allows subclasses to get the {@link HTable}.
      */
-    protected HTableInterface getHTable() {
+    protected Table getHTable() {
         return this.table;
     }
 
@@ -184,7 +185,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
      *
      * @param table  The table to get the data from.
      */
-    protected void setHTable(HTableInterface table) {
+    protected void setHTable(Table table) {
         this.table = table;
     }
 

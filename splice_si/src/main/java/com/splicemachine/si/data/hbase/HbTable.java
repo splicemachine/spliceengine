@@ -5,14 +5,11 @@ import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
-
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -21,15 +18,19 @@ import java.util.List;
  * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
  */
 public class HbTable implements IHTable {
-    final HTableInterface table;
+    final Table table;
 
-    public HbTable(HTableInterface table) {
+    public HbTable(Table table) {
         this.table = table;
     }
 
     @Override
     public String getName() {
-        return Bytes.toString(table.getTableName());
+        try {
+            return table.getTableDescriptor().getTableName().getNameAsString();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     @Override

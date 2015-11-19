@@ -6,13 +6,11 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.uuid.Snowflake;
-
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
@@ -31,7 +29,7 @@ public class SnowflakeLoader extends SIConstants {
 
         //get this machine's IP address
         byte[] localAddress = Bytes.add(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port));
-        HTableInterface sequenceTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
+        Table sequenceTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
         byte[] counterNameRow = MACHINE_ID_COUNTER.getBytes();
         try{
             Scan scan = new Scan();
@@ -100,7 +98,7 @@ public class SnowflakeLoader extends SIConstants {
 
     public static void unload(short machineId) throws Exception{
         byte[] counterNameRow = MACHINE_ID_COUNTER.getBytes();
-        HTableInterface table = SpliceAccessManager.getHTable(counterNameRow);
+        Table table = SpliceAccessManager.getHTable(counterNameRow);
         try{
             Put put = new Put(counterNameRow);
             put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),HConstants.EMPTY_START_ROW);

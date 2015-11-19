@@ -1,7 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.collections.CloseableIterator;
-import com.splicemachine.si.data.api.HTableSource;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.STableReader;
 import org.apache.hadoop.hbase.client.Get;
@@ -11,9 +11,9 @@ import org.apache.hadoop.hbase.client.Scan;
 import java.io.IOException;
 
 public class HTableReader implements STableReader<IHTable, Get, Scan> {
-    private final HTableSource tableSource;
+    private final HBaseTableFactory tableSource;
 
-    public HTableReader(HTableSource tableSource) throws IOException {
+    public HTableReader(HBaseTableFactory tableSource) throws IOException {
         this.tableSource = tableSource;
     }
 

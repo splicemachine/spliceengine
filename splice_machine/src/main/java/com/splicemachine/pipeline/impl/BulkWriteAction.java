@@ -4,10 +4,11 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -26,12 +27,9 @@ import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.Sleeper;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.log4j.Logger;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +54,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
 		private BulkWrites bulkWrites;
 		private final List<Throwable> errors = Lists.newArrayListWithExpectedSize(0);
 		private final WriteConfiguration writeConfiguration;
-		private final RegionCache regionCache;
 		private final ActionStatusReporter statusReporter;
 		private final byte[] tableName;
 		private final long id = idGen.incrementAndGet();
@@ -72,26 +69,22 @@ public class BulkWriteAction implements Callable<WriteStats> {
 
 		public BulkWriteAction(byte[] tableName,
 													 BulkWrites bulkWrites,
-													 RegionCache regionCache,
 													 WriteConfiguration writeConfiguration,
-													 HConnection connection,
 													 ActionStatusReporter statusReporter) {
-				this(tableName,bulkWrites,regionCache,
+				this(tableName,bulkWrites,
 								writeConfiguration,statusReporter,
-								derbyFactory.getBulkWritesInvoker(connection, tableName),
+								derbyFactory.getBulkWritesInvoker(tableName),
 								Sleeper.THREAD_SLEEPER);
 		}
 
 		BulkWriteAction(byte[] tableName,
 										BulkWrites writes,
-										RegionCache regionCache,
 										WriteConfiguration writeConfiguration,
 										ActionStatusReporter statusReporter,
 										BulkWritesInvoker.Factory invokerFactory,
 										Sleeper sleeper){
 				this.tableName = tableName;
 				this.bulkWrites = writes;
-				this.regionCache = regionCache;
 				this.writeConfiguration = writeConfiguration;
 				this.statusReporter = statusReporter;
 				this.invokerFactory = invokerFactory;
@@ -223,8 +216,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                                 		"Retrying write after receiving global RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
                                 		id, bulkWriteResult, currentBulkWrite);
 
-                            addToRetryCallBuffer(currentBulkWrite.getMutations(),nextWrite.getTxn(),bulkWriteResult.getGlobalResult().refreshCache());
-                            sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
+                            addToRetryCallBuffer(currentBulkWrite.getMutations(), nextWrite.getTxn(), bulkWriteResult.getGlobalResult().refreshCache());
                             continue;
                         case PARTIAL:
                             partialFailureCounter.increment();
@@ -250,8 +242,8 @@ public class BulkWriteAction implements Callable<WriteStats> {
                                     // only sleep and redo cache if you have a failure not a lock contention issue
                                     boolean isFailure = bulkWriteResult.getFailedRows() != null && bulkWriteResult.getFailedRows().size() > 0;
                                     addToRetryCallBuffer(toRetry,nextWrite.getTxn(),isFailure);
-                                    if (isFailure) // Retry immediately if you do not have failed rows!
-                                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()));
+//                                    if (isFailure) // Retry immediately if you do not have failed rows!
+//                                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()));
                                     break;
                                 default:
                                 	if (RETRY_LOG.isDebugEnabled())
@@ -278,7 +270,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                 if (derbyFactory.getExceptionHandler().isRegionTooBusyException(e)) {
                     if(RETRY_LOG.isDebugEnabled())
                         SpliceLogUtils.debug(RETRY_LOG, "Retrying write after receiving RegionTooBusyException: id=%d", id);
-                    sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
+//                    sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
                     writesToPerform.add(nextWrite);
                     continue;
                 }
@@ -305,7 +297,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                             addToRetryCallBuffer(bw.getMutations(),nextTxn,first);
                             first=false;
                         }
-                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
+//                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
                         break;
                     default:
                         if(LOG.isInfoEnabled())
@@ -383,10 +375,10 @@ public class BulkWriteAction implements Callable<WriteStats> {
 				if (RETRY_LOG.isDebugEnabled())
                     SpliceLogUtils.debug(RETRY_LOG, "[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer==null?0:retryBuffer.size(),refreshCache);
 				if (retryPipingCallBuffer == null)
-						retryPipingCallBuffer = new PipingCallBuffer(tableName,txn,null,regionCache,PipelineConstants.noOpFlushHook,writeConfiguration,null, false);
+						retryPipingCallBuffer = new PipingCallBuffer(tableName,txn,null,PipelineConstants.noOpFlushHook,writeConfiguration,null, false);
 				if (refreshCache) {
 						retryPipingCallBuffer.rebuildBuffer();
-						regionCache.invalidate(tableName);
+                    HBaseTableFactory.getInstance().clearRegionCache(HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
 				}
 				retryPipingCallBuffer.addAll(retryBuffer);
 		}

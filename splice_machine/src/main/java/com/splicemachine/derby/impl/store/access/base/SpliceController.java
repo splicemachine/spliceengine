@@ -26,10 +26,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.impl.store.raw.data.SpaceInformation;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -42,7 +39,7 @@ public abstract class SpliceController<Data> implements ConglomerateController {
 		protected BaseSpliceTransaction trans;
 		protected EntryDataHash entryEncoder;
 		private String tableVersion;
-    private HTableInterface table;
+    private Table table;
 
     public SpliceController() {}
 
@@ -105,7 +102,7 @@ public abstract class SpliceController<Data> implements ConglomerateController {
     public boolean isKeyed() { return false; }
 
 		public boolean delete(RowLocation loc) throws StandardException {
-				HTableInterface htable = getTable();
+				Table htable = getTable();
 				try {
 						SpliceUtils.doDelete(htable, ((SpliceTransaction)trans).getTxn(), loc.getBytes());
 						return true;
@@ -119,7 +116,7 @@ public abstract class SpliceController<Data> implements ConglomerateController {
     }
 
 		public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
-				HTableInterface htable = getTable();
+				Table htable = getTable();
                 KeyHashDecoder rowDecoder = null;
                 try {
 						Get get = SpliceUtils.createGet(loc, destRow, validColumns, trans.getTxnInformation());
@@ -152,7 +149,7 @@ public abstract class SpliceController<Data> implements ConglomerateController {
 				return "SpliceController {conglomId="+openSpliceConglomerate.getConglomerate().getContainerid()+"}";
 		}
 
-		protected HTableInterface getTable(){
+		protected Table getTable(){
         if(table==null)
             table =  SpliceAccessManager.getHTable(openSpliceConglomerate.getConglomerate().getContainerid());
         return table;

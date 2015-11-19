@@ -1,6 +1,9 @@
 package com.splicemachine.pipeline.impl;
 
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
 import com.splicemachine.hbase.table.IncorrectRegionException;
@@ -8,15 +11,12 @@ import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.net.ConnectException;
 
@@ -26,17 +26,15 @@ import java.net.ConnectException;
  */
 public class BulkWriteChannelInvoker {
 	private static Logger LOG = Logger.getLogger(BulkWriteChannelInvoker.class);
-    private final HConnection connection;
     private final byte[] tableName;
 
-    public BulkWriteChannelInvoker(HConnection connection, byte[] tableName) {
-        this.connection = connection;
+    public BulkWriteChannelInvoker(byte[] tableName) {
         this.tableName = tableName;
     }
 
     public BulkWritesResult invoke(BulkWrites write) throws IOException {
         NoRetryCoprocessorRpcChannel channel
-                = new NoRetryCoprocessorRpcChannel(connection, TableName.valueOf(tableName), write.getRegionKey());
+                = new NoRetryCoprocessorRpcChannel(HBaseConnectionFactory.getInstance().getConnection(), TableName.valueOf(tableName), write.getRegionKey());
 
         boolean cacheCheck = false;
         try {
@@ -79,7 +77,7 @@ public class BulkWriteChannelInvoker {
              */
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.trace(LOG, "Clearing stale region cache for table %s", Bytes.toString(tableName));
-            connection.clearRegionCache(TableName.valueOf(tableName));
+            HBaseTableFactory.getInstance().clearRegionCache(HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
             return true;
 	    }
         return false;

@@ -9,7 +9,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import java.io.IOException;
@@ -36,7 +36,7 @@ public class DropIndexConstantOperation extends AbstractDropIndexConstantOperati
 	@Override
 	public void dropIndexTrigger(final long tableConglomId, final long indexConglomId, final TxnView userTxn) throws StandardException{
 		//drop the index trigger from the main table
-		HTableInterface mainTable = SpliceAccessManager.getHTable(tableConglomId);
+		Table mainTable = SpliceAccessManager.getHTable(tableConglomId);
 		try {
 			mainTable.coprocessorService(SpliceMessage.SpliceIndexManagementService.class,
             HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,new Batch.Call<SpliceMessage.SpliceIndexManagementService, Void>() {

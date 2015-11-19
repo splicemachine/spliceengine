@@ -5,13 +5,12 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import com.google.common.base.Preconditions;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.hbase.table.SpliceHTableFactory;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
@@ -68,17 +67,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
     private ConcurrentMap<String, DDLMessage.DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLMessage.DDLChange>();
-    private static final HTableInterfaceFactory tableFactory;
-
-    static {
-        HTableInterfaceFactory factory = null;
-        try {
-            factory = new SpliceHTableFactory();
-        } catch (Throwable t) {
-            LOG.error("Couldn't create SpliceHTableFactory", t);
-        }
-        tableFactory = factory;
-    }
 
     public SpliceAccessManager() {
         implhash   = new Hashtable();
@@ -1020,17 +1008,20 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return this.rawstore;
     }
 
-    public static HTableInterface getHTable(Long id) {
-        return tableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
+    public static Table getHTable(Long id) {
+        return getHTable(Long.toString(id));
     }
 
-    public static HTableInterface getHTable(byte[] tableName) {
-        return tableFactory.createHTableInterface(SpliceConstants.config,tableName);
+    public static Table getHTable(byte[] tableName) {
+        return getHTable(Bytes.toString(tableName));
     }
 
-    public static HTableInterface getHTable(String tableName) {
-        return tableFactory.createHTableInterface(SpliceConstants.config,tableName.getBytes());
+    public static Table getHTable(String tableName) {
+        try {
+            return HBaseTableFactory.getInstance().getTable(tableName);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
-
 }
 

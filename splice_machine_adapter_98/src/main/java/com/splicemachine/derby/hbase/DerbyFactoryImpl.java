@@ -31,11 +31,7 @@ import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -186,8 +182,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
 
 	@Override
-	public Factory getBulkWritesInvoker(HConnection connection, byte[] tableName) {
-		return new BulkWritesRPCInvoker.Factory(connection,tableName);
+	public Factory getBulkWritesInvoker(byte[] tableName) {
+		return new BulkWritesRPCInvoker.Factory(tableName);
 	}
 	@Override
 	public long computeRowCount(Logger LOG,String tableName,
@@ -536,7 +532,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		}
 
 		@Override
-		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTableInterface htable) throws IOException {
+		public SpliceRegionScanner getSplitRegionScanner(Scan scan, Table htable) throws IOException {
 			return new SplitRegionScanner(scan,htable, ((TableRegionsInRange) htable).getRegionsInRange(scan.getStartRow(), scan.getStopRow(), false));
 		}
 
@@ -553,7 +549,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
     public SubregionSplitter getSubregionSplitter() {
         return new SubregionSplitter() {
             @Override
-            public List<InputSplit> getSubSplits(HTableInterface table, List<InputSplit> splits) {
+            public List<InputSplit> getSubSplits(Table table, List<InputSplit> splits) {
                 List<InputSplit> results = new ArrayList<>();
                 for (InputSplit split : splits) {
                     final TableSplit tableSplit = (TableSplit) split;

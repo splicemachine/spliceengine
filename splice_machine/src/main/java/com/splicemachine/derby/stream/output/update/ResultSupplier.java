@@ -11,8 +11,8 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
@@ -27,7 +27,7 @@ public class ResultSupplier{
     private KeyValue result;
     private byte[] location;
     private byte[] filterBytes;
-    private HTableInterface htable;
+    private Table htable;
     private TxnView txnView;
     private long heapConglom;
 

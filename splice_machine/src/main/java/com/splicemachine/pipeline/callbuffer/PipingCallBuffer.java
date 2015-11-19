@@ -1,23 +1,22 @@
 package com.splicemachine.pipeline.callbuffer;
 
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.MergingWriteStats;
-import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writeconfiguration.UpdatingWriteConfiguration;
 import com.splicemachine.pipeline.writer.RegulatedWriter;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -52,7 +51,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     private final byte[] tableName;
     private final boolean skipIndexWrites;
     private final TxnView txn;
-    private final RegionCache regionCache;
+    //private final RegionCache regionCache;
     private long totalElementsAdded = 0l;
     private long totalBytesAdded = 0l;
     private long totalFlushes = 0l;
@@ -68,7 +67,6 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     public PipingCallBuffer(byte[] tableName,
                             TxnView txn,
                             Writer writer,
-                            RegionCache regionCache,
                             PreFlushHook preFlushHook,
                             WriteConfiguration writeConfiguration,
                             BufferConfiguration bufferConfiguration,
@@ -77,8 +75,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
         this.tableName = tableName;
         this.skipIndexWrites = skipIndexWrites;
         this.txn = txn;
-        this.regionCache = regionCache;
-        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this); 
+        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this);
         this.startKeyToRegionCBMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
         this.serverNameToRegionServerCBMap = new TreeMap<>();
         this.bufferConfiguration = bufferConfiguration;
@@ -172,16 +169,16 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
         // Get all of the regions for the table and the servers that the regions reside on.
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "rebuilding region map for table %s", Bytes.toString(tableName));
-        SortedSet<Pair<HRegionInfo,ServerName>> regions = PipelineUtils.getRegions(regionCache, tableName);
+        List<HRegionLocation> regions = HBaseTableFactory.getInstance().getRegions(tableName);
         if (LOG.isDebugEnabled()) {
-            for (Pair<HRegionInfo,ServerName> pair: regions) {
-                SpliceLogUtils.debug(LOG, "region %s on server %s",pair.getFirst().getRegionNameAsString(), pair.getSecond().getServerName());
+            for (HRegionLocation location: regions) {
+                SpliceLogUtils.debug(LOG, "region %s on server %s",location.getRegionInfo().getRegionNameAsString(), location.getServerName());
             }
         }
 
-        for(Pair<HRegionInfo,ServerName> pair:regions){
-            HRegionInfo region = pair.getFirst();
-            ServerName serverName = pair.getSecond();
+        for(HRegionLocation location: regions){
+            HRegionInfo region = location.getRegionInfo();
+            ServerName serverName = location.getServerName();
             byte[] startKey = region.getStartKey();
             RegionServerCallBuffer regionServerCB = this.serverNameToRegionServerCBMap.get(serverName);
 

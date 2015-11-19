@@ -13,8 +13,6 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -42,9 +40,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.OpenConglomerateScratchSpace;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -101,7 +97,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
      **/
     public void addColumn(TransactionManager xact_manager, int column_id, Storable template_column, int collation_id) throws StandardException {
         SpliceLogUtils.trace(LOG, "addColumn column_id=%s, template_column=%s, table_nam=%s", column_id, template_column, getContainerid());
-        HTableInterface htable = null;
+        Table htable = null;
         try {
             htable = SpliceAccessManager.getHTable(getContainerid());
             int[] old_format_ids = format_ids;

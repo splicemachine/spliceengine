@@ -57,7 +57,7 @@ public class TxnRegion implements TransactionalRegion {
             if (region != null) {
                 this.hbRegion = new HbRegion(region);
                 this.tableName = region.getTableDesc().getNameAsString();
-                this.transactionalWrites = SIObserver.doesTableNeedSI(region.getTableDesc().getNameAsString());
+                this.transactionalWrites = SIObserver.doesTableNeedSI(region.getTableDesc().getTableName());
             }
 		}
 

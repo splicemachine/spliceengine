@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
@@ -23,7 +24,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
     protected static final Logger LOG = Logger.getLogger(SplitRegionScanner.class);
 	
-	public SplitRegionScanner(Scan scan, HTableInterface table, List<HRegionLocation> locations) throws IOException {
+	public SplitRegionScanner(Scan scan, Table table, List<HRegionLocation> locations) throws IOException {
 		super(scan,table,locations);			
 	}
 
@@ -47,7 +48,7 @@ public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
 		return this.nextInternal(result);
 	}
 	
-	void createAndRegisterClientSideRegionScanner(HTableInterface table, Scan newScan) throws IOException {
+	void createAndRegisterClientSideRegionScanner(Table table, Scan newScan) throws IOException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s",table,newScan, table.getConfiguration());
         Configuration conf = table.getConfiguration();

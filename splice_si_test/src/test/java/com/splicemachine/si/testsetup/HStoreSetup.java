@@ -1,11 +1,11 @@
 package com.splicemachine.si.testsetup;
 
 import com.google.common.base.Function;
+import com.splicemachine.access.hbase.HBaseSource;
 import com.splicemachine.concurrent.*;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
@@ -19,7 +19,6 @@ import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -31,7 +30,6 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -94,14 +92,14 @@ public class HStoreSetup implements StoreSetup {
         ZkUtils.initializeZookeeper();
 
         String familyString = Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES);
-        TestHTableSource tableSource1 = new TestHTableSource(testCluster, new String[]{familyString});
+        TestHBaseTableFactory tableSource1 = new TestHBaseTableFactory(testCluster, new String[]{familyString});
         HBaseAdmin admin = testCluster.getHBaseAdmin();
         HTableDescriptor td = SpliceUtilities.generateTransactionTable();
         admin.createTable(td, SpliceUtilities.generateTransactionSplits());
 
         tableSource1.addPackedTable(getPersonTableName());
 
-        CoprocessorTxnStore txnS = new CoprocessorTxnStore(new SpliceHTableFactory(true), timestampSource, null);
+        TxnStore txnS = HBaseSource.getInstance().getTxnStore(timestampSource);
         txnS.setCache(new CompletedTxnCacheSupplier(txnS, SIConstants.activeTransactionCacheSize, 16));
         baseStore = txnS;
         TransactionStorage.setTxnStore(baseStore);

@@ -14,10 +14,9 @@ import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +32,7 @@ public class IndexStatisticsCollector extends StatisticsCollector {
     private long numStarts = 0l;
     private final int sampleSize;
     private Timer fetchTimer;
-    private HTableInterface baseTable;
+    private Table baseTable;
     private final Get[] getBuffer;
     private int bufferPos = 0;
 

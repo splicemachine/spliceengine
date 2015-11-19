@@ -18,10 +18,7 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -153,7 +150,7 @@ public class StatisticsCollector {
         long totalOpenTime = 0;
         long totalCloseTime = 0;
         int iterations = 0;
-        try(HTableInterface table = SpliceAccessManager.getHTable(tableConglomerateId)){
+        try(Table table = SpliceAccessManager.getHTable(tableConglomerateId)){
             while(n<fetchSampleSize){
                 scan.setBatch(n);
                 scan.setCaching(n);

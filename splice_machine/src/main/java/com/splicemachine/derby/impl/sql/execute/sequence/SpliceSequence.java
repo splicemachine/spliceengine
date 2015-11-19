@@ -5,7 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import com.splicemachine.constants.SpliceConstants;
@@ -28,7 +28,7 @@ public class SpliceSequence extends AbstractSequence {
 
 	@Override
 	protected long getCurrentValue() throws IOException {
-        HTableInterface sysColumnTable = null;
+        Table sysColumnTable = null;
         try {
             sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
             Get currValue = new Get(sysColumnsRow);
@@ -45,7 +45,7 @@ public class SpliceSequence extends AbstractSequence {
 
 	@Override
 	protected boolean atomicIncrement(long next) throws IOException {
-        HTableInterface sysColumnTable = null;
+        Table sysColumnTable = null;
         try {
             sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
             Put put = new Put(sysColumnsRow);

@@ -1,14 +1,13 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.access.hbase.HBaseSource;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 
 /**
  * Factory class for obtaining a transaction store, Transaction supplier, etc.
@@ -28,14 +27,6 @@ public class TransactionStorage {
 		 */
 		private static volatile @ThreadSafe TxnStore baseStore;
 
-		/*
-		 * A Transaction Supplier for when only reads are needed (e.g. writes to the
-		 * store are not required). Instances here should expect to be very efficient.
-		 *
-		 * Callers should have a reasonable expectation that transactions which are
-		 * in a final state may be cached by this supplier. If no caching is desired,
-		 * consider accessing the baseStore instead.
-		 */
 		private static volatile @ThreadSafe CompletedTxnCacheSupplier cachedTransactionSupplier;
 
         private static volatile IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
@@ -90,8 +81,13 @@ public class TransactionStorage {
             synchronized (lock){
                 if(baseStore==null){
                     TimestampSource tsSource = TransactionTimestamps.getTimestampSource();
-                    CoprocessorTxnStore txnStore = new CoprocessorTxnStore(new SpliceHTableFactory(true),tsSource,null);
-                    //TODO -sf- configure these fields separately
+                    TxnStore txnStore = null;
+                    try {
+                        txnStore = HBaseSource.getInstance().getTxnStore(tsSource);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Cannot establish connection",e);
+                    }
+
                     if(cachedTransactionSupplier==null){
                         cachedTransactionSupplier = new CompletedTxnCacheSupplier(txnStore,
                                 SIConstants.completedTransactionCacheSize,

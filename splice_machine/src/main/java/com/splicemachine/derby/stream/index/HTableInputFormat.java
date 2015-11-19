@@ -3,11 +3,9 @@ package com.splicemachine.derby.stream.index;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
@@ -15,8 +13,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.StringUtils;
@@ -32,7 +30,7 @@ import java.util.List;
 public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(HTableInputFormat.class);
     protected Configuration conf;
-    protected HTableInterface table;
+    protected Table table;
     protected Scan scan;
     protected SMSQLUtil util;
     protected HTableRecordReader rr;
@@ -161,7 +159,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
     /**
      * Allows subclasses to get the {@link HTable}.
      */
-    protected HTableInterface getHTable() {
+    protected Table getHTable() {
         return this.table;
     }
 
@@ -170,7 +168,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
      *
      * @param table  The table to get the data from.
      */
-    protected void setHTable(HTableInterface table) {
+    protected void setHTable(Table table) {
         this.table = table;
     }
 }

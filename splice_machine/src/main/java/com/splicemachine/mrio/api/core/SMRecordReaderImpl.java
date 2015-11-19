@@ -8,8 +8,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -28,7 +28,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
-	protected HTableInterface htable;
+	protected Table htable;
 	protected HRegion hregion;
 	protected Configuration config;
 	protected MeasuredRegionScanner mrs;
@@ -130,7 +130,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 		this.scan = scan;
 	}
 	
-	public void setHTable(HTableInterface htable) {
+	public void setHTable(Table htable) {
 		this.htable = htable;
 		addCloseable(htable);
 	}

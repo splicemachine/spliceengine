@@ -9,6 +9,7 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Scan;
@@ -34,7 +35,7 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
 		@Override
 		public void start(CoprocessorEnvironment e) throws IOException {
 				SpliceLogUtils.trace(LOG, "starting %s", SIBaseObserver.class);
-				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getNameAsString());
+				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getTableName());
         if(tableEnvMatch){
             txnOperationFactory = new SimpleOperationFactory();
             region = SIFactoryDriver.siFactory.getTransactionalRegion((HRegion)((RegionCoprocessorEnvironment) e).getRegion());
@@ -45,12 +46,13 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
     }
 
 
-    public static boolean doesTableNeedSI(String tableName) {
+    public static boolean doesTableNeedSI(TableName tableName) {
         SpliceConstants.TableEnv tableEnv = EnvUtils.getTableEnv(tableName);
         SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableEnv);
         if(SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEnv)||
                 SpliceConstants.TableEnv.META_TABLE.equals(tableEnv)||
-                SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv)) return false;
+                SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv) ||
+                SpliceConstants.TableEnv.HBASE_TABLE.equals(tableEnv)) return false;
         if(SpliceConstants.TEST_TABLE.equals(tableName)) return false;
 
         return true;

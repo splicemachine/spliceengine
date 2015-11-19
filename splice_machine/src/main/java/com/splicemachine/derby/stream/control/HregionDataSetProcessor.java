@@ -14,8 +14,8 @@ import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.impl.*;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -28,7 +28,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
     @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
         Scan scan = siTableBuilder.getScan();
-        HTableInterface htable = SpliceAccessManager.getHTable(tableName);
+        Table htable = SpliceAccessManager.getHTable(tableName);
 
         try {
             SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan, htable);
