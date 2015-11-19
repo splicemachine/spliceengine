@@ -37,7 +37,6 @@ import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyTimestamp;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyDate;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
@@ -667,6 +666,5 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TentativeDropPKConstraintDesc.class,new FieldSerializer(instance,TentativeDropPKConstraintDesc.class),195);
         instance.register(TriggerExecutionContext.class,new FieldSerializer(instance,TriggerExecutionContext.class),196);
         instance.register(TriggerExecutionStack.class,new FieldSerializer(instance,TriggerExecutionStack.class),197);
-        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER,271);
     }
 }

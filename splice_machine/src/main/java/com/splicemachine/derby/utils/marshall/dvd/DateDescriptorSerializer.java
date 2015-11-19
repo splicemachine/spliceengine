@@ -16,7 +16,7 @@ import java.sql.Date;
  * @author Scott Fines
  * Date: 4/2/14
  */
-public class DateDescriptorSerializer extends AbstractTimeDescriptorSerializer {
+class DateDescriptorSerializer extends AbstractTimeDescriptorSerializer {
 		public static final Factory INSTANCE_FACTORY = new Factory() {
 				@Override public DescriptorSerializer newInstance() { return new DateDescriptorSerializer(); }
 
