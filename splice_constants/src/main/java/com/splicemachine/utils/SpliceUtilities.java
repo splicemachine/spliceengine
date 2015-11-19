@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.compress.*;
 import org.apache.hadoop.conf.Configuration;
@@ -103,19 +102,19 @@ public class SpliceUtilities extends SIConstants {
 
 	public static HTableDescriptor generateDefaultSIGovernedTable(
 			String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",tableName));
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespace,tableName));
 		desc.addFamily(createDataFamily());
 		return desc;
 	}
 
 	public static HTableDescriptor generateNonSITable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",tableName));
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespace,tableName));
 		desc.addFamily(createDataFamily());
 		return desc;
 	}
 
 	public static HTableDescriptor generateTransactionTable() {
-		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice".getBytes(),SpliceConstants.TRANSACTION_TABLE_BYTES));
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SpliceConstants.TRANSACTION_TABLE_BYTES));
 		HColumnDescriptor columnDescriptor = new HColumnDescriptor(
 				DEFAULT_FAMILY_BYTES);
 		columnDescriptor.setMaxVersions(5);
