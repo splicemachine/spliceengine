@@ -4,6 +4,8 @@ package com.splicemachine.hbase.backup;
  * Created by jyuan on 4/12/15.
  */
 
+import com.google.common.io.Closeables;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -18,14 +20,11 @@ import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.iapi.types.*;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Result;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.storage.EntryDecoder;
 import org.apache.log4j.Logger;
-import org.apache.hadoop.hbase.client.Get;
 import com.carrotsearch.hppc.BitSet;
 import java.util.List;
 import java.io.IOException;
@@ -34,6 +33,7 @@ public class BackupReporter extends TransactionalSysTableWriter<Backup>  {
 
     private static Logger LOG = Logger.getLogger(BackupReporter.class);
     private int totalLength = 9;
+    private Table table;
 
     public BackupReporter() {
         super("SYSBACKUP");
@@ -106,10 +106,8 @@ public class BackupReporter extends TransactionalSysTableWriter<Backup>  {
 
     public void openScanner(TxnView txn) throws IOException{
         TxnOperationFactory factory = TransactionOperations.getOperationFactory();
-
         String conglom = getConglomIdString(txn);
-        HTable table = new HTable(SpliceConstants.config, conglom);
-
+        table = HBaseTableFactory.getInstance().getTable(conglom);
         Scan scan = factory.newScan(txn);
         resultScanner = table.getScanner(scan);
     }
@@ -118,6 +116,8 @@ public class BackupReporter extends TransactionalSysTableWriter<Backup>  {
         if (resultScanner != null) {
             resultScanner.close();
         }
+        if (table !=null)
+            Closeables.closeQuietly(table);
     }
 
     public Backup next() throws StandardException {

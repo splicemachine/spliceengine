@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.backup;
 
+import com.google.common.io.Closeables;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
@@ -21,6 +23,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import com.carrotsearch.hppc.BitSet;
+import org.apache.hadoop.hbase.client.Table;
 
 /**
  * Created by jyuan on 4/13/15.
@@ -28,7 +31,7 @@ import com.carrotsearch.hppc.BitSet;
 public class BackupItemReporter extends TransactionalSysTableWriter<BackupItem> {
 
     private int totalLength = 5;
-
+    private Table table;
     public BackupItemReporter() {
         super("SYSBACKUPITEMS");
         dvds = new DataValueDescriptor[totalLength];
@@ -96,7 +99,7 @@ public class BackupItemReporter extends TransactionalSysTableWriter<BackupItem> 
             TxnOperationFactory factory = TransactionOperations.getOperationFactory();
 
             String conglom = getConglomIdString(txn);
-            HTable table = new HTable(SpliceConstants.config, conglom);
+            table = HBaseTableFactory.getInstance().getTable(conglom);
             Scan scan = factory.newScan(txn);
             byte[] startRow = MultiFieldEncoder.create(1).encodeNext(backupId).build();
             byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
@@ -112,6 +115,8 @@ public class BackupItemReporter extends TransactionalSysTableWriter<BackupItem> 
         if (resultScanner != null) {
             resultScanner.close();
         }
+        if (table != null)
+            Closeables.closeQuietly(table);
     }
 
     public BackupItem next() throws StandardException {

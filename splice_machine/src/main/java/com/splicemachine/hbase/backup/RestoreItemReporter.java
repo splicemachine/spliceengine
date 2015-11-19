@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.backup;
 
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
@@ -12,10 +13,8 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
+
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
 
@@ -24,7 +23,7 @@ import com.carrotsearch.hppc.BitSet;
  */
 public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem> {
     private int totalLength;
-    private HTable table;
+    private Table table;
 
     public RestoreItemReporter() {
         super("SYSRESTOREITEMS");
@@ -96,7 +95,7 @@ public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem
         }
     }
     public void openScanner() throws IOException{
-        HTable table = new HTable(SpliceConstants.config, SpliceConstants.RESTORE_TABLE_NAME);
+        table = HBaseTableFactory.getInstance().getTable(SpliceConstants.RESTORE_TABLE_NAME);
         Scan scan = new Scan();
         resultScanner = table.getScanner(scan);
     }
@@ -105,6 +104,8 @@ public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem
         if (resultScanner != null) {
             resultScanner.close();
         }
+        if (table != null)
+            table.close();
     }
 
     public RestoreItem next() throws StandardException {

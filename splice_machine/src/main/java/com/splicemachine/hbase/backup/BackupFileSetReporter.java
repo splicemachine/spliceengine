@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.backup;
 
+import com.google.common.io.Closeables;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
@@ -27,7 +29,7 @@ import java.util.List;
 public class BackupFileSetReporter extends TransactionalSysTableWriter<BackupFileSet> {
 
     private int totalLength = 4;
-
+    private Table table;
     public BackupFileSetReporter() {
         super("SYSBACKUPFILESET");
         dvds = new DataValueDescriptor[totalLength];
@@ -87,7 +89,7 @@ public class BackupFileSetReporter extends TransactionalSysTableWriter<BackupFil
             TxnOperationFactory factory = TransactionOperations.getOperationFactory();
 
             String conglom = getConglomIdString(txn);
-            HTable table = new HTable(SpliceConstants.config, conglom);
+            table = HBaseTableFactory.getInstance().getTable(conglom);
             Scan scan = factory.newScan(txn);
             byte[] startRow = MultiFieldEncoder.create(2).encodeNext(tableName).encodeNext(regionName).build();
             byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
@@ -103,6 +105,8 @@ public class BackupFileSetReporter extends TransactionalSysTableWriter<BackupFil
         if (resultScanner != null) {
             resultScanner.close();
         }
+        if (table != null)
+            Closeables.closeQuietly(table);
     }
 
     public BackupFileSet next() throws StandardException {
