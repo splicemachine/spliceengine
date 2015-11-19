@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.backup;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -7,19 +8,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.HFileLink;
-import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription;
 import org.apache.hadoop.hbase.protobuf.generated.SnapshotProtos.SnapshotFileInfo;
 import org.apache.hadoop.hbase.protobuf.generated.SnapshotProtos.SnapshotFileInfoOrBuilder;
 import org.apache.hadoop.hbase.protobuf.generated.SnapshotProtos.SnapshotRegionManifest;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
 import org.apache.hadoop.hbase.snapshot.SnapshotReferenceUtil;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +47,7 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
         SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
         final List<Object> files = new ArrayList<Object>();
-        final TableName table = TableName.valueOf(snapshotDesc.getTable());
+        final TableName table = HBaseTableInfoFactory.getInstance().getTableInfo(snapshotDesc.getTable());
 
         // Get snapshot files
         SpliceLogUtils.info(LOG, "Loading Snapshot '%s' hfile list", snapshotDesc.getName());
@@ -162,7 +159,7 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
 
     public HFileLink getReferredFileLink(HFileLink ref) throws IOException {
         return HFileLink.build(SpliceConstants.config,
-                TableName.valueOf(getTableName(ref.getOriginPath()).getBytes()),
+                HBaseTableInfoFactory.getInstance().getTableInfo(getTableName(ref.getOriginPath()).getBytes()),
                 getRegionName(ref.getOriginPath()),
                 getColumnFamilyName(ref.getOriginPath()),
                 getFileName(ref.getOriginPath()));

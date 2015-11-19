@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -47,7 +48,7 @@ public class HBaseSupportImpl implements HBaseSupport {
 			byte[] family) throws IOException 
 	{
 		try{
-			SnapshotTestingUtils.createTable(util, TableName.valueOf(tableName), family);
+			SnapshotTestingUtils.createTable(util, HBaseTableInfoFactory.getInstance().getTableInfo(tableName), family);
 		} catch(InterruptedException e){
 			throw new IOException(e);
 		}
