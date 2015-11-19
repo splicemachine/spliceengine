@@ -1,7 +1,6 @@
 package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -37,6 +36,10 @@ public class SpliceConstants {
     public static boolean upgradeForced;
 
 
+    @Parameter public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
+                   @DefaultValue(SPLIT_BLOCK_SIZE) public static final int DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
+                   public static int splitBlockSize;
+
     /**
      * Ignore SavePts flag for experimental TPCC testing.
      */
@@ -52,6 +55,13 @@ public class SpliceConstants {
     @Parameter public static final String UPGRADE_FORCED_FROM = "splice.upgrade.forced.from";
     @DefaultValue(UPGRADE_FORCED_FROM) public static final String DEFAULT_UPGRADE_FORCED_FROM = "0.0.0";
     public static String upgradeForcedFromVersion;
+
+    @Parameter public static final String SPLICE_NAMESPACE = "splice.namespace";
+    @DefaultValue(SPLICE_NAMESPACE) public static final String DEFAULT_SPLICE_NAMESPACE = "splice";
+    public static String spliceNamespace;
+
+    public static byte[] spliceNamespaceBytes;
+
 
     @Parameter public static final String ROLL_FORWARD_SEGMENTS = "splice.rollforward.numSegments";
     @DefaultValue(ROLL_FORWARD_SEGMENTS) public static final int DEFAULT_ROLLFORWARD_SEGMENTS = 4;
@@ -91,10 +101,6 @@ public class SpliceConstants {
     @DefaultValue(IMPORT_MAX_QUOTED_COLUMN_LINES) public static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 50000;
     public static int importMaxQuotedColumnLines;
 
-    @SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
-    @DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
-    public static volatile boolean constraintsEnabled;
-
     @Parameter public static final String PUSH_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.pushForwardRingBufferSize";
     @DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE = 4096;
     public static int pushForwardRingBufferSize;
@@ -122,10 +128,6 @@ public class SpliceConstants {
     @Parameter public static final String DELAYED_FORWARD_ASYNCH_WRITE_DELAY = "splice.rollforward.delayedForwardAsynchWriteDelay";
     @DefaultValue(DELAYED_FORWARD_ASYNCH_WRITE_DELAY) private static final int DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY = 400;
     public static int delayedForwardAsyncWriteDelay;
-
-    @Parameter public static final String IMPORT_LOG_QUEUE_WAIT_TIME = "splice.import.badRecords.queueWaitTime";
-    @DefaultValue(IMPORT_LOG_QUEUE_WAIT_TIME) private static final long DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME = TimeUnit.MINUTES.toMillis(1); //1 minute
-    public static long importLogQueueWaitTimeMs;
 
     @Retention(RetentionPolicy.SOURCE)
     protected @interface Parameter{
@@ -292,68 +294,9 @@ public class SpliceConstants {
     @DefaultValue(TIMESTAMP_CLIENT_WAIT_TIME) public static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
     public static int timestampClientWaitTime;
 
-    /*Task and Job management*/
-    /**
-     * The priority under which to run user operation tasks. This can be any positive number, the higher
-     * the priority, the sooner operations will be executed, relative to other prioritized tasks (such
-     * as imports, TEMP cleaning, etc.)
-     * Defaults to 3
-     */
-    @Parameter public static final String OPERATION_PRIORITY = "splice.task.operationPriority";
-    @DefaultValue(OPERATION_PRIORITY) public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
-    public static int operationTaskPriority;
-
     @Parameter public static final String SI_DELAY_ROLL_FORWARD_MAX_SIZE = "splice.si.delayRollForwardMaxSize";
     @DefaultValue(SI_DELAY_ROLL_FORWARD_MAX_SIZE) public static final int DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE = 300;
     public static int siDelayRollForwardMaxSize;
-
-    @SpliceConstants.Parameter public static final String NUM_PRIORITY_TIERS = "splice.task.numPriorities";
-    @DefaultValue(NUM_PRIORITY_TIERS) public static final int DEFAULT_NUM_PRIORITY_TIERS=4;
-    public static int numPriorityTiers;
-
-    @SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
-    @SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=Math.max(DEFAULT_NUM_PRIORITY_TIERS,Runtime.getRuntime().availableProcessors());
-    public static int taskWorkers;
-
-    @SpliceConstants.Parameter public static final String MAX_PRIORITY = "splice.task.maxPriority";
-    @DefaultValue(MAX_PRIORITY) public static final int DEFAULT_MAX_PRIORITY=100;
-    public static int maxPriority;
-
-    /**
-     *
-     * The Priority with which to assign import tasks. Setting this number higher than the
-     * operation priority will make imports run preferentially to operation tasks; setting it lower
-     * will make operations run preferentially to import tasks.
-     * Defaults to 3
-     */
-    @Parameter public static final String IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
-    @DefaultValue(IMPORT_TASK_PRIORITY) public static final int DEFAULT_OPERATION_PRIORITY = 3;
-    public static int importTaskPriority;
-
-    /**
-     * The number of regions that we much import before we attempt to presplit. In general, when
-     * importing, if the file is going to require more than this number of regions, we will split
-     * the table in order to improve overall performance. Turn this number up if it is splitting
-     * too much on small files. Turn it down if it is not splitting sufficiently often.
-     * Defaults to 2.
-     */
-    @Parameter public static final String IMPORT_SPLIT_FACTOR = "splice.import.splitRatio";
-    @DefaultValue(IMPORT_SPLIT_FACTOR) public static final int DEFAULT_IMPORT_SPLIT_FACTOR=2;
-    public static int importSplitFactor;
-
-		@Parameter public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
-		@DefaultValue(IMPORT_SPLIT_FACTOR) public static final int DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
-		public static int splitBlockSize;
-
-		/**
-		 * The number of threads which will be used to process rows from import files. Increasing this
-		 * number will result in a higher number of concurrent table writes, but setting it too high
-		 * will result in outpacing the system's ability to read a block of data from disk.
-		 * Defaults to 3
-		 */
-		@Parameter private static final String IMPORT_MAX_PROCESSING_THREADS = "splice.import.maxProcessingThreads";
-		@DefaultValue(IMPORT_MAX_PROCESSING_THREADS) private static final int DEFAULT_IMPORT_MAX_PROCESSING_THREADS = 3;
-		public static int maxImportProcessingThreads;
 
     /**
      * This the number of rows to read before doing an interrupt loop check.  If you kill a statement, it will interrupt
@@ -974,10 +917,6 @@ public class SpliceConstants {
     @DefaultValue(METADATA_CACHE_LEASE_DURATION) private static final long DEFAULT_METADATA_CACHE_LEASE_DURATION = 0;
     public static long metadataCacheLease;
 
-    @SpliceConstants.Parameter private static final String INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES="splice.interRegion.splitThresholdBytes";
-    @SpliceConstants.DefaultValue(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES) private static final long DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES=32*1024*1024l;
-    public static long interRegionTaskSplitThresholdBytes;
-
     @Parameter private static final String MAX_INTER_REGION_TASK_SPLITS="splice.interRegion.maxSplits";
     @DefaultValue(MAX_INTER_REGION_TASK_SPLITS) private static final int DEFAULT_MAX_INTER_REGION_TASK_SPLITS=8;
     public static int maxInterRegionTaskSplits;
@@ -1052,18 +991,6 @@ public class SpliceConstants {
     @DefaultValue(WRITE_MAX_FLUSHES_PER_REGION) public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
     public static int maxFlushesPerRegion;
 
-    @SpliceConstants.Parameter public static final String PAST_STATEMENT_BUFFER_SIZE = "splice.monitoring.pastStatementBufferSize";
-    @DefaultValue(PAST_STATEMENT_BUFFER_SIZE) public static final int DEFAULT_PAST_STATEMENT_BUFFER_SIZE = 100;
-    public static int pastStatementBufferSize;
-
-    @Parameter public static final String TEMP_TABLE_BUCKET_COUNT = "splice.temp.bucketCount";
-    @DefaultValue(TEMP_TABLE_BUCKET_COUNT) public static int DEFAULT_TEMP_TABLE_BUCKET_COUNT = 16;
-    public static int tempTableBucketCount;
-
-    @Parameter public static final String ENABLE_IMPORT_STATUS_LOGGING = "splice.import.enableStatusLogging";
-    @DefaultValue(ENABLE_IMPORT_STATUS_LOGGING) public static final boolean DEFAULT_ENABLE_IMPORT_STATUS_LOGGING = false;
-    public static boolean enableImportStatusLogging;
-
     public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
     public static int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
     public static int batchOnceBatchSize;
@@ -1077,7 +1004,8 @@ public class SpliceConstants {
         META_TABLE,
         DERBY_SYS_TABLE,
         USER_INDEX_TABLE,
-        USER_TABLE
+        USER_TABLE,
+        HBASE_TABLE
     }
 
     static {
@@ -1112,18 +1040,16 @@ public class SpliceConstants {
         zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
         zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
         zkSpliceDerbyPropertyPath = config.get(DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
-        zkSpliceQueryNodePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
-        zkLeaderElection = config.get(LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
+        zkSpliceQueryNodePath = config.get(CONGLOMERATE_SCHEMA_PATH, DEFAULT_CONGLOMERATE_SCHEMA_PATH);
+        zkLeaderElection = config.get(LEADER_ELECTION, DEFAULT_LEADER_ELECTION);
         sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
-        zkSpliceStartupPath = config.get(STARTUP_PATH,DEFAULT_STARTUP_PATH);
+        zkSpliceStartupPath = config.get(STARTUP_PATH, DEFAULT_STARTUP_PATH);
         derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
         derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
         timestampServerBindAddress = config.get(TIMESTAMP_SERVER_BIND_ADDRESS, DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS);
         timestampServerBindPort = config.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         timestampBlockSize = config.getInt(TIMESTAMP_BLOCK_SIZE, DEFAULT_TIMESTAMP_BLOCK_SIZE);
         timestampClientWaitTime = config.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
-        operationTaskPriority = config.getInt(OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
-        importTaskPriority = config.getInt(IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
         tablePoolMaxSize = config.getInt(POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
         tablePoolCoreSize = config.getInt(POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
         tablePoolCleanerInterval = config.getLong(POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
@@ -1161,7 +1087,7 @@ public class SpliceConstants {
         optimizerTableMinimalRows = SpliceConstants.config.getLong(OPTIMIZER_TABLE_MINIMAL_ROWS, DEFAULT_OPTIMIZER_TABLE_MINIMAL_ROWS);
         optimizerPlanMinimumTimeout = SpliceConstants.config.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
         optimizerPlanMaximumTimeout = SpliceConstants.config.getLong(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
-        
+        splitBlockSize = config.getInt(SPLIT_BLOCK_SIZE,DEFAULT_SPLIT_BLOCK_SIZE);
         if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which
@@ -1205,7 +1131,6 @@ public class SpliceConstants {
         delayedForwardAsyncWriteDelay = config.getInt(DELAYED_FORWARD_ASYNCH_WRITE_DELAY, DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY);
         delayedForwardQueueLimit = config.getInt(DELAYED_FORWARD_QUEUE_LIMIT, DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT);
 
-				maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
 				interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
 				maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
@@ -1227,8 +1152,6 @@ public class SpliceConstants {
         compactionQueueSizeBlock = config.getInt(COMPACTION_QUEUE_SIZE_BLOCK, DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK);
 
         sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
-
-        maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
         interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
         maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
@@ -1240,50 +1163,28 @@ public class SpliceConstants {
         collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
         pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
 
-        splitBlockSize = config.getInt(SPLIT_BLOCK_SIZE,DEFAULT_SPLIT_BLOCK_SIZE);
-
-        importSplitFactor = config.getInt(IMPORT_SPLIT_FACTOR,DEFAULT_IMPORT_SPLIT_FACTOR);
-        taskWorkers = config.getInt(TOTAL_WORKERS,DEFAULT_TOTAL_WORKERS);
-        if (taskWorkers > DEFAULT_TOTAL_WORKERS)
-            SpliceLogUtils.warn(LOG, "your task workers are set at {%d} and that is more than 2*(Number of Java Cores) {%d}", taskWorkers,DEFAULT_TOTAL_WORKERS);
-        numPriorityTiers = config.getInt(NUM_PRIORITY_TIERS,DEFAULT_NUM_PRIORITY_TIERS);
-        maxPriority = config.getInt(MAX_PRIORITY,DEFAULT_MAX_PRIORITY);
-
-        pastStatementBufferSize = config.getInt(PAST_STATEMENT_BUFFER_SIZE,DEFAULT_PAST_STATEMENT_BUFFER_SIZE);
-
-        tempTableBucketCount = config.getInt(TEMP_TABLE_BUCKET_COUNT, DEFAULT_TEMP_TABLE_BUCKET_COUNT);
-
         importMaxQuotedColumnLines = config.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES,DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
-
-        constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
-
-        importLogQueueWaitTimeMs = config.getLong(IMPORT_LOG_QUEUE_WAIT_TIME,DEFAULT_IMPORT_LOG_QUEUE_WAIT_TIME);
 
         ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT,DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
         ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT,DEFAULT_DDL_DRAINING_INITIAL_WAIT);
 
-
-        interRegionTaskSplitThresholdBytes = config.getLong(INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES,DEFAULT_INTER_REGION_TASK_SPLIT_THRESHOLD_BYTES);
         maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
 
         upgradeForced = config.getBoolean(UPGRADE_FORCED, DEFAULT_UPGRADE_FORCED);
         upgradeForcedFromVersion = config.get(UPGRADE_FORCED_FROM, DEFAULT_UPGRADE_FORCED_FROM);
+        spliceNamespace = config.get(SPLICE_NAMESPACE,DEFAULT_SPLICE_NAMESPACE);
+        spliceNamespaceBytes = spliceNamespace.getBytes();
 
         numRollForwardSegments = config.getInt(ROLL_FORWARD_SEGMENTS,DEFAULT_ROLLFORWARD_SEGMENTS);
         rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);
         rollForwardTxnThreshold = config.getInt(ROLL_FORWARD_TXN_THRESHOLD,DEFAULT_ROLLFOWARD_TXN_THRESHOLD);
         rollForwardInterval = config.getLong(ROLL_FORWARD_INTERVAL,DEFAULT_ROLL_FORWARD_INTERVAL);
-
         maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
         ddlRefreshInterval  = config.getInt(DDL_REFRESH_INTERVAL,DEFAULT_DDL_REFRESH_INTERVAL);
-
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
-
         regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
-
         batchOnceBatchSize = config.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
 
-        enableImportStatusLogging = config.getBoolean(ENABLE_IMPORT_STATUS_LOGGING,DEFAULT_ENABLE_IMPORT_STATUS_LOGGING);
     }
 
     public static void reloadConfiguration(Configuration configuration) {

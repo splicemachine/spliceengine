@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.hbase.RegionCacheComparator;

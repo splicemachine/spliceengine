@@ -7,13 +7,11 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.hadoop.hbase.TableName;
+
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.compress.*;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -105,19 +103,19 @@ public class SpliceUtilities extends SIConstants {
 
 	public static HTableDescriptor generateDefaultSIGovernedTable(
 			String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",tableName));
 		desc.addFamily(createDataFamily());
 		return desc;
 	}
 
 	public static HTableDescriptor generateNonSITable(String tableName) {
-		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",tableName));
 		desc.addFamily(createDataFamily());
 		return desc;
 	}
 
 	public static HTableDescriptor generateTransactionTable() {
-		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.TRANSACTION_TABLE_BYTES));
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice".getBytes(),SpliceConstants.TRANSACTION_TABLE_BYTES));
 		HColumnDescriptor columnDescriptor = new HColumnDescriptor(
 				DEFAULT_FAMILY_BYTES);
 		columnDescriptor.setMaxVersions(5);
@@ -160,6 +158,8 @@ public class SpliceUtilities extends SIConstants {
 
 		try {
 			admin = getAdmin();
+            admin.createNamespace(NamespaceDescriptor.create("splice").build());
+
 			if (!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)) {
 				HTableDescriptor td = generateTransactionTable();
 				admin.createTable(td, generateTransactionSplits());

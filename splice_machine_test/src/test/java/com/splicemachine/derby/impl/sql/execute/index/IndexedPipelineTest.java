@@ -4,16 +4,13 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.*;
@@ -23,30 +20,21 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.MockRegion;
-import com.splicemachine.hbase.regioninfocache.RegionCache;
-import com.splicemachine.hbase.RegionCacheComparator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.Code;
@@ -88,8 +76,6 @@ public class IndexedPipelineTest {
         //get a fake PipingWriteBuffer
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
-
-        final RegionCache fakeCache = mockRegionCache();
 
         WriteConfiguration config = mock(WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
@@ -172,7 +158,6 @@ public class IndexedPipelineTest {
 //        final String txnId = "1";
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
 
-        final RegionCache fakeCache = mockRegionCache();
 
         WriteConfiguration config = mock(WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
@@ -271,7 +256,6 @@ public class IndexedPipelineTest {
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
 
-        final RegionCache fakeCache = mockRegionCache();
 
         WriteConfiguration config = mock(WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
@@ -369,7 +353,6 @@ public class IndexedPipelineTest {
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
 
-        final RegionCache fakeCache = mockRegionCache();
 
         WriteConfiguration config = mock(WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
@@ -452,7 +435,6 @@ public class IndexedPipelineTest {
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
 
-        final RegionCache fakeCache = mockRegionCache();
 
         WriteConfiguration config = mock(WriteConfiguration.class);
 				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
@@ -540,16 +522,6 @@ public class IndexedPipelineTest {
                 }
             });
         return fakeWriter;
-    }
-
-    private RegionCache mockRegionCache() throws ExecutionException {
-        SortedSet<Pair<HRegionInfo,ServerName>> indexRegionInfos = Sets.newTreeSet(new RegionCacheComparator());
-        HRegionInfo indexRegionInfo = mock(HRegionInfo.class);
-        when(indexRegionInfo.getStartKey()).thenReturn(HConstants.EMPTY_START_ROW);
-        indexRegionInfos.add(Pair.newPair(indexRegionInfo, DerbyFactoryDriver.derbyFactory.getServerName(FOO_SERVERNAME)));
-        RegionCache fakeCache = mock(RegionCache.class);
-        when(fakeCache.getRegions(any(byte[].class))).thenReturn(indexRegionInfos);
-        return fakeCache;
     }
 
     private IndexWriteHandler getIndexWriteHandler(BitSet indexedColumns, IndexTransformer transformer) {
