@@ -25,8 +25,8 @@ public class StreamUtils {
     public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
     public static final DataSetProcessor hregionDataSetProcessor = new HregionDataSetProcessor();
-    private static final double CONTROL_SIDE_THRESHOLD = 10*1000*1000; // based on a TPCC1000 run on an 8 node cluster
-    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E6;
+    private static final double CONTROL_SIDE_THRESHOLD = 1E6; // 10*1000*1000; // based on a TPCC1000 run on an 8 node cluster
+    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E5; // 1E6;
 
     public static DataSetProcessor getControlDataSetProcessor() {
         return controlDataSetProcessor;
@@ -69,6 +69,7 @@ public class StreamUtils {
 
     public static void setupSparkJob(DataSetProcessor dsp, Activation activation, String description,
                                      String schedulePool) throws StandardException {
+        // wjk - this is mostly a copy/paste from SpliceBaseOperation.openCore() - consolidate?
         String sql = activation.getPreparedStatement().getSource();
         long txnId = getCurrentTransaction(activation).getTxnId();
         sql = (sql == null) ? description : sql;

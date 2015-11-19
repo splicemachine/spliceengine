@@ -13,7 +13,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.function.broadcast.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -25,16 +24,19 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+
 import scala.Tuple2;
+
 import java.util.*;
 
 /**
@@ -44,14 +46,27 @@ import java.util.*;
  */
 public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
+    private static final String RDD_NAME_DEFAULT_VALUES = "Fetch Values";
+    private static final String RDD_NAME_DEFAULT_SUBTRACTBYEY = "Subtract Right From Left";
+
     public JavaPairRDD<K,V> rdd;
     public SparkPairDataSet(JavaPairRDD<K,V> rdd) {
         this.rdd = rdd;
     }
 
+    public SparkPairDataSet(JavaPairRDD<K,V> rdd, String rddName) {
+        this.rdd = rdd;
+        if (rdd != null) this.rdd.setName(rddName);
+    }
+
     @Override
     public DataSet<V> values() {
-        return new SparkDataSet<V>(rdd.values());
+        return values(RDD_NAME_DEFAULT_VALUES);
+    }
+
+    @Override
+    public DataSet<V> values(String name) {
+        return new SparkDataSet<V>(rdd.values(), name);
     }
 
     @Override
@@ -61,17 +76,21 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2) {
-        return new SparkPairDataSet<>(rdd.reduceByKey(function2));
+        return new SparkPairDataSet<>(rdd.reduceByKey(function2), function2.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,Tuple2<K, V>, U> function) {
-        return new SparkDataSet<U>(rdd.map(function));
+        return new SparkDataSet<U>(rdd.map(function), function.getSparkName());
     }
 
     @Override
     public PairDataSet< K, V> sortByKey(Comparator<K> comparator) {
         return new SparkPairDataSet<>(rdd.sortByKey(comparator));
+    }
+
+    public PairDataSet< K, V> sortByKey(Comparator<K> comparator, String name) {
+        return new SparkPairDataSet<>(rdd.sortByKey(comparator), name);
     }
 
     @Override
@@ -94,6 +113,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
         return new SparkPairDataSet(rdd.join(((SparkPairDataSet) rightDataSet).rdd));
     }
 
+    @Override
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
+        return new SparkPairDataSet(rdd.join(((SparkPairDataSet) rightDataSet).rdd), name);
+    }
+
     private <W> Multimap<K,W> generateMultimap(JavaPairRDD<K,W> rightPairDataSet) {
         Multimap<K,W> returnValue = ArrayListMultimap.create();
         List<Tuple2<K,W>> value = rightPairDataSet.collect();
@@ -109,17 +133,27 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
-        return new SparkPairDataSet(rdd.subtractByKey(((SparkPairDataSet) rightDataSet).rdd));
+        return subtractByKey(rightDataSet, RDD_NAME_DEFAULT_SUBTRACTBYEY);
+    }
+
+    @Override
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet, String name) {
+        return new SparkPairDataSet(rdd.subtractByKey(((SparkPairDataSet) rightDataSet).rdd), name);
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> f) {
-        return new SparkDataSet<U>(rdd.flatMap(f));
+        return new SparkDataSet<U>(rdd.flatMap(f), f.getSparkName());
     }
 
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd));
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name) {
+        return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd), name);
     }
 
     @Override
@@ -134,12 +168,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
-        return new SparkDataSet(rdd.mapPartitions(f));
+        return new SparkDataSet(rdd.mapPartitions(f), f.getSparkName());
     }
 
 
     @Override
-    public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) {
+    public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) {
         try {
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireBeforeStatementTriggers();
@@ -147,6 +181,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
+            // wjk - push/pop scope anywhere here?
             rdd.saveAsNewAPIHadoopDataset(conf);
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireAfterStatementTriggers();
@@ -156,7 +191,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
-                    System.out.println("badRecords -> " + badRecords);
+                    // System.out.println("badRecords -> " + badRecords);
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
@@ -186,7 +221,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf, builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            rdd.saveAsNewAPIHadoopDataset(conf);
+            rdd.saveAsNewAPIHadoopDataset(conf); // wjk - set rdd name?
             operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));

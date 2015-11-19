@@ -4,7 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
-import com.splicemachine.db.iapi.sql.Activation;;
+import com.splicemachine.db.iapi.sql.Activation;
 
 import java.io.InputStream;
 

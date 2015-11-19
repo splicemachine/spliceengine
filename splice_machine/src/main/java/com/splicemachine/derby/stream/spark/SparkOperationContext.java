@@ -244,6 +244,11 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
+    public void pushScope() {
+        SpliceSpark.pushScope(getOperation().getSparkStageName());
+    }
+
+    @Override
     public void popScope() {
         SpliceSpark.popScope();
     }

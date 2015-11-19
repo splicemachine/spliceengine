@@ -44,11 +44,21 @@ import java.util.zip.GZIPOutputStream;
  *
  */
 public class SparkDataSet<V> implements DataSet<V>, Serializable {
+    
     public JavaRDD<V> rdd;
     public SparkDataSet(JavaRDD<V> rdd) {
         this.rdd = rdd;
     }
 
+    public SparkDataSet(JavaRDD<V> rdd, String rddname) {
+        this.rdd = rdd;
+        if (rdd != null) this.rdd.setName(rddname);
+    }
+
+//    public void setRDDName(String name) {
+//        rdd.setName(name);
+//    }
+    
     @Override
     public List<V> collect() {
         return rdd.collect();
@@ -56,12 +66,27 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
-        return new SparkDataSet<U>(rdd.mapPartitions(f));
+        //f.operationContext.pushScope(f.operationContext.getOperation().getSparkStageName());
+        try {
+            return new SparkDataSet<U>(rdd.mapPartitions(f), f.getSparkName());
+        } finally {
+            //f.operationContext.popScope();
+        }
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
+        return new SparkDataSet<U>(rdd.mapPartitions(f), name);
     }
 
     @Override
     public DataSet<V> distinct() {
-        return new SparkDataSet(rdd.distinct());
+        return new SparkDataSet(rdd.distinct(), "Remove Duplicates");
+    }
+
+    @Override
+    public DataSet<V> distinct(String name) {
+        return new SparkDataSet(rdd.distinct(), name);
     }
 
     @Override
@@ -71,15 +96,17 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function) {
-        return new SparkPairDataSet(
-                rdd.mapToPair(function));
+       return new SparkPairDataSet(rdd.mapToPair(function), function.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new SparkDataSet<>(rdd.map(function));
+        return new SparkDataSet<>(rdd.map(function), function.getSparkName());
     }
 
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
+        return new SparkDataSet<>(rdd.map(function), name);
+    }
 
     @Override
     public Iterator<V> toLocalIterator() {
@@ -88,9 +115,13 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
-        return new SparkPairDataSet(rdd.keyBy(f));
+        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName());
     }
 
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f, String name) {
+        return new SparkPairDataSet(rdd.keyBy(f), name);
+    }
+    
     @Override
     public long count() {
         return rdd.count();
@@ -103,7 +134,7 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
-        return new SparkDataSet<>(rdd.filter(f));
+        return new SparkDataSet<>(rdd.filter(f), f.getSparkName());
     }
 
     @Override
@@ -123,9 +154,12 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
-        return new SparkDataSet<>(rdd.flatMap(f));
+        return new SparkDataSet<>(rdd.flatMap(f), f.getSparkName());
     }
 
+    public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f, String name) {
+        return new SparkDataSet<>(rdd.flatMap(f), name);
+    }
     @Override
     public void close() {
 
@@ -133,14 +167,16 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction) {
-        return new SparkDataSet<V>(rdd.mapPartitions(offsetFunction));
+        return new SparkDataSet<V>(rdd.mapPartitions(offsetFunction), offsetFunction.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction) {
-        return new SparkDataSet<V>(rdd.mapPartitions(takeFunction)
-                .coalesce(1,true)
-                .mapPartitions(takeFunction));
+        JavaRDD<V> rdd1 = rdd.mapPartitions(takeFunction);
+        rdd1.setName(takeFunction.getSparkName());
+        JavaRDD<V> rdd2 = rdd1.coalesce(1,true);
+        rdd2.setName("Coalesce");
+        return new SparkDataSet<V>(rdd2.mapPartitions(takeFunction), takeFunction.getSparkName());
     }
 
     @Override
@@ -239,7 +275,7 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
 
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
-        return new SparkDataSet<V>(rdd.coalesce(numPartitions,shuffle));
+        return new SparkDataSet<V>(rdd.coalesce(numPartitions,shuffle), String.format("Coalesce %d partitions", numPartitions));
     }
 
     @Override

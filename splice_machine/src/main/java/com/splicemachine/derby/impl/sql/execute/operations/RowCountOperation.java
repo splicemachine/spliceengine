@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -171,34 +172,33 @@ public class RowCountOperation extends SpliceBaseOperation {
         out.writeBoolean(hasJDBCLimitClause);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
-        if (fetchLimit ==0) { // No Fetch, just offset
-            operationContext.pushScope(String.format("Offset [%d]",offset));
+        
+        if (fetchLimit == 0) { // No Fetch, just offset
+            operationContext.pushScope(String.format(this.getSparkStageName() + ": Offset %d", offset));
             try {
-                return sourceSet.coalesce(1, true)
+                return sourceSet.coalesce(1, true) // TODO (wjk) does shuffle need to be 'true'?
                         .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
             } finally {
-
+                operationContext.popScope();
             }
         } else {
             fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
-            operationContext.pushScope(String.format("Fetch [%d]",(int) (offset + fetchLimit)));
-            DataSet takeData = sourceSet.take(new TakeFunction<SpliceOperation, LocatedRow>(
-                    operationContext,
-                    (int) (offset + fetchLimit)));
-            operationContext.popScope();
-            operationContext.pushScope(String.format("Coalesce [1]"));
-            DataSet coalesce = takeData.coalesce(1, true);
-            operationContext.popScope();
+            operationContext.pushScope(String.format(this.getSparkStageName() + ": Fetch Limit %d", (int)(offset + fetchLimit)));
             try {
-                operationContext.pushScope(String.format("Offset [%d]", offset));
-                return coalesce
-                        .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
+                // This call to 'take' implicitly uses three RDDs: mapPartitions, coalesce, mapPartitions
+                DataSet takeData = sourceSet.take(
+                    new TakeFunction<SpliceOperation, LocatedRow>(
+                        operationContext,
+                        (int) (offset + fetchLimit)));
+                DataSet coalesce = takeData.coalesce(1, true); // TODO (wjk) does shuffle need to be 'true'?
+                return coalesce.offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
             } finally {
                 operationContext.popScope();
             }

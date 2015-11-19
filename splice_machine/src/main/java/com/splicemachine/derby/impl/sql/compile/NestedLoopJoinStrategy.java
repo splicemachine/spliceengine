@@ -143,15 +143,15 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 		 * sorted.
 		 */
         if(genInListVals){
-            numArgs=27;
+            numArgs=28;
         }else if(bulkFetch>1){
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
-            numArgs=27;
+            numArgs=28;
         }else{
-            numArgs=25;
+            numArgs=26;
         }
 
         fillInScanArgs1(tc,mb,
