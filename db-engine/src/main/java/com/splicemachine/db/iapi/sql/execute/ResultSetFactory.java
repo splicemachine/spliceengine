@@ -1589,10 +1589,12 @@ public interface ResultSetFactory {
 	 	@exception StandardException		Thrown on failure
 	 */
 	NoPutResultSet getNormalizeResultSet(NoPutResultSet source, 
-										 int resultSetNumber, int erdNumber,
+										 int resultSetNumber,
+										 int erdNumber,
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
-										 boolean forUpdate) 
+										 boolean forUpdate,
+										 String explainPlan) 
 		throws StandardException;
 
 	/**

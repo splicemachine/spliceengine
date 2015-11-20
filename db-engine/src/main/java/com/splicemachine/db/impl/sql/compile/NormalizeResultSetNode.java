@@ -646,9 +646,10 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 		mb.push(costEstimate.rowCount());
 		mb.push(costEstimate.getEstimatedCost());
 		mb.push(forUpdate);
-
+		mb.push(printExplainInformationForActivation());
+		
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getNormalizeResultSet",
-					ClassName.NoPutResultSet, 6);
+					ClassName.NoPutResultSet, 7);
 	}
 
 	/**
