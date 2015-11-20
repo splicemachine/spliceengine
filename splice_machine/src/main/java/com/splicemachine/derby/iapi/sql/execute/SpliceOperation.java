@@ -43,7 +43,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     public String getSparkStageName();
     
-    public String getSparkStageDetail();
+    public String getPrettyExplainPlan();
     
     /**
      * @return a descriptive name for this operation. Used for reporting information.

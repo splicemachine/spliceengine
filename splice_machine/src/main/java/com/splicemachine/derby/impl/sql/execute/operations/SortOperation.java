@@ -188,23 +188,19 @@ public class SortOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (distinct) return getDataSetDistinct(dsp);
+        
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet dataSet = source.getDataSet(dsp);
         
-        operationContext.pushScope(this.getSparkStageName() + (distinct ? ": Distinct" : ""));
-
-        if (distinct) {
-            dataSet = dataSet.distinct();
-        }
-        
-        // If explain plan was used above for distinct, don't need to use it again)
+        operationContext.pushScope();
         KeyerFunction f = new KeyerFunction(operationContext, keyColumns);
         PairDataSet pair = dataSet.keyBy(f);
         operationContext.popScope();
         
         operationContext.pushScope(getSparkStageName() + ": Shuffle/Sort Data");
         PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow),
-            "Sort By Columns: " + Arrays.toString(keyColumns));
+            "Sort By Columns"); // + Arrays.toString(keyColumns));
         operationContext.popScope();
 
         operationContext.pushScope(getSparkStageName() + ": Read Sorted Values");
@@ -213,11 +209,48 @@ public class SortOperation extends SpliceBaseOperation {
         
         try {
             operationContext.pushScope(getSparkStageName() + ": Locate Rows");
-            DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext));
+            DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext), true);
             return locatedRows;
         } finally {
             operationContext.popScope();
         }
+    }
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected DataSet<LocatedRow> getDataSetDistinct(DataSetProcessor dsp) throws StandardException {
+        // wjk - temporarily copied/pasted from getDataSet to help resolve some issues
+        OperationContext operationContext = dsp.createOperationContext(this);
+        DataSet dataSet = source.getDataSet(dsp);
+        
+        operationContext.pushScope();
+        dataSet = dataSet.distinct();
+        operationContext.popScope();
+        
+        operationContext.pushScope(this.getSparkStageName() + ": Prepare Keys");
+        KeyerFunction f = new KeyerFunction(operationContext, keyColumns);
+        PairDataSet pair = dataSet.keyBy(f);
+        operationContext.popScope();
+        
+        operationContext.pushScope(getSparkStageName() + ": Shuffle/Sort Data");
+        PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow),
+            "Sort By Columns"); // + Arrays.toString(keyColumns));
+        operationContext.popScope();
+
+        operationContext.pushScope(getSparkStageName() + ": Read Sorted Values");
+        DataSet sortedValues = sortedByKey.values("Read Sorted Values");
+        operationContext.popScope();
+        
+        try {
+            operationContext.pushScope(getSparkStageName() + ": Locate Rows");
+            DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext), true);
+            return locatedRows;
+        } finally {
+            operationContext.popScope();
+        }
+    }
+    
+    public String getSparkStageName() {
+        return (distinct ? "Sort Distinct" : "Sort");
     }
     
     /* (wjk) alternative style: 1 node (scope push) for the operation, with 4 RDDs

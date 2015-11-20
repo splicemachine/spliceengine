@@ -87,17 +87,22 @@ public class NestedLoopJoinOperation extends JoinOperation {
         DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
-        if (isOuterJoin)
-            return left.flatMap(new NLJOuterJoinFunction(operationContext));
-        else {
-            if (notExistsRightSide)
-                return left.flatMap(new NLJAntiJoinFunction(operationContext));
+        operationContext.pushScope();
+        try {
+            if (isOuterJoin)
+                return left.flatMap(new NLJOuterJoinFunction(operationContext), true);
             else {
-                if (oneRowRightSide)
-                    return left.flatMap(new NLJOneRowInnerJoinFunction(operationContext));
-                else
-                    return left.flatMap(new NLJInnerJoinFunction(operationContext));
+                if (notExistsRightSide)
+                    return left.flatMap(new NLJAntiJoinFunction(operationContext), true);
+                else {
+                    if (oneRowRightSide)
+                        return left.flatMap(new NLJOneRowInnerJoinFunction(operationContext), true);
+                    else
+                        return left.flatMap(new NLJInnerJoinFunction(operationContext), true);
+                }
             }
+        } finally {
+            operationContext.popScope();
         }
     }
 }

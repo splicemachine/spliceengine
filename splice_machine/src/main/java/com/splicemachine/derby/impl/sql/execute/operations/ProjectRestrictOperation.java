@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -20,7 +21,9 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -271,6 +274,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return mergeRestriction;
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (alwaysFalse) {
             return dsp.getEmpty();
@@ -279,7 +283,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         try {
             operationContext.pushScope();
-            return sourceSet.flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext), getPrettyExplainPlan());
+            return sourceSet.flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext), true);
         } finally {
             operationContext.popScope();
         }

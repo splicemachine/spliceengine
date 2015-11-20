@@ -6,6 +6,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import java.io.*;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Created by jleach on 4/17/15.
  */
@@ -46,9 +48,25 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
         operationContext.reset();
     }
 
+    public String SPARK_NAME_DELIM = ": ";
+
+    public String getPrettyFunctionName() {
+        return StringUtils.join(
+            StringUtils.splitByCharacterTypeCamelCase(this.getClass().getSimpleName().replace("Function", "")),
+            ' '
+        );
+        // String[] words = this.getClass().getSimpleName().replace("Function", "").split("(?=[A-Z])");
+        // return StringUtils.join(words, " ");
+    }
+    
+    public String getPrettyFunctionDesc() {
+        return "";
+    }
+    
     public String getSparkName() {
-        return this.getClass().getSimpleName();
-        // return this.getClass().getSimpleName().replace("Function", "");
+        return getPrettyFunctionName() +
+            (getPrettyFunctionDesc() != null && !getPrettyFunctionDesc().isEmpty() ?
+            SPARK_NAME_DELIM + getPrettyFunctionDesc() : "");
     }
     
 }

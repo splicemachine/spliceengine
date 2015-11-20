@@ -25,6 +25,8 @@ public interface DataSet<V> {
 
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name);
 
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast);
+
     /**
      * Removes duplicates from dataset
      */
@@ -42,6 +44,8 @@ public interface DataSet<V> {
      */
     <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
     
+    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2, boolean isLast);
+    
     /**
      * Applies function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
@@ -54,6 +58,8 @@ public interface DataSet<V> {
     <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function);
 
     <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name);
+
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast);
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
 
@@ -120,6 +126,8 @@ public interface DataSet<V> {
 
    <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f, String name);
    
+   <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f, boolean isLast);
+   
     /**
      * Releases any resources of the dataset
      *
@@ -132,6 +140,8 @@ public interface DataSet<V> {
      * @return
      */
     <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction);
+
+    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast);
 
     <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
 

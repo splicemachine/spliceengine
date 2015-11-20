@@ -20,10 +20,4 @@ public abstract class SpliceFunction2<Op extends SpliceOperation, From, From2, T
 	protected SpliceFunction2(OperationContext<Op> operationContext) {
         super(operationContext);
 	}
-
-    public String getSparkName() {
-        return this.getClass().getSimpleName();
-        // return this.getClass().getSimpleName().replace("Function", "");
-    }
-
 }

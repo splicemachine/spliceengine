@@ -170,7 +170,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         DataSet set = source.getDataSet(dsp);
 
         operationContext.pushScope();
-        set = set.map(new CountReadFunction(operationContext), this.getPrettyExplainPlan());
+        set = set.map(new CountReadFunction(operationContext));
         operationContext.popScope();
 
         if (groupedAggregateContext.getNonGroupedUniqueColumns() != null &&
@@ -212,7 +212,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.popScope();
         
         operationContext.pushScope(this.getSparkStageName() + ": Finalize");
-        DataSet set5 = set4.map(new AggregateFinisherFunction(operationContext));
+        DataSet set5 = set4.map(new AggregateFinisherFunction(operationContext), true);
         operationContext.popScope();
         
         return set5;

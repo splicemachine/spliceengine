@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -88,6 +89,31 @@ public class RDDUtils {
 
     public static Iterable<LocatedRow> toSparkRowsIterable(Iterable<ExecRow> execRows) {
         return new SparkRowsIterable(execRows);
+    }
+    
+    @SuppressWarnings("rawtypes")
+    public static void setAncestorRDDNames(JavaPairRDD rdd, int levels, String[] names) {
+        assert levels > 0;
+        setAncestorRDDNames(rdd.rdd(), levels, names);
+    }
+
+    @SuppressWarnings("rawtypes")
+    public static void setAncestorRDDNames(JavaRDD rdd, int levels, String[] names) {
+        assert levels > 0;
+        setAncestorRDDNames(rdd.rdd(), levels, names);
+    }
+
+    @SuppressWarnings("rawtypes")
+    // TODO (wjk): remove this when we have a better way to change name of RDDs implicitly created within spark
+    private static void setAncestorRDDNames(org.apache.spark.rdd.RDD rdd, int levels, String[] names) {
+        assert levels > 0;
+        org.apache.spark.rdd.RDD currentRDD = rdd;
+        for (int i = 0; i < levels && currentRDD != null; i++) {
+            org.apache.spark.rdd.RDD rddAnc =
+                ((org.apache.spark.OneToOneDependency)currentRDD.dependencies().head()).rdd();
+            if (rddAnc != null) rddAnc.setName(names[i]);
+            currentRDD = rddAnc;
+        }
     }
 
     public static class SparkRowsIterable implements Iterable<LocatedRow>, Iterator<LocatedRow> {

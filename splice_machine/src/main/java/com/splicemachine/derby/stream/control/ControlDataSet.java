@@ -10,14 +10,20 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+
 import org.apache.hadoop.fs.*;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import org.apache.spark.storage.StorageLevel;
 import org.sparkproject.guava.collect.FluentIterable;
+
 import scala.Tuple2;
+
 import javax.annotation.Nullable;
+
 import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
@@ -48,7 +54,6 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
-        // Ignore name on control side
         try {
             return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
         } catch (Exception e) {
@@ -58,7 +63,11 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
-        // Ignore name on control side
+        return mapPartitions(f);
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
         return mapPartitions(f);
     }
 
@@ -69,7 +78,6 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> distinct(String name) {
-        // Ignore name on control side
         return distinct();
     }
 
@@ -83,6 +91,11 @@ public class ControlDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+        return fold(zeroValue, function2);
     }
 
     @Override
@@ -107,10 +120,13 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
-        // Ignore name on control side
         return map(function);
     }
 
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
+        return map(function);
+    }
+    
     @Override
     public Iterator<V> toLocalIterator() {
         return iterable.iterator();
@@ -123,7 +139,6 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
-        // Ignore name on control side
         return keyBy(function);
     }
 
@@ -171,7 +186,11 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f, String name) {
-        // Ignore 'name' on control side
+        return flatMap(f);
+    }
+
+    @Override
+    public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f, boolean isLast) {
         return flatMap(f);
     }
 
@@ -187,6 +206,11 @@ public class ControlDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> f, boolean isLast) {
+        return offset(f);
     }
 
     @Override

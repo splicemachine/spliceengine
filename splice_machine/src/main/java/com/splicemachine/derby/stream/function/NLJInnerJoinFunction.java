@@ -10,6 +10,7 @@ import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.NestedLoopInnerIterator;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -109,4 +110,9 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
     public LocatedRow getLeftLocatedRow() {
         return leftRow;
     }
+    
+    public String getPrettyFunctionName() {
+        return "Nested Loop Inner Join";
+    }
+
 }
