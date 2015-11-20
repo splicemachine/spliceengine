@@ -415,5 +415,9 @@ public class VTIOperation extends SpliceBaseOperation {
             return ((SpliceFileVTI) userVTI).getFileName();
         return null;
     }
-
+    
+    @Override
+    public String getSparkStageName() {
+        return "Virtual Table Interface";
+    }
 }

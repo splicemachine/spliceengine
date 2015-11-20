@@ -31,4 +31,8 @@ public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFu
         return locatedRow;
     }
 
+    public String getPrettyFunctionName() {
+        return "Deserialize Key Values";
+    }
+    
 }
