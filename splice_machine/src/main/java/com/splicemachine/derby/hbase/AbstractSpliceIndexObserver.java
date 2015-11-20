@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.backup.Backup;
@@ -80,17 +81,19 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     public void postOpen(final ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up
-        String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
-        try {
-            conglomId = Long.parseLong(tableName);
-            operationFactory = new SimpleOperationFactory();
-            region = TransactionalRegions.get((HRegion)e.getEnvironment().getRegion());
-        } catch (NumberFormatException nfe) {
-            SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing will not be set up", tableName);
-            conglomId = -1;
-            return;
+        String tableName = e.getEnvironment().getRegion().getTableDesc().getTableName().getQualifierAsString();
+        SpliceConstants.TableEnv table = EnvUtils.getTableEnv(e.getEnvironment());
+        if (table.equals(SpliceConstants.TableEnv.USER_TABLE)) {
+            try {
+                conglomId = Long.parseLong(tableName);
+                operationFactory = new SimpleOperationFactory();
+                region = TransactionalRegions.get((HRegion) e.getEnvironment().getRegion());
+            } catch (NumberFormatException nfe) {
+                SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing will not be set up", tableName);
+                conglomId = -1;
+                return;
+            }
         }
-
         super.postOpen(e);
     }
     @Override

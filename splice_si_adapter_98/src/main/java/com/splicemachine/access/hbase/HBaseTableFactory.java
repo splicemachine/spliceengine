@@ -1,10 +1,15 @@
 package com.splicemachine.access.hbase;
 
+import com.clearspring.analytics.util.Lists;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.splicemachine.access.iapi.SpliceTableFactory;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -51,6 +56,23 @@ public class HBaseTableFactory implements SpliceTableFactory<Connection,Table,Ta
     }
     public void clearRegionCache(TableName tableName) {
         ((HConnection) connection).clearRegionCache(tableName);
+    }
+
+
+    public List<HRegionLocation> getRegionsInRange(byte[] tableName, final byte[] startRow, final byte[] stopRow) throws IOException, ExecutionException, InterruptedException  {
+        List<HRegionLocation> locations = getRegions(tableName);
+        if (startRow.length <= 0 && stopRow.length <= 0)
+            return locations;             //short circuit in the case where all regions are contained
+        return Lists.newArrayList(Iterables.filter(locations,new Predicate<HRegionLocation>() {
+            @Override
+            public boolean apply(@Nullable HRegionLocation hRegionLocation) {
+                return BaseHRegionUtil.containsRange(hRegionLocation.getRegionInfo(),startRow,stopRow);
+            }
+        }));
+    }
+
+    public HRegionLocation getRegionInRange(byte[] tableName, final byte[] startRow) throws IOException, ExecutionException, InterruptedException  {
+        return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getRegionLocation(startRow);
     }
 
 }

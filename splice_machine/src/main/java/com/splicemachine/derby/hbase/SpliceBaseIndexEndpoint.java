@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.pipeline.impl.*;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
@@ -57,7 +58,7 @@ public class SpliceBaseIndexEndpoint {
     private long conglomId;
     private TransactionalRegion region;
 
-    private Timer timer = SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
+    //private Timer timer = SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
     private Meter rejectedMeter = SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName, "rejectedRows", TimeUnit.SECONDS);
 
     private static final RegionWritePipeline.PipelineMeters pipelineMeter = new RegionWritePipeline.PipelineMeters();
@@ -69,37 +70,41 @@ public class SpliceBaseIndexEndpoint {
 
     public void start(CoprocessorEnvironment env) {
         rce = ((RegionCoprocessorEnvironment) env);
-        String tableName = rce.getRegion().getTableDesc().getNameAsString();
-        final WriteContextFactory<TransactionalRegion> factory;
-        try {
-            conglomId = Long.parseLong(tableName);
-        } catch (NumberFormatException nfe) {
-            SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
-                    "index management for batch operations will be disabled", tableName);
-            conglomId = -1;
-        }
-        factory = WriteContextFactoryManager.getWriteContext(conglomId);
 
-        Service service = new Service() {
-            @Override
-            public boolean shutdown() {
-                return true;
+        String tableName = ((RegionCoprocessorEnvironment) env).getRegion().getTableDesc().getTableName().getQualifierAsString();
+        SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) env);
+        if (table.equals(SpliceConstants.TableEnv.USER_TABLE)) {
+           final WriteContextFactory<TransactionalRegion> factory;
+            try {
+                conglomId = Long.parseLong(tableName);
+            } catch (NumberFormatException nfe) {
+                SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
+                        "index management for batch operations will be disabled", tableName);
+                conglomId = -1;
             }
+            factory = WriteContextFactoryManager.getWriteContext(conglomId);
 
-            @Override
-            public boolean start() {
-                factory.prepare();
-                if (conglomId >= 0) {
-                    region = TransactionalRegions.get((HRegion) rce.getRegion());
-                } else {
-                    region = TransactionalRegions.nonTransactionalRegion((HRegion)rce.getRegion());
+            Service service = new Service() {
+                @Override
+                public boolean shutdown() {
+                    return true;
                 }
-                regionWritePipeline = new RegionWritePipeline(rce, (HRegion)rce.getRegion(), factory, region, pipelineMeter);
-                SpliceDriver.driver().deregisterService(this);
-                return true;
-            }
-        };
-        SpliceDriver.driver().registerService(service);
+
+                @Override
+                public boolean start() {
+                    factory.prepare();
+                    if (conglomId >= 0) {
+                        region = TransactionalRegions.get((HRegion) rce.getRegion());
+                    } else {
+                        region = TransactionalRegions.nonTransactionalRegion((HRegion) rce.getRegion());
+                    }
+                    regionWritePipeline = new RegionWritePipeline(rce, (HRegion) rce.getRegion(), factory, region, pipelineMeter);
+                    SpliceDriver.driver().deregisterService(this);
+                    return true;
+                }
+            };
+            SpliceDriver.driver().registerService(service);
+        }
     }
 
     public void stop(CoprocessorEnvironment env) {
@@ -142,6 +147,8 @@ public class SpliceBaseIndexEndpoint {
         SpliceWriteControl.Status status;
         int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
         // Get the "permit" to write.  WriteControl does not perform the writes.  It just controls whether or not the write is allowed to proceed.
+
+        System.out.println("writing (" + numKVPairs + ") records");
         status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
         if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             //we cannot write to this

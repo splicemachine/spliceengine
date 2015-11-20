@@ -4,6 +4,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -31,7 +32,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import scala.Tuple2;
@@ -139,7 +139,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
 
     @Override
-    public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) {
+    public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) throws StandardException {
         try {
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireBeforeStatementTriggers();
@@ -180,7 +180,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) {
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         try {
             operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf = new Configuration(SIConstants.config);
@@ -197,7 +197,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) {
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         try {
             operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf = new Configuration(SIConstants.config);

@@ -25,8 +25,8 @@ public class StreamUtils {
     public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
     public static final DataSetProcessor hregionDataSetProcessor = new HregionDataSetProcessor();
-    private static final double CONTROL_SIDE_THRESHOLD = 10*1000*1000; // based on a TPCC1000 run on an 8 node cluster
-    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E6;
+    private static final double CONTROL_SIDE_THRESHOLD = 10*1000*1000*1000; // based on a TPCC1000 run on an 8 node cluster
+    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E10;
 
     public static DataSetProcessor getControlDataSetProcessor() {
         return controlDataSetProcessor;

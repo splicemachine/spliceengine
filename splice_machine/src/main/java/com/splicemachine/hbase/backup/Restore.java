@@ -6,16 +6,13 @@ package com.splicemachine.hbase.backup;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.CancellationException;
+
 import com.google.common.io.Closeables;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -23,7 +20,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;

@@ -27,6 +27,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
@@ -747,6 +748,33 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             throw new IllegalStateException("Programmer error: " +
                     "attempting to elevate an operation txn without specifying a destination table");
     }
+
+    public TxnView createChildTransaction(byte[] table) throws StandardException {
+        try {
+            getCurrentTransaction();
+            TxnView childTxn = TransactionLifecycle.getLifecycleManager().beginChildTransaction(getCurrentTransaction(), table);
+            return childTxn;
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
+    }
+
+    public void rollbackTransaction(long txnId) throws StandardException {
+        try {
+            TransactionLifecycle.getLifecycleManager().rollback(txnId);
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
+    }
+
+    public void commitTransaction(long txnId) throws StandardException {
+        try {
+            TransactionLifecycle.getLifecycleManager().commit(txnId);
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
+    }
+
 
     private TxnView getTransaction() throws StandardException {
         TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();

@@ -36,6 +36,11 @@ public class InsertTableWriterBuilder implements Externalizable {
         return this;
     }
 
+    public long getHeapConglom() {
+        return heapConglom;
+    }
+
+
     public InsertTableWriterBuilder operationContext(OperationContext operationContext) {
         this.operationContext = operationContext;
         return this;

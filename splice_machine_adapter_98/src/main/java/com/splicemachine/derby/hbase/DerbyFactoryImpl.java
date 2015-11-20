@@ -19,10 +19,8 @@ import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
-
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
-import com.splicemachine.hbase.TableRegionsInRange;
-import groovy.swing.factory.TableFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -32,8 +30,10 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -264,8 +264,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		}
 		@Override
 		public int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException {
-			try(HTable t = new HTable(conf,tableName)) {
-				return t.getRegionLocations().size();
+			try(HTable t = (HTable) HBaseTableFactory.getInstance().getTable(tableName)) {
+				return t.getAllRegionLocations().size();
 			}
 		}
 
@@ -535,7 +535,11 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
 		@Override
 		public SpliceRegionScanner getSplitRegionScanner(Scan scan, Table htable) throws IOException {
-			return new SplitRegionScanner(scan,htable, ((TableRegionsInRange) htable).getRegionsInRange(scan.getStartRow(), scan.getStopRow(), false));
+            try {
+                return new SplitRegionScanner(scan, htable, HBaseTableFactory.getInstance().getRegionsInRange(htable.getName().getQualifier(), scan.getStartRow(), scan.getStopRow()));
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
 		}
 
 		@Override
