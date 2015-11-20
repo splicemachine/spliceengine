@@ -60,7 +60,7 @@ public class SpliceDatabase extends BasicDatabase{
             SanityManager.DEBUG_SET("DumpOptimizedTree");
 
         configureAuthentication();
-        SanityManager.DEBUG_SET("ByteCodeGenInstr");
+        //SanityManager.DEBUG_SET("ByteCodeGenInstr");
         //SanityManager.DEBUG_SET("DumpOptimizedTree");
         try{
             create=!ZkUtils.isSpliceLoaded();
