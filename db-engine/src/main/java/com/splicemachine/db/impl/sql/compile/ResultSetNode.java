@@ -894,9 +894,10 @@ public abstract class ResultSetNode extends QueryTreeNode{
         mb.push(getCostEstimate().rowCount());
         mb.push(getCostEstimate().getEstimatedCost());
         mb.push(false);
+        mb.push(printExplainInformationForActivation());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,"getNormalizeResultSet",
-                ClassName.NoPutResultSet,6);
+                ClassName.NoPutResultSet,7);
     }
 
     /**
