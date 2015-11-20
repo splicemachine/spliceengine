@@ -67,7 +67,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
         this.txn = txn;
         MeasuredRegionScanner regionScanner = getRegionScanner();
         HRegionInfo r = regionScanner.getRegionInfo();
-        conglomId = r.getTable().toString();
+        conglomId = r.getTable().getQualifierAsString();
         regionId = r.getEncodedName();
         this.baseConglomId = baseConglomId;
         collector = new StatisticsCollector(txn, template, columnPositionMap, fieldLengths, this);
@@ -101,7 +101,6 @@ public class StatisticsScanner<Data> extends SITableScanner<Data> {
                     continue;
                 row.resetRowArray();
                 DataValueDescriptor[] rowArray = row.getRowArray();
-                System.out.println("columnStatistics ->" + columnStatistics);
                 rowArray[0] = new SQLLongint(new Long(conglomId));
                 rowArray[1] = new SQLVarchar(regionId);
                 rowArray[2] = new SQLInteger(columnPositionMap[i++]);

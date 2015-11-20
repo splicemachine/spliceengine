@@ -43,6 +43,7 @@ public class SpliceBaseIndexEndpoint {
     public static final int ipcReserved = 10;
     private static final SpliceWriteControl writeControl;
     public static final TrafficControl independentTrafficControl;
+    private SpliceConstants.TableEnv table;
 
     static {
         int ipcThreads = SpliceConstants.ipcThreads - ipcReserved;
@@ -72,18 +73,17 @@ public class SpliceBaseIndexEndpoint {
         rce = ((RegionCoprocessorEnvironment) env);
 
         String tableName = ((RegionCoprocessorEnvironment) env).getRegion().getTableDesc().getTableName().getQualifierAsString();
-        SpliceConstants.TableEnv table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) env);
-        if (table.equals(SpliceConstants.TableEnv.USER_TABLE)) {
+        table = EnvUtils.getTableEnv((RegionCoprocessorEnvironment) env);
+        if (table.equals(SpliceConstants.TableEnv.USER_TABLE) || table.equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)) { // DERBY SYS TABLE is temporary (stats)
            final WriteContextFactory<TransactionalRegion> factory;
             try {
                 conglomId = Long.parseLong(tableName);
             } catch (NumberFormatException nfe) {
-                SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
+                SpliceLogUtils.warn(LOG, "Unable to parse conglomerate id for table %s, " +
                         "index management for batch operations will be disabled", tableName);
                 conglomId = -1;
             }
             factory = WriteContextFactoryManager.getWriteContext(conglomId);
-
             Service service = new Service() {
                 @Override
                 public boolean shutdown() {
@@ -121,6 +121,9 @@ public class SpliceBaseIndexEndpoint {
      * @throws IOException
      */
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException {
+        assert bulkWrites!=null:"Bulk Writes Cannot be Null";
+        //assert table.equals(SpliceConstants.TableEnv.USER_TABLE):"Cannot Bulk Write to A Non Splice User Table";
+
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "BulkWrites %s for region %s", bulkWrites, rce.getRegion().getRegionInfo().getRegionNameAsString());
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
@@ -137,6 +140,7 @@ public class SpliceBaseIndexEndpoint {
         // Determine whether or not this write is dependent or independent.  Dependent writes are writes to a table with indexes.
         boolean dependent;
         try {
+            assert regionWritePipeline!=null:"Missed Service -> + " + rce.getRegion().getTableDesc().getTableName();
         	dependent = regionWritePipeline.isDependent(bulkWrites.getTxn());
         } catch (InterruptedException e1) {
         	throw new IOException(e1);
@@ -148,7 +152,6 @@ public class SpliceBaseIndexEndpoint {
         int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
         // Get the "permit" to write.  WriteControl does not perform the writes.  It just controls whether or not the write is allowed to proceed.
 
-        System.out.println("writing (" + numKVPairs + ") records");
         status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
         if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             //we cannot write to this
