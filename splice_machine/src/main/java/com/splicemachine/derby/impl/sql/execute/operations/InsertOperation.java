@@ -63,7 +63,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public String getName() {
 				return NAME;
 		}
-
+    
 		@SuppressWarnings("UnusedDeclaration")
 		public InsertOperation(){ super(); }
 

@@ -573,13 +573,18 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 
     @Override
     public NoPutResultSet getNormalizeResultSet(NoPutResultSet source,
-                                                int resultSetNumber, int erdNumber,
-                                                double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-                                                boolean forUpdate) throws StandardException {
+                                                int resultSetNumber,
+                                                int erdNumber,
+                                                double optimizerEstimatedRowCount,
+                                                double optimizerEstimatedCost,
+                                                boolean forUpdate,
+                                                String explainPlan) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            return new NormalizeOperation(below.getOperation(),source.getActivation(),resultSetNumber,erdNumber,
+            NormalizeOperation op = new NormalizeOperation(below.getOperation(),source.getActivation(),resultSetNumber,erdNumber,
                     optimizerEstimatedRowCount,optimizerEstimatedCost,forUpdate);
+            op.setExplainPlan(explainPlan);
+            return op;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

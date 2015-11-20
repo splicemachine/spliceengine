@@ -79,7 +79,6 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         this.charset = charset;
     }
 
-
     public static DatasetProvider getSpliceFileVTI(String fileName) {
         return new SpliceFileVTI(fileName);
     }
@@ -97,10 +96,9 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex,timeFormat,dateTimeFormat,timestampFormat);
     }
 
-
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
-            operationContext = dsp.createOperationContext(op);
+        operationContext = dsp.createOperationContext(op);
         try {
             ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
@@ -114,8 +112,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             }
         } catch (IOException ioe) {
             throw StandardException.plainWrapException(ioe);
-        }
-        finally {
+        } finally {
             operationContext.popScope();
         }
     }
