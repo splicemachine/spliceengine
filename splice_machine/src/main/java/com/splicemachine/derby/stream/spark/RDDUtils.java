@@ -110,7 +110,7 @@ public class RDDUtils {
         org.apache.spark.rdd.RDD currentRDD = rdd;
         for (int i = 0; i < levels && currentRDD != null; i++) {
             org.apache.spark.rdd.RDD rddAnc =
-                ((org.apache.spark.OneToOneDependency)currentRDD.dependencies().head()).rdd();
+                ((org.apache.spark.Dependency)currentRDD.dependencies().head()).rdd();
             if (rddAnc != null) rddAnc.setName(names[i]);
             currentRDD = rddAnc;
         }
