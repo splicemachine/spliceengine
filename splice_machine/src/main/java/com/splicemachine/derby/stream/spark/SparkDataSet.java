@@ -83,8 +83,11 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct() {
-        RDDUtils.setAncestorRDDNames(rdd, 2, new String[]{"Prepare Distinct Sort", "Shuffle Data"});
-        return new SparkDataSet(rdd.distinct(), "Remove Duplicates");
+        // Implicitly creates two ancestor RDDs which we need to rename (find a better way)
+        JavaRDD rdd1 = rdd.distinct();
+        rdd1.setName("Remove Duplicates");
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data", "Prepare Distinct Sort"});
+        return new SparkDataSet(rdd1);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -203,9 +206,15 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction) {
         JavaRDD<V> rdd1 = rdd.mapPartitions(takeFunction);
         rdd1.setName(takeFunction.getSparkName());
-        JavaRDD<V> rdd2 = rdd1.coalesce(1,true);
-        rdd2.setName("Coalesce");
-        return new SparkDataSet<V>(rdd2.mapPartitions(takeFunction), takeFunction.getSparkName());
+        
+        JavaRDD<V> rdd2 = rdd1.coalesce(1, true);
+        rdd2.setName("Coalesce 1 partition");
+        RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+        
+        JavaRDD<V> rdd3 = rdd2.mapPartitions(takeFunction);
+        rdd3.setName(takeFunction.getSparkName());
+        
+        return new SparkDataSet<V>(rdd3);
     }
 
     @Override
@@ -302,9 +311,13 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
         rdd.saveAsTextFile(path);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
-        return new SparkDataSet<V>(rdd.coalesce(numPartitions,shuffle), String.format("Coalesce %d partitions", numPartitions));
+        JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
+        rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
+        RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+        return new SparkDataSet<V>(rdd1);
     }
 
     @Override

@@ -192,7 +192,6 @@ public class RowCountOperation extends SpliceBaseOperation {
             fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
             operationContext.pushScope(String.format(this.getSparkStageName() + ": Fetch Limit %d", (int)(offset + fetchLimit)));
             try {
-                // This call to 'take' implicitly uses three RDDs: mapPartitions, coalesce, mapPartitions
                 DataSet takeData = sourceSet.take(
                     new TakeFunction<SpliceOperation, LocatedRow>(
                         operationContext,
