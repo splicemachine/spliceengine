@@ -219,16 +219,18 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     public DataSet<String> readTextFile(String path) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope("Read File \n" + "{file=" + String.format(path) + ", " + "size=" + contentSummary.getSpaceConsumed() + ", " + "files=" + contentSummary.getFileCount());
-            return new SparkDataSet<String>(SpliceSpark.getContext().textFile(path));
+            SpliceSpark.pushScope("Read File \n" +
+                "{file=" + String.format(path) + ", " +
+                "size=" + contentSummary.getSpaceConsumed() + ", " +
+                "files=" + contentSummary.getFileCount() + "}");
+            JavaRDD rdd = SpliceSpark.getContext().textFile(path);
+            return new SparkDataSet<String>(rdd, "Read Text File");
         } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
+            throw new RuntimeException(ioe);
         } finally {
             SpliceSpark.popScope();
         }
-
     }
-
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {

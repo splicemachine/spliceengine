@@ -66,7 +66,9 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @SuppressWarnings("rawtypes")
     private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
-        return isLast ? f.getOperation().getPrettyExplainPlan() : f.getSparkName();
+        if (!isLast) return f.getSparkName();
+        String plan = f.getOperation().getPrettyExplainPlan();
+        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
     }
     
     @Override
