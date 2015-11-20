@@ -94,6 +94,8 @@ public class ProtoUtil {
     }
 
     public static Table createTable(long conglomerate, TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
+        assert td!=null:"TableDescriptor is null";
+        assert td.getFormatIds()!=null:"No Format ids";
         return Table.newBuilder()
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))

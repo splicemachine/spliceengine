@@ -108,7 +108,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
             totalTimer.startTiming();
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "Calling BulkWriteAction: id=%d, initialBulkWritesSize=%d, initialKVPairSize=%d", id, bulkWrites.numEntries(), bulkWrites.numEntries());
-            System.out.println(String.format("BWA [%s] - [%s]",id,bulkWrites.numEntries()));
             execute(bulkWrites);
             totalTimer.stopTiming();
             if(metricFactory.isActive())
@@ -216,7 +215,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
                                 SpliceLogUtils.debug(RETRY_LOG,
                                 		"Retrying write after receiving global RETRY response: id=%d, bulkWriteResult=%s, bulkWrite=%s",
                                 		id, bulkWriteResult, currentBulkWrite);
-                            System.out.println(String.format("BWA Full Retry [%s] - [%s]",id,currentBulkWrite.getMutations().size()));
                             addToRetryCallBuffer(currentBulkWrite.getMutations(), nextWrite.getTxn(), bulkWriteResult.getGlobalResult().refreshCache());
                             continue;
                         case PARTIAL:
@@ -241,7 +239,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
                                     Collection<KVPair> toRetry = PipelineUtils.doPartialRetry(currentBulkWrite, bulkWriteResult,errors,id);
 //																		rowsSuccessfullyWritten +=currentBulkWrite.getSize()-toRetry.size();
                                     // only sleep and redo cache if you have a failure not a lock contention issue
-                                    System.out.println(String.format("BWA Partial Retry [%s] - [%s]",id,toRetry.size()));
                                     boolean isFailure = bulkWriteResult.getFailedRows() != null && bulkWriteResult.getFailedRows().size() > 0;
                                     addToRetryCallBuffer(toRetry,nextWrite.getTxn(),isFailure);
 //                                    if (isFailure) // Retry immediately if you do not have failed rows!
@@ -295,7 +292,6 @@ public class BulkWriteAction implements Callable<WriteStats> {
                         statusReporter.rejectedCount.incrementAndGet();
                         TxnView nextTxn = nextWrite.getTxn();
                         boolean first = true;
-                        System.out.println(String.format("BWA Error Retry [%s] - [%s]",id,nextWrite.numEntries()));
                         for(BulkWrite bw:nextWrite.getBulkWrites()){
                             addToRetryCallBuffer(bw.getMutations(),nextTxn,first);
                             first=false;

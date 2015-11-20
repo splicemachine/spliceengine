@@ -22,12 +22,10 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
     private Table htable;
     private ResultScanner scanner;
     private boolean opened = false;
-    private int rows = 0;
 
     public ControlMeasuredRegionScanner(byte[] tableName, Scan scan) {
         this.tableName = tableName;
         this.scan = scan;
-        this.rows = 0;
     }
 
     @Override
@@ -62,7 +60,6 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
             }
             Result result = scanner.next();
             if (result!=null) {
-                rows++;
                 results.addAll(result.listCells());
             }
             return result!=null;
@@ -121,7 +118,6 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
         return internalNextRaw(cells);
     }
 
-    @Override
     public boolean nextRaw(List<Cell> cells, int i) throws IOException {
         return internalNextRaw(cells);
     }
@@ -131,14 +127,12 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
         return internalNextRaw(cells);
     }
 
-    @Override
     public boolean next(List<Cell> cells, int i) throws IOException {
         return internalNextRaw(cells);
     }
 
     @Override
     public void close() throws IOException {
-        System.out.println("Rows read" + rows);
         if(scanner!=null)scanner.close();
         if(htable!=null)
             try {
