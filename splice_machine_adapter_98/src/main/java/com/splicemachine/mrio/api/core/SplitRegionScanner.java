@@ -2,19 +2,14 @@ package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.util.List;
-
-import com.splicemachine.hbase.TableRegionsInRange;
+import com.splicemachine.access.hbase.HBaseTableFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.mrio.api.core.BaseSplitRegionScanner;
 import com.splicemachine.utils.SpliceLogUtils;
 /*
  * 
@@ -25,7 +20,8 @@ public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
     protected static final Logger LOG = Logger.getLogger(SplitRegionScanner.class);
 	
 	public SplitRegionScanner(Scan scan, Table table, List<HRegionLocation> locations) throws IOException {
-		super(scan,table,locations);			
+		super(scan,table,locations);
+
 	}
 
 	@Override
@@ -55,18 +51,25 @@ public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
         if (System.getProperty("hbase.rootdir") != null)
             conf.set("hbase.rootdir",System.getProperty("hbase.rootdir"));
 
-
-		ClientSideRegionScanner clientSideRegionScanner =
-				  new ClientSideRegionScanner(table, conf,FSUtils.getCurrentFileSystem(conf), FSUtils.getRootDir(conf),
-					table.getTableDescriptor(),((TableRegionsInRange)table).getRegionLocation(newScan.getStartRow()).getRegionInfo(),
-					newScan,null);
-	  			this.region = clientSideRegionScanner.region;
-	  			registerRegionScanner(clientSideRegionScanner);
+        try {
+            ClientSideRegionScanner clientSideRegionScanner =
+                    new ClientSideRegionScanner(table, conf, FSUtils.getCurrentFileSystem(conf), FSUtils.getRootDir(conf),
+                            table.getTableDescriptor(), HBaseTableFactory.getInstance().getRegionInRange(table.getName().getQualifier(),newScan.getStartRow()).getRegionInfo(),
+                            newScan, null);
+            this.region = clientSideRegionScanner.region;
+            registerRegionScanner(clientSideRegionScanner);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
 	}
 
 	@Override
 	List<HRegionLocation> getRegionsInRange(Scan scan) throws IOException {
-		return ((TableRegionsInRange)htable).getRegionsInRange(scan.getStartRow(), scan.getStopRow(), true);
+        try {
+            return HBaseTableFactory.getInstance().getRegionsInRange(htable.getName().getQualifier(),scan.getStartRow(), scan.getStopRow());
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
 	}
 
 	@Override

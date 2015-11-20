@@ -10,16 +10,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -29,7 +26,6 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceUtilities;
 

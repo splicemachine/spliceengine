@@ -24,6 +24,10 @@ public class DeleteTableWriterBuilder implements Externalizable{
         return this;
     }
 
+    public long getHeapConglom() {
+        return heapConglom;
+    }
+
     public DeleteTableWriterBuilder txn(TxnView txn) {
         assert txn!=null: "Transaction cannot be null";
         this.txn = txn;

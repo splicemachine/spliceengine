@@ -106,6 +106,10 @@ public class UpdateTableWriterBuilder implements Externalizable {
         return this;
     }
 
+    public long getHeapConglom() {
+        return heapConglom;
+    }
+
     public UpdateTableWriterBuilder columnOrdering(int[] columnOrdering) {
         this.columnOrdering = columnOrdering;
         return this;

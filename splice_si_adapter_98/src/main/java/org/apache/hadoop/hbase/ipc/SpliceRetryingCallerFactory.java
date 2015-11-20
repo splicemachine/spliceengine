@@ -120,6 +120,7 @@ public class SpliceRetryingCallerFactory  {
                 (value = "SWL_SLEEP_WITH_LOCK_HELD", justification = "na")
         public synchronized T callWithRetries(SpliceRetryingCall<T> callable, int callTimeout)
                 throws IOException, RuntimeException {
+            System.out.println("Call with retries?");
             this.callTimeout = callTimeout;
             List<RetriesExhaustedException.ThrowableWithExtraContext> exceptions = new LinkedList<>();
             this.globalStartTime = System.currentTimeMillis();
@@ -190,6 +191,8 @@ public class SpliceRetryingCallerFactory  {
             // The code of this method should be shared with withRetries.
             this.globalStartTime = System.currentTimeMillis();
             try {
+//                System.out.println("Call without retries?");
+//                Thread.dumpStack();
                 beforeCall();
                 callable.prepare(false);
                 return callable.call(remaining);

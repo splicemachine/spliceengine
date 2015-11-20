@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.execute.HasIncrement;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -145,9 +146,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public void close() throws StandardException {
 				super.close();
 				if (nextIncrement != -1) // Do we do this twice?
-					this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);					
+					this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
 		}
-				
+
 	    private boolean isSingleRowResultSet()
 	    {
 	        boolean isRow = false;
@@ -174,7 +175,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 			super.readExternal(in);
 			autoIncrementRowLocationArray = new RowLocation[in.readInt()];
 			for (int i = 0; i < autoIncrementRowLocationArray.length; i++) {
-				autoIncrementRowLocationArray[i] = (HBaseRowLocation) in.readObject(); 
+				autoIncrementRowLocationArray[i] = (HBaseRowLocation) in.readObject();
 			}
             insertMode = InsertNode.InsertMode.valueOf(in.readUTF());
             if (in.readBoolean())
@@ -210,13 +211,13 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         }
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
-        TxnView txn = getCurrentTransaction();
         ExecRow execRow = getExecRowDefinition();
         int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
         if (insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
-
-        InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
+        TxnView txn = getCurrentTransaction();
+        try {
+            InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .operationContext(operationContext)
                 .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
@@ -227,14 +228,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .pkCols(pkCols)
                 .tableVersion(tableVersion)
                 .txn(txn);
-        try {
             operationContext.pushScope("Insert ["+heapConglom+"]");
             if (statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             return set.index(new InsertPairFunction(operationContext)).insertData(builder, operationContext);
-        } finally {
+        }
+        finally {
             operationContext.popScope();
         }
+
     }
 
     @Override

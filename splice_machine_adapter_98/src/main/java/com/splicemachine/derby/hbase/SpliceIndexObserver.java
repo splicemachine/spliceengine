@@ -96,7 +96,9 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			InternalScanner scanner, ScanType scanType) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, scanType=%s",store, scanner, scanType);
-		preCompact();
+        if(conglomId>0) {
+            preCompact();
+        }
 		return super.preCompact(e, store, scanner, scanType);
 	}
 
@@ -107,13 +109,15 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
 			CompactionRequest request) throws IOException {
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, scanType=%s, request=%s",store, scanner, scanType, request);
-		preCompact();
+        if(conglomId>0) {
+            preCompact();
+        }
 		return super.preCompact(e, store, scanner, scanType, request);
 	}
 
 	@Override
 	protected long getReadpoint(HRegion region) {
-		return region.getReadpoint(IsolationLevel.READ_UNCOMMITTED);
+        return region.getReadpoint(IsolationLevel.READ_UNCOMMITTED);
 	}
 	
 }

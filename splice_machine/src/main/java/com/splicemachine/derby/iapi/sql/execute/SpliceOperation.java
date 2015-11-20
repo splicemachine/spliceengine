@@ -17,6 +17,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
 
 /**
  * 
@@ -179,5 +180,11 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     public ExecIndexRow getStartPosition() throws StandardException;
 
     public String getVTIFileName();
+
+    public TxnView createChildTransaction(byte[] table) throws StandardException;
+
+    public void rollbackTransaction(long txnId) throws StandardException;
+
+    public void commitTransaction(long txnId) throws StandardException;
 
 }

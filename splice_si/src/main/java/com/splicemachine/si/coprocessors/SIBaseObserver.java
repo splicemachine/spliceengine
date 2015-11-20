@@ -54,7 +54,6 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
                 SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv) ||
                 SpliceConstants.TableEnv.HBASE_TABLE.equals(tableEnv)) return false;
         if(SpliceConstants.TEST_TABLE.equals(tableName)) return false;
-
         return true;
     }
 

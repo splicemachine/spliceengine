@@ -5,6 +5,8 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.clearspring.analytics.util.Lists;
+import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -86,10 +88,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
             }
         }
         try {
-            if (spark)
-                setHTable(SpliceAccessManager.getHTable(conglomerate));
-            else
-                setHTable(new HTable(conf,conglomerate));
+                setHTable(HBaseTableFactory.getInstance().getTable(conglomerate));
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }
@@ -122,7 +121,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         CloseableTableInputFormat tableInputFormat = new CloseableTableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        conf.set(TableInputFormat.INPUT_TABLE, HBaseTableInfoFactory.getInstance().getTableInfo(conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE)).getNameAsString());
         tableInputFormat.setConf(conf);
         try {
             tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());

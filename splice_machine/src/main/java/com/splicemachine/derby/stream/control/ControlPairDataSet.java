@@ -25,6 +25,7 @@ import com.google.common.collect.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.TxnView;
 import org.sparkproject.guava.base.Predicate;
 import org.sparkproject.guava.collect.FluentIterable;
 import scala.Tuple2;
@@ -252,9 +253,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     Cleanup This code...
      */
     @Override
-    public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) {
+    public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         InsertTableWriter insertTableWriter = null;
+        TxnView txn = null;
         try {
+            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
+            builder.txn(txn);
             operationContext.getOperation().fireBeforeStatementTriggers();
             insertTableWriter = builder.build();
             insertTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
@@ -263,22 +267,29 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+            throw StandardException.plainWrapException(e);
         } finally {
             try {
                 if (insertTableWriter != null)
                         insertTableWriter.close();
                 operationContext.getOperation().fireAfterStatementTriggers();
+                operationContext.getOperation().commitTransaction(txn.getTxnId());
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+                throw StandardException.plainWrapException(e);
             }
+
         }
     }
 
     @Override
-    public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) {
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         UpdateTableWriter updateTableWriter = null;
+        TxnView txn = null;
         try {
+            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
+            builder.txn(txn);
             operationContext.getOperation().fireBeforeStatementTriggers();
             updateTableWriter = builder.build();
             updateTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
@@ -287,22 +298,28 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+            throw StandardException.plainWrapException(e);
         } finally {
             try {
                 if (updateTableWriter != null)
                     updateTableWriter.close();
                 operationContext.getOperation().fireAfterStatementTriggers();
+                operationContext.getOperation().commitTransaction(txn.getTxnId());
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+                throw StandardException.plainWrapException(e);
             }
         }
     }
 
     @Override
-    public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) {
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         DeleteTableWriter deleteTableWriter = null;
+        TxnView txn = null;
         try {
+            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
+            builder.txn(txn);
             operationContext.getOperation().fireBeforeStatementTriggers();
             deleteTableWriter = builder.build();
             deleteTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
@@ -311,14 +328,17 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+            throw StandardException.plainWrapException(e);
         } finally {
             try {
                 if (deleteTableWriter != null)
                     deleteTableWriter.close();
                 operationContext.getOperation().fireAfterStatementTriggers();
+                operationContext.getOperation().commitTransaction(txn.getTxnId());
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+                throw StandardException.plainWrapException(e);
             }
         }
     }

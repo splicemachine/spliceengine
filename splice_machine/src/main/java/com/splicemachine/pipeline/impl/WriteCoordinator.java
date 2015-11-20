@@ -116,7 +116,7 @@ public class WriteCoordinator {
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn,
                                                    PreFlushHook flushHook, WriteConfiguration writeConfiguration) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, flushHook, writeConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(tableName, txn, synchronousWriter, flushHook, writeConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final int maxEntries) {
