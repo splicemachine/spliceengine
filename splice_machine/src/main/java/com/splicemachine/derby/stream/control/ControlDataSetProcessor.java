@@ -95,6 +95,11 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
+    public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
+        return singleRowDataSet(value);
+    }
+
+    @Override
     public <K,V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
         return new ControlPairDataSet<>(Arrays.asList(new Tuple2<K, V>(key, value)));
     }

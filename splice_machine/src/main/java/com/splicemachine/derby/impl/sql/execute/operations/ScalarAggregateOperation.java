@@ -131,7 +131,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         setCurrentLocatedRow(lr);
         
         operationContext.pushScope(this.getSparkStageName() + ": Prepare Result");
-        DataSet<LocatedRow> singleRowDataSet = dsp.singleRowDataSet(lr);
+        DataSet<LocatedRow> singleRowDataSet = dsp.singleRowDataSet(lr, this, true);
         operationContext.popScope();
 
         return singleRowDataSet;

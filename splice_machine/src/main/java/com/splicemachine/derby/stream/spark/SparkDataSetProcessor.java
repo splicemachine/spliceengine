@@ -164,8 +164,16 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
-        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value),1),
-            "Single Row Data Set");
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+        rdd1.setName("Prepare Single Row Data Set");
+        return new SparkDataSet(rdd1);
+    }
+
+    @Override
+    public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+        rdd1.setName(isLast ? op.getPrettyExplainPlan() : "Prepare Single Row Data Set");
+        return new SparkDataSet(rdd1);
     }
 
     @Override
