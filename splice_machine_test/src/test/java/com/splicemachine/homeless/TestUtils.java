@@ -3,7 +3,6 @@ package com.splicemachine.homeless;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -14,14 +13,12 @@ import java.util.*;
 import com.google.common.collect.Lists;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.utils.SpliceUtilities;
 
 public class TestUtils {
 
