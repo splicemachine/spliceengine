@@ -34,7 +34,15 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     	"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
     public static final SpliceTableWatcher spliceTableNation = new SpliceTableWatcher("NATION2",CLASS_NAME,
 		"(N_NATIONKEY INTEGER NOT NULL PRIMARY KEY, N_NAME VARCHAR(25), N_REGIONKEY INTEGER NOT NULL)");
-    
+
+    /*
+     * Tables for the regression of DB-4122
+     */
+    private static final SpliceTableWatcher card = new SpliceTableWatcher("CARD",CLASS_NAME,"(BASE_ACCT_ID varchar(11),BASIC_SUPP_NO varchar(2),PROD_ID varchar(6))");
+    private static final SpliceTableWatcher product = new SpliceTableWatcher("PRODUCT",CLASS_NAME,"(PROD_ID varchar(6),LOB_CD varchar(13))");
+    private static final SpliceIndexWatcher card_idx = new SpliceIndexWatcher("CARD",CLASS_NAME,"CARD_IDX",CLASS_NAME,"(BASE_ACCT_ID ,BASIC_SUPP_NO, PROD_ID)");
+    private static final SpliceIndexWatcher product_idx = new SpliceIndexWatcher("PRODUCT",CLASS_NAME,"PROD_IDX",CLASS_NAME,"(PROD_ID,LOB_CD)");
+
     private static final String PLAN_LINE_LEADER = "->  ";
     private static final String JOIN_STRATEGY_TERMINATOR = "(";
     private static final String NESTED_LOOP_JOIN = "NestedLoopJoin";
@@ -50,6 +58,10 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             .around(spliceTableWatcher3)
             .around(spliceTableRegion)
             .around(spliceTableNation)
+            .around(card)
+            .around(card_idx)
+            .around(product)
+            .around(product_idx)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -398,5 +410,25 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                 format("explain select * from %s t1 left join %s t2 on t1.i=t2.i",
                         spliceTableWatcher3, spliceTableWatcher3),
                 LO_BROADCAST_JOIN, methodWatcher);
+    }
+
+    @Test
+    public void mergeSortJoinRequiresOrderBy() throws Exception{
+    /*
+     * Regression test for DB-4122. Whenever there is a MergeSortJoin under an OrderBy clause, then you can't
+     * lose the OrderBy (Sort Elision is not allowed)
+     */
+        try(ResultSet rs = methodWatcher.executeQuery("explain select CARD.BASE_ACCT_ID, CARD.BASIC_SUPP_NO," +
+                "PRODUCT.LOB_CD from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "CARD INNER JOIN PRODUCT --SPLICE-PROPERTIES index=NULL, joinStrategy=SORTMERGE\n" +
+                "ON CARD.PROD_ID = PRODUCT.PROD_ID\n" +
+                "ORDER BY CARD.BASE_ACCT_ID, CARD.BASIC_SUPP_NO")){
+            String explainPlan = "";
+            while(rs.next()){
+                explainPlan += rs.getString(1)+"\n";
+            }
+            Assert.assertTrue("Does not contain A MergeSortJoin!",explainPlan.contains("MergeSortJoin"));
+            Assert.assertTrue("Does not contain an Order BY!",explainPlan.contains("OrderBy"));
+        }
     }
 }
