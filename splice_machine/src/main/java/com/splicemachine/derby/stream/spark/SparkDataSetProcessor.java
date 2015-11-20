@@ -75,19 +75,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
         
-/*
-        JavaRDD<LocatedRow> appliedRDD = null;
-        Map persistentRDDs = ctx.sc().getPersistentRDDs();
-        if (persistentRDDs.size()>0) {
-            Iterator it =  persistentRDDs.valuesIterator();
-            it.hasNext();
-            RDD rdd = (RDD) it.next();
-            appliedRDD = new JavaRDD<>(rdd, ClassManifestFactory$.MODULE$.fromClass(LocatedRow.class));
-        }
-
-        else {
-*/
-        
         String displayableTableName = getDisplayableTableName(spliceOperation, tableName);
         SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Table " + displayableTableName);
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
@@ -95,14 +82,11 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         rawRDD.setName("Scan Table " + displayableTableName);
         SpliceSpark.popScope();
         
-        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize Results");
+        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
         TableScanTupleFunction<Op> f = new TableScanTupleFunction<Op>(createOperationContext(spliceOperation));
         JavaRDD<LocatedRow> appliedRDD = rawRDD.map(f);
         appliedRDD.setName(spliceOperation.getPrettyExplainPlan());
         SpliceSpark.popScope();
-        
-//      appliedRDD.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
-//      }
         
         return new SparkDataSet(appliedRDD);
     }
@@ -219,7 +203,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     public DataSet<String> readTextFile(String path) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope("Read File \n" +
+            SpliceSpark.pushScope("Read File From Disk \n" +
                 "{file=" + String.format(path) + ", " +
                 "size=" + contentSummary.getSpaceConsumed() + ", " +
                 "files=" + contentSummary.getFileCount() + "}");

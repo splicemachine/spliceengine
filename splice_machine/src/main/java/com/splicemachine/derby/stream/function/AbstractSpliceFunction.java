@@ -28,7 +28,7 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
 
     @Override
     public void readExternal(ObjectInput in)
-            throws IOException, ClassNotFoundException {
+        throws IOException, ClassNotFoundException {
         operationContext = (OperationContext) in.readObject();
     }
 
@@ -52,11 +52,7 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
 
     public String getPrettyFunctionName() {
         return StringUtils.join(
-            StringUtils.splitByCharacterTypeCamelCase(this.getClass().getSimpleName().replace("Function", "")),
-            ' '
-        );
-        // String[] words = this.getClass().getSimpleName().replace("Function", "").split("(?=[A-Z])");
-        // return StringUtils.join(words, " ");
+            StringUtils.splitByCharacterTypeCamelCase(this.getClass().getSimpleName().replace("Function", "")), ' ');
     }
     
     public String getPrettyFunctionDesc() {

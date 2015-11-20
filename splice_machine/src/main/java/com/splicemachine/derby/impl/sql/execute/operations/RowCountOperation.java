@@ -203,5 +203,10 @@ public class RowCountOperation extends SpliceBaseOperation {
             }
         }
     }
+    
+    @Override
+    public String getSparkStageName() {
+        return "Row Limit";
+    }
 
 }

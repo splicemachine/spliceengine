@@ -15,30 +15,35 @@ import scala.Tuple2;
  */
 public class InsertPairFunction extends SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow> {
     private int counter = 0;
-     public InsertPairFunction() {
-        super();
-     }
+    public InsertPairFunction() {
+       super();
+    }
 
     public InsertPairFunction(OperationContext<SpliceOperation> operationContext) {
         super(operationContext);
     }
 
-        @Override
-        public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
-            return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
-        }
-
-        @Override
-        public RowLocation genKey(LocatedRow locatedRow) {
-            counter++;
-            RowLocation rowLocation = locatedRow.getRowLocation();
-            return rowLocation==null?new HBaseRowLocation(Bytes.toBytes(counter)):(HBaseRowLocation) rowLocation.cloneValue(true);
-        }
-
-        @Override
-        public ExecRow genValue(LocatedRow locatedRow) {
-            StreamLogUtils.logOperationRecordWithMessage(locatedRow, operationContext, "indexed for insert");
-            return locatedRow.getRow();
-        }
-
+    @Override
+    public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
+        return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
     }
+    
+    @Override
+    public RowLocation genKey(LocatedRow locatedRow) {
+        counter++;
+        RowLocation rowLocation = locatedRow.getRowLocation();
+        return rowLocation==null?new HBaseRowLocation(Bytes.toBytes(counter)):(HBaseRowLocation) rowLocation.cloneValue(true);
+    }
+    
+    @Override
+    public ExecRow genValue(LocatedRow locatedRow) {
+        StreamLogUtils.logOperationRecordWithMessage(locatedRow, operationContext, "indexed for insert");
+        return locatedRow.getRow();
+    }
+    
+    @Override
+    public String getPrettyFunctionName() {
+        return "Insert Row";
+    }
+        
+}
