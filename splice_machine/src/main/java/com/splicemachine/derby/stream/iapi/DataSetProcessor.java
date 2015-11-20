@@ -56,6 +56,8 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> singleRowDataSet(V value);
 
+    <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast);
+    
     /**
      * Create a dataset from a provided Iterable.
      *
