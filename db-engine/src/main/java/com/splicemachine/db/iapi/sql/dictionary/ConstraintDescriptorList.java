@@ -28,6 +28,7 @@ import java.util.ArrayList;
 
 public class ConstraintDescriptorList extends ArrayList<ConstraintDescriptor>
 {
+    public static final int[] EMPTY = {};
 
 	private boolean scanned;
 
@@ -261,7 +262,7 @@ public class ConstraintDescriptorList extends ArrayList<ConstraintDescriptor>
 	}
 
     public int[] getBaseColumnOrdering() {
-        int[] columnOrdering = null;
+        int[] columnOrdering = EMPTY;
         for (int i = 0; i < size(); i++) {
             ConstraintDescriptor cDescriptor = elementAt(i);
             if (cDescriptor.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
