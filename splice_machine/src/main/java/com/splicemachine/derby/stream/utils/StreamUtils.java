@@ -66,10 +66,9 @@ public class StreamUtils {
         return controlDataSetProcessor;
     }
 
-
     public static void setupSparkJob(DataSetProcessor dsp, Activation activation, String description,
                                      String schedulePool) throws StandardException {
-        // wjk - this is mostly a copy/paste from SpliceBaseOperation.openCore() - consolidate?
+        // TODO (wjk): this is mostly a copy/paste from SpliceBaseOperation.openCore() - consolidate?
         String sql = activation.getPreparedStatement().getSource();
         long txnId = getCurrentTransaction(activation).getTxnId();
         sql = (sql == null) ? description : sql;

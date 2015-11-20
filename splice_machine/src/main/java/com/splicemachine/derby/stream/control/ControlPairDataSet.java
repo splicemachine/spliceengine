@@ -64,7 +64,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public DataSet<V> values(String name) {
-        // Ignore name on the control side
+        return values();
+    }
+
+    @Override
+    public DataSet<V> values(boolean isLast) {
         return values();
     }
 
@@ -98,6 +102,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         })).entries()));
     }
 
+    @Override
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+        return reduceByKey(function2);
+    }
+    
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(final SpliceFunction<Op,Tuple2<K, V>, U> function) {
         return new ControlDataSet<U>(FluentIterable.from(source).transform(function));

@@ -39,6 +39,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
 
+import org.apache.commons.lang.WordUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -500,55 +502,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         public String getInfo() {return info;}
 
-        public class XplainOperationChainInfo {
-
-            private long statementId;
-            private long operationId;
-            private String methodName;
-
-            public XplainOperationChainInfo(long statementId, long operationId) {
-                this.statementId = statementId;
-                this.operationId = operationId;
-            }
-
-            public long getStatementId() {
-                return statementId;
-            }
-
-            public long getOperationId() {
-                return operationId;
-            }
-
-            public void setMethodName(String name) {
-                this.methodName = name;
-            }
-
-            public String getMethodName() {
-                return methodName;
-            }
-        }
-
+    private String sparkStageName = null;
     public String getSparkStageName() {
-        if (this.getResultSetNumber() > -1)
-            return String.format("%s (RS %d)", this.getClass().getSimpleName(), this.getResultSetNumber());
-        else
-            return String.format("%s", this.getClass().getSimpleName());
-        // return String.format("%s (rs %d)", this.getClass().getSimpleName().replace("Operation", ""), this.getResultSetNumber());
-    }
-    
-    public String getSparkStageNameWithPlan() {
-        if (this.getResultSetNumber() > -1)
-            return String.format("%s (RS %d)\n%s", this.getClass().getSimpleName(), this.getResultSetNumber(),
-                this.getPrettyExplainPlan());
-        else
-            return String.format("%s\n%s", this.getClass().getSimpleName(),
-                this.getPrettyExplainPlan());
-        // return String.format("%s (rs %d)", this.getClass().getSimpleName().replace("Operation", ""), this.getResultSetNumber());
+        if (sparkStageName == null) {
+            String[] words = this.getClass().getSimpleName().replace("Operation", "").split("(?=[A-Z])");
+            sparkStageName = StringUtils.join(words, " ");
+        }
+        return sparkStageName;
     }
     
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);
-            return getDataSet(dsp);
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);
+        return getDataSet(dsp);
     }
 
     public void openCore(DataSetProcessor dsp) throws StandardException {

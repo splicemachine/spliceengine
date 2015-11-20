@@ -208,7 +208,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
         try {
-            operationContext.pushScope("Update");
+            operationContext.pushScope();
             return set.index(new InsertPairFunction(operationContext)).updateData(builder, operationContext);
         } finally {
             operationContext.popScope();

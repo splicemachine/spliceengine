@@ -183,8 +183,8 @@ public class RowCountOperation extends SpliceBaseOperation {
         if (fetchLimit == 0) { // No Fetch, just offset
             operationContext.pushScope(String.format(this.getSparkStageName() + ": Offset %d", offset));
             try {
-                return sourceSet.coalesce(1, true) // TODO (wjk) does shuffle need to be 'true'?
-                        .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
+                return sourceSet.coalesce(1, true)
+                        .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
             } finally {
                 operationContext.popScope();
             }
@@ -197,8 +197,8 @@ public class RowCountOperation extends SpliceBaseOperation {
                     new TakeFunction<SpliceOperation, LocatedRow>(
                         operationContext,
                         (int) (offset + fetchLimit)));
-                DataSet coalesce = takeData.coalesce(1, true); // TODO (wjk) does shuffle need to be 'true'?
-                return coalesce.offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset));
+                DataSet coalesce = takeData.coalesce(1, true);
+                return coalesce.offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
             } finally {
                 operationContext.popScope();
             }

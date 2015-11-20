@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -56,9 +57,18 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     public SparkPairDataSet(JavaPairRDD<K,V> rdd, String rddName) {
         this.rdd = rdd;
-        if (rdd != null) this.rdd.setName(rddName);
+        if (rdd != null && rddName != null) this.rdd.setName(rddName);
     }
 
+//    public void setRDDName(String name) {
+//        rdd.setName(name);
+//    }
+
+    @SuppressWarnings("rawtypes")
+    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
+        return isLast ? f.getOperation().getPrettyExplainPlan() : f.getSparkName();
+    }
+    
     @Override
     public DataSet<V> values() {
         return values(RDD_NAME_DEFAULT_VALUES);
@@ -70,6 +80,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public DataSet<V> values(boolean isLast) {
+        return new SparkDataSet<V>(rdd.values());
+    }
+
+    @Override
     public DataSet<K> keys() {
         return new SparkDataSet<K>(rdd.keys());
     }
@@ -77,6 +92,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2) {
         return new SparkPairDataSet<>(rdd.reduceByKey(function2), function2.getSparkName());
+    }
+
+    @Override
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+        return new SparkPairDataSet<>(rdd.reduceByKey(function2), planIfLast(function2, isLast));
     }
 
     @Override
@@ -115,7 +135,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
-        return new SparkPairDataSet(rdd.join(((SparkPairDataSet) rightDataSet).rdd), name);
+        JavaPairRDD rdd1 = rdd.join(((SparkPairDataSet) rightDataSet).rdd);
+        rdd1.setName(name);
+        
+        // Implicitly creates two ancestor RDDs which we need to rename (find a better way)
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Map Left to Right", "Coalesce"});
+
+        return new SparkPairDataSet(rdd1);
     }
 
     private <W> Multimap<K,W> generateMultimap(JavaPairRDD<K,W> rightPairDataSet) {
@@ -153,7 +179,8 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name) {
-        return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd), name);
+        JavaPairRDD rdd1 = rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd);
+        return new SparkPairDataSet(rdd1, name);
     }
 
     @Override
@@ -181,7 +208,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            // wjk - push/pop scope anywhere here?
+            // TODO (wjk): push/pop scope anywhere here?
             rdd.saveAsNewAPIHadoopDataset(conf);
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireAfterStatementTriggers();
@@ -208,6 +235,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             }
 
             valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
+            // TODO (wjk): ControlDataSet even though this is SparkPairDataSet class?
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);

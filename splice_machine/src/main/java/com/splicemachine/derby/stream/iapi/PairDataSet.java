@@ -19,8 +19,10 @@ import java.util.Iterator;
 public interface PairDataSet<K,V> {
     public DataSet<V> values();
     public DataSet<V> values(String name);
+    public DataSet<V> values(boolean isLast);
     public DataSet<K> keys();
     public <Op extends SpliceOperation> PairDataSet<K,V> reduceByKey(SpliceFunction2<Op,V,V,V> function2);
+    public <Op extends SpliceOperation> PairDataSet<K,V> reduceByKey(SpliceFunction2<Op,V,V,V> function2, boolean isLast);
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,Tuple2<K,V>,U> function);
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op,Tuple2<K,V>,U> function);
     public PairDataSet<K,V> sortByKey(Comparator<K> comparator);

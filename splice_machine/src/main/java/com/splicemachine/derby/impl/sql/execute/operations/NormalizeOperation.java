@@ -276,8 +276,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         try {
             operationContext.pushScope();
-            return
-                    sourceSet.map(new NormalizeFunction(operationContext));
+            return sourceSet.map(new NormalizeFunction(operationContext), true);
         } finally {
             operationContext.popScope();
         }

@@ -87,22 +87,23 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
         else {
 */
+        
         String displayableTableName = getDisplayableTableName(spliceOperation, tableName);
-        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Scan table " + displayableTableName);
+        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Table " + displayableTableName);
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
-        rawRDD.setName(spliceOperation.getSparkStageDetail());
-        // rawRDD.setName("HFile Scan Table: [" + tableName + "]");
+        rawRDD.setName("Scan Table " + displayableTableName);
         SpliceSpark.popScope();
         
-        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
+        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize Results");
         TableScanTupleFunction<Op> f = new TableScanTupleFunction<Op>(createOperationContext(spliceOperation));
         JavaRDD<LocatedRow> appliedRDD = rawRDD.map(f);
-        appliedRDD.setName(f.getSparkName());
+        appliedRDD.setName(spliceOperation.getPrettyExplainPlan());
         SpliceSpark.popScope();
         
 //      appliedRDD.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
 //      }
+        
         return new SparkDataSet(appliedRDD);
     }
 
@@ -162,9 +163,9 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
-    public <V> DataSet<V>  singleRowDataSet(V value) {
+    public <V> DataSet<V> singleRowDataSet(V value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value),1),
-            "Single Row Data Set"); // wjk - pass in name instead
+            "Single Row Data Set");
     }
 
     @Override

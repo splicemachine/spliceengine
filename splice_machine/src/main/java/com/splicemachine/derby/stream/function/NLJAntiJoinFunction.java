@@ -60,4 +60,8 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
         }
 
     }
+    
+    public String getPrettyFunctionName() {
+        return "Nested Loop Anti Join";
+    }
 }

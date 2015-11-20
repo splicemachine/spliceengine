@@ -57,4 +57,9 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                 });
         return result;
     }
+
+    @Override
+    public String getPrettyFunctionDesc() {
+        return "Prepare Mapping For Broadcast Join";
+    }
 }
