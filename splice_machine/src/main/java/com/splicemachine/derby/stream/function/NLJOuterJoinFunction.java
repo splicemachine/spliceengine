@@ -62,8 +62,4 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends SpliceJoin
                 op.getRightOperation().close();
         }
     }
-    
-    public String getPrettyFunctionName() {
-        return "Nested Loop Outer Join";
-    }
 }

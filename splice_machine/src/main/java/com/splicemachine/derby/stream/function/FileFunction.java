@@ -43,8 +43,4 @@ import java.util.Collections;
                 reader.close();
             }
         }
-        
-        public String getPrettyFunctionName() {
-            return "Parse CSV File";
-        }
 }

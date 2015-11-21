@@ -105,8 +105,4 @@ import java.util.Iterator;
             }
         };
     }
-    
-    public String getPrettyFunctionName() {
-        return "Parse CSV File";
-    }
 }
