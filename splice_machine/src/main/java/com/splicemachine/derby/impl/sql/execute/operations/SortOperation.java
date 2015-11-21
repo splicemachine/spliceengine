@@ -232,8 +232,7 @@ public class SortOperation extends SpliceBaseOperation {
         operationContext.popScope();
         
         operationContext.pushScope(getSparkStageName() + ": Shuffle/Sort Data");
-        PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow),
-            "Sort By Columns"); // + Arrays.toString(keyColumns));
+        PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow), "Sort By Columns");
         operationContext.popScope();
 
         operationContext.pushScope(getSparkStageName() + ": Read Sorted Values");

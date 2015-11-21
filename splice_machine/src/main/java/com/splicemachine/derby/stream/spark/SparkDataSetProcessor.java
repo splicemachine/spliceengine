@@ -208,7 +208,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
                 "size=" + contentSummary.getSpaceConsumed() + ", " +
                 "files=" + contentSummary.getFileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
-            return new SparkDataSet<String>(rdd, "Read Text File");
+            return new SparkDataSet<String>(rdd, "Read CSV File");
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {

@@ -190,11 +190,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         }
 
         public String getPrettyExplainPlan() {
-            return (explainPlan == null ? "" : explainPlan.replace("n=",  "RS="));
+            return explainPlan;
         }
 
 		public void setExplainPlan(String plan) {
-		    explainPlan = plan;
+		    // This is returned by getExplainPlan and getPrettyExplainPlan.
+		    // No difference. We can change that later if needed.
+		    // Right now this is only used by Spark UI, so don't change it
+		    // unless you want to change that UI.
+		    explainPlan = (plan == null ? "" : plan.replace("n=", "RS=").replace("->", "").trim());;
 		}
 		
     @Override

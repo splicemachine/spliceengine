@@ -110,9 +110,4 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
     public LocatedRow getLeftLocatedRow() {
         return leftRow;
     }
-    
-    public String getPrettyFunctionName() {
-        return "Nested Loop Inner Join";
-    }
-
 }

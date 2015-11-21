@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 
 import java.io.*;
 
@@ -48,21 +49,11 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
         operationContext.reset();
     }
 
-    public String SPARK_NAME_DELIM = ": ";
-
     public String getPrettyFunctionName() {
-        return StringUtils.join(
-            StringUtils.splitByCharacterTypeCamelCase(this.getClass().getSimpleName().replace("Function", "")), ' ');
-    }
-    
-    public String getPrettyFunctionDesc() {
-        return "";
+        return StreamUtils.getPrettyFunctionName(this.getClass().getSimpleName());
     }
     
     public String getSparkName() {
-        return getPrettyFunctionName() +
-            (getPrettyFunctionDesc() != null && !getPrettyFunctionDesc().isEmpty() ?
-            SPARK_NAME_DELIM + getPrettyFunctionDesc() : "");
+        return getPrettyFunctionName();
     }
-    
 }

@@ -40,10 +40,4 @@ public class InsertPairFunction extends SplicePairFunction<SpliceOperation,Locat
         StreamLogUtils.logOperationRecordWithMessage(locatedRow, operationContext, "indexed for insert");
         return locatedRow.getRow();
     }
-    
-    @Override
-    public String getPrettyFunctionName() {
-        return "Insert Row";
-    }
-        
 }

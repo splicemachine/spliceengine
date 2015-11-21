@@ -49,9 +49,4 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
         }
         return Collections.EMPTY_LIST;
     }
-    
-    @Override
-    public String getPrettyFunctionDesc() {
-        return "Inner Join With Restriction";
-    }
 }

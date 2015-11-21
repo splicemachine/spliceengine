@@ -65,9 +65,4 @@ public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends Spli
         }
 
     }
-    
-    public String getPrettyFunctionName() {
-        return "Single Row Nested Loop Inner Join";
-    }
-
 }

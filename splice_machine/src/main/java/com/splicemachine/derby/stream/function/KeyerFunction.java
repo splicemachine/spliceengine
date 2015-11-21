@@ -48,8 +48,4 @@ public class KeyerFunction<T extends KeyableRow> extends SpliceFunction<SpliceOp
         return returnRow;
     }
     
-    @Override
-    public String getPrettyFunctionDesc() {
-        return "Prepare Keys"; // + Arrays.toString(keyColumns);
-    }
 }
