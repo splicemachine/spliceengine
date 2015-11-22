@@ -720,6 +720,19 @@ public class SpliceConstants {
     // Only used by the method OptimizerImpl.checkTimeout()
     public static long optimizerPlanMaximumTimeout;
     
+    
+    //
+    // Spark / Control Side configurations
+    //
+    
+    @Parameter private static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
+    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 10*1000*1000; // based on a TPCC1000 run on an 8 node cluster
+    public static double controlSideCostThreshold;
+    
+    @Parameter private static final String CONTROL_SIDE_ROWCOUNT_THRESHOLD = "splice.dataset.control.rowCountThreshold";
+    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E6;
+    public static double controlSideRowCountThreshold;
+    
     /**
      * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
      * this up will result in more threads being available for writes after longer periods of inactivity,
@@ -1184,7 +1197,9 @@ public class SpliceConstants {
         optimizerTableMinimalRows = SpliceConstants.config.getLong(OPTIMIZER_TABLE_MINIMAL_ROWS, DEFAULT_OPTIMIZER_TABLE_MINIMAL_ROWS);
         optimizerPlanMinimumTimeout = SpliceConstants.config.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
         optimizerPlanMaximumTimeout = SpliceConstants.config.getLong(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
-        
+        controlSideCostThreshold = SpliceConstants.config.getDouble(CONTROL_SIDE_COST_THRESHOLD, DEFAULT_CONTROL_SIDE_COST_THRESHOLD);
+        controlSideRowCountThreshold = SpliceConstants.config.getDouble(CONTROL_SIDE_ROWCOUNT_THRESHOLD, DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD);
+
         if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which

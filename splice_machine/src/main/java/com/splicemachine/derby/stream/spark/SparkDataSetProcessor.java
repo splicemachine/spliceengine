@@ -20,29 +20,21 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.spark.SparkConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.storage.StorageLevel;
-
 import scala.Tuple2;
 
 import com.splicemachine.db.iapi.sql.Activation;
-
-import scala.collection.Iterator;
-import scala.collection.Map;
-import scala.reflect.ClassManifestFactory$;
-import scala.reflect.ClassTag$;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,7 +42,6 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 
-import jodd.util.StringUtil;
 
 /**
  * Created by jleach on 4/13/15.
@@ -79,7 +70,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Table " + displayableTableName);
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
-        rawRDD.setName("Scan Table " + displayableTableName);
+        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, displayableTableName));
         SpliceSpark.popScope();
         
         SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
@@ -149,14 +140,14 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
         JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
-        rdd1.setName("Prepare Single Row Data Set");
+        rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
         return new SparkDataSet(rdd1);
     }
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
         JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
-        rdd1.setName(isLast ? op.getPrettyExplainPlan() : "Prepare Single Row Data Set");
+        rdd1.setName(isLast ? op.getPrettyExplainPlan() : SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
         return new SparkDataSet(rdd1);
     }
 
@@ -208,7 +199,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
                 "size=" + contentSummary.getSpaceConsumed() + ", " +
                 "files=" + contentSummary.getFileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
-            return new SparkDataSet<String>(rdd, "Read CSV File");
+            return new SparkDataSet<String>(rdd, SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {

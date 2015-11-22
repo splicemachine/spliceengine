@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -29,8 +30,8 @@ public class StreamUtils {
     public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
     public static final DataSetProcessor hregionDataSetProcessor = new HregionDataSetProcessor();
-    private static final double CONTROL_SIDE_THRESHOLD = 10*1000*1000; // based on a TPCC1000 run on an 8 node cluster
-    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E6;
+    private static final double CONTROL_SIDE_THRESHOLD = SpliceConstants.controlSideCostThreshold; 
+    private static final double CONTROL_SIDE_ROWCOUNT_THRESHOLD = SpliceConstants.controlSideRowCountThreshold; 
 
     public static DataSetProcessor getControlDataSetProcessor() {
         return controlDataSetProcessor;
