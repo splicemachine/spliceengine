@@ -99,7 +99,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
                     if(td!=null){
-                        startDirect(conglomId,dataDictionary,td,conglomerateDescriptor,transactionResource.getLcc());
+                        startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
                     }
                 }
                 //register listener
@@ -217,9 +217,10 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
      * @param lcc
      */
     private boolean startDirect(long conglomId,
+                                LanguageConnectionContext lcc,
                                 DataDictionary dataDictionary,
                                 TableDescriptor td,
-                                ConglomerateDescriptor cd,LanguageConnectionContext lcc) throws StandardException, IOException{
+                                ConglomerateDescriptor cd) throws StandardException, IOException{
         boolean isSysConglomerate=td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
             SpliceLogUtils.trace(LOG,"Index management for SYS tables disabled, relying on external index management");

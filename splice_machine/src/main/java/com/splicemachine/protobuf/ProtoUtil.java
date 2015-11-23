@@ -93,7 +93,7 @@ public class ProtoUtil {
     }
 
     public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor) {
-        boolean[] descColumns = BooleanArrays.not(indexDescriptor.isAscending());
+        boolean[] descColumns = indexDescriptor.isAscending();
         return Index.newBuilder()
                 .setConglomerate(conglomerate)
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
@@ -108,7 +108,7 @@ public class ProtoUtil {
         return Table.newBuilder()
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
-                .addAllColumnOrdering(Ints.asList(td.getColumnOrdering(lcc.getDataDictionary())))
+                .addAllColumnOrdering(Ints.asList())
                 .setTableVersion(DataDictionaryUtils.getTableVersion(lcc, td.getUUID())).build();
     }
 
