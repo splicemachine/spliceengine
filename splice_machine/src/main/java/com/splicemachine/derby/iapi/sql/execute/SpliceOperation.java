@@ -45,6 +45,8 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     
     public String getPrettyExplainPlan();
     
+    public void setExplainPlan(String plan);
+    
     /**
      * @return a descriptive name for this operation. Used for reporting information.
      */

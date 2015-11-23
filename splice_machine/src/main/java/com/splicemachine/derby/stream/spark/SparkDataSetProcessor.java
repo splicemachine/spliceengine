@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
 import scala.Tuple2;
 
 import com.splicemachine.db.iapi.sql.Activation;
@@ -109,7 +110,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                 RowLocation.class, ExecRow.class);
 
-        // wjk - push scope
         return new SparkDataSet(rawRDD.map(
                 new TableScanTupleFunction(createOperationContext(activation))));
     }
@@ -128,7 +128,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(conf, HTableInputFormat.class,
                 byte[].class, KVPair.class);
 
-        // wjk - push scope
         return new SparkDataSet(rawRDD.map(
                 new HTableScanTupleFunction()));
     }
@@ -178,9 +177,19 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path) {
+        return readWholeTextFile(path);
+        
+    }
+    
+    @Override
+    public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope("Read File \n" + "{file=" + String.format(path) + ", " + "size=" + contentSummary.getSpaceConsumed() + ", " + "files=" + contentSummary.getFileCount());
+            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+                SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
+                "{file=" + String.format(path) + ", " +
+                "size=" + contentSummary.getSpaceConsumed() + ", " +
+                "files=" + contentSummary.getFileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config));
         } catch (IOException ioe) {
@@ -192,9 +201,16 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public DataSet<String> readTextFile(String path) {
+        return readTextFile(path, null);
+    }
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope("Read File From Disk \n" +
+            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+                SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
                 "size=" + contentSummary.getSpaceConsumed() + ", " +
                 "files=" + contentSummary.getFileCount() + "}");

@@ -114,6 +114,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, boolean isLast) {
+        return index(function);
+    }
+    
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
         return new ControlDataSet<U>(Iterables.transform(iterable, function));
     }

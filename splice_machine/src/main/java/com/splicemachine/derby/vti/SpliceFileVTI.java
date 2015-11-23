@@ -14,10 +14,13 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.spark.SparkConstants;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -102,12 +105,12 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         try {
             ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
-                DataSet<String> textSet = dsp.readTextFile(fileName);
-                operationContext.pushScope("Parse File");
+                DataSet<String> textSet = dsp.readTextFile(fileName, op);
+                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
                 return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
             } else {
-                PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName);
-                operationContext.pushScope("Parse File");
+                PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
+                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
                 return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
             }
         } catch (IOException ioe) {

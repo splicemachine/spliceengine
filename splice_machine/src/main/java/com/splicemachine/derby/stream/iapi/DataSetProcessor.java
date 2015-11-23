@@ -114,6 +114,8 @@ public interface DataSetProcessor {
      */
     PairDataSet<String,InputStream> readWholeTextFile(String path);
 
+    PairDataSet<String,InputStream> readWholeTextFile(String path, SpliceOperation op);
+
     /**
      *
      * Read a text file that will be split in blocks when splittable compression algorithms are
@@ -124,6 +126,8 @@ public interface DataSetProcessor {
      */
     DataSet<String> readTextFile(String path);
 
+    DataSet<String> readTextFile(String path, SpliceOperation op);
+    
     /**
      * Get an empty PairDataSet
      *

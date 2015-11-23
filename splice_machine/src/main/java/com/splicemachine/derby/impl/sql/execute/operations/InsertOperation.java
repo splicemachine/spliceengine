@@ -228,10 +228,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
         try {
-            operationContext.pushScope(this.getSparkStageName() + ": Table " + heapConglom);
+            operationContext.pushScope();
             if (statusDirectory!=null)
                 dsp.setSchedulerPool("import");
-            return set.index(new InsertPairFunction(operationContext)).insertData(builder, operationContext);
+            return set.index(new InsertPairFunction(operationContext), true).insertData(builder, operationContext);
         } finally {
             operationContext.popScope();
         }

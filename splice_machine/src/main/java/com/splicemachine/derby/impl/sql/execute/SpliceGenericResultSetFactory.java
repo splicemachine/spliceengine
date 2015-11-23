@@ -1095,7 +1095,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              GeneratedMethod generationClauses, GeneratedMethod checkGM,
                                              String insertMode, String statusDirectory, int failBadRecordCount,
                                              double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost)
+                                             double optimizerEstimatedCost,
+                                             String explainPlan)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
@@ -1103,6 +1104,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     statusDirectory, failBadRecordCount,optimizerEstimatedRowCount,optimizerEstimatedCost);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
+            top.setExplainPlan(explainPlan);
             return top;
         }catch(Exception e){
             throw Exceptions.parseException(e);
