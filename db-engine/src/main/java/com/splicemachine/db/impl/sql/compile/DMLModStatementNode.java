@@ -218,48 +218,9 @@ abstract class DMLModStatementNode extends DMLStatementNode
 			case TableDescriptor.VTI_TYPE:
 				// fall through - currently all vti tables are system tables.
 			case TableDescriptor.SYSTEM_TABLE_TYPE:
-                String schemaName = targetTableName.getSchemaName();
-                String tableName = targetTableName.getTableName();
-                LanguageConnectionContext lcc = getLanguageConnectionContext();
-                String userName = lcc.getSessionUserId();
-          if(tableName.equalsIgnoreCase("SYSSTATEMENTHISTORY")||
-                  tableName.equalsIgnoreCase("SYSOPERATIONHISTORY")||
-                  tableName.equalsIgnoreCase("SYSTASKHISTORY")||
-                  (tableName.equalsIgnoreCase("SYSTABLESTATS")&&statementType==StatementType.DELETE) ||
-                  (tableName.equalsIgnoreCase("SYSCOLUMNSTATS")&&statementType==StatementType.DELETE) ||
-                  (tableName.equalsIgnoreCase("SYSCOLUMNS")&&statementType==StatementType.UPDATE)){
-              /*
-               * We are doing "internal administration" in this call. This boils down
-               * to 1 of 2 possibile scenarios:
-               *
-               * 1. we are messing with Statistics (enabling or disabling statistics collection on a column)
-               * 2. We are trying to purge XPLAIN trace data
-               *
-               * In both of these cases, we are not going to break the data dictionary if we modify the data,
-               * so as long as we have "admin" priviledges, then we should be able to proceed, even though it
-               * technically violates our "don't modify the system tables" rule.
-               *
-               * Alas, there is no clear formulation for who is an "admin", so in this case, if you have
-               * the ability to perform DDL operatinos, we treat you as a legitimate administrator
-               */
-              try{
-                  lcc.getAuthorizer().authorize(Authorizer.SQL_DDL_OP);
-                  break;
-              }catch(StandardException se){
-                  if(!se.getSQLState().equals("38002")){
-                      throw se;
-                  }
-              }
-          }
-//                if(userName.compareToIgnoreCase("SPLICE") == 0 &&
-//                   schemaName.compareToIgnoreCase("SYS") == 0 &&
-//                   (tableName.compareToIgnoreCase("SYSSTATEMENTHISTORY") == 0 ||
-//                    tableName.compareToIgnoreCase("SYSOPERATIONHISTORY") == 0 ||
-//                    tableName.compareToIgnoreCase("SYSTASKHISTORY") == 0))
-//                    break;
-          // System tables are not updatable
-          throw StandardException.newException(SQLState.LANG_UPDATE_SYSTEM_TABLE_ATTEMPTED, targetTableName);
-          default:
+              // System tables are not updatable
+                  throw StandardException.newException(SQLState.LANG_UPDATE_SYSTEM_TABLE_ATTEMPTED, targetTableName);
+              default:
               break;
 			}
 
