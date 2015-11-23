@@ -113,6 +113,11 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     }
 
     @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast) {
+        return new SparkPairDataSet(rdd.mapToPair(function), planIfLast(function, isLast));
+    }
+    
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
         return new SparkDataSet<>(rdd.map(function), function.getSparkName());
     }

@@ -115,7 +115,7 @@ public class StreamUtils {
             .put("InnerJoinFunction", "Execute Inner Join")
             .put("InnerJoinRestrictionFlatMapFunction", "Create Flat Map for Inner Join with Restriction")
             .put("InnerJoinRestrictionFunction", "Execute Inner Join with Restriction")
-            .put("InsertPairFunction", "Insert Row")
+            .put("InsertPairFunction", "Insert Rows")
             .put("JoinPairFlatMapFunction", "Prepare Pair Flat Map for Join")
             .put("JoinRestrictionPredicateFunction", "Execute Join with Restriction")
             .put("KeyerFunction", "Prepare Keys")

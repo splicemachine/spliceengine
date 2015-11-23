@@ -13,5 +13,7 @@ public class SparkConstants {
     //
     // Strings to use for custom spark scope names.
     //
-
+    
+    public static final String SCOPE_NAME_READ_TEXT_FILE = "Read File From Disk";
+    public static final String SCOPE_NAME_PARSE_FILE = "Parse File";
 }

@@ -52,6 +52,8 @@ public interface DataSet<V> {
      */
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
     
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast);
+
     /**
      * Applies map function.
      */
