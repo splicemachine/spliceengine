@@ -55,8 +55,8 @@ public class IgnoreTxnCacheSupplier {
 
         if (entryDecoder == null)
             entryDecoder = new EntryDecoder();
+        openScanner(tableName);
         try {
-            openScanner(tableName);
             Result r = null;
 
             while ((r = resultScanner.next()) != null) {

@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.base.Optional;
 import com.google.common.collect.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -337,7 +338,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
                     if (td != null) {
-                        startDirect(dataDictionary, td, conglomerateDescriptor);
+                        startDirect(transactionResource.getLcc(), dataDictionary, td, conglomerateDescriptor);
                     }
                 }
                 state.set(State.RUNNING);
@@ -370,7 +371,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
      *
      * @param td The table descriptor for the base table associated with the physical table this context writes to.
      */
-    private void startDirect(DataDictionary dataDictionary, TableDescriptor td, ConglomerateDescriptor cd) throws StandardException, IOException {
+    private void startDirect(LanguageConnectionContext lcc, DataDictionary dataDictionary, TableDescriptor td, ConglomerateDescriptor cd) throws StandardException, IOException {
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if (isSysConglomerate) {
             SpliceLogUtils.trace(LOG, "Index management for SYS tables disabled, relying on external index management");
@@ -455,7 +456,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     ConglomerateDescriptor srcConglomDesc = uniqueIndexConglom.isPresent() ? uniqueIndexConglom.get() : currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor = srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
 
-                    TentativeIndex ti = ProtoUtil.createTentativeIndex(null,srcConglomDesc.getConglomerateNumber(),
+                    TentativeIndex ti = ProtoUtil.createTentativeIndex(lcc,srcConglomDesc.getConglomerateNumber(),
                             indexConglom.get().getConglomerateNumber(),td,indexDescriptor);
                     IndexFactory indexFactory = IndexFactory.create(ti);
                     replace(indexFactory);
