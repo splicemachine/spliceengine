@@ -1629,6 +1629,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
         throw new RuntimeException("Not implemented in: " + this.getClass());
     }
 
+    public String printExplainInformationForActivation() throws StandardException {
+        return printExplainInformation("\n", -1);
+    }
 
     public String toHTMLString() {
         return toString();

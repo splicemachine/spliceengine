@@ -874,8 +874,9 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(badRecordsAllowed);
             mb.push((double) this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+            mb.push(this.printExplainInformationForActivation());
 
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 8);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 9);
 		}
 		else
 		{

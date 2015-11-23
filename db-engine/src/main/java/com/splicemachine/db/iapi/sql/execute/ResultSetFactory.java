@@ -114,7 +114,8 @@ public interface ResultSetFactory {
 	ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
 								 GeneratedMethod checkGM, String insertMode, String statusDirectory, int failBadRecordCount,
                                  double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
+                                 double optimizerEstimatedCost,
+                                 String explainPlan)
         throws StandardException;
 
 	/**
