@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>db-project</artifactId>
+        <groupId>com.splicemachine.db-project</groupId>
+        <version>2.0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>db-tools-ij</artifactId>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-tools-i18n</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+
+            <!-- ================================================================================================
+            JAVACC: sqlgrammar.jj
+
+            Available Maven JavaCC Plugins
+            ** https://github.com/phax/ph-javacc-maven-plugin
+            ** https://github.com/mojohaus/javacc-maven-plugin
+
+            This will use the version of javacc that is included with the plugin. Be aware that changing
+            the plugin version may change the version of javacc we are using.
+            ===================================================================================================== -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>javacc-maven-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>parser-execution-id</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>javacc</goal>
+                        </goals>
+                        <configuration>
+                            <jdkVersion>1.7</jdkVersion>
+                            <packageName>com.splicemachine.db.impl.tools.ij</packageName>
+                            <sourceDirectory>src/main/grammar</sourceDirectory>
+                            <outputDirectory>${project.build.directory}/generated-sources/javacc_ij
+                            </outputDirectory>
+                            <grammarEncoding>UTF-8</grammarEncoding>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>

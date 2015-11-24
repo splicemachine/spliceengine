@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>db-project</artifactId>
+        <groupId>com.splicemachine.db-project</groupId>
+        <version>2.0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>db-client</artifactId>
+
+
+    <!--
+    Classes in this module and its dependencies make up our splice JDBC driver.  Because the jdbc driver will be on the
+    classpath of customer java applications that use it, the driver jar must NOT contain any unshaded third party
+    dependencies.  (Using splice JDBC driver should not force a customer to use a particular version of guava, for
+    example).
+    -->
+    <dependencies>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-shared</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>db-tools-i18n</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+
+            <!-- Replace the artifact for this module with a jar artifact that contains everything necessary to function
+             as the splice JDBC driver. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- false here means *replace* the default artifact -->
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <!-- attach shaded sources as well -->
+                            <createSourcesJar>true</createSourcesJar>
+                            <!-- else shade plugin places this in module root. -->
+                            <dependencyReducedPomLocation>${project.build.directory}/temp-dependency-reduced-pom.xml
+                            </dependencyReducedPomLocation>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
