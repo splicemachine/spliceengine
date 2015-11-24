@@ -73,7 +73,7 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer {
         }
 
         // Add a row to the window frame
-        if (end != Long.MAX_VALUE) {
+        if (frameEnd != Long.MAX_VALUE) {
             if (current + frameEnd > end) {
                 // read a row from scanner
                 if (source.hasNext()) {
