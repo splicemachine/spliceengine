@@ -4,12 +4,14 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by jyuan on 9/15/14.
@@ -19,16 +21,15 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected final long frameEnd;
     private final WindowAggregator[] aggregators;
     private final ExecRow templateRow;
+    private ResultBuffer resultBuffer;
 
     protected int start;
     protected int end;
     protected int current;
-    private ExecRow currentRow;
     protected ArrayList<ExecRow> rows;
     protected PeekingIterator<ExecRow> source;
     protected byte[] partition;
     protected int[] sortColumns;
-    private boolean consumed;
     private boolean initialized;
 
     public static WindowFrameBuffer createFrameBuffer(
@@ -69,64 +70,59 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         this.frameStart = frameDefinition.getFrameStart().getValue();
         this.frameEnd = frameDefinition.getFrameEnd().getValue();
         this.rows = new ArrayList<ExecRow>();
+        this.resultBuffer = new ResultBuffer();
     }
 
     public ExecRow next() {
-        ExecRow result = currentRow;
-        currentRow = null;
-        return result;
+        return resultBuffer.next();
     }
 
-    private ExecRow nextInternal() {
+    private ExecRow nextInternal() throws IOException, StandardException {
         ExecRow row;
-        try {
-            if (!initialized) {
-                reset();
-                initialized = true;
-            }
-            if (current >= rows.size()) {
-                consumed = true;
-                return null;
-            }
-            row = rows.get(current);
-            for (WindowAggregator aggregator : aggregators) {
-                // For current row  and window, evaluate the window function
-                int aggregatorColumnId = aggregator.getFunctionColumnId();
-                int resultColumnId = aggregator.getResultColumnId();
-                SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
-                row.setColumn(resultColumnId, function.getResult().cloneValue(false));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (current >= rows.size()) {
+            return null;
         }
+        row = rows.get(current);
+        for (WindowAggregator aggregator : aggregators) {
+            // For current row  and window, evaluate the window function
+            int aggregatorColumnId = aggregator.getFunctionColumnId();
+            int resultColumnId = aggregator.getResultColumnId();
+            SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
+            row.setColumn(resultColumnId, function.getResult().cloneValue(false));
+        }
+        this.resultBuffer.bufferResult(row);
         return row;
     }
 
-    public boolean hasNext() {
-        if (consumed) {
-            return false;
-        }
-        if (currentRow != null) {
-            return true;
-        }
-        currentRow = nextInternal();
-        if (currentRow == null && source.hasNext()) {
-            // next frame
-            initialized = false;
-            currentRow = nextInternal();
-        }
-
-
-        if (currentRow == null) {
-            consumed = true;
-        } else {
-            try {
-                move();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+    private void finishFrame() throws StandardException {
+        for (WindowAggregator aggregator : aggregators) {
+            SpliceGenericWindowFunction cachedAggregator = aggregator.getCachedAggregator();
+            if (cachedAggregator != null) {
+                List<DataValueDescriptor> results = cachedAggregator.finishFrame();
+                if (results != null) {
+                    int resultColumnId = aggregator.getResultColumnId();
+                    resultBuffer.setColumnResults(resultColumnId, results);
+                }
             }
         }
-        return currentRow != null;
+        resultBuffer.setFinished();
+    }
+
+
+    public boolean hasNext() {
+        if (!initialized) {
+            initialized = true;
+            try {
+                reset();
+                while (nextInternal() != null) {
+                    move();
+                }
+                finishFrame();
+            } catch (Exception se) {
+                throw new RuntimeException(se);
+            }
+        }
+        return resultBuffer.hasNext();
     }
 
     @Override
@@ -166,4 +162,63 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     }
 
     abstract protected void loadFrame() throws IOException, StandardException;
+
+    private static class ResultBuffer implements Iterator<ExecRow> {
+        private final List<ExecRow> results = new ArrayList<>();
+        private Iterator<ExecRow> resultItr;
+        private boolean finished;
+
+        void bufferResult(ExecRow resultRow) {
+            results.add(resultRow);
+        }
+
+        boolean isFinished() {
+            return finished;
+        }
+
+        void reset() {
+            resultItr = null;
+            results.clear();
+            finished = false;
+        }
+
+        public void setFinished() {
+            finished = true;
+            resultItr = results.iterator();
+        }
+
+        public int size() {
+            return results.size();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return (resultItr != null && resultItr.hasNext());
+        }
+
+        @Override
+        public ExecRow next() {
+            if (resultItr == null || ! resultItr.hasNext()) {
+                return null;
+            }
+            ExecRow resultRow = resultItr.next();
+            if (! hasNext()) {
+                reset();
+            }
+            return resultRow;
+        }
+
+        @Override
+        public void remove() {
+            // not implemented
+        }
+
+        public void setColumnResults(int resultColumnId, List<DataValueDescriptor> columnResults) {
+            for (int i = 0; i < results.size(); i++) {
+                ExecRow row = results.get(i);
+                row.setColumn(resultColumnId, columnResults.get(i));
+            }
+        }
+    }
+
 }
