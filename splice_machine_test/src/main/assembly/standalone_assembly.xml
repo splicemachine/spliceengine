@@ -47,7 +47,7 @@ TAR structure:
 			<useProjectArtifact>false</useProjectArtifact>
 			<outputFileNameMapping>splicedriver-${artifact.baseVersion}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
 			<includes>
-				<include>com.splicemachine:db-client*</include>
+                <include>com.splicemachine.db-project:db-client</include>
 			</includes>
 		</dependencySet>
 
