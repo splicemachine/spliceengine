@@ -43,8 +43,7 @@
 				<include>net.sf.ehcache:ehcache-core</include>
 				<include>net.sf.opencsv:opencsv</include>
 				<include>net.sf.supercsv:super-csv</include>
-				<include>com.splicemachine:db</include>
-				<include>com.splicemachine:dbclient</include>
+				<include>com.splicemachine.db-project:*</include>
 				<include>org.apache.lucene:lucene-core</include>
 				<include>org.apache.spark</include>				
 				<include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>

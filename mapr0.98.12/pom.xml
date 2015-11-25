@@ -78,11 +78,6 @@
 			<artifactId>stats</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>splice-web</artifactId>
-			<type>tar.gz</type>
-		</dependency>
-		<dependency>
 			<groupId>commons-cli</groupId>
 			<artifactId>commons-cli</artifactId>
 		</dependency>
@@ -149,12 +144,8 @@
 			<artifactId>super-csv</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>db</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>dbclient</artifactId>
+			<groupId>com.splicemachine.db-project</groupId>
+			<artifactId>db-drda</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
