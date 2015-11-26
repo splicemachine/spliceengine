@@ -166,25 +166,13 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             case DROP_FOREIGN_KEY:
                 fkGroup.handleForeignKeyDrop(ddlChange,conglomId);
                 break;
-            case CHANGE_PK:
-                break;
-            case ADD_CHECK:
-                break;
             case CREATE_INDEX:
                 DDLMessage.TentativeIndex tentativeIndex=ddlChange.getTentativeIndex();
                 if(tentativeIndex.getTable().getConglomerate()==conglomId){
                     indexFactories.replace(IndexFactory.create(ddlChange));
                 }
                 break;
-            case ADD_NOT_NULL:
-                break;
-            case DROP_CONSTRAINT:
-                break;
-            case DROP_TABLE:
-                break;
-            case DROP_SCHEMA:
-                break;
-            case DROP_INDEX:
+            case DROP_INDEX_TRIGGER:
                 if(ddlChange.getDropIndex().getBaseConglomerate()!=conglomId) break;
 
                 TxnView txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
@@ -201,9 +189,8 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     indexFactories.addFactory(new DropIndexFactory(txn,null,indexConglomId));
                 }
                 break;
-            case ALTER_STATS:
-                break;
-            case ENTER_RESTORE_MODE:
+            // ignored
+            default:
                 break;
         }
     }

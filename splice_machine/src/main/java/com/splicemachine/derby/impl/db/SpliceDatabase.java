@@ -286,6 +286,12 @@ public class SpliceDatabase extends BasicDatabase{
                         context.enterRestoreMode();
                     }
                 }
+                final List<DDLAction> ddlActions = new ArrayList<>();
+                ddlActions.add(new AddIndexToPipeline());
+                ddlActions.add(new DropIndexFromPipeline());
+                for (DDLAction action : ddlActions) {
+                    action.accept(change);
+                }
             }
 
             @Override
