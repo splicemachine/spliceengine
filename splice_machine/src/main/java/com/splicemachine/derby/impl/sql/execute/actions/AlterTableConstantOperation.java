@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -1073,7 +1075,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         long baseConglomerateNumber = ddlChange.getTentativeIndex().getTable().getConglomerate();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
         StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
-        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, new Long(baseConglomerateNumber).toString());
+        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(baseConglomerateNumber)));
 
         //Create table writer for new conglomerate
         HTableWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);

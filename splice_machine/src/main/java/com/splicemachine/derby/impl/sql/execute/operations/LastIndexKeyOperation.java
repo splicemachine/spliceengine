@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -121,7 +122,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(baseColumnMap);
-        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, tableName)
+        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, HBaseTableInfoFactory.getInstance().getTableInfo(tableName))
                 .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
                 .coalesce(1,true)
                 .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));

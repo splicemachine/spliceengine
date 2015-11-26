@@ -4,6 +4,11 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import com.google.common.collect.Lists;
+import com.clearspring.analytics.util.Lists;
+import com.google.common.base.Joiner;
+import com.google.common.primitives.Longs;
+import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.*;
@@ -306,7 +311,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
         StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn);
-        DataSet dataSet = (DataSet)dsp.getTableScanner(activation, tableScannerBuilder, (new Long(heapConglomerateId).toString()));
+        DataSet dataSet = (DataSet)dsp.getTableScanner(activation, tableScannerBuilder, HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(heapConglomerateId)));
         return dataSet;
     }
 

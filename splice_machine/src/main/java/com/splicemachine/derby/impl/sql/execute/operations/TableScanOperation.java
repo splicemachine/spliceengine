@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -172,7 +173,7 @@ public class TableScanOperation extends ScanOperation {
             assert currentTemplate != null: "Current Template Cannot Be Null";
             OperationContext<TableScanOperation> operationContext = dsp.createOperationContext(this);
             TableScannerBuilder tsb = getTableScannerBuilder(dsp);
-            return dsp.getTableScanner(this, tsb, tableName);
+            return dsp.getTableScanner(this, tsb,  HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
         }
 
         @Override

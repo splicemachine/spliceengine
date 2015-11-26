@@ -8,6 +8,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryDecoder;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -77,7 +78,7 @@ public class IgnoreTxnCacheSupplier {
     }
 
     private void openScanner(String tableName) throws IOException {
-        HTable hTable = new HTable(SpliceConstants.config, SpliceConstants.RESTORE_TABLE_NAME);
+        HTable hTable = new HTable(SpliceConstants.config, TableName.valueOf(SpliceConstants.SPLICE_NAMESPACE, SpliceConstants.RESTORE_TABLE_NAME));
         Scan scan = new Scan();
         byte[] startRow = MultiFieldEncoder.create(1).encodeNext(tableName).build();
         byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);

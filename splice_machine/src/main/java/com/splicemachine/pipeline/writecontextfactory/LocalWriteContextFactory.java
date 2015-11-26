@@ -242,23 +242,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case DROP_FOREIGN_KEY:
                         fkWriteFactoryHolder.handleForeignKeyDrop(ddlChange,conglomId);
                         break;
-                    case CHANGE_PK:
-                        break;
-                    case ADD_CHECK:
-                        break;
                     case CREATE_INDEX:
                         IndexFactory index = IndexFactory.create(ddlChange);
                         replace(index);
                         break;
-                    case ADD_NOT_NULL:
-                        break;
-                    case DROP_CONSTRAINT:
-                        break;
-                    case DROP_TABLE:
-                        break;
-                    case DROP_SCHEMA:
-                        break;
-                    case DROP_INDEX:
+                    case DROP_INDEX_TRIGGER:
                         TentativeIndex ti = ddlChange.getTentativeIndex();
                         TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
                         long indexConglomId = ti.getIndex().getConglomerate();
@@ -277,9 +265,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                             indexFactories.add(new DropIndexFactory(txn, null, indexConglomId));
                         }
                         break;
-                    case ALTER_STATS:
-                        break;
-                    case ENTER_RESTORE_MODE:
+                    // ignored
+                    default:
                         break;
                 }
             } finally {

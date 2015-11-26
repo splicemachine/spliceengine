@@ -23,6 +23,7 @@ import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
@@ -46,13 +47,13 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     private static final Logger LOG = Logger.getLogger(ControlDataSetProcessor.class);
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
 
                 siTableBuilder
-                        .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),siTableBuilder.getScan()))
+                        .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),siTableBuilder.getScan()))
                         .region(localRegion);
         TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,spliceOperation);
         spliceOperation.registerCloseable(tableScannerIterator);
@@ -60,25 +61,25 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException {
+    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, TableName tableName) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(),
                 TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
         hTableBuilder
-                .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),hTableBuilder.getScan()))
+                .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),hTableBuilder.getScan()))
                 .region(localRegion)
                 .metricFactory(Metrics.noOpMetricFactory());
         HTableScannerIterator tableScannerIterator = new HTableScannerIterator(hTableBuilder);
         return new ControlDataSet(tableScannerIterator);
     }
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
 
         siTableBuilder
-                .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),siTableBuilder.getScan()))
+                .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),siTableBuilder.getScan()))
                 .region(localRegion);
         TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,null);
         return new ControlDataSet(tableScannerIterator);

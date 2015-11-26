@@ -24,6 +24,8 @@ import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.ddl.DDLWatcher;
+import com.splicemachine.ddl.DDLMessage.DDLChangeType;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -240,6 +242,11 @@ public class SpliceDatabase extends BasicDatabase{
             TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
             ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate("boot".getBytes());
         }
+
+        final List<DDLAction> ddlActions = new ArrayList<>();
+        ddlActions.add(new AddIndexToPipeline());
+        ddlActions.add(new DropIndexFromPipeline());
+
         DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
             @Override
             public void startGlobalChange(){
@@ -266,6 +273,9 @@ public class SpliceDatabase extends BasicDatabase{
                     for(LanguageConnectionContext context : allContexts){
                         context.enterRestoreMode();
                     }
+                }
+                for (DDLAction action : ddlActions) {
+                    action.accept(change);
                 }
             }
 

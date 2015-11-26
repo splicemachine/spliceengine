@@ -2,9 +2,12 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -36,26 +39,7 @@ public class DropIndexConstantOperation extends AbstractDropIndexConstantOperati
 	@Override
 	public void dropIndexTrigger(final long tableConglomId, final long indexConglomId, final TxnView userTxn) throws StandardException{
 		//drop the index trigger from the main table
-		Table mainTable = SpliceAccessManager.getHTable(tableConglomId);
-		try {
-			mainTable.coprocessorService(SpliceMessage.SpliceIndexManagementService.class,
-            HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW,new Batch.Call<SpliceMessage.SpliceIndexManagementService, Void>() {
-				@Override
-				public Void call(SpliceMessage.SpliceIndexManagementService instance) throws IOException {
-					SpliceRpcController controller = new SpliceRpcController();
-					SpliceMessage.DropIndexRequest request = SpliceMessage.DropIndexRequest.newBuilder()
-                    .setIndexConglomId(indexConglomId).setBaseConglomId(tableConglomId).setTxnId(userTxn.getTxnId()).build();
-					instance.dropIndex(controller,request,new BlockingRpcCallback<SpliceMessage.DropIndexResponse>());
-					if(controller.failed()){
-						throw Exceptions.getIOException(controller.getThrowable());
-					}
-					return null;
-				}
-			});
-		} catch (Throwable throwable) {
-			throw Exceptions.parseException(throwable);
-		}finally{
-			Closeables.closeQuietly(mainTable);
-		}
+		DDLMessage.DDLChange change = ProtoUtil.createDropIndexTrigger(indexConglomId, tableConglomId, userTxn.getTxnId());
+		DDLUtils.notifyMetadataChangeAndWait(change);
 	}
 }

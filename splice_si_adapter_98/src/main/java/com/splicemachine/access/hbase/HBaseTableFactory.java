@@ -9,6 +9,9 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.FluentIterable;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
@@ -57,7 +60,6 @@ public class HBaseTableFactory implements SpliceTableFactory<Connection,Table,Ta
     public void clearRegionCache(TableName tableName) {
         ((HConnection) connection).clearRegionCache(tableName);
     }
-
 
     public List<HRegionLocation> getRegionsInRange(byte[] tableName, final byte[] startRow, final byte[] stopRow) throws IOException, ExecutionException, InterruptedException  {
         List<HRegionLocation> locations = getRegions(tableName);

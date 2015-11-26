@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -105,7 +106,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             HTableWriterBuilder builder = new HTableWriterBuilder()
                     .heapConglom(tentativeIndex.getIndex().getConglomerate())
                     .txn(childTxn);
-            DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder, (new Long(tentativeIndex.getTable().getConglomerate())).toString());
+            DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder,
+					HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(tentativeIndex.getTable().getConglomerate())));
             DataSet<LocatedRow> result = dataset.map(new IndexTransformFunction(tentativeIndex))
                     .index(new KVPairFunction()).writeKVPair(builder);
             childTxn.commit();

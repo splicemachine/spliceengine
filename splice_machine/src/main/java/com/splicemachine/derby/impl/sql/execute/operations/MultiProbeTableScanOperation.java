@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
@@ -229,7 +230,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
                     .rowDecodingMap(baseColumnMap);
-            dataSet = dataSet.union(dsp.<MultiProbeTableScanOperation, LocatedRow>getTableScanner(this, tsb, tableName));
+            dataSet = dataSet.union(dsp.<MultiProbeTableScanOperation, LocatedRow>getTableScanner(this, tsb,
+                    HBaseTableInfoFactory.getInstance().getTableInfo(tableName)));
         }
         return dataSet;
     }

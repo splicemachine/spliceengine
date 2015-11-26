@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -177,7 +178,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(colMap);
-        return dsp.<DistinctScanOperation, LocatedRow>getTableScanner(this,tsb,tableName).distinct();
+        return dsp.<DistinctScanOperation, LocatedRow>getTableScanner(this,tsb, HBaseTableInfoFactory.getInstance().getTableInfo(tableName)).distinct();
     }
 
 }
