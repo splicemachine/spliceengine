@@ -21,11 +21,9 @@
 
 package com.splicemachine.dbTesting.functionTests.tests.jdbc4;
 
-import junit.framework.Assert;
-import junit.framework.Test;
-import junit.extensions.TestSetup;
-
 import com.splicemachine.dbTesting.junit.BaseJDBCTestSetup;
+import junit.framework.Test;
+import org.junit.Assert;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.*;

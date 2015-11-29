@@ -39,7 +39,6 @@ import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.Derby;
 import com.splicemachine.dbTesting.junit.JDBC;
 import com.splicemachine.dbTesting.junit.JDBCDataSource;
-import com.splicemachine.dbTesting.junit.NetworkServerTestSetup;
 import com.splicemachine.dbTesting.junit.SecurityManagerSetup;
 import com.splicemachine.dbTesting.junit.SpawnedProcess;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
@@ -471,57 +470,7 @@ public class AutoloadTest extends BaseJDBCTestCase
         }
     }
 
-    /**
-     * Test that the auto-load of the network server is as expected.
-     * <P>
-     * db.drda.startNetworkServer=false or not set
-     * <BR>
-     *     network server should not auto boot.
-     * <P>
-     * db.drda.startNetworkServer=true
-     * <BR>
-     * If jdbc.drivers contains the name of the embedded driver
-     * then the server must be booted.
-     * <BR>
-     * Otherwise even if auto-loading the embedded driver due to JDBC 4
-     * auto-loading the network server must not boot. This is because
-     * the auto-loaded driver for JDBC 4 is a proxy driver that registers
-     * a driver but does not boot the complete embedded engine.
-     * @throws Exception 
-     * 
-     *
-     */
-    public void testAutoNetworkServerBoot() throws Exception
-    {
-        boolean nsAutoBoot = "true".equalsIgnoreCase(
-                getSystemProperty("derby.drda.startNetworkServer"));
-        
-        boolean serverShouldBeUp =
-            nsAutoBoot && fullEngineAutoBoot();
-        
-        String user = getTestConfiguration().getUserName();
-        String pw = getTestConfiguration().getUserPassword();
-        NetworkServerControl control = new NetworkServerControl(user, pw);
-
-        if (!serverShouldBeUp) {
-            // If we expect the server not to come up, wait a little before
-            // checking if the server is up. If the server is (unexpectedly)
-            // coming up and we ping before it has come up, we will conclude
-            // (incorrectly) that it did not come up.
-            Thread.sleep(5000L);
-        }
-
-        boolean isServerUp = NetworkServerTestSetup.pingForServerUp(
-                control, null, serverShouldBeUp);
-        
-        assertEquals("Network Server state incorrect",
-                serverShouldBeUp, isServerUp);
-        
-        if (isServerUp)
-            control.shutdown();
-    }
-    
-    /**
+   /**
      * Return true if a full auto-boot of the engine is expected
      * due to jdbc.drivers containing the name of the embedded driver.
      */

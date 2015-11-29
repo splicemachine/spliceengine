@@ -27,7 +27,7 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import junit.framework.Test;
 
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;

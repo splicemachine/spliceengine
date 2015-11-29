@@ -23,7 +23,6 @@ import java.sql.Statement;
 import java.util.Random;
 
 import junit.framework.Test;
-import junit.framework.TestSuite;
 
 import com.splicemachine.dbTesting.functionTests.util.SQLStateConstants;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;

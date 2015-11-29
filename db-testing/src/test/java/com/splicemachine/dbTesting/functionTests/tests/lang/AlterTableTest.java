@@ -38,7 +38,7 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.DerbyConstants;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 public final class AlterTableTest extends BaseJDBCTestCase {
 

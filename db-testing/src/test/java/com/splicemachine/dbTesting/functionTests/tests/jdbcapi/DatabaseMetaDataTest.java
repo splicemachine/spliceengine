@@ -21,48 +21,20 @@
  */
 package com.splicemachine.dbTesting.functionTests.tests.jdbcapi;
 
-import java.lang.reflect.Method;
-import java.io.IOException;
-import java.math.BigDecimal;
-//import java.lang.reflect.Constructor;
-//import java.lang.reflect.Method;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.Date;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Arrays;
-//import java.util.HashMap;
-//import java.util.Iterator;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-//import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.StringTokenizer;
-
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
+import com.splicemachine.dbTesting.functionTests.tests.upgradeTests.Version;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
-//import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.DatabasePropertyTestSetup;
 import com.splicemachine.dbTesting.junit.JDBC;
 import com.splicemachine.dbTesting.junit.TestConfiguration;
-//import com.splicemachine.db.shared.common.reference.JDBC40Translation;
-import com.splicemachine.dbTesting.functionTests.tests.upgradeTests.Version;
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.sql.Date;
+import java.util.*;
 
 /**
  * Test the DatabaseMetaData api.

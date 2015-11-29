@@ -191,9 +191,7 @@ public class Version implements Comparable
      */
     private void addClassLoader( )
     {
-        ClassLoader classLoader = UpgradeClassLoader.makeClassLoader( _legs );
 
-        _classLoaders.put( _key, classLoader );
     }
 
     /**

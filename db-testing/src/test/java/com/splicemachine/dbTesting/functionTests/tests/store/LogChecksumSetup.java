@@ -20,13 +20,14 @@
  */
 
 package com.splicemachine.dbTesting.functionTests.tests.store;
-import java.sql.*;
+
+import com.splicemachine.db.tools.ij;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.sql.*;
 import java.util.zip.CRC32;
-import com.splicemachine.dbTesting.functionTests.util.corruptio.CorruptibleIo;
-import com.splicemachine.db.tools.ij;
 
 /*
  * Purpose of this class is to simulate out of order incomplete 
@@ -47,11 +48,11 @@ import com.splicemachine.db.tools.ij;
 
 public class LogChecksumSetup{
 
-	private CorruptibleIo cbio;
+
 
 	LogChecksumSetup()
 	{
-		cbio = CorruptibleIo.getInstance();
+
 	}
 	
 	/**
@@ -200,9 +201,7 @@ public class LogChecksumSetup{
 	 */
 	private void setupLogCorruption(int off , int len)
 	{
-		cbio.setLogCorruption(true);
-		cbio.setOffset(off); 
-		cbio.setLength(len); 
+        throw new UnsupportedOperationException("splice");
 	}
 
 

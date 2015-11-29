@@ -25,6 +25,7 @@
         <module>db-tools-ij</module>
         <module>db-client</module>
         <module>db-testing</module>
+        <module>db-tools-testing</module>
     </modules>
 
 

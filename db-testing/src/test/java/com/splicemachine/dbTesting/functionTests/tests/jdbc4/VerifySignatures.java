@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import junit.framework.Test;
-import junit.framework.TestSuite;
 import com.splicemachine.dbTesting.functionTests.util.TestUtil;
 import com.splicemachine.dbTesting.junit.BaseTestCase;
 import com.splicemachine.dbTesting.junit.J2EEDataSource;

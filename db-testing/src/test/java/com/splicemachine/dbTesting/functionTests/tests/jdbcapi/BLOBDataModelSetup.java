@@ -22,7 +22,6 @@ import com.splicemachine.dbTesting.functionTests.util.TestInputStream;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestSetup;
 
-import junit.extensions.TestSetup;
 import junit.framework.Test;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

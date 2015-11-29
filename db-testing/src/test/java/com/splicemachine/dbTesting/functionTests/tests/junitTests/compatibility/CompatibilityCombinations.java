@@ -30,8 +30,6 @@ import java.util.*;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import com.splicemachine.dbTesting.junit.NetworkServerTestSetup;
-
 
 
 /**
@@ -1020,7 +1018,7 @@ public class CompatibilityCombinations extends BaseTestCase
             DEBUG("************** Done exec().");
 
             // Wait for the server to come up in a reasonable time.
-            pingServer();
+//            pingServer();
         }
         else
         {
@@ -1134,26 +1132,7 @@ public class CompatibilityCombinations extends BaseTestCase
         DEBUG("");
     }
     
-    
-    /**
-     * <p>
-     * Checks to see that the server is up. If the server doesn't
-     * come up in a reasonable amount of time, throw an assert failure.
-     * </p>
-     * @throws java.lang.Exception .
-     */
-    // Copied from com.splicemachine.dbTesting.functionTests.tests.junitTests.compatibility.Pinger
-    private	void	pingServer( )
-    throws Exception
-    {
-        DEBUG("+++ pingServer");
-        NetworkServerControl controller = new NetworkServerControl();
-        assertTrue("Server did not start in time",
-            NetworkServerTestSetup.pingForServerUp(
-                controller, serverProc, true));
-        DEBUG("--- pingServer");
-    }
-    
+
     
     private void stopServer(int serverVM, int serverVersion)
     {
