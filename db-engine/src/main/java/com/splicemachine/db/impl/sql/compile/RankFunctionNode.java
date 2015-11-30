@@ -21,6 +21,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -63,31 +64,22 @@ public final class RankFunctionNode extends WindowFunctionNode  {
     }
 
     @Override
-    public boolean isScalarAggregate() {
-        return false;
-    }
-
-    @Override
-    public ValueNode[] getOperands() {
+    public List<ValueNode> getOperands() {
         List<OrderedColumn> orderedColumns = getWindow().getOrderByList();
-        ValueNode[] operands = new ValueNode[orderedColumns.size()];
-        int i =0;
+        List<ValueNode> operands = new ArrayList<>(orderedColumns.size());
         for (OrderedColumn orderedColumn : orderedColumns) {
-            operands[i++] = orderedColumn.getColumnExpression();
+            operands.add(orderedColumn.getColumnExpression());
         }
         return operands;
     }
 
     @Override
-    protected void setOperands(ValueNode[] operands) throws StandardException {
-        if (operands != null && operands.length > 0) {
-            this.operand = operands[0];
-            List<OrderedColumn> orderByList = getWindow().getOrderByList();
-            if (orderByList != null && orderByList.size() > 0) {
-                for (int i=0; i<operands.length; i++) {
-                    orderByList.get(i).init(operands[i]);
-                }
+    public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
+        for(OrderedColumn oc : getWindow().getOrderByList()) {
+            if (oc.getColumnExpression() == oldVal) {
+                oc.setColumnExpression(newVal);
             }
         }
     }
+
 }

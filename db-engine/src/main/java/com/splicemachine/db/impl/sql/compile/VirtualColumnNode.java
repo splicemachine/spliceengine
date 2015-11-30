@@ -302,8 +302,8 @@ public class VirtualColumnNode extends ValueNode
     public String toHTMLString() {
         return "columnId: " + this.columnId + "<br>" +
                 "correlated: " + this.correlated + "<br>" +
-                ((sourceResultSet != null)?"sourceResultSetNumber: " + this.sourceResultSet.getResultSetNumber() + "<br>":"") +
-                ((sourceColumn != null)?"sourceColumnName: " + this.sourceColumn.getColumnName() + "<br>":"") +
+                ((sourceColumn != null)?"sourceResultSetNumber: " + this.sourceColumn.getResultSetNumber() + "<br>":"") +
+                ((sourceColumn != null)?"sourceColumnName: " + this.sourceColumn.getName() + "<br>":"") +
                 ((sourceColumn != null)?"sourceColumnPosition: " + this.sourceColumn.getColumnPosition() + "<br>":"");
     }
 

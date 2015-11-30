@@ -111,6 +111,8 @@ public abstract class OrderedColumn extends QueryTreeNode
 
     public abstract ValueNode getColumnExpression();
 
+    public abstract void setColumnExpression(ValueNode expression);
+
     /**
      *
      * Retrieve the column Reference from the ordered column
@@ -140,5 +142,4 @@ public abstract class OrderedColumn extends QueryTreeNode
         }
         return columnReturnedRows;
     }
-
 }

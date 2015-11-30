@@ -20,6 +20,11 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.Collections;
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -57,20 +62,13 @@ public final class FirstLastValueFunctionNode extends WindowFunctionNode {
     }
 
     @Override
-    public boolean isScalarAggregate() {
-        return false;
+    public List<ValueNode> getOperands() {
+        return (operand != null ? Lists.newArrayList(operand) : Collections.EMPTY_LIST);
     }
 
     @Override
-    public ValueNode[] getOperands() {
-        return new ValueNode[]{operand};
-    }
-
-    @Override
-    protected void setOperands(ValueNode[] operands) throws StandardException {
-        if (operands != null && operands.length > 0) {
-            this.operand = operands[0];
-        }
+    public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
+        this.operand = newVal;
     }
 
     @Override

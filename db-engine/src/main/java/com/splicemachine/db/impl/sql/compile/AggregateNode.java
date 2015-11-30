@@ -667,7 +667,7 @@ public class AggregateNode extends UnaryOperatorNode
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.THROWASSERT("generateExpression() should never "+
-					"be called on an AggregateNode.  "+
+					"be called on an AggregateNode - "+ getSQLName() + ". " +
 					"replaceAggregatesWithColumnReferences should have " +
 					"been called prior to generateExpression");
 		}

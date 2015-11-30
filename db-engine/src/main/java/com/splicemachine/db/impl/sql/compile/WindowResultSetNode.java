@@ -1,32 +1,14 @@
-/*
-   Derby - Class org.apache.derby.impl.sql.compile.WindowResultSetNode
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package com.splicemachine.db.impl.sql.compile;
 
-import static com.splicemachine.db.impl.sql.compile.WindowColumnMapping.resetOverColumnsPositionByKey;
-
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -48,6 +30,7 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
@@ -55,19 +38,58 @@ import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
 
 /**
  * A WindowResultSetNode represents a result set for a window partitioning operation
- * on a select.  Note that this includes a SELECT with aggregates
- * and no grouping columns (in which case the select list is null)
- * It has the same description as its input result set.
- * <p/>
+ * on a select.  It has the same description as its input result set.<br/>
  * For the most part, it simply delegates operations to its bottomPRSet,
- * which is currently expected to be a ProjectRestrictResultSet generated
- * for a SelectNode.
+ * which is currently expected to be a ProjectRestrictResultSet generated for a SelectNode.
  * <p/>
  * NOTE: A WindowResultSetNode extends FromTable since it can exist in a FromList.
  * <p/>
- * Modelled on the code in GroupByNode.
+ * Modelled on the code in GroupByNode but there are a few capabilities of WindowFunctions that
+ * make it a little trickier to implement,
+ * <ul>
+ *     <li>window functions, as apposed to scalar aggregate functions, can have multiple arguments</li>
+ *     <li>window function grouping columns (partition, order by) do not have to be included in the
+ *     select clause</li>
+ *     <li>it's not uncommon for there to be multiple window functions, some with the same window definition
+ *     (same over clause) in one query</li>
+ *     <li>the location of the RC where the window function result actually lives is not necessarily
+ *     the same location where the function processes. For instance, we're here below the select node
+ *     with one or more table scans somewhere below us (possibly thru some number of joins, grouped aggs,
+ *     etc.), but our result may be exposed, not in an RC of our parent select, but by some sub-expression
+ *     of it.  This expression does not have to be in the ResultSetNode parent/child hierarchy; just
+ *     source of some expression in the RCL. An example is:
+ *     <code>SELECT CASE WHEN (commission < 2000) THEN min(salary) over(PARTITION BY department)
+ *     ELSE -1 END as minimum_sal FROM EMPLOYEES</code>. Although window function processing happens
+ *     before the select, the window function result is exposed by a BinaryArithmeticOperatorNode, which is
+ *     exposed as part of a ConditionNode, which is exposed by the SelectNode's RCL.</li>
+ * </ul>
+ * as well as Derby's ancient ways that make it difficult to transform an AST;
+ * <ul>
+ *     <li>since Derby code was written prior to Java 5 collections, the concept of equals() and hashCode()
+ *     are absent</li>
+ *     <li>tree nodes are mutable and are mutated during transformation making it useless to implement equals()
+ *     and hashCode() anyway</li>
+ *     <li>at some point there was an effort to create isEquivalent() methods in the hierarchy. "isEquivalent()"
+ *     takes on different meanings; it can be anything from "represents the same object" (same type and all fields
+ *     are the same), to "partially the same object" (same type and <i>some</i> of the fields are the same, to
+ *     the instances are equal (object ==). Strangely, sometimes even expressions in the same data lineage
+ *     are "! isEquivalent()" because not all the fields were copied or they are in different stages of their
+ *     life cycles.</li>
+ *     <li>object fields that you would like to use for object identification (a ResultColumn's ColumnDefinition
+ *     and its constituent pieces, for instance) are many times null or incomplete</li>
+ *     <li>there are inconsistently defined methods and fields defined on query tree node hierarchy and do
+ *     unexpectedly different things. Examples include:
+ *     <ul>
+ *         <li>getSourceResultColumn(), getSource(), getOriginalSourceResultColumn()</li>
+ *         <li>getColumnPosition(), getVirtualColumnID()</li>
+ *         <li>all the different ways to get the "name" of something, some of which return null on the
+ *         same object</li>
+ *     </ul>
+ *     </li>
+ * </ul>
  */
 public class WindowResultSetNode extends SingleChildResultSetNode {
+    private static Logger LOG = Logger.getLogger(WindowResultSetNode.class);
 
     private WindowDefinitionNode wdn;
 
@@ -91,33 +113,31 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     // Is the source in sorted order
     private boolean isInSortedOrder;
-    private boolean aboveJoin;
+
+    private RCtoCRfactory rCtoCRfactory;
 
     /**
-     * Intializer for a WindowResultSetNode.
+     * Initializer for a WindowResultSetNode.
      *
-     * @param bottomPR        The child FromTable
-     * @param windowDef       The window definition
-     * @param windowFunctions The vector of aggregates from
-     *                        the query block.  Since aggregation is done
-     *                        at the same time as grouping, we need them
-     *                        here.
+     * @param selectPR        The projection from the select node
+     * @param windowDef       The window definition including the functions that will
+     *                        operate on them.
      * @param tableProperties Properties list associated with the table
      * @param nestingLevel    nestingLevel of this group by node. This is used for
      *                        error checking of group by queries with having clause.
      * @throws StandardException Thrown on error
      */
     public void init(
-        Object bottomPR,
+        Object selectPR,
         Object windowDef,
-        Object windowFunctions,
         Object tableProperties,
-        Object nestingLevel)
-        throws StandardException {
-        super.init(bottomPR, tableProperties);
-        setLevel(((Integer) nestingLevel).intValue());
-        /* Group by without aggregates gets xformed into distinct */
-        this.windowFunctions = (Collection<WindowFunctionNode>) windowFunctions;
+        Object nestingLevel) throws StandardException {
+
+        super.init(selectPR, tableProperties);
+        setLevel((Integer) nestingLevel);
+
+        this.wdn = (WindowDefinitionNode) windowDef;
+        this.windowFunctions = wdn.getWindowFunctions();
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(!this.windowFunctions.isEmpty(),
                                  "windowFunctions expected to be non-empty");
@@ -130,27 +150,111 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                               ", expected to be instanceof FromTable");
             }
         }
-        aboveJoin = isAboveJoin((ProjectRestrictNode)bottomPR);
+        windowInfoList = new WindowFunctionInfoList();
+        rCtoCRfactory = new RCtoCRfactory(getNodeFactory(), getContextManager());
+    }
 
-        this.wdn = (WindowDefinitionNode) windowDef;
+    /**
+     * Get whether or not the source is in sorted order.
+     *
+     * @return Whether or not the source is in sorted order.
+     */
+    boolean getIsInSortedOrder() {
+        return isInSortedOrder;
+    }
 
-		/*
-		** The first thing we do is put ourselves on
-		** top of the SELECT.  The select becomes the
-		** childResult.  So our RCL becomes its RCL (so
-		** nodes above it now point to us).  Map our
-		** RCL to its columns.
-		*/
-        addNewPRNode();
+    /**
+     * Add a whole slew of columns needed for Window Functions Basically, for each function we add at least
+     * 3 columns: the function input expression(s) (ranking functions accept many) and the window function
+     * column and a column where the function result is stored.  The input expressions are taken directly
+     * from the window function node.  The window function is the run time window function.  We add it to
+     * the RC list as a new object coming into the sort node.
+     * <p/>
+     * At this point this is invoked, we have the following
+     * tree:
+     * <pre>
+     * PR - (PARENT): RCL is the original select list
+     * |
+     * PR - PARTITION:  RCL is empty
+     * |
+     * PR - FROM TABLE: RCL is empty
+     * </pre>
+     * For each ColumnReference in PR RCL <UL>
+     * <LI> clone the ref </LI>
+     * <LI> create a new RC in the bottom RCL and set it to the col ref </LI>
+     * <LI> create a new RC in the partition RCL and set it to point to the bottom RC </LI>
+     * <LI> reset the top PR ref to point to the new partition RCL</LI>
+     * </UL>
+     * <p/>
+     * For each function in windowFunctions <UL>
+     * <LI> create RC in FROM TABLE.  Fill it with function Operator.
+     * <LI> create RC in FROM TABLE for function result</LI>
+     * <LI> create RC in FROM TABLE for window function</LI>
+     * <LI> create RCs in PARTITION for function input, set them to point to FROM TABLE RC </LI>
+     * <LI> create RC in PARTITION for function result</LI>
+     * <LI> create RC in PARTITION for window function</LI>
+     * <LI> replace function with reference to RC for function result </LI></UL>.
+     * <p/>
+     * For a query like,
+     * <pre>
+     * select c1, sum(c2), rank() over(partition by c3 order by c4[, ...]) from t1 group by c1;
+     * </pre>
+     * the query tree ends up looking like this:
+     * <pre>
+     * ProjectRestrictNode RCL -> (ptr to WRN(column[0]), ptr to WRN(column[1]), ptr to WRN(column[4]))
+     * |
+     * WindowResultSetNode RCL->(C1, SUM(C2), <function-input>, <window function>,
+     * RANK(), <function-input>[, <function-input>, ...], <window function>)
+     * |
+     * ProjectRestrict RCL->(C1, C2, C3, C4)
+     * |
+     * FromBaseTable
+     * </pre>
+     * <p/>
+     * The RCL of the WindowResultSetNode contains all the window (or over clause columns)
+     * followed by at least 3 RC's for each function in this order: the final computed
+     * function value (function result), the function input columns and a column for
+     * the window function itself.
+     * <p/>
+     * The window function puts the results in the first column of the RC's
+     * and the PR resultset in turn picks up the value from there.
+     * <p/>
+     * The notation (ptr to WRN(column[0])) basically means that it is
+     * a pointer to the 0th RC in the RCL of the WindowResultSetNode.
+     * <p/>
+     * The addition of these window and function columns to the WindowResultSetNode and
+     * to the PRN is performed in splicePreviousResultColumns and addMissingColumns.
+     * <p/>
+     * Note that that addition of the WindowResultSetNode is done after the
+     * query is optimized (in {@link SelectNode#modifyAccessPaths()}) which means a
+     * fair amount of patching up is needed to account for generated partition columns.
+     *
+     * @throws StandardException
+     */
+    public FromTable processWindowDefinition() throws StandardException {
 
-		/*
-		** We have aggregates, so we need to add
-		** an extra PRNode and we also have to muck around
-		** with our trees a might.
-         * Add the extra result columns required by the aggregates
-         * to the result list.
-		*/
-        addNewColumnsForAggregation();
+        // The first thing we do is put ourselves on top of the SELECT.
+        // The select becomes the childResult.  So our RCL becomes its RCL
+        // (so nodes above it now point to us).  Map our RCL to its columns.
+        addNewWindowProjection();
+
+        // Keep track of the refs we've added to our RCLs
+        Map<String, ColumnRefPosition> pulledUp = new HashMap<>();
+
+        // Splice up (repair) existing RCs since we've now broken the connection between parent PR
+        // and grandchild ResultSetNode.
+        splicePreviousResultColumns(pulledUp);
+
+        // Add columns we reference in the over clause
+        addOverColumns(pulledUp);
+
+        // Add any columns to our projection that are required by nodes above us
+        // that we disconnected when we inserted ourselves into the tree
+        addMissingColumns();
+
+        // Add columns we need for the functions themselves - [#Result, #Input(s), #Function (class)]
+        addWindowFunctionColumns();
+
 
 		/* We say that the source is never in sorted order if there is a distinct aggregate.
 		 * (Not sure what happens if it is, so just skip it for now.)
@@ -175,19 +279,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         if (index == glSize) {
             isInSortedOrder = childResult.isOrderedOn(crs, true, null);
         }
-    }
 
-    private boolean isAboveJoin(ProjectRestrictNode pr) {
-        return pr.getChildResult() instanceof JoinNode;
-    }
-
-    /**
-     * Get whether or not the source is in sorted order.
-     *
-     * @return Whether or not the source is in sorted order.
-     */
-    boolean getIsInSortedOrder() {
-        return isInSortedOrder;
+        return parent;
     }
 
     /**
@@ -196,7 +289,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      *
      * @throws StandardException
      */
-    private void addNewPRNode() throws StandardException {
+    private void addNewWindowProjection() throws StandardException {
         /*
 		** The first thing we do is put ourselves on
 		** top of the SELECT.  The select becomes the
@@ -206,7 +299,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		* This is done so that we can map parent PR columns to reference
 		* our function result columns and to any function result columns below us.
 		*/
-        this.parent = this;
+
         ResultColumnList newBottomRCL = childResult.getResultColumns().copyListAndObjects();
         resultColumns = childResult.getResultColumns();
         childResult.setResultColumns(newBottomRCL);
@@ -214,13 +307,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		/*
 		** Get the new PR, put above this window result.
 		*/
-        ResultColumnList rclNew = (ResultColumnList) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN_LIST,
-            getContextManager());
+        ResultColumnList rclNew = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
+                                                                              getContextManager());
         int sz = resultColumns.size();
         for (int i = 0; i < sz; i++) {
             ResultColumn rc = resultColumns.elementAt(i);
-            if (!rc.isGenerated()) {
+            if (! rc.isGenerated()) {
                 rclNew.addElement(rc);
             }
         }
@@ -256,438 +348,232 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
-     * Add a whole slew of columns needed for
-     * aggregation. Basically, for each aggregate we add at least
-     * 3 columns: the aggregate input expression(s) (ranking functions accept many)
-     * and the window function column and a column where the aggregate
-     * result is stored.  The input expressions are
-     * taken directly from the window function node.  The window function
-     * is the run time window function.  We add it to the RC list
-     * as a new object coming into the sort node.
-     * <p/>
-     * At this point this is invoked, we have the following
-     * tree:
-     * <pre>
-     * PR - (PARENT): RCL is the original select list
-     * |
-     * PR - PARTITION:  RCL is empty
-     * |
-     * PR - FROM TABLE: RCL is empty
-     * </pre>
-     * For each ColumnReference in PR RCL <UL>
-     * <LI> clone the ref </LI>
-     * <LI> create a new RC in the bottom RCL and set it
-     * to the col ref </LI>
-     * <LI> create a new RC in the partition RCL and set it to
-     * point to the bottom RC </LI>
-     * <LI> reset the top PR ref to point to the new partition
-     * RCL</LI></UL>
-     * <p/>
-     * For each aggregate in windowFunctions <UL>
-     * <LI> create RC in FROM TABLE.  Fill it with
-     * aggs Operator.
-     * <LI> create RC in FROM TABLE for function result</LI>
-     * <LI> create RC in FROM TABLE for window function</LI>
-     * <LI> create RCs in PARTITION for function input, set them
-     * to point to FROM TABLE RC </LI>
-     * <LI> create RC in PARTITION for function result</LI>
-     * <LI> create RC in PARTITION for window function</LI>
-     * <LI> replace function with reference to RC for function result </LI></UL>.
-     * <p/>
-     * For a query like,
-     * <pre>
-     * select c1, sum(c2), max(c3)
-     * from t1
-     * group by c1;
-     * </pre>
-     * the query tree ends up looking like this:
-     * <pre>
-     * ProjectRestrictNode RCL -> (ptr to GBN(column[0]), ptr to GBN(column[1]), ptr to GBN(column[4]))
-     * |
-     * WindowResultSetNode RCL->(C1, SUM(C2), <function-input>, <window function>, MAX(C3), <function-input>, <window function>)
-     * |
-     * ProjectRestrict RCL->(C1, C2, C3)
-     * |
-     * FromBaseTable
-     * </pre>
-     * <p/>
-     * The RCL of the GroupByNode contains all the unagg (or grouping columns)
-     * followed by at least 3 RC's for each aggregate in this order: the final computed
-     * aggregate value (aggregate result), the aggregate input columns and a column for
-     * the window function itself.
-     * <p/>
-     * The window function puts the results in the first column of the RC's
-     * and the PR resultset in turn picks up the value from there.
-     * <p/>
-     * The notation (ptr to GBN(column[0])) basically means that it is
-     * a pointer to the 0th RC in the RCL of the GroupByNode.
-     * <p/>
-     * The addition of these unagg and function columns to the GroupByNode and
-     * to the PRN is performed in addUnAggColumns and addWindowFunctionColumns.
-     * <p/>
-     * Note that that addition of the GroupByNode is done after the
-     * query is optimized (in SelectNode#modifyAccessPaths) which means a
-     * fair amount of patching up is needed to account for generated partition columns.
+     * Since we pull apart an existing parent/child hierarchy and we don't now what's come before us (below us in the
+     * tree), we first need to splice those broken relationships between the parent PR and the (now) grandChild
+     * result set node.<br/>
+     * We do this by taking the existing RC referenced by each parent RC, which is now 2 levels below it, and
+     * creating 2 RC->CR pairs, one for our child RCL and one for ours, and "splicing" them in.
      *
+     * @param pulledUp a mapping to CRs we've spliced together that we can point to if it's determined that
+     *                 we have a dependency on them.
      * @throws StandardException
      */
-    private void addNewColumnsForAggregation()
-        throws StandardException {
-        windowInfoList = new WindowFunctionInfoList();
+    private void splicePreviousResultColumns(Map<String, ColumnRefPosition> pulledUp) throws StandardException {
+        ResultColumnList childRCL = childResult.getResultColumns();
+        ResultColumnList winRCL = resultColumns;
 
-        WindowColumnMapping columnMapping = addUnAggColumns();
-        appendMissingKeyColumns(columnMapping);
-        addAggregateColumns(columnMapping);
+        for (ResultColumn parentRC : parent.getResultColumns()) {
+            ValueNode parentRCExpression = parentRC.getExpression();
+            ResultColumn srcRC = getResultColumn(parentRCExpression);
+            String baseName = parentRC.getName();
+            if (srcRC != null) {
+                // create RC->CR->srcRC for bottom PR
+                ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(), getContextManager(), this.getLevel());
+                childRCL.addElement(bottomRC);
+                bottomRC.setVirtualColumnId(childRCL.size());
+
+                // create RC->CR->bottomRC for window PR
+                ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(), getContextManager(), this.getLevel());
+                winRCL.addElement(winRC);
+                winRC.setVirtualColumnId(winRCL.size());
+
+                // Track what we've found for reuse (sharing)
+                pulledUp.put(getExpressionKey(winRC), new ColumnRefPosition(bottomRC, childRCL.size()));
+
+                // Re-point the parent RC's expression
+                replaceResultColumnExpression(parentRC, parentRCExpression, winRC);
+
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("splicePreviousResultColumns() spliced existing " + baseName + " in " + wdn.toString());
+                }
+            }
+        }
     }
 
     /**
-     * Pull parent columns down into this result node and the one below us.
+     * Now we find expressions from the grand child result set node below us that we require as given in the columns
+     * defined in our over clause. We create RC->CR pairs and append them to ours and our child's RCL.
+     * <p/>
+     * Columns from the window function over clause (over columns) are the essence of splice window functions.
+     * They're used to form the row key by which rows are sorted and thus their order of evaluation. It's imperative
+     * to have their column position properly defined. We assert that they're >= 1 (they're one-based in this class)
+     * before the end of processing.
+     * <p/>
+     * We don't pull up duplicate expressions, one will suffice, but we still need to re-point all over column CRs
+     * to the pulled up src CRs.
+     * <p/>
+     * Also during this stage, we track all the expressions we pull up and visit parent RCs replacing any existing
+     * references to the expressions that live below us with VCNs that point to the expressions we've pulled up.
      *
-     * @see #addNewColumnsForAggregation
+     * @param pulledUp  a mapping to CRs we've spliced together that we can point to if it's determined that
+     *                 we have a dependency on them.
+     *
+     * @throws StandardException
      */
-    private WindowColumnMapping addUnAggColumns() throws StandardException {
-        // note bottomRCL is a reference to childResult resultColumns
-        // setting columns on bottomRCL will also set them on childResult resultColumns
-        ResultColumnList bottomRCL = childResult.getResultColumns();
-        // note windowingRCL is a reference to resultColumns
-        // setting columns on windowingRCL will also set them on resultColumns
-        ResultColumnList windowingRCL = resultColumns;
-        List<SubstituteExpressionVisitor> referencesToSubstitute = new ArrayList<>();
+    private void addOverColumns(Map<String, ColumnRefPosition> pulledUp) throws StandardException{
+        ResultColumnList childRCL = childResult.getResultColumns();
+        ResultColumnList winRCL = resultColumns;
 
-        // Add all referenced columns (CRs) and virtual column (VCNs) in select list to windowing node's RCL
-        // and substitute references in original node to point to the Windowing
-        // result set. (modelled on GroupByNode's action for addUnAggColumns)
-        // VCNs happen, for example, when we have a window over a group by.
-        WindowColumnMapping columnMapping = new WindowColumnMapping(parent.getResultColumns(),
-                                                                    wdn.getOverColumns());
+        for (OrderedColumn overCol : wdn.getOverColumns()) {
+            ValueNode exp = overCol.getColumnExpression();
+            ResultColumn expRC = getResultColumn(exp);
+            String expKey = getExpressionKey(expRC);
 
-        for (WindowColumnMapping.ParentRef parentRef : columnMapping.getParentColumns()) {
-            if (parentRef.ref instanceof WindowFunctionNode) {
-                // we handle window functions in another method
-                continue;
-            }
+            if (pulledUp.get(expKey) == null) {
+                if (! contains(expRC, winRCL)) {
+                    ResultColumn srcRC = findOrPullUpRC(expRC,
+                                                        ((SingleChildResultSetNode) childResult).getChildResult(),
+                                                        rCtoCRfactory);
 
-            if (parentRef.ref instanceof BinaryOperatorNode) {
-                if (! (((BinaryOperatorNode)parentRef.ref).getRightOperand() instanceof WindowFunctionNode)) {
-                    createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute,
-                                            ((BinaryOperatorNode)parentRef.ref).getRightOperand());
-                }
-                if (! (((BinaryOperatorNode)parentRef.ref).getLeftOperand() instanceof WindowFunctionNode)) {
-                    createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute,
-                                            ((BinaryOperatorNode)parentRef.ref).getLeftOperand());
+                    if (srcRC != null) {
+                        // We found the RC referenced by this column from the over clause. Create RC->CR pairs
+                        // in our two RCLs (our projection -- this RCL -- and the PR we created as a staging
+                        // below us. Then cache the PR's RC so that we can reference repeated columns to the
+                        // same RC.
+                        String baseName = exp.getColumnName();
+
+                        // create RC->CR->srcRC for bottom PR
+                        ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(),
+                                                                 getContextManager(), this.getLevel());
+                        childRCL.addElement(bottomRC);
+                        bottomRC.setVirtualColumnId(childRCL.size());
+
+                        // create RC->CR->bottomRC for window PR
+                        ResultColumn winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(),
+                                                              getContextManager(), this.getLevel());
+                        winRCL.addElement(winRC);
+                        winRC.setVirtualColumnId(winRCL.size());
+
+                        // Cache the ref
+                        pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
+
+                    } else if (exp instanceof ColumnReference && ((ColumnReference)exp).getGeneratedToReplaceAggregate()) {
+                        // We didn't find it in an RCL below us, probably because it's an agg function previously
+                        // created -- the RCs for those don't have ColumnDescriptors which we need to find an
+                        // equivalent RC.
+                        // In that case, the best we can do is to use the expression directly.
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("addOverColumns(): missing Over column: " + exp.getColumnName() +
+                                          " using existing operand RC: " + expRC.getName() + " in " + wdn.toString());
+                        }
+                        // Add a reference to this column into the bottom RCL.
+                        ResultColumn bottomRC = createRC_CR_Pair(expRC, exp.getColumnName(), getNodeFactory(),
+                                                                 getContextManager(), this.getLevel());
+                        childRCL.addElement(bottomRC);
+                        bottomRC.setVirtualColumnId(childRCL.size());
+
+                        // create RC->CR->bottomRC for window PR
+                        ResultColumn winRC = createRC_CR_Pair(bottomRC, exp.getColumnName(), getNodeFactory(),
+                                                              getContextManager(), this.getLevel());
+                        winRCL.addElement(winRC);
+                        winRC.setVirtualColumnId(winRCL.size());
+
+                        // Cache the ref
+                        pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
+                    }
                 }
             } else {
-                createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute, parentRef, parentRef.ref);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("addOverColumns() already pulled up "+exp.getColumnName()+" in "+wdn.toString());
+                }
             }
+            // re-point the overCol exp to the RC's expression we've cached
+            ColumnRefPosition crp = pulledUp.get(expKey);
+            assert crp != null : "Failed to find CR for "+expKey;
+            overCol.setColumnExpression(crp.rc.getExpression());
+            overCol.setColumnPosition(crp.position);
         }
-        // Make RC -> VC substitutions in parent
-        Comparator<SubstituteExpressionVisitor> sorter = new ExpressionSorter();
-        Collections.sort(referencesToSubstitute, sorter);
-        for (SubstituteExpressionVisitor aReferencesToSubstitute : referencesToSubstitute) {
-            parent.getResultColumns().accept(aReferencesToSubstitute);
-        }
-
-        return columnMapping;
-    }
-
-    private void createUnWindowingColumn(ResultColumnList bottomRCL, ResultColumnList windowingRCL,
-                                         List<SubstituteExpressionVisitor> referencesToSubstitute,
-                                         ValueNode pRef)
-        throws StandardException {
-        createUnWindowingColumn(bottomRCL, windowingRCL, referencesToSubstitute, null, pRef);
-    }
-
-    private void createUnWindowingColumn(ResultColumnList bottomRCL, ResultColumnList windowingRCL,
-                                         List<SubstituteExpressionVisitor> referencesToSubstitute,
-                                         WindowColumnMapping.ParentRef parentRef, ValueNode pRef)
-        throws StandardException {
-        String name = (parentRef != null ? parentRef.getName() : pRef.getColumnName());
-        ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN,
-            "##UnWinColumn_" + name,
-            pRef,
-            getContextManager());
-
-        // add this result column to the bottom rcl
-        bottomRCL.addElement(newRC);
-        newRC.markGenerated();
-        newRC.bindResultColumnToExpression();
-        newRC.setVirtualColumnId(bottomRCL.size());
-
-        // now add this column to the windowingRCL
-        ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
-            C_NodeTypes.RESULT_COLUMN,
-            "##UnWinColumn_" + name,
-            pRef,
-            getContextManager());
-        windowingRCL.addElement(wRC);
-        wRC.markGenerated();
-        wRC.bindResultColumnToExpression();
-        int columnPosition = windowingRCL.size();
-        wRC.setVirtualColumnId(columnPosition);
-
-        // reset the partition and/or order by column's column position in the
-        // Window result since we're rearranging here
-        if (parentRef != null) {
-            // if parentRef == null, we're not dealing with a column among the OVER() columns
-            WindowColumnMapping.resetOverColumnsPositionByParent(parentRef, wdn.getOverColumns(), columnPosition);
-        }
-
-          /*
-           ** Reset the original node to point to the
-           ** Group By result set.
-           */
-        VirtualColumnNode vc = (VirtualColumnNode) getNodeFactory().getNode(
-            C_NodeTypes.VIRTUAL_COLUMN_NODE,
-            this, // source result set.
-            wRC,
-            windowingRCL.size(),
-            getContextManager());
-
-        // we replace each group by expression
-        // in the projection list with a virtual column node
-        // that effectively points to a result column
-        // in the result set doing the group by
-        //
-        // Note that we don't perform the replacements
-        // immediately, but instead we accumulate them
-        // until the end of the loop. This allows us to
-        // sort the expressions and process them in
-        // descending order of complexity, necessary
-        // because a compound expression may contain a
-        // reference to a simple grouped column, but in
-        // such a case we want to process the expression
-        // as an expression, not as individual column
-        // references. E.g., if the statement was:
-        //   SELECT ... GROUP BY C1, C1 * (C2 / 100), C3
-        // then we don't want the replacement of the
-        // simple column reference C1 to affect the
-        // compound expression C1 * (C2 / 100). DERBY-3094.
-        //
-        SubstituteExpressionVisitor vis =
-            new SubstituteExpressionVisitor(pRef, vc, AggregateNode.class);
-        referencesToSubstitute.add(vis);
     }
 
     /**
-     * Find function key columns that were not referenced by parent columns (columns in the select clause).
-     * The key columns are from the function's OVER() clause. The function uses these key columns to create
-     * a "row key" in order to sort them by partition, etc, and, in the case of ranking functions, as function
-     * input (operands).<br/>
-     * We need to "pull up" these columns from a result node below us, possibly going all the way down to
-     * the BaseTable. We pull them up into this WindowResultSetNode so they're accessible. We don't, however,
-     * project these columns, since no node above has a need for them. If another, subsequent function has
-     * a need for one, it will use this method to pull the column up from this node.
+     * Now, before we add the function tuples, we search for any existing child expressions that we don't have in
+     * our RCLs. These expressions may not be listed directly in our parent's RCL but possibly as a
+     * dependency of one of those, e.g., a window function embedded in a CASE statement (ConditionNode).
      * <p/>
-     * Find the missing key columns in a result node below us and create new column references for them.<br/>
-     * Reset the column position of key column and remap references to the newly created references.
-     * @param columnMapping the column mapping describing parent select nodes and their child references.
+     * Again, we create RC->CR pairs for these orphaned expressions to pull references up and use a substitution
+     * visitor to replace existing references with our pulled up references.
+     *
      * @throws StandardException
      */
-    private void appendMissingKeyColumns(WindowColumnMapping columnMapping) throws StandardException {
-        // note bottomRCL is a reference to childResult resultColumns
-        // setting columns on bottomRCL will also set them on childResult resultColumns
-        ResultColumnList bottomRCL = childResult.getResultColumns();
-        // note windowingRCL is a reference to resultColumns
-        // setting columns on windowingRCL will also set them on resultColumns
-        ResultColumnList windowingRCL = resultColumns;
+    private void addMissingColumns() throws StandardException {
+        ResultColumnList childRCL = childResult.getResultColumns();
+        ResultColumnList winRCL = resultColumns;
 
-        // Add any over() (key) columns that were missing from the select
-        for (OrderedColumn keyCol : WindowColumnMapping.findMissingKeyNodes(columnMapping.getParentColumns(), wdn.getKeyColumns())) {
-            ResultColumn source = null;
-            boolean isAggReplacement = keyCol.getColumnExpression() instanceof ColumnReference &&
-                (((ColumnReference) keyCol.getColumnExpression()).getGeneratedToReplaceAggregate());
-            if (! isAggReplacement) {
-                // Don't look down for agg function results -- "source" is already pointing to the right place.
-                source = recursiveSourcePuller(childResult, keyCol.getColumnExpression());
-            }
-            if (source == null) {
-                // Create and add result column to the bottom rcl
-                ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "##Key_" + keyCol.getColumnExpression().getColumnName(),
-                    keyCol.getColumnExpression(),
-                    getContextManager());
-                bottomRCL.addElement(newRC);
-                newRC.bindResultColumnToExpression();
-                newRC.setVirtualColumnId(bottomRCL.size());
+        TreeStitchingVisitor referencesToSubstitute = new TreeStitchingVisitor(WindowFunctionNode.class, LOG);
+        for (ResultColumn grandChildRC : ((SingleChildResultSetNode)childResult).childResult.getResultColumns()) {
+            if (! (grandChildRC.getName().endsWith("Function") || grandChildRC.getName().endsWith("Input"))) {
+                // don't pull up previous function or function input arguments
+                ResultColumn winRC;
+                String baseName = grandChildRC.getName();
 
-                source = newRC;
-            }
+                if (contains(grandChildRC, childRCL)) {
+                    // We have a ref to the existing grandchild RC in the existing RCL below us in our RCLs
+                    // (it's in childRCL so must be in winRCL -- we never add to one and not the other).
+                    // Note that because it's existing in the grandchild RCL means that it existed before
+                    // we broke the chain and inserted our PRs. That means we'll still have to visit the
+                    // parent RCL (and their progeny) to find the referring expression and replace the
+                    // source it's pointing to.
+                    winRC = findOrPullUpRC(grandChildRC, this, rCtoCRfactory);
 
-            // Create an RC that we'll add to the windowing RCL
-            ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                source.getName(),
-                null,
-                getContextManager());
-            tmpColumnRef.setSource(source);
-            tmpColumnRef.setNestingLevel(this.getLevel());
-            tmpColumnRef.setSourceLevel(this.getLevel());
-
-            // Create a CR and wrap it in just created RC
-            ResultColumn wRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##Key_" + tmpColumnRef.getColumnName(),
-                tmpColumnRef,
-                getContextManager());
-            wRC.bindResultColumnToExpression();
-
-            // Add the RC (that wraps the CR) to the windowing RCL
-            windowingRCL.addElement(wRC);
-            int newColumnNumber = windowingRCL.size();
-            wRC.setVirtualColumnId(newColumnNumber);
-
-            // Reset the key column's column position in the Window result since we're rearranging here
-            // This will change the function's operand column position so the function pulls its input
-            // from the rearranged column
-            resetOverColumnsPositionByKey(keyCol, wdn.getOverColumns(), newColumnNumber);
-            if (! isAggReplacement) {
-                // Since we're creating new column references here, we need to reset the reference to
-                // any matching operand so that the function references the new column.
-                // Note, we don't do this for CRs that have been generated to replace an agg function
-                // because the function operand that references it is already pointing to the generated
-                // ref.
-                WindowColumnMapping.replaceColumnExpression(keyCol, wRC.getExpression(), wdn.getOverColumns());
-            }
-
-        }
-    }
-
-    int counter = 0;
-    private ResultColumn recursiveSourcePuller(ResultSetNode childResultSetNode, ValueNode expression) throws StandardException {
-        if (childResultSetNode instanceof FromBaseTable) {
-            // we've gone too far
-            return null;
-        }
-        counter = 0;
-        Pair rcToChildRcl = findMatchingResultColumn(expression, childResultSetNode);
-
-        ResultColumn childRC = rcToChildRcl.rc;
-        if (childRC == null) {
-            if (childResultSetNode instanceof SingleChildResultSetNode) {
-                childRC = recursiveSourcePuller(((SingleChildResultSetNode)childResultSetNode).getChildResult(),
-                                                    expression);
-            } else if (childResultSetNode instanceof JoinNode) {
-                // TODO: Not sure if we should pursue matches beyond join nodes
-                childRC = recursiveSourcePuller(((JoinNode) childResultSetNode).getLogicalLeftResultSet(), expression);
-                if (childRC == null) {
-                    childRC = recursiveSourcePuller(((JoinNode) childResultSetNode).getLogicalRightResultSet(), expression);
-                }
-            }
-        } else {
-            return childRC;
-        }
-
-        ResultColumn source = null;
-        if (childRC != null) {
-            ResultColumnList childResultList = rcToChildRcl.childRcl;
-            // Create an RC->CR for matching column that we'll add to the parent RCL upon return
-            ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                childRC.getName(),
-                null,
-                getContextManager());
-            tmpColumnRef.setSource(childRC);
-            tmpColumnRef.setNestingLevel(((FromTable) childResultSetNode).getLevel());
-            tmpColumnRef.setSourceLevel(((FromTable)childResultSetNode).getLevel());
-
-            // Create a CR and wrap it in just created RC and return it so that parent
-            // can add it to its RCL
-            ResultColumn parentRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "#"+childRC.getName()+"_RC"+counter++,
-                tmpColumnRef,
-                getContextManager());
-            parentRC.bindResultColumnToExpression();
-
-            // Add the RC (that wraps the CR) to the this child's RCL
-            childResultList.addElement(parentRC);
-            parentRC.setVirtualColumnId(childResultList.size());
-
-            source = parentRC;
-        }
-
-        return source;
-    }
-
-    private Pair findMatchingResultColumn(ValueNode expression, ResultSetNode childResultSetNode) throws StandardException {
-        ResultColumnList childResultList = childResultSetNode.getResultColumns();
-
-        if (expression instanceof ColumnReference || expression instanceof VirtualColumnNode) {
-            // we can only find these instances
-
-            // Check for match with all RCs of this result set node's RCL
-            ResultColumn matchedRc = null;
-            for (int i = 0; i < childResultList.size(); i++) {
-                ResultColumn rc = childResultList.elementAt(i);
-                if (!rc.isGenerated()) {
-                    // generated nodes are ones we've already created
-                    ColumnDescriptor rcDescriptor = rc.getTableColumnDescriptor();
-                    if (rcDescriptor == null) {
-                        // Try to wrangle a ColumnDescriptor -- not all nodes have one
-                        ValueNode exp = rc.getExpression();
-                        if (exp instanceof ResultColumn) {
-                            rcDescriptor = ((ResultColumn) exp).getTableColumnDescriptor();
-                        } else if (exp instanceof VirtualColumnNode &&
-                            exp.getSourceResultColumn().getTableColumnDescriptor() == null) {
-                            // DB-2170, WF over a view, has RC->VCN->RC->VCN->...->JavaToSQLValueNode and
-                            // all RCs had null TableColumnDescriptors. Have to get creative (and approximate)
-                            ResultColumn expressionRC = expression.getSourceResultColumn();
-                            if (expressionRC != null &&
-                                rc.columnTypeAndLengthMatch(expressionRC) &&
-                                rc.columnNameMatches(expressionRC.exposedName)) {
-                                matchedRc = rc;
-                            }
-                        } else if (exp.getSourceResultColumn() != null) {
-                            rcDescriptor = exp.getSourceResultColumn().getTableColumnDescriptor();
-                        }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("addMissingColumns() visiting for missing col " + baseName +
+                                      " found in win RCL: " + wdn.toString());
                     }
+                } else {
+                    // If we don't have the existing grandchild RC in the child RCL below us, create
+                    // RCs in our child RCL and our win RCL that we can point references to which live above us.
 
-                    if (rcDescriptor != null) {
-                        if (expression instanceof ColumnReference) {
-                            ResultColumn expRC = ((ColumnReference) expression).getSource();
-                            if (expRC != null) {
-                                ValueNode rcExp = expRC.getExpression();
-                                if (rcExp instanceof BaseColumnNode) {
-                                    // can't use BaseColumnNode to get ColumnDescriptor -- sourceResultColumn is null
-                                    if (rcDescriptor.getColumnName().equals(rcExp.getColumnName())) {
-                                        // Found a match
-                                        matchedRc = rc;
-                                    }
-                                } else if (expression.getSourceResultColumn() != null &&
-                                    rcDescriptor.equals(expression.getSourceResultColumn().getTableColumnDescriptor())) {
-                                    // Found a match
-                                    matchedRc = rc;
-                                }
-                            }
-                        }
+                    // create RC->CR->srcRC for bottom PR
+                    ResultColumn bottomRC = createRC_CR_Pair(grandChildRC, baseName, getNodeFactory(),
+                                                             getContextManager(), this.getLevel());
+
+                    childRCL.addElement(bottomRC);
+                    bottomRC.setVirtualColumnId(childRCL.size());
+
+                    // create RC->CR->bottomRC for window PR
+                    winRC = createRC_CR_Pair(bottomRC, baseName, getNodeFactory(), getContextManager(),
+                                             this.getLevel());
+                    winRCL.addElement(winRC);
+                    winRC.setVirtualColumnId(winRCL.size());
+
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("addMissingColumns() visiting for missing col " + baseName +
+                                      " NOT found in win RCL: " + wdn.toString());
                     }
                 }
-                if (matchedRc != null) {
-                    // return matchedRC
-                    return Pair.newPair(matchedRc, childResultList);
-                }
+
+                // Reset the referencing expression above us to point to the RC in the window RCL.
+                // To do this, we'll create a VCN pointing to the right place and use the orphaned RC to
+                // find the reference above us. When found, we'll replace the referencing expression with
+                // this VCN.
+                VirtualColumnNode vcn = (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes
+                                                                                         .VIRTUAL_COLUMN_NODE,
+                                                                                     this, // source result set.
+                                                                                     winRC,
+                                                                                     winRCL.size(),
+                                                                                     getContextManager());
+                // This substitution visitor for column reference links we broke while inserting ourselves
+                referencesToSubstitute.addMapping(grandChildRC, vcn);
             }
         }
-        return Pair.newPair(null,childResultList);
+
+        // Visit and replace...
+        parent.getResultColumns().accept(referencesToSubstitute);
     }
 
     /**
-     * In the query rewrite involving window functions, add the columns for
-     * function.
+     * Finally, we add the window function tuples (<code>{result, input[, input, ...], function class}</code>)
+     * and prepare to generate the activation.
      *
-     * @see #addNewColumnsForAggregation
+     * @see #processWindowDefinition
      */
-    private void addAggregateColumns(WindowColumnMapping columnMapping) throws StandardException {
-        LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
-        DataDictionary dd = getDataDictionary();
-        // note bottomRCL is a reference to childResult resultColumns
-        // setting columns on bottomRCL will also set them on childResult resultColumns
-        ResultColumnList bottomRCL = childResult.getResultColumns();
-        // note windowingRCL is a reference to resultColumns
-        // setting columns on windowingRCL will also set them on resultColumns
-        ResultColumnList windowingRCL = resultColumns;
+    private void addWindowFunctionColumns() throws StandardException {
+        // note childRCL is a reference to childResult resultColumns
+        // setting columns on childRCL will also set them on childResult resultColumns
+        ResultColumnList childRCL = childResult.getResultColumns();
+        // note winRCL is a reference to resultColumns
+        // setting columns on winRCL will also set them on resultColumns
+        ResultColumnList winRCL = resultColumns;
 
         // Now process all of the functions.  As we process each windowFunctionNode replace the corresponding
         // windowFunctionNode in parent RCL with an RC whose expression resolves to the function's result column.
@@ -701,127 +587,167 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         windowFunctionNode.getWindow().getName());
             }
 
+            // Replace the WF nodes in the projection with a CR whose src will be set to the WF
+            // result column created below
+            WindowFunctionReplacementVisitor replaceWindowFunctionVisitor =
+                new WindowFunctionReplacementVisitor(((FromTable)childResult).getTableNumber(),
+                                                     this.level,
+                                                     null);
+            parent.getResultColumns().accept(replaceWindowFunctionVisitor);
+
 			/*
 			** FUNCTION RESULT: Set the windowFunctionNode result to null in the
 			** bottom project restrict.
 			*/
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##" + windowFunctionNode.getAggregateName() + "Result",
-                windowFunctionNode.getNewNullResultExpression(),
-                getContextManager());
+            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
+                                                                            "##" + windowFunctionNode.getAggregateName() +
+                                                                                "Result",
+                                                                            windowFunctionNode.getNewNullResultExpression(),
+                                                                            getContextManager());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
-            bottomRCL.addElement(newRC);
-            newRC.setVirtualColumnId(bottomRCL.size());
-            int aggResultVColId = newRC.getVirtualColumnId();
+            childRCL.addElement(newRC);
+            newRC.setVirtualColumnId(childRCL.size());
+            int fnResultVID = newRC.getVirtualColumnId();
 
 			/*
-			** Set the windowFunctionNode result column to
-			** point to this.
+			** Set the windowFunctionNode result column to point to this RC.
 			*/
-            ResultColumn tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
-                                                                         getContextManager(), this.getLevel());
-            windowingRCL.addElement(tmpRC);
-            tmpRC.setVirtualColumnId(windowingRCL.size());
+            ResultColumn tmpRC = createRC_CR_Pair(newRC, newRC.getName(), getNodeFactory(),
+                                                  getContextManager(), this.getLevel());
+            winRCL.addElement(tmpRC);
+            tmpRC.setVirtualColumnId(winRCL.size());
+            ((ColumnReference)tmpRC.getExpression()).markGeneratedToReplaceWindowFunctionCall();
+            // Now set this tmpRC as the src of generated reference that we created during WindowFunctionReplacementVisitor
+            windowFunctionNode.getGeneratedRef().setSource(tmpRC);
 
 			/*
-			** Set the parent result column (or the appropriate node below it) to reference this tmpRC result column.
-			*/
-            replaceParentFunctionWithResultReference(parent.getResultColumns(), windowFunctionNode, tmpRC);
-
-			/*
-			** FUNCTION OPERANDS(s): Create ResultColumns in the bottom
-			** project restrict that have the expressions to be aggregated
+			** FUNCTION OPERANDS(s): Create ResultColumns in the bottom project restrict that are the
+			* operands for the function.  Scalar aggregate functions will have only one operand (argument),
+			* of course, but ranking functions, for instance, have all ORDER BY columns as arguments.
 			*/
             // Create function references for all input operands
-            ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns(aboveJoin);
-            int[] inputVColIDs = new int[expressionResults.length];
+            List<ValueNode> operands = windowFunctionNode.getOperands();
+            int[] inputVIDs = new int[operands.size()];
             int i = 0;
-            for (ResultColumn resultColumn : expressionResults) {
-                ValueNode exp = resultColumn.getExpression();
-                if ((exp instanceof ColumnReference || exp instanceof VirtualColumnNode) &&
-                    ! inSourceResult(exp, ((SingleChildResultSetNode)childResult).childResult) &&
-                    WindowColumnMapping.operandMissing(exp, columnMapping.getParentColumns(), wdn.getKeyColumns())) {
-                    // if operand is not below us and is missing from select list and keys,
-                    // which have already been remapped, pull up column reference and replace operand
-                    ResultColumn source = recursiveSourcePuller(((SingleChildResultSetNode)childResult).childResult,
-                                                                exp);
-                    if (source != null) {
-                        // If it's null, we didn't find it - use current result column
-                        // expression (even tho we said it's missing)
-                        resultColumn.setExpression(source.getExpression());
-                    }
+            for (ValueNode exp : operands) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("addWindowFunctionColumns() operand expression instance of : " + exp.getClass().getSimpleName());
                 }
-                resultColumn.markGenerated();
-                resultColumn.bindResultColumnToExpression();
-                resultColumn.setName("##" + windowFunctionNode.getAggregateName() + "Input");
-                bottomRCL.addElement(resultColumn);
-                resultColumn.setVirtualColumnId(bottomRCL.size());
-                inputVColIDs[i++] = resultColumn.getVirtualColumnId();
+                // Get the ResultColumn for this expression, if it has one
+                ResultColumn expRC = getResultColumn(exp);
+                if (expRC != null) {
+                    ResultColumn srcRC = findOrPullUpRC(expRC, ((SingleChildResultSetNode) this.childResult).getChildResult(),
+                                                        rCtoCRfactory);
 
-                /*
-                ** Add a reference to this column into the
-                ** windowing RCL.
-                */
-                tmpRC = createColumnReferenceWrapInResultColumn(resultColumn, getNodeFactory(),
-                                                                getContextManager(), this.getLevel());
-                windowingRCL.addElement(tmpRC);
-                tmpRC.setVirtualColumnId(windowingRCL.size());
+                    if (srcRC != null) {
+                        // found this operand expression's matching RC in (grandchild) RCL below us
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("addWindowFunctionColumns() found operand column below us: " + exp.getColumnName() +
+                                          " in RC: " + srcRC.getName() + " in " + wdn.toString());
+                        }
+
+                        // Add a reference to this column into the bottom RCL.
+                        tmpRC = createRC_CR_Pair(srcRC,
+                                                 "##" + windowFunctionNode.getAggregateName() + "_Input_" +
+                                                     exp.getColumnName(),
+                                                 getNodeFactory(), getContextManager(), this.getLevel());
+                    } else {
+                        // we didn't find it in an RCL below us.
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("addWindowFunctionColumns() missing operand column: " + exp.getColumnName() +
+                                          ". Using existing operand RC: " + expRC.getName() + " in " + wdn.toString());
+                        }
+
+                        // Add a reference to this column into the child RCL (child PR).
+                        tmpRC = createRC_CR_Pair(expRC,
+                                                 "##" + windowFunctionNode.getAggregateName() + "_Input_" +
+                                                     exp.getColumnName(),
+                                                 getNodeFactory(), getContextManager(), this.getLevel());
+                    }
+                } else {
+                    // The given operand does not have an RC. It may be a non-aggregate function expression, i.e.,
+                    // like ConditionNode (case stmt).
+                    // We create an RC for it and add that to our child PR (child RCL) for function evaluation.
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("addWindowFunctionColumns() operand does not have an RC: " + exp.getColumnName() +
+                                      ". Creating one for it in " + wdn.toString());
+                    }
+
+                    tmpRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
+                                                                           "##" + windowFunctionNode.getAggregateName() +
+                                                                               "_Input_" + exp.getColumnName(),
+                                                                           exp,
+                                                                           getContextManager());
+                    tmpRC.markGenerated();
+                    tmpRC.bindResultColumnToExpression();
+                }
+                assert tmpRC != null : "Didn't get an RC created for "+exp;
+                // Now add the RC we created to our RCLs (child PR and window)
+                childRCL.addElement(tmpRC);
+                tmpRC.setVirtualColumnId(childRCL.size());
+
+                inputVIDs[i++] = tmpRC.getVirtualColumnId();
+                windowFunctionNode.replaceOperand(exp, tmpRC.getExpression());
+
+                // Add a reference to this column into the windowing RCL.
+                tmpRC = createRC_CR_Pair(tmpRC, tmpRC.getName(), getNodeFactory(),
+                                         getContextManager(), this.getLevel());
+                winRCL.addElement(tmpRC);
+                tmpRC.setVirtualColumnId(winRCL.size());
             }
 
 			/*
 			** FUNCTION: Add a getAggregator method call
 			** to the bottom result column list.
 			*/
-            newRC = windowFunctionNode.getNewAggregatorResultColumn(dd);
+            newRC = windowFunctionNode.getNewAggregatorResultColumn(getDataDictionary());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             newRC.setName("##" + windowFunctionNode.getAggregateName() + "Function");
-            bottomRCL.addElement(newRC);
-            newRC.setVirtualColumnId(bottomRCL.size());
-            int aggregatorVColId = newRC.getVirtualColumnId();
+            childRCL.addElement(newRC);
+            newRC.setVirtualColumnId(childRCL.size());
+            int fnVID = newRC.getVirtualColumnId();
 
 			/*
 			** Add a reference to this column in the windowing RCL.
 			*/
-            tmpRC = createColumnReferenceWrapInResultColumn(newRC, getNodeFactory(),
-                                                            getContextManager(), this.getLevel());
-            windowingRCL.addElement(tmpRC);
-            tmpRC.setVirtualColumnId(windowingRCL.size());
+            tmpRC = createRC_CR_Pair(newRC, newRC.getName(), getNodeFactory(),
+                                     getContextManager(), this.getLevel());
+            winRCL.addElement(tmpRC);
+            tmpRC.setVirtualColumnId(winRCL.size());
 
             /*
 			** Create an window function result expression
              */
-            ResultColumn aggResultRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##" + windowFunctionNode.getAggregateName() + "ResultExp",
-                windowFunctionNode.getNewNullResultExpression(),
-                getContextManager());
+            ResultColumn fnResultRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
+                                                                                "##" + windowFunctionNode.getAggregateName() + "ResultExp",
+                                                                                windowFunctionNode.getNewNullResultExpression(),
+                                                                                getContextManager());
 
 			/*
 			** Piece together a fake one column rcl that we will use
 			** to generate a proper result description for input
 			** to this function if it is a user function.
 			*/
-            ResultColumnList aggRCL = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
-            aggRCL.addElement(aggResultRC);
+            ResultColumnList udfRCL = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
+                                                                                    getContextManager());
+            udfRCL.addElement(fnResultRC);
 
+            LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
 			/*
 			** Note that the column ids here are all are 1-based
 			*/
-            FormatableArrayHolder partitionCols = createColumnOrdering(wdn.getPartition());
-            FormatableArrayHolder orderByCols = createColumnOrdering(wdn.getOrderByList());
-            FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns());
+            FormatableArrayHolder partitionCols = createColumnOrdering(wdn.getPartition(), "Partition");
+            FormatableArrayHolder orderByCols = createColumnOrdering(wdn.getOrderByList(), "Order By");
+            FormatableArrayHolder keyCols = createColumnOrdering(wdn.getKeyColumns(), "Key");
             windowInfoList.addElement(new WindowFunctionInfo(
                 windowFunctionNode.getAggregateName(),
                 windowFunctionNode.getAggregatorClassName(),
-                inputVColIDs,       // windowFunctionNode input columns
-                aggResultVColId,    // the windowFunctionNode result column
-                aggregatorVColId,   // the aggregator column
-                lf.getResultDescription(aggRCL.makeResultDescriptors(), "SELECT"),
+                inputVIDs,       // windowFunctionNode input columns
+                fnResultVID,    // the windowFunctionNode result column
+                fnVID,   // the aggregator column
+                lf.getResultDescription(udfRCL.makeResultDescriptors(), "SELECT"),
                 partitionCols,      // window function partition
                 orderByCols,        // window function order by
                 keyCols,            // deduplicated set of partition and order by cols that will be row key
@@ -831,20 +757,11 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
     }
 
-    private boolean inSourceResult(ValueNode expression, ResultSetNode resultSetNode) throws StandardException {
-        return findMatchingResultColumn(expression, resultSetNode).rc != null;
-    }
-
-    /**
-     * Return the parent node to this one, if there is
-     * one.  It will return 'this' if there is no generated
-     * node above this one.
-     *
-     * @return the parent node
-     */
-    public FromTable getParent() {
-        return parent;
-    }
+    ///////////////////////////////////////////////////////////////
+    //
+    // Ancillary
+    //
+    ///////////////////////////////////////////////////////////////
 
     /**
      * @throws StandardException Thrown on error
@@ -914,17 +831,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
         throws StandardException {
         return ((Optimizable) childResult).pushOptPredicate(optimizablePredicate);
-    }
-
-    public String getFunctionNames() {
-        StringBuilder buf = new StringBuilder();
-        for (WindowFunctionInfo info : windowInfoList) {
-            buf.append(info.getFunctionName()).append(',');
-        }
-        if (buf.length() > 0) {
-            buf.setLength(buf.length() - 1);
-        }
-        return buf.toString();
     }
 
     /**
@@ -1087,45 +993,245 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     //
     ///////////////////////////////////////////////////////////////
 
-    private void replaceParentFunctionWithResultReference(ResultColumnList parentResultCols, WindowFunctionNode
-        functionNode, ResultColumn newResultColumn) throws StandardException {
-
-        ValueNode replacedNode = null;
-        for (int i=0; i<parentResultCols.size(); i++) {
-            ResultColumn aParentCol = parentResultCols.getResultColumn(i+1);
-            if (functionNode.equals(aParentCol.getExpression())) {
-                replacedNode = functionNode.replaceCallWithColumnReference(aParentCol,
-                                                                           ((FromTable) childResult).getTableNumber(),
-                                                                           this.level,
-                                                                           newResultColumn);
-                break;
-            } else if (aParentCol.getExpression() instanceof BinaryOperatorNode) {
-                BinaryOperatorNode aron = (BinaryOperatorNode) aParentCol.getExpression();
-                if (functionNode.equals(aron.getRightOperand())) {
-
-                    replacedNode = functionNode.replaceCallWithColumnReference(null,
-                                                                               ((FromTable) childResult).getTableNumber(),
-                                                                               this.level,
-                                                                               newResultColumn);
-                    aron.setRightOperand(replacedNode);
-                    break;
-                }
-                if (functionNode.equals(aron.getLeftOperand())) {
-
-                    replacedNode = functionNode.replaceCallWithColumnReference(null,
-                                                                               ((FromTable) childResult).getTableNumber(),
-                                                                               this.level,
-                                                                               newResultColumn);
-                    aron.setLeftOperand(replacedNode);
-                    break;
+    /**
+     * Attempts to create a string that uniquely identifies the given RC.
+     * <p/>
+     * Part of the frustration with Derby is the inability to identify the source
+     * of a given result column at all points in the AST.  A ResultColumn has a
+     * ColumnDescriptor (CD) field, but it's not always populated.  The CD is supposed
+     * to have schema, table and column names but they're also not always present or
+     * maybe partially present, like just column name.
+     * @param rc the RC to identify
+     * @return a string that will uniquely identify the given RC
+     */
+    private static String getExpressionKey(ResultColumn rc) {
+        if (rc == null) {
+            return null;
+        }
+        String[] nameComponents = new String[] {rc.getSourceSchemaName(), rc.getSourceTableName(), rc.getName()};
+        if (nameComponents[0] == null) {
+            ColumnDescriptor colDesc = rc.getTableColumnDescriptor();
+            if (colDesc != null) {
+                nameComponents[2] = colDesc.getColumnName();
+                TableDescriptor tableDesc = colDesc.getTableDescriptor();
+                if (tableDesc != null) {
+                    nameComponents[0] = tableDesc.getSchemaName();
+                    nameComponents[1] = tableDesc.getName();
                 }
             }
         }
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(replacedNode != null,
-                                 "Failed to replace parent function reference; unresolved window function: " +
-                                     functionNode.getName());
+        StringBuilder name = new StringBuilder();
+        for (String nameComponent : nameComponents) {
+            name.append(nameComponent).append('.');
         }
+        return name.toString();
+    }
+
+    /**
+     * Determine if the given RCL contains an RC equivalent to the the given RC.<br/>
+     * Equivalency is determined by an RC representing the same column in the same table in the same schema
+     * as defined by the RC's ColumnDescriptor.
+     * @param rc the RC for which to search
+     * @param rcl the RCL to search
+     * @return true if the given RCL contains an equivalent RC
+     * @throws StandardException
+     */
+    private static boolean contains(ResultColumn rc, ResultColumnList rcl) throws StandardException {
+        return new ResultColumnFinder(rc).containsEquivalent(rcl);
+    }
+
+    /**
+     * Find the matching RC in or below <code>currentNode</code> and return it or its equivalent.<br/>
+     * Equivalency is determined by an RC representing the same column in the same table in the same schema
+     * as defined by the RC's ColumnDescriptor.
+     * <p/>
+     * If the matching RC is below the <code>currentNode</code>, RC->CR pairs are created and added on the end
+     * of intermediate result set node RCLs. If a matching RC is not found, null is returned.
+     * @param rcToMatch the result column that we're looking for in or below <code>currentNode</code>
+     * @param currentNode the result set node (and its progeny) in which to look for a matching result column
+     * @return a result column residing in <code>currentNode</code> that matches the given <code>rcToMatch</code>
+     * @throws StandardException
+     */
+    private static ResultColumn findOrPullUpRC(ResultColumn rcToMatch, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
+        throws StandardException {
+        return findOrPullUpRC(new ResultColumnFinder(rcToMatch), currentNode, rCtoCRfactory);
+    }
+
+    /**
+     * Find the matching RC in the <code>currentNode</code> or below and return it or its equivalent.<br/>
+     * Equivalency is defined by the <code>finder</code>.
+     * <p/>
+     * If the matching RC is below the <code>currentNode</code>, RC->CR pairs are created and added on the end
+     * of intermediate result set node RCLs. If a matching RC is not found, null is returned.
+     * @param finder a predicate with which to apply criteria on candidate result columns
+     * @param currentNode the result set node (and its progeny) in which to look for a matching result column
+     * @param rCtoCRfactory factory used to create nodes if needed
+     * @return a result column residing in or under <code>currentNode</code> that matches the criteria
+     * given in <code>finder</code>.
+     * @throws StandardException
+     */
+    private static ResultColumn findOrPullUpRC(ColumnFinder finder, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
+        throws StandardException {
+        if (currentNode instanceof FromBaseTable) {
+            // we've gone too far
+            return null;
+        }
+
+        ResultColumn matchedRC = finder.findEquivalent(currentNode.getResultColumns());
+        // match at this level. if not null, return it to next stack frame. if null, recurse...
+        if (matchedRC == null) {
+            if (currentNode instanceof SingleChildResultSetNode) {
+                matchedRC = findOrPullUpRC(finder, ((SingleChildResultSetNode)currentNode).getChildResult(), rCtoCRfactory);
+            }
+
+            // we've either returned a matching RC from previous stack frame or we never found one (null)
+            if (matchedRC != null) {
+
+                // Create an RC->CR->matchedRC for matching column that we'll add to the parent RCL upon return
+                ResultColumn parentRC = rCtoCRfactory.createRC_CR_Pair(matchedRC, matchedRC.getName(),
+                                                                       ((FromTable)currentNode).getLevel());
+                currentNode.getResultColumns().addElement(parentRC);
+                parentRC.setVirtualColumnId(currentNode.getResultColumns().size());
+                matchedRC = parentRC;
+            }
+        }
+        return matchedRC;
+    }
+
+    private interface ColumnFinder {
+        ResultColumn findEquivalent(ResultColumnList rcl);
+        boolean containsEquivalent(ResultColumnList rcl);
+    }
+
+    /**
+     * A class that can be used to find a ResultColumn (RC) equivalent to a supplied RC in a given
+     * ResultColumnList (RCL).
+     * <p/>
+     * RC equivalence is defined as the same column from the same table in the same schema.
+     * <p/>
+     * These methods search the given RCL only. There is recursion done to find a non-null
+     * ColumnDescriptor (CD) by which the RC can be identified.
+     * @see #findColumnDescriptor(ResultColumn)
+     */
+    private static class ResultColumnFinder implements ColumnFinder {
+        private final Predicate<ColumnDescriptor> predicate;
+
+        ResultColumnFinder(ResultColumn srcRC) {
+            assert srcRC != null : "ResultColumnFinder predicate cannot accept a null source ResultColumn.";
+            ColumnDescriptor srcColDesc = findColumnDescriptor(srcRC);
+            if (srcColDesc != null) {
+                this.predicate = Predicates.equalTo(srcColDesc);
+            } else {
+                // we can never match an empty ColumnDescriptor
+                this.predicate = Predicates.alwaysFalse();
+            }
+        }
+
+        /**
+         * Find an equivalent (same schema, table, column) ResultColumn in the given
+         * ResultColumnList.
+         * @param rcl the ResultColumnList to search
+         * @return the equivalent RC from the given RCL or null
+         */
+        public ResultColumn findEquivalent(ResultColumnList rcl) {
+            for (ResultColumn col : rcl) {
+                if (predicate.apply(findColumnDescriptor(col))) {
+                    return col;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Determine if the equivalent RC lives in the given RCL
+         * @param rcl the ResultColumnList to search
+         * @return true if an equivalent RC lives in this RCL
+         */
+        public boolean containsEquivalent(ResultColumnList rcl) {
+            return findEquivalent(rcl) != null;
+        }
+    }
+
+    /**
+     * Find a column descriptor for a given RC.
+     * <p/>
+     * Part of the frustration with Derby is the inability to identify the source
+     * of a given result column at all points in the AST.  A ResultColumn has a
+     * ColumnDescriptor (CD) field, but it's not always populated.  The CD is supposed
+     * to have schema, table and column names but they're also not always present or
+     * maybe partially present, like just column name.
+     * <p/>
+     * This recursive method is an effort to follow the the lineage of an RC to a
+     * populated CD, if present.
+     * @param rc the result column to identify
+     * @return the RC's ColumnDescriptor or null if none found.
+     */
+    private static ColumnDescriptor findColumnDescriptor(ResultColumn rc) {
+        ColumnDescriptor colDesc = rc.getTableColumnDescriptor();
+        if (colDesc != null) {
+            return colDesc;
+        }
+        ValueNode exp = rc.getExpression();
+        ResultColumn childRC = (exp != null ? getResultColumn(exp) : null);
+        if (childRC != null) {
+            colDesc = findColumnDescriptor(childRC);
+        }
+        return colDesc;
+    }
+
+    /**
+     * Get the immediate child source result column from an expression, if one exists.
+     * <p/>
+     * In derby there's usually many ways to do something and not all of them result the same.
+     * In this case, we want the RC that the given expression is using as its source. If you
+     * call {@link ColumnReference#getSourceResultColumn()}, you get the source of its source,
+     * not what you'd expect.  Thus, we have this encapsulated logic so we don't have to test
+     * the expression everywhere.
+     * @param expression the expression for which you want its source RC.
+     * @return the expression's immediate source RC or null if it doesn't have one.
+     */
+    private static ResultColumn getResultColumn(ValueNode expression) {
+        ResultColumn rc = expression.getSourceResultColumn();
+        if (expression instanceof ColumnReference) {
+            rc = ((ColumnReference)expression).getSource();
+        }
+        return rc;
+    }
+
+    /**
+     * Create the appropriate type of ValueNode with sourceRC being its source result column and
+     * replace the given ValueNode expression in its referencing parentRC.
+     * @param parentRC the result column in which to place the new expression.
+     * @param expressionToReplace the expression to replace
+     * @param sourceRC the source RC to which to point our new expression.
+     * @throws StandardException
+     */
+    private void replaceResultColumnExpression(ResultColumn parentRC, ValueNode expressionToReplace, ResultColumn sourceRC)
+        throws StandardException {
+        ValueNode newExpression;
+        if (expressionToReplace instanceof VirtualColumnNode) {
+            newExpression = (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                                                                         this, // source result set.
+                                                                         sourceRC,
+                                                                         this.getResultColumns().size(),
+                                                                         getContextManager());
+        } else {
+            // just create a CR to replace the expression. This needs to be a CR because the setters don't exist
+            // on ValueNode
+            ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(C_NodeTypes.COLUMN_REFERENCE,
+                                                                               expressionToReplace.getColumnName(),
+                                                                               null,
+                                                                               getContextManager());
+            newCR.setSource(sourceRC);
+            newCR.setNestingLevel(this.getLevel());
+            newCR.setSourceLevel(this.getLevel());
+            if (sourceRC.getTableNumber() != -1) {
+                newCR.setTableNumber(sourceRC.getTableNumber());
+            }
+            newExpression = newCR;
+        }
+        assert newExpression != null : "Failed to create an expression for "+expressionToReplace.getColumnName();
+        parentRC.setExpression(newExpression);
     }
 
     /**
@@ -1135,12 +1241,14 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param orderedColumnList the list of ordered columns to pack.
      * @return The holder for the column ordering array suitable for shipping.
      */
-    private FormatableArrayHolder createColumnOrdering(List<OrderedColumn> orderedColumnList) {
+    private FormatableArrayHolder createColumnOrdering(List<OrderedColumn> orderedColumnList, String label) {
         FormatableArrayHolder colOrdering = null;
         if (orderedColumnList != null) {
             IndexColumnOrder[] ordering = new IndexColumnOrder[orderedColumnList.size()];
             int j = 0;
             for (OrderedColumn oc : orderedColumnList) {
+                // This assertion will pay off
+                assert oc.getColumnPosition() > 0 : label+" column ordering must be > 0!";
                 ordering[j++] = new IndexColumnOrder(oc.getColumnPosition(),
                                                      oc.isAscending(),
                                                      oc.isNullsOrderedLow());
@@ -1155,91 +1263,83 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
-     * Method for creating a new result column referencing
-     * the one passed in.
-     *
-     * @param targetRC the source
-     * @param nodeFactory for creating nodes
-     * @param contextManager for creating nodes
-     * @param nodeLevel the level we're at in the tree    @return the new result column
-     * @throws StandardException on error
+     * Convenience class to minimize argument passing and getter calling required to create nodes.
      */
-    private static ResultColumn createColumnReferenceWrapInResultColumn(ResultColumn targetRC,
-                                                                       NodeFactory nodeFactory,
-                                                                       ContextManager contextManager,
-                                                                       int nodeLevel)
-        throws StandardException {
+    private static class RCtoCRfactory {
+        private final NodeFactory nodeFactory;
+        private final ContextManager contextManager;
 
-        // create the CR using targetRC as the source and source name
-        ColumnReference tmpColumnRef = (ColumnReference) nodeFactory.getNode(
-            C_NodeTypes.COLUMN_REFERENCE,
-            targetRC.getName(),
-            null,
-            contextManager);
-        tmpColumnRef.setSource(targetRC);
-        tmpColumnRef.setNestingLevel(nodeLevel);
-        tmpColumnRef.setSourceLevel(nodeLevel);
 
-        // create the RC, wrap the CR
-        ResultColumn newRC = (ResultColumn) nodeFactory.getNode(
-            C_NodeTypes.RESULT_COLUMN,
-            tmpColumnRef.getColumnName(),
-            tmpColumnRef,
-            contextManager);
-        newRC.markGenerated();
-        newRC.bindResultColumnToExpression();
-        return newRC;
+        private RCtoCRfactory(NodeFactory nodeFactory, ContextManager contextManager) {
+            this.nodeFactory = nodeFactory;
+            this.contextManager = contextManager;
+        }
+
+        public ResultColumn createRC_CR_Pair(ResultColumn sourceRC, String name, int level) throws StandardException {
+            return WindowResultSetNode.createRC_CR_Pair(sourceRC, name, nodeFactory, contextManager, level);
+        }
     }
 
     /**
-     * Comparator class for GROUP BY expression substitution.
-     * <p/>
-     * This class enables the sorting of a collection of
-     * SubstituteExpressionVisitor instances. We sort the visitors
-     * during the tree manipulation processing in order to process
-     * expressions of higher complexity prior to expressions of
-     * lower complexity. Processing the expressions in this order ensures
-     * that we choose the best match for an expression, and thus avoids
-     * problems where we substitute a sub-expression instead of the
-     * full expression. For example, if the statement is:
-     * ... GROUP BY a+b, a, a*(a+b), a+b+c
-     * we'll process those expressions in the order: a*(a+b),
-     * a+b+c, a+b, then a.
+     * Create a new result column referencing the one passed in.<br/>
+     * Creates a column reference whose source is the sourceRC, then creates a result column whose
+     * expression is the newly created column reference (<code>RC->CR->sourceRC</code>).
+     *
+     * @param sourceRC the source result column.
+     * @param name name the pair. Can be overwritten upon return.
+     * @param nodeFactory for creating nodes
+     * @param contextManager for creating nodes
+     * @param sourceLevel the level we're at in the tree
+     * @return the new result column
+     * @throws StandardException on error
      */
-    private static final class ExpressionSorter implements Comparator<SubstituteExpressionVisitor> {
-        public int compare(SubstituteExpressionVisitor o1, SubstituteExpressionVisitor o2) {
-            try {
-                ValueNode v1 = o1.getSource();
-                ValueNode v2 = o2.getSource();
-                int refCount1, refCount2;
-                CollectNodesVisitor vis = new CollectNodesVisitor(
-                    ColumnReference.class);
-                v1.accept(vis);
-                refCount1 = vis.getList().size();
-                vis = new CollectNodesVisitor(ColumnReference.class);
-                v2.accept(vis);
-                refCount2 = vis.getList().size();
-                // The ValueNode with the larger number of refs
-                // should compare lower. That way we are sorting
-                // the expressions in descending order of complexity.
-                return refCount2 - refCount1;
-            } catch (StandardException e) {
-                throw new RuntimeException(e);
-            }
+    private static ResultColumn createRC_CR_Pair(ResultColumn sourceRC,
+                                                 String name,
+                                                 NodeFactory nodeFactory,
+                                                 ContextManager contextManager,
+                                                 int sourceLevel) throws StandardException {
+
+        // create the CR using sourceRC as the source and source name
+        ColumnReference columnRef = (ColumnReference) nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE,
+                                                                          name,
+                                                                          null,
+                                                                          contextManager);
+        columnRef.setSource(sourceRC);
+        columnRef.setNestingLevel(0);
+        columnRef.setSourceLevel(sourceLevel);
+        if (sourceRC.getTableNumber() != -1) {
+            columnRef.setTableNumber(sourceRC.getTableNumber());
         }
+
+        // create the RC, wrap the CR
+        ResultColumn resultColumn = (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
+                                                                       name,
+                                                                       columnRef,
+                                                                       contextManager);
+        resultColumn.markGenerated();
+        resultColumn.bindResultColumnToExpression();
+        if (sourceRC.getTableColumnDescriptor() != null) {
+            resultColumn.setColumnDescriptor(sourceRC.getTableColumnDescriptor());
+        }
+        if (sourceRC.getSourceSchemaName() != null) {
+            resultColumn.setSourceSchemaName(sourceRC.getSourceSchemaName());
+        }
+        if (sourceRC.getSourceTableName() != null) {
+            resultColumn.setSourceTableName(sourceRC.getSourceTableName());
+        }
+
+        return resultColumn;
     }
 
-    private static class Pair {
+    /**
+     * Structure used to track an RC's position in an RCL as they're found.
+     */
+    private static class ColumnRefPosition {
         final ResultColumn rc;
-        final ResultColumnList childRcl;
-
-        private Pair(ResultColumn rc ,ResultColumnList childRcl){
+        final int position;
+        public ColumnRefPosition(ResultColumn rc, int position) {
             this.rc = rc;
-            this.childRcl = childRcl;
-        }
-
-        public static Pair newPair(ResultColumn rc,ResultColumnList childRcl){
-            return new Pair(rc,childRcl);
+            this. position = position;
         }
     }
 
@@ -1251,7 +1351,13 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     @Override
     public String toHTMLString() {
-        StringBuilder buf = new StringBuilder("WindowFunctions: <br/>");
+        StringBuilder buf = new StringBuilder();
+        buf.append("resultSetNumber: ").append(getResultSetNumber()).append("<br/>")
+            .append("level: ").append(getLevel()).append("<br/>")
+            .append("correlationName: ").append(getCorrelationName()).append("<br/>")
+            .append("corrTableName: ").append(Objects.toString(corrTableName)).append("<br/>")
+            .append("tableNumber: ").append(getTableNumber()).append("<br/>")
+            .append("<br/>WindowFunctions: <br/>");
         for (WindowFunctionInfo info : windowInfoList) {
             buf.append(info.toHTMLString()).append("<br/>");
         }
@@ -1267,15 +1373,28 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      */
     public String toString() {
         if (SanityManager.DEBUG) {
-            StringBuilder buf = new StringBuilder("functions: ");
+            StringBuilder buf = new StringBuilder();
+            buf.append("WindowDefinition: ").append(wdn.toString()).append(super.toString());
+            buf.append("\nFunctions: ");
             for (WindowFunctionInfo info : windowInfoList) {
                 buf.append('\n').append(info.toString());
             }
-            buf.append("\nWindowDefinition: ").append(wdn.toString()).append(super.toString());
             return buf.toString();
         } else {
             return "";
         }
     }
-
+    /**
+     * TODO: JC - Added just to make PlanPrinter compile. Remove when PlanPrinter gone.
+     */
+    public String getFunctionNames() {
+        StringBuilder buf = new StringBuilder();
+        for (WindowFunctionInfo info : windowInfoList) {
+            buf.append(info.getFunctionName()).append(',');
+        }
+        if (buf.length() > 0) {
+            buf.setLength(buf.length() - 1);
+        }
+        return buf.toString();
+    }
 }

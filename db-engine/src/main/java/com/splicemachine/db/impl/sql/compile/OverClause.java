@@ -64,7 +64,7 @@ public class OverClause extends QueryTreeNode {
         int partitionSize = (partition != null ? partition.size() : 0);
         int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
         List<OrderedColumn> keyCols = new ArrayList<>(partitionSize+orderByListSize);
-        Set<ValueNode> addedNodes = new HashSet<ValueNode>(partitionSize+orderByListSize);
+        Set<ValueNode> addedNodes = new HashSet<>(partitionSize+orderByListSize);
 
         // partition columns
         for (int i=0; i<partitionSize; i++) {
@@ -77,7 +77,7 @@ public class OverClause extends QueryTreeNode {
 
         // order by columns
         for (int i=0; i<orderByListSize; ++i) {
-            OrderedColumn oc = (OrderedColumn) orderByClause.elementAt(i);
+            OrderedColumn oc = orderByClause.elementAt(i);
             if (! addedNodes.contains(oc.getColumnExpression())) {
                 keyCols.add(oc);
                 addedNodes.add(oc.getColumnExpression());
@@ -121,10 +121,7 @@ public class OverClause extends QueryTreeNode {
      */
     @Override
     public String toString() {
-        return ("over:\n" +
-            "  partition: " + partition + "\n" +
-            "  orderby: " + printOrderByList() + "\n" +
-            "  "+frameDefinition + "\n");
+        return (" partition: " + partition + "  orderby: " + printOrderByList() + "  "+frameDefinition);
     }
 
     @Override
@@ -260,6 +257,9 @@ public class OverClause extends QueryTreeNode {
         return buf.toString();
     }
 
+    /**
+     * Over clause builder used by SQL grammar (generated parser).
+     */
     public static class Builder {
         private final ContextManager contextManager;
         private Partition partition;

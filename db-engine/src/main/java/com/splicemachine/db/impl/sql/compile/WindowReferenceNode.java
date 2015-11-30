@@ -58,7 +58,26 @@ public final class WindowReferenceNode extends WindowNode
         return null;
     }
 
-    // java.lang.Object override
+    @Override
+    public List<WindowFunctionNode> getWindowFunctions() {
+        return null;
+    }
+
+    @Override
+    public void addWindowFunction(WindowFunctionNode functionNode) {
+
+    }
+
+    @Override
+    public void bind(SelectNode selectNode) {
+    }
+
+    @Override
+    public List<OrderedColumn> getOverColumns() {
+        return null;
+    }
+
+    @Override
     public String toString() {
         return "referenced window: " + getName() + "\n" +
             super.toString();

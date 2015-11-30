@@ -672,6 +672,8 @@ public class ResultColumn extends ValueNode
                 "exposedName: " + exposedName + "<br>" +
                 "name: " + name + "<br>" +
                 "tableName: " + tableName + "<br>" +
+                "resultSetNumber: " + resultSetNumber + "<br>" +
+                "virtualColumnId: " + virtualColumnId + "<br>" +
                 "isDefaultColumn: " + defaultColumn + "<br>" +
                 "wasDefaultColumn: " + wasDefault + "<br>" +
                 "isNameGenerated: " + isNameGenerated + "<br>" +
@@ -684,8 +686,6 @@ public class ResultColumn extends ValueNode
                 "isRedundant: " + isRedundant + "<br>" +
                 "rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "<br>" +
                 "joinResultSet: " + joinResultSet + "<br>" +
-                "virtualColumnId: " + virtualColumnId + "<br>" +
-                "resultSetNumber: " + resultSetNumber + "<br>" +
                 "identityHashCode: " + System.identityHashCode(this) + "<br>" +
                 super.toHTMLString();
     }

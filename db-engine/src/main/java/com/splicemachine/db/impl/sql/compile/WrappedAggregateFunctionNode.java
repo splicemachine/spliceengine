@@ -1,7 +1,10 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -37,13 +40,6 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     }
 
     @Override
-    protected void setOperands(ValueNode[] operands) {
-        if (operands != null && operands.length > 0) {
-            this.operand = operands[0];
-        }
-    }
-
-    @Override
      public ValueNode getNewNullResultExpression() throws StandardException {
          return aggregateFunction.getNewNullResultExpression();
      }
@@ -54,22 +50,26 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     }
 
     @Override
-    public ValueNode[] getOperands() {
-        return new ValueNode[] {aggregateFunction.operand};
+    public List<ValueNode> getOperands() {
+        ValueNode wrappedOperand = aggregateFunction.operand;
+        return (wrappedOperand != null ? Lists.newArrayList(wrappedOperand) : Collections.EMPTY_LIST);
+    }
+
+    @Override
+    public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
+        // TODO: JC - what else? bind?
+        aggregateFunction.operand = newVal;
     }
 
     /**
      * Overridden to redirect the call to the wrapped aggregate node.
-     * @param rc the result column to which to add the new ref, only used if not null.
      * @param tableNumber The tableNumber for the new ColumnReference
      * @param nestingLevel this node's nesting level
-     * @param newResultColumn the source RC for the new CR
      * @return the new CR
      * @throws StandardException
      */
     @Override
-    public ValueNode replaceCallWithColumnReference(ResultColumn rc, int tableNumber, int nestingLevel, ResultColumn
-        newResultColumn) throws StandardException {
+    public ValueNode replaceCallWithColumnReference(int tableNumber, int nestingLevel) throws StandardException {
         ColumnReference node = (ColumnReference) aggregateFunction.replaceAggregatesWithColumnReferences(
             (ResultColumnList) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
@@ -79,11 +79,6 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         // Mark the ColumnReference as being generated to replace a call to
         // a window function
         node.markGeneratedToReplaceWindowFunctionCall();
-
-        node.setSource(newResultColumn);
-        if (rc != null) {
-            rc.setExpression(node);
-        }
         return node;
     }
 
@@ -102,12 +97,6 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
          }
      }
 
-     @Override
-      public ValueNode replaceAggregatesWithColumnReferences(ResultColumnList rcl,
-                                                             int tableNumber) throws StandardException {
-          return aggregateFunction.replaceAggregatesWithColumnReferences(rcl, tableNumber);
-      }
-
     @Override
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
@@ -116,7 +105,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         // returns true for identical aggregate nodes removing the first aggregate, not necessarily
         // this one. We need to create a tmp Vector and add all Agg nodes found but this delegate by
         // checking for object identity (==)
-        List<AggregateNode> tmp = new ArrayList<AggregateNode>();
+        List<AggregateNode> tmp = new ArrayList<>();
         aggregateFunction.bindExpression(fromList,subqueryList,tmp);
 
         // We don't want to be in this aggregateVector - we add all aggs found during bind except
@@ -131,7 +120,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         }
 
         // Now that delegate is bound, set some required fields on this
-        // TODO: What all is required?
+        // TODO: JC What all is required?
         this.operator = aggregateFunction.operator;
         return this;
     }

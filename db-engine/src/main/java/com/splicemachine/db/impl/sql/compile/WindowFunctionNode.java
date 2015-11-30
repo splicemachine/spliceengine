@@ -20,6 +20,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.splicemachine.db.catalog.AliasInfo;
@@ -104,17 +106,16 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
     @Override
     public void acceptChildren(Visitor v) throws StandardException {
+        // this will visit function operand
         super.acceptChildren(v);
 
-        ValueNode[] operands = getOperands();
-        ValueNode[] visitedNodes = new ValueNode[operands.length];
-        int i=0;
-        for (ValueNode overNode : operands) {
-            if (overNode != null) {
-                visitedNodes[i++] = (ValueNode) overNode.accept(v, this);
+        // this will visit all cols in over clause, some of which may be operands (i.e., ranking functions).
+        for (OrderedColumn oc : getWindow().getOverColumns()) {
+            if (oc.getColumnExpression() != null) {
+                ValueNode visited = (ValueNode) oc.getColumnExpression().accept(v, this);
+                oc.setColumnExpression(visited);
             }
         }
-        setOperands(visitedNodes);
     }
 
     /**
@@ -138,7 +139,9 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * return only one in array.
      * @return one or more function operands.
      */
-    public abstract ValueNode[] getOperands();
+    public abstract List<ValueNode> getOperands();
+
+    public abstract void replaceOperand(ValueNode oldVal, ValueNode newVal);
 
     /**
      * Set window associated with this window function call.
@@ -146,23 +149,6 @@ public abstract class WindowFunctionNode extends AggregateNode {
      */
     public void setWindow(WindowDefinitionNode wdn) {
         this.window = wdn;
-    }
-
-    /**
-     * @return if name matches a defined window (in windows), return the
-     * definition of that window, else null.
-     */
-    private WindowDefinitionNode definedWindow(WindowList windows,
-                                               String name) {
-        for (int i=0; i < windows.size(); i++) {
-            WindowDefinitionNode wdn =
-                (WindowDefinitionNode)windows.elementAt(i);
-
-            if (wdn.getName().equals(name)) {
-                return wdn;
-            }
-        }
-        return null;
     }
 
     /**
@@ -179,69 +165,6 @@ public abstract class WindowFunctionNode extends AggregateNode {
             printLabel(depth, "window: ");
             window.treePrint(depth + 1);
         }
-    }
-
-    /**
-     * Get an ResultColumn array of all operand expressions. Called by WindowResultSetNode
-     * during building of function tuple ([result, operand [, operand, ...], function]).
-     *
-     * @return the array of ResultColumns each pointing to a ColumnReference to
-     * an operand of this operator.
-     * @throws StandardException
-     */
-    public ResultColumn[] getNewExpressionResultColumns(boolean aboveJoin) throws StandardException {
-        ValueNode[] operands = getOperands();
-        ResultColumn[] resultColumns = new ResultColumn[operands.length];
-        int i = 0;
-        for (ValueNode node : operands) {
-            if (node == null) {
-                node = getNewNullResultExpression();
-            }
-            ValueNode lower = node;
-            if (! aboveJoin && node instanceof  ColumnReference && ! ((ColumnReference)node).getGeneratedToReplaceAggregate()) {
-                // If "node" is a ColumnReference, it is a reference to the operand and
-                // lives at this level in the tree. We will need the underlying expression
-                // reference from the node below because our function will reference the
-                // "output" of the node below as its input.
-                // If it's not a ColumnReference, we may be just above a FromBaseTable or
-                // it may be a "direct" input value such as numeric for, say, count(). In
-                // that case, we leave it "as is".
-                lower = ((ColumnReference)node).getSource().getExpression();
-                if (lower instanceof VirtualColumnNode) {
-                    // If the "lower" expression is a VCN, create a CR pointing to its RC
-                    // add to the plan tree
-                    ResultColumn targetRC = ((VirtualColumnNode)lower).getSourceColumn();
-
-                    ColumnReference tmpColumnRef = (ColumnReference) getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        targetRC.getName(),
-                        null,
-                        getContextManager());
-                    tmpColumnRef.setSource(targetRC);
-                    tmpColumnRef.setNestingLevel(0);
-                    tmpColumnRef.setSourceLevel(0);
-
-                    lower = tmpColumnRef;
-                }
-            }
-            resultColumns[i++] = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##WindowOperand",
-                lower,
-                getContextManager());
-        }
-        return resultColumns;
-    }
-
-    /**
-     * Default behavior is to return <code>true</code>. That is so that
-     * existing aggregate functions can operate "as-is".<br/>
-     * Subclasses that operate on more than one operand - like ranking
-     * functions - should return <code>false</code>.
-     * @return whether this function operates on more than one operand.
-     */
-    public boolean isScalarAggregate() {
-        return true;
     }
 
     /**
@@ -266,18 +189,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * ColumnReference to that window function.  Use the supplied
      * <code>newResultColumn</code> ResultColumn as the source for the new CR.
      *
-     * @param rc the RC with which to set the new CR as its expression (point
-     *           it to the new CR node).
      * @param tableNumber The tableNumber for the new ColumnReference
      * @param nestingLevel this node's nesting level
-     * @param newResultColumn the source RC for the new CR
      * @return the newly generated CR.
      * @throws StandardException
      */
-    public ValueNode replaceCallWithColumnReference(ResultColumn rc,
-                                                    int tableNumber,
-                                                    int nestingLevel,
-                                                    ResultColumn newResultColumn) throws StandardException {
+    public ValueNode replaceCallWithColumnReference(int tableNumber,
+                                                    int nestingLevel) throws StandardException {
          /*
           * This call is idempotent.  Do the right thing if we have already
           * replaced ourselves.
@@ -285,13 +203,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
         if (generatedRef == null) {
             generatedRC = (ResultColumn) getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "##SQLColWinGen_" + newResultColumn.getName(),
+                "##SQLColWinGen_" + getSQLName(),
                 this,
                 getContextManager());
             generatedRC.markGenerated();
 
-            // Parse time.
-            //
+            // The generated column reference. It's returned from this method but is also maintained
+            // by this aggregate node
             generatedRef = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
                 generatedRC.getName(),
@@ -302,16 +220,13 @@ public abstract class WindowFunctionNode extends AggregateNode {
             generatedRef.setNestingLevel(nestingLevel);
             generatedRef.setSourceLevel(0);
 
-            if (tableNumber != -1) {
+            if (tableNumber >= 0) {
                 generatedRef.setTableNumber(tableNumber);
             }
 
             // Mark the ColumnReference as being generated to replace a call to
             // a window function
             generatedRef.markGeneratedToReplaceWindowFunctionCall();
-
-            generatedRef.setSource(newResultColumn);
-            rc.setExpression(generatedRef);
         }
 
         return generatedRef;
@@ -389,8 +304,6 @@ public abstract class WindowFunctionNode extends AggregateNode {
                 getCompilerContext().addRequiredUsagePriv(ad);
             }
         }
-         /* DO NOT Add ourselves to the aggregateVector before we do anything else */
-//        aggregateVector.add(this);
 
         CompilerContext cc = getCompilerContext();
 
@@ -407,6 +320,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
               ** IMMEDIATELY below us.  Don't search below
               ** any ResultSetNodes.
               */
+            // TODO: JC - this.getClass() gives the subclass vvv. shouldn't this be WindowFunctionNode.class?
             HasNodeVisitor visitor = new HasNodeVisitor(this.getClass(), ResultSetNode.class);
             operand.accept(visitor);
             if (visitor.hasNode()) {
@@ -471,7 +385,23 @@ public abstract class WindowFunctionNode extends AggregateNode {
 
         setType(resultType);
 
+        // Add all the aggregates in the over clause to the agg list so that GroupByNode will handle
+        for (AggregateNode aggregateNode : getAggregatesInOverClause()) {
+            aggregateNode.bindExpression(fromList, subqueryList, aggregateVector);
+        }
+
         return this;
+    }
+
+    private Collection<AggregateNode> getAggregatesInOverClause() {
+        List<AggregateNode> aggs = new ArrayList<>();
+        for (OrderedColumn oc : getWindow().getOverColumns()) {
+            ValueNode exp = oc.getColumnExpression();
+            if (exp instanceof AggregateNode) {
+                aggs.add((AggregateNode)exp);
+            }
+        }
+        return aggs;
     }
 
     /**
@@ -508,8 +438,6 @@ public abstract class WindowFunctionNode extends AggregateNode {
             }
         }
     }
-
-    protected abstract void setOperands(ValueNode[] operands) throws StandardException;
 
     public boolean isIgnoreNulls() {
         return ignoreNulls;

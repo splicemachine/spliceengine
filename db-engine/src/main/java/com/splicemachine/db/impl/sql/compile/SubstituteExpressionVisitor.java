@@ -31,8 +31,9 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 class SubstituteExpressionVisitor implements Visitor 
 {
-	private ValueNode source;
-	private ValueNode target;
+    protected int numSubstitutions;
+	protected ValueNode source;
+	protected ValueNode target;
 	private Class     skipOverClass;
 	
 	SubstituteExpressionVisitor(
@@ -62,6 +63,7 @@ class SubstituteExpressionVisitor implements Visitor
 		ValueNode nd = (ValueNode)node;
 		if (nd.isEquivalent(source)) 
 		{
+            ++numSubstitutions;
 			return target;
 		} 
 		else 
@@ -69,6 +71,10 @@ class SubstituteExpressionVisitor implements Visitor
 			return node;
 		}
 	}
+
+    public int getNumSubstitutions() {
+        return numSubstitutions;
+    }
 
 	public boolean stopTraversal() 
 	{

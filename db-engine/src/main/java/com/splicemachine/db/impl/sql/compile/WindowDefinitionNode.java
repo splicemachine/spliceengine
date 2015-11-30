@@ -43,6 +43,8 @@ public final class WindowDefinitionNode extends WindowNode
      */
     private OverClause overClause;
 
+    private List<WindowFunctionNode> functionNodes = new ArrayList<>();
+
     /**
      * Initializer.
      *
@@ -69,29 +71,30 @@ public final class WindowDefinitionNode extends WindowNode
 
     /**
      * Bind partition and order by columns, since they may not be in select clause.
-     * @param target this select node
+     * @param parent this select node
      * @throws StandardException
      */
-    public void bind(SelectNode target) throws StandardException {
-        List<AggregateNode> aggregateVector = new ArrayList<>();
+    public void bind(SelectNode parent) throws StandardException {
+        List<AggregateNode> aggregates = new ArrayList<>();
+
         // bind partition
         Partition partition = overClause.getPartition();
         if (partition != null) {
-            partition.bindGroupByColumns(target, aggregateVector);
+            partition.bindGroupByColumns(parent, aggregates);
         }
 
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(aggregateVector.size() == 0,
+            SanityManager.ASSERT(aggregates.size() == 0,
                                  "A window function partition cannot contain an aggregate.");
         }
 
         // bind order by
         OrderByList orderByList = overClause.getOrderByClause();
         if (orderByList != null) {
-            FromList fromList = target.getFromList();
+            FromList fromList = parent.getFromList();
             for (int i=0; i<orderByList.size(); ++i) {
                 OrderByColumn obc = orderByList.getOrderByColumn(i);
-                obc.getColumnExpression().bindExpression(fromList, null, aggregateVector);
+                obc.getColumnExpression().bindExpression(fromList, null, aggregates);
             }
         }
     }
@@ -145,10 +148,21 @@ public final class WindowDefinitionNode extends WindowNode
         return orderedColumns;
     }
 
+    @Override
+    public List<WindowFunctionNode> getWindowFunctions() {
+        return functionNodes;
+    }
+
+    @Override
+    public void addWindowFunction(WindowFunctionNode functionNode) {
+        functionNodes.add(functionNode);
+    }
+
     /**
      * See {@link OverClause#getOverColumns()}
      * @return the list of column keys that make up the over() clause, partition and order by.
      */
+    @Override
     public List<OrderedColumn> getOverColumns() {
         return overClause.getOverColumns();
     }
@@ -174,18 +188,31 @@ public final class WindowDefinitionNode extends WindowNode
     }
 
     /**
-     * java.lang.Object override.
      * @see QueryTreeNode#toString
      */
+    @Override
     public String toString() {
-        return ("name: " + getName() + "\n" +
-            "inlined: " + inlined + "\n" +
-            overClause);
+        StringBuilder fns = new StringBuilder();
+        for (WindowFunctionNode fn : functionNodes) {
+            fns.append(fn.getName()).append(", ");
+        }
+        if (fns.length() > 1) {
+            fns.setLength(fns.length()-2);
+        }
+        return ("Functions: "+fns.toString()+ overClause);
     }
 
     @Override
     public String toHTMLString() {
-        return "Name: " + getName() + "<br/> Inlined: " + inlined + "<br/>" + overClause.toHTMLString();
+        StringBuilder fns = new StringBuilder();
+        for (WindowFunctionNode fn : functionNodes) {
+            fns.append(fn.getName()).append(", ");
+        }
+        if (fns.length() > 1) {
+            fns.setLength(fns.length()-2);
+        }
+        return "Functions: "+fns.toString()+ " Name: " + getName() + (inlined ? " Inlined" : " non-Inlined") + "<br/>" +
+            overClause.toHTMLString();
     }
 
     /**

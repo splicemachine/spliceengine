@@ -82,12 +82,11 @@ public class GroupByList extends OrderedColumnList{
      */
     public void bindGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException{
         FromList fromList=select.getFromList();
-        ResultColumnList selectRCL=select.getResultColumns();
+
         SubqueryList dummySubqueryList=
                 (SubqueryList)getNodeFactory().getNode(
                         C_NodeTypes.SUBQUERY_LIST,
                         getContextManager());
-        int numColsAddedHere=0;
         int size=size();
 
 		/* Only 32677 columns allowed in GROUP BY clause */
@@ -102,96 +101,121 @@ public class GroupByList extends OrderedColumnList{
                     dummySubqueryList,aggregateVector);
         }
 
-
-        int rclSize=selectRCL.size();
-        for(int index=0;index<size;index++){
-            boolean matchFound=false;
-            GroupByColumn groupingCol=(GroupByColumn)elementAt(index);
-
-			/* Verify that this entry in the GROUP BY list matches a
-             * grouping column in the select list.
-			 */
-            for(int inner=0;inner<rclSize;inner++){
-                ResultColumn selectListRC=selectRCL.elementAt(inner);
-                if(!(selectListRC.getExpression() instanceof ColumnReference)){
-                    continue;
-                }
-
-                ColumnReference selectListCR=(ColumnReference)selectListRC.getExpression();
-
-                if(selectListCR.isEquivalent(groupingCol.getColumnExpression())){
-					/* Column positions for grouping columns are 0-based */
-                    groupingCol.setColumnPosition(inner+1);
-
-					/* Mark the RC in the SELECT list as a grouping column */
-                    selectListRC.markAsGroupingColumn();
-                    matchFound=true;
-                    break;
-                }
-            }
-			/* If no match found in the SELECT list, then add a matching
-			 * ResultColumn/ColumnReference pair to the SelectNode's RCL.
-			 * However, don't add additional result columns if the query
-			 * specified DISTINCT, because distinct processing considers
-			 * the entire RCL and including extra columns could change the
-			 * results: e.g. select distinct a,b from t group by a,b,c
-			 * should not consider column c in distinct processing (DERBY-3613)
-			 */
-            if(!matchFound && !select.hasDistinct() &&
-                    groupingCol.getColumnExpression() instanceof ColumnReference){
-                // only add matching columns for column references not
-                // expressions yet. See DERBY-883 for details.
-                ResultColumn newRC;
-
-				/* Get a new ResultColumn */
-                newRC=(ResultColumn)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        groupingCol.getColumnName(),
-                        groupingCol.getColumnExpression().getClone(),
-                        getContextManager());
-                newRC.setVirtualColumnId(selectRCL.size()+1);
-                newRC.markGenerated();
-                newRC.markAsGroupingColumn();
-
-				/* Add the new RC/CR to the RCL */
-                selectRCL.addElement(newRC);
-
-				/* Set the columnPosition in the GroupByColumn, now that it
-				* has a matching entry in the SELECT list.
-				*/
-                groupingCol.setColumnPosition(selectRCL.size());
-
-                // a new hidden or generated column is added to this RCL
-                // i.e. that the size() of the RCL != visibleSize().
-                // Error checking done later should be aware of this
-                // special case.
-                selectRCL.setCountMismatchAllowed(true);
-
-				/*
-				** Track the number of columns that we have added
-				** in this routine.  We track this separately
-				** than the total number of columns added by this
-				** object (numGroupingColsAdded) because we
-				** might be bound (though not gagged) more than
-				** once (in which case numGroupingColsAdded will
-				** already be set).
-				*/
-                numColsAddedHere++;
-            }
-            if(groupingCol.getColumnExpression() instanceof JavaToSQLValueNode){
-                // disallow any expression which involves native java computation.
-                // Not possible to consider java expressions for equivalence.
-                throw StandardException.newException(SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
-            }
-        }
-
 		/* Verify that no subqueries got added to the dummy list */
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(dummySubqueryList.size()==0,
                     "dummySubqueryList.size() is expected to be 0");
         }
+    }
 
-        numGroupingColsAdded+=numColsAddedHere;
+    /**
+     * Bind the group by list.  Verify:
+     * o  Number of grouping columns matches number of non-aggregates in
+     * SELECT's RCL.
+     * o  Names in the group by list are unique
+     * o  Names of grouping columns match names of non-aggregate
+     * expressions in SELECT's RCL.
+     *
+     * @param select          The SelectNode
+     * @param aggregateVector The aggregate vector being built as we find AggregateNodes
+     * @throws StandardException Thrown on error
+     */
+    public void bindAndPullGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException{
+        bindGroupByColumns(select, aggregateVector);
+        boolean hasDistinct = select.hasDistinct();
+
+        numGroupingColsAdded += pullUpColumns(select, hasDistinct);
+    }
+
+    public int pullUpColumns(ResultSetNode target, boolean hasDistinct) throws StandardException {
+        ResultColumnList targetRCL = target.getResultColumns();
+        int size = size();
+        int numColsAddedHere = 0;
+        for(int index=0;index<size;index++){
+            GroupByColumn groupingCol=(GroupByColumn)elementAt(index);
+
+            /*
+            ** Track the number of columns that we have added
+            ** in this routine.  We track this separately
+            ** than the total number of columns added by this
+            ** object (numGroupingColsAdded) because we
+            ** might be bound (though not gagged) more than
+            ** once (in which case numGroupingColsAdded will
+            ** already be set).
+            */
+            numColsAddedHere += pullUpGroupByColumn(groupingCol, targetRCL, hasDistinct);
+        }
+        return numColsAddedHere;
+    }
+
+    public int pullUpGroupByColumn(GroupByColumn groupingCol, ResultColumnList targetRCL, boolean hasDistinct) throws StandardException {
+        boolean matchFound=false;
+        int rclSize = targetRCL.size();
+        /* Verify that this entry in the GROUP BY list matches a
+         * grouping column in the select list.
+         */
+        for(int inner=0;inner<rclSize;inner++){
+            ResultColumn selectListRC=targetRCL.elementAt(inner);
+            if(!(selectListRC.getExpression() instanceof ColumnReference)){
+                continue;
+            }
+
+            ColumnReference selectListCR=(ColumnReference)selectListRC.getExpression();
+
+            if(selectListCR.isEquivalent(groupingCol.getColumnExpression())){
+                /* Column positions for grouping columns are 0-based */
+                groupingCol.setColumnPosition(inner+1);
+
+                /* Mark the RC in the SELECT list as a grouping column */
+                selectListRC.markAsGroupingColumn();
+                matchFound=true;
+                break;
+            }
+        }
+        /* If no match found in the SELECT list, then add a matching
+         * ResultColumn/ColumnReference pair to the SelectNode's RCL.
+         * However, don't add additional result columns if the query
+         * specified DISTINCT, because distinct processing considers
+         * the entire RCL and including extra columns could change the
+         * results: e.g. select distinct a,b from t group by a,b,c
+         * should not consider column c in distinct processing (DERBY-3613)
+         */
+        if(!matchFound && !hasDistinct &&
+                groupingCol.getColumnExpression() instanceof ColumnReference){
+            // only add matching columns for column references not
+            // expressions yet. See DERBY-883 for details.
+            ResultColumn newRC;
+
+            /* Get a new ResultColumn */
+            newRC=(ResultColumn)getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    groupingCol.getColumnName(),
+                    groupingCol.getColumnExpression().getClone(),
+                    getContextManager());
+            newRC.setVirtualColumnId(targetRCL.size()+1);
+            newRC.markGenerated();
+            newRC.markAsGroupingColumn();
+
+            /* Add the new RC/CR to the RCL */
+            targetRCL.addElement(newRC);
+
+            /* Set the columnPosition in the GroupByColumn, now that it
+            * has a matching entry in the SELECT list.
+            */
+            groupingCol.setColumnPosition(targetRCL.size());
+
+            // a new hidden or generated column is added to this RCL
+            // i.e. that the size() of the RCL != visibleSize().
+            // Error checking done later should be aware of this
+            // special case.
+            targetRCL.setCountMismatchAllowed(true);
+        }
+        if(groupingCol.getColumnExpression() instanceof JavaToSQLValueNode){
+            // disallow any expression which involves native java computation.
+            // Not possible to consider java expressions for equivalence.
+            throw StandardException.newException(SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+        }
+        return 1;
     }
 
 

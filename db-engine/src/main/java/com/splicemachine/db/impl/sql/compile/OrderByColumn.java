@@ -85,6 +85,13 @@ public class OrderByColumn extends OrderedColumn {
         return expression;
     }
 
+    @Override
+    public void setColumnExpression(ValueNode cexpr)
+    {
+        this.expression = cexpr;
+
+    }
+
     /**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
 	 * how tree printing is supposed to work.
@@ -456,7 +463,7 @@ public class OrderByColumn extends OrderedColumn {
 			resultCol.getExpression().remapColumnReferencesToExpressions());
 	}
 
-	private static boolean isReferedColByNum(ValueNode expression) 
+	public static boolean isReferedColByNum(ValueNode expression)
 	throws StandardException{
 		
 		if(!expression.isConstantExpression()){

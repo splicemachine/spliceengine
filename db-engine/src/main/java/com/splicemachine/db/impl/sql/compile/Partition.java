@@ -67,14 +67,12 @@ public class Partition extends GroupByList {
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder("\n");
+        StringBuilder buf = new StringBuilder();
         for (int i=0; i<size(); ++i) {
             GroupByColumn col = getGroupByColumn(i);
-            buf.append("column_name: ").append(col.getColumnName()).append("\n");
-            // Lang col indexes are 1-based, storage col indexes are zero-based
-            buf.append("columnid: ").append(col.getColumnPosition()-1).append("\n");
+            buf.append(col.getColumnName()).append("(").append(col.getColumnPosition()).append("),");
         }
-//        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
+        if (buf.length() > 0) { buf.setLength(buf.length()-1); }
         return buf.toString();
     }
 
@@ -84,7 +82,7 @@ public class Partition extends GroupByList {
         for (int i=0; i<size(); ++i) {
             GroupByColumn col = getGroupByColumn(i);
             buf.append(col.getColumnName()).append('(');
-            buf.append(col.getColumnPosition()-1).append("),");
+            buf.append(col.getColumnPosition()).append("),");
         }
         if (buf.length() > 0) { buf.setLength(buf.length()-1); }
         return buf.toString();

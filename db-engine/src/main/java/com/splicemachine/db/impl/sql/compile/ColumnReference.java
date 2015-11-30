@@ -212,6 +212,9 @@ public class ColumnReference extends ValueNode {
                 "columnNumber: " + columnNumber + "<br>" +
                 "nestingLevel: " + nestingLevel + "<br>" +
                 "sourceLevel: " + sourceLevel + "<br>" +
+                "source ResultSet: " + (source == null ? "null" : source.getResultSetNumber()) + "<br>" +
+                "source ResultCol: " + (source == null ? "null" : source.getColumnPosition()) + "<br>" +
+                "source ResultColVID: " + (source == null ? "null" : source.getVirtualColumnId()) + "<br>" +
                 "source ResultColumn hash: " + (source == null ? "null" : System.identityHashCode(source)) + "<br>" +
                 "scoped: " + scoped + "<br>" +
                 "remaps: " + (remaps == null ? 0 : remaps.size()) + "<br>" +

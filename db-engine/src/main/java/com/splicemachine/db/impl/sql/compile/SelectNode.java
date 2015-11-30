@@ -22,19 +22,29 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.Vector;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-
-import java.util.*;
 
 /**
  * A SelectNode represents the result set for any of the basic DML
@@ -87,9 +97,9 @@ public class SelectNode extends ResultSetNode{
     boolean originalWhereClauseHadSubqueries;
     ValueNode havingClause;
     /**
-     * List of windowNodeList.
+     * List of windowDefinitionList.
      */
-    private WindowList windowNodeList;
+    private WindowList windowDefinitionList;
     /**
      * List of window function calls (e.g. ROW_NUMBER, AVG(i), DENSE_RANK).
      */
@@ -157,7 +167,7 @@ public class SelectNode extends ResultSetNode{
         // in-line window specifications used in window functions in the SELECT
         // column list and in genProjectRestrict for such window specifications
         // used in window functions in ORDER BY.
-        this.windowNodeList=(WindowList)windowDefinitionList;
+        this.windowDefinitionList = (WindowList)windowDefinitionList;
 
         bindTargetListOnly=false;
 
@@ -189,8 +199,8 @@ public class SelectNode extends ResultSetNode{
 
                 if(wfn.getWindow() instanceof WindowDefinitionNode){
                     // Window function call contains an inline definition, add
-                    // it to our list of windowNodeList.
-                    windowNodeList=addInlinedWindowDefinition(windowNodeList,wfn);
+                    // it to our list of windowDefinitionList.
+                    this.windowDefinitionList = addInlinedWindowDefinition(this.windowDefinitionList, wfn);
                 }else{
                     // a window reference, bind it later.
                     assert wfn.getWindow() instanceof WindowReferenceNode;
@@ -280,9 +290,9 @@ public class SelectNode extends ResultSetNode{
                 preJoinFL.treePrint(depth+1);
             }
 
-            if(windowNodeList!=null){
+            if(hasWindows()){
                 printLabel(depth,"windows: ");
-                windowNodeList.treePrint(depth+1);
+                windowDefinitionList.treePrint(depth+1);
             }
         }
     }
@@ -463,7 +473,7 @@ public class SelectNode extends ResultSetNode{
         // no resolution is necessary. See also
         // WindowFunctionNode.bindExpression.
 
-        fromListParam.setWindows(windowNodeList);
+        fromListParam.setWindows(windowDefinitionList);
 
         resultColumns.bindExpressions(fromListParam, selectSubquerys, selectAggregates);
 
@@ -545,7 +555,7 @@ public class SelectNode extends ResultSetNode{
         if(groupByList!=null){
             List<AggregateNode> gbAggregateVector=new LinkedList<>();
 
-            groupByList.bindGroupByColumns(this, gbAggregateVector);
+            groupByList.bindAndPullGroupByColumns(this, gbAggregateVector);
 
 			/*
 			** There should be no aggregates in the Group By list.
@@ -557,12 +567,9 @@ public class SelectNode extends ResultSetNode{
             checkNoWindowFunctions(groupByList,"GROUP BY");
         }
 
-        /* Bind the window node - partition and orderby */
+        // Bind the window node - partition and orderby
         if(hasWindows()){
-            for(int i=0;i<windowNodeList.size();++i){
-                WindowDefinitionNode wdn=(WindowDefinitionNode)windowNodeList.elementAt(i);
-                wdn.bind(this);
-            }
+            windowDefinitionList.bind(this);
         }
 
 		/* If ungrouped query with aggregates in SELECT list, verify
@@ -1019,8 +1026,8 @@ public class SelectNode extends ResultSetNode{
 
                 assert wfn.getWindow() instanceof WindowDefinitionNode: "a window reference should be bound already";
                 // Window function call contains an inline definition, add
-                // it to our list of windowNodeList.
-                windowNodeList=addInlinedWindowDefinition(windowNodeList,wfn);
+                // it to our list of windowDefinitionList.
+                windowDefinitionList = addInlinedWindowDefinition(windowDefinitionList, wfn);
             }
         }
 
@@ -1156,27 +1163,19 @@ public class SelectNode extends ResultSetNode{
 
         // Pull up rowId predicates that are not start or top keys
         pullRowIdPredicates((ProjectRestrictNode)prnRSN);
-        if(windowNodeList!=null){
+        if(hasWindows()){
+            // Now we add a window result set wrapped in a PRN on top of what we currently have.
+            for (WindowNode windowDefinition : windowDefinitionList) {
+                WindowResultSetNode wrsn =
+                    (WindowResultSetNode) getNodeFactory().getNode(
+                        C_NodeTypes.WINDOW_RESULTSET_NODE,
+                        prnRSN,
+                        windowDefinition,
+                        null,   // table properties
+                        nestingLevel,
+                        getContextManager());
 
-            // Now we add a window result set wrapped in a PRN on top of what
-            // we currently have.
-
-            // collect all functions that have the same definition. These can be
-            // used to create one Window Resultset
-            Map<WindowNode, Collection<WindowFunctionNode>> defnToFunctionsMap= collectFunctionsForDefinitions(windowFuncCalls);
-
-            for(Map.Entry<WindowNode, Collection<WindowFunctionNode>> defnToFunctions : defnToFunctionsMap.entrySet()){
-                WindowResultSetNode wrsn=
-                        (WindowResultSetNode)getNodeFactory().getNode(
-                                C_NodeTypes.WINDOW_RESULTSET_NODE,
-                                prnRSN,
-                                defnToFunctions.getKey(),
-                                defnToFunctions.getValue(),
-                                null,   // table properties
-                                nestingLevel,
-                                getContextManager());
-
-                prnRSN=wrsn.getParent();
+                prnRSN = wrsn.processWindowDefinition();
                 // TODO-JL NOT OPTIMAL
                 wrsn.assignCostEstimate(optimizer.getOptimizedCost());
             }
@@ -1314,7 +1313,7 @@ public class SelectNode extends ResultSetNode{
         }
 
 
-        if(wasGroupBy && resultColumns.numGeneratedColumnsForGroupBy()>0 && windowNodeList==null) {
+        if(wasGroupBy && resultColumns.numGeneratedColumnsForGroupBy()>0 && ! hasWindows()) {
             // windows handling already added a PRN which obviates this
 
             // This case takes care of columns generated for group by's which
@@ -1812,12 +1811,12 @@ public class SelectNode extends ResultSetNode{
      * Used by SubqueryNode to avoid flattening of a subquery if a window is
      * defined on it. Note that any inline window definitions should have been
      * collected from both the selectList and orderByList at the time this
-     * method is called, so the windowNodeList list is complete. This is true after
+     * method is called, so the windowDefinitionList list is complete. This is true after
      * preprocess is completed.
      *
      * @return true if this select node has any windows on it
      */
-    public boolean hasWindows(){ return windowNodeList!=null; }
+    public boolean hasWindows(){ return windowDefinitionList != null; }
 
     /**
      * Determine whether or not the specified name is an exposed name in
@@ -2067,40 +2066,6 @@ public class SelectNode extends ResultSetNode{
                                  boolean allowDefaults) throws StandardException{
     }
 
-    /**
-     * Creates a map of window definition (or reference) -> functions that have the
-     * same definition. Each given function is given a reference to its window definition
-     * at parse time.<br/>
-     * A window definition is "defined" by its OVER() - the set of columns in the PARTITION BY
-     * and ORDER BY clauses over which the function operates.
-     * <p/>
-     * This is useful for "batching" functions that have the same window definition into the
-     * same WindowResultSetNode.
-     *
-     * @param functions the given functions to batch.
-     * @return the mapping {windowDefinition} -> {funct1,[funct2,...]}
-     */
-    private static Map<WindowNode, Collection<WindowFunctionNode>>
-                        collectFunctionsForDefinitions(List<WindowFunctionNode> functions){
-        // maintaining insertion order of keys (same as vector order)
-        Map<WindowNode, Collection<WindowFunctionNode>> map=new LinkedHashMap<>();
-        for( WindowFunctionNode functionNode : functions){
-            // the function's window definition or reference
-            WindowNode window=functionNode.getWindow();
-
-            Collection<WindowFunctionNode> functionNodes=map.get(window);
-            if(functionNodes==null){
-                // maintaining insertion order of values
-                functionNodes=new LinkedHashSet<>();
-                map.put(window,functionNodes);
-            }
-            if(!functionNodes.contains(functionNode)){
-                functionNodes.add(functionNode);
-            }
-        }
-        return map;
-    }
-
     private WindowList addInlinedWindowDefinition(WindowList wl, WindowFunctionNode wfn) throws StandardException{
         WindowDefinitionNode wdn=(WindowDefinitionNode)wfn.getWindow();
 
@@ -2112,13 +2077,17 @@ public class SelectNode extends ResultSetNode{
 
         WindowDefinitionNode equiv=wdn.findEquivalentWindow(wl);
 
+        // add window functions requiring identical window definitions to window a given
+        // definition here, where they can share.
         if(equiv!=null){
             // If the window is equivalent an existing one, optimize
             // it away.
             wfn.setWindow(equiv);
+            equiv.addWindowFunction(wfn);
         }else{
             // remember this window for posterity
             wl.addWindow(wfn.getWindow());
+            wfn.getWindow().addWindowFunction(wfn);
         }
 
         return wl;

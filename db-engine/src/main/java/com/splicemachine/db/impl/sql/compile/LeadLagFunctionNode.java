@@ -20,11 +20,13 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.Collections;
 import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
@@ -64,7 +66,7 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
             }
         }
         if (arg6 != null) {
-            // TODO: test to make sure given default value is same type as operand. Has to be after bind time?
+            // TODO: JC test to make sure given default value is same type as operand. Has to be after bind time?
             this.defaultValue = (ValueNode) arg6;
             throw StandardException.newException(SQLState.LANG_MISSING_LEAD_LAG_DEFAULT);
         } else {
@@ -78,20 +80,13 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
     }
 
     @Override
-    public boolean isScalarAggregate() {
-        return false;
+    public List<ValueNode> getOperands() {
+        return (operand != null ? Lists.newArrayList(operand) : Collections.EMPTY_LIST);
     }
 
     @Override
-    public ValueNode[] getOperands() {
-        return new ValueNode[]{operand};
-    }
-
-    @Override
-    protected void setOperands(ValueNode[] operands) throws StandardException {
-        if (operands != null && operands.length > 0) {
-            this.operand = operands[0];
-        }
+    public void replaceOperand(ValueNode oldVal, ValueNode newVal) {
+        this.operand = newVal;
     }
 
     @Override
@@ -99,7 +94,7 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
         aggregateVector) throws StandardException {
         ValueNode bound = super.bindExpression(fromList, subqueryList, aggregateVector);
         if (defaultValue == null) {
-            // TODO: if default value is null, get a null instance of the same type as the operand
+            // TODO: jc if default value is null, get a null instance of the same type as the operand
 //            defaultValue = bound.getTypeServices().getNull();
         }
         return bound;

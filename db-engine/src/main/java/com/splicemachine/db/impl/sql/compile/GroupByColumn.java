@@ -128,7 +128,8 @@ public class GroupByColumn extends OrderedColumn
 		return columnExpression;
 	}
 
-	public void setColumnExpression(ValueNode cexpr) 
+	@Override
+    public void setColumnExpression(ValueNode cexpr)
 	{
 		this.columnExpression = cexpr;
 		

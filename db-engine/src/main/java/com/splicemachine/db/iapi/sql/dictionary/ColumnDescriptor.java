@@ -485,6 +485,18 @@ public final class ColumnDescriptor extends TupleDescriptor
         }
     }
 
+    public boolean isEquivalent(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ColumnDescriptor that = (ColumnDescriptor) o;
+
+        if (table != null ? !table.equals(that.table) : that.table != null) return false;
+        if (columnName != null ? !columnName.equals(that.columnName) : that.columnName != null) return false;
+        return !(columnType != null ? !columnType.equals(that.columnType) : that.columnType != null);
+
+    }
+
     /** @see TupleDescriptor#getDescriptorName */
     public String getDescriptorName()
     {

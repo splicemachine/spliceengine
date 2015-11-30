@@ -66,4 +66,12 @@ public abstract class WindowNode extends QueryTreeNode
     public abstract WindowFrameDefinition getFrameExtent();
 
     public abstract List<OrderedColumn> getOrderByList();
+
+    public abstract List<WindowFunctionNode> getWindowFunctions();
+
+    public abstract void addWindowFunction(WindowFunctionNode functionNode);
+
+    public abstract void bind(SelectNode selectNode) throws StandardException;
+
+    public abstract List<OrderedColumn> getOverColumns();
 }

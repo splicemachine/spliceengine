@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
+
 /**
  * A WindowList represents the list of windows (definitions) for a table
  * expression, either defined explicitly in a WINDOW clause, or inline in the
@@ -35,5 +37,11 @@ public class WindowList extends QueryTreeNodeVector<WindowNode> {
     public void addWindow(WindowNode window)
     {
         addElement(window);
+    }
+
+    public void bind(SelectNode selectNode) throws StandardException {
+        for (WindowNode wdn : getNodes()) {
+           wdn.bind(selectNode);
+        }
     }
 }
