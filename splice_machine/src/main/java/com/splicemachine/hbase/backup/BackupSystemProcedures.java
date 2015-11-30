@@ -5,17 +5,9 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.SQLLongint;
-<<<<<<< e7af998265de440c8b9eb11c5ff71aabc196e44f
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.ddl.DDLMessage.*;
-=======
-import com.splicemachine.db.jdbc.ClientDriver;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.ddl.DDLUtils;
->>>>>>> Cleaning up HBase Implementation: more to do
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
@@ -33,7 +25,6 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -41,7 +32,6 @@ import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
-
 import java.io.IOException;
 import java.net.URI;
 import java.sql.*;
