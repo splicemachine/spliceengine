@@ -65,6 +65,8 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     private final PreFlushHook preFlushHook;
     private boolean record = true;
 
+    private KVPair lastKvPair;
+
     public PipingCallBuffer(byte[] tableName,
                             TxnView txn,
                             Writer writer,
@@ -94,6 +96,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     @Override
     public void add(KVPair element) throws Exception {
         assert element!=null: "Cannot add a non-null element!";
+        lastKvPair = element;
         rebuildIfNecessary();
         Map.Entry<byte[],Pair<RegionCallBuffer,ServerName>> entry = startKeyToRegionCBMap.floorEntry(element.getRowKey());
         if(entry==null) entry = startKeyToRegionCBMap.firstEntry();
@@ -359,5 +362,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     @Override
     public TxnView getTxn() {
         return txn;
+    }
+
+    @Override
+    public KVPair lastElement(){
+        return lastKvPair;
     }
 }

@@ -285,6 +285,11 @@ public class UpdateOperation extends DMLWriteOperation{
                                         }
                                     delegate.add(element);
 								}
+
+							@Override
+							public KVPair lastElement(){
+								throw new UnsupportedOperationException();
+							}
 						};
 				} else
                     return bufferToTransform;

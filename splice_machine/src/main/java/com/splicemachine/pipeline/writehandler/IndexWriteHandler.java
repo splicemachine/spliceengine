@@ -94,12 +94,14 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
                     deleteIndexRecord(mutation, ctx);
-                    return createIndexRecord(mutation, ctx);
+                    KVPair kvPair=indexBuffer.lastElement();
+                    return createIndexRecord(mutation, ctx,kvPair);
                 }
                 return true; // No index columns modifies ignore...
             case UPSERT:
                 deleteIndexRecord(mutation, ctx);
-                return createIndexRecord(mutation, ctx);
+                KVPair kvPair=indexBuffer.lastElement();
+                return createIndexRecord(mutation, ctx,kvPair);
             case DELETE:
                 return deleteIndexRecord(mutation, ctx);
             case CANCEL:
@@ -115,13 +117,40 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
     }
 
     private boolean createIndexRecord(KVPair mutation, WriteContext ctx) {
+        return createIndexRecord(mutation, ctx,null);
+    }
+
+    private boolean createIndexRecord(KVPair mutation, WriteContext ctx,KVPair deleteMutation) {
         try {
+            boolean add=true;
             KVPair newIndex = transformer.translate(mutation);
             newIndex.setType(KVPair.Type.INSERT);
+            if(deleteMutation!=null && newIndex.rowKeySlice().equals(deleteMutation.rowKeySlice())){
+                /*
+                 * DB-4165: When we do an update to the base table, that translates to a delete
+                 * and then an insert in the index. For situations where we update the indexed fields
+                 * to different values, this is fine because the delete will go to one HBase row, and the
+                 * insert to another. However, if you update an indexed field by setting it to the same value
+                 * (i.e. update foo set bar = bar), then the insert and the delete will end up going to the same
+                 * location, and the result is an insert and a delete on the same row with the same transaction.
+                 * The SI module treats this as a delete (because there is no anti-tombstone record at that location),
+                 * and thus the row goes missing from the index; the end result is a corrupted index.
+                 *
+                 * To avoid this scenario, we check for whether the insert and the delete have the same row key. If
+                 * they do, then we hijack the previous KVPair(the deleteMutation), and change it into an update mutation
+                 * instead. That way, we still get the WWConflict detection, but we don't have an insert and a delete
+                 * competing for the row results.
+                 */
+                deleteMutation.setValue(newIndex.getValue());
+                deleteMutation.setType(KVPair.Type.UPDATE);
+                newIndex = deleteMutation;
+                add=false;
+            }
             if(keepState) {
                 this.indexToMainMutationMap.put(newIndex, mutation);
             }
-            indexBuffer.add(newIndex);
+            if(add)
+                indexBuffer.add(newIndex);
         } catch (Exception e) {
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
             return false;

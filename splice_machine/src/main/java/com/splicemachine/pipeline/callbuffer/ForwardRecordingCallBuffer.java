@@ -31,4 +31,9 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
 		@Override public PreFlushHook getPreFlushHook() {return delegate.getPreFlushHook(); }
 		@Override public WriteConfiguration getWriteConfiguration() { return delegate.getWriteConfiguration();}
         @Override public TxnView getTxn() { return delegate.getTxn();}
+
+	@Override
+	public E lastElement(){
+		return delegate.lastElement();
+	}
 }
