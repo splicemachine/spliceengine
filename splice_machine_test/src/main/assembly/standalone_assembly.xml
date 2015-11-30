@@ -28,25 +28,6 @@ TAR structure:
 			<outputDirectory>splicemachine/lib</outputDirectory>
 			<scope>runtime</scope>
 			<useProjectArtifact>false</useProjectArtifact>
-			<!-- Server (jetty) seems to fail to start if we include these jars in the classpath (on Ubuntu).  Ideally
-			     we would exclude them via our pom, but as of CDH 5 they are transitive dependencies of at least 5
-			     different hadoop jars.  Easier to exclude them here for now. -->
-			<excludes>
-				<exclude>tomcat:jasper-compiler</exclude>
-				<exclude>tomcat:jasper-runtime</exclude>
-				<exclude>com.splicemachine:splice-web*</exclude>
-				<exclude>com.splicemachine:dbclient</exclude>
-			</excludes>
-		</dependencySet>
-
-		<dependencySet>
-			<outputDirectory>splicemachine</outputDirectory>
-			<scope>runtime</scope>
-			<useProjectArtifact>false</useProjectArtifact>
-			<unpack>true</unpack>
-			<includes>
-				<include>com.splicemachine:splice-web*</include>
-			</includes>
 		</dependencySet>
 
 		<dependencySet>
@@ -66,7 +47,7 @@ TAR structure:
 			<useProjectArtifact>false</useProjectArtifact>
 			<outputFileNameMapping>splicedriver-${artifact.baseVersion}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
 			<includes>
-				<include>com.splicemachine:dbclient*</include>
+                <include>com.splicemachine.db-project:db-client</include>
 			</includes>
 		</dependencySet>
 
