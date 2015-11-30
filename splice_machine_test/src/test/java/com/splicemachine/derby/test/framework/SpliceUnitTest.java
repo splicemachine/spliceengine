@@ -128,13 +128,28 @@ public class SpliceUnitTest {
     }
 
     protected void rowContainsQuery(int level, String query, String contains, SpliceWatcher methodWatcher) throws Exception {
+        List<String> levelStrings = new ArrayList<>();
         ResultSet resultSet = methodWatcher.executeQuery(query);
         for (int i = 0; i< level;i++) {
-            resultSet.next();
+            if (! resultSet.next()) {
+                // These assertions are kind of brittle -- assert some output string at a given level of explain
+                // trace output -- and when that changes we get an exception that means we've gone off the end
+                // of the result set (it doesn't have the given number of levels) --
+                // java.sql.SQLException: Invalid operation at current cursor position.
+                // So, here we collect the levels and write them to the assertion msg when we've done that to
+                // give us a better idea what went wrong.
+                StringBuilder buf = new StringBuilder("Levels:\n");
+                for (String str : levelStrings) {
+                    buf.append(str).append("\n");
+                }
+                Assert.fail(String.format("\nTEST ERROR: ResultSet for query \"%s\" does not have %d levels.\n%s", query, level, buf.toString()));
+            } else {
+                levelStrings.add((i+1)+ " - "+resultSet.getString(1));
+            }
         }
         String actualString = resultSet.getString(1);
         String failMessage = String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
-                query, contains, level, actualString);
+                                           query, contains, level, actualString);
         Assert.assertTrue(failMessage, actualString.contains(contains));
     }
 
