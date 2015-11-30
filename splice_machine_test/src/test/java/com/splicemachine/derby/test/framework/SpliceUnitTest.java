@@ -128,6 +128,8 @@ public class SpliceUnitTest {
     }
 
     protected void rowContainsQuery(int level, String query, String contains, SpliceWatcher methodWatcher) throws Exception {
+        String failMessage = String.format("expected result of query '%s' to contain '%s' at row %d but did not, actual result was: ",
+                                           query, contains, level);
         List<String> levelStrings = new ArrayList<>();
         ResultSet resultSet = methodWatcher.executeQuery(query);
         for (int i = 0; i< level;i++) {
@@ -142,15 +144,14 @@ public class SpliceUnitTest {
                 for (String str : levelStrings) {
                     buf.append(str).append("\n");
                 }
-                Assert.fail(String.format("\nTEST ERROR: ResultSet for query \"%s\" does not have %d levels.\n%s", query, level, buf.toString()));
+                Assert.fail(failMessage + String.format("\nTEST ERROR: ResultSet for query does not have %d levels.\n%s",
+                                                        level, buf.toString()));
             } else {
                 levelStrings.add((i+1)+ " - "+resultSet.getString(1));
             }
         }
         String actualString = resultSet.getString(1);
-        String failMessage = String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
-                                           query, contains, level, actualString);
-        Assert.assertTrue(failMessage, actualString.contains(contains));
+        Assert.assertTrue(failMessage+actualString, actualString.contains(contains));
     }
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
