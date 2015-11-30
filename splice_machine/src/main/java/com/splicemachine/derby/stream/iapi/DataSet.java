@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
  * Stream of data acting on a single type of values.
  *
  */
-public interface DataSet<V> {
+public interface DataSet<V> extends Iterable<V>, Serializable {
     /**
      * Transform the dataset into a list of items.
      */

@@ -122,7 +122,7 @@ public class SpliceBaseIndexEndpoint {
      */
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException {
         assert bulkWrites!=null:"Bulk Writes Cannot be Null";
-        //assert table.equals(SpliceConstants.TableEnv.USER_TABLE):"Cannot Bulk Write to A Non Splice User Table";
+        assert table.equals(SpliceConstants.TableEnv.USER_TABLE):"Cannot Bulk Write to A Non Splice User Table";
 
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "BulkWrites %s for region %s", bulkWrites, rce.getRegion().getRegionInfo().getRegionNameAsString());

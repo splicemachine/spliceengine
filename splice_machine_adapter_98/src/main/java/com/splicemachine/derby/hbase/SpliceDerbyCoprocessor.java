@@ -9,8 +9,6 @@ import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessorService;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceRequest;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceResponse;
-import com.splicemachine.derby.impl.stats.Hbase98TableStatsDecoder;
-import com.splicemachine.derby.impl.stats.TableStatsDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -38,7 +36,6 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
      */
     @Override
     public void start(CoprocessorEnvironment e) {
-        TableStatsDecoder.setInstance(new Hbase98TableStatsDecoder());
         SpliceBaseDerbyCoprocessor impl = new SpliceBaseDerbyCoprocessor();
         impl.start(e);
         region = ((RegionCoprocessorEnvironment) e).getRegion();

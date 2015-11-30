@@ -3,11 +3,9 @@ package com.splicemachine.derby.hbase;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;

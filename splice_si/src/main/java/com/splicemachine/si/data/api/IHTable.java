@@ -3,15 +3,23 @@ package com.splicemachine.si.data.api;
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
-
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.client.*;
+
+/* Begin Remove */
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
+/* End Remove */
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+
 
 /**
  * Abstraction that makes HBase tables and regions have a uniform interface.
@@ -35,9 +43,7 @@ public interface IHTable {
     void closeOperation() throws IOException;
     OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException;
     SRowLock getLock(byte[] rowKey, boolean waitForLock) throws IOException;
-
     SRowLock tryLock(ByteSlice rowKey) throws IOException;
-
     void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, SRowLock rowLock) throws IOException;
 
 }

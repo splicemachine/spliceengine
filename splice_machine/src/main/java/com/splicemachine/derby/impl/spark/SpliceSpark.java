@@ -2,22 +2,18 @@ package com.splicemachine.derby.impl.spark;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.Exception;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
-
 import com.splicemachine.derby.stream.spark.SpliceMachineSource;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
-
 import com.google.common.base.Splitter;
 import org.apache.spark.rdd.RDDOperationScope;
 
@@ -67,10 +63,6 @@ public class SpliceSpark {
         return ctx;
     }
 
-    public static boolean sparkActive() {
-        return active;
-    }
-
     public static synchronized void setupSpliceStaticComponents() throws IOException {
         try {
             if (!spliceStaticComponentsSetup) {
@@ -103,7 +95,7 @@ public class SpliceSpark {
         String jars = System.getProperty("splice.spark.jars", "");
         String environment = System.getProperty("splice.spark.env", "");
         String cores = System.getProperty("splice.spark.cores", "8");
-        String memory = System.getProperty("splice.spark.memory", "8g");
+        String memory = System.getProperty("splice.spark.memory", "2g");
         String failures = System.getProperty("splice.spark.failures", "4");
         String temp = System.getProperty("splice.spark.tmp", "/tmp");
         String extraOpts = System.getProperty("splice.spark.extra", "");
@@ -120,6 +112,9 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
+//        conf.setJars(files);
+        conf.set("spark.yarn.am.waitTime","10");
+
         if (schedulerFile !=null)
             conf.set("spark.scheduler.allocation.file",schedulerFile);
         conf.set("spark.scheduler.mode", "FAIR");
@@ -145,7 +140,6 @@ public class SpliceSpark {
         conf.set("spark.shuffle.memoryFraction", shuffleMemory);
         conf.set("spark.locality.wait", "600000"); // wait up to 10 minutes for a local execution
         conf.set("spark.logConf", "true");
-        // conf.set("spark.kryo.registrationRequired", "true");
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
             if (localContext == null) {
@@ -159,7 +153,6 @@ public class SpliceSpark {
             // conf.setJars(files);
             conf.set("spark.cores.max", cores);
             conf.set("spark.executor.memory", memory);
-            // conf.set("spark.driver.memory", memory); // Should this be set, what value should it be?
             conf.set("spark.task.maxFailures", failures);
             conf.set("spark.local.dir", temp);
             StringBuilder env = new StringBuilder();

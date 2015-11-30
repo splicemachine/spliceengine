@@ -13,10 +13,8 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.List;
 

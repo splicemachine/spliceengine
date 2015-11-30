@@ -445,8 +445,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 defaultUUID,
                 colInfo.autoincStart,
                 colInfo.autoincInc,
-                colInfo.autoinc_create_or_modify_Start_Increment,
-                columnPosition
+                colInfo.autoinc_create_or_modify_Start_Increment
         );
 
         // Update the ColumnDescriptor with new default info

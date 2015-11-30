@@ -253,8 +253,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         defaultUUID,
                         columnInfo[ix].autoincStart,
                         columnInfo[ix].autoincInc,
-                        columnInfo[ix].autoinc_create_or_modify_Start_Increment,
-                        index-1
+                        columnInfo[ix].autoinc_create_or_modify_Start_Increment
                 );
             else {
                 columnDescriptor = new ColumnDescriptor(
@@ -266,8 +265,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         td,
                         defaultUUID,
                         columnInfo[ix].autoincStart,
-                        columnInfo[ix].autoincInc,
-                        index-1
+                        columnInfo[ix].autoincInc
                 );
             }
             index++;

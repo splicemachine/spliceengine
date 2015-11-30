@@ -26,10 +26,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.storage.StorageLevel;
-
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -43,7 +41,7 @@ import java.util.zip.GZIPOutputStream;
  * @see java.io.Serializable
  *
  */
-public class SparkDataSet<V> implements DataSet<V>, Serializable {
+public class SparkDataSet<V> implements DataSet<V> {
     public JavaRDD<V> rdd;
     public SparkDataSet(JavaRDD<V> rdd) {
         this.rdd = rdd;
@@ -245,5 +243,10 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     @Override
     public void persist() {
         rdd.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
+    }
+
+    @Override
+    public Iterator<V> iterator() {
+        return toLocalIterator();
     }
 }

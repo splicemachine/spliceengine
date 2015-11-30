@@ -2,9 +2,6 @@ package com.splicemachine.si.impl.timestamp;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 
 public class ClientCallback implements Callback {
