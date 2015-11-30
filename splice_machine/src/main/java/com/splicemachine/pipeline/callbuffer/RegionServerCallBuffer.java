@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.callbuffer;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.pipeline.api.*;
+import com.splicemachine.hbase.KVPair;import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.MergingWriteStats;
@@ -45,6 +45,8 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[], RegionCallBuffer
     private final byte[] tableName;
     private final TxnView txn;
 
+    private Pair<byte[],RegionCallBuffer> lastElement;
+
     public RegionServerCallBuffer(byte[] tableName,
                                   TxnView txn,
                                   WriteConfiguration writeConfiguration,
@@ -69,6 +71,7 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[], RegionCallBuffer
     public void add(Pair<byte[], RegionCallBuffer> element) throws Exception {
         SpliceLogUtils.trace(LOG, "add %s", element);
         buffers.put(element.getFirst(), element.getSecond());
+        this.lastElement = element;
     }
 
     @Override
@@ -184,5 +187,9 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[], RegionCallBuffer
     @Override
     public TxnView getTxn() {
         return txn;
+    }
+    @Override
+    public Pair<byte[], RegionCallBuffer> lastElement(){
+        return lastElement;
     }
 }

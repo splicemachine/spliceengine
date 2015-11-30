@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.api;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.hbase.KVPair;import com.splicemachine.si.api.TxnView;
 
 import java.util.Collection;
 
@@ -73,4 +73,9 @@ public interface CallBuffer<E> extends AutoCloseable {
      *
      */
     TxnView getTxn();
+
+    /**
+     * @return the last KVPair added to this buffer. This is an optional method, and may throw UnsupportedOperationException.
+     */
+    E lastElement();
 }
