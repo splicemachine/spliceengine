@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
@@ -19,6 +21,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.stats.ColumnStatistics;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -80,7 +83,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     //need to make sure it's not a pk or indexed column
                     ensureNotKeyed(descriptor, td);
                     descriptor.setCollectStatistics(false);
-                    conn.getLanguageConnection().getDataDictionary().setCollectStats(conn.getLanguageConnection().getTransactionCompile(),td.getUUID(),columnName,false);
+                    conn.getLanguageConnection().getDataDictionary().setCollectStats(conn.getLanguageConnection().getTransactionCompile(), td.getUUID(), columnName, false);
                     return;
                 }
             }
@@ -589,7 +592,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID,new SQLLongint(new Long(conglomId)));
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.PARTITIONID,new SQLVarchar(regionId));
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID,new SQLInteger(columnId));
-        row.setColumn(SYSCOLUMNSTATISTICSRowFactory.DATA,new UserType(columnStatistics));
+        row.setColumn(SYSCOLUMNSTATISTICSRowFactory.DATA, new UserType(columnStatistics));
         return row;
     }
 
