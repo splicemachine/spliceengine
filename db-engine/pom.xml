@@ -113,9 +113,6 @@
                 </dependencies>
             </plugin>
 
-            <!-- ================================================================================================
-            Build english property file from XML.  Create property files for all other languages.
-            ===================================================================================================== -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -192,8 +189,7 @@
 
             The class catalog is generated from class files in db-engine, so we generate it after compiling.
             See above, 'generate-class-size-catalog-source' is bound to prepare-package phase.  Now we have to
-            recompile the single *.java file we generated from that plugin.  Unfortunately this is currently
-            recompiling everything; something to fix/improve in the future.
+            recompile the single *.java file we generated from that plugin.
             ===================================================================================================== -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

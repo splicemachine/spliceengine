@@ -13,7 +13,7 @@
     <artifactId>db-shared</artifactId>
 
     <dependencies>
-        <!-- Since this project is a transitive dependency of db-client we must have ZERO unshaded
+        <!-- Since this module is a transitive dependency of db-client we must have ZERO unshaded
              third party dependencies.  See db-client pom for details. -->
 
 
