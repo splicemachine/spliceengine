@@ -5,10 +5,8 @@ import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
@@ -51,7 +49,6 @@ public class BackupSystemProcedures {
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
     private static final ScheduledExecutorService backupScheduler;
     private static final Map<Long, ScheduledFuture> backupJobMap;
-    private static boolean driverClassLoaded = false;
     private static final String DB_URL_LOCAL = "jdbc:splice://localhost:1527/" + SpliceConstants.SPLICE_DB + ";create=true;user=%s;password=%s";
     public static final String DEFAULT_USER = "splice";
     public static final String DEFAULT_USER_PASSWORD = "admin";
@@ -638,23 +635,11 @@ public class BackupSystemProcedures {
     }
 
     private static Connection getConnection() throws SQLException{
-        loadDriver();
         return DriverManager.getConnection(getURL(DB_URL_LOCAL, DEFAULT_USER, DEFAULT_USER_PASSWORD), new Properties());
     }
 
     private static String getURL(String providedURL, String userName, String password) {
         return String.format(providedURL, userName, password);
-    }
-    private synchronized static void loadDriver() {
-        if(!driverClassLoaded) {
-            SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
-            try {
-                DriverManager.registerDriver(new ClientDriver());
-                driverClassLoaded = true;
-            } catch (SQLException e) {
-                throw new IllegalStateException("Unable to load the JDBC driver.");
-            }
-        }
     }
 
     private static void deleteBackup(String directory, long backupId) throws IOException, StandardException{
