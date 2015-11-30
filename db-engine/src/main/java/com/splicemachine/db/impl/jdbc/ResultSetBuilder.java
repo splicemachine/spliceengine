@@ -49,6 +49,9 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
  *		rsBuilder.getColumnBuilder()
  *			.addColumn("PROCEDURE_CAT", Types.VARCHAR, 128)
  *			.addColumn("COLUMN_TYPE", Types.SMALLINT)
+ *
+ *
+ *
  *			.addColumn("DATA_TYPE", Types.INTEGER)
  *		;
  *		// Step 2: Add the rows.  NOTE: The columns are now frozen (no changes allowed).

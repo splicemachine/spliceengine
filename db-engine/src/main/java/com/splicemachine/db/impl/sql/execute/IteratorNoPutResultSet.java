@@ -13,11 +13,9 @@ import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
-
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * A simple implementation of a NoPutResultSet that allows for iterating through its rows.  In order to instantiate this ResultSet,
@@ -30,25 +28,24 @@ import java.util.List;
  *         Date: 2/4/14
  */
 public class IteratorNoPutResultSet implements NoPutResultSet {
-		private final List<ExecRow> results;
 		private final Activation activation;
-
 		private Iterator<ExecRow> nextRow;
+        private Iterable<ExecRow> iterable;
 		private ExecRow currentRow;
-
 		private final ResultDescription description;
 
+        public IteratorNoPutResultSet(Iterable<ExecRow> iterable, ResultColumnDescriptor[] columnDescriptors,Activation activation) {
+            this.iterable = iterable;
+            this.activation = activation;
+            this.description = new GenericResultDescription(columnDescriptors,"select");
+        }
 
-		public IteratorNoPutResultSet(List<ExecRow> results, ResultColumnDescriptor[] columnDescriptors,Activation activation) {
-				this.results = results;
-				this.activation = activation;
 
-				this.description = new GenericResultDescription(columnDescriptors,"select");
-		}
+    @Override public void markAsTopResultSet() {  }
 
-		@Override public void markAsTopResultSet() {  }
-
-		@Override public void openCore() throws StandardException { this.nextRow = results.iterator(); }
+		@Override public void openCore() throws StandardException {
+            this.nextRow = iterable.iterator();
+        }
 
 		@Override public void reopenCore() throws StandardException { openCore(); }
 
@@ -66,7 +63,7 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override public void setNeedsRowLocation(boolean needsRowLocation) {  }
 
-		@Override public double getEstimatedRowCount() { return results.size(); }
+		@Override public double getEstimatedRowCount() { return 0; }
 
 		@Override public int resultSetNumber() { return 0; }
 
@@ -100,7 +97,7 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override
 		public ExecRow getAbsoluteRow(int row) throws StandardException {
-				return results.get(row);
+			    throw new RuntimeException("Not Supported");
 		}
 
 		@Override
@@ -115,13 +112,12 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override
 		public ExecRow setBeforeFirstRow() throws StandardException {
-				this.nextRow = results.iterator();
-				return results.get(0);
+				throw new RuntimeException("Not Supported");
 		}
 
 		@Override
 		public ExecRow getFirstRow() throws StandardException {
-				return results.get(0);
+            throw new RuntimeException("Not Supported");
 		}
 
 		@Override public ExecRow getNextRow() throws StandardException { return getNextRowCore(); }
@@ -130,13 +126,12 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override
 		public ExecRow getLastRow() throws StandardException {
-				return results.get(results.size()-1);
+            throw new RuntimeException("Not Supported");
 		}
 
 		@Override
 		public ExecRow setAfterLastRow() throws StandardException {
-				nextRow=null;
-				return results.get(results.size()-1);
+            throw new RuntimeException("Not Supported");
 		}
 
 		@Override public void clearCurrentRow() { this.currentRow=null; }

@@ -211,6 +211,14 @@ public interface DataDictionary{
     int SYSSEQUENCES_CATALOG_NUM=18;
     int SYSPERMS_CATALOG_NUM=19;
     int SYSUSERS_CATALOG_NUM=20;
+    int SYSBACKUP_CATALOG_NUM=21;
+    int SYSBACKUPFILESET_CATALOG_NUM=22;
+    int SYSBACKUPITEMS_CATALOG_NUM=23;
+    int SYSBACKUPJOBS_CATALOG_NUM=24;
+    int SYSCOLUMNSTATS_CATALOG_NUM=25;
+    int SYSPHYSICALSTATS_CATALOG_NUM=26;
+    int SYSTABLESTATS_CATALOG_NUM=27;
+
 
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
@@ -781,6 +789,40 @@ public interface DataDictionary{
      * @throws StandardException Thrown on failure
      */
     ConstraintDescriptorList getConstraintDescriptors(TableDescriptor td) throws StandardException;
+
+    /**
+     * Handlers whether a column should collect statistics or not.
+     *
+     * @param tc
+     * @param tableUUID
+     * @param columnName
+     * @param collectStats
+     * @throws StandardException
+     */
+    public void setCollectStats(TransactionController tc,
+                                UUID tableUUID,
+                                String columnName,
+                                boolean collectStats) throws StandardException;
+
+    /**
+     * Removes Table Statistics from SYSTABLESTATS.
+     *
+     * @param conglomerate
+     * @param tc
+     * @throws StandardException
+     */
+    public void deleteTableStatistics(long conglomerate,
+                                      TransactionController tc) throws StandardException;
+
+    /**
+     * Removes Column Statistics from SYSCOLUMNSTATS.
+     *
+     * @param conglomerate
+     * @param tc
+     * @throws StandardException
+     */
+    public void deleteColumnStatistics(long conglomerate,
+                                      TransactionController tc) throws StandardException;
 
     /**
      * Convert a constraint descriptor list into a list

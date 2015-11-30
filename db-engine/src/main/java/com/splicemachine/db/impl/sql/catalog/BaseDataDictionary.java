@@ -117,8 +117,15 @@ public abstract class BaseDataDictionary implements DataDictionary, CacheableFac
 									"SYSROLES",
                                     "SYSSEQUENCES",
                                     "SYSPERMS",
-                                    "SYSUSERS"
-                                    };
+                                    "SYSUSERS",
+                                    "SYSBACKUP",
+                                    "SYSBACKUPFILESET",
+                                    "SYSBACKUPITEMS",
+                                    "SYSBACKUPJOBS",
+                                    "SYSCOLUMNSTATS",
+                                    "SYSPHYSICALSTATS",
+                                    "SYSTABLESTATS"
+};
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
 	

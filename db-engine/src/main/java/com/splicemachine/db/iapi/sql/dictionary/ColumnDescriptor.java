@@ -25,9 +25,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.UUID;
 
@@ -70,7 +68,6 @@ public final class ColumnDescriptor extends TupleDescriptor
     private long				autoincValue;
     private boolean collectStatistics;
     /* Used for Serde */
-    private int                 columnSequence;
     //Following variable is used to see if the user is adding an autoincrement
     //column, or if user is altering the existing autoincrement column to change
     //the increment value or to change the start value. If none of the above,
@@ -107,11 +104,11 @@ public final class ColumnDescriptor extends TupleDescriptor
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
                             UUID defaultUUID, long autoincStart, long autoincInc,
-                            long userChangedWhat, int columnSequence)
+                            long userChangedWhat)
     {
         this(columnName, columnPosition, columnType, columnDefault,
                 columnDefaultInfo, table, defaultUUID, autoincStart,
-                autoincInc,columnSequence);
+                autoincInc);
         autoinc_create_or_modify_Start_Increment = userChangedWhat;
     }
 
@@ -137,7 +134,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
-                            UUID defaultUUID, long autoincStart, long autoincInc, int columnSequence)
+                            UUID defaultUUID, long autoincStart, long autoincInc)
     {
         this.columnName = columnName;
         this.columnPosition = columnPosition;
@@ -159,8 +156,6 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincValue = autoincStart;
         this.autoincInc = autoincInc;
         this.collectStatistics = allowsStatistics(columnType);
-        this.columnSequence = columnSequence;
-
     }
 
     /**
@@ -199,8 +194,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                     autoincStart,
                     autoincInc,
                     autoincValue,
-                    allowsStatistics(columnType),
-                    columnSequence);
+                    allowsStatistics(columnType));
     }
 
     public ColumnDescriptor(String columnName,
@@ -213,7 +207,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                             long autoincStart,
                             long autoincInc,
                             long autoincValue,
-                            boolean collectStats, int columnSequence){
+                            boolean collectStats){
         this.columnName = columnName;
         this.columnPosition = columnPosition;
         this.columnType = columnType;
@@ -222,13 +216,10 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.uuid = uuid;
         this.defaultUUID = defaultUUID;
         this.collectStatistics = collectStats;
-
         assertAutoinc(autoincInc!=0, autoincInc, columnDefaultInfo);
-
         this.autoincStart = autoincStart;
         this.autoincValue = autoincValue;
         this.autoincInc = autoincInc;
-        this.columnSequence = columnSequence;
     }
 
     public boolean collectStatistics(){
@@ -247,10 +238,6 @@ public final class ColumnDescriptor extends TupleDescriptor
     public UUID	getReferencingUUID()
     {
         return uuid;
-    }
-
-    public int getColumnSequence () {
-        return columnSequence;
     }
 
     /**

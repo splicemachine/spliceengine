@@ -57,7 +57,6 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1550,6 +1549,24 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ti.deleteRow(tc,keyRow,SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX);
     }
 
+
+    @Override
+    public void deleteTableStatistics(long conglomerate,
+                              TransactionController tc) throws StandardException{
+        TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLLongint(conglomerate));
+        ti.deleteRow(tc,keyRow,SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID);
+    }
+
+    @Override
+    public void deleteColumnStatistics(long conglomerate,
+                                      TransactionController tc) throws StandardException{
+        TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLLongint(conglomerate));
+        ti.deleteRow(tc,keyRow,SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX3_ID);
+    }
 
     /**
      * Drop the descriptor for a schema, given the schema's name
@@ -6475,7 +6492,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         for(int ictr=0;ictr<NUM_CORE;ictr++){
 			/* RESOLVE - need to do something with COLUMNTYPE in following table creating code */
             TabInfoImpl ti=coreInfo[ictr];
-
             addSystemTableToDictionary(ti,systemSchemaDesc,tc,ddg);
         }
 
@@ -6968,7 +6984,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         boolean isUnique=ti.isIndexUnique(indexNumber);
         //Splice is always higher than 10.4
-        IndexRowGenerator irg=new IndexRowGenerator("BTREE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength);
+        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength);
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);
@@ -7645,10 +7661,30 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSUSERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSUSERSRowFactory(luuidFactory,exFactory,dvf));
                     break;
+                case SYSBACKUP_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSBACKUPRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSBACKUPFILESET_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSBACKUPITEMS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSBACKUPJOBS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSCOLUMNSTATS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSPHYSICALSTATS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSTABLESTATS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+
             }
-
             initSystemIndexVariables(retval);
-
             noncoreInfo[nonCoreNum]=retval;
         }
 
@@ -7948,6 +7984,40 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
     }
+
+    /**
+     * sets whether to collect stats for a column
+     *
+     * @param tc              Transaction Controller to use.
+     * @param columnName      Name of the column.
+     * @param collectStats         Value to write to SYSCOLUMNS.
+     */
+    @Override
+    public void setCollectStats(TransactionController tc,
+                                      UUID tableUUID,
+                                      String columnName,
+                                      boolean collectStats) throws StandardException{
+        TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
+        ExecIndexRow keyRow;
+
+        keyRow=exFactory.getIndexableRow(2);
+        keyRow.setColumn(1,getIDValueAsCHAR(tableUUID));
+        keyRow.setColumn(2,new SQLChar(columnName));
+
+        SYSCOLUMNSRowFactory rf=(SYSCOLUMNSRowFactory)ti.getCatalogRowFactory();
+        ExecRow row=rf.makeEmptyRow();
+
+        boolean[] bArray=new boolean[2];
+        for(int index=0;index<2;index++){
+            bArray[index]=false;
+        }
+        int[] colsToUpdate=new int[1];
+        colsToUpdate[0]=SYSCOLUMNSRowFactory.SYSCOLUMNS_COLLECTSTATS;
+        row.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_AUTOINCREMENTVALUE,new SQLBoolean(collectStats));
+        ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
+    }
+
+
 
     /**
      * Computes the RowLocation in SYSCOLUMNS for a particular
@@ -8552,11 +8622,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     tc);
         }
 
-        // void 
-        // SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE_NOWAIT(
-        //   IN BACKUPDIR                 VARCHAR(Limits.DB2_VARCHAR_MAXWIDTH),
-        //   IN DELETE_ARCHIVED_LOG_FILES SMALLINT
-        //   )
         {
             // procedure argument names
             String[] arg_names={"BACKUPDIR","DELETE_ARCHIVED_LOG_FILES"};
