@@ -4,7 +4,6 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.stats.ColumnStatistics;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionLoad;
-
 import java.util.*;
 
 /**
@@ -47,11 +46,6 @@ public class RegionLoadStatistics{
             partitionStats.add(new FakedPartitionStatistics(table,partition.getEncodedName(),
                     numRows,
                     heapBytes,
-                    0l,
-                    StatsConstants.fallbackLocalLatency*numRows,
-                    perRowRemoteLatency*numRows,
-                    StatsConstants.fallbackOpenCloseLatency,1l,
-                    StatsConstants.fallbackOpenCloseLatency,1l,
                     Collections.<ColumnStatistics>emptyList()));
         }
         return new GlobalStatistics(table,partitionStats);

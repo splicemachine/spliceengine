@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.derby.iapi.catalog.PhysicalStatsDescriptor;
-
+import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;
 import java.util.List;
 
 /**

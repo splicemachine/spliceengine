@@ -4,10 +4,10 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.TableStatisticsDescriptor;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
-import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
@@ -140,11 +140,6 @@ public class PartitionStatsStore {
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
-                        tStats.getQueryCount(),
-                        tStats.getLocalReadLatency(),
-                        tStats.getRemoteReadLatency(),
-                        tStats.getOpenScannerLatency(), 1l,
-                        tStats.getCloseScannerLatency(), 1l,
                         copy);
                 partitionStats.add(pStats);
             }else if(columnStatsMap.size()>0){
@@ -170,11 +165,6 @@ public class PartitionStatsStore {
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
-                        tStats.getQueryCount(),
-                        tStats.getLocalReadLatency(),
-                        tStats.getRemoteReadLatency(),
-                        tStats.getOpenScannerLatency(),1l,
-                        tStats.getCloseScannerLatency(),1l,
                         Collections.<ColumnStatistics>emptyList());
                 partitionStats.add(pStats);
             }
@@ -235,11 +225,6 @@ public class PartitionStatsStore {
                     tStats.getPartitionId(),
                     tStats.getRowCount(),
                     tStats.getPartitionSize(),
-                    tStats.getQueryCount(),
-                    tStats.getLocalReadLatency(),
-                    tStats.getRemoteReadLatency(),
-                    tStats.getOpenScannerLatency(),1l,
-                    tStats.getCloseScannerLatency(),1l,
                     copy);
             partitionStats.add(pStats);
         }

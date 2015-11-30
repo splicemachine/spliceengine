@@ -17,9 +17,7 @@ public interface STableWriter<Table, Mutation, Put, Delete> {
     void write(Table Table, Put put, boolean durable) throws IOException;
     void write(Table Table, List<Put> puts) throws IOException;
     OperationStatus[] writeBatch(Table table, Pair<Mutation, SRowLock>[] puts) throws IOException;
-
     void delete(Table Table, Delete delete, SRowLock lock) throws IOException;
-
     /**
      * @param table the table to lock on
      * @param rowKey the row to lock
@@ -29,7 +27,6 @@ public interface STableWriter<Table, Mutation, Put, Delete> {
 
     SRowLock tryLock(Table table, ByteSlice rowKey) throws IOException;
 
-    //TODO -sf- can we replace this with an actual Lock abstraction?
     SRowLock lockRow(Table Table, byte[] rowKey) throws IOException;
     void unLockRow(Table Table, SRowLock lock) throws IOException;
     boolean checkAndPut(Table Table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;

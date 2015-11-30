@@ -13,12 +13,8 @@ public interface STableReader<Table, Get, Scan> {
     Table open(String tableName) throws IOException;
     void close(Table table) throws IOException;
     String getTableName(Table table);
-
     Result get(Table table, Get get) throws IOException;
     CloseableIterator<Result> scan(Table table, Scan scan) throws IOException;
-
-    // These methods deal with low-level, server-side region scanners.
-
     void openOperation(Table table) throws IOException;
     void closeOperation(Table table) throws IOException;
 }

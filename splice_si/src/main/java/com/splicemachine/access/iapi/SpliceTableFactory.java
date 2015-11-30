@@ -1,6 +1,5 @@
 package com.splicemachine.access.iapi;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 /**

@@ -4,6 +4,5 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 
 public interface SRowLock {
     void unlock();
-
     HRegion.RowLock getDelegate();
 }

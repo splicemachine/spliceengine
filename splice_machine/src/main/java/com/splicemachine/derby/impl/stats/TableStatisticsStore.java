@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableStatisticsDescriptor;
 import com.splicemachine.si.api.TxnView;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;

@@ -92,13 +92,6 @@ public class StatisticsCollector {
                 regionId,
                 rowCount,
                 byteCount,
-                0l, //TODO -sf- get Query count for this region
-                localReadTimeMicros,
-                remoteReadTimeMicros,
-                getOpenScannerTimeMicros(),
-                getOpenScannerEvents(),
-                getCloseScannerTimeMicros(),
-                getCloseScannerEvents(),
                 columnStats);
 
     }

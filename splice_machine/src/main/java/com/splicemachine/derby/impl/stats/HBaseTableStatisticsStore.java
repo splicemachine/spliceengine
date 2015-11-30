@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableStatisticsDescriptor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;

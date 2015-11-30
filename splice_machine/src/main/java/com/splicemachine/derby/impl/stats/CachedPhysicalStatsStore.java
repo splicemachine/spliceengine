@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.derby.iapi.catalog.PhysicalStatsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;
 import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.List;

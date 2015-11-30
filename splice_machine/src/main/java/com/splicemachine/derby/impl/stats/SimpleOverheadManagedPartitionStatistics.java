@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.stats;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.SimplePartitionStatistics;
-
 import java.util.List;
 
 /**
@@ -21,30 +20,13 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
                                                     String partitionId,
                                                     long rowCount,
                                                     long totalBytes,
-                                                    long queryCount,
-                                                    long totalLocalReadTime,
-                                                    long totalRemoteReadLatency,
-                                                    long openScannerTimeMicros,
-                                                    long openScannerEvents,
-                                                    long closeScannerTimeMicros,
-                                                    long closeScannerEvents,
                                                     List<ColumnStatistics> columnStatistics){
-        super(tableId,partitionId,rowCount,totalBytes,queryCount,
+        super(tableId,partitionId,rowCount,totalBytes,1,
                 StatsConstants.fallbackLocalLatency*rowCount,StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency*rowCount,columnStatistics);
         this.totalOpenScannerTime = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
         this.totalCloseScannerTime = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
         this.numOpenEvents = 1l;
         this.numCloseEvents = 1l;
-
-
-        /*
-        super(tableId,partitionId,rowCount,totalBytes,queryCount,
-                totalLocalReadTime,totalRemoteReadLatency,columnStatistics);
-        this.totalOpenScannerTime = openScannerTimeMicros;
-        this.totalCloseScannerTime = closeScannerTimeMicros;
-        this.numOpenEvents = openScannerEvents;
-        this.numCloseEvents = closeScannerEvents;
-        */
     }
 
     @Override

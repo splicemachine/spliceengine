@@ -246,4 +246,9 @@ public class ControlDataSet<V> implements DataSet<V> {
     public void persist() {
         // no op
     }
+
+    @Override
+    public Iterator<V> iterator() {
+        return this.toLocalIterator();
+    }
 }

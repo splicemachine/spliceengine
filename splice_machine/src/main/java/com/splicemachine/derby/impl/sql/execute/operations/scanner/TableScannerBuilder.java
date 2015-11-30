@@ -266,8 +266,7 @@ public class TableScannerBuilder implements Externalizable {
                         tableVersion,
                         filterFactory,
                         fieldLengths,
-                        columnPositionMap,
-                        baseTableConglomId);
+                        columnPositionMap);
             }
             else {
                 return new SITableScanner(
