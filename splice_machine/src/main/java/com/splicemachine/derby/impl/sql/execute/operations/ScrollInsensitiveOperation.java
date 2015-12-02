@@ -263,4 +263,10 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
             operationContext.popScope();
         }
     }
+    
+    public String getSparkStageName() {
+        return "Produce Result Set (Insensitive Scroll)";
+    }
+    
+
 }
