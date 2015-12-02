@@ -882,6 +882,12 @@
 			</modules>
 		</profile>
 		<profile>
+			<id>cdh5.4.8</id>
+			<modules>
+				<module>cdh5.4.8</module>
+			</modules>
+		</profile>
+		<profile>
 			<id>hdp2.1.7</id>
 			<modules>
 				<module>hdp2.1.7</module>
