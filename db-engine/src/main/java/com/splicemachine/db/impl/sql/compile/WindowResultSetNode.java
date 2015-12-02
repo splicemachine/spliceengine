@@ -1344,8 +1344,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
-        return spaceToLevel() + "WindowFunction" + "(" + "n=" + order + "," +
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+        return spaceToLevel() + "WindowFunction" + "(" + "n=" + order + attrDelim +
             getFinalCostEstimate().prettyProjectionString() + ")";
     }
 
