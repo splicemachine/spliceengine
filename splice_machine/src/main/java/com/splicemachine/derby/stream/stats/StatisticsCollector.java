@@ -18,6 +18,7 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public class StatisticsCollector {
         HRegionInfo region = regionScanner.getRegionInfo();
         String conglomId = region.getTable().getQualifierAsString();
         regionId = region.getEncodedName();
-        tableConglomerateId = new Long((conglomId));
+        tableConglomerateId = new Long((TableName.valueOf(conglomId).getQualifierAsString()));
         dvdCollectors = getCollectors();
         fieldLengths = new int[dvdCollectors.length];
     }

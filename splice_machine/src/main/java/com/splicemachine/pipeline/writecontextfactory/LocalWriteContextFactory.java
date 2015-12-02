@@ -443,7 +443,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     ConglomerateDescriptor srcConglomDesc = uniqueIndexConglom.isPresent() ? uniqueIndexConglom.get() : currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor = srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
 
-                    TentativeIndex ti = ProtoUtil.createTentativeIndex(lcc,srcConglomDesc.getConglomerateNumber(),
+                    TentativeIndex ti = ProtoUtil.createTentativeIndex(lcc, td.getBaseConglomerateDescriptor().getConglomerateNumber(),
                             indexConglom.get().getConglomerateNumber(),td,indexDescriptor);
                     IndexFactory indexFactory = IndexFactory.create(ti);
                     replace(indexFactory);
