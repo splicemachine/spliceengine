@@ -21,6 +21,9 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimaps;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -29,9 +32,6 @@ import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.*;
-import com.splicemachine.db.iapi.services.cache.CacheFactory;
-import com.splicemachine.db.iapi.services.cache.CacheManager;
-import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -57,6 +57,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,7 +66,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Types;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +90,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     ** SchemaDescriptors for system and app schemas.  Both
 	** are canonical.  We cache them for fast lookup.
 	*/
+
     protected SchemaDescriptor systemSchemaDesc;
     protected SchemaDescriptor sysIBMSchemaDesc;
     protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
@@ -141,19 +142,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected TransactionController bootingTC;
     protected DependencyManager dmgr;
 
-    /* Cache of table descriptors */
-    CacheManager OIDTdCache;
-    CacheManager nameTdCache;
-    private CacheManager spsNameCache;
-    private CacheManager sequenceGeneratorCache;
-    private Map<UUID, SPSDescriptor> spsIdHash;
-    // private Hashtable       spsTextHash;
-    int tdCacheSize;
-    int stmtCacheSize;
-
-    /* Cache of permissions data */
-    CacheManager permissionsCache;
-    int permissionsCacheSize;
+    protected DataDictionaryCache dataDictionaryCache;
 
     /*
     ** Lockable object for synchronizing transition from caching to non-caching
@@ -235,9 +224,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public boolean canSupport(Properties startParams){
         return Monitor.isDesiredType(startParams,EngineType.STANDALONE_DB);
     }
-
-    @Override
-    public abstract StatisticsStore getStatisticsStore();
 
     /**
      * Start-up method for this instance of the data dictionary.
@@ -346,57 +332,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         }
 
-
-        String value=startParams.getProperty(Property.LANG_TD_CACHE_SIZE);
-        tdCacheSize=PropertyUtil.intPropertyValue(Property.LANG_TD_CACHE_SIZE,value,
-                0,Integer.MAX_VALUE,Property.LANG_TD_CACHE_SIZE_DEFAULT);
-
-
-        value=startParams.getProperty(Property.LANG_SPS_CACHE_SIZE);
-        stmtCacheSize=PropertyUtil.intPropertyValue(Property.LANG_SPS_CACHE_SIZE,value,
-                0,Integer.MAX_VALUE,Property.LANG_SPS_CACHE_SIZE_DEFAULT);
-
-        value=startParams.getProperty(Property.LANG_SEQGEN_CACHE_SIZE);
-        int seqgenCacheSize=PropertyUtil.intPropertyValue(Property.LANG_SEQGEN_CACHE_SIZE,value,
-                0,Integer.MAX_VALUE,Property.LANG_SEQGEN_CACHE_SIZE_DEFAULT);
-
-        value=startParams.getProperty(Property.LANG_PERMISSIONS_CACHE_SIZE);
-        permissionsCacheSize=PropertyUtil.intPropertyValue(Property.LANG_PERMISSIONS_CACHE_SIZE,value,
-                0,Integer.MAX_VALUE,Property.LANG_PERMISSIONS_CACHE_SIZE_DEFAULT);
-
-		/*
-         * data dictionary contexts are only associated with connections.
-		 * we have to look for the basic data dictionary, as there is
-		 * no connection, and thus no context stack yet.
-		 */
-
-		/*
-         * Get the table descriptor cache.
-		 */
-        CacheFactory cf=(CacheFactory)Monitor.startSystemModule(Module.CacheFactory);
-        OIDTdCache=
-                cf.newCacheManager(this,
-                        "TableDescriptorOIDCache",
-                        tdCacheSize,
-                        tdCacheSize);
-        nameTdCache=
-                cf.newCacheManager(this,
-                        "TableDescriptorNameCache",
-                        tdCacheSize,
-                        tdCacheSize);
-
-        if(stmtCacheSize>0){
-            spsNameCache=
-                    cf.newCacheManager(this,
-                            "SPSNameDescriptorCache",
-                            stmtCacheSize,
-                            stmtCacheSize);
-            spsIdHash=new ConcurrentHashMap<>(stmtCacheSize); //not sure if it needs to be synchronous, but just to be safe
-            // spsTextHash = new Hashtable(stmtCacheSize);
-        }
-
-        sequenceGeneratorCache=cf.newCacheManager
-                (this,"SequenceGeneratorCache",seqgenCacheSize,seqgenCacheSize);
+        dataDictionaryCache = new DataDictionaryCache(startParams);
 
         sequenceIDs=new HashMap<>();
 
@@ -624,24 +560,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    private CacheManager getPermissionsCache() throws StandardException{
-        if(permissionsCache==null){
-            CacheFactory cf=(CacheFactory)Monitor.startSystemModule(Module.CacheFactory);
-            LanguageConnectionContext lcc=getLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            permissionsCacheSize=PropertyUtil.getServiceInt(tc,
-                    Property.LANG_PERMISSIONS_CACHE_SIZE,
-                    40, /* min value */
-                    Integer.MAX_VALUE,
-                    permissionsCacheSize /* value from boot time. */);
-            permissionsCache=cf.newCacheManager(this,
-                    "PermissionsCache",
-                    permissionsCacheSize,
-                    permissionsCacheSize);
-        }
-        return permissionsCache;
-    } // end of getPermissionsCache
-
     /**
      * sets the dependencymanager associated with this dd. subclasses can
      * override this to install their own funky dependency manager.
@@ -663,24 +581,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void stop(){
-    }
-
-    /*
-    ** CacheableFactory interface
-	*/
-    @Override
-    public Cacheable newCacheable(CacheManager cm){
-        if(cm==OIDTdCache){
-            return new OIDTDCacheable(this);
-        }else if(cm==nameTdCache){
-            return new NameTDCacheable(this);
-        }else if(cm==permissionsCache){
-            return new PermissionsCacheable(this);
-        }else if(cm==sequenceGeneratorCache){
-            return new SequenceUpdater.SyssequenceUpdater(this);
-        }else{
-            return new SPSNameCacheable(this);
-        }
     }
 
 	/*
@@ -1332,8 +1232,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return The row for the schema
      * @throws StandardException Thrown on error
      */
-    public abstract SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException;
+    @Override
+    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
+        DataValueDescriptor schemaNameOrderable;
+        TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
+        schemaNameOrderable=new SQLVarchar(schemaName);
+
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,schemaNameOrderable);
+
+        return (SchemaDescriptor)
+                getDescriptorViaIndex(
+                        SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        tc);
+    }
 
     /**
      * Get the SchemaDescriptor for the given schema identifier.
@@ -1469,6 +1389,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return result;
     }
 
+    @Override
+    public void addColumnStatistics(ExecRow row,
+                              TransactionController tc) throws StandardException{
+        TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
+    @Override
+    public void addTableStatistics(ExecRow row,
+                                    TransactionController tc) throws StandardException{
+        TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
+        int insertRetCode=ti.insertRow(row,tc);
+    }
+
 
     @Override
     public void addDescriptor(TupleDescriptor td,
@@ -1551,12 +1485,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
 
     @Override
-    public void deleteTableStatistics(long conglomerate,
-                              TransactionController tc) throws StandardException{
+    public void deletePartitionStatistics(long conglomerate,
+                                          TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,new SQLLongint(conglomerate));
-        ti.deleteRow(tc,keyRow,SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID);
+        ti.deleteRow(tc,keyRow, SYSPARTITIONSTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID);
+        deleteColumnStatistics(conglomerate,tc);
     }
 
     @Override
@@ -1566,6 +1501,58 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,new SQLLongint(conglomerate));
         ti.deleteRow(tc,keyRow,SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX3_ID);
+    }
+
+    @Override
+    public List<PartitionStatisticsDescriptor> getPartitionStatistics(long conglomerate, TransactionController tc) throws StandardException {
+        List<PartitionStatisticsDescriptor> partitionStatisticsDescriptors = dataDictionaryCache.partitionStatisticsCacheFind(conglomerate);
+        if (partitionStatisticsDescriptors!=null)
+            return partitionStatisticsDescriptors;
+        partitionStatisticsDescriptors = new ArrayList();
+        TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
+        DataValueDescriptor startStop =new SQLLongint(conglomerate);
+		/* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, startStop);
+        PartitionStatisticsDescriptor td=(PartitionStatisticsDescriptor)getDescriptorViaIndex(
+                SYSPARTITIONSTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                partitionStatisticsDescriptors,
+                false);
+        List<ColumnStatsDescriptor> columnStats = getColumnStatistics(conglomerate, tc);
+        ImmutableListMultimap columnStatsMap = Multimaps.index(columnStats,new Function<ColumnStatsDescriptor,String>() {
+             @Override
+             public String apply(@Nullable ColumnStatsDescriptor input) {
+                 return input.getPartitionId();
+             }
+         });
+        for (PartitionStatisticsDescriptor desc: partitionStatisticsDescriptors) {
+            desc.setColumnStatsDescriptors(columnStatsMap.get(desc.getPartitionId()));
+        }
+        dataDictionaryCache.partitionStatisticsCacheAdd(conglomerate,partitionStatisticsDescriptors);
+        return partitionStatisticsDescriptors;
+    }
+
+    @Override
+    public List<ColumnStatsDescriptor> getColumnStatistics(long conglomerate, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
+        DataValueDescriptor startStop =new SQLLongint(conglomerate);
+		/* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, startStop);
+        List<ColumnStatsDescriptor> columnStatisticsDescriptors = new ArrayList();
+        ColumnStatsDescriptor cd=(ColumnStatsDescriptor)getDescriptorViaIndex(
+                SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                columnStatisticsDescriptors,
+                false);
+        return columnStatisticsDescriptors;
     }
 
     /**
@@ -1645,22 +1632,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TableKey tableKey=new TableKey(schemaUUID,tableName);
 
 		/* Only use the cache if we're in compile-only mode */
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-            NameTDCacheable cacheEntry=(NameTDCacheable)nameTdCache.find(tableKey);
-            if(cacheEntry!=null){
-                retval=cacheEntry.getTableDescriptor();
-                // bind in previous command might have set refernced cols
+        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE) {
+            retval = dataDictionaryCache.nameTdCacheFind(tableKey);
+            if (retval != null) {
                 retval.setReferencedColumnMap(null);
-                if(retval.getSchemaDescriptor()==null){
+                if (retval.getSchemaDescriptor() == null) {
                     retval.setSchemaDesctiptor(sd);
                 }
-                nameTdCache.release(cacheEntry);
             }
-            return retval;
         }
-
         return getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
-
     }
 
     public TableDescriptor invalidate(TableDescriptor oldTable) throws StandardException{
@@ -1668,11 +1649,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 		/* Only using cache if we're in compile-only mode */
         if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
             TableKey tableKey=new TableKey(oldTable.getSchemaDescriptor().getUUID(),oldTable.getName());
-            NameTDCacheable cacheEntry=(NameTDCacheable)nameTdCache.find(tableKey);
-            if(cacheEntry!=null){
-                oldDescriptor=cacheEntry.getTableDescriptor();
-                nameTdCache.remove(cacheEntry);
-            }
+            return dataDictionaryCache.nameTdCacheInvalidate(tableKey);
         }
         return oldDescriptor;
     }
@@ -1740,23 +1717,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public TableDescriptor getTableDescriptor(UUID tableID) throws StandardException{
-        OIDTDCacheable cacheEntry;
-        TableDescriptor retval=null;
-
-		/* Only use the cache if we're in compile-only mode */
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-            cacheEntry=(OIDTDCacheable)OIDTdCache.find(tableID);
-            if(cacheEntry!=null){
-                retval=cacheEntry.getTableDescriptor();
-                // bind in previous command might have set refernced cols
-                retval.setReferencedColumnMap(null);
-                OIDTdCache.release(cacheEntry);
-            }
-
-            return retval;
-
-        }
-
+        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE) // Only use in Compile Only Mode
+            return dataDictionaryCache.oidTdCacheFind(tableID);
         return getTableDescriptorIndex2Scan(tableID.toString());
     }
 
@@ -2454,9 +2416,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     private void removePermEntryInCache(PermissionsDescriptor perm) throws StandardException{
         // Remove cached permissions entry if present
-        Cacheable cacheEntry=getPermissionsCache().findCached(perm);
-        if(cacheEntry!=null)
-            getPermissionsCache().remove(cacheEntry);
+        dataDictionaryCache.permissionCacheRemove(perm);
     }
 
     /**
@@ -3213,61 +3173,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public SPSDescriptor getSPSDescriptor(UUID uuid) throws StandardException{
         SPSDescriptor sps;
-
 		/* Make sure that non-core info is initialized */
         getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
-
 		/* Only use the cache if we're in compile-only mode */
-        if((spsNameCache!=null) && (getCacheMode()==DataDictionary.COMPILE_ONLY_MODE)){
-            sps=spsIdHash.get(uuid);
+        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
+            sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
             if(sps!=null){
-                //System.out.println("found in hash table ");
-                // System.out.println("stmt text " + sps.getText());
-
                 return sps;
             }
-
             sps=getSPSDescriptorIndex2Scan(uuid.toString());
             TableKey stmtKey=new TableKey(sps.getSchemaDescriptor().getUUID(),sps.getName());
-            try{
-                SPSNameCacheable cacheEntry=(SPSNameCacheable)spsNameCache.create(stmtKey,sps);
-                spsNameCache.release(cacheEntry);
-            }catch(StandardException se){
-				/*
-				** If the error is that the item is already
-				** in the cache, then that is ok.
-				*/
-                if(SQLState.OBJECT_EXISTS_IN_CACHE.equals(se.getMessageId())){
-                    return sps;
-                }else{
-                    throw se;
-                }
-            }
-
+             dataDictionaryCache.spsNameCacheAdd(stmtKey,sps);
         }else{
             sps=getSPSDescriptorIndex2Scan(uuid.toString());
         }
-
         return sps;
     }
-
-    /**
-     * Add an entry to the hashtables for lookup from the cache.
-     */
-    void spsCacheEntryAdded(SPSDescriptor spsd){
-        spsIdHash.put(spsd.getUUID(),spsd);
-        // spsTextHash.put(spsd.getText(), spsd);
-    }
-
-    void spsCacheEntryRemoved(SPSDescriptor spsd){
-        spsIdHash.remove(spsd.getUUID());
-        // spsTextHash.remove(spsd.getText());
-    }
-
-    //public SPSDescriptor getSPSBySQLText(String text) {
-
-    //	return (SPSDescriptor) spsTextHash.get(text);
-    //}
 
     /**
      * This method can get called from the DataDictionary cache.
@@ -3325,31 +3246,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public SPSDescriptor getSPSDescriptor(String stmtName,SchemaDescriptor sd) throws StandardException{
-        SPSDescriptor sps=null;
-        TableKey stmtKey;
-        UUID schemaUUID;
-
 		/*
 		** If we didn't get a schema descriptor, we had better
 		** have a system table.
 		*/
         assert sd!=null:"null schema for statement "+stmtName;
 
-        schemaUUID=sd.getUUID();
+        UUID schemaUUID =sd.getUUID();
 
 		/* Only use the cache if we're in compile-only mode */
-        if((spsNameCache!=null) && (getCacheMode()==DataDictionary.COMPILE_ONLY_MODE)){
-            stmtKey=new TableKey(schemaUUID,stmtName);
-            SPSNameCacheable cacheEntry=(SPSNameCacheable)spsNameCache.find(stmtKey);
-            if(cacheEntry!=null){
-                sps=cacheEntry.getSPSDescriptor();
-                spsNameCache.release(cacheEntry);
-            }
-            //System.out.println("found in cache " + stmtName);
-            //System.out.println("stmt text " + sps.getText());
-            return sps;
+        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
+            TableKey stmtKey =new TableKey(schemaUUID,stmtName);
+            SPSDescriptor sps = dataDictionaryCache.spsNameCacheFind(stmtKey);
+            if (sps!=null)
+                return sps;
         }
-
         return getSPSDescriptorIndex1Scan(stmtName,schemaUUID.toString());
     }
 
@@ -6997,18 +6908,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void clearCaches() throws StandardException{
-        nameTdCache.cleanAll();
-        nameTdCache.ageOut();
-        OIDTdCache.cleanAll();
-        OIDTdCache.ageOut();
-        clearSequenceCaches();
-        if(spsNameCache!=null){
-            //System.out.println("CLEARING SPS CACHE");
-            spsNameCache.cleanAll();
-            spsNameCache.ageOut();
-            spsIdHash.clear();
-            // spsTextHash.clear();
-        }
+        dataDictionaryCache.clearAll();
     }
 
     /**
@@ -7016,8 +6916,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void clearSequenceCaches() throws StandardException{
-        sequenceGeneratorCache.cleanAll();
-        sequenceGeneratorCache.ageOut();
+        dataDictionaryCache.sequenceGeneratorCacheClearAll();
     }
 
 
@@ -7680,7 +7579,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSTABLESTATS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSPARTITIONSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
 
             }
@@ -8156,13 +8055,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     @Override
     public Long peekAtSequence(String schemaName,String sequenceName) throws StandardException{
-        String uuid=getSequenceID(schemaName,sequenceName);
-
-        if(uuid==null){
+        String uuid=getSequenceID(schemaName, sequenceName);
+        if(uuid==null)
             throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION,"SEQUENCE",(schemaName+"."+sequenceName));
-        }
-
-        return ((SequenceUpdater)sequenceGeneratorCache.find(uuid)).peekAtCurrentValue();
+        return dataDictionaryCache.sequenceGeneratorCacheFind(uuid).peekAtCurrentValue();
     }
 
     @Override
@@ -8182,41 +8078,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         return rl;
     }
-
-    /**
-     * Add a table descriptor to the "other" cache. The other cache is
-     * determined by the type of the object c.
-     *
-     * @param td TableDescriptor to add to the other cache.
-     * @param c  Cacheable Object which lets us figure out the other cache.
-     * @throws StandardException
-     */
-    public void addTableDescriptorToOtherCache(TableDescriptor td,Cacheable c) throws StandardException{
-        // get the other cache. if the entry we are setting in the cache is of
-        // type oidtdcacheable then use the nametdcache 
-        CacheManager otherCache=(c instanceof OIDTDCacheable)?nameTdCache:OIDTdCache;
-        Object key;
-        TDCacheable otherCacheEntry=null;
-
-        if(otherCache==nameTdCache)
-            key=new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
-        else
-            key=td.getUUID();
-
-        try{
-            // insert the entry into the the other cache.
-            otherCacheEntry=(TDCacheable)otherCache.create(key,td);
-        }catch(StandardException se){
-            // if the object already exists in cache then somebody beat us to it
-            // otherwise throw the error.
-            if(!(se.getMessageId().equals(SQLState.OBJECT_EXISTS_IN_CACHE)))
-                throw se;
-        }finally{
-            if(otherCacheEntry!=null)
-                otherCache.release(otherCacheEntry);
-        }
-    }
-
 
     private static LanguageConnectionContext getLCC(){
         return (LanguageConnectionContext)ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
@@ -9697,12 +9558,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     private Object getPermissions(PermissionsDescriptor key) throws StandardException{
         // RESOLVE get a READ COMMITTED (shared) lock on the permission row
-        Cacheable entry=getPermissionsCache().find(key);
-        if(entry==null)
+        PermissionsDescriptor desc = dataDictionaryCache.permissionCacheFind(key);
+        if (desc==null)
             return null;
-        Object perms=entry.getIdentity();
-        getPermissionsCache().release(entry);
-        return perms;
+        return desc;
     }
 
     @Override

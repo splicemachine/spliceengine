@@ -1212,7 +1212,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public double selectivityForConglomerate(TransactionController tc,ConglomerateDescriptor cd,int numKeys) throws StandardException{
         DataDictionary dd = getDataDictionary();
-        StatisticsStore statisticsStore=dd.getStatisticsStore();
+/*        StatisticsStore statisticsStore=dd.getStatisticsStore();
         List<Statistics> stats = statisticsStore.getAllStatistics(tc,cd);
         for(Statistics stat:stats){
             if(stat.getColumnCount()!=numKeys) continue;
@@ -1222,6 +1222,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
         // Didn't find statistics for these columns. Assume uniform 10%
         // selectivity for each column in the key.
+        */
+        /* JL-TODO */
+
         return Math.pow(0.1,numKeys);
     }
 

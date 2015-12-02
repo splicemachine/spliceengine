@@ -59,7 +59,7 @@ public class TupleDescriptor
 		this.dataDictionary = dataDictionary;
 	}
 
-	protected DataDictionary getDataDictionary() {
+	public DataDictionary getDataDictionary() {
 		return dataDictionary;
 	}
 

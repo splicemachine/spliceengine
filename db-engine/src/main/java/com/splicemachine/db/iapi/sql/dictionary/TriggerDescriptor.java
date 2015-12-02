@@ -696,7 +696,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     }
 
     @Override
-    protected DataDictionary getDataDictionary() {
+    public DataDictionary getDataDictionary() {
         /*
            note: we need to do this since when this trigger is read back from
           disk (when it is associated with a sps), the dataDictionary has not 

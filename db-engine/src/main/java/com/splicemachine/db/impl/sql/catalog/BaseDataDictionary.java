@@ -8,7 +8,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 
-public abstract class BaseDataDictionary implements DataDictionary, CacheableFactory, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
+public abstract class BaseDataDictionary implements DataDictionary, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
 	protected static final String		CFG_SYSTABLES_ID = "SystablesIdentifier";
 	protected static final String		CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
 	protected static final String		CFG_SYSTABLES_INDEX2_ID = "SystablesIndex2Identifier";

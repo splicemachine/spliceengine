@@ -1,11 +1,14 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Date: 2/25/15
  */
-public class TableStatisticsDescriptor extends TupleDescriptor {
+public class PartitionStatisticsDescriptor extends TupleDescriptor {
     private long conglomerateId;
     private String partitionId;
     private long timestamp;
@@ -14,15 +17,16 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     private long partitionSize;
     private long rowCount;
     private boolean inProgress;
+    private List<ColumnStatsDescriptor> columnStatsDescriptors;
 
-    public TableStatisticsDescriptor(long conglomerateId,
-                                     String partitionId,
-                                     long timestamp,
-                                     boolean stale,
-                                     boolean inProgress,
-                                     long rowCount,
-                                     long partitionSize,
-                                     int meanRowWidth) {
+    public PartitionStatisticsDescriptor(long conglomerateId,
+                                         String partitionId,
+                                         long timestamp,
+                                         boolean stale,
+                                         boolean inProgress,
+                                         long rowCount,
+                                         long partitionSize,
+                                         int meanRowWidth) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
         this.timestamp = timestamp;
@@ -41,5 +45,13 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     public long getPartitionSize() { return partitionSize; }
     public long getRowCount() { return rowCount; }
     public boolean isInProgress() { return inProgress; }
+
+    public List<ColumnStatsDescriptor> getColumnStatsDescriptors() {
+        return columnStatsDescriptors;
+    }
+
+    public void setColumnStatsDescriptors(List<ColumnStatsDescriptor> columnStatsDescriptors) {
+        this.columnStatsDescriptors = columnStatsDescriptors;
+    }
 
 }

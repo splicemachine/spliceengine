@@ -7,12 +7,12 @@ package com.splicemachine.db.iapi.sql.dictionary;
 public class ColumnStatsDescriptor  extends TupleDescriptor {
     private long conglomerateId;
     private String partitionId;
-    private long columnId;
+    private int columnId;
     private Object object;
 
     public ColumnStatsDescriptor(long conglomerateId,
                                  String partitionId,
-                                 long columnId,
+                                 int columnId,
                                  Object object) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
@@ -20,7 +20,7 @@ public class ColumnStatsDescriptor  extends TupleDescriptor {
         this.object = object;
     }
 
-    public long getColumnId() { return columnId; }
+    public int getColumnId() { return columnId; }
     public long getConglomerateId() { return conglomerateId; }
     public String getPartitionId() { return partitionId; }
     public Object getStats() { return object; }

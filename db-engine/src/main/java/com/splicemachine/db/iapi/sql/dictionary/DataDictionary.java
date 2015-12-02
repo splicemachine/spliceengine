@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
@@ -811,8 +812,9 @@ public interface DataDictionary{
      * @param tc
      * @throws StandardException
      */
-    public void deleteTableStatistics(long conglomerate,
-                                      TransactionController tc) throws StandardException;
+    public void deletePartitionStatistics(long conglomerate,
+                                          TransactionController tc) throws StandardException;
+
 
     /**
      * Removes Column Statistics from SYSCOLUMNSTATS.
@@ -823,6 +825,58 @@ public interface DataDictionary{
      */
     public void deleteColumnStatistics(long conglomerate,
                                       TransactionController tc) throws StandardException;
+
+
+    /**
+     * Removes Table Statistics from SYSTABLESTATS.
+     *
+     * @param conglomerate
+     * @param tc
+     * @throws StandardException
+     */
+    public List<PartitionStatisticsDescriptor> getPartitionStatistics(long conglomerate,
+                                                                      TransactionController tc) throws StandardException;
+
+    /**
+     * Locate the Schema Row
+     *
+     * @param schemaName
+     * @param tc
+     * @return
+     * @throws StandardException
+     */
+    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException;
+
+    /**
+     * Removes Column Statistics from SYSCOLUMNSTATS.
+     *
+     * @param conglomerate
+     * @param tc
+     * @throws StandardException
+     */
+    public List<ColumnStatsDescriptor> getColumnStatistics(long conglomerate,
+                                       TransactionController tc) throws StandardException;
+
+    /**
+     * Add Column Statistics to SYS.SYSCOLUMNSTATS
+     *
+     * @param columnStatistics
+     * @param tc
+     * @throws StandardException
+     */
+    public void addColumnStatistics(ExecRow columnStatistics,
+                                       TransactionController tc) throws StandardException;
+
+    /**
+     *
+     * Add Table Statistics to SYS.SYSTABLESTATS
+     *
+     * @param tableStatistics
+     * @param tc
+     * @throws StandardException
+     */
+    public void addTableStatistics(ExecRow tableStatistics,
+                                    TransactionController tc) throws StandardException;
 
     /**
      * Convert a constraint descriptor list into a list
@@ -1617,8 +1671,6 @@ public interface DataDictionary{
      * </p>
      */
     Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
-
-    StatisticsStore getStatisticsStore();
 
     /**
      * Returns the dependency manager for this DataDictionary. Associated with

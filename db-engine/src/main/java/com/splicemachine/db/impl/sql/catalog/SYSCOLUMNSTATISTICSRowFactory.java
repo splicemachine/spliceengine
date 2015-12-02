@@ -40,12 +40,11 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             "08264018-014b-c29c-0d2e-000003009390",
     };
 
-    private static final int[][] indexColumnPositions =
-            {
-                    {CONGLOMID, PARTITIONID,COLUMNID},
+    private static final int[][] indexColumnPositions = {
+                    {CONGLOMID,PARTITIONID,COLUMNID},
                     {CONGLOMID,PARTITIONID},
-                    {CONGLOMID},
-            };
+                    {CONGLOMID}
+    };
 
     public SYSCOLUMNSTATISTICSRowFactory(UUIDFactory uuidFactory, ExecutionFactory exFactory, DataValueFactory dvf) {
         super(uuidFactory,exFactory,dvf);
@@ -54,11 +53,19 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
 
     @Override
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+        ColumnStatsDescriptor cd = (ColumnStatsDescriptor) td;
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICS_COLUMN_COUNT);
-        row.setColumn(CONGLOMID,new SQLLongint());
-        row.setColumn(PARTITIONID,new SQLVarchar());
-        row.setColumn(COLUMNID,new SQLInteger());
-        row.setColumn(DATA,new UserType());
+        if (cd != null) {
+            row.setColumn(CONGLOMID, new SQLLongint(cd.getConglomerateId()));
+            row.setColumn(PARTITIONID, new SQLVarchar(cd.getPartitionId()));
+            row.setColumn(COLUMNID, new SQLInteger(cd.getColumnId()));
+            row.setColumn(DATA, new UserType(cd.getStats()));
+        } else {
+            row.setColumn(CONGLOMID,new SQLLongint());
+            row.setColumn(PARTITIONID,new SQLVarchar());
+            row.setColumn(COLUMNID,new SQLInteger());
+            row.setColumn(DATA,new UserType());
+        }
         return row;
     }
 
