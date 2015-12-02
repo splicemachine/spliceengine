@@ -4,15 +4,15 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
-import com.splicemachine.derby.impl.stats.StatisticsStorage;
+import com.splicemachine.derby.impl.stats.PartitionStatsStore;
 import com.splicemachine.derby.impl.stats.StatsConstants;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
@@ -21,7 +21,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.util.BitSet;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * A Cost Controller which uses underlying Statistics information to estimate the cost of a scan.
@@ -38,16 +37,13 @@ public class StatsStoreCostController extends GenericController implements Store
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"init baseConglomerate=%s",baseConglomerate.getContainerID());
         this.baseConglomerate = baseConglomerate;
+
         BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
         TxnView txn = bst.getActiveStateTxn();
         long conglomId = baseConglomerate.getConglomerate().getContainerid();
-        try {
-            this.conglomerateStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"init conglomerateStatistics=%s",conglomerateStatistics);
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e);
-        }
+        this.conglomerateStatistics = PartitionStatsStore.getStatistics(conglomId, (TransactionController) baseConglomerate.getTransactionManager());
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"init conglomerateStatistics=%s",conglomerateStatistics);
     }
 
     /**

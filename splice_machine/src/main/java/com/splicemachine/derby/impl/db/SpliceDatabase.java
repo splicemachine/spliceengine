@@ -110,14 +110,10 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
         afterOptVisitors.add(RowLocationColumnVisitor.class);
-//        afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
-//        afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(FindHashJoinColumns.class);
-//        afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(BatchOnceVisitor.class);
- //       afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(PlanPrinter.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);

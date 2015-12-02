@@ -33,6 +33,7 @@ import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
  */
 public class ControlDataSet<V> implements DataSet<V> {
     protected Iterable<V> iterable;
+    protected Map<String,String> attributes;
     public ControlDataSet(Iterable<V> iterable) {
         this.iterable = iterable;
     }
@@ -250,5 +251,20 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public Iterator<V> iterator() {
         return this.toLocalIterator();
+    }
+
+
+    @Override
+    public void setAttribute(String name, String value) {
+        if (attributes==null)
+            attributes = new HashMap();
+        attributes.put(name,value);
+    }
+
+    @Override
+    public String getAttribute(String name) {
+        if (attributes ==null)
+            return null;
+        return attributes.get(name);
     }
 }

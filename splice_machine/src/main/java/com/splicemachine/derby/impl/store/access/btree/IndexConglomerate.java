@@ -375,6 +375,7 @@ public class IndexConglomerate extends SpliceConglomerate {
                 TransactionController.MODE_TABLE, null, null, null, this);
         //get the heap conglomerate also
 
+
         Conglomerate baseTableConglomerate=((SpliceTransactionManager)xact_manager)
                                                     .findConglomerate(open_conglom.getIndexConglomerate());
 
