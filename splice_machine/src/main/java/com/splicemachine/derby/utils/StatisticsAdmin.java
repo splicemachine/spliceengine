@@ -6,14 +6,15 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSPARTITIONSTATISTICSRowFactory;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -21,6 +22,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -31,15 +33,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexLister;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -127,9 +120,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static final ResultColumnDescriptor[] COLLECTED_STATS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
         new GenericColumnDescriptor("schemaName", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
         new GenericColumnDescriptor("tableName", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-        new GenericColumnDescriptor("regionsCollected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        new GenericColumnDescriptor("tasksExecuted", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        new GenericColumnDescriptor("rowsCollected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+        new GenericColumnDescriptor("partitition", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+        new GenericColumnDescriptor("rowsCollected", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+        new GenericColumnDescriptor("partitionSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
 
     @SuppressWarnings("unused")
@@ -162,15 +155,18 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
             boolean first = true;
             DataSet<ExecRow> dataSet = null;
+
+            HashMap<Long,Pair<String,String>> display = new HashMap<>();
             for (TableDescriptor td : tds) {
+                display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
                 if (first) {
                     dataSet = collectTableStatistics(td, txn, conn);
                     first = false;
                 } else
-                    dataSet.union(collectTableStatistics(td, txn, conn));
+                    dataSet = dataSet.union(collectTableStatistics(td, txn, conn));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(dataSet,dd));
+                    displayTableStatistics(dataSet,dd,transactionExecute,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -226,8 +222,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
             transactionExecute.elevate("statistics");
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
+            HashMap<Long,Pair<String,String>> display = new HashMap<>();
+            display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(collectTableStatistics(tableDesc, txn, conn),dd));
+                    displayTableStatistics(collectTableStatistics(tableDesc, txn, conn),dd,transactionExecute,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
 
         } catch (StandardException se) {
@@ -257,8 +255,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             for (int i =0; i< conglomIds.length;i++) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG,"Dropping conglomerate %d",conglomIds[i]);
-                dd.deleteColumnStatistics(conglomIds[i],tc);
-                dd.deleteTableStatistics(conglomIds[i],tc);
+                dd.deletePartitionStatistics(conglomIds[i],tc);
             }
             notifyServersClearStatsCache(txn, conglomIds);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
@@ -286,8 +283,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             for (int i =0; i< conglomIds.length;i++) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG,"Dropping conglomerate %d",conglomIds[i]);
-                dd.deleteColumnStatistics(conglomIds[i],tc);
-                dd.deleteTableStatistics(conglomIds[i],tc);
+                dd.deletePartitionStatistics(conglomIds[i],tc);
             }
             notifyServersClearStatsCache(txn, conglomIds);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for table %s.", table);
@@ -345,11 +341,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return dataSet;
     }
 
-    private static void invalidateStatisticsCache(long conglomId) throws ExecutionException{
-        if(!StatisticsStorage.isStoreRunning()) return; //nothing to invalidate
-        StatisticsStorage.getPartitionStore().invalidateCachedStatistics(conglomId);
-    }
-
     private static Scan createScan (TxnView txn) {
         Scan scan= SpliceUtils.createScan(txn, false);
         scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
@@ -363,8 +354,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
         SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) transactionExecute)
                 .findConglomerate(columnStatsConglomId);
-        int[] formatIds = conglomerate.getFormat_ids();
-        return formatIds;
+        return conglomerate.getFormat_ids();
     }
 
     private static TableScannerBuilder createTableScannerBuilder(EmbedConnection conn,
@@ -575,15 +565,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
     public static ExecRow generateRowFromStats(long conglomId, String partitionId,SimpleOverheadManagedPartitionStatistics statistics) throws StandardException {
-        ExecRow row = new ValueRow(SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_COLUMN_COUNT);
-        row.setColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.TIMESTAMP,new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.STALENESS,new SQLBoolean(false));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.INPROGRESS,new SQLBoolean(false));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT,new SQLLongint(statistics.rowCount()));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(statistics.totalSize()));
-        row.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(statistics.avgRowWidth()));
+        ExecRow row = new ValueRow(SYSPARTITIONSTATISTICSRowFactory.SYSPARTITIONSTATISTICS_COLUMN_COUNT);
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.TIMESTAMP,new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.STALENESS,new SQLBoolean(false));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.INPROGRESS,new SQLBoolean(false));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.ROWCOUNT,new SQLLongint(statistics.rowCount()));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(statistics.totalSize()));
+        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(statistics.avgRowWidth()));
         return row;
     }
 
@@ -596,27 +586,29 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return row;
     }
 
-    public static ExecRow generateOutputRow(String schemaName, String tableName, String partitionName, ExecRow partitionRow) throws StandardException {
+    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow) throws StandardException {
         ExecRow row = new ValueRow(5);
         row.setColumn(1,new SQLVarchar(schemaName));
         row.setColumn(2,new SQLVarchar(tableName));
-        row.setColumn(3,new SQLVarchar(partitionName));
-        row.setColumn(4,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT));
-        row.setColumn(5,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE));
+        row.setColumn(3,partitionRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITIONID));
+        row.setColumn(4,partitionRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.ROWCOUNT));
+        row.setColumn(5,partitionRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITION_SIZE));
         return row;
     }
 
 
-    public static Iterable displayTableStatistics(DataSet dataSet, final DataDictionary dataDictionary) {
-        return new ControlDataSet(dataSet).flatMap(new SpliceFlatMapFunction<SpliceOperation,ExecRow,ExecRow>() {
+    public static Iterable displayTableStatistics(final DataSet dataSet, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
+        return new ControlDataSet(dataSet).flatMap(new SpliceFlatMapFunction<SpliceOperation,LocatedRow,ExecRow>() {
             @Override
-            public Iterable<ExecRow> call(ExecRow execRow) throws Exception {
-                if (execRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                    // Write Data...
+            public Iterable<ExecRow> call(LocatedRow locatedRow) throws Exception {
+                ExecRow execRow = locatedRow.getRow();
+                if (locatedRow.getRow().nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
+                    dataDictionary.addColumnStatistics(execRow,tc);
                     return Collections.EMPTY_LIST;
                 } else {
-                    // Write data...
-                    return Collections.EMPTY_LIST;
+                    dataDictionary.addTableStatistics(execRow, tc);
+                    Pair<String,String> pair = displayPair.get(execRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.CONGLOMID).getLong());
+                    return Collections.singletonList(generateOutputRow(pair.getFirst(),pair.getSecond(),execRow));
                 }
 
             }

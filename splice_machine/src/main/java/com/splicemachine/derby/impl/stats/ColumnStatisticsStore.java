@@ -19,5 +19,4 @@ public interface ColumnStatisticsStore {
 
     public void invalidate(long conglomerateId,Collection<String> partitions);
     
-    void start() throws ExecutionException;
 }

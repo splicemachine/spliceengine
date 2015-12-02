@@ -2,18 +2,16 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
-
 import java.util.BitSet;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -43,13 +41,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         System.arraycopy(baseColumnPositions,0,this.indexColToHeapColMap,0,indexColToHeapColMap.length);
-        try {
-            baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
-            indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics);
-            this.conglomerateStatistics = indexStats;
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e);
-        }
+        baseTableStatistics = PartitionStatsStore.getStatistics(heapConglomerateId,(TransactionController)indexConglomerate.getTransactionManager());
+        indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics);
+        this.conglomerateStatistics = indexStats;
         totalColumns = ((SpliceConglomerate)heapConglomerate).getFormat_ids().length;
     }
 

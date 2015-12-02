@@ -2,18 +2,20 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.TableStatisticsDescriptor;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.ddl.DDLWatcher;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnStatsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.log4j.Logger;
@@ -22,152 +24,52 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
- * A store for providing PartitionStats entities.
+ * A static store for providing PartitionStats entities.
  *
  * @author Scott Fines
  *         Date: 3/9/15
  */
 public class PartitionStatsStore {
     private static final Logger LOG = Logger.getLogger(PartitionStatsStore.class);
-    private final TableStatisticsStore tableStatsReader;
-    private final ColumnStatisticsStore columnStatsReader;
     private static final Function<? super HRegionInfo,? extends String> partitionNameTransform = new Function<HRegionInfo, String>(){
         @Override public String apply(HRegionInfo hRegionInfo){ return hRegionInfo.getEncodedName(); }
     };
 
-    public PartitionStatsStore(TableStatisticsStore tableStatsReader,
-                               ColumnStatisticsStore columnStatsReader) {
-        this.tableStatsReader = tableStatsReader;
-        this.columnStatsReader = columnStatsReader;
+    private static final Function<PartitionStatisticsDescriptor,String> partitionStatisticsTransform = new Function<PartitionStatisticsDescriptor, String>(){
+        @Override public String apply(PartitionStatisticsDescriptor desc){ return desc.getPartitionId(); }
+    };
 
-		LOG.debug("Registering listener for CLEAR_STATS_CACHE change type.");
-		DDLCoordinationFactory.getWatcher().registerDDLListener(
-            new DDLWatcher.DDLListener(){
-			    @Override public void startGlobalChange() { }
-			    @Override public void finishGlobalChange() { }
-                @Override public void changeSuccessful(String changeId) { }
-                @Override public void changeFailed(String changeId){ }
 
-			    @Override
-			    public void startChange(DDLMessage.DDLChange change) throws StandardException {
-			        DDLMessage.DDLChangeType changeType = change.getDdlChangeType();
-			        if (changeType == null) return;
-			  	    switch (changeType) {
-			        case CLEAR_STATS_CACHE:
-			        	String tableName = null;
-			        	try {
-			        		SpliceLogUtils.debug(LOG, "Invalidating cached statistics in response to CLEAR_STATS_CACHE change type");
-			        		for (long conglomId : change.getClearStats().getConglomerateIdsList()) {
-				        		invalidateCachedStatistics(conglomId);
-			        		}
-			        	} catch (ExecutionException e) {
-			        		LOG.error(String.format("Error while trying to invalidate cached statistics for table %s", tableName), e);
-			        	}
-			            break;
-			        default:
-			            break;
-			        }
-			    }
-			
-            }
-        );
-    }
-    
-    @SuppressWarnings("ThrowFromFinallyBlock")
-    public OverheadManagedTableStatistics getStatistics(TxnView wrapperTxn,long conglomerateId) throws ExecutionException {
-        Txn txn = getTxn(wrapperTxn);
-        try {
-            return fetchTableStatistics(conglomerateId, txn);
-        }finally {
-            try {
-                txn.commit();
-            } catch (IOException ignored) {
-            	// this should never happen, since we are making a read-only transaction
-                throw new RuntimeException(ignored);
-            }
-        }
-    }
-
-    public void invalidateCachedStatistics(long conglomerateId) throws ExecutionException{
-        List<HRegionInfo> partitions = new ArrayList<>();
-        getPartitions(Long.toString(conglomerateId).getBytes(),partitions);
-
-        List<String> partitionNames = Lists.transform(partitions,partitionNameTransform);
-        tableStatsReader.invalidate(conglomerateId,partitionNames);
-        columnStatsReader.invalidate(conglomerateId,partitionNames);
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods and classes*/
-
-    private OverheadManagedTableStatistics fetchTableStatistics(long conglomerateId, Txn txn) throws ExecutionException {
+    public static OverheadManagedTableStatistics getStatistics(long conglomerateId, TransactionController tc) throws StandardException {
         byte[] table = Long.toString(conglomerateId).getBytes();
-
         List<HRegionInfo> partitions = new ArrayList<>();
-        int missingPartitions = getPartitions(table, partitions);
-
+        getPartitions(table, partitions);
         List<String> partitionNames =Lists.transform(partitions,partitionNameTransform);
-        TableStatisticsDescriptor[] tableStatses = tableStatsReader.fetchTableStatistics(txn, conglomerateId, partitionNames);
-        List<String> noStatsPartitions = new LinkedList<>();
-        List<String> columnStatsFetchable = new ArrayList<>();
-        for (int i = 0; i < tableStatses.length; i++) {
-            TableStatisticsDescriptor tStats = tableStatses[i];
-            if (tStats == null) {
-                noStatsPartitions.add(partitionNames.get(i));
-            } else {
-                columnStatsFetchable.add(tStats.getPartitionId());
-            }
-        }
-
-        Map<String, List<ColumnStatistics>> columnStatsMap = columnStatsReader.fetchColumnStats(txn, conglomerateId, columnStatsFetchable);
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        DataDictionary dd = lcc.getDataDictionary();
+        List<PartitionStatisticsDescriptor> partitionStatistics = dd.getPartitionStatistics(conglomerateId, tc);
+        Map<String,PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics,partitionStatisticsTransform);
         List<OverheadManagedPartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
-        List<TableStatisticsDescriptor> partiallyOccupied = new LinkedList<>();
         String tableId = Long.toString(conglomerateId);
-        for(TableStatisticsDescriptor tStats : tableStatses){
-            if(tStats==null) continue; //skip missing partitions entirely
+        PartitionStatisticsDescriptor tStats;
+        List<String> missingPartitions = new ArrayList();
 
-            List<ColumnStatistics> columnStats=columnStatsMap.get(tStats.getPartitionId());
-            if(columnStats!=null && columnStats.size()>0){
-                /*
-                 * We have Column Statistics, which means that we have everything we need to build a complete
-                 * partition statistics entity here
-                 */
-                List<ColumnStatistics> copy=new ArrayList<>(columnStats.size());
-                for(ColumnStatistics column : columnStats){
-                    copy.add(column.getClone());
-                }
-                OverheadManagedPartitionStatistics pStats=new SimpleOverheadManagedPartitionStatistics(tableId,
-                        tStats.getPartitionId(),
-                        tStats.getRowCount(),
-                        tStats.getPartitionSize(),
-                        copy);
-                partitionStats.add(pStats);
-            }else if(columnStatsMap.size()>0){
-                /*
-                     * We have an awkward situation here. We expect that the column statistics are present,
-		             * because the table statistics are. However, table statistics may not include column statistics,
-		             * because we may not have enabled any. Additionally, column statistics may be absent if we
-		             * just recently enabled them but haven't refreshed yet. So in one situation, no partitions
-		             * in the table will have columns, but in another situation, some will and some won't. When
-		             * Column statistics aren't available for any partition, then we just don't add much. But when
-		             * ColumnStatistics *are* available for other partitions, we add this to a list of partitions
-		             * to average
-		             */
-                partiallyOccupied.add(tStats);
-            }else{
-		            /*
-		             * It turns out that there is no available column statistics information for this table. This
-		             * occurs when all column collections are disabled, or when the table has just been created. This
-		             * is kind of bad news, since we rely on it to generate appropriate distributions. Still,
-		             *  we will return what we can
-		             */
-                OverheadManagedPartitionStatistics pStats=new SimpleOverheadManagedPartitionStatistics(tableId,
-                        tStats.getPartitionId(),
-                        tStats.getRowCount(),
-                        tStats.getPartitionSize(),
-                        Collections.<ColumnStatistics>emptyList());
-                partitionStats.add(pStats);
+        for(String partitionName : partitionNames){
+            tStats = partitionMap.get(partitionName);
+            if(tStats==null) {
+                missingPartitions.add(partitionName);
+                continue; //skip missing partitions entirely
             }
+            List<ColumnStatistics> copy = new ArrayList<>(tStats.getColumnStatsDescriptors().size());
+            for (ColumnStatsDescriptor column : tStats.getColumnStatsDescriptors()) {
+                copy.add((ColumnStatistics) column.getStats());
+            }
+            OverheadManagedPartitionStatistics pStats = new SimpleOverheadManagedPartitionStatistics(tableId,
+                    tStats.getPartitionId(),
+                    tStats.getRowCount(),
+                    tStats.getPartitionSize(),
+                    copy);
+            partitionStats.add(pStats);
         }
 
         /*
@@ -178,108 +80,46 @@ public class PartitionStatsStore {
         if (partitionStats.size() <= 0) return emptyStats(tableId,partitions);
 
         /*
-         * We now have separated out our partition map into 4 categories:
          *
-         * 1. Completely Missing Partitions (i.e. the RegionCache didn't find a region for a range of bytes)
-         * 2. Known Partitions which lack statistics (i.e. the region hasn't collected statistics yet)
-         * 3. Known partitions which have only partial data (i.e. table stats, but no column stats)
-         * 4. Completely populated Statistics
-         *
-         * Cases 1 and 2 are the same thing, with only a slight variation (we can explicitly name the partition
-         * in case 2, whereas we cannot in case 1)
-         *
-         * Case 3 is a specialized version of Case 2, in that we have some table statistics, but that's it
-         * Case 4 is where we want everything to end up.
-         *
+         * 1. Known Partitions which lack statistics (i.e. the region hasn't collected statistics yet)
+
          * To do this, we first compute an average of data over all *completely populated Partitions*. Then,
          * we take that average and use it to populate cases 1 and 2. Then, we take the averaged column
          * information, and use it to populate any situations in case 3.
          *
-         * Of course, we first want to check if this is necessary--if we have no items in Case 1,2, or
-         * 3 states, then we can just return what we have
-         */
-        if(missingPartitions<=0 && noStatsPartitions.size()<=0 && partiallyOccupied.size()<=0)
+\        */
+        if(missingPartitions.size()==0)
             return new GlobalStatistics(tableId,partitionStats);
         PartitionAverage average = averageKnown(tableId, partitionStats);
 
         //fill case 1 scenarios
-        while (missingPartitions > 0) {
-            partitionStats.add(average.copy("average-" + missingPartitions));
-            missingPartitions--;
-        }
-
-        //fill case 2 scenarios
-        for (String noStatsPartition : noStatsPartitions) {
-            partitionStats.add(average.copy(noStatsPartition));
-        }
-
-        //fill case 3 scenario)
-        for (TableStatisticsDescriptor tStats: partiallyOccupied) {
-            List<ColumnStatistics> avg = average.columnStatistics();
-            List<ColumnStatistics> copy = new ArrayList<>(avg.size());
-            for (ColumnStatistics avgCol : avg) {
-                copy.add(avgCol.getClone());
-            }
-
-            OverheadManagedPartitionStatistics pStats = new SimpleOverheadManagedPartitionStatistics(tableId,
-                    tStats.getPartitionId(),
-                    tStats.getRowCount(),
-                    tStats.getPartitionSize(),
-                    copy);
-            partitionStats.add(pStats);
+        for (String missingPartition : missingPartitions) {
+            partitionStats.add(average.copy("average-" + missingPartition));
         }
 
         //we are good, we can return what we go!
         return new GlobalStatistics(Long.toString(conglomerateId), partitionStats);
     }
 
-    private GlobalStatistics emptyStats(String tableId,List<HRegionInfo> partitions){
+           /**
+         * There are no statistics collected for this table.
+         *
+         * This is unfortunate, because we still need to *act* like there are statistics, even
+         * though we haven't collected anything. To that end, we create a list
+         * of "fake" partition statistics--statistics which are based off of pretty much arbitrary
+         * values for latency, and which use region size information to build an estimate of
+         * rows. This is pretty much ALWAYS not a good estimate, so we make sure and return a different
+         * type of statistics, which will allow callers to add warnings etc.
+         *
+         * Because we base most optimizations off of the latency measures, our arbitrary scaling factors assume
+         * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
+         */
+
+    public static GlobalStatistics emptyStats(String tableId,List<HRegionInfo> partitions){
         return RegionLoadStatistics.getParameterStatistics(tableId,partitions);
-//        /*
-//         * There are no statistics collected for this table.
-//         *
-//         * This is unfortunate, because we still need to *act* like there are statistics, even
-//         * though we haven't collected anything. To that end, we create a list
-//         * of "fake" partition statistics--statistics which are based off of pretty much arbitrary
-//         * values for latency, and which use region size information to build an estimate of
-//         * rows. This is pretty much ALWAYS not a good estimate, so we make sure and return a different
-//         * type of statistics, which will allow callers to add warnings etc.
-//         *
-//         * Because we base most optimizations off of the latency measures, our arbitrary scaling factors assume
-//         * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
-//         */
-//        long perRowLocalLatency = 1;
-//        long perRowRemoteLatency = 10*perRowLocalLatency; //assume remote reads are 10x more expensive than local
-//
-//        int numRegions = partitions.size();
-//        long totalBytes = numRegions*SpliceConstants.regionMaxFileSize*1024*1024; //assume each region is full,and measured in bytes
-//        /*
-//         * We make the rather stupid assumption of assuming that each row occupies 100 bytes (which is a lot,
-//         * but it should make some things at least relatively reasonable)
-//         */
-//        long numRows = totalBytes/100;
-//        int partitionSize = partitions.size();
-//        if(partitionSize==0)
-//            partitionSize = 1; //there's always 1 partition
-//
-//        long rowsPerRegion = numRows/partitionSize;
-//
-//        List<OverheadManagedPartitionStatistics> partStats = new ArrayList<>(partitions.size());
-//        for(HRegionInfo info:partitions){
-//            partStats.add(new FakedPartitionStatistics(tableId,info.getEncodedName(),
-//                    numRows,
-//                    totalBytes,
-//                    0l,
-//                    perRowLocalLatency*rowsPerRegion,
-//                    perRowLocalLatency,1l,
-//                    perRowRemoteLatency*rowsPerRegion,
-//                    perRowRemoteLatency,1l,
-//                    Collections.<ColumnStatistics>emptyList()));
-//        }
-//        return new GlobalStatistics(tableId, partStats);
     }
 
-    private Txn getTxn(TxnView wrapperTxn) throws ExecutionException {
+    public static Txn getTxn(TxnView wrapperTxn) throws ExecutionException {
         try {
             return TransactionLifecycle.getLifecycleManager().beginChildTransaction(wrapperTxn, Txn.IsolationLevel.READ_UNCOMMITTED,null);
         } catch (IOException e) {
@@ -287,19 +127,19 @@ public class PartitionStatsStore {
         }
     }
 
-    private int getPartitions(byte[] table, List<HRegionInfo> partitions) throws ExecutionException {
+    private static int getPartitions(byte[] table, List<HRegionInfo> partitions) throws StandardException {
         try {
             Collection<HRegionLocation> regions = HBaseTableFactory.getInstance().getRegions(table);
             for (HRegionLocation region: regions) {
                 partitions.add(region.getRegionInfo());
             }
         } catch (Exception ioe) {
-            throw new ExecutionException(ioe);
+            throw StandardException.plainWrapException(ioe);
         }
         return 0;
     }
 
-    private PartitionAverage averageKnown(String tableId,List<OverheadManagedPartitionStatistics> statistics) {
+    private static PartitionAverage averageKnown(String tableId,List<OverheadManagedPartitionStatistics> statistics) {
         /*
          * We can make pretty reasonable assumptions about how data is distributed in the GROSS sense--row counts,
          * etc. will tend to be pretty uniformly distributed, because HBase attempts to split regions such

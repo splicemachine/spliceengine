@@ -8,15 +8,12 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempSortController;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
-
 import java.util.List;
 
 /**
@@ -151,8 +148,6 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                 requiredRowOrdering,
                 numTablesInQuery,
                 lcc);
-        //ensure that table statistics are properly running
-        StatisticsStorage.ensureRunning(dDictionary);
     }
 
     @Override

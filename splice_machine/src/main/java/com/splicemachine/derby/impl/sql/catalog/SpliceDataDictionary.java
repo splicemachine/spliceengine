@@ -11,7 +11,6 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
@@ -25,7 +24,6 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScri
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
-import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -57,7 +55,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private Splice_DD_Version spliceSoftwareVersion;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
-    private volatile StatisticsStore statsStore;
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
     private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap=null;
 
@@ -301,31 +298,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
-        DataValueDescriptor schemaNameOrderable;
-        TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
-
-        schemaNameOrderable=new SQLVarchar(schemaName);
-
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,schemaNameOrderable);
-
-        return (SchemaDescriptor)
-                getDescriptorViaIndex(
-                        SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
-                        keyRow,
-                        null,
-                        ti,
-                        null,
-                        null,
-                        false,
-                        TransactionController.ISOLATION_REPEATABLE_READ,
-                        tc);
-    }
-
-
-
-    @Override
     protected void loadDictionaryTables(TransactionController tc,
                                         Properties startParams) throws StandardException{
         super.loadDictionaryTables(tc,startParams);
@@ -482,21 +454,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         super.createOrUpdateAllSystemProcedures(tc);
     }
 
-    @Override
-    public StatisticsStore getStatisticsStore(){
-        StatisticsStore store=statsStore; //volatile read
-        if(store==null){
-            synchronized(this){
-                store=statsStore; //2nd volatile read
-                if(store!=null){
-                    store=statsStore=new SpliceDerbyStatisticsStore(StatisticsStorage.getPartitionStore());
-                }
-            }
-        }
-        return store;
-    }
-
-
     /*Table fetchers for Statistics tables*/
     private TabInfoImpl getPhysicalStatisticsTable() throws StandardException{
         if(physicalStatsTable==null){
@@ -516,12 +473,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getTableStatisticsTable() throws StandardException{
         if(tableStatsTable==null){
-            tableStatsTable=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(uuidFactory,exFactory,dvf));
+            tableStatsTable=new TabInfoImpl(new SYSPARTITIONSTATISTICSRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(tableStatsTable);
         return tableStatsTable;
     }
-
     private TabInfoImpl getPkTable() throws StandardException{
         if(pkTable==null){
             pkTable=new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(uuidFactory,exFactory,dvf));
@@ -593,7 +549,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
         UUID viewId=view.getUUID();
-        ColumnDescriptor[] tableViewCds=SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
+        ColumnDescriptor[] tableViewCds=SYSPARTITIONSTATISTICSRowFactory.getViewColumns(view,viewId);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -601,7 +557,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSTABLESTATISTICS",
-                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
+                SYSPARTITIONSTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
         addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
     }
 

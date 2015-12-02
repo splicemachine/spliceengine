@@ -9,7 +9,5 @@ import java.util.List;
  */
 public interface PhysicalStatisticsStore {
 
-    void start();
-
     List<PhysicalStatsDescriptor> allPhysicalStats();
 }

@@ -28,9 +28,7 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -43,6 +41,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class SparkDataSet<V> implements DataSet<V> {
     public JavaRDD<V> rdd;
+    private Map<String,String> attributes;
     public SparkDataSet(JavaRDD<V> rdd) {
         this.rdd = rdd;
     }
@@ -248,5 +247,19 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public Iterator<V> iterator() {
         return toLocalIterator();
+    }
+
+    @Override
+    public void setAttribute(String name, String value) {
+        if (attributes==null)
+            attributes = new HashMap();
+        attributes.put(name,value);
+    }
+
+    @Override
+    public String getAttribute(String name) {
+        if (attributes ==null)
+            return null;
+        return attributes.get(name);
     }
 }

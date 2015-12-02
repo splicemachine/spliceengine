@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -129,5 +130,9 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     void saveAsTextFile(String path);
 
     void persist();
+
+    void setAttribute(String name, String value);
+
+    String getAttribute(String name);
 
 }

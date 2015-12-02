@@ -16,6 +16,8 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.protobuf.ProtoUtil;
 
+import java.util.List;
+
 
 /**
  * This class describes actions that are ALWAYS performed for a DROP TABLE Statement at Execution time.
@@ -99,6 +101,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             }
         }
 
+
+
         /* Drop the columns */
         dd.dropAllColumnDescriptors(tableId, tc);
 
@@ -108,6 +112,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         /* Drop the constraints */
         dropAllConstraintDescriptors(td, activation);
 
+
         /*
          * Drop all the conglomerates.  Drop the heap last, because the
          * store needs it for locking the indexes when they are dropped.
@@ -116,6 +121,10 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         long[] dropped = new long[cds.length - 1];
         int numDropped = 0;
         for (ConglomerateDescriptor cd : cds) {
+
+            /* Remove Statistics*/
+            dd.deletePartitionStatistics(cd.getConglomerateNumber(),tc);
+
             /*
              * if it's for an index, since similar indexes share one conglomerate, we only drop the conglomerate once
              */
@@ -134,6 +143,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
                     tc.dropConglomerate(thisConglom);
                 }
             }
+
         }
 
         /*

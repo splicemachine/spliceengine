@@ -36,7 +36,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     protected long nextContainerId = System.currentTimeMillis();
     protected long containerId;
     public SpliceConglomerate() {
-//        SpliceLogUtils.trace(LOG,"instantiate");
     }
     protected void create(
             Transaction             rawtran,

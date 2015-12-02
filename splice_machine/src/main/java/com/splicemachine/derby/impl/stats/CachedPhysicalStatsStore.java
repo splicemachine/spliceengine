@@ -6,7 +6,6 @@ import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;
 import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -16,21 +15,11 @@ import java.util.concurrent.TimeUnit;
 public class CachedPhysicalStatsStore implements PhysicalStatisticsStore {
     private static final Logger LOG = Logger.getLogger(CachedPhysicalStatsStore.class);
     private final Cache<String,PhysicalStatsDescriptor> physicalStatisticsCache;
-    private final ScheduledExecutorService refreshThread;
 
-    public CachedPhysicalStatsStore(ScheduledExecutorService refreshThread) {
+    public CachedPhysicalStatsStore() {
         this.physicalStatisticsCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(StatsConstants.DEFAULT_PARTITION_CACHE_EXPIRATION, TimeUnit.MILLISECONDS)
                 .build();
-        this.refreshThread = refreshThread;
-    }
-
-    public void start(){
-        refreshThread.scheduleAtFixedRate(new Refresher(),0l,StatsConstants.DEFAULT_PARTITION_CACHE_EXPIRATION/3,TimeUnit.MILLISECONDS);
-    }
-
-    public void shutdown(){
-        refreshThread.shutdownNow();
     }
 
     @Override
@@ -42,10 +31,4 @@ public class CachedPhysicalStatsStore implements PhysicalStatisticsStore {
         return descriptors;
     }
 
-    private class Refresher implements Runnable {
-
-        @Override
-        public void run() {
-        }
-    }
 }

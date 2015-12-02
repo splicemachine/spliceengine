@@ -753,8 +753,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         toDrop.set(droppedColumnPosition);
         tableDescriptor.setReferencedColumnMap(toDrop);
 
-//        dm.invalidateFor(tableDescriptor, (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),lcc);
-
         // If column has a default we drop the default and any dependencies
         if (columnDescriptor.getDefaultInfo() != null) {
             dm.clearDependencies(lcc, columnDescriptor.getDefaultDescriptor(dd));
