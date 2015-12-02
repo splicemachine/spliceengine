@@ -79,6 +79,12 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
 //        }else isNull = false;
     }
 
+    public void initForDeserialization(LazyDataValueDescriptor ldvd) {
+        initForDeserialization(ldvd.tableVersion, ldvd.serializer,
+                ldvd.bytes, ldvd.offset, ldvd.length, ldvd.descendingOrder);
+
+    }
+
     public void initForDeserialization(String tableVersion,
                                        DescriptorSerializer serializer,
                                        byte[] bytes,int offset,int length,boolean desc){
@@ -180,6 +186,13 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
     @Override
     public String getString() throws StandardException{
         forceDeserialization();
+        /*
+         * forceDeserialization should ensure dvd is not null but does not
+         * for test LazyTimestampTest.testCanSerializeNullsCorrectly
+         * so we are leaving this null check in for now
+         */
+        if (dvd == null)
+            return null;
         return dvd.getString();
     }
 

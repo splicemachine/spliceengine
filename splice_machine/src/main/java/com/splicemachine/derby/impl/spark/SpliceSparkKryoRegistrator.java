@@ -33,6 +33,7 @@ import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyTimestamp;
+import com.splicemachine.derby.impl.sql.execute.dvd.LazyDate;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -515,6 +516,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                 });
 
         instance.register(LazyTimestamp.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER);

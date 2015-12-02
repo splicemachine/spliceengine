@@ -42,6 +42,8 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
     }
 
     protected void forceDeserialization(){
+        if(dvd==null)
+            dvd = newDescriptor();
         if(!isDeserialized() && isSerialized()){
             super.forceDeserialization();
             this.dtdv=(DateTimeDataValue)this.dvd;
@@ -122,16 +124,35 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
 
     @Override
     public DataValueDescriptor cloneValue(boolean forceMaterialization){
-        forceDeserialization();
-        DateTimeDataValue v=(DateTimeDataValue)dtdv.cloneValue(forceMaterialization);
-        return new LazyTimestamp(v);
+        if(isNull())
+            return new LazyTimestamp();
+        else if(this.isSerialized()){
+            LazyDataValueDescriptor lsdv=new LazyTimestamp();
+            lsdv.initForDeserialization(tableVersion,serializer,bytes,offset,length,descendingOrder);
+            return lsdv;
+        }else{
+            if(dtdv==null)
+                return new LazyTimestamp((DateTimeDataValue)newDescriptor());
+            else{
+                return new LazyTimestamp((DateTimeDataValue)dtdv.cloneValue(forceMaterialization));
+            }
+        }
     }
 
     @Override
-    public DataValueDescriptor cloneHolder(){
-        forceDeserialization();
-        DateTimeDataValue v=(DateTimeDataValue)dtdv.cloneHolder();
-        return new LazyTimestamp(v);
+    public DataValueDescriptor cloneHolder() {
+        if(isNull())
+            return new LazyTimestamp();
+        else if(isDeserialized())
+            return new LazyTimestamp(dtdv);
+        else{
+           /*
+            * Return a shallow clone, so just point to the same bytes
+            */
+            LazyTimestamp lv = new LazyTimestamp();
+            lv.initForDeserialization(tableVersion,serializer,bytes,offset,length,descendingOrder);
+            return lv;
+        }
     }
 
     @Override
@@ -185,6 +206,18 @@ public class LazyTimestamp extends LazyDataValueDescriptor implements DateTimeDa
 
         dtdv=(DateTimeDataValue)dvd;
         init(dtdv);
+    }
+
+    @Override
+    public int getLength() throws StandardException{
+        forceDeserialization();
+        /*
+         * this matches SQLTimestamp which returns 12 (hardcoded)
+         * even when the dvd is null
+         */
+        if (dvd == null)
+            return 12;
+        return dvd.getLength();
     }
 
     @Override
