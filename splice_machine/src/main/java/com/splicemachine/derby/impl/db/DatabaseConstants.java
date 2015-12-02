@@ -24,7 +24,7 @@ public class DatabaseConstants extends SpliceConstants{
      * Defaults to false (off)
      */
     @Parameter private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
-    @DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=true;
+    @DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
     public static boolean dumpClassFile;
 
     @Parameter private static final String DEBUG_DUMP_BIND_TREE = "splice.debug.compile.dumpBindTree";
