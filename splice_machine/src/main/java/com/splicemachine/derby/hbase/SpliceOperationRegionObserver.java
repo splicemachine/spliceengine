@@ -1,12 +1,10 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.async.HbaseAttributeHolder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Result;
@@ -14,18 +12,13 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Region Observer looking for a scan with <i>SpliceServerInstructions</i> set on the attribute map of the scan.
@@ -79,33 +72,8 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
         if(scan.getAttribute(SPLICE_OBSERVER_INSTRUCTIONS)!=null)
             return super.preScannerOpen(e,scan,s);
 
-        Filter filter = scan.getFilter();
-        if(filter instanceof HbaseAttributeHolder){
-            setAttributesFromFilter(scan, (HbaseAttributeHolder) filter);
-            scan.setFilter(null); //clear the filter
-//            scan.setMaxVersions();
-        }else if (filter instanceof FilterList){
-            FilterList fl = (FilterList)filter;
-            List<Filter> filters = fl.getFilters();
-            Iterator<Filter> fIter = filters.iterator();
-            while(fIter.hasNext()){
-                Filter next = fIter.next();
-                if(next instanceof HbaseAttributeHolder){
-                    setAttributesFromFilter(scan,(HbaseAttributeHolder)next);
-                    fIter.remove();
-//                    scan.setMaxVersions();
-                }
-            }
-        }
-        return super.preScannerOpen(e, scan, s);
-    }
 
-    protected void setAttributesFromFilter(Scan scan, HbaseAttributeHolder filter) {
-        Map<String,byte[]> attributes = filter.getAttributes();
-        for(Map.Entry<String,byte[]> attribute:attributes.entrySet()){
-            if(scan.getAttribute(attribute.getKey())==null)
-                scan.setAttribute(attribute.getKey(),attribute.getValue());
-        }
+        return super.preScannerOpen(e, scan, s);
     }
 
     /**

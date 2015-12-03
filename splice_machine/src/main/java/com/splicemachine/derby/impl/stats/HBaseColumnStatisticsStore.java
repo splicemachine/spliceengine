@@ -5,14 +5,15 @@ import com.esotericsoftware.kryo.io.Input;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.async.AsyncAttributeHolder;
-import com.splicemachine.async.HBaseClient;
-import com.splicemachine.async.KeyValue;
-import com.splicemachine.async.SortedMultiScanner;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.impl.storage.ClientResultScanner;
+import com.splicemachine.derby.impl.storage.ProbeDistributedScanner;
+import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MeasuredResultScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.Txn;
@@ -22,7 +23,10 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -42,12 +46,10 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
 	private final Cache<String,List<ColumnStatistics>> columnStatsCache;
     private ScheduledExecutorService refreshThread;
     private final byte[] columnStatsTable;
-    private final HBaseClient hbaseClient;
 
-    public HBaseColumnStatisticsStore(ScheduledExecutorService refreshThread,byte[] columnStatsTable, HBaseClient hbaseClient) {
+    public HBaseColumnStatisticsStore(ScheduledExecutorService refreshThread,byte[] columnStatsTable) {
         this.refreshThread = refreshThread;
         this.columnStatsTable = columnStatsTable;
-        this.hbaseClient = hbaseClient;
         this.columnStatsCache = CacheBuilder.newBuilder().expireAfterWrite(StatsConstants.partitionCacheExpiration, TimeUnit.MILLISECONDS)
                 .maximumSize(StatsConstants.partitionCacheSize).build();
     }
@@ -76,22 +78,23 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
                 toFetch.add(partition);
             }
         }
+        if(toFetch.size()<=0) return partitionIdToColumnMap; //nothing to fetch
 
         //fetch the missing keys
         Kryo kryo = SpliceKryoRegistry.getInstance().get();
         Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>(partitions.size()-partitionIdToColumnMap.size());
-        try(SortedMultiScanner scanner = getScanner(txn, conglomerateId, toFetch)){
-            List<KeyValue> nextRow;
+        try(MeasuredResultScanner scanner = getScanner(txn, conglomerateId, toFetch)){
+            Result nextRow;
             EntryDecoder decoder = new EntryDecoder();
-            while((nextRow = scanner.nextKeyValues())!=null){
-                KeyValue kv = matchDataColumn(nextRow);
+            while((nextRow = scanner.next())!=null){
+                Cell kv = matchDataColumn(nextRow.rawCells());
                 MultiFieldDecoder fieldDecoder = decoder.get();
-                fieldDecoder.set(kv.key());
+                fieldDecoder.set(kv.getRowArray(),kv.getRowOffset(),kv.getRowLength());
                 long conglomId = fieldDecoder.decodeNextLong();
                 String partitionId = fieldDecoder.decodeNextString();
                 int colId = fieldDecoder.decodeNextInt();
 
-                decoder.set(kv.value());
+                decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
                 byte[] data = decoder.get().decodeNextBytesUnsorted();
                 KryoObjectInput koi = new KryoObjectInput(new Input(data),kryo);
                 ColumnStatistics stats = (ColumnStatistics)koi.readObject();
@@ -124,44 +127,67 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
         }
     }
 
-    private SortedMultiScanner getScanner(TxnView txn, long conglomId, List<String> toFetch) {
+    private MeasuredResultScanner getScanner(TxnView txn, long conglomId, List<String> toFetch) throws IOException{
         byte[] encodedTxn = TransactionOperations.getOperationFactory().encode(txn);
-        Map<String,byte[]> txnAttributeMap = new HashMap<>();
-        txnAttributeMap.put(SIConstants.SI_TRANSACTION_ID_KEY, encodedTxn);
-        txnAttributeMap.put(SIConstants.SI_NEEDED, SIConstants.SI_NEEDED_VALUE_BYTES);
         if(conglomId<0) {
-            return getGlobalScanner(txnAttributeMap);
+            return getGlobalScanner(encodedTxn);
         }
         MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
         encoder.encodeNext(conglomId).mark();
-        List<com.splicemachine.async.Scanner> scanners = new ArrayList<>(toFetch.size());
+        SpliceResultScanner[] scanners = new SpliceResultScanner[toFetch.size()];
+        int i=0;
         for(String partition:toFetch){
             encoder.reset();
             byte[] key = encoder.encodeNext(partition).build();
             byte[] stop = BytesUtil.unsignedCopyAndIncrement(key);
-            com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(columnStatsTable);
-            scanner.setStartKey(key);
-            scanner.setStopKey(stop);
-            scanner.setFilter(new AsyncAttributeHolder(txnAttributeMap));
-            scanners.add(scanner);
+
+            Scan scan = new Scan();
+            scan.setStartRow(key);
+            scan.setStopRow(stop);
+            scan.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,encodedTxn);
+            scan.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
+
+            ClientResultScanner results=new ClientResultScanner(columnStatsTable,scan,false,Metrics.noOpMetricFactory());
+            try{
+                results.open();
+            }catch(StandardException e){
+                throw new IOException(e);
+            }
+            scanners[i] =results;
+            i++;
         }
 
-        return new SortedMultiScanner(scanners,128,org.apache.hadoop.hbase.util.Bytes.BYTES_COMPARATOR, Metrics.noOpMetricFactory());
+        ProbeDistributedScanner results=new ProbeDistributedScanner(scanners);
+        try{
+            results.open();
+        }catch(StandardException e){
+            throw new IOException(e);
+        }
+        return results;
     }
 
-    private SortedMultiScanner getGlobalScanner(Map<String,byte[]> attributes) {
-        com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(columnStatsTable);
-        scanner.setStartKey(HConstants.EMPTY_START_ROW);
-        scanner.setStopKey(HConstants.EMPTY_END_ROW);
-        scanner.setFilter(new AsyncAttributeHolder(attributes));
+    private MeasuredResultScanner getGlobalScanner(byte[] encodedTxn) throws IOException{
+        Scan scan = new Scan();
+        scan.setStartRow(HConstants.EMPTY_START_ROW);
+        scan.setStopRow(HConstants.EMPTY_END_ROW);
+        scan.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,encodedTxn);
+        scan.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
 
-        return new SortedMultiScanner(Arrays.asList(scanner),
-                128,org.apache.hadoop.hbase.util.Bytes.BYTES_COMPARATOR, Metrics.noOpMetricFactory());
+        ClientResultScanner results=new ClientResultScanner(columnStatsTable,scan,false,Metrics.noOpMetricFactory());
+        try{
+            results.open();
+        }catch(StandardException e){
+            throw new IOException(e); //shouldn't happen
+        }
+        return results;
     }
 
-    private KeyValue matchDataColumn(List<KeyValue> row) {
-        for(KeyValue kv:row){
-            if(Bytes.equals(kv.qualifier(), SIConstants.PACKED_COLUMN_BYTES)) return kv;
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    private Cell matchDataColumn(Cell[] row) {
+        byte[] dataQualifier=SIConstants.PACKED_COLUMN_BYTES;
+        for(int i=0;i<row.length;i++){
+            Cell c = row[i];
+            if(Bytes.equals(c.getQualifierArray(),c.getQualifierOffset(),c.getQualifierLength(),dataQualifier,0,dataQualifier.length)) return c;
         }
         throw new IllegalStateException("Programmer error: Did not find a data column!");
     }
@@ -180,18 +206,18 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
             Kryo kryo = SpliceKryoRegistry.getInstance().get();
 			Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>();
             
-            try(SortedMultiScanner scanner = getScanner(baseTxn, -1, null)) {
-                List<KeyValue> nextRow;
+            try(MeasuredResultScanner scanner = getScanner(baseTxn, -1, null)) {
+                Result nextRow;
                 EntryDecoder decoder = new EntryDecoder();
-                while ((nextRow = scanner.nextKeyValues()) != null) {
-                    KeyValue kv = matchDataColumn(nextRow);
+                while ((nextRow = scanner.next()) != null) {
+                    Cell kv = matchDataColumn(nextRow.rawCells());
                     MultiFieldDecoder fieldDecoder = decoder.get();
-                    fieldDecoder.set(kv.key());
+                    fieldDecoder.set(kv.getRowArray(),kv.getRowOffset(),kv.getRowLength());
                     long conglomId = fieldDecoder.decodeNextLong();
                     String partitionId = fieldDecoder.decodeNextString();
                     int colId = fieldDecoder.decodeNextInt();
 
-                    decoder.set(kv.value());
+                    decoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
                     byte[] data = decoder.get().decodeNextBytesUnsorted();
                     KryoObjectInput koi = new KryoObjectInput(new Input(data), kryo);
                     ColumnStatistics stats = (ColumnStatistics) koi.readObject();

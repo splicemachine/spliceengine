@@ -2,7 +2,7 @@ package com.splicemachine.pipeline.coprocessor;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.google.protobuf.SpliceZeroCopyByteString;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.coprocessor.SpliceMessage;
@@ -124,7 +124,7 @@ public class MultiRowLoadGenerator {
                 for(int i=0;i<numIterations;i++) {
                     byte[] key = snowflake.nextBytes();
                     random.nextBytes(rowData);
-                    buffer[bufferPos] = SpliceMessage.KV.newBuilder().setKey(ZeroCopyLiteralByteString.wrap(key))
+                    buffer[bufferPos] = SpliceMessage.KV.newBuilder().setKey(SpliceZeroCopyByteString.wrap(key))
                             .setRow(ByteString.copyFrom(rowData)).build();
                     bufferPos = (bufferPos + 1) & (BUFFER_SIZE - 1);
                     if (bufferPos == 0) {

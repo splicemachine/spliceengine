@@ -1,13 +1,12 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.google.common.base.Throwables;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
-import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.google.protobuf.SpliceZeroCopyByteString;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSchedulerRequest;
@@ -22,13 +21,11 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
-
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
@@ -118,8 +115,8 @@ public class CoprocessorTaskScheduler extends SpliceSchedulerService implements 
                 contextBuilder.clear();
                 SpliceMessage.TaskFutureResponse contextResponse = contextBuilder.setTaskNode(context.getTaskNode())
                         .setEstimatedCost(context.getEstimatedCost())
-                        .setTaskId(ZeroCopyLiteralByteString.wrap(context.getTaskId()))
-                        .setStartRow(ZeroCopyLiteralByteString.wrap(context.getStartRow())).build();
+                        .setTaskId(SpliceZeroCopyByteString.wrap(context.getTaskId()))
+                        .setStartRow(SpliceZeroCopyByteString.wrap(context.getStartRow())).build();
                 responseBuilder = responseBuilder.addResponse(contextResponse);
             }
 

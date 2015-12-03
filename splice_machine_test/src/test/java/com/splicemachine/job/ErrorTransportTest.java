@@ -1,6 +1,5 @@
 package com.splicemachine.job;
 
-import com.splicemachine.async.RegionMovedException;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -17,13 +16,6 @@ import static org.junit.Assert.*;
 
 public class ErrorTransportTest {
 
-
-    @Test
-    public void testDB3874() throws Exception {
-        String className = "com.splicemachine.async.RegionMovedException";
-            Class<? extends Throwable> asyncClazz = (Class<? extends Throwable>) Class.forName(className);
-            Assert.assertTrue(com.splicemachine.async.RecoverableException.class.isAssignableFrom(asyncClazz));
-    }
 
     @Test
     public void standardException() throws Exception {

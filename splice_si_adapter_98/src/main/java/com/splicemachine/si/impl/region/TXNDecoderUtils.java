@@ -1,10 +1,10 @@
 package com.splicemachine.si.impl.region;
 
+import com.google.protobuf.SpliceZeroCopyByteString;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -15,7 +15,7 @@ public class TXNDecoderUtils {
     		boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime) {
         ByteString destTableBuffer = null;
         if(destinationTables!=null){
-            destTableBuffer = ZeroCopyLiteralByteString.wrap(CellUtil.cloneValue(destinationTables));
+            destTableBuffer = SpliceZeroCopyByteString.wrap(CellUtil.cloneValue(destinationTables));
         }
         if (level == null)
         	level = Txn.IsolationLevel.SNAPSHOT_ISOLATION;

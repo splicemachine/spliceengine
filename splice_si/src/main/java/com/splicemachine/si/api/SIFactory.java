@@ -1,12 +1,5 @@
 package com.splicemachine.si.api;
 
-import java.io.IOException;
-import java.util.List;
-
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-
-import com.splicemachine.async.KeyValue;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.api.Txn.State;
@@ -16,23 +9,24 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.STransactionLib;
-import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.stream.StreamException;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
+import java.io.IOException;
 
 public interface SIFactory<Transaction> {
-	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar);
-	public RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder, EntryAccumulator accumulator, boolean countStar);
-    public STableWriter getTableWriter();
-    public SDataLib getDataLib();
-    public STransactionLib getTransactionLib();
-    public DataStore getDataStore();
-    public STableReader getTableReader();
-    public TxnStore getTxnStore();
-    public TxnSupplier getTxnSupplier();
-    public IgnoreTxnCacheSupplier getIgnoreTxnSupplier();
-    public TransactionalRegion getTransactionalRegion(HRegion region);
+	RowAccumulator getRowAccumulator(EntryPredicateFilter predicateFilter,EntryDecoder decoder,boolean countStar);
+	STableWriter getTableWriter();
+    SDataLib getDataLib();
+    STransactionLib getTransactionLib();
+    DataStore getDataStore();
+    STableReader getTableReader();
+    TxnStore getTxnStore();
+    TxnSupplier getTxnSupplier();
+    IgnoreTxnCacheSupplier getIgnoreTxnSupplier();
+    TransactionalRegion getTransactionalRegion(HRegion region);
 	Transaction getTransaction(long txnId, long beginTimestamp, long parentTxnId,
 			long commitTimestamp, long globalCommitTimestamp,
 			boolean hasAdditiveField, boolean additive,
@@ -40,5 +34,4 @@ public interface SIFactory<Transaction> {
 	void storeTransaction(RegionTxnStore regionTransactionStore, Transaction transaction) throws IOException;
 	long getTxnId(Transaction transaction);
 	byte[] transactionToByteArray(MultiFieldEncoder mfe, Transaction transaction);
-	TxnView transform(List<KeyValue> element) throws StreamException;
 }

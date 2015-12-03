@@ -1,6 +1,6 @@
 package com.splicemachine.pipeline.impl;
 
-import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.google.protobuf.SpliceZeroCopyByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.NoRetryCoprocessorRpcChannel;
 import com.splicemachine.hbase.table.IncorrectRegionException;
@@ -45,7 +45,7 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.BulkWriteRequest.Builder builder = SpliceMessage.BulkWriteRequest.newBuilder();
             byte[] requestBytes = PipelineEncoding.encode(write);
 //            byte[] requestBytes = PipelineUtils.toCompressedBytes(write);
-            builder.setBytes(ZeroCopyLiteralByteString.copyFrom(requestBytes));
+            builder.setBytes(SpliceZeroCopyByteString.copyFrom(requestBytes));
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 
             BlockingRpcCallback<SpliceMessage.BulkWriteResponse> doneCallback = new BlockingRpcCallback<SpliceMessage.BulkWriteResponse>();

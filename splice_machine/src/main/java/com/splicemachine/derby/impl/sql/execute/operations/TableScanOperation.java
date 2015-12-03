@@ -19,7 +19,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.storage.AsyncClientScanProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -200,8 +200,7 @@ public class TableScanOperation extends ScanOperation{
         }
 
         SpliceUtils.setInstructions(scan,activation,top,spliceRuntimeContext);
-//				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
-        AsyncClientScanProvider provider=new AsyncClientScanProvider("tableScan",tableNameBytes,scan,decoder,spliceRuntimeContext);
+        ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
         nextTime+=System.currentTimeMillis()-beginTime;
         return provider;
     }

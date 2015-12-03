@@ -2,14 +2,12 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.async.Bytes;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
@@ -22,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -330,7 +329,7 @@ public class PartitionStatsStore {
             List<Pair<byte[],byte[]>> missingRanges = new LinkedList<>();
             for (Pair<HRegionInfo, ServerName> servers : regions) {
                 byte[] start = servers.getFirst().getStartKey();
-                if (!Bytes.equals(start, lastEndKey)) {
+                if (!Bytes.equals(start,lastEndKey)) {
                     /*
                      * We have a gap in the region cache. Let's try to fetch that range again, just
                      * to see if we can get it

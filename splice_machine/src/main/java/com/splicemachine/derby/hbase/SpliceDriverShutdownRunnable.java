@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.async.AsyncHbase;
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
 import com.splicemachine.pipeline.api.Service;
@@ -81,16 +80,6 @@ class SpliceDriverShutdownRunnable implements Runnable {
                 if (metricsReporter != null) {
                     metricsReporter.shutdown();
                 }
-            }
-        });
-
-        /**
-         * Shutdown the shared async hbase client
-         */
-        shutDown("async hbase", new ShutdownTask() {
-            @Override
-            public void run() throws Exception {
-                AsyncHbase.HBASE_CLIENT.shutdown().wait(5000);
             }
         });
 
