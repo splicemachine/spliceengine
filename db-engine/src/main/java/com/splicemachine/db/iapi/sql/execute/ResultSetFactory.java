@@ -704,8 +704,8 @@ public interface ResultSetFactory {
                                      boolean isDerbyStyleTableFunction,
                                      int returnTypeNumber,
                                      int vtiProjectionNumber,
-                                     int vtiRestrictionNumber
-                                          )
+                                     int vtiRestrictionNumber,
+	                                 String explainPlan)
 		 throws StandardException;
 
 	/*
@@ -730,7 +730,8 @@ public interface ResultSetFactory {
 			boolean isDerbyStyleTableFunction,
 			int returnTypeNumber,
 			int vtiProjectionNumber,
-			int vtiRestrictionNumber
+			int vtiRestrictionNumber,
+			String explainPlan
 			)
 					throws StandardException;
 

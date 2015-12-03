@@ -1422,8 +1422,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         // push the projection and restriction for RestrictedVTIs
         mb.push( storeObjectInPS( acb, projectedColumnNames ) );
         mb.push( storeObjectInPS( acb, vtiRestriction ) );
+        mb.push(printExplainInformationForActivation());
 
-        return 16;
+        return 17;
     }
     /** Store an object in the prepared statement.  Returns -1 if the object is
      * null. Otherwise returns the object's retrieval handle.
@@ -1711,6 +1712,17 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         Class               vtiClass = lookupClass( className );
 
         try {
+            
+            // Try to use constructor with all the args instead of the no-arg constructor,
+            // so that the cost estimate can be done using these args. For example,
+            // SpliceFileVTI would want to look at the file size. If for some reason
+            // this doesn't work, resort to no-arg constructor like we used to.
+
+            Object obj = getNewInstance();
+            if (obj instanceof VTICosting) {
+                return (VTICosting)obj;
+            }
+
             Constructor         constructor = vtiClass.getConstructor( new Class[] {} );
             VTICosting          result = (VTICosting) constructor.newInstance( null );
 
