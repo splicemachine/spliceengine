@@ -17,10 +17,6 @@
 			<version>1.5.2-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
-					<artifactId>asynchbase</artifactId>
-					<groupId>com.splicemachine</groupId>
-				</exclusion>
-				<exclusion>
 					<artifactId>async</artifactId>
 					<groupId>com.stumbleupon</groupId>
 				</exclusion>
