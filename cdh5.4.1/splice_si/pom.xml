@@ -113,7 +113,6 @@
 								<!-- ### Overrides for structured_si ### -->
 								<!-- ################################### -->
 								<!-- # Preserve the classes accessed externally. -->
-								<option>-keep public class com.splicemachine.async.AsyncSkippingScanFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.derby.hbase.AllocatedFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.derby.hbase.BaseAllocatedFilter { public *; protected *;}</option>
 								<option>-keep public class com.splicemachine.derby.hbase.BaseAllocatedFilter { public *; }</option>

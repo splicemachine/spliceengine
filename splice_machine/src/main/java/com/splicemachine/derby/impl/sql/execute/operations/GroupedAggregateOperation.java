@@ -2,6 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -30,22 +37,11 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
-import com.splicemachine.hbase.RowKeyDistributor;
-import com.splicemachine.hbase.FilteredRowKeyDistributor;
-import com.splicemachine.hbase.RowKeyDistributorByHashPrefix;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.exception.Exceptions;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -477,9 +473,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         if(!spliceRuntimeContext.isSink()){
             TempTable tempTable = SpliceDriver.driver().getTempTable();
             byte[] temp = tempTable.getTempTableName();
-            RowKeyDistributor distributor = new FilteredRowKeyDistributor(new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread())),usedTempBuckets);
-//            RowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(tempTable.getCurrentSpread()));
-            sourceIterator = AsyncScanIterator.create(temp,reduceScan, pairDecoder,distributor,spliceRuntimeContext);
+            SpliceResultScanner rs = new ClientResultScanner(temp,reduceScan,true,spliceRuntimeContext,usedTempBuckets);
+            sourceIterator = new ScanIterator(rs,pairDecoder);
         }else{
             scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
             sourceIterator = new ScanIterator(scanner, pairDecoder);

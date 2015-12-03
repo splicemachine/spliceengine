@@ -124,11 +124,6 @@ public class ErrorTransport implements Externalizable {
             String className = args[0].toString();
             // Async Hbase Error Handling
             Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(className);
-            if (className.contains("com.splicemachine.async")) {
-                if (com.splicemachine.async.RecoverableException.class.isAssignableFrom(errorClazz))
-                    errorClazz = RegionMovedException.class;
-                // Blow up
-            }
 
             /* one-arg string constructor */
             Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, String.class);

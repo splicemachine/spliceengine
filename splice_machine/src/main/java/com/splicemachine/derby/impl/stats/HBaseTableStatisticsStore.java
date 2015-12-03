@@ -2,24 +2,26 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.splicemachine.async.AsyncAttributeHolder;
-import com.splicemachine.async.HBaseClient;
-import com.splicemachine.async.KeyValue;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
+import com.splicemachine.derby.impl.storage.ClientResultScanner;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MeasuredResultScanner;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.storage.EntryDecoder;
-import com.stumbleupon.async.Deferred;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -38,16 +40,13 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
     private final Cache<String,TableStatisticsDescriptor> tableStatsCache;
     private final ScheduledExecutorService refreshThread;
     private final byte[] tableStatsConglom;
-    private final HBaseClient hbaseClient;
     private final TableStatsDecoder tableStatsDecoder;
 
     public HBaseTableStatisticsStore(ScheduledExecutorService refreshThread,
                                      byte[] tableStatsConglom,
-                                     HBaseClient hbaseClient,
                                      TableStatsDecoder tableStatsDecoder) {
         this.refreshThread = refreshThread;
         this.tableStatsConglom = tableStatsConglom;
-        this.hbaseClient = hbaseClient;
         this.tableStatsCache = CacheBuilder.newBuilder().expireAfterWrite(StatsConstants.partitionCacheExpiration, TimeUnit.MILLISECONDS)
                 .maximumSize(StatsConstants.partitionCacheSize).build();
         this.tableStatsDecoder = tableStatsDecoder;
@@ -122,22 +121,31 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         }
     }
 
-    private com.splicemachine.async.Scanner getScanner(TxnView txn, long conglomId, List<String> toFetch) {
+    private MeasuredResultScanner getScanner(TxnView txn, long conglomId, List<String> toFetch) throws IOException{
     	// TODO (wjk): enhance this to provide more general support like in HBaseColumnStatisticsStore
         byte[] encodedTxn = TransactionOperations.getOperationFactory().encode(txn);
-        Map<String,byte[]> txnAttributeMap = new HashMap<>();
-        txnAttributeMap.put(SIConstants.SI_TRANSACTION_ID_KEY, encodedTxn);
-        txnAttributeMap.put(SIConstants.SI_NEEDED, SIConstants.SI_NEEDED_VALUE_BYTES);
-        return getGlobalScanner(txnAttributeMap);
+        Scan s = new Scan();
+        s.setStartRow(HConstants.EMPTY_START_ROW);
+        s.setStopRow(HConstants.EMPTY_END_ROW);
+        s.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,encodedTxn);
+        s.setAttribute(SIConstants.SI_NEEDED,SIConstants.SI_NEEDED_VALUE_BYTES);
+        ClientResultScanner results=new ClientResultScanner(tableStatsConglom,s,false,Metrics.noOpMetricFactory());
+        try{
+            results.open();
+        }catch(StandardException e){
+            throw new IOException(e);
+        }
+        return results;
+//        return getGlobalScanner(txnAttributeMap);
     }
 
-    private com.splicemachine.async.Scanner getGlobalScanner(Map<String,byte[]> attributes) {
-        com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(tableStatsConglom);
-        scanner.setStartKey(HConstants.EMPTY_START_ROW);
-        scanner.setStopKey(HConstants.EMPTY_END_ROW);
-        scanner.setFilter(new AsyncAttributeHolder(attributes));
-        return scanner;
-    }
+//    private com.splicemachine.async.Scanner getGlobalScanner(Map<String,byte[]> attributes) {
+//        com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(tableStatsConglom);
+//        scanner.setStartKey(HConstants.EMPTY_START_ROW);
+//        scanner.setStopKey(HConstants.EMPTY_END_ROW);
+//        scanner.setFilter(new AsyncAttributeHolder(attributes));
+//        return scanner;
+//    }
 
     private class Refresher implements Runnable {
         private final TxnView refreshTxn;
@@ -148,35 +156,31 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
 
         public void run() {
         	boolean isTrace = LOG.isTraceEnabled();
-            com.splicemachine.async.Scanner scanner = getScanner(refreshTxn, -1, null);
-            Deferred<ArrayList<ArrayList<KeyValue>>> data = scanner.nextRows();
-            ArrayList<ArrayList<KeyValue>> rowBatch;
             EntryDecoder decoder = new EntryDecoder();
-            try {
-                while((rowBatch = data.join())!=null){
-                    for(List<KeyValue> row:rowBatch){
-                        KeyValue kv = matchDataColumn(row);
-                        TableStatisticsDescriptor stats = tableStatsDecoder.decode(kv,decoder);
-                        if (stats != null && !stats.isInProgress()) {
-							if (isTrace) LOG.trace(String.format("Refreshing cached table stats for conglomerate %d (rowCount=%d), partition %s",
-								stats.getConglomerateId(), stats.getRowCount(), stats.getPartitionId()));
-							tableStatsCache.put(stats.getPartitionId(), stats);
-                        }
+            try(MeasuredResultScanner scanner = getScanner(refreshTxn,-1,null)) {
+                Result rowBatch;
+                while((rowBatch = scanner.next())!=null){
+                    TableStatisticsDescriptor stats = tableStatsDecoder.decode(rowBatch,decoder);
+                    if (stats != null && !stats.isInProgress()) {
+                        if (isTrace) LOG.trace(String.format("Refreshing cached table stats for conglomerate %d (rowCount=%d), partition %s",
+                                stats.getConglomerateId(), stats.getRowCount(), stats.getPartitionId()));
+                        tableStatsCache.put(stats.getPartitionId(), stats);
                     }
-                    data = scanner.nextRows();
                 }
             } catch (Exception e) {
                 LOG.warn("Error encountered while refreshing Table Statistics Cache", e);
-            } finally {
-                scanner.close();
             }
-
-
         }
 
-        private KeyValue matchDataColumn(List<KeyValue> row) {
-            for(KeyValue kv:row){
-                if(Bytes.equals(kv.qualifier(), SIConstants.PACKED_COLUMN_BYTES)) return kv;
+        @SuppressWarnings("ForLoopReplaceableByForEach")
+        private Cell matchDataColumn(Cell[] row) {
+            byte[] qualifier = SIConstants.PACKED_COLUMN_BYTES;
+            for(int i=0;i<row.length;i++){
+                Cell kv = row[i];
+                if(Bytes.equals(kv.getQualifierArray(),kv.getQualifierOffset(),kv.getQualifierLength(),
+                        qualifier,0,qualifier.length))
+                    return kv;
+
             }
             throw new IllegalStateException("Programmer error: Did not find a data column!");
         }

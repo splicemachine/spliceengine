@@ -77,6 +77,7 @@ public class TempTableIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
+
     // ===============================================================
     // Test Helpers
     // ===============================================================
@@ -785,7 +786,7 @@ public class TempTableIT {
         connection1.commit();
         methodWatcher.closeAll();
 
-        Thread.sleep(1000);  // TODO: JC - This is what the bug is about now. We have to wait for table drop before connecting.
+        Thread.sleep(2000);  // TODO: JC - This is what the bug is about now. We have to wait for table drop before connecting.
         Connection connection2 = methodWatcher.createConnection();
         try {
             SQLClosures.query(connection2, String.format("select id from %s.%s", tableSchema.schemaName, MY_TABLE),

@@ -42,6 +42,10 @@ public class Exceptions {
 
     public static StandardException parseException(Throwable e) {
         Throwable rootCause = Throwables.getRootCause(e);
+        return parseRootException(rootCause);
+    }
+
+    private static StandardException parseRootException(Throwable rootCause){
         if (rootCause instanceof StandardException) {
             return (StandardException) rootCause;
         }
@@ -50,30 +54,6 @@ public class Exceptions {
             return parseException((RetriesExhaustedWithDetailsException) rootCause);
         } else if (rootCause instanceof ConstraintViolation.ConstraintViolationException) {
             return toStandardException((ConstraintViolation.ConstraintViolationException) rootCause);
-        } else if (rootCause instanceof com.splicemachine.async.RemoteException) {
-            com.splicemachine.async.RemoteException re = (com.splicemachine.async.RemoteException) rootCause;
-            String fullMessage = re.getMessage();
-            String type = re.getType();
-            try {
-                return parseException((Throwable) Class.forName(type).getConstructor(String.class).newInstance(fullMessage));
-            } catch (ClassNotFoundException cnfe) {
-                //just parse  the actual remote directly
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (NoSuchMethodException e1) {
-                //just parse  the actual remote directly
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (InvocationTargetException e1) {
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (InstantiationException e1) {
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            } catch (IllegalAccessException e1) {
-                ErrorState state = ErrorState.stateFor(rootCause);
-                return state.newException(rootCause);
-            }
         } else if(rootCause instanceof SparkException) {
             if (rootCause.getMessage().contains("com.splicemachine.db.iapi.error.StandardException")) {
                 // the root cause of the Spark failure was a standard exception, let's parse it
@@ -88,13 +68,14 @@ public class Exceptions {
             Exception unwrappedException = SpliceDoNotRetryIOExceptionWrapping.unwrap(spliceException);
             return parseException(unwrappedException);
         } else if(rootCause instanceof DoNotRetryIOException ){
-						if(rootCause.getMessage()!=null && rootCause.getMessage().contains("rpc timeout")) {
-								return StandardException.newException(MessageId.QUERY_TIMEOUT, "Increase hbase.rpc.timeout");
-						}
+            if(rootCause.getMessage()!=null && rootCause.getMessage().contains("rpc timeout")) {
+                return StandardException.newException(MessageId.QUERY_TIMEOUT, "Increase hbase.rpc.timeout");
+            }
         } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
         }else if(rootCause instanceof RemoteException){
             rootCause = ((RemoteException)rootCause).unwrapRemoteException();
+            return parseRootException(rootCause);
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);
@@ -149,29 +130,8 @@ public class Exceptions {
     public static IOException getIOException(Throwable t){
         t = Throwables.getRootCause(t);
         if(t instanceof StandardException) return getIOException((StandardException)t);
-        else if(t instanceof com.splicemachine.async.RemoteException){
-            return getRemoteIOException((com.splicemachine.async.RemoteException)t);
-        }
         else if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
-    }
-
-    protected static IOException getRemoteIOException(com.splicemachine.async.RemoteException t) {
-        String text = t.getMessage();
-        String type = t.getType();
-        try{
-            return getIOException((Throwable)Class.forName(type).getConstructor(String.class).newInstance(text));
-        } catch (InvocationTargetException e) {
-            return new IOException(t);
-        } catch (NoSuchMethodException e) {
-            return new IOException(t);
-        } catch (ClassNotFoundException e) {
-            return new IOException(t);
-        } catch (InstantiationException e) {
-            return new IOException(t);
-        } catch (IllegalAccessException e) {
-            return new IOException(t);
-        }
     }
 
     /**

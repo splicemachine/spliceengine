@@ -27,15 +27,6 @@ public class PairDecoder<Data> {
 				this.templateRow = templateRow;
 		}
 
-    public ExecRow decode(com.splicemachine.async.KeyValue data) throws StandardException{
-        templateRow.resetRowArray();
-        byte[] key = data.key();
-        keyDecoder.decode(key,0,key.length,templateRow);
-        byte[] row = data.value();
-        rowDecoder.set(row,0,row.length);
-        rowDecoder.decode(templateRow);
-        return templateRow;
-    }
 
 		public ExecRow decode(Data data) throws StandardException{
 			try {

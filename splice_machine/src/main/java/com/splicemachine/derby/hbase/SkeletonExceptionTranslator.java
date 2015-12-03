@@ -1,11 +1,9 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.async.RecoverableException;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 
@@ -26,7 +24,6 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
         if(t instanceof CannotCommitException) return true;
         if(isCallTimeoutException(t)) return true;
         if(t instanceof SocketTimeoutException) return true;
-        if(t instanceof RecoverableException) return true;
         // DB-2522: Don't retry since the caller is gone and the task needs to be failed and retried by the task execution framework.
         if(t instanceof CallerDisconnectedException) return true;
         // DB-2522: Don't retry since the server is gone and the task needs to be failed and retried by the task execution framework.
@@ -50,7 +47,6 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
         if(isNotServingRegionException(t)
                 || isWrongRegionException(t)
                 || isRegionTooBusyException(t)
-                || t instanceof RecoverableException
                 || t instanceof ServerNotRunningYetException) return true;
         if(t instanceof StandardException){
             StandardException se = (StandardException)t;

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.async.KeyValue;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -46,30 +45,6 @@ public abstract class TableStatsDecoder{
         return stats;
     }
 
-    public TableStatisticsDescriptor decode(KeyValue kv,EntryDecoder cachedDecoder){
-        MultiFieldDecoder decoder=cachedDecoder.get();
-        decoder.set(kv.key());
-        long conglomId = decoder.decodeNextLong();
-        String partitionId = decoder.decodeNextString();
-
-
-        cachedDecoder.set(kv.value());
-        BitIndex index=cachedDecoder.getCurrentIndex();
-        decoder=cachedDecoder.get();
-        long timestamp;
-        boolean isStale;
-        boolean inProgress;
-        timestamp=index.isSet(2)?decoder.decodeNextLong():System.currentTimeMillis();
-        isStale=!index.isSet(3) || decoder.decodeNextBoolean();
-        inProgress=index.isSet(4) && decoder.decodeNextBoolean();
-
-        TableStatisticsDescriptor stats = null;
-        if(index.isSet(5))
-            stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
-
-        return stats;
-    }
-
     protected abstract void setKeyInDecoder(Result result,MultiFieldDecoder cachedDecoder);
 
     protected abstract void setRowInDecoder(Result result,EntryDecoder cachedDecoder);
@@ -96,7 +71,7 @@ public abstract class TableStatsDecoder{
              * that, we will it in with at "configured remote latency"--e.g.
              * a (configurable) constant rate times the local latency
              */
-            remoteReadLat = (long)(StatsConstants.fallbackRemoteLatencyRatio*localReadLat);
+            remoteReadLat =StatsConstants.fallbackRemoteLatencyRatio*localReadLat;
         }
         long writeLat = decoder.decodeNextLong();
         /*

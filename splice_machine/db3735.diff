@@ -1,0 +1,490 @@
+diff --git a/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/index/IndexTransformer.java b/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/index/IndexTransformer.java
+index 9a46d5d..f2d07e1 100644
+--- a/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/index/IndexTransformer.java
++++ b/splice_machine/src/main/java/com/splicemachine/derby/impl/sql/execute/index/IndexTransformer.java
+@@ -8,6 +8,7 @@ import java.util.Arrays;
+ import com.carrotsearch.hppc.BitSet;
+ import com.carrotsearch.hppc.ObjectArrayList;
+ import org.apache.hadoop.hbase.CellUtil;
++import org.apache.hadoop.hbase.HConstants;
+ import org.apache.hadoop.hbase.KeyValue;
+ import org.apache.hadoop.hbase.client.Get;
+ import org.apache.hadoop.hbase.client.Result;
+@@ -211,25 +212,29 @@ public class IndexTransformer {
+             keyDecoder.set(mutation.getRowKey());
+             for (int sourceKeyColumnPos : srcPrimaryKeyIndices) {
+                 int indexKeyPos = sourceKeyColumnPos < indexKeyEncodingMap.length ? indexKeyEncodingMap[sourceKeyColumnPos] : -1;
+-                if (indexKeyPos < 0) {
+-                    skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
+-                } else {
+-                    int offset = keyDecoder.offset();
+-                    boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
+-                    hasNullKeyFields = isNull || hasNullKeyFields;
+-                    if (!isNull) {
+-                        int length = keyDecoder.offset() - offset - 1;
+-                        accumulate(keyAccumulator, indexKeyPos,
+-                                columnTypes[sourceKeyColumnPos],
+-                                srcKeyColumnSortOrder != null && srcKeyColumnSortOrder[sourceKeyColumnPos] != indexKeySortOrder[sourceKeyColumnPos],
+-                                keyDecoder.array(), offset, length);
+-                    }
++                int offset = keyDecoder.offset();
++                boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
++                if(indexKeyPos>=0){
++                    /*
++                     * since primary keys have an implicit NOT NULL constraint here, we don't need to check for it,
++                     * and isNull==true would represent a programmer error, rather than an actual state the
++                     * system can be in.
++                     */
++                    assert !isNull: "Programmer error: Cannot update a primary key to a null value!";
++                    int length = keyDecoder.offset() - offset - 1;
++                    accumulate(keyAccumulator, indexKeyPos,
++                            columnTypes[sourceKeyColumnPos],
++                            srcKeyColumnSortOrder != null && srcKeyColumnSortOrder[sourceKeyColumnPos] != indexKeySortOrder[sourceKeyColumnPos],
++                            keyDecoder.array(), offset, length);
+                 }
+             }
+         }
+ 
+         /*
+          * Handle non-null index columns from the source tables non-primary key columns.
++         *
++         * this will set indexed columns with values taken from the incoming mutation (rather than
++         * backfilling them with existing values, which would occur elsewhere).
+          */
+         EntryDecoder rowDecoder = getSrcValueDecoder();
+         rowDecoder.set(mutation.getValue());
+@@ -243,13 +248,32 @@ public class IndexTransformer {
+                 int offset = rowFieldDecoder.offset();
+                 boolean isNull = rowDecoder.seekForward(rowFieldDecoder, i);
+                 hasNullKeyFields = isNull || hasNullKeyFields;
++                int length;
+                 if (!isNull) {
+-                    int length = rowFieldDecoder.offset() - offset - 1;
++                    length = rowFieldDecoder.offset() - offset - 1;
+                     accumulate(keyAccumulator,
+                             keyColumnPos,
+                             columnTypes[i],
+                             !indexKeySortOrder[keyColumnPos],
+                             rowFieldDecoder.array(), offset, length);
++                } else{
++                    /*
++                     * because the field is NULL and it's source is the incoming mutation, we
++                     * still need to accumulate it. We must be careful, however, to accumulate the
++                     * proper null value.
++                     *
++                     * In theory, we could use a sparse encoding here--just accumulate a length 0 entry,
++                     * which will allow us to use a very short row key to determine nullity. However, that
++                     * doesn't work correctly, because doubles and floats at the end of the index might decode
++                     * the row key as a double, resulting in goofball answers.
++                     *
++                     * Instead, we must use the dense encoding approach here. That means that we must
++                     * select the proper dense type based on columnTypes[i]. For most data types, this is still
++                     * a length-0 array, but for floats and doubles it will put the proper type into place.
++                     */
++                    accumulateNull(keyAccumulator,
++                            keyColumnPos,
++                            columnTypes[i]);
+                 }
+             }
+         }
+@@ -339,6 +363,18 @@ public class IndexTransformer {
+         return indexValueEncoder;
+     }
+ 
++    private void accumulateNull(EntryAccumulator keyAccumulator, int pos, int type){
++        if (typeProvider.isScalar(type))
++            keyAccumulator.addScalar(pos,HConstants.EMPTY_BYTE_ARRAY,0,0);
++        else if (typeProvider.isDouble(type))
++            keyAccumulator.addDouble(pos,Encoding.encodedNullDouble(),0,Encoding.encodedNullDoubleLength());
++        else if (typeProvider.isFloat(type))
++            keyAccumulator.addDouble(pos,Encoding.encodedNullFloat(),0,Encoding.encodedNullFloatLength());
++        else
++            keyAccumulator.add(pos,HConstants.EMPTY_BYTE_ARRAY,0,0);
++
++    }
++
+     private void accumulate(EntryAccumulator keyAccumulator, int pos,
+                             int type,
+                             boolean reverseOrder,
+diff --git a/splice_machine/src/main/java/com/splicemachine/pipeline/writehandler/IndexWriteHandler.java b/splice_machine/src/main/java/com/splicemachine/pipeline/writehandler/IndexWriteHandler.java
+index 7a7ead9..f756424 100644
+--- a/splice_machine/src/main/java/com/splicemachine/pipeline/writehandler/IndexWriteHandler.java
++++ b/splice_machine/src/main/java/com/splicemachine/pipeline/writehandler/IndexWriteHandler.java
+@@ -141,12 +141,10 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
+     }
+ 
+     private boolean createIndex(KVPair mutation, WriteContext ctx, boolean toInsert) {
+-        KVPair toTranslate = mutation;
+-        if (toInsert) {
+-            toTranslate = new KVPair(mutation.getRowKey(),mutation.getValue(), KVPair.Type.INSERT);
+-        }
+         try {
+-            KVPair newIndex = transformer.translate(toTranslate);
++            KVPair newIndex = transformer.translate(mutation);
++            if(toInsert)
++                newIndex.setType(KVPair.Type.INSERT);
+             if(keepState) {
+                 this.indexToMainMutationMap.put(newIndex, mutation);
+             }
+diff --git a/splice_machine_test/src/test/java/com/splicemachine/derby/impl/sql/actions/index/IndexNullityIT.java b/splice_machine_test/src/test/java/com/splicemachine/derby/impl/sql/actions/index/IndexNullityIT.java
+new file mode 100644
+index 0000000..545a7c2
+--- /dev/null
++++ b/splice_machine_test/src/test/java/com/splicemachine/derby/impl/sql/actions/index/IndexNullityIT.java
+@@ -0,0 +1,147 @@
++package com.splicemachine.derby.impl.sql.actions.index;
++
++import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
++import com.splicemachine.derby.test.framework.SpliceWatcher;
++import com.splicemachine.derby.test.framework.TestConnection;
++import com.splicemachine.test_tools.CountGeneratedRowCreator;
++import com.splicemachine.test_tools.TableCreator;
++import org.junit.*;
++import org.junit.rules.RuleChain;
++import org.junit.rules.TestRule;
++
++import java.math.BigDecimal;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Statement;
++import java.util.BitSet;
++
++/**
++ * @author Scott Fines
++ *         Date: 8/28/15
++ */
++public class IndexNullityIT{
++
++    private static final SpliceWatcher classWatcher=new SpliceWatcher();
++    private static final SpliceSchemaWatcher schema=new SpliceSchemaWatcher(IndexNullityIT.class.getSimpleName());
++
++    @ClassRule
++    public static final TestRule chain=RuleChain.outerRule(classWatcher).around(schema);
++
++
++    private final SpliceWatcher method=new SpliceWatcher(schema.schemaName);
++    private TestConnection conn;
++
++    private static final String[] indexNames=new String[]{
++            //1 and 2-column indices
++            "b"     , "bsi" , "bi"  , "bba" , "br"  , "bd"  , "bnu"  , "bc"  , "bv"  ,
++            "sib"   , "si"  , "sii" , "siba", "sir" , "sid" , "sinu" , "sic" , "siv" ,
++            "ib"    , "isi" , "i"   , "iba" , "ir"  , "id"  , "inu"  , "ic"  , "iv"  ,
++            "bab"   , "basi", "bai" , "ba"  , "bar" , "bad" , "banu" , "bac" , "bav" ,
++            "rb"    , "rsi" , "ri"  , "rba" , "r"   , "rd"  , "rnu"  , "rc"  , "rv"  ,
++            "db"    , "dsi" , "di"  , "dba" , "dr"  , "d"   , "dnu"  , "dc"  , "dv"  ,
++            "nub"   , "nusi", "nui" , "nuba", "nur" , "nud" , "nu"   , "nuc" , "nuv" ,
++            "cb"    , "csi" , "ci"  , "cba" , "cr"  , "cd"  , "cnu"  , "c"   , "cv"  ,
++            "vb"    , "vsi" , "vi"  , "vba" , "vr"  , "vd"  , "vnu"  , "vc"  , "v"   ,
++    };
++
++    private static final String[] indexSchemas=new String[]{
++            "b"     , "b,si"    , "b,i" , "b,ba"    , "b,r" , "b,d" , "b,nu" , "b,c" , "b,v" ,
++            "si,b"  , "si"      , "si,i", "si,ba"   , "si,r", "si,d", "si,nu", "si,c", "si,v",
++            "i,b"   , "i,si"    , "i"   , "i,ba"    , "i,r" , "i,d" , "i,nu" , "i,c" , "i,v" ,
++            "ba,b"  , "ba,si"   , "ba,i", "ba"      , "ba,r", "ba,d", "ba,nu", "ba,c", "ba,v",
++            "r,b"   , "r,si"    , "r,i" , "r,ba"    , "r"   , "r,d" , "r,nu" , "r,c" , "r,v" ,
++            "d,b"   , "d,si"    , "d,i" , "d,ba"    , "d,r" , "d"   , "d,nu" , "d,c" , "d,v" ,
++            "nu,b"  , "nu,si"   , "nu,i", "nu,ba"   , "nu,r", "nu,d", "nu"   , "nu,c", "nu,v" ,
++            "c,b"   , "c,si"    , "c,i" , "c,ba"    , "c,r" , "c,d" , "c,nu" , "c"   , "c,v" ,
++            "v,b"   , "v,si"    , "v,i" , "v,ba"    , "v,r" , "v,d" , "v,nu" , "v,c" , "v"   ,
++    };
++
++    @BeforeClass
++    public static void setupTables() throws Exception{
++        TestConnection conn=classWatcher.getOrCreateConnection();
++        conn.setSchema(schema.schemaName);
++        try(Statement s = conn.createStatement()){
++            s.execute("drop table if exists ALL_DTS");
++        }
++        TableCreator indexableDataTypes=new TableCreator(conn)
++                .withCreate("create table %s "+
++                        "(b boolean, si smallint, i int, ba bigint, r real, "+
++                        "d double, nu numeric(10,2), c char(10),v varchar(20))");
++        indexableDataTypes=indexableDataTypes.withTableName("ALL_DTS")
++                .withInsert("insert into %s (b,si,i,ba,r,d,nu,c,v) values (?,?,?,?,?,?,?,?,?)")
++                .withRows(new CountGeneratedRowCreator(10){
++                    @Override
++                    public void setRow(PreparedStatement ps) throws SQLException{
++                        ps.setBoolean(1,position%2==0);
++                        ps.setShort(2,(short)position);
++                        ps.setInt(3,position>>>1);
++                        ps.setLong(4,position>>>2);
++                        ps.setFloat(5,position);
++                        ps.setDouble(6,position*2d);
++                        ps.setBigDecimal(7,new BigDecimal(position<<2));
++                        ps.setString(8,Integer.toString(position));
++                        ps.setString(9,Integer.toString(position*3));
++                    }
++                });
++        String idxFormat="create index %s on ALL_DTS(%s)";
++        //all possible combinations of 1 and 2 columns
++        for(int i=0;i<indexNames.length;i++){
++            indexableDataTypes = indexableDataTypes.withIndex(String.format(idxFormat,indexNames[i],indexSchemas[i]));
++        }
++        indexableDataTypes.create();
++    }
++
++    @Before
++    public void setupTest() throws Exception{
++        conn=method.getOrCreateConnection();
++        conn.setSchema(schema.schemaName);
++        conn.setAutoCommit(false);
++    }
++
++    @After
++    public void cleanupTest() throws Exception{
++        conn.rollback();
++        conn.reset();
++    }
++
++    @Test
++    public void testUpdateAllColumnsToNullReflectedInIndex() throws Exception{
++        /*
++         * The idea is to set all columns to null, then run through every index available
++         * and make sure that you get null back for that row
++         */
++        try(Statement s=conn.createStatement()){
++            s.execute("update ALL_DTS set b=null,si=null,i=null,ba=null,r=null,d=null,nu=null,c=null,v=null");
++
++            String selectFormat = "select %s from ALL_DTS --SPLICE-PROPERTIES index=%s%n";
++            BitSet nulls = new BitSet(2);
++            nulls.set(1,3); //index from 1
++            for(int i=0;i<indexNames.length;i++){
++                String indexName=indexNames[i];
++                String cols=indexSchemas[i];
++                ResultSet resultSet=s.executeQuery(String.format(selectFormat,cols,indexName.toUpperCase()));
++                validateQuery(indexName,cols,resultSet,nulls);
++            }
++        }
++    }
++
++    private void validateQuery(String indexName, String indexSchema,ResultSet resultSet,BitSet nullColumns)throws Exception{
++        String errorFormat = String.format("[%s,%s]",indexName,indexSchema)+"%s";
++        int colCount = resultSet.getMetaData().getColumnCount();
++        while(resultSet.next()){
++            for(int i=1;i<=colCount;i++){
++                Object object=resultSet.getObject(i);
++                if(nullColumns.get(i)){
++                    //the object won't be null for primitive values, since it will cast the default primitive value for each one
++//                    Assert.assertNull(String.format(errorFormat,"Object(pos="+i+",val="+object+") is unexpectedly not null!"),object);
++                    Assert.assertTrue(String.format(errorFormat,"ResultSet(pos="+i+") did not think it returned null!"),resultSet.wasNull());
++                }else{
++                    Assert.assertNotNull(String.format(errorFormat,"Object(pos="+i+") is unexpectedly null!"),object);
++                    Assert.assertFalse(String.format(errorFormat,"ResultSet(pos="+i+") thought it returned null!"),resultSet.wasNull());
++
++                }
++            }
++        }
++    }
++}
+diff --git a/splice_machine_test/src/test/java/com/splicemachine/derby/test/framework/TestConnection.java b/splice_machine_test/src/test/java/com/splicemachine/derby/test/framework/TestConnection.java
+index e9fd769..3a108d1 100644
+--- a/splice_machine_test/src/test/java/com/splicemachine/derby/test/framework/TestConnection.java
++++ b/splice_machine_test/src/test/java/com/splicemachine/derby/test/framework/TestConnection.java
+@@ -185,12 +185,11 @@ public class TestConnection implements Connection{
+     @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException { return delegate.createArrayOf(typeName,elements); }
+     @Override public Struct createStruct(String typeName, Object[] attributes) throws SQLException { return delegate.createStruct(typeName, attributes); }
+     public void setSchema(String schema) throws SQLException {
+-
+-//        delegate.setSchema(schema);
++        delegate.setSchema(schema);
+     }
++
+     public String getSchema() throws SQLException {
+-        return null;
+-//        return delegate.getSchema();
++        return delegate.getSchema();
+     }
+     public void abort(Executor executor) throws SQLException {
+         //no-op
+diff --git a/splice_machine_test/src/test/java/com/splicemachine/test_tools/CountGeneratedRowCreator.java b/splice_machine_test/src/test/java/com/splicemachine/test_tools/CountGeneratedRowCreator.java
+new file mode 100644
+index 0000000..072cbb0
+--- /dev/null
++++ b/splice_machine_test/src/test/java/com/splicemachine/test_tools/CountGeneratedRowCreator.java
+@@ -0,0 +1,27 @@
++package com.splicemachine.test_tools;
++
++/**
++ * @author Scott Fines
++ *         Date: 8/28/15
++ */
++public abstract class CountGeneratedRowCreator implements RowCreator{
++    private final int batchSize;
++    private final int maxCount;
++    protected int position = 0;
++
++    public CountGeneratedRowCreator(int maxCount){
++        this(maxCount,1);
++    }
++
++    public CountGeneratedRowCreator(int maxCount,int batchSize){
++        this.maxCount=maxCount;
++        this.batchSize = batchSize;
++    }
++
++    @Override
++    public boolean advanceRow(){
++        return position++<=maxCount;
++    }
++
++    @Override public int batchSize(){ return batchSize; }
++}
+diff --git a/splice_machine_test/src/test/java/com/splicemachine/test_tools/IterableRowCreator.java b/splice_machine_test/src/test/java/com/splicemachine/test_tools/IterableRowCreator.java
+new file mode 100644
+index 0000000..962aac1
+--- /dev/null
++++ b/splice_machine_test/src/test/java/com/splicemachine/test_tools/IterableRowCreator.java
+@@ -0,0 +1,39 @@
++package com.splicemachine.test_tools;
++
++import java.sql.PreparedStatement;
++import java.sql.SQLException;
++import java.util.Iterator;
++
++/**
++ * @author Scott Fines
++ *         Date: 8/28/15
++ */
++public class IterableRowCreator implements RowCreator{
++    private final int batchSize;
++    private Iterator<Iterable<Object>> rows;
++
++    public IterableRowCreator(Iterable<Iterable<Object>> rows){
++       this(rows,1);
++    }
++
++    public IterableRowCreator(Iterable<Iterable<Object>> rows,int batchSize){
++        this.rows=rows.iterator();
++        this.batchSize = batchSize;
++    }
++
++    @Override
++    public boolean advanceRow(){
++        return rows.hasNext();
++    }
++
++    @Override public int batchSize(){ return batchSize; }
++
++    @Override
++    public void setRow(PreparedStatement ps) throws SQLException{
++        Iterable<Object> nextRow = rows.next();
++        int i=1;
++        for(Object v:nextRow){
++            ps.setObject(i++,v);
++        }
++    }
++}
+diff --git a/splice_machine_test/src/test/java/com/splicemachine/test_tools/RowCreator.java b/splice_machine_test/src/test/java/com/splicemachine/test_tools/RowCreator.java
+new file mode 100644
+index 0000000..d070272
+--- /dev/null
++++ b/splice_machine_test/src/test/java/com/splicemachine/test_tools/RowCreator.java
+@@ -0,0 +1,31 @@
++package com.splicemachine.test_tools;
++
++import java.sql.PreparedStatement;
++import java.sql.SQLException;
++
++/**
++ * @author Scott Fines
++ *         Date: 8/28/15
++ */
++public interface RowCreator{
++
++    /**
++     * @return {@code false} if there are no more rows to work with
++     */
++    boolean advanceRow();
++
++    /**
++     * @return the number of rows to work with at one time
++     */
++    int batchSize();
++
++    /**
++     * Set the value for this row into the prepared statement.
++     *
++     * DO NOT CLOSE the statement! It is managed elsewhere.
++     *
++     * @param ps the statement to work with
++     * @throws SQLException if something goes wrong
++     */
++    void setRow(PreparedStatement ps) throws SQLException;
++}
+diff --git a/splice_machine_test/src/test/java/com/splicemachine/test_tools/TableCreator.java b/splice_machine_test/src/test/java/com/splicemachine/test_tools/TableCreator.java
+index 67f3ee8..c4659de 100644
+--- a/splice_machine_test/src/test/java/com/splicemachine/test_tools/TableCreator.java
++++ b/splice_machine_test/src/test/java/com/splicemachine/test_tools/TableCreator.java
+@@ -45,7 +45,7 @@ public class TableCreator {
+     private String createSql;
+     private String insertSql;
+     private List<String> indexSqlList = Lists.newArrayList();
+-    private Iterable<Iterable<Object>> rowProvider;
++    private RowCreator rowCreator;
+ 
+     public TableCreator(Connection connection) {
+         this.connection = connection;
+@@ -72,14 +72,19 @@ public class TableCreator {
+     }
+ 
+     public TableCreator withRows(Iterable<Iterable<Object>> rowProvider) {
+-        this.rowProvider = rowProvider;
++        this.rowCreator = new IterableRowCreator(rowProvider);
++        return this;
++    }
++
++    public TableCreator withRows(RowCreator rowProvider) {
++        this.rowCreator = rowProvider;
+         return this;
+     }
+ 
+     public void create() throws SQLException {
+         createTable();
+         createIndexes();
+-        if (rowProvider != null) {
++        if (rowCreator != null) {
+             checkState(insertSql != null, "must provide insert statement if providing rows");
+             insertRows();
+         }
+@@ -108,20 +113,26 @@ public class TableCreator {
+     }
+ 
+     private void insertRows() throws SQLException {
+-        String INSERT_SQL = tableName == null ? insertSql : String.format(insertSql, tableName);
+-        PreparedStatement ps = connection.prepareStatement(INSERT_SQL);
+-        try {
+-            for (Iterable<?> row : rowProvider) {
+-                int i = 1;
+-                for (Object value : row) {
+-                    ps.setObject(i++, value);
++        String insertSql = tableName == null ?this.insertSql: String.format(this.insertSql, tableName);
++        int batchSize = rowCreator.batchSize();
++        try(PreparedStatement ps = connection.prepareStatement(insertSql)) {
++            if(batchSize>1){
++                int size = 0;
++                while(rowCreator.advanceRow()){
++                    rowCreator.setRow(ps);
++                    ps.addBatch();
++                    size++;
++                    if((size%batchSize)==0){
++                        ps.executeBatch();
++                    }
++                }
++            }else{
++                while(rowCreator.advanceRow()){
++                    rowCreator.setRow(ps);
++                    ps.execute();
+                 }
+-                ps.execute();
++
+             }
+-        } finally {
+-            DbUtils.close(ps);
+         }
+     }
+-
+-
+ }

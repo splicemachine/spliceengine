@@ -29,7 +29,7 @@ public class ProbeDistributedScanner implements SpliceResultScanner {
         this.scanners = scanners;
         this.nextOfScanners = new List[scanners.length];
         for (int i = 0; i < this.nextOfScanners.length; i++) {
-            this.nextOfScanners[i] = new ArrayList<Result>();
+            this.nextOfScanners[i] =new ArrayList<>();
         }
     }
 
