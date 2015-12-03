@@ -653,10 +653,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                           int scanIsolationLevel, double optimizerEstimatedRowCount,
                                           double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
                                           int returnTypeNumber, int vtiProjectionNumber,
-                                          int vtiRestrictionNumber) throws StandardException {
+                                          int vtiRestrictionNumber,
+                                          String explainPlan) throws StandardException {
 
-
-        return new VTIOperation(activation, row, resultSetNumber,
+        VTIOperation op =  new VTIOperation(activation, row, resultSetNumber,
                 constructor,
                 javaClassName,
                 pushedQualifiersField,
@@ -670,6 +670,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 returnTypeNumber,
                 vtiProjectionNumber,
                 vtiRestrictionNumber);
+        op.setExplainPlan(explainPlan);
+        return op;
     }
 
     @Override
@@ -689,8 +691,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             boolean isDerbyStyleTableFunction,
             int returnTypeNumber,
             int vtiProjectionNumber,
-            int vtiRestrictionNumber
-    ) throws StandardException {
+            int vtiRestrictionNumber,
+            String explainPlan)
+            throws StandardException {
+        
         return getVTIResultSet(
                 activation,
                 row,
@@ -707,7 +711,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 isDerbyStyleTableFunction,
                 returnTypeNumber,
                 vtiProjectionNumber,
-                vtiRestrictionNumber
+                vtiRestrictionNumber,
+                explainPlan
         );
     }
 
