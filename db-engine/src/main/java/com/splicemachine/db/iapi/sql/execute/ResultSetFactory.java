@@ -1169,7 +1169,8 @@ public interface ResultSetFactory {
 								GeneratedMethod restriction,
 								boolean forUpdate,
 								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost)
+								double optimizerEstimatedCost,
+								String explainPlan)
 			throws StandardException;
 
 
