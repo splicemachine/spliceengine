@@ -2,12 +2,11 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.sql.ResultSet;
 
 /**
  *
@@ -32,9 +31,9 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
     @Test
     public void innerJoin() throws Exception {
         rowContainsQuery(
-                new int[] {1,3},
-                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","NestedLoopJoin");
+                new int[]{1, 3},
+                "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1", methodWatcher,
+                "rows=10", "NestedLoopJoin");
     }
 
     @Test
@@ -61,4 +60,19 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
                 "rows=5","NestedLoopRightOuterJoin");
     }
 
+    @Test
+    //DB-4102: bump up row count to 1 to avoid divided by zero error when computing cost
+    public void testEmptyInputTable() throws Exception {
+        String query = "explain \n" +
+                "select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "t2 b --SPLICE-PROPERTIES index=t2j\n" +
+                ",t1 a--SPLICE-PROPERTIES index=t1i, joinStrategy=MERGE\n" +
+                ", t2 c--SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n" +
+                "where a.i=b.j and b.j = c.j";
+        ResultSet rs = methodWatcher.executeQuery(query);
+        rs.next();
+        rs.next();
+        String s = rs.getString(1);
+        Assert.assertFalse(s.contains("totalCost=�"));
+    }
 }

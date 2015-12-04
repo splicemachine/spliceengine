@@ -99,6 +99,26 @@ public class BaseJoinSelectivityIT extends SpliceUnitTest {
                                 row(6, "6", "1980-01-01 23:03:20", false),
                                 row(7, "7", "1985-01-01 23:03:20", false))).create();
 
+                new TableCreator(conn)
+                        .withCreate("create table t1(i varchar(30))")
+                        .withIndex("create index t1i on t1(i)")
+                        .create();
+
+                new TableCreator(conn)
+                        .withCreate("create table t2(j varchar(30))")
+                        .withInsert("insert into t2 values(?)")
+                        .withIndex("create index t2j on t2(j)")
+                        .withRows(rows(
+                                row("1"),
+                                row("2"),
+                                row("3"),
+                                row("4")
+                        )).create();
+
+                for (int i = 0; i < 10; i++) {
+                        spliceClassWatcher.executeUpdate("insert into t2 select * from t2");
+                }
+
                 conn.createStatement().executeQuery(format(
                         "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                         schemaName));
