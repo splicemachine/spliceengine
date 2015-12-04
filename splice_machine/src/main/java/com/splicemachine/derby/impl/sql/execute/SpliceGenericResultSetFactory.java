@@ -118,12 +118,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                         GeneratedMethod restriction,
                                                         boolean forUpdate,
                                                         double optimizerEstimatedRowCount,
-                                                        double optimizerEstimatedCost)
+                                                        double optimizerEstimatedCost,
+                                                        String explainPlan)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
         try{
             SpliceOperation belowOp = ((ConvertedResultSet)source).getOperation();
-            return new IndexRowToBaseRowOperation(
+            SpliceOperation indexOp = new IndexRowToBaseRowOperation(
                     conglomId,
                     scociItem,
                     source.getActivation(),
@@ -139,6 +140,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     forUpdate,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
+            indexOp.setExplainPlan(explainPlan);
+            return indexOp;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
