@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
+
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -14,7 +15,10 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
@@ -108,10 +112,23 @@ public class WindowOperation extends SpliceBaseOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
-        return source.getDataSet(dsp)
-                .keyBy(new KeyerFunction(operationContext, windowContext.getPartitionColumns()))
-                .groupByKey()
-                .flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()));
+        DataSet dataSet = source.getDataSet(dsp);
+        
+        operationContext.pushScopeForOp("Prepare Keys");
+        KeyerFunction f = new KeyerFunction(operationContext, windowContext.getPartitionColumns());
+        PairDataSet pair = dataSet.keyBy(f);
+        operationContext.popScope();
+        
+        operationContext.pushScopeForOp("Group By Key");
+        pair = pair.groupByKey("Group Values For Each Key");
+        operationContext.popScope();
+        
+        operationContext.pushScopeForOp("Execute");
+        try {
+            return pair.flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()), true);
+        } finally {
+            operationContext.popScope();
+        }
     }
 
 
@@ -165,5 +182,9 @@ public class WindowOperation extends SpliceBaseOperation {
 
     public WindowContext getWindowContext() {
         return windowContext;
+    }
+   
+    public String getSparkStageName() {
+        return "Window Function";
     }
 }

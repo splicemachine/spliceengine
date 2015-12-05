@@ -25,9 +25,11 @@ public interface PairDataSet<K,V> {
     public <Op extends SpliceOperation> PairDataSet<K,V> reduceByKey(SpliceFunction2<Op,V,V,V> function2, boolean isLast);
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,Tuple2<K,V>,U> function);
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op,Tuple2<K,V>,U> function);
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op,Tuple2<K,V>,U> function, boolean isLast);
     public PairDataSet<K,V> sortByKey(Comparator<K> comparator);
     public PairDataSet<K,V> sortByKey(Comparator<K> comparator, String name);
     public PairDataSet<K, Iterable<V>> groupByKey();
+    public PairDataSet<K, Iterable<V>> groupByKey(String name);
     public <W> PairDataSet<K,Tuple2<V,Optional<W>>> hashLeftOuterJoin(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Optional<V>,W>> hashRightOuterJoin(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<V,W>> hashJoin(PairDataSet<K,W> rightDataSet);

@@ -221,7 +221,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values("Fetch Values")
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values()
                             .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
@@ -229,15 +229,15 @@ public class MergeSortJoinOperation extends JoinOperation {
                 }
             } else { // Inner Join
                 if (isOneRowRightSide()) {
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values("Fetch Values")
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values()
                             .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.hashJoin(rightDataSet, "Hash Join")
+                    return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext))
                             .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.hashJoin(rightDataSet, "Hash Join")
+                    return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
                 }
             }

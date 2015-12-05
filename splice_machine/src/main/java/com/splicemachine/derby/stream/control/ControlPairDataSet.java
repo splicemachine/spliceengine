@@ -141,6 +141,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
+        return groupByKey();
+    }
+
+    @Override
     public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(final PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
@@ -265,6 +270,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         }
     }
 
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function, boolean isLast) {
+        return flatmap(function);
+    }
+    
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         Multimap<K, V> left = multimapFromIterable(source);

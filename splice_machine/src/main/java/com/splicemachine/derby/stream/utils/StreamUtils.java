@@ -126,7 +126,7 @@ public class StreamUtils {
             .put("MergeInnerJoinFlatMapFunctionFunction", "Create Flat Map for Merge Inner Join")
             .put("MergeNonDistinctAggregatesFunction", "Merge Non Distinct Aggregates")
             .put("MergeOuterJoinFlatMapFunction", "Create Flat Map for Merge Outer Join")
-            .put("MergeWindowFunction", "Merge Window")
+            .put("MergeWindowFunction", "Execute Window Function Logic")
             .put("NLJAntiJoinFunction", "Execute Nested Loop Anti Join")
             .put("NLJInnerJoinFunction", "Execute Nested Loop Inner Join")
             .put("NLJOneRowInnerJoinFunction", "Execute Nested Loop One Row Inner Join")

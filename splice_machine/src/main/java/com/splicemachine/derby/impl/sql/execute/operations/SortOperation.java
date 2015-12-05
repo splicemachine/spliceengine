@@ -3,17 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.RowComparator;
-import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.spark.SparkDataSet;
-import com.splicemachine.derby.stream.spark.SparkPairDataSet;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -24,7 +20,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 
 import org.apache.log4j.Logger;
-import org.apache.spark.rdd.RDDOperationScope;
 
 import java.io.*;
 import java.util.*;
@@ -188,59 +183,31 @@ public class SortOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        if (distinct) return getDataSetDistinct(dsp);
-        
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet dataSet = source.getDataSet(dsp);
         
-        operationContext.pushScope();
+        if (distinct) {
+            operationContext.pushScopeForOp("Find Distinct Values");
+            dataSet = dataSet.distinct();
+            operationContext.popScope();
+        }
+        
+        operationContext.pushScopeForOp("Prepare Keys");
         KeyerFunction f = new KeyerFunction(operationContext, keyColumns);
         PairDataSet pair = dataSet.keyBy(f);
         operationContext.popScope();
         
-        operationContext.pushScope(getSparkStageName() + ": Shuffle/Sort Data");
+        operationContext.pushScopeForOp("Shuffle/Sort Data");
         PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow),
             "Sort By Columns"); // + Arrays.toString(keyColumns));
         operationContext.popScope();
 
-        operationContext.pushScope(getSparkStageName() + ": Read Sorted Values");
+        operationContext.pushScopeForOp("Read Sorted Values");
         DataSet sortedValues = sortedByKey.values("Read Sorted Values");
         operationContext.popScope();
         
         try {
-            operationContext.pushScope(getSparkStageName() + ": Locate Rows");
-            DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext), true);
-            return locatedRows;
-        } finally {
-            operationContext.popScope();
-        }
-    }
-    
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected DataSet<LocatedRow> getDataSetDistinct(DataSetProcessor dsp) throws StandardException {
-        // wjk - temporarily copied/pasted from getDataSet to help resolve some issues
-        OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet dataSet = source.getDataSet(dsp);
-        
-        operationContext.pushScope();
-        dataSet = dataSet.distinct();
-        operationContext.popScope();
-        
-        operationContext.pushScope(this.getSparkStageName() + ": Prepare Keys");
-        KeyerFunction f = new KeyerFunction(operationContext, keyColumns);
-        PairDataSet pair = dataSet.keyBy(f);
-        operationContext.popScope();
-        
-        operationContext.pushScope(getSparkStageName() + ": Shuffle/Sort Data");
-        PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow), "Sort By Columns");
-        operationContext.popScope();
-
-        operationContext.pushScope(getSparkStageName() + ": Read Sorted Values");
-        DataSet sortedValues = sortedByKey.values("Read Sorted Values");
-        operationContext.popScope();
-        
-        try {
-            operationContext.pushScope(getSparkStageName() + ": Locate Rows");
+            operationContext.pushScopeForOp("Locate Rows");
             DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext), true);
             return locatedRows;
         } finally {
@@ -251,36 +218,4 @@ public class SortOperation extends SpliceBaseOperation {
     public String getSparkStageName() {
         return (distinct ? "Sort Distinct" : "Sort");
     }
-    
-    /* (wjk) alternative style: 1 node (scope push) for the operation, with 4 RDDs
-    public DataSet<LocatedRow> getDataSetWrong(DataSetProcessor dsp) throws StandardException {
-        DataSet dataSet = source.getDataSet(dsp);
-        OperationContext operationContext = dsp.createOperationContext(this);
-        
-        operationContext.pushScope(this.getSparkStageName() + (distinct ? "Distinct" : ""));
-
-        if (distinct) {
-            dataSet = dataSet.distinct();
-        }
-        
-        // RDD 1
-        PairDataSet pair = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns));
-        
-        // RDD 2
-        PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow),
-            "Sort By Columns: " + Arrays.toString(keyColumns));
-
-        // RDD 3
-        DataSet sortedValues = sortedByKey.values("Read Sorted Values");
-        
-        // RDD 4
-        try {
-            DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext));
-            return locatedRows;
-        } finally {
-            operationContext.popScope();
-        }
-    }
-    */
-    
 }

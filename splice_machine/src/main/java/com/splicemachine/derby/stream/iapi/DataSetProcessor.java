@@ -47,6 +47,8 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> getEmpty();
 
+    <V> DataSet<V> getEmpty(String name);
+
     /**
      * Generate a single row dataset from a value.
      *

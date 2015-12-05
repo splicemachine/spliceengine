@@ -90,6 +90,11 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
+    public <V> DataSet<V> getEmpty(String name) {
+        return getEmpty();
+    }
+
+    @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
         return new ControlDataSet<>(Lists.newArrayList(value));
     }
