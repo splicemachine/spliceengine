@@ -11,7 +11,9 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -181,6 +183,11 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
 
     @Override
     public void pushScope() {
+        // no op
+    }
+
+    @Override
+    public void pushScopeForOp(String step) {
         // no op
     }
 

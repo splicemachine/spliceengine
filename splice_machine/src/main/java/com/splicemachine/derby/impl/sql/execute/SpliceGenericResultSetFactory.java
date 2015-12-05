@@ -1229,19 +1229,23 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              int maxRowSize,
                                              int resultSetNumber,
                                              double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost)
+                                             double optimizerEstimatedCost,
+                                             String explainPlan)
         throws StandardException {
         SpliceLogUtils.trace(LOG, "getWindowResultSet");
 
         ConvertedResultSet below = (ConvertedResultSet)source;
-        return new WindowOperation(below.getOperation(),
-                                                            isInSortedOrder,
-                                                            aggregateItem,
-                                                            source.getActivation(),
-                                                            rowAllocator,
-                resultSetNumber,
-                                                            optimizerEstimatedRowCount,
-                                                            optimizerEstimatedCost);
+        SpliceOperation windowOp = new WindowOperation(
+            below.getOperation(),
+            isInSortedOrder,
+            aggregateItem,
+            source.getActivation(),
+            rowAllocator,
+            resultSetNumber,
+            optimizerEstimatedRowCount,
+            optimizerEstimatedCost);
+        windowOp.setExplainPlan(explainPlan);
+        return windowOp;
     }
 
     @Override

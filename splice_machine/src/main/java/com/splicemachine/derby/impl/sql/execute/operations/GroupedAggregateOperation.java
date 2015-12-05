@@ -10,6 +10,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.spark.SparkConstants;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.derby.stream.spark.SparkPairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -162,7 +163,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return "Grouped" + super.prettyPrint(indentLevel);
     }
 
-
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
@@ -178,15 +178,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             // Distinct Aggregate Path
             int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
 
-            operationContext.pushScope(this.getSparkStageName() + ": Prepare Keys");
+            operationContext.pushScopeForOp(SparkConstants.SCOPE_GROUP_AGGREGATE_KEYER);
             PairDataSet set2 = set.keyBy(new KeyerFunction(operationContext, allKeys));
             operationContext.popScope();
             
-            operationContext.pushScope(this.getSparkStageName() + ": Reduce");
+            operationContext.pushScopeForOp("Reduce");
             PairDataSet set3 = set2.reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext));
             operationContext.popScope();
             
-            operationContext.pushScope(this.getSparkStageName() + ": Read Values");
+            operationContext.pushScopeForOp("Read Values");
             DataSet set4 = set3.values();
             operationContext.popScope();
             
@@ -194,24 +194,24 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         
         if (isRollup) { // OLAP Rollup Functionality
-            operationContext.pushScope(this.getSparkStageName() + ": Rollup");
+            operationContext.pushScopeForOp("Rollup");
             set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
             operationContext.popScope();
         }
         
-        operationContext.pushScope(this.getSparkStageName() + ": Prepare Keys");
+        operationContext.pushScopeForOp(SparkConstants.SCOPE_GROUP_AGGREGATE_KEYER);
         PairDataSet set2 = set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
         operationContext.popScope();
         
-        operationContext.pushScope(this.getSparkStageName() + ": Reduce");
+        operationContext.pushScopeForOp("Reduce");
         PairDataSet set3 = set2.reduceByKey(new MergeAllAggregatesFunction(operationContext));
         operationContext.popScope();
         
-        operationContext.pushScope(this.getSparkStageName() + ": Read Values");
+        operationContext.pushScopeForOp("Read Values");
         DataSet set4 = set3.values("Read Values");
         operationContext.popScope();
         
-        operationContext.pushScope(this.getSparkStageName() + ": Finalize");
+        operationContext.pushScopeForOp("Finalize");
         DataSet set5 = set4.map(new AggregateFinisherFunction(operationContext), true);
         operationContext.popScope();
         

@@ -47,9 +47,6 @@ import java.util.*;
  */
 public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
-    private static final String RDD_NAME_DEFAULT_VALUES = "Fetch Values";
-    private static final String RDD_NAME_DEFAULT_SUBTRACTBYEY = "Subtract Right From Left";
-
     public JavaPairRDD<K,V> rdd;
     public SparkPairDataSet(JavaPairRDD<K,V> rdd) {
         this.rdd = rdd;
@@ -73,7 +70,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     
     @Override
     public DataSet<V> values() {
-        return values(RDD_NAME_DEFAULT_VALUES);
+        return values(SparkConstants.RDD_NAME_GET_VALUES);
     }
 
     @Override
@@ -117,9 +114,17 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public PairDataSet<K, Iterable<V>> groupByKey() {
-        return new SparkPairDataSet<>(rdd.groupByKey());
+        return groupByKey("Group By Key");
     }
 
+    @Override
+    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
+        JavaPairRDD rdd1 = rdd.groupByKey();
+        rdd1.setName(name);
+        RDDUtils.setAncestorRDDNames(rdd1, 1, new String[]{"Shuffle Data"});
+        return new SparkPairDataSet<>(rdd1);
+    }
+    
     @Override
     public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.leftOuterJoin(((SparkPairDataSet) rightDataSet).rdd));
@@ -132,17 +137,14 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
-        return new SparkPairDataSet(rdd.join(((SparkPairDataSet) rightDataSet).rdd));
+        return hashJoin(rightDataSet, "Hash Join");
     }
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
         JavaPairRDD rdd1 = rdd.join(((SparkPairDataSet) rightDataSet).rdd);
         rdd1.setName(name);
-        
-        // Implicitly creates two ancestor RDDs which we need to rename (find a better way)
         RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Map Left to Right", "Coalesce"});
-
         return new SparkPairDataSet(rdd1);
     }
 
@@ -155,13 +157,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
         return returnValue;
     }
 
-    private <W> Set<K> generateKeySet (JavaPairRDD<K,W> rightPairDataSet) {
+    private <W> Set<K> generateKeySet(JavaPairRDD<K,W> rightPairDataSet) {
         return rightPairDataSet.collectAsMap().keySet();
     }
 
     @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
-        return subtractByKey(rightDataSet, RDD_NAME_DEFAULT_SUBTRACTBYEY);
+        return subtractByKey(rightDataSet, SparkConstants.RDD_NAME_SUBTRACTBYKEY);
     }
 
     @Override
@@ -172,6 +174,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> f) {
         return new SparkDataSet<U>(rdd.flatMap(f), f.getSparkName());
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> f, boolean isLast) {
+        return new SparkDataSet<U>(rdd.flatMap(f), planIfLast(f, isLast));
     }
 
     @Override

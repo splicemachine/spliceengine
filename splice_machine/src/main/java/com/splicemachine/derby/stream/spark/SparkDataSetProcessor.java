@@ -131,9 +131,15 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         return new SparkDataSet(rawRDD.map(
                 new HTableScanTupleFunction()));
     }
+    
     @Override
     public <V> DataSet<V> getEmpty() {
-        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1));
+        return getEmpty(SparkConstants.RDD_NAME_EMPTY_DATA_SET);
+    }
+
+    @Override
+    public <V> DataSet<V> getEmpty(String name) {
+        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
     }
 
     @Override
@@ -178,7 +184,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path) {
         return readWholeTextFile(path);
-        
     }
     
     @Override

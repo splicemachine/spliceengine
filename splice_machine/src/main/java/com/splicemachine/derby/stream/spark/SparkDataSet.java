@@ -83,17 +83,16 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct() {
-        // Implicitly creates two ancestor RDDs which we need to rename (find a better way)
-        JavaRDD rdd1 = rdd.distinct();
-        rdd1.setName("Remove Duplicates");
-        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data", "Prepare Distinct Sort"});
-        return new SparkDataSet(rdd1);
+        return distinct("Remove Duplicates");
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct(String name) {
-        return new SparkDataSet(rdd.distinct(), name);
+        JavaRDD rdd1 = rdd.distinct();
+        rdd1.setName(name /* MapPartitionsRDD */);
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */});
+        return new SparkDataSet(rdd1);
     }
 
     @Override
