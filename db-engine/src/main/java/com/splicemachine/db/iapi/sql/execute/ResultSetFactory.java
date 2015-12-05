@@ -1202,7 +1202,8 @@ public interface ResultSetFactory {
                                                int rowSize,
                                                int resultSetNumber,
                                                double optimizerEstimatedRowCount,
-                                               double optimizerEstimatedCost)
+                                               double optimizerEstimatedCost,
+                                               String explainPlan)
         throws StandardException;
 
 

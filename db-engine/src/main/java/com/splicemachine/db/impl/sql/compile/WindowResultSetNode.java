@@ -969,6 +969,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 		 *  arg6: resultSetNumber
 		 *  arg7: row count estimate for cost
 		 *  arg8: estimated cost
+         *  arg9: explain plan (for this node only)
 		 */
         // Generate the child ResultSet
         childResult.generate(acb, mb);
@@ -981,9 +982,10 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         mb.push(resultSetNumber);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
+        mb.push(printExplainInformationForActivation());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getWindowResultSet",
-                      ClassName.NoPutResultSet, 8);
+                      ClassName.NoPutResultSet, 9);
 
     }
 
