@@ -1,6 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage;
 import java.util.Collection;
 
@@ -31,16 +32,16 @@ public interface DDLWatcher {
          * indicates that the specified change completed successfully, and the listener can behave appropriately (
          * e.g. by re-enabling caches, removing from lists, etc.).
          *
-         * @param changeId the identifier for the successful change
+         * @param change the change for the successful change
          */
-        void changeSuccessful(String changeId);
+        void changeSuccessful(String changeId, DDLMessage.DDLChange change) throws StandardException;
 
         /**
          * indicates that the specified change did <em>not</em> complete successfully. This allows the listener
          * to behave appropariately in scenarios where the change is known to have failed (i.e. in the event of
          * an unexpected failure of the coordinator).
          *
-         * @param changeId the identifier for the failed change
+         * @param changeId the change for the failed change
          */
         void changeFailed(String changeId);
     }
@@ -53,5 +54,7 @@ public interface DDLWatcher {
     void registerDDLListener(DDLListener listener);
 
     void unregisterDDLListener(DDLListener listener);
+
+    public boolean canUseCache(TransactionManager xact_mgr);
 
 }

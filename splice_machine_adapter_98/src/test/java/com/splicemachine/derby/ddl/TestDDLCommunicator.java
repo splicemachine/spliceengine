@@ -74,4 +74,9 @@ class TestDDLCommunicator implements DDLCommunicator{
             listener.onCommunicationEvent(changeId);
         }
     }
+
+    @Override
+    public String getErrorMessage(String changeId, String errorId) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+    }
 }

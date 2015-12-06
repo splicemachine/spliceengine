@@ -8,6 +8,8 @@ import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -67,10 +69,16 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
         while (availableTime>0) {
             activeServers = this.activeServers.getActiveServers();
             finishedServers = communicator.completedListeners(changeId,this);
-
             if (finishedServers.containsAll(activeServers)) {
                 // everybody responded, leave loop
                 return changeId;
+            }
+
+            for (String finishedServer: finishedServers) {
+                if (finishedServer.startsWith(ZooKeeperDDLWatchChecker.ERROR_TAG)) {
+                    String errorMessage = communicator.getErrorMessage(changeId,finishedServer);
+                    throw StandardException.plainWrapException(new IOException(errorMessage));
+                }
             }
 
             long startTimestamp = clock.currentTimeMillis();

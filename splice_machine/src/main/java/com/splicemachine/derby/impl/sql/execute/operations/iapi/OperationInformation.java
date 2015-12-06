@@ -23,8 +23,6 @@ public interface OperationInformation {
 
         public int getResultSetNumber();
 
-        public boolean isRuntimeStatisticsEnabled();
-
 		/**
 		 * Return the map from the physical (encoded) column locations to the decoded column locations.
 		 *

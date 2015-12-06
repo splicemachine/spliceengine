@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -91,6 +92,15 @@ class DDLZookeeperClient {
         try {
             return ZkUtils.getChildren(CHANGES_PATH + "/" + changeId, watcher);
         } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    static String getServerChangeData(String changeId,String serverId) throws StandardException {
+        try {
+            return Bytes.toString(ZkUtils.getData(CHANGES_PATH + "/" + changeId + "/" + serverId));
+        }
+        catch (IOException e) {
             throw Exceptions.parseException(e);
         }
     }

@@ -13,7 +13,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -68,11 +67,6 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     @Override
     public int getResultSetNumber() {
         return resultSetNumber;
-    }
-
-    @Override
-    public boolean isRuntimeStatisticsEnabled() {
-        return activation!=null && activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
     }
 
     @Override

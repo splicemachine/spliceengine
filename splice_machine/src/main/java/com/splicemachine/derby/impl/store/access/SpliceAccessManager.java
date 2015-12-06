@@ -3,22 +3,16 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import com.google.common.base.Preconditions;
 import com.splicemachine.access.hbase.HBaseTableFactory;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.cache.CacheFactory;
 import com.splicemachine.db.iapi.services.cache.CacheManager;
 import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.cache.CacheableFactory;
@@ -63,10 +57,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     protected LockingPolicy table_level_policy[];
     protected LockingPolicy record_level_policy[];
     protected ConglomerateFactory conglom_map[];
-    private CacheManager    conglom_cache;
-    private volatile DDLFilter ddlDemarcationPoint = null;
-    private volatile boolean cacheDisabled = false;
-    private ConcurrentMap<String, DDLMessage.DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLMessage.DDLChange>();
+    protected SpliceDatabase database;
 
     public SpliceAccessManager() {
         implhash   = new Hashtable();
@@ -110,24 +101,18 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         }
     }
 
-    private long conglom_nextid = 0;
-
     protected long getNextConglomId(int factory_type)throws StandardException {
-        long    conglomid;
         if (SanityManager.DEBUG) {
             // current code depends on this range, if we ever need to expand the
             // range we can claim bits from the high order of the long.
             SanityManager.ASSERT(factory_type >= 0x00 && factory_type <= 0x0f);
         }
-
-        synchronized (conglom_cache) {
-            try {
-                conglomid  = ConglomerateUtils.getNextConglomerateId();
-            } catch (IOException e) {
-                throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
-            }
+        try {
+            long conglomid  = ConglomerateUtils.getNextConglomerateId();
+            return((conglomid << 4) | factory_type);
+        } catch (IOException e) {
+            throw StandardException.newException(SQLState.COMMUNICATION_ERROR,e);
         }
-        return((conglomid << 4) | factory_type);
     }
 
 
@@ -156,50 +141,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     }
 
 
-    /**************************************************************************
-     * Conglomerate Cache routines:
-     **************************************************************************
-     */
-
-    /**
-     * ACCESSMANAGER CONGLOMERATE CACHE -
-     * <p>
-     * Every conglomerate in the system is described by an object which
-     * implements Conglomerate.  This object basically contains the parameters
-     * which describe the metadata about the conglomerate that store needs
-     * to know - like types of columns, number of keys, number of columns, ...
-     * <p>
-     * It is up to each conglomerate to maintain it's own description, and
-     * it's factory must be able to read this info from disk and return it
-     * from the ConglomerateFactory.readConglomerate() interface.
-     * <p>
-     * This cache simply maintains an in memory copy of these conglomerate
-     * objects, key'd by conglomerate id.  By caching, this avoids the cost
-     * of reading the conglomerate info from disk on each subsequent query
-     * which accesses the conglomerate.
-     * <p>
-     * The interfaces and internal routines which deal with this cache are:
-     * conglomCacheInit() - initializes the cache at boot time.
-     *
-     *
-     *
-     **/
-
-		/**
-		 * Initialize the conglomerate cache.
-		 * <p>
-		 * Simply calls the cache manager to create the cache with some hard
-		 * coded defaults for size.
-		 * <p>
-		 * @exception  StandardException  Standard exception policy.
-		 **/
-		private void conglomCacheInit() throws StandardException {
-				// Get a cache factory to create the conglomerate cache.
-				CacheFactory cf = (CacheFactory) Monitor.startSystemModule(com.splicemachine.db.iapi.reference.Module.CacheFactory);
-				// Now create the conglomerate cache.
-				conglom_cache = cf.newCacheManager(this, AccessFactoryGlobals.CFG_CONGLOMDIR_CACHE, 200, 300);
-		}
-
     /**
      * Find a conglomerate by conglomid in the cache.
      * <p>
@@ -214,58 +155,17 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      *
      * @exception  StandardException  Standard exception policy.
      **/
-	/* package */ Conglomerate conglomCacheFind(TransactionManager xact_mgr,long conglomid) throws StandardException {
-        Conglomerate conglom       = null;
-        Long         conglomid_obj = new Long(conglomid);
-        boolean bypassCache = cacheDisabled || !canSeeDDLDemarcationPoint(xact_mgr);
-        if (bypassCache) {
-            return getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
+    Conglomerate conglomCacheFind(TransactionManager xact_mgr,long conglomid) throws StandardException {
+        Conglomerate conglomerate = null;
+        if (database!=null && database.getDataDictionary() !=null) {
+            conglomerate = database.getDataDictionary().getDataDictionaryCache().conglomerateCacheFind(conglomid);
         }
-
-        synchronized (conglom_cache) {
-            CacheableConglomerate cache_entry =
-                    (CacheableConglomerate) conglom_cache.findCached(conglomid_obj);
-
-            if (cache_entry != null) {
-                conglom = cache_entry.getConglom();
-                conglom_cache.release(cache_entry);
-            }
-            else {
-                conglom = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
-                if (conglom != null) {
-                    // on cache miss, put the missing conglom in the cache.
-                    cache_entry = (CacheableConglomerate) this.conglom_cache.create(conglomid_obj, conglom);
-                    this.conglom_cache.release(cache_entry);
-                }
-            }
-        }
-        return(conglom);
-    }
-
-    private boolean canSeeDDLDemarcationPoint(TransactionManager xact_mgr) {
-        try {
-            // If the transaction is older than the latest DDL operation (can't see it), bypass the cache
-            return ddlDemarcationPoint == null || ddlDemarcationPoint.isVisibleBy(((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
-        } catch (IOException e) {
-            // Stay on the safe side, assume it's not visible
-            return false;
-        }
-    }
-
-    /**
-     * Invalide the current Conglomerate Cache and conglomerate descriptor cache.
-     * <p>
-     * Abort of certain operations will invalidate the contents of the
-     * cache.  Longer term we could just invalidate those entries, but
-     * for now just invalidate the whole cache.
-     * <p>
-     *
-     * @exception  StandardException  Standard exception policy.
-     **/
-    protected void conglomCacheInvalidate() {
-        synchronized (conglom_cache) {
-            conglom_cache.discard(null);
-        }
+        if (conglomerate != null)
+            return conglomerate;
+        conglomerate = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
+        if (conglomerate!=null && database!=null && database.getDataDictionary() !=null)
+            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate);
+        return conglomerate;
     }
 
     /**
@@ -283,24 +183,11 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 	/* package */ void conglomCacheUpdateEntry(
             long            conglomid,
             Conglomerate    new_conglom)
-            throws StandardException
-    {
-        Long         conglomid_obj = new Long(conglomid);
-
-        synchronized (conglom_cache)
-        {
-            // remove the current entry
-            CacheableConglomerate conglom_entry = (CacheableConglomerate)
-                    conglom_cache.findCached(conglomid_obj);
-
-            if (conglom_entry != null)
-                conglom_cache.remove(conglom_entry);
-
-            // insert the updated entry.
-            conglom_entry = (CacheableConglomerate)
-                    conglom_cache.create(conglomid_obj, new_conglom);
-            conglom_cache.release(conglom_entry);
-        }
+            throws StandardException {
+            if (database!=null) {
+                database.getDataDictionary().getDataDictionaryCache().conglomerateCacheRemove(conglomid);
+                database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid, new_conglom);
+            }
     }
 
     /**
@@ -315,17 +202,9 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     public void conglomCacheAddEntry(
             long            conglomid,
             Conglomerate    conglom)
-            throws StandardException
-    {
-        synchronized (conglom_cache)
-        {
-            // insert the updated entry.
-            CacheableConglomerate conglom_entry = (CacheableConglomerate)
-                    conglom_cache.create(new Long(conglomid), conglom);
-            conglom_cache.release(conglom_entry);
-        }
-
-        return;
+            throws StandardException {
+        if (database!=null && database.getDataDictionary()!=null)
+            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglom);
     }
 
     /**
@@ -337,18 +216,8 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      * @exception  StandardException  Standard exception policy.
      **/
 	/* package */ void conglomCacheRemoveEntry(long conglomid)
-            throws StandardException
-    {
-        synchronized (conglom_cache)
-        {
-            CacheableConglomerate conglom_entry = (CacheableConglomerate)
-                    conglom_cache.findCached(new Long(conglomid));
-
-            if (conglom_entry != null)
-                conglom_cache.remove(conglom_entry);
-        }
-
-        return;
+            throws StandardException {
+        database.getDataDictionary().getDataDictionaryCache().conglomerateCacheRemove(conglomid);
     }
 
 
@@ -456,34 +325,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return getAndNameTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME);
     }
 
-    public void startDDLChange(DDLMessage.DDLChange ddlChange) {
-        cacheDisabled = true;
-        ongoingDDLChanges.put(ddlChange.getChangeId(), ddlChange);
-        conglomCacheInvalidate();
-    }
-
-    public void cancelDDLChange(String changeId){
-        DDLMessage.DDLChange change = ongoingDDLChanges.remove(changeId);
-        cacheDisabled = ongoingDDLChanges.size()>0;
-    }
-
-    public void finishDDLChange(String identifier) {
-        DDLMessage.DDLChange ddlChange = ongoingDDLChanges.remove(identifier);
-        if (ddlChange != null) {
-            try {
-                TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
-                assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
-                TransactionReadController txController = HTransactorFactory.getTransactionReadController();
-                DDLFilter ddlFilter = txController.newDDLFilter(txn);
-                if (ddlFilter.compareTo(ddlDemarcationPoint) > 0) {
-                    ddlDemarcationPoint = ddlFilter;
-                }
-            } catch (IOException e) {
-                LOG.error("Couldn't create ddlFilter", e);
-            }
-        }
-        cacheDisabled = ongoingDDLChanges.size() > 0;
-    }
     public TransactionController getAndNameTransaction( ContextManager cm, String transName) throws StandardException {
 				/*
 				 * This call represents the top-level transactional access point. E.g., the top-level user transaction
@@ -784,14 +625,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
         boot_load_conglom_map();
 
-        if (create) {
-            // if we are creating the db, then just start the conglomid's at
-            // 1, and proceed from there.  If not create, we delay
-            // initialization of this until the first ddl which needs a new
-            // id.
-            conglom_nextid = 1;
-        }
-
         rawstore = new HBaseStore();
         rawstore.boot(true, serviceProperties);
 
@@ -803,9 +636,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 				// have no effect at all.
 				Monitor.bootServiceModule(create, this, com.splicemachine.db.iapi.reference.Module.PropertyFactory, startParams);
 
-        // Create the in-memory conglomerate directory
-
-        conglomCacheInit();
 
         // Read in the conglomerate directory from the conglom conglom
         // Create the conglom conglom from within a separate system xact
@@ -1023,5 +853,10 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
             throw new RuntimeException(ioe);
         }
     }
+
+    public void setDatabase(SpliceDatabase database) {
+        this.database = database;
+    }
+
 }
 

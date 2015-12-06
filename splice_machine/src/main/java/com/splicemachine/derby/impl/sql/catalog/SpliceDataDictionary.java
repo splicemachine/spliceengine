@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -16,9 +15,11 @@ import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
@@ -370,36 +371,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException{
         elevateTxnForDictionaryOperations(lcc);
-        /*
-         * Stolen from Superclass.
-         *
-         * The Superclass(DataDictionaryImpl) does some weird actions with a loop and the lock factory. This
-         * code doesn't really do anything in Splice (because our lock factory doesn't do anything meaningful),
-         * but it's confusing and difficult. Thus, we move the main bulk of the logic (minus the nonapplicable lock
-         * logic) directly here to execute. If at some point in the future we *do* implement a real lock factory,
-         * we probably will want to move back to the super class code (and figure out exactly what it does and why
-         * the magic numbers in Thread.sleep()).
-         */
-        if(lcc.getBindCount()!=0)
-            throw StandardException.newException(SQLState.LANG_DDL_IN_BIND);
-
-        if(lcc.dataDictionaryInWriteMode()){
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(getCacheMode()==DataDictionary.DDL_MODE,
-                        "lcc.getDictionaryInWriteMode() but DataDictionary is COMPILE_MODE");
-            }
-            return; //we are already in write mode, so nothing to do
-        }
-        //TODO -sf- remove the need for synchronization here
-        synchronized(this){
-            if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-                setCacheMode(DataDictionary.DDL_MODE);
-                clearCaches();
-            }
-            ddlUsers++;
-        }
-        if(setDDMode)
-            lcc.setDataDictionaryWriteMode();
     }
 
     @Override
@@ -603,4 +574,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             txn.elevate("dictionary".getBytes());
     }
 
+    @Override
+    public boolean canUseCache() throws StandardException {
+        return DDLCoordinationFactory.getWatcher().canUseCache((TransactionManager) getTransactionCompile());
+    }
 }

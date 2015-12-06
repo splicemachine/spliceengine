@@ -4,15 +4,21 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.LazyTxnView;
@@ -27,7 +33,6 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.Arrays;
 import com.carrotsearch.hppc.BitSet;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Created by jleach on 11/12/15.
@@ -63,56 +68,6 @@ public class DDLUtils {
             SpliceLogUtils.trace(LOG,"notifyMetadataChangeAndWait changeId=%s",changeId);
         DDLCoordinationFactory.getController().finishMetadataChange(changeId);
     }
-
-
-    /**
-     *
-     * Forbid Past Writes to the region.
-     *
-     * @param ddlChange
-     * @throws ExecutionException
-     * @throws InterruptedException
-     */
-    /*
-    public static void forbidPastWrites(DDLMessage.DDLChange ddlChange) throws ExecutionException, InterruptedException {
-        try{
-            TentativeIndexDesc tentativeIndexDesc = (TentativeIndexDesc)ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(tentativeIndexDesc.getBaseConglomerateNumber());
-            try {
-                contextFactory.addIndex(ddlChange, null, null);
-            }finally{
-                contextFactory.close();
-            }
-        } catch (Exception e) {
-            throw new ExecutionException(Throwables.getRootCause(e));
-        }
-    }
-    */
-
-    /*
-    public static void alterTable(DDLMessage.DDLChange ddlChange) throws ExecutionException, InterruptedException {
-
-        try {
-            TentativeDDLDesc tentativeAddColumnDesc = ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory =
-                    WriteContextFactoryManager.getWriteContext(tentativeAddColumnDesc.getBaseConglomerateNumber());
-            try {
-                if (ddlChange.getChangeType() == DDLChangeType.DROP_CONSTRAINT) {
-                    // For drop constraint task, we just need to remove the constraint index
-                    long indexConglomId = ((TentativeAddConstraintDesc) ddlChange.getTentativeDDLDesc()).getIndexConglomerateId();
-                    contextFactory.dropIndex(indexConglomId, ddlChange.getTxn());
-                } else {
-                    contextFactory.addDDLChange(ddlChange);
-                }
-            } finally {
-                contextFactory.close();
-            }
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG, e);
-            throw new ExecutionException(Throwables.getRootCause(e));
-        }
-    }
-    */
 
     public static TxnView getLazyTransaction(long txnId) {
         return new LazyTxnView(txnId, TransactionStorage.getTxnSupplier());
@@ -326,4 +281,40 @@ public class DDLUtils {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     *
+     *
+     * Prepare all dependents to invalidate.  (There is a chance
+     * to say that they can't be invalidated.  For example, an open
+     * cursor referencing a table/view that the user is attempting to
+     * drop.) If no one objects, then invalidate any dependent objects.
+     * We check for invalidation before we drop the table descriptor
+     * since the table descriptor may be looked up as part of
+     * decoding tuples in SYSDEPENDS.
+     *
+     *
+     * @param change
+     * @param dd
+     * @param dm
+     * @throws StandardException
+     */
+    public static void preDropTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
+            if (td==null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
 }

@@ -47,15 +47,20 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static DerbyMessage.UUID createDerbyUUID(BasicUUID basicUUID) {
+    public static DerbyMessage.UUID transferDerbyUUID(BasicUUID basicUUID) {
         return DerbyMessage.UUID.newBuilder().setMajorId(basicUUID.majorId)
                 .setSequence(basicUUID.sequence)
                 .setTimemillis(basicUUID.timemillis).build();
     }
 
+    public static BasicUUID getDerbyUUID(DerbyMessage.UUID messageUUID) {
+        return new BasicUUID(messageUUID.getMajorId(),messageUUID.getTimemillis(),messageUUID.getSequence());
+    }
+
+
     public static DDLChange createDropTable(long txnId, long conglomerateId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropTable(DropTable.newBuilder()
-                .setTableId(createDerbyUUID(basicUUID))
+                .setTableId(transferDerbyUUID(basicUUID))
                 .setBaseConglomerate(conglomerateId).build())
                 .setDdlChangeType(DDLChangeType.DROP_TABLE)
                 .build();

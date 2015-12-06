@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
@@ -139,5 +140,10 @@ public class ZookeeperDDLWatcher implements DDLWatcher,CommunicationListener {
     @Override
     public void unregisterDDLListener(DDLListener listener) {
         ddlListeners.remove(listener);
+    }
+
+    @Override
+    public boolean canUseCache(TransactionManager xact_mgr) {
+        return refresher.canUseCache(xact_mgr);
     }
 }
