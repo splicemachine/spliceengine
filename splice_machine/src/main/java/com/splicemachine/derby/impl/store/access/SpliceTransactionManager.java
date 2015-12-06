@@ -9,10 +9,8 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Stack;
+import java.util.*;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -87,7 +85,7 @@ public class SpliceTransactionManager implements XATransactionController,
     /**
      * The ID of the current ddl change coordination.
      */
-    private String currentDDLChangeId;
+    private List<String> currentDDLChanges;
 
     /**************************************************************************
      * Constructors for This class:
@@ -378,10 +376,12 @@ public class SpliceTransactionManager implements XATransactionController,
     protected void invalidateConglomerateCache() throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("invalidateConglomerateCache ");
+        /* JL TODO
         if (alterTableCallMade) {
             accessmanager.conglomCacheInvalidate();
             alterTableCallMade = false;
         }
+        */
     }
 
     /**************************************************************************
@@ -1583,10 +1583,12 @@ public class SpliceTransactionManager implements XATransactionController,
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before abort: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
 
+        /*
         if (alterTableCallMade) {
             accessmanager.conglomCacheInvalidate();
             alterTableCallMade = false;
         }
+        */
         this.closeControllers(true /* close all controllers */);
         rawtran.abort();
 
@@ -2097,17 +2099,24 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void prepareDataDictionaryChange() throws StandardException {
-        TxnView txn = getActiveStateTxn();
-        if(!txn.allowsWrites())
-            throw Exceptions.parseException(new ReadOnlyModificationException("Unable to perform 2PC data dictionary change with a read-only transaction: "+ txn));
-        currentDDLChangeId = DDLUtils.notifyMetadataChange(
-                DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.DICTIONARY_UPDATE).setTxnId(txn.getTxnId()).build());
+    public void prepareDataDictionaryChange(String currentDDLChangeId) throws StandardException {
+        if (currentDDLChanges==null)
+            currentDDLChanges = new LinkedList<>();
+        currentDDLChanges.add(currentDDLChangeId);
     }
 
     @Override
     public void commitDataDictionaryChange() throws StandardException {
-        DDLUtils.finishMetadataChange(currentDDLChangeId);
+        if (currentDDLChanges == null)
+            return;
+        try {
+            for (String currentDDLChange : currentDDLChanges) {
+                DDLUtils.finishMetadataChange(currentDDLChange);
+            }
+        } finally {
+            currentDDLChanges.clear();
+            currentDDLChanges = null;
+        }
     }
 
     @Override

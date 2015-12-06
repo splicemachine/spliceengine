@@ -2,12 +2,21 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.si.api.TransactionReadController;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Scott Fines
@@ -19,7 +28,7 @@ public class DDLWatchRefresher{
     private final Map<String, Long> changeTimeouts;
     private final Map<String, DDLChange> currentDDLChanges;
     private final Map<String, DDLChange> tentativeDDLS;
-
+    private AtomicReference<DDLFilter> ddlDemarcationPoint;
     private final DDLWatchChecker watchChecker;
     private final Clock clock;
     private final long maxDdlWaitMs;
@@ -35,6 +44,7 @@ public class DDLWatchRefresher{
         this.currentDDLChanges=new HashMap<>();
         this.tentativeDDLS=new ConcurrentHashMap<>();
         this.watchChecker=watchChecker;
+        ddlDemarcationPoint = new AtomicReference<>();
     }
 
     public Collection<DDLChange> tentativeDDLChanges(){
@@ -49,7 +59,7 @@ public class DDLWatchRefresher{
         List<String> ongoingDDLChangeIds=watchChecker.getCurrentChangeIds();
         if(ongoingDDLChangeIds==null) return false;
 
-        Set<DDLChange> newChanges=new HashSet<>();
+        Set<Pair<DDLChange,String>> newChanges=new HashSet<>();
         boolean currentWasEmpty=currentDDLChanges.isEmpty();
 
         clearFinishedChanges(ongoingDDLChangeIds,callbacks);
@@ -57,24 +67,17 @@ public class DDLWatchRefresher{
         for(String changeId : ongoingDDLChangeIds){
             if(!seenDDLChanges.contains(changeId)){
                 DDLChange change=watchChecker.getChange(changeId);
-                LOG.debug("New change with id "+changeId+":"+change);
-                newChanges.add(change);
-                seenDDLChanges.add(changeId);
-                /*
-                if(change.isPreCommit()){
-                    processPreCommitChange(change,callbacks);
-                } else if(change.isPostCommit()){
-                    for(DDLWatcher.DDLListener listener:callbacks){
-                        listener.startChange(change);
-                    }
-                } else{
-                    currentDDLChanges.put(changeId,change);
-                    changeTimeouts.put(changeId,clock.currentTimeMillis());
-                    for(DDLWatcher.DDLListener listener : callbacks){
-                        listener.startChange(change);
-                    }
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"New change with id=%s, and change=%s",changeId,change);
+                try {
+                    processPreCommitChange(change, callbacks);
+                    seenDDLChanges.add(changeId);
+                    newChanges.add(new Pair<DDLChange, String>(change,null));
+                } catch (Exception e) {
+                    if (LOG.isDebugEnabled())
+                        SpliceLogUtils.error(LOG,e);
+                    newChanges.add(new Pair<DDLChange, String>(change,e.getLocalizedMessage()));
                 }
-                */
             }
         }
 
@@ -111,14 +114,14 @@ public class DDLWatchRefresher{
 
     private void processPreCommitChange(DDLChange ddlChange,
                                         Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
-
+        currChangeCount.incrementAndGet();
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){
             listener.startChange(ddlChange);
         }
     }
 
-    private void clearFinishedChanges(List<String> children,Collection<DDLWatcher.DDLListener> ddlListeners){
+    private void clearFinishedChanges(List<String> children,Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
         /*
          * Remove DDL changes which are known to be finished.
          *
@@ -127,18 +130,35 @@ public class DDLWatchRefresher{
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
             if(!children.contains(entry)){
-                LOG.debug("Removing change with id "+entry);
+                LOG.debug("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
                 currChangeCount.decrementAndGet();
-                tentativeDDLS.remove(entry);
+                DDLChange ddlChange = tentativeDDLS.remove(entry);
+                assignDDLDemarcationPoint(ddlChange);
                 iterator.remove();
                 // notify access manager
                 for(DDLWatcher.DDLListener listener : ddlListeners){
-                    listener.changeSuccessful(entry);
+                    listener.changeSuccessful(entry,ddlChange);
                 }
             }
         }
+    }
+
+
+    private void assignDDLDemarcationPoint(DDLChange ddlChange) {
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+            assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
+            TransactionReadController txController = HTransactorFactory.getTransactionReadController();
+            DDLFilter ddlFilter = txController.newDDLFilter(txn);
+            if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
+                ddlDemarcationPoint.set(ddlFilter);
+            }
+        } catch (IOException e) {
+            LOG.error("Couldn't create ddlFilter", e);
+        }
+
     }
 
     private int killTimeouts(Set<DDLWatcher.DDLListener> listeners) {
@@ -164,6 +184,25 @@ public class DDLWatchRefresher{
             }
         }
         return numKilled;
+    }
+
+    public boolean cacheIsValid() {
+        return currChangeCount.get() ==0;
+    }
+
+    private boolean canSeeDDLDemarcationPoint(TransactionManager xact_mgr) {
+        try {
+            // If the transaction is older than the latest DDL operation (can't see it), bypass the cache
+            DDLFilter filter = ddlDemarcationPoint.get();
+            return filter == null || filter.isVisibleBy(((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
+        } catch (IOException e) {
+            // Stay on the safe side, assume it's not visible
+            return false;
+        }
+    }
+
+    public boolean canUseCache(TransactionManager xact_mgr) {
+        return cacheIsValid() && canSeeDDLDemarcationPoint(xact_mgr);
     }
 
 }

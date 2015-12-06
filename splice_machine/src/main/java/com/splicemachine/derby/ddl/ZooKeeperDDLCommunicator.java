@@ -29,6 +29,11 @@ public class ZooKeeperDDLCommunicator implements DDLCommunicator{
     }
 
     @Override
+    public String getErrorMessage(String changeId, String errorId) throws StandardException {
+        return DDLZookeeperClient.getServerChangeData(changeId,errorId);
+    }
+
+    @Override
     public void deleteChangeNode(String changeId){
         DDLZookeeperClient.deleteChangeNode(changeId);
     }

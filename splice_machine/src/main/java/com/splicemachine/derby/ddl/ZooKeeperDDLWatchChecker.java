@@ -2,8 +2,9 @@ package com.splicemachine.derby.ddl;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
@@ -18,6 +19,7 @@ import java.util.List;
 public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     private static final String CHANGES_PATH = SpliceConstants.zkSpliceDDLOngoingTransactionsPath;
     private static final Logger LOG=Logger.getLogger(ZooKeeperDDLWatchChecker.class);
+    public static final String ERROR_TAG = "[ERROR]";
     private String id;
     private Watcher changeIdWatcher;
 
@@ -60,23 +62,26 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     }
 
     @Override
-    public DDLMessage.DDLChange getChange(String changeId) throws IOException{
+    public DDLChange getChange(String changeId) throws IOException{
         byte[] data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+changeId);
-        return DDLMessage.DDLChange.newBuilder()
-                .mergeFrom(DDLMessage.DDLChange.parseFrom(data))
+        return DDLChange.newBuilder()
+                .mergeFrom(DDLChange.parseFrom(data))
                 .setChangeId(changeId).build();
     }
 
     @Override
-    public void notifyProcessed(Collection<DDLMessage.DDLChange> processedChanges) throws IOException{
+    public void notifyProcessed(Collection<Pair<DDLChange,String>> processedChanges) throws IOException{
         /*
          * Notify the relevant controllers that their change has been processed
          */
         List<Op> ops = Lists.newArrayListWithExpectedSize(processedChanges.size());
-        List<DDLMessage.DDLChange> changeList = Lists.newArrayList();
-        for (DDLMessage.DDLChange change : processedChanges) {
-            String path=SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+change.getChangeId()+"/"+id;
-            Op op = Op.create(path, new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
+        List<DDLChange> changeList = Lists.newArrayList();
+        for (Pair<DDLChange,String> pair : processedChanges) {
+            DDLChange change = pair.getFirst();
+            String errorMessage = pair.getSecond();
+            // Tag Errors for handling on the client, will allow us to understand what node failed and why...
+            String path=SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+change.getChangeId()+"/"+(errorMessage==null?"":ERROR_TAG)+id;
+            Op op = Op.create(path, (errorMessage==null?new byte[]{}:(String.format("server [%s] failed with error [%s]",id,errorMessage).getBytes())),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
             ops.add(op);
             changeList.add(change);
         }

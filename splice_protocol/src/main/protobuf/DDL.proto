@@ -6,8 +6,7 @@ option optimize_for = SPEED;
 import "Derby.proto";
 
 message AlterTable {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        repeated UUID tableId = 1;
 }
 
 message ClearStats {
@@ -27,6 +26,7 @@ message DropSchema {
         optional int64 conglomerate = 2;
         required string schemaName = 3;
 }
+
 
 message DropTable {
         optional int64 baseConglomerate = 1;

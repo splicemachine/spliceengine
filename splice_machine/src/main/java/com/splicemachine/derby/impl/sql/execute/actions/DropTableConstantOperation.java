@@ -64,15 +64,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
         TransactionController tc = lcc.getTransactionExecute();
-
       /*
        * Inform the data dictionary that we are about to write to it.
-       * There are several calls to data dictionary "get" methods here
-       * that might be done in "read" mode in the data dictionary, but
-       * it seemed safer to do this whole operation in "write" mode.
-       *
-       * We tell the data dictionary we're done writing at the end of
-       * the transaction.
        */
         dd.startWriting(lcc);
 
@@ -100,8 +93,6 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
                 dm.clearDependencies(lcc, defaultDesc);
             }
         }
-
-
 
         /* Drop the columns */
         dd.dropAllColumnDescriptors(tableId, tc);
@@ -146,23 +137,12 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
         }
 
-        /*
-        * Prepare all dependents to invalidate.  (This is there chance
-        * to say that they can't be invalidated.  For example, an open
-        * cursor referencing a table/view that the user is attempting to
-        * drop.) If no one objects, then invalidate any dependent objects.
-        * We check for invalidation before we drop the table descriptor
-        * since the table descriptor may be looked up as part of
-        * decoding tuples in SYSDEPENDS.
-        */
-        dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
-
         /* Invalidate dependencies remotely. */
 
         DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
                 this.conglomerateNumber,(BasicUUID) this.tableId);
 
-        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
         // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.
         adjustUDTDependencies(activation, null, true);

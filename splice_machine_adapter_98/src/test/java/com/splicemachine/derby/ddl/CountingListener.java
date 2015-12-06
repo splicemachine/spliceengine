@@ -59,8 +59,7 @@ class CountingListener implements DDLWatcher.DDLListener{
     }
 
     @Override
-    public void changeSuccessful(String changeId){
-        DDLChange change = null;
+    public void changeSuccessful(String changeId, DDLChange change){
         for(Map.Entry<DDLChange,Integer> changeEntry:countMap.entrySet()){
             DDLChange key=changeEntry.getKey();
             if(key.getChangeId().equals(changeId)){

@@ -68,13 +68,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 				database = db;
 		}
 
-		public void marshallTransaction(TxnView txn,SpliceObserverInstructions instructions) throws StandardException, SQLException {
-				if (LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG, "marshallTransaction with txn %s",instructions.getTxn());
-				lcc = database.generateLanguageConnectionContext(txn,
-								cm, username, drdaID, dbname, instructions.getSessionUserName(), instructions.getDefaultSchemaDescriptor());
-		}
-
 		public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
 				if (LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s",txn);

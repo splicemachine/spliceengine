@@ -12,11 +12,9 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.depend.BasicDependencyManager;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceDependencyManager extends BasicDependencyManager {
@@ -44,8 +42,7 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 
 	@Override
 	public void clearDependencies(LanguageConnectionContext lcc, Dependent d) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "clearDependencies lcc=%s,dependent=%s",lcc,d);
+        // Passed on to next method...
 		super.clearDependencies(lcc, d);
 	}
 

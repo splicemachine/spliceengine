@@ -107,6 +107,9 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.regionserver.msginterval", 1000);
         config.setLong("hbase.master.event.waiting.time", 20);
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
+//        config.setBoolean("hbase.master.loadbalance.bytable",true);
+        config.setInt("hbase.balancer.period",5000);
+
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
 

@@ -28,5 +28,7 @@ public interface DDLCommunicator{
 
     Collection<String> completedListeners(String changeId, com.splicemachine.derby.ddl.CommunicationListener asyncListener) throws StandardException;
 
+    String getErrorMessage(String changeId, String errorId) throws StandardException;
+
     void deleteChangeNode(String changeId);
 }

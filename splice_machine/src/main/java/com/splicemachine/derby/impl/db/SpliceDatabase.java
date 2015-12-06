@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.db;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.database.Database;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.ShutdownException;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -10,7 +11,9 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -19,8 +22,11 @@ import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -77,32 +83,6 @@ public class SpliceDatabase extends BasicDatabase{
             throws StandardException{
 
         final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname);
-
-        DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
-            @Override public void startGlobalChange(){ lctx.startGlobalDDLChange(); }
-            @Override public void finishGlobalChange(){ lctx.finishGlobalDDLChange(); }
-            @Override public void changeSuccessful(String changeId){ }
-            @Override public void changeFailed(String changeId){ }
-
-            @Override
-            public void startChange(DDLChange change) throws StandardException{
-                /* Clear DD caches on remote nodes for each DDL statement.  Before we did this remote nodes would
-                 * correctly generate new activations classes and instances of constant action classes for statements on
-                 * tables dropped and re-added with the same name, but would include in them stale information from the
-                 * DD caches (conglomerate ID, for example) */
-
-                DDLChangeType changeType=change.getDdlChangeType();
-                if(changeType==null) return;
-                switch(changeType){
-                    case DROP_TABLE:
-                    case DROP_SCHEMA:
-                        lctx.getDataDictionary().clearCaches();
-                        break;
-                    default:
-                        break; //no-op
-                }
-            }
-        });
 
         // If you add a visitor, be careful of ordering.
 
@@ -255,40 +235,27 @@ public class SpliceDatabase extends BasicDatabase{
     protected void bootStore(boolean create,Properties startParams) throws StandardException{
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
+        ((SpliceAccessManager) af).setDatabase(this);
         if(create){
             TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
             ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate("boot".getBytes());
         }
-
         DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
             @Override
             public void startGlobalChange(){
-                Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                for(LanguageConnectionContext context : allContexts){
-                    context.startGlobalDDLChange();
-                }
+                System.out.println("Boot Store startGlobalChange -> ");
             }
 
             @Override
             public void finishGlobalChange(){
-                Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                for(LanguageConnectionContext context : allContexts){
-                    if(context!=null)
-                        context.finishGlobalDDLChange();
-                }
+                System.out.println("Boot Store finishGlobalChange -> ");
             }
 
             @Override
             public void startChange(DDLChange change) throws StandardException{
+
                 if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
-                    try{
-                        Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for(LanguageConnectionContext context : allContexts){
-                            context.getDataDictionary().clearCaches();
-                        }
-                    }catch(ShutdownException e){
-                        LOG.warn("could not get contexts, database shutting down",e);
-                    }
+                   DDLUtils.preDropTable(change,getDataDictionary(),getDataDictionary().getDependencyManager());
                 }else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
                     TransactionLifecycle.getLifecycleManager().enterRestoreMode();
                     Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
@@ -298,7 +265,12 @@ public class SpliceDatabase extends BasicDatabase{
                 }
             }
 
-            @Override public void changeSuccessful(String changeId){ }
+            @Override public void changeSuccessful(String changeId, DDLChange change) throws StandardException {
+                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
+                    System.out.println("Drop Table changeSuccessful -> changeId=" + changeId + " change=" + change);
+                    getDataDictionary().clearCaches();
+                }
+            }
             @Override public void changeFailed(String changeId){ }
         });
     }

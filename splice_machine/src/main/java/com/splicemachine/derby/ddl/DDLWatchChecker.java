@@ -1,7 +1,7 @@
 package com.splicemachine.derby.ddl;
 
-import com.splicemachine.ddl.DDLMessage;
-
+import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -16,9 +16,9 @@ public interface DDLWatchChecker{
 
     List<String> getCurrentChangeIds() throws IOException;
 
-    DDLMessage.DDLChange getChange(String changeId) throws IOException;
+    DDLChange getChange(String changeId) throws IOException;
 
-    void notifyProcessed(Collection<DDLMessage.DDLChange> processedChanges) throws IOException;
+    void notifyProcessed(Collection<Pair<DDLChange,String>> processedChanges) throws IOException;
 
     void killDDLTransaction(String key);
 }
