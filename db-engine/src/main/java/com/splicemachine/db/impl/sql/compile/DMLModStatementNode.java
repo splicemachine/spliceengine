@@ -223,16 +223,6 @@ abstract class DMLModStatementNode extends DMLStatementNode
               default:
               break;
 			}
-
-			/* We need to get some kind of table lock (IX here), to prevent
-			 * another thread from adding a new index while we are binding,
-			 * if we are a reader in DDL mode.  Just a row lock on system table
-			 * SYSCONGLOMERATE is not enough: that wouldn't prevent another
-			 * thread from adding a new entry.  Part of the fix for Beetle 3976.
-			 * Same lock as in exec, compatible with row lock, for concurrency.
-			 */
-			targetTableDescriptor = lockTableForCompilation(targetTableDescriptor);
-
 			getCompilerContext().createDependency(targetTableDescriptor);
 		}
 		else

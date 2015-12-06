@@ -93,4 +93,8 @@ final class TableKey
 		return tableName.hashCode();
 	}
 
+    @Override
+    public String toString() {
+        return String.format("TableKey{schemaID=%s,tableName=%s}",schemaId,tableName);
+    }
 }

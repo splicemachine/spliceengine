@@ -115,14 +115,12 @@ public class ContainedRoles extends VTITemplate {
                 if (rdDef != null) {
                     lcc.beginNestedTransaction(true);
                     try {
-                        int mode = dd.startReading(lcc);
                         try {
                             rci = dd.createRoleClosureIterator
                                 (lcc.getLastActivation().
                                      getTransactionController(),
                                  role, !inverse);
                         } finally {
-                            dd.doneReading(mode, lcc);
                         }
                     } finally {
                         // make sure we commit; otherwise, we will end up with

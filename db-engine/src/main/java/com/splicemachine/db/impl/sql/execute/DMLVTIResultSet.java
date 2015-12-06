@@ -96,7 +96,7 @@ abstract class DMLVTIResultSet extends DMLWriteResultSet
         openCore();
        
 		/* Cache query plan text for source, before it gets blown away */
-		if (lcc.getRunTimeStatisticsMode())
+		if (false)
 		{
 			/* savedSource nulled after run time statistics generation */
 			savedSource = sourceResultSet;

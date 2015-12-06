@@ -22,6 +22,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimaps;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -149,13 +150,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 	*/
     ShExLockable cacheCoordinator;
     public LockFactory lockFactory;
-
-    volatile int cacheMode=DataDictionary.COMPILE_ONLY_MODE;
-
-    /* Number of DDL users */
-    protected volatile int ddlUsers;
-    /* Number of readers that start in DDL_MODE */
-    volatile int readersInDDLMode;
 
     private Map<String, Map<String, String>> sequenceIDs;
 
@@ -332,7 +326,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         }
 
-        dataDictionaryCache = new DataDictionaryCache(startParams);
+        dataDictionaryCache = new DataDictionaryCache(startParams,this);
 
         sequenceIDs=new HashMap<>();
 
@@ -583,294 +577,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void stop(){
     }
 
-	/*
-    ** Methods related to ModuleControl
-	*/
-
-    @Override
-    public int startReading(LanguageConnectionContext lcc) throws StandardException{
-        int bindCount=lcc.incrementBindCount();
-        int localCacheMode;
-
-        boolean needRetry=false;
-
-        do{
-            if(needRetry){
-                // could not get lock while holding the synchronized(this),
-                // so now wait until we can get the lock.  Once we get the
-                // lock it is automatically released, hopefully when we 
-                // go the the synchronized(this) block we will be able to
-                // get the lock, while holding the synchronized(this)
-                // monitor now.
-
-                try{
-                    lockFactory.zeroDurationlockObject(
-                            lcc.getTransactionExecute().getLockSpace(),
-                            cacheCoordinator,
-                            ShExQual.SH,
-                            C_LockFactory.WAIT_FOREVER);
-                }catch(StandardException e){
-                    // DEADLOCK, timeout will not happen with WAIT_FOREVER
-                    lcc.decrementBindCount();
-                    throw e;
-                }
-                needRetry=false;
-            }
-
-            // "this" is used to synchronize between startReading,doneReading, 
-            //  and startWriting.
-
-            synchronized(this){
-                localCacheMode=getCacheMode();
-
-                /*
-                ** Keep track of how deeply nested this bind() operation is.
-                ** It's possible for nested binding to happen if the user
-                ** prepares SQL statements from within a static initializer
-                ** of a class, and calls a method on that class (or uses a
-                ** field in the class).
-                **
-                ** If nested binding is happening, we only want to lock the
-                ** DataDictionary on the outermost nesting level.
-                */
-                if(bindCount==1){
-                    if(localCacheMode==DataDictionary.COMPILE_ONLY_MODE){
-                        assert ddlUsers==0: "Cache mode is COMPILE_ONLY and there are DDL users.";
-
-                        /*
-                        ** If we deadlock while waiting for a lock,
-                        ** then be sure to restore things as they
-                        ** were.
-                        */
-                        boolean lockGranted;
-
-                        try{
-                            // When the C_LockFactory.NO_WAIT is used this 
-                            // routine will not throw timeout or deadlock 
-                            // exceptions.  The boolean returned will indicate 
-                            // if the lock was granted or not.  If it would 
-                            // have had to wait, it just returns immediately 
-                            // and returns false.
-                            // 
-                            // See if we can get this lock granted without 
-                            // waiting (while holding the dataDictionary 
-                            // synchronization).
-
-                            CompatibilitySpace space= lcc.getTransactionExecute().getLockSpace();
-
-                            lockGranted=
-                                    lockFactory.lockObject(
-                                            space,space.getOwner(),
-                                            cacheCoordinator,
-                                            ShExQual.SH,
-                                            C_LockFactory.NO_WAIT);
-                        }catch(StandardException e){
-                            // neither TIMEOUT or DEADLOCK can happen with 
-                            // NO_WAIT flag.  This must be some other exception.
-
-                            lcc.decrementBindCount();
-                            throw e;
-                        }
-
-                        if(!lockGranted)
-                            needRetry=true;
-                    }else{
-                        readersInDDLMode++;
-                    }
-                }
-            } // end of sync block
-
-        }while(needRetry);
-
-        return localCacheMode;
-    }
-
-    @Override
-    public void doneReading(int mode,LanguageConnectionContext lcc) throws StandardException{
-        int bindCount=lcc.decrementBindCount();
-
-		/* This is an arbitrary choice of object to synchronize these methods */
-        synchronized(this){
-            /*
-            ** Keep track of how deeply nested this bind() operation is.
-			** It's possible for nested binding to happen if the user
-			** prepares SQL statements from within a static initializer
-			** of a class, and calls a method on that class (or uses a
-			** field in the class).
-			**
-			** If nested binding is happening, we only want to unlock the
-			** DataDictionary on the outermost nesting level.
-			*/
-            if(bindCount==0){
-                if(mode==DataDictionary.COMPILE_ONLY_MODE){
-                    /*
-                    ** Release the share lock that was acquired by the reader when
-					** it called startReading().
-					** Beetle 4418, during bind, we may even execute something (eg., in a vti
-					** constructor) and if a severe error occured, the transaction is rolled
-					** back and lock released already, so don't try to unlock if statement context
-					** is cleared.
-					*/
-                    if((lcc.getStatementContext()!=null) && lcc.getStatementContext().inUse()){
-                        CompatibilitySpace space=lcc.getTransactionExecute().getLockSpace();
-                        int unlockCount=lockFactory.unlock(space,space.getOwner(),cacheCoordinator,ShExQual.SH);
-                        assert unlockCount==1:"unlockCount not 1 as expected";
-                    }
-                }else{
-                    readersInDDLMode--;
-
-					/*
-                    ** We can only switch back to cached (COMPILE_ONLY)
-					** mode if there aren't any readers that started in
-					** DDL_MODE.  Otherwise we could get a reader
-					** in DDL_MODE that reads a cached object that
-					** was brought in by a reader in COMPILE_ONLY_MODE.
-					** If 2nd reader finished and releases it lock
-					** on the cache there is nothing to pevent another
-					** writer from coming along an deleting the cached
-					** object.
-					*/
-                    if(ddlUsers==0 && readersInDDLMode==0){
-                        clearCaches();
-                        setCacheMode(DataDictionary.COMPILE_ONLY_MODE);
-                    }
-
-                    assert readersInDDLMode>=0:"readersInDDLMode is invalid == should never be <0";
-                }
-            }
-        }
-    }
-
     @Override
     public void startWriting(LanguageConnectionContext lcc) throws StandardException{
-
-        boolean blocked=true;
-
-		/*
-        ** Don't allow DDL if we're binding a SQL statement.
-		*/
-        if(lcc.getBindCount()!=0){
-            throw StandardException.newException(SQLState.LANG_DDL_IN_BIND);
-        }
-
-		/*
-        ** Check whether we've already done a DDL statement in this
-		** transaction.  If so, we don't want to re-enter DDL mode, or
-		** bump the DDL user count.
-		*/
-        if(!lcc.dataDictionaryInWriteMode()){
-            for(int i=0;blocked;i++){
-                /*
-                ** If we already tried 5 times and failed, do
-				** an unbounded wait for the lock w/o
-				** synchronization.  Immediately unlock and
-				** sleep a random amount of time and start
-				** the whole process over again.
-				*/
-                if(i>4 && getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-                    // Wait until the settable timeout value for the lock,
-                    // and once granted, immediately release the lock.  If
-                    // this wait time's out then a TIMEOUT error is sent
-                    // up the stack.
-
-                    lockFactory.zeroDurationlockObject(lcc.getTransactionExecute().getLockSpace(),
-                            cacheCoordinator,
-                            ShExQual.EX,
-                            C_LockFactory.TIMED_WAIT);
-
-
-                    i=1;
-                }
-
-                if(i>0){
-                    try{
-                        Thread.sleep((long)((java.lang.Math.random()*1131)%20));
-                    }catch(InterruptedException ie){
-                        throw StandardException.interrupt(ie);
-                    }
-                }
-
-                synchronized(this){
-                    if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-                        // When the C_LockFactory.NO_WAIT is used this routine 
-                        // will not throw timeout or deadlock exceptions.  The 
-                        // boolean returned will indicate if the lock was 
-                        // granted or not.  If it would have had to wait, it 
-                        // just returns immediately and returns false.
-                        // 
-
-                        // See if we can get this lock granted without waiting
-                        // (while holding the dataDictionary synchronization).
-
-                        boolean lockGranted=lockFactory.zeroDurationlockObject(
-                                lcc.getTransactionExecute().getLockSpace(),
-                                cacheCoordinator,
-                                ShExQual.EX,
-                                C_LockFactory.NO_WAIT);
-
-                        if(!lockGranted)
-                            continue;
-
-						/* Switch the caching mode to DDL */
-                        setCacheMode(DataDictionary.DDL_MODE);
-
-						/* Clear out all the caches */
-                        clearCaches();
-                    }
-
-					/* Keep track of the number of DDL users */
-                    ddlUsers++;
-                } // end synchronized	
-
-				/*
-                ** Tell the connection the DD is in DDL mode, so it can take
-				** it out of DDL mode when the transaction finishes.
-				*/
-                lcc.setDataDictionaryWriteMode();
-                blocked=false;
-            }
-
-        }else if(SanityManager.DEBUG){
-            SanityManager.ASSERT(getCacheMode()==DataDictionary.DDL_MODE,
-                    "lcc.getDictionaryInWriteMode() but DataDictionary is COMPILE_MODE");
-        }
-    }
-
-    @Override
-    public void transactionFinished() throws StandardException{
-        /* This is an arbitrary choice of object to synchronize these methods */
-        synchronized(this){
-            assert ddlUsers>0:"Number of DDL users is <=0 when finishing a transaction";
-            assert getCacheMode()==DataDictionary.DDL_MODE:"transactionFinished called when not in DDL_MODE";
-
-            ddlUsers--;
-
-			/*
-            ** We can only switch back to cached (COMPILE_ONLY)
-			** mode if there aren't any readers that started in
-			** DDL_MODE.  Otherwise we could get a reader
-			** in DDL_MODE that reads a cached object that
-			** was brought in by a reader in COMPILE_ONLY_MODE.
-			** If 2nd reader finished and releases it lock
-			** on the cache there is nothing to pevent another
-			** writer from coming along an deleting the cached
-			** object.
-			*/
-            if(ddlUsers==0 && readersInDDLMode==0){
-                clearCaches();
-                setCacheMode(DataDictionary.COMPILE_ONLY_MODE);
-            }
-
-        }
-    }
-
-    @Override
-    public int getCacheMode(){
-        return cacheMode;
-    }
-
-    protected void setCacheMode(int newMode){
-        cacheMode=newMode;
+       throw StandardException.plainWrapException(new RuntimeException("Not Implemented"));
     }
 
     /**
@@ -1158,8 +867,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 		/*
         ** Manual lookup
 		*/
-        SchemaDescriptor sd=locateSchemaRow(schemaName,tc);
 
+        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(schemaName);
+        if (sd!=null)
+            return sd;
+
+        sd=locateSchemaRow(schemaName,tc);
+
+        if (sd!=null)
+            dataDictionaryCache.schemaCacheAdd(schemaName,sd);
         //if no schema found and schema name is SESSION, then create an 
         //in-memory schema descriptor
         if(sd==null && getDeclaredGlobalTemporaryTablesSchemaDescriptor().getSchemaName().equals(schemaName)){
@@ -1489,7 +1205,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                           TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,new SQLLongint(conglomerate));
+        keyRow.setColumn(1, new SQLLongint(conglomerate));
         ti.deleteRow(tc,keyRow, SYSPARTITIONSTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID);
         deleteColumnStatistics(conglomerate,tc);
     }
@@ -1631,27 +1347,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         TableKey tableKey=new TableKey(schemaUUID,tableName);
 
-		/* Only use the cache if we're in compile-only mode */
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE) {
-            retval = dataDictionaryCache.nameTdCacheFind(tableKey);
-            if (retval != null) {
+        retval = dataDictionaryCache.nameTdCacheFind(tableKey);
+        if (retval != null) {
                 retval.setReferencedColumnMap(null);
                 if (retval.getSchemaDescriptor() == null) {
                     retval.setSchemaDesctiptor(sd);
                 }
-            }
+            return retval;
         }
-        return getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
-    }
-
-    public TableDescriptor invalidate(TableDescriptor oldTable) throws StandardException{
-        TableDescriptor oldDescriptor=null;
-		/* Only using cache if we're in compile-only mode */
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-            TableKey tableKey=new TableKey(oldTable.getSchemaDescriptor().getUUID(),oldTable.getName());
-            return dataDictionaryCache.nameTdCacheInvalidate(tableKey);
-        }
-        return oldDescriptor;
+        retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
+        if (retval!=null)
+            dataDictionaryCache.nameTdCacheAdd(tableKey,retval);
+        return retval;
     }
 
     /**
@@ -1717,8 +1424,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public TableDescriptor getTableDescriptor(UUID tableID) throws StandardException{
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE) // Only use in Compile Only Mode
-            return dataDictionaryCache.oidTdCacheFind(tableID);
+        TableDescriptor td = dataDictionaryCache.oidTdCacheFind(tableID);
+        if (td != null)
+            return td;
         return getTableDescriptorIndex2Scan(tableID.toString());
     }
 
@@ -1953,7 +1661,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow1.setColumn(2,schemaIDOrderable);
 
         ti.deleteRow(tc,keyRow1,SYSTABLESRowFactory.SYSTABLES_INDEX1_ID);
-        invalidate(td);
     }
 
     /**
@@ -3175,18 +2882,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SPSDescriptor sps;
 		/* Make sure that non-core info is initialized */
         getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
-		/* Only use the cache if we're in compile-only mode */
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-            sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
-            if(sps!=null){
+        sps = dataDictionaryCache.storedPreparedStatementCacheFind(uuid);
+        if(sps!=null)
                 return sps;
-            }
-            sps=getSPSDescriptorIndex2Scan(uuid.toString());
-            TableKey stmtKey=new TableKey(sps.getSchemaDescriptor().getUUID(),sps.getName());
-             dataDictionaryCache.spsNameCacheAdd(stmtKey,sps);
-        }else{
-            sps=getSPSDescriptorIndex2Scan(uuid.toString());
-        }
+        sps=getSPSDescriptorIndex2Scan(uuid.toString());
+        TableKey stmtKey=new TableKey(sps.getSchemaDescriptor().getUUID(),sps.getName());
+        dataDictionaryCache.spsNameCacheAdd(stmtKey,sps);
         return sps;
     }
 
@@ -3253,14 +2954,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         assert sd!=null:"null schema for statement "+stmtName;
 
         UUID schemaUUID =sd.getUUID();
-
-		/* Only use the cache if we're in compile-only mode */
-        if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
-            TableKey stmtKey =new TableKey(schemaUUID,stmtName);
-            SPSDescriptor sps = dataDictionaryCache.spsNameCacheFind(stmtKey);
-            if (sps!=null)
-                return sps;
-        }
+        TableKey stmtKey =new TableKey(schemaUUID,stmtName);
+        SPSDescriptor sps = dataDictionaryCache.spsNameCacheFind(stmtKey);
+        if (sps!=null)
+            return sps;
         return getSPSDescriptorIndex1Scan(stmtName,schemaUUID.toString());
     }
 
@@ -6195,11 +5892,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ExecIndexRow keyRow;
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
-
 		/* Set up the start/stop position for the scan */
         keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,new SQLVarchar(userName));
-
         return (UserDescriptor)getDescriptorViaIndex(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,keyRow,null,ti,null,null,false);
     }
 
@@ -6899,16 +6594,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);
-    }
-
-    /**
-     * Clear all of the DataDictionary caches.
-     *
-     * @throws StandardException Standard Derby error policy
-     */
-    @Override
-    public void clearCaches() throws StandardException{
-        dataDictionaryCache.clearAll();
     }
 
     /**
@@ -9922,6 +9607,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException{
+
+        Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleCacheFind(roleName);
+        if (optional!=null)
+            return optional.orNull();
+
         DataValueDescriptor roleNameOrderable;
         DataValueDescriptor isDefOrderable;
 
@@ -9938,8 +9628,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1,roleNameOrderable);
         keyRow.setColumn(2,isDefOrderable);
 
-        return (RoleGrantDescriptor)
+        RoleGrantDescriptor rgs = (RoleGrantDescriptor)
                 getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX,keyRow,null,ti,null,null,false);
+        dataDictionaryCache.roleCacheAdd(roleName,rgs==null?Optional.<RoleGrantDescriptor>absent():Optional.of(rgs));
+        return rgs;
     }
 
 
@@ -10393,5 +10085,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 System.exit(1);
             }
         }
+    }
+
+
+    public DataDictionaryCache getDataDictionaryCache() {
+        return dataDictionaryCache;
+    }
+    @Override
+    public void clearCaches()
+    {
+        dataDictionaryCache.clearAll();
     }
 }

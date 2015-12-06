@@ -760,54 +760,6 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	int getBindCount();
 
-	/**
-	 * There is at least one on going DDL change somewhere
-	 */
-	void startGlobalDDLChange();
-
-	/**
-	 * All DDL changes have finished
-	 */
-	void finishGlobalDDLChange();
-
-	/**
-	 * @return whether there is an ongoing DDL change or not
-	 */
-	boolean useCaches();
-
-	/**
-	 * Remember that the DataDictionary is in write mode, so we can take
-	 * it out of write mode at the end of the transaction.
-	 */
-	void setDataDictionaryWriteMode();
-
-	/**
-	 * Return true if the data dictionary is in write mode (that is, this
-	 * context was informed that is is in write mode by the method call
-	 * setDataDictionaryWriteMode().
-	 */
-	boolean dataDictionaryInWriteMode();
-
-	/**
-	 * Turn RUNTIMESTATISTICS  on or off.
-	 */
-	public void setRunTimeStatisticsMode(boolean onOrOff);
-
-	/**
-	 * Get the RUNTIMESTATISTICS mode.
-	 */
-	public boolean getRunTimeStatisticsMode();
-
-	/**
-	 * Turn STATISTICS TIMING on or off.
-	 */
-	public void setStatisticsTiming(boolean onOrOff);
-
-	/**
-	 * Get the STATISTICS TIMING mode.
-	 */
-	public boolean getStatisticsTiming();
-
     /**
 	  *	Reports how many statement levels deep we are.
 	  *

@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
-
 import java.util.List;
 import java.util.Iterator;
 
@@ -145,8 +144,7 @@ implements Authorizer
                 !lcc.getCurrentUserId(activation).equals(
                     dd.getAuthorizationDatabaseOwner()))
             {
-                int ddMode = dd.startReading(lcc);
-                
+
                  /*
                   * The system may need to read the permission descriptor(s) 
                   * from the system table(s) if they are not available in the 
@@ -182,9 +180,8 @@ implements Authorizer
                                 (lcc, false, activation);
                         }
                     } 
-                    finally 
+                    finally
                     {
-                        dd.doneReading(ddMode, lcc);
                     }
                 } 
                 finally 

@@ -2444,7 +2444,7 @@ public class RAMTransaction
 		return(rawtran.getActiveStateTxIdString());
 	}
 
-    public void prepareDataDictionaryChange() {
+    public void prepareDataDictionaryChange(String currentDDLChangeId) {
         // do nothing
     }
 

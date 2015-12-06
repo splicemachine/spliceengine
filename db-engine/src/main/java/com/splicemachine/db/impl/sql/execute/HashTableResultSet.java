@@ -154,7 +154,7 @@ class HashTableResultSet extends NoPutResultSetImpl
 		}
 
 		/* Remember whether or not RunTimeStatistics is on */
-		runTimeStatsOn = getLanguageConnectionContext().getRunTimeStatisticsMode();
+		runTimeStatsOn = false;
 		
 		recordConstructorTime();
     }

@@ -154,9 +154,9 @@ public interface LanguageConnectionFactory {
 		context and accessed from there.
 
 	 */
-	DataValueFactory		getDataValueFactory(); 
+	DataValueFactory		getDataValueFactory();
 
-	public CacheManager getStatementCache();
+
 
     public Parser newParser(CompilerContext cc);
 }

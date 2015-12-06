@@ -1004,38 +1004,6 @@ public class SystemProcedures  {
 	}
 
 
-    /**
-	 * Disables the log archival process, i.e No old log files
-	 * will be kept around for a roll-forward recovery.
-     *
-	 * @param deleteOnlineArchivedLogFiles  If <tt>non-zero</tt> deletes all the
-	 *        online archived log files that exist before this call immediately.
-     *
-	 * @exception StandardException Thrown on error
-	 */
-
-    public static void SYSCS_DISABLE_LOG_ARCHIVE_MODE(
-    short     deleteOnlineArchivedLogFiles)
-		throws SQLException
-    {
-        Factory.getDatabaseOfConnection().disableLogArchiveMode(
-                (deleteOnlineArchivedLogFiles != 0));
-    }
-
-
-    public static void SYSCS_SET_RUNTIMESTATISTICS(
-    short     enable)
-		throws SQLException
-    {
-		ConnectionUtil.getCurrentLCC().setRunTimeStatisticsMode(enable != 0 ? true : false);
-    }
-
-    public static void SYSCS_SET_STATISTICS_TIMING(
-    short     enable)
-		throws SQLException
-    {
-		ConnectionUtil.getCurrentLCC().setStatisticsTiming(enable != 0 ? true : false);
-    }
 
     public static int SYSCS_CHECK_TABLE(
     String  schema,
@@ -2122,15 +2090,9 @@ public class SystemProcedures  {
      * collected.
      */
     public static void SYSCS_EMPTY_STATEMENT_CACHE()
-       throws SQLException
-    {
+       throws SQLException {
        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-       
-       CacheManager statementCache =
-           lcc.getLanguageConnectionFactory().getStatementCache();
-       
-       if (statementCache != null)
-           statementCache.ageOut();
+       lcc.getDataDictionary().getDataDictionaryCache().emptyStatementCache();
     }
   
     private static boolean hasSchema(Connection conn, String schemaName)
@@ -2152,19 +2114,6 @@ public class SystemProcedures  {
         boolean tableFound = rs.next();
         rs.close();
         return tableFound;
-    }
-    private static void createXplainSchema(String schemaName)
-        throws SQLException
-    {
-        Connection conn = getDefaultConn();
-        if (!hasSchema(conn, schemaName))
-        {
-            String escapedSchema = IdUtil.normalToDelimited(schemaName);
-            Statement s = conn.createStatement();
-            s.executeUpdate("CREATE SCHEMA " + escapedSchema);
-            s.close();
-        }
-        conn.close();
     }
 
     /**

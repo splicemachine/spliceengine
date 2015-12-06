@@ -192,8 +192,7 @@ class DependentResultSet extends ScanResultSet implements CursorResultSet
 		this.rowsPerRead = rowsPerRead;
 		this.oneRowScan = oneRowScan;
 		
-		runTimeStatisticsOn = (activation != null &&
-							   activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
+		runTimeStatisticsOn = (activation != null && false);
 
 		tc = activation.getTransactionController();
 		//values required to scan the forein key index.

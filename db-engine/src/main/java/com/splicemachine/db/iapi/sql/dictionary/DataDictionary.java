@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import java.sql.Types;
 import java.util.Dictionary;
@@ -238,59 +239,11 @@ public interface DataDictionary{
     int DDL_MODE=1;
 
     /**
-     * Clear all of the DataDictionary caches.
-     *
-     * @throws StandardException Standard Derby error policy
-     */
-    void clearCaches() throws StandardException;
-
-    /**
      * Clear all of the sequence number generators.
      *
      * @throws StandardException Standard Derby error policy
      */
     void clearSequenceCaches() throws StandardException;
-
-    /**
-     * Inform this DataDictionary that we are about to start reading it.  This
-     * means using the various get methods in the DataDictionary.
-     * Generally, this is done during query compilation.
-     *
-     * @param lcc The LanguageConnectionContext to use.
-     * @return The mode that the reader will use, to be passed to doneReading()
-     * Either COMPILE_ONLY_MODE or DDL_MODE.
-     * @throws StandardException Thrown on error
-     */
-    int startReading(LanguageConnectionContext lcc) throws StandardException;
-
-    /**
-     * Inform this DataDictionary that we have finished reading it.  This
-     * typically happens at the end of compilation.
-     *
-     * @param mode The mode that was returned by startReading().
-     * @param lcc  The LanguageConnectionContext to use.
-     * @throws StandardException Thrown on error
-     */
-    void doneReading(int mode,LanguageConnectionContext lcc) throws StandardException;
-
-    /**
-     * Inform this DataDictionary that we are about to start writing to it.
-     * This means using the various add and drop methods in the DataDictionary.
-     * Generally, this is done during execution of DDL.
-     *
-     * @param lcc The LanguageConnectionContext to use.
-     * @throws StandardException Thrown on error
-     */
-    void startWriting(LanguageConnectionContext lcc) throws StandardException;
-
-    void startWriting(LanguageConnectionContext lcc, boolean setDDMode) throws StandardException;
-    /**
-     * Inform this DataDictionary that the transaction in which writes have
-     * been done (or may have been done) has been committed or rolled back.
-     *
-     * @throws StandardException Thrown on error
-     */
-    void transactionFinished() throws StandardException;
 
     /**
      * Get the ExecutionFactory associated with this database.
@@ -335,6 +288,11 @@ public interface DataDictionary{
      * @return the collation type for SYSTEM schemas
      */
     int getCollationTypeOfSystemSchemas();
+
+
+    public void startWriting(LanguageConnectionContext lcc) throws StandardException;
+
+    public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException;
 
     /**
      * Return the collation type for user schemas. In Derby 10.3, this is either
@@ -814,6 +772,9 @@ public interface DataDictionary{
      */
     public void deletePartitionStatistics(long conglomerate,
                                           TransactionController tc) throws StandardException;
+
+
+    public void clearCaches();
 
 
     /**
@@ -1681,12 +1642,6 @@ public interface DataDictionary{
      */
     DependencyManager getDependencyManager();
 
-
-    /**
-     * Returns the cache mode of the data dictionary.
-     */
-    int getCacheMode();
-
     /**
      * Returns a unique system generated name of the form SQLyymmddhhmmssxxn
      * yy - year, mm - month, dd - day of month, hh - hour, mm - minute, ss - second,
@@ -2096,4 +2051,8 @@ public interface DataDictionary{
      * @throws StandardException
      */
     void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
+
+    public DataDictionaryCache getDataDictionaryCache();
+
+    public boolean canUseCache() throws StandardException;
 }

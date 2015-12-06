@@ -190,11 +190,7 @@ public class GenericStatement implements Statement{
     public int hashCode(){ return statementText.hashCode(); }
 
     private static long getCurrentTimeMillis(LanguageConnectionContext lcc){
-        if(lcc.getStatisticsTiming()){
-            return System.currentTimeMillis();
-        }else{
-            return 0;
-        }
+        return 0;
     }
 
     private boolean isExplainStatement(){
@@ -433,16 +429,6 @@ public class GenericStatement implements Statement{
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
-            if(lcc.getRunTimeStatisticsMode()){
-                preparedStmt.setCompileTimeMillis(
-                        timestamps[1]-timestamps[0], //parse time
-                        timestamps[2]-timestamps[1], //bind time
-                        timestamps[3]-timestamps[2], //optimize time
-                        timestamps[4]-timestamps[3], //generate time
-                        timestamps[4]-timestamps[0], //total compile time
-                        beginTimestamp,
-                        endTimestamp);
-            }
         }finally{ // for block introduced by pushCompilerContext()
             lcc.popCompilerContext(cc);
         }
@@ -476,7 +462,7 @@ public class GenericStatement implements Statement{
                                  HeaderPrintWriter istream,
                                  StatementNode qt,
                                  DataDictionary dataDictionary) throws StandardException{
-        int ddMode=dataDictionary==null?0:dataDictionary.startReading(lcc);
+
         try{
             // start a nested transaction -- all locks acquired by bind
             // and optimize will be released when we end the nested
@@ -558,9 +544,7 @@ public class GenericStatement implements Statement{
             }
             throw se;
         }finally{
-            /* Tell the data dictionary that we are done reading */
-            if(dataDictionary!=null)
-                dataDictionary.doneReading(ddMode,lcc);
+
         }
     }
 

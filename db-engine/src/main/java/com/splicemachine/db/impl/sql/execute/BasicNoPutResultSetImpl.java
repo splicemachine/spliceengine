@@ -87,7 +87,7 @@ implements NoPutResultSet
 
 	// Set in the constructor and not modified
 	protected final Activation	    activation;
-	private final boolean				statisticsTimingOn;
+	private final boolean				statisticsTimingOn = false;
 
 	ResultDescription resultDescription;
 
@@ -114,8 +114,6 @@ implements NoPutResultSet
 							double optimizerEstimatedCost)
 	{
 		this.activation = activation;
-		if (statisticsTimingOn = getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();
 		this.resultDescription = resultDescription;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.optimizerEstimatedCost = optimizerEstimatedCost;

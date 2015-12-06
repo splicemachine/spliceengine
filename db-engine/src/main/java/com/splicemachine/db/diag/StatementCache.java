@@ -80,8 +80,7 @@ public final class StatementCache extends VTITemplate {
         LanguageConnectionContext lcc = (LanguageConnectionContext)
             ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
 
-        CacheManager statementCache =
-            lcc.getLanguageConnectionFactory().getStatementCache();
+        CacheManager statementCache = null;
 
 		if (statementCache != null) {
 			final Collection values = statementCache.values();

@@ -562,7 +562,6 @@ public	class DD_Version implements	Formatable
 			bootingDictionary.setReadOnlyUpgrade();
 		}
 
-		bootingDictionary.clearCaches();
 	}
 	
 	/**
@@ -598,7 +597,6 @@ public	class DD_Version implements	Formatable
 
 		/* Drop table descriptor */
 		bootingDictionary.dropTableDescriptor( td, td.getSchemaDescriptor(), tc );
-		bootingDictionary.clearCaches();
 	}
 
 	/**

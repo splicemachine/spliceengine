@@ -114,7 +114,7 @@ class RowCountResultSet extends NoPutResultSetImpl
 
         /* Remember whether or not RunTimeStatistics is on */
         runTimeStatsOn =
-            getLanguageConnectionContext().getRunTimeStatisticsMode();
+            false;
         recordConstructorTime();
     }
 

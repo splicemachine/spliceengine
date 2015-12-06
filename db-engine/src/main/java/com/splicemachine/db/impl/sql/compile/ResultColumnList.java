@@ -1395,8 +1395,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 LanguageConnectionContext lcc=getLanguageConnectionContext();
                 DataDictionary dd=lcc.getDataDictionary();
 
-                int isolationLevel=(dd.getCacheMode()==DataDictionary.DDL_MODE)?
-                        TransactionController.ISOLATION_READ_COMMITTED:TransactionController.ISOLATION_NOLOCK;
+                int isolationLevel=TransactionController.ISOLATION_NOLOCK;
 
                 cc=lcc.getTransactionCompile().openConglomerate(conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel);
 

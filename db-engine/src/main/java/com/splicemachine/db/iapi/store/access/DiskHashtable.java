@@ -95,7 +95,7 @@ public class DiskHashtable
             ContextService.getContextOrNull(
                 LanguageConnectionContext.CONTEXT_ID);
 
-        keepStatistics = (lcc != null) && lcc.getRunTimeStatisticsMode();
+        keepStatistics = (lcc != null) && false;
 
         // Create template row used for creating the conglomerate and 
         // fetching rows.

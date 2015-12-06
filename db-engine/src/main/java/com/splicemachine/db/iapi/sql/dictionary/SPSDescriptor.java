@@ -290,10 +290,6 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
 
         if (!dd.isReadOnlyUpgrade()) {
 
-            /* Indicate that we are going to write the data dictionary.  We have probably already done this
-             * but it is ok to call startWriting more than once.  */
-            dd.startWriting(lcc);
-
             DependencyManager dm = dd.getDependencyManager();
 
             /* Clear out all the dependencies that exist before we recreate them so we don't grow SYS.SYSDEPENDS forever.*/

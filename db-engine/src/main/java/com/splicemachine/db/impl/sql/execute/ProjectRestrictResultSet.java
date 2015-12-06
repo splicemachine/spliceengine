@@ -120,7 +120,7 @@ class ProjectRestrictResultSet extends NoPutResultSetImpl
             ((boolean[])a.getPreparedStatement().getSavedObject(cloneMapItem));
 
 		/* Remember whether or not RunTimeStatistics is on */
-		runTimeStatsOn = getLanguageConnectionContext().getRunTimeStatisticsMode();
+		runTimeStatsOn = false;
 		recordConstructorTime();
     }
 

@@ -87,7 +87,7 @@ abstract class NoRowsResultSetImpl implements ResultSet
 		}
 
 		lcc = activation.getLanguageConnectionContext();
-		statisticsTimingOn = lcc.getStatisticsTiming();
+		statisticsTimingOn = false;
 
 		/* NOTE - We can't get the current time until after setting up the
 		 * activation, as we end up using the activation to get the 

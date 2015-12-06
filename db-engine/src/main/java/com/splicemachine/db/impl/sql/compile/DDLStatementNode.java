@@ -391,12 +391,7 @@ abstract class DDLStatementNode extends StatementNode
 			break;
 
 		case TableDescriptor.BASE_TABLE_TYPE:
-			/* need to IX lock table if we are a reader in DDL datadictionary
-			 * cache mode, otherwise we may interfere with another DDL thread
-			 * that is in execution phase; beetle 4343, also see $WS/docs/
-			 * language/SolutionsToConcurrencyIssues.txt (point f)
-			 */
-			return lockTableForCompilation(td);
+			return td;
 
 		case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
 			return td;

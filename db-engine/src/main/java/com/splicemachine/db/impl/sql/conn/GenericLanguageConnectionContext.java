@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import java.util.*;
@@ -79,49 +80,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private int maxActsSize;
     protected int bindCount;
-    private boolean ddWriteMode;
-    private boolean runTimeStatisticsSetting;
-    private boolean statisticsTiming;
 
-    /**
-     * ========================
-     * This set of flags control the behavior under global DDL changes
-     */
-    private volatile boolean ongoingDDLChange=false;
-    /**
-     * Caches are invalidated once the currently running transaction finishes
-     */
-    private volatile boolean invalidateCaches=false;
-    /**
-     * Caches can be used by past transactions, once the transaction finishes it can't use caches until the DDL change
-     * finishes. This time should be short, enough for all machines to invalidate their caches and notify the driving
-     * server.
-     */
-    private volatile boolean useCaches=true;
-    /** ======================= */
-
-    /**
-     * If xplainOnlyMode is set (via SYSCS_SET_XPLAIN_MODE), then the
-     * connection does not actually execute statements, but only
-     * compiles them, and emits the query plan information into the
-     * XPLAIN tables.
-     */
-    private boolean xplainOnlyMode=false;
-
-    /**
-     * the current xplain schema. Is usually NULL. Can be set via
-     * SYSCS_SET_XPLAIN_SCHEMA, in which case it species the schema into
-     * which XPLAIN information should be stored in user tables.
-     */
-    private String xplain_schema=null;
-    /**
-     * For each XPLAIN table, this map stores a SQL INSERT statement which
-     * can be prepared and used to insert rows into the table during the
-     * capturing of statistics data into the user XPLAIN tables.
-     */
-    private Map<String, String> xplain_statements=new HashMap<>();
-    private long xplainStatementId;
-    private boolean isAutoTraced=false;
     //all the temporary tables declared for this connection
     private ArrayList<TempTableInfo> allDeclaredGlobalTempTables;
 
@@ -338,15 +297,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         String logQueryPlanProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
 
-        setRunTimeStatisticsMode(logQueryPlan);
-
-/*        lockEscalationThreshold =
-            PropertyUtil.getServiceInt(tranCtrl,
-                                       Property.LOCKS_ESCALATION_THRESHOLD,
-                                       Property.MIN_LOCKS_ESCALATION_THRESHOLD,
-                                       Integer.MAX_VALUE,
-                                       Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD);
-        */
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
@@ -1192,36 +1142,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown if lookup goes wrong.
      */
     public void removeStatement(GenericStatement statement) throws StandardException{
-
-        CacheManager statementCache=
-                getLanguageConnectionFactory().getStatementCache();
-
-        if(statementCache==null)
-            return;
-
-        Cacheable cachedItem=statementCache.findCached(statement);
-        // No need to do anything if the statement is already removed
-        if(cachedItem!=null){
-            CachedStatement cs=(CachedStatement)cachedItem;
-            if(statement.getPreparedStatement()!=cs.getPreparedStatement()){
-                // DERBY-3786: Someone else has removed the statement from
-                // the cache, probably because of the same error that brought
-                // us here. In addition, someone else has recreated the
-                // statement. Since the recreated statement is not the same
-                // object as the one we are working on, we don't have the
-                // proper guarding (through the synchronized flag
-                // GenericStatement.preparedStmt.compilingStatement) to ensure
-                // that we're the only ones calling CacheManager.remove() on
-                // this statement. Therefore, just release the statement here
-                // so that we don't get in the way for the other thread that
-                // is trying to compile the same query.
-                statementCache.release(cachedItem);
-            }else{
-                // The statement object that we were trying to compile is still
-                // in the cache. Since the compilation failed, remove it.
-                statementCache.remove(cachedItem);
-            }
-        }
+        getDataDictionary().getDataDictionaryCache().removeStatement(statement);
     }
 
     /**
@@ -1233,27 +1154,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown if lookup goes wrong.
      */
     public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException{
+        GenericStorablePreparedStatement ps = null;
 
-        CacheManager statementCache=getLanguageConnectionFactory().getStatementCache();
-
-        if(statementCache==null)
-            return null;
-
-        // statement caching disable when in DDL mode
-        if(dataDictionaryInWriteMode()){
-            return null;
+        GenericStatement gc = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
+        if (gc!=null)
+            ps = new GenericStorablePreparedStatement(gc);
+        else {
+            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement);
+            ps = new GenericStorablePreparedStatement(gc);
         }
-
-        if(!useCaches){
-            return null;
-        }
-
-        Cacheable cachedItem=statementCache.find(statement);
-
-        CachedStatement cs=(CachedStatement)cachedItem;
-
-        GenericStorablePreparedStatement ps=cs.getPreparedStatement();
-
         synchronized(ps){
             if(ps.upToDate()){
                 GeneratedClass ac=ps.getActivationClass();
@@ -1275,8 +1184,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // the context manager assumes a single current thread per context stack
             }
         }
-
-        statementCache.release(cachedItem);
         return ps;
     }
 
@@ -1450,8 +1357,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                             "), Committing");
         }
 
-        checkGlobalDDLChanges();
-
         endTransactionActivationHandling(false);
 
         // Do clean up work required for temporary tables at commit time.  
@@ -1465,20 +1370,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         // now commit the Store transaction
         TransactionController tc=getTransactionExecute();
-
-        boolean commitDDChange=ddWriteMode;
-
-        if(commitDDChange){
-            tc.prepareDataDictionaryChange();
-        }
-
-        // Do *NOT* tell the DataDictionary to start using its cache again
-        // if this is an unsynchronized commit. The reason is that it
-        // would allow other transactions to see this transaction's DDL,
-        // which could be rolled back in case of a system crash.
-        if(sync){
-            finishDDTransaction();
-        }
 
         // Check that any nested transaction has been destoyed
         // before a commit.
@@ -1520,22 +1411,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 tempTablesXApostCommit();
             }
         }
-
-        if(commitDDChange){
-            tc.commitDataDictionaryChange();
-        }
-    }
-
-    private void checkGlobalDDLChanges(){
-        if(invalidateCaches){
-            invalidateAllCaches();
-
-            invalidateCaches=false;
-            if(ongoingDDLChange){
-                // if DDL changes are still ongoing, next transaction can't use caches
-                useCaches=false;
-            }
-        }
+        tc.commitDataDictionaryChange();
     }
 
     /**
@@ -1693,15 +1569,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     "), Rolling back");
         }
 
-        checkGlobalDDLChanges();
-
         endTransactionActivationHandling(true);
 
         currentSavepointLevel=0; //reset the current savepoint level for the connection to 0 at the beginning of rollback work for temp tables
         if(allDeclaredGlobalTempTables!=null)
             tempTablesAndRollback();
-
-        finishDDTransaction();
 
         // If a nested transaction is active then
         // ensure it is destroyed before working
@@ -1724,6 +1596,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // location, since any outer nesting
             // levels expet there to be a savepoint
             resetSavepoints();
+            tc.commitDataDictionaryChange();
         }
     }
 
@@ -1777,15 +1650,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         if(tc!=null && refreshStyle && allDeclaredGlobalTempTables!=null)
             tempTablesAndRollback();
-    }
-
-    private void invalidateAllCaches(){
-        getLanguageConnectionFactory().getStatementCache().discard(null); // discard cache
-        try{
-            getDataDictionary().clearCaches();
-        }catch(StandardException se){
-            // ignore
-        }
     }
 
     /**
@@ -2649,36 +2513,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return bindCount;
     }
 
-    @Override
-    public final void setDataDictionaryWriteMode(){
-        ddWriteMode=true;
-    }
-
-    @Override
-    public final boolean dataDictionaryInWriteMode(){
-        return ddWriteMode;
-    }
-
-    @Override
-    public void setRunTimeStatisticsMode(boolean onOrOff){
-        runTimeStatisticsSetting=onOrOff;
-    }
-
-    @Override
-    public boolean getRunTimeStatisticsMode(){
-        return runTimeStatisticsSetting;
-    }
-
-    @Override
-    public void setStatisticsTiming(boolean onOrOff){
-        statisticsTiming=onOrOff;
-    }
-
-    @Override
-    public boolean getStatisticsTiming(){
-        return statisticsTiming;
-    }
-
     /**
      * Reports how many statement levels deep we are.
      *
@@ -2999,13 +2833,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     //the call to java procedure because that activation
                     //is still being used.
                     a.reset();
-                // Only invalidate statements if we performed DDL.
-                if(dataDictionaryInWriteMode()){
+                    // Only invalidate statements if we performed DDL. // TODOJL
                     ExecPreparedStatement ps=a.getPreparedStatement();
                     if(ps!=null){
                         ps.makeInvalid(DependencyManager.ROLLBACK,this);
                     }
-                }
             }else{
                 //We are dealing with commit here. 
                 if(resultsetReturnsRows){
@@ -3027,25 +2859,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 }
                 a.clearHeapConglomerateController();
             }
-        }
-    }
-
-    /**
-     * Finish the data dictionary transaction, if any.
-     *
-     * @throws StandardException Thrown on error
-     */
-    private void finishDDTransaction() throws StandardException{
-
-        /* Was the data dictionary put into write mode? */
-        if(ddWriteMode){
-            DataDictionary dd=getDataDictionary();
-
-            /* Tell the data dictionary that the transaction is finished */
-            dd.transactionFinished();
-
-            /* The data dictionary isn't in write mode any more */
-            ddWriteMode=false;
         }
     }
 
@@ -3549,25 +3362,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setReferencedColumnMap(TableDescriptor td,FormatableBitSet map){
         referencedColumnMap.put(td,map);
-    }
-
-    @Override
-    public void startGlobalDDLChange(){
-        if(!ongoingDDLChange){
-            ongoingDDLChange=true;
-            invalidateCaches=true;
-        }
-    }
-
-    @Override
-    public void finishGlobalDDLChange(){
-        ongoingDDLChange=false;
-        useCaches=true;
-    }
-
-    @Override
-    public boolean useCaches(){
-        return useCaches;
     }
 
     @Override

@@ -125,7 +125,7 @@ class LastIndexKeyResultSet extends ScanResultSet
 		this.userSuppliedOptimizerOverrides = userSuppliedOptimizerOverrides;
 		this.indexName = indexName;
 
-		runTimeStatisticsOn = getLanguageConnectionContext().getRunTimeStatisticsMode();
+		runTimeStatisticsOn = false;
 
 		/*
 		** If scan tracing is turned on, print information about this

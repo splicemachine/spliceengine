@@ -199,8 +199,7 @@ class TableScanResultSet extends ScanResultSet
 		if (indexCols != null)
 			activation.setForUpdateIndexScan(this);
 
-		runTimeStatisticsOn = (activation != null &&
-							   activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
+		runTimeStatisticsOn = (activation != null && false);
 		
 		/* Always qualify the first time a row is being read */
 		qualify = true;

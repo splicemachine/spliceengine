@@ -1843,7 +1843,7 @@ public interface TransactionController
      * servers are in sync for committing a change to the DataDictionary.
      * It has to be called *before* the transaction that makes the change is committed.
      */
-    public void prepareDataDictionaryChange() throws StandardException;
+    public void prepareDataDictionaryChange(String currentDDLChangeId) throws StandardException;
 
     /**
      * Final step of 2-phase commit for a data dictionary change. Makes sure all
