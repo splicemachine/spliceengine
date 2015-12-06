@@ -167,12 +167,6 @@ public class SpliceConstants {
 	 */
 	@Parameter public static final String BACKUP_PATH = "splice.backup_node";
 	@DefaultValue(BACKUP_PATH) public static final String DEFAULT_BACKUP_PATH = "/backup";
-    /**
-     * The Path in zookeeper to store job information. Defaults to /spliceJobs
-     */
-    @Parameter public static final String BASE_JOB_QUEUE_NODE = "splice.job_queue_node";
-    @DefaultValue(BASE_JOB_QUEUE_NODE) public static final String DEFAULT_BASE_JOB_QUEUE_NODE = "/spliceJobs";
-    public static String zkSpliceJobPath;
 
     /**
      * The Path in zookeeper for manipulating transactional information.
@@ -1016,7 +1010,6 @@ public class SpliceConstants {
     public static int ipcThreads;
 
     public static List<String> zookeeperPaths = Lists.newArrayList(
-            zkSpliceJobPath,
             zkSpliceConglomeratePath,
             zkSpliceConglomerateSequencePath,
             zkSpliceDerbyPropertyPath,
@@ -1033,7 +1026,6 @@ public class SpliceConstants {
         zkSpliceBroadcastPath = config.get(BROADCAST_PATH,DEFAULT_BROADCAST_PATH);
         zkSpliceBroadcastActiveServersPath = zkSpliceBroadcastPath + "/activeServers";
         zkSpliceBroadcastMessagesPath = zkSpliceBroadcastPath + "/messages";
-        zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
         zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
         zkSpliceMaxReservedTimestampPath = config.get(MAX_RESERVED_TIMESTAMP_PATH,DEFAULT_MAX_RESERVED_TIMESTAMP_PATH);
         zkSpliceMinimumActivePath = config.get(MINIMUM_ACTIVE_PATH,DEFAULT_MINIMUM_ACTIVE_PATH);
