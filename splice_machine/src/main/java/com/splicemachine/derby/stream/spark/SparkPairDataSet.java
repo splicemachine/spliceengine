@@ -217,7 +217,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            // TODO (wjk): push/pop scope anywhere here?
             rdd.saveAsNewAPIHadoopDataset(conf);
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireAfterStatementTriggers();
@@ -244,7 +243,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             }
 
             valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
-            // TODO (wjk): ControlDataSet even though this is SparkPairDataSet class?
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -258,7 +256,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             Configuration conf = new Configuration(SIConstants.config);
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf, builder);
             conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
-            rdd.saveAsNewAPIHadoopDataset(conf); // wjk - set rdd name?
+            rdd.saveAsNewAPIHadoopDataset(conf);
             operationContext.getOperation().fireAfterStatementTriggers();
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
