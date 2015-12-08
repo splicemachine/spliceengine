@@ -250,13 +250,15 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		 * not the conglomerate number.
 		 */
 		public String getDisplayableTableName() {
-		    if (scanInformation == null) return tableName; // avoid NPE
-            try {
-                return scanInformation.getConglomerate().getString();
-            } catch (StandardException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-                return null;
-    		}
+		    // TODO: purge this method. It worked on dev branch but not any more
+		    return tableName;
+//		    if (scanInformation == null) return tableName; // avoid NPE
+//            try {
+//                return scanInformation.getConglomerate().getString();
+//            } catch (StandardException e) {
+//                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+//                return null;
+//    		}
 		}
 		
 		public String getTableName(){
