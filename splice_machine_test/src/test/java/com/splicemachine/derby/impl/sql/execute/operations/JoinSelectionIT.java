@@ -142,7 +142,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-            MERGE_SORT_JOIN, methodWatcher);
+            NESTED_LOOP_JOIN, methodWatcher);
     }
     
     @Test
@@ -239,7 +239,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            MERGE_SORT_JOIN, methodWatcher);
+            NESTED_LOOP_JOIN, methodWatcher);
     }
     
     @Test
@@ -270,7 +270,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            MERGE_SORT_JOIN, methodWatcher);
+            NESTED_LOOP_JOIN, methodWatcher);
     }
 
     @Test
