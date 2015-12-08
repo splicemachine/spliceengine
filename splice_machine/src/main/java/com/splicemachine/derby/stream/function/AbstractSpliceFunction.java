@@ -3,8 +3,11 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 
 import java.io.*;
+
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Created by jleach on 4/17/15.
@@ -26,7 +29,7 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
 
     @Override
     public void readExternal(ObjectInput in)
-            throws IOException, ClassNotFoundException {
+        throws IOException, ClassNotFoundException {
         operationContext = (OperationContext) in.readObject();
     }
 
@@ -46,4 +49,11 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
         operationContext.reset();
     }
 
+    public String getPrettyFunctionName() {
+        return StreamUtils.getPrettyFunctionName(this.getClass().getSimpleName());
+    }
+    
+    public String getSparkName() {
+        return getPrettyFunctionName();
+    }
 }

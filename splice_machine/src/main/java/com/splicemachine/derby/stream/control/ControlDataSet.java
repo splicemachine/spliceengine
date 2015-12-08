@@ -10,14 +10,20 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+
 import org.apache.hadoop.fs.*;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import org.apache.spark.storage.StorageLevel;
 import org.sparkproject.guava.collect.FluentIterable;
+
 import scala.Tuple2;
+
 import javax.annotation.Nullable;
+
 import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
@@ -57,8 +63,23 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
+        return mapPartitions(f);
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
+        return mapPartitions(f);
+    }
+
+    @Override
     public DataSet<V> distinct() {
         return new ControlDataSet(Sets.newHashSet(iterable));
+    }
+
+    @Override
+    public DataSet<V> distinct(String name) {
+        return distinct();
     }
 
     @Override
@@ -71,6 +92,11 @@ public class ControlDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+        return fold(zeroValue, function2);
     }
 
     @Override
@@ -89,10 +115,24 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, boolean isLast) {
+        return index(function);
+    }
+    
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
         return new ControlDataSet<U>(Iterables.transform(iterable, function));
     }
 
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
+        return map(function);
+    }
+
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
+        return map(function);
+    }
+    
     @Override
     public Iterator<V> toLocalIterator() {
         return iterable.iterator();
@@ -101,6 +141,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function) {
         return new ControlPairDataSet<K,V>(entryToTuple(FluentIterable.from(iterable).index(function).entries()));
+    }
+
+    @Override
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
+        return keyBy(function);
     }
 
     @Override
@@ -118,6 +163,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public DataSet< V> union(DataSet< V> dataSet) {
         return new ControlDataSet(Iterables.concat(iterable, ((ControlDataSet) dataSet).iterable));
+    }
+
+    @Override
+    public DataSet< V> union(DataSet< V> dataSet, String name) {
+        return union(dataSet);
     }
 
     @Override
@@ -146,6 +196,16 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f, String name) {
+        return flatMap(f);
+    }
+
+    @Override
+    public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f, boolean isLast) {
+        return flatMap(f);
+    }
+
+    @Override
     public void close() {
 
     }
@@ -157,6 +217,11 @@ public class ControlDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> f, boolean isLast) {
+        return offset(f);
     }
 
     @Override

@@ -64,6 +64,16 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public DataSet<V> values(String name) {
+        return values();
+    }
+
+    @Override
+    public DataSet<V> values(boolean isLast) {
+        return values();
+    }
+
+    @Override
     public DataSet<K> keys() {
         return new ControlDataSet(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, K>() {
             @Nullable
@@ -94,6 +104,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+        return reduceByKey(function2);
+    }
+    
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(final SpliceFunction<Op,Tuple2<K, V>, U> function) {
         return new ControlDataSet<U>(FluentIterable.from(source).transform(function));
     }
@@ -109,6 +124,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator, String name) {
+        // 'name' is not used on control side
+        return sortByKey(comparator);
+    }
+
+    @Override
     public PairDataSet<K, Iterable<V>> groupByKey() {
         Multimap<K,V> newMap = multimapFromIterable(source);
         return new ControlPairDataSet<>(FluentIterable.from(newMap.asMap().entrySet()).transform(new Function<Map.Entry<K, Collection<V>>, Tuple2<K, Iterable<V>>>() {
@@ -118,6 +139,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 return new Tuple2<K, Iterable<V>>(e.getKey(), e.getValue());
             }
         }));
+    }
+
+    @Override
+    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
+        return groupByKey();
     }
 
     @Override
@@ -187,6 +213,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
+        // Ignore name on control side
+        return hashJoin(rightDataSet);
+    }
+    
+    @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
@@ -196,6 +228,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 return rightSide.get(t._1()).isEmpty();
             }
         }));
+    }
+
+    @Override
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet, String name) {
+        // Ignore name on control side
+        return subtractByKey(rightDataSet);
     }
 
     @Override
@@ -234,6 +272,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function, boolean isLast) {
+        return flatmap(function);
+    }
+    
+    @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         Multimap<K, V> left = multimapFromIterable(source);
         Multimap<K, W> right = multimapFromIterable(((ControlPairDataSet<K, W>) rightDataSet).source);
@@ -242,6 +285,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         for (K key: Sets.union(left.keySet(),right.keySet()))
             result.add(new Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>(key, new Tuple2(left.get(key), right.get(key))));
         return new ControlPairDataSet<>(result);
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name) {
+        // Ignore name on control side
+        return cogroup(rightDataSet);
     }
 
     @Override

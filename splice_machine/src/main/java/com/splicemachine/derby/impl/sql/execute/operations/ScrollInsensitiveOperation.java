@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -21,7 +22,9 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**
@@ -246,19 +249,24 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         try {
-            operationContext.pushScope(String.format("Scroll Insensitive {cost=%f,rows=%f}",getEstimatedCost(),getEstimatedRowCount()));
+            operationContext.pushScope();
             dsp.setSchedulerPool("query");
-            return sourceSet.map(new ScrollInsensitiveFunction(operationContext));
+            return sourceSet.map(new ScrollInsensitiveFunction(operationContext), true);
         }
         finally {
             operationContext.popScope();
         }
     }
-
+    
+    public String getSparkStageName() {
+        return "Produce Result Set (Insensitive Scroll)";
+    }
+    
 
 }

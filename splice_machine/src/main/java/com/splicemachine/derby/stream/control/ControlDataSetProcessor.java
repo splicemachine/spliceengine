@@ -90,8 +90,18 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
+    public <V> DataSet<V> getEmpty(String name) {
+        return getEmpty();
+    }
+
+    @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
         return new ControlDataSet<>(Lists.newArrayList(value));
+    }
+
+    @Override
+    public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
+        return singleRowDataSet(value);
     }
 
     @Override
@@ -116,7 +126,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public PairDataSet<String, InputStream> readWholeTextFile(String s) {
+    public PairDataSet<String, InputStream> readWholeTextFile(String s, SpliceOperation op) {
         Path path = new Path(s);
         InputStream rawStream = null;
         try {
@@ -144,6 +154,11 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         }
     }
 
+    @Override
+    public PairDataSet<String, InputStream> readWholeTextFile(String s) {
+        return readWholeTextFile(s, null);
+    }
+    
     @Override
     public DataSet<String> readTextFile(String s) {
         Path path = new Path(s);
@@ -180,6 +195,10 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         }
     }
 
+    @Override
+    public DataSet<String> readTextFile(String s, SpliceOperation op) {
+        return readTextFile(s);
+    }
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {

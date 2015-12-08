@@ -208,8 +208,8 @@ public class UpdateOperation extends DMLWriteOperation{
                 .tableVersion(tableVersion)
                 .txn(txn);
         try {
-            operationContext.pushScope("Update");
-            return set.index(new InsertPairFunction(operationContext)).updateData(builder, operationContext);
+            operationContext.pushScope();
+            return set.index(new InsertPairFunction(operationContext), true).updateData(builder, operationContext);
         } finally {
             operationContext.popScope();
         }

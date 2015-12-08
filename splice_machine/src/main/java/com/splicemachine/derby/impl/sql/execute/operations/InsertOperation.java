@@ -28,7 +28,6 @@ import com.splicemachine.db.iapi.sql.execute.HasIncrement;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -65,7 +64,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public String getName() {
 				return NAME;
 		}
-
+    
 		@SuppressWarnings("UnusedDeclaration")
 		public InsertOperation(){ super(); }
 
@@ -216,7 +215,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         if (insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
         TxnView txn = getCurrentTransaction();
-        try {
             InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .operationContext(operationContext)
@@ -228,12 +226,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .pkCols(pkCols)
                 .tableVersion(tableVersion)
                 .txn(txn);
-            operationContext.pushScope("Insert ["+heapConglom+"]");
+        try {
+            operationContext.pushScope();
             if (statusDirectory!=null)
                 dsp.setSchedulerPool("import");
-            return set.index(new InsertPairFunction(operationContext)).insertData(builder, operationContext);
-        }
-        finally {
+            return set.index(new InsertPairFunction(operationContext), true).insertData(builder, operationContext);
+        } finally {
             operationContext.popScope();
         }
 

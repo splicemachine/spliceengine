@@ -11,6 +11,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -138,14 +139,16 @@ public class UnionOperation extends SpliceBaseOperation {
 
 		}
 
+    @SuppressWarnings("rawtypes")
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 		OperationContext operationContext = dsp.createOperationContext(this);
 		DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
 		DataSet<LocatedRow> right = rightResultSet.getDataSet(dsp);
-		operationContext.pushScope("Union");
-		DataSet<LocatedRow> result = left.union(right)
-				.map(new SetCurrentLocatedRowFunction<SpliceOperation>(dsp.createOperationContext(this)));
+		operationContext.pushScope();
+		DataSet<LocatedRow> result = left
+		    .union(right)
+		    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
 		operationContext.popScope();
 		return result;
     }

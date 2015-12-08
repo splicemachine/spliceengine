@@ -13,7 +13,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -169,37 +171,67 @@ public class MergeSortJoinOperation extends JoinOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp).map(new CountJoinedLeftFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(dsp).map(new CountJoinedRightFunction(operationContext)).keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        
+        // Prepare Left
+        
+        DataSet<LocatedRow> leftDataSet1 = leftResultSet.getDataSet(dsp);
+
+        operationContext.pushScope(this.getSparkStageName() + ": Prepare Left Side");
+        DataSet<LocatedRow> leftDataSet2 =
+            leftDataSet1.map(new CountJoinedLeftFunction(operationContext)); // don't show explain plan here
+        PairDataSet<ExecRow,LocatedRow> leftDataSet =
+            leftDataSet2.keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+        operationContext.popScope();
+        
+        // Prepare Right
+        
+        DataSet<LocatedRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
+
+        operationContext.pushScope(this.getSparkStageName() + ": Prepare Right Side");
+        DataSet<LocatedRow> rightDataSet2 =
+            rightDataSet1.map(new CountJoinedRightFunction(operationContext)); // don't show explain plan here
+        PairDataSet<ExecRow,LocatedRow> rightDataSet =
+            rightDataSet2.keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        operationContext.popScope();
+        
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
-        return getJoinedDataset(operationContext, leftDataSet, rightDataSet).map(new CountProducedFunction(operationContext));
+                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+        
+        try {
+            operationContext.pushScope(this.getSparkStageName() + ": Perform Join");
+            DataSet<LocatedRow> joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
+            return joined.map(new CountProducedFunction(operationContext), this.getPrettyExplainPlan());
+        } finally {
+            operationContext.popScope();
+        }
     }
 
-    private DataSet<LocatedRow> getJoinedDataset(OperationContext operationContext, PairDataSet<ExecRow, LocatedRow> leftDataSet, PairDataSet<ExecRow, LocatedRow> rightDataSet) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private DataSet<LocatedRow> getJoinedDataset(
+        OperationContext operationContext,
+        PairDataSet<ExecRow, LocatedRow> leftDataSet,
+        PairDataSet<ExecRow, LocatedRow> rightDataSet) {
+        
         if (isOuterJoin) { // Outer Join
-                return leftDataSet.cogroup(rightDataSet)
+                return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right")
                         .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet).values()
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values()
                             .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
-
                 if (isOneRowRightSide()) {
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet).values()
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet, "Cogroup Left and Right").values()
                             .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
-
-
                 if (restriction !=null) { // with restriction
                     return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext))

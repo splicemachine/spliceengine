@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.si.api.TxnView;
+
 import java.io.Externalizable;
 import java.util.List;
 
@@ -25,6 +26,8 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     long getRecordsFiltered();
     long getRecordsWritten();
     void pushScope(String display);
+    void pushScope();
+    void pushScopeForOp(String step);
     void popScope();
     void recordBadRecord(String badRecord);
     boolean isPermissive();

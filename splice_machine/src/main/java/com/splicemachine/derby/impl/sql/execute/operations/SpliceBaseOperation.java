@@ -39,7 +39,11 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
+
+import org.apache.commons.lang.WordUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -61,6 +65,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected boolean statisticsTimingOn;
         protected Iterator<LocatedRow> locatedRowIterator;
 		protected Activation activation;
+		protected String explainPlan = "";
 		protected Timer timer;
 		protected long stopExecutionTime;
 		protected double optimizerEstimatedRowCount;
@@ -181,6 +186,22 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return activation;
 		}
 
+        public String getExplainPlan() {
+            return explainPlan;
+        }
+
+        public String getPrettyExplainPlan() {
+            return explainPlan;
+        }
+
+		public void setExplainPlan(String plan) {
+		    // This is returned by getExplainPlan and getPrettyExplainPlan.
+		    // No difference. We can change that later if needed.
+		    // Right now this is only used by Spark UI, so don't change it
+		    // unless you want to change that UI.
+		    explainPlan = (plan == null ? "" : plan.replace("n=", "RS=").replace("->", "").trim());;
+		}
+		
     @Override
     public void clearCurrentRow() {
         if(activation!=null){
@@ -486,10 +507,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         public String getInfo() {return info;}
 
-
+    private String sparkStageName = null;
+    public String getSparkStageName() {
+        if (sparkStageName == null) {
+            String[] words = this.getClass().getSimpleName().replace("Operation", "").split("(?=[A-Z])");
+            sparkStageName = StringUtils.join(words, " ");
+        }
+        return sparkStageName;
+    }
+    
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);
-            return getDataSet(dsp);
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);
+        return getDataSet(dsp);
     }
 
     public void openCore(DataSetProcessor dsp) throws StandardException {

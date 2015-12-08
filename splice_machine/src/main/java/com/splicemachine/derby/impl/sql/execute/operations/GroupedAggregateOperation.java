@@ -9,17 +9,24 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.spark.SparkConstants;
+import com.splicemachine.derby.stream.spark.SparkDataSet;
+import com.splicemachine.derby.stream.spark.SparkPairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Properties;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
@@ -156,26 +163,59 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return "Grouped" + super.prettyPrint(indentLevel);
     }
 
-
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
-        DataSet set = source.getDataSet(dsp).map(new CountReadFunction(operationContext));
+        
+        DataSet set = source.getDataSet(dsp);
+
+        operationContext.pushScope();
+        set = set.map(new CountReadFunction(operationContext));
+        operationContext.popScope();
+
         if (groupedAggregateContext.getNonGroupedUniqueColumns() != null &&
-                groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
+            groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             // Distinct Aggregate Path
             int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
-            set = set
-                    .keyBy(new KeyerFunction(operationContext, allKeys))
-                    .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext))
-                    .values();
+
+            operationContext.pushScopeForOp(SparkConstants.SCOPE_GROUP_AGGREGATE_KEYER);
+            PairDataSet set2 = set.keyBy(new KeyerFunction(operationContext, allKeys));
+            operationContext.popScope();
+            
+            operationContext.pushScopeForOp("Reduce");
+            PairDataSet set3 = set2.reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext));
+            operationContext.popScope();
+            
+            operationContext.pushScopeForOp("Read Values");
+            DataSet set4 = set3.values();
+            operationContext.popScope();
+            
+            set = set4;
         }
-        if (isRollup) // OLAP Rollup Functionality
-               set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
-        return set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
-               .reduceByKey(new MergeAllAggregatesFunction(operationContext))
-               .values()
-               .map(new AggregateFinisherFunction(operationContext));
+        
+        if (isRollup) { // OLAP Rollup Functionality
+            operationContext.pushScopeForOp("Rollup");
+            set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
+            operationContext.popScope();
+        }
+        
+        operationContext.pushScopeForOp(SparkConstants.SCOPE_GROUP_AGGREGATE_KEYER);
+        PairDataSet set2 = set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+        operationContext.popScope();
+        
+        operationContext.pushScopeForOp("Reduce");
+        PairDataSet set3 = set2.reduceByKey(new MergeAllAggregatesFunction(operationContext));
+        operationContext.popScope();
+        
+        operationContext.pushScopeForOp("Read Values");
+        DataSet set4 = set3.values("Read Values");
+        operationContext.popScope();
+        
+        operationContext.pushScopeForOp("Finalize");
+        DataSet set5 = set4.map(new AggregateFinisherFunction(operationContext), true);
+        operationContext.popScope();
+        
+        return set5;
     }
 
 }

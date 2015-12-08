@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+
 import java.io.*;
 import java.util.Collections;
 import java.util.Iterator;

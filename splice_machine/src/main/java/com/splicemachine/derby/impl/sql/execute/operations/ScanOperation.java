@@ -245,7 +245,20 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return tableName.equals(String.valueOf(tableNumber));
 		}
 
-
+		/**
+		 * Returns the relational table name for the scan, e.g. LINEITEM,
+		 * not the conglomerate number.
+		 */
+		public String getDisplayableTableName() {
+		    if (scanInformation == null) return tableName; // avoid NPE
+            try {
+                return scanInformation.getConglomerate().getString();
+            } catch (StandardException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+                return null;
+    		}
+		}
+		
 		public String getTableName(){
 				return this.tableName;
 		}

@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
 import com.splicemachine.derby.stream.index.HTableInputFormat;
@@ -19,30 +20,29 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.spark.SparkConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.storage.StorageLevel;
+
 import scala.Tuple2;
+
 import com.splicemachine.db.iapi.sql.Activation;
-import scala.collection.Iterator;
-import scala.collection.Map;
-import scala.reflect.ClassManifestFactory$;
-import scala.reflect.ClassTag$;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
+
 
 /**
  * Created by jleach on 4/13/15.
@@ -66,32 +66,35 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
-/*        JavaRDD<LocatedRow> appliedRDD = null;
-        Map persistentRDDs = ctx.sc().getPersistentRDDs();
-        if (persistentRDDs.size()>0) {
-            Iterator it =  persistentRDDs.valuesIterator();
-            it.hasNext();
-            RDD rdd = (RDD) it.next();
-            appliedRDD = new JavaRDD<>(rdd, ClassManifestFactory$.MODULE$.fromClass(LocatedRow.class));
-        }
-
-        else {
-*/
-            SpliceSpark.pushScope("HFile Scan[" + tableName + "]");
-            JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
-                    RowLocation.class, ExecRow.class);
-            rawRDD.setName(tableName);
-            SpliceSpark.popScope();
-            SpliceSpark.pushScope("Lazy Deserialization");
-            JavaRDD<LocatedRow> appliedRDD = rawRDD.map(
-                    new TableScanTupleFunction<Op>(createOperationContext(spliceOperation)));
-            appliedRDD.setName("Lazy Deserialization");
-//            appliedRDD.persist(StorageLevel.MEMORY_AND_DISK_SER_2());
-            SpliceSpark.popScope();
-//        }
+        
+        String displayableTableName = getDisplayableTableName(spliceOperation, tableName);
+        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Table " + displayableTableName);
+        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
+            conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
+        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, displayableTableName));
+        SpliceSpark.popScope();
+        
+        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
+        TableScanTupleFunction<Op> f = new TableScanTupleFunction<Op>(createOperationContext(spliceOperation));
+        JavaRDD<LocatedRow> appliedRDD = rawRDD.map(f);
+        appliedRDD.setName(spliceOperation.getPrettyExplainPlan());
+        SpliceSpark.popScope();
+        
         return new SparkDataSet(appliedRDD);
     }
 
+    private String getDisplayableTableName(SpliceOperation spliceOperation, String conglomId) {
+        String displayableTableName;
+        if (spliceOperation instanceof ScanOperation) {
+            displayableTableName = ((ScanOperation)spliceOperation).getDisplayableTableName();
+            if (displayableTableName == null || displayableTableName.isEmpty())
+                displayableTableName = conglomId;
+        } else {
+            displayableTableName = conglomId;
+        }
+        return displayableTableName;
+    }
+    
     @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
@@ -128,14 +131,29 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         return new SparkDataSet(rawRDD.map(
                 new HTableScanTupleFunction()));
     }
+    
     @Override
     public <V> DataSet<V> getEmpty() {
-        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1));
+        return getEmpty(SparkConstants.RDD_NAME_EMPTY_DATA_SET);
     }
 
     @Override
-    public <V> DataSet<V>  singleRowDataSet(V value) {
-        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value),1));
+    public <V> DataSet<V> getEmpty(String name) {
+        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+    }
+
+    @Override
+    public <V> DataSet<V> singleRowDataSet(V value) {
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+        rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
+        return new SparkDataSet(rdd1);
+    }
+
+    @Override
+    public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+        rdd1.setName(isLast ? op.getPrettyExplainPlan() : SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
+        return new SparkDataSet(rdd1);
     }
 
     @Override
@@ -165,9 +183,18 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path) {
+        return readWholeTextFile(path);
+    }
+    
+    @Override
+    public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope("Read File \n" + "{file=" + String.format(path) + ", " + "size=" + contentSummary.getSpaceConsumed() + ", " + "files=" + contentSummary.getFileCount());
+            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+                SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
+                "{file=" + String.format(path) + ", " +
+                "size=" + contentSummary.getSpaceConsumed() + ", " +
+                "files=" + contentSummary.getFileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config));
         } catch (IOException ioe) {
@@ -179,18 +206,27 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public DataSet<String> readTextFile(String path) {
+        return readTextFile(path, null);
+    }
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope("Read File \n" + "{file=" + String.format(path) + ", " + "size=" + contentSummary.getSpaceConsumed() + ", " + "files=" + contentSummary.getFileCount());
-            return new SparkDataSet<String>(SpliceSpark.getContext().textFile(path));
+            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+                SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
+                "{file=" + String.format(path) + ", " +
+                "size=" + contentSummary.getSpaceConsumed() + ", " +
+                "files=" + contentSummary.getFileCount() + "}");
+            JavaRDD rdd = SpliceSpark.getContext().textFile(path);
+            return new SparkDataSet<String>(rdd, SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
+            throw new RuntimeException(ioe);
         } finally {
             SpliceSpark.popScope();
         }
-
     }
-
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
