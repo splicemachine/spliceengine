@@ -90,8 +90,7 @@ public class SpliceSpark {
 
     private static JavaSparkContext initializeSparkContext() {
         System.setProperty("spark.driver.port", "0");
-//        String master = System.getProperty("splice.spark.master", "local[8]");
-        String master = "yarn-client";
+        String master = System.getProperty("splice.spark.master", "local[8]");
         String home = System.getProperty("splice.spark.home", null);
         String jars = System.getProperty("splice.spark.jars", "");
         String environment = System.getProperty("splice.spark.env", "");
@@ -114,7 +113,8 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
-        conf.set("spark.yarn.historyServer.address",historyServer);
+        if (historyServer!=null)
+            conf.set("spark.yarn.historyServer.address",historyServer);
 //        conf.setJars(files);
         conf.set("spark.yarn.am.waitTime","10");
 
