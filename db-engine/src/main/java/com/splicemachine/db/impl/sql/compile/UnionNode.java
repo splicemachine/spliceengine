@@ -614,8 +614,9 @@ public class UnionNode extends SetOperatorNode{
         mb.push(resultSetNumber);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getUnionResultSet", ClassName.NoPutResultSet,5);
+        mb.push(printExplainInformationForActivation());
+        
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getUnionResultSet", ClassName.NoPutResultSet,6);
     }
 
     /**

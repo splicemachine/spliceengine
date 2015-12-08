@@ -1638,7 +1638,8 @@ public interface ResultSetFactory {
 					NoPutResultSet source2,
 					int resultSetNumber,
 					double optimizerEstimatedRowCount,
-					double optimizerEstimatedCost)
+					double optimizerEstimatedCost,
+					String explainPlan)
 					throws StandardException;
 
 
