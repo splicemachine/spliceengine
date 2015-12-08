@@ -5,13 +5,16 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.ScalarAggregateFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -110,11 +113,15 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        LocatedRow result = source.getDataSet(dsp)
-                .fold(null,new ScalarAggregateFunction(dsp.createOperationContext(this)));
+        OperationContext<ScalarAggregateOperation> operationContext = dsp.createOperationContext(this);
+        DataSet<LocatedRow> dsSource = source.getDataSet(dsp);
+        
+        operationContext.pushScope(this.getSparkStageName() + ": Aggregate");
+        LocatedRow result = dsSource.fold(null,new ScalarAggregateFunction(operationContext));
+        operationContext.popScope();
+        
         if (result==null) {
-			return returnDefault ?
-					dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
+			return returnDefault ? dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
 		}
         if (!isInitialized(result.getRow())) {
             initializeVectorAggregation(result.getRow());
@@ -122,7 +129,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         finishAggregation(result.getRow());
         LocatedRow lr = new LocatedRow(result.getRowLocation(),result.getRow());
         setCurrentLocatedRow(lr);
-        return dsp.singleRowDataSet(lr);
-    }
+        
+        operationContext.pushScope(this.getSparkStageName() + ": Prepare Result");
+        DataSet<LocatedRow> singleRowDataSet = dsp.singleRowDataSet(lr, this, true);
+        operationContext.popScope();
 
+        return singleRowDataSet;
+    }
 }

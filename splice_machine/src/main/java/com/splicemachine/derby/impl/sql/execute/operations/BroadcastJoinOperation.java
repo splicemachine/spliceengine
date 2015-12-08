@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.stream.function.broadcast.CogroupBroadcastJoinFunction;
@@ -9,13 +10,18 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -155,15 +161,19 @@ public class BroadcastJoinOperation extends JoinOperation{
         return leftResultSet;
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
+
         DataSet<LocatedRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
-        operationContext.pushScope("Broadcast Join");
+        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+
         DataSet<LocatedRow> result;
         if (isOuterJoin) { // Outer Join with and without restriction
                     result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
@@ -186,7 +196,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                             .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
                 } else {
                     result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
-                            .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
 
                     if (restriction !=null) { // with restriction
                         result = result.filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
@@ -194,11 +204,27 @@ public class BroadcastJoinOperation extends JoinOperation{
                 }
             }
         }
-        result = result.map(new CountProducedFunction(operationContext));
+
+        result = result.map(new CountProducedFunction(operationContext), /*isLast=*/false);
+
+        // Clever but hacky way to put the explain plan in an RDD node in UI
+        // without taking up the name of a legitimate RDD.
+        // Remove this later if we hate it, which I already do.
+        result = result.map(new EmptyFunction(operationContext), /*isLast=*/true);
+
         operationContext.popScope();
+
         return result;
     }
 
+    public String getPrettyExplainPlan() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(super.getPrettyExplainPlan());
+        sb.append("\n\nBroadcast Join Right Side:\n\n");
+        sb.append(getRightOperation() != null ? getRightOperation().getPrettyExplainPlan() : "");
+        return sb.toString();
+    }
+    
     public int[] getRightHashKeys() {
         return rightHashKeys;
     }

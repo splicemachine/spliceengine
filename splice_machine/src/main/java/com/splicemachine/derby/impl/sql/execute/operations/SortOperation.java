@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -19,8 +18,8 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+
 import org.apache.log4j.Logger;
-import org.apache.spark.rdd.RDDOperationScope;
 
 import java.io.*;
 import java.util.*;
@@ -182,28 +181,41 @@ public class SortOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-
-    @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet dataSet = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
+        DataSet dataSet = source.getDataSet(dsp);
+        
         if (distinct) {
-            operationContext.pushScope("Sort Distinct");
+            operationContext.pushScopeForOp("Find Distinct Values");
             dataSet = dataSet.distinct();
             operationContext.popScope();
         }
-            operationContext.pushScope("Sort Prepare Keys");
-            PairDataSet pair = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns));
+        
+        operationContext.pushScopeForOp("Prepare Keys");
+        KeyerFunction f = new KeyerFunction(operationContext, keyColumns);
+        PairDataSet pair = dataSet.keyBy(f);
+        operationContext.popScope();
+        
+        operationContext.pushScopeForOp("Shuffle/Sort Data");
+        PairDataSet sortedByKey = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow),
+            "Sort By Columns"); // + Arrays.toString(keyColumns));
+        operationContext.popScope();
+
+        operationContext.pushScopeForOp("Read Sorted Values");
+        DataSet sortedValues = sortedByKey.values("Read Sorted Values");
+        operationContext.popScope();
+        
+        try {
+            operationContext.pushScopeForOp("Locate Rows");
+            DataSet locatedRows = sortedValues.map(new SetCurrentLocatedRowFunction(operationContext), true);
+            return locatedRows;
+        } finally {
             operationContext.popScope();
-            operationContext.pushScope("Shuffle/Sort Data");
-            DataSet sortedValues = pair.sortByKey(new RowComparator(descColumns, nullsOrderedLow)).values();
-            operationContext.popScope();
-            try {
-                operationContext.pushScope("Read Sort Data");
-                return sortedValues.map(new SetCurrentLocatedRowFunction(operationContext));
-            }
-            finally {
-            operationContext.popScope();
-            }
         }
+    }
+    
+    public String getSparkStageName() {
+        return (distinct ? "Sort Distinct" : "Sort");
+    }
 }

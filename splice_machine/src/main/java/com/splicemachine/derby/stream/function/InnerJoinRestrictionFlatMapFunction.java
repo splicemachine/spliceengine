@@ -5,8 +5,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+
 import scala.Tuple2;
+
 import javax.annotation.concurrent.NotThreadSafe;
+
 import java.util.Collections;
 import java.util.Iterator;
 

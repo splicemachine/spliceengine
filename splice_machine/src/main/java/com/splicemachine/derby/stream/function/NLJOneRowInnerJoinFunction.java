@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -64,5 +65,4 @@ public class NLJOneRowInnerJoinFunction<Op extends SpliceOperation> extends Spli
         }
 
     }
-
 }

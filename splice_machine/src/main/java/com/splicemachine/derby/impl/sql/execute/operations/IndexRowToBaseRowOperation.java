@@ -30,7 +30,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -431,4 +433,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         return mergeRestriction;
     }
 
+    public String getSparkStageName() {
+        return "Index Lookup";
+    }
 }

@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -137,18 +138,26 @@ public class MergeJoinOperation extends JoinOperation {
         return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(dsp.createOperationContext(this,spliceRuntimeContext), true));
     }
 */
+    @SuppressWarnings("unchecked")
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<MergeJoinOperation> operationContext = dsp.createOperationContext(this);
-        DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp).map(new CountJoinedLeftFunction(operationContext));
-        if (isOuterJoin)
-            return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
-        else {
-            if (notExistsRightSide)
-                return left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
+        DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
+        
+        operationContext.pushScope();
+        try {
+            left = left.map(new CountJoinedLeftFunction(operationContext));
+            if (isOuterJoin)
+                return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
             else {
-                return left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
+                if (notExistsRightSide)
+                    return left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext), true);
+                else {
+                    return left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext), true);
+                }
             }
+        } finally {
+            operationContext.popScope();
         }
     }
 

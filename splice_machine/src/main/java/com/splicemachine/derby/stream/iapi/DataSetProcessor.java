@@ -4,7 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
-import com.splicemachine.db.iapi.sql.Activation;;
+import com.splicemachine.db.iapi.sql.Activation;
 
 import java.io.InputStream;
 
@@ -47,6 +47,8 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> getEmpty();
 
+    <V> DataSet<V> getEmpty(String name);
+
     /**
      * Generate a single row dataset from a value.
      *
@@ -56,6 +58,8 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> singleRowDataSet(V value);
 
+    <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast);
+    
     /**
      * Create a dataset from a provided Iterable.
      *
@@ -112,6 +116,8 @@ public interface DataSetProcessor {
      */
     PairDataSet<String,InputStream> readWholeTextFile(String path);
 
+    PairDataSet<String,InputStream> readWholeTextFile(String path, SpliceOperation op);
+
     /**
      *
      * Read a text file that will be split in blocks when splittable compression algorithms are
@@ -122,6 +128,8 @@ public interface DataSetProcessor {
      */
     DataSet<String> readTextFile(String path);
 
+    DataSet<String> readTextFile(String path, SpliceOperation op);
+    
     /**
      * Get an empty PairDataSet
      *

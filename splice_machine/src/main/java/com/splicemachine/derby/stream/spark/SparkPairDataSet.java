@@ -14,7 +14,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.function.broadcast.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -26,15 +25,20 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+
 import scala.Tuple2;
+
 import java.util.*;
 
 /**
@@ -49,8 +53,30 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
         this.rdd = rdd;
     }
 
+    public SparkPairDataSet(JavaPairRDD<K,V> rdd, String rddName) {
+        this.rdd = rdd;
+        if (rdd != null && rddName != null) this.rdd.setName(rddName);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
+        if (!isLast) return f.getSparkName();
+        String plan = f.getOperation().getPrettyExplainPlan();
+        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
+    }
+    
     @Override
     public DataSet<V> values() {
+        return values(SparkConstants.RDD_NAME_GET_VALUES);
+    }
+
+    @Override
+    public DataSet<V> values(String name) {
+        return new SparkDataSet<V>(rdd.values(), name);
+    }
+
+    @Override
+    public DataSet<V> values(boolean isLast) {
         return new SparkDataSet<V>(rdd.values());
     }
 
@@ -61,12 +87,17 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2) {
-        return new SparkPairDataSet<>(rdd.reduceByKey(function2));
+        return new SparkPairDataSet<>(rdd.reduceByKey(function2), function2.getSparkName());
+    }
+
+    @Override
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+        return new SparkPairDataSet<>(rdd.reduceByKey(function2), planIfLast(function2, isLast));
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,Tuple2<K, V>, U> function) {
-        return new SparkDataSet<U>(rdd.map(function));
+        return new SparkDataSet<U>(rdd.map(function), function.getSparkName());
     }
 
     @Override
@@ -74,11 +105,23 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
         return new SparkPairDataSet<>(rdd.sortByKey(comparator));
     }
 
-    @Override
-    public PairDataSet<K, Iterable<V>> groupByKey() {
-        return new SparkPairDataSet<>(rdd.groupByKey());
+    public PairDataSet< K, V> sortByKey(Comparator<K> comparator, String name) {
+        return new SparkPairDataSet<>(rdd.sortByKey(comparator), name);
     }
 
+    @Override
+    public PairDataSet<K, Iterable<V>> groupByKey() {
+        return groupByKey("Group By Key");
+    }
+
+    @Override
+    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
+        JavaPairRDD rdd1 = rdd.groupByKey();
+        rdd1.setName(name);
+        RDDUtils.setAncestorRDDNames(rdd1, 1, new String[]{"Shuffle Data"});
+        return new SparkPairDataSet<>(rdd1);
+    }
+    
     @Override
     public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.leftOuterJoin(((SparkPairDataSet) rightDataSet).rdd));
@@ -91,7 +134,15 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
-        return new SparkPairDataSet(rdd.join(((SparkPairDataSet) rightDataSet).rdd));
+        return hashJoin(rightDataSet, "Hash Join");
+    }
+
+    @Override
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
+        JavaPairRDD rdd1 = rdd.join(((SparkPairDataSet) rightDataSet).rdd);
+        rdd1.setName(name);
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Map Left to Right", "Coalesce"});
+        return new SparkPairDataSet(rdd1);
     }
 
     private <W> Multimap<K,W> generateMultimap(JavaPairRDD<K,W> rightPairDataSet) {
@@ -103,23 +154,39 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
         return returnValue;
     }
 
-    private <W> Set<K> generateKeySet (JavaPairRDD<K,W> rightPairDataSet) {
+    private <W> Set<K> generateKeySet(JavaPairRDD<K,W> rightPairDataSet) {
         return rightPairDataSet.collectAsMap().keySet();
     }
 
     @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
-        return new SparkPairDataSet(rdd.subtractByKey(((SparkPairDataSet) rightDataSet).rdd));
+        return subtractByKey(rightDataSet, SparkConstants.RDD_NAME_SUBTRACTBYKEY);
+    }
+
+    @Override
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet, String name) {
+        return new SparkPairDataSet(rdd.subtractByKey(((SparkPairDataSet) rightDataSet).rdd), name);
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> f) {
-        return new SparkDataSet<U>(rdd.flatMap(f));
+        return new SparkDataSet<U>(rdd.flatMap(f), f.getSparkName());
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> f, boolean isLast) {
+        return new SparkDataSet<U>(rdd.flatMap(f), planIfLast(f, isLast));
     }
 
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd));
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name) {
+        JavaPairRDD rdd1 = rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd);
+        return new SparkPairDataSet(rdd1, name);
     }
 
     @Override
@@ -134,12 +201,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
-        return new SparkDataSet(rdd.mapPartitions(f));
+        return new SparkDataSet(rdd.mapPartitions(f), f.getSparkName());
     }
 
 
     @Override
-    public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) throws StandardException {
+    public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         try {
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireBeforeStatementTriggers();
@@ -156,7 +223,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
-                    System.out.println("badRecords -> " + badRecords);
+                    // System.out.println("badRecords -> " + badRecords);
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {

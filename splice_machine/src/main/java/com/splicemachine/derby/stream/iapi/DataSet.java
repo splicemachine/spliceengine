@@ -16,20 +16,28 @@ import java.util.Map;
  */
 public interface DataSet<V> extends Iterable<V>, Serializable {
     /**
-     * Transform the dataset into a list of items.
+     * Transforms the dataset into a list of items.
      */
     List<V> collect();
+
     /**
-     * Apply a flatmapfunction to entire partitions of data.
+     * Applies a flatmapfunction to entire partitions of data.
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
+
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name);
+
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast);
+
     /**
-     * Remove duplicates from dataset
+     * Removes duplicates from dataset
      */
     DataSet<V> distinct();
+
+    DataSet<V> distinct(String name);
+
     /**
-     * Decrease the number of partitions
-     *
+     * Decreases the number of partitions
      */
     DataSet<V> coalesce(int numPartitions, boolean shuffle);
 
@@ -37,17 +45,29 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * Iterate over all values and produce a single value.
      */
     <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
+    
+    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2, boolean isLast);
+    
     /**
-     * Apply function to dataset to produce an indexed dataset.  Does not require
+     * Applies function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
      */
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
+    
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast);
+
     /**
-     * Apply map function.
+     * Applies map function.
      */
     <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function);
 
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name);
+
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast);
+
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
+
+    <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name);
 
     /**
      * Returns a localiterator for computation.
@@ -67,10 +87,12 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param dataSet
      * @return
      */
-    DataSet<V> union (DataSet<V> dataSet);
+    DataSet<V> union(DataSet<V> dataSet);
+
+    DataSet<V> union(DataSet<V> dataSet, String name);
 
     /**
-     * Apply a filter to the results, possible removing a row.
+     * Applies a filter to the results, possible removing a row.
      *
      * @param f
      * @return
@@ -108,22 +130,26 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
    <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
 
+   <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f, String name);
+   
+   <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f, boolean isLast);
+   
     /**
-     * Release any resources of the dataset
+     * Releases any resources of the dataset
      *
      */
     void close();
 
     /**
-     * Perform a fetch with offset
+     * Performs a fetch with offset
      *
      * @return
      */
     <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction);
 
-    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
+    <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast);
 
-//    DataSet<LocatedRow> writeToDisk(ExportParams exportParams);
+    <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
 
     <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction);
 
