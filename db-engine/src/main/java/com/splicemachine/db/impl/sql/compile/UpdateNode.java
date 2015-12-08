@@ -878,8 +878,9 @@ public final class UpdateNode extends DMLModStatementNode
             {
                 mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
                 mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                mb.push(this.printExplainInformationForActivation());
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
-                              ClassName.ResultSet, 5);
+                              ClassName.ResultSet, 6);
             }
         }
 	}

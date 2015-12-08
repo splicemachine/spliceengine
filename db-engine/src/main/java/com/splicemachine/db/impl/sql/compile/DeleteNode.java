@@ -642,7 +642,10 @@ public class DeleteNode extends DMLModStatementNode
 
         mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
         mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-
+        if ("getDeleteResultSet".equals(resultSetGetter)) {
+            mb.push(this.printExplainInformationForActivation());
+            argCount++;
+        }
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+2);
 
 

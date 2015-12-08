@@ -165,7 +165,7 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the delete
 	 */
 	ResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
+                                 double optimizerEstimatedCost, String explainPlan)
 							throws StandardException;
 
 	/**
@@ -210,7 +210,7 @@ public interface ResultSetFactory {
 	 */
 	ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
 								 GeneratedMethod checkGM,double optimizerEstimatedRowCount,
-                                 double optimizerEstimatedCost)
+                                 double optimizerEstimatedCost, String explainPlan)
         throws StandardException;
 
 	/**
