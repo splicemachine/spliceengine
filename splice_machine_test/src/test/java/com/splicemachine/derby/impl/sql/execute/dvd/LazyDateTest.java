@@ -31,9 +31,6 @@ import java.util.Calendar;
  */
 @RunWith(Theories.class)
 public class LazyDateTest {
-    private static final DescriptorSerializer serializer2=
-            new LazyDescriptorSerializer(DateDescriptorSerializer.INSTANCE_FACTORY.newInstance(),"2.0");
-    static final DescriptorSerializer serializer1= DateDescriptorSerializer.INSTANCE_FACTORY.newInstance();
     static final DescriptorSerializer serializer=
             new LazyDescriptorSerializer(DateDescriptorSerializer.INSTANCE_FACTORY.newInstance(),"2.0");
 
@@ -80,6 +77,32 @@ public class LazyDateTest {
         matchesMetadata(eager,lazyDate,true,true);
         Assert.assertFalse("Shows double type!",lazyDate.isDoubleType());
         Assert.assertTrue("Show not lazy!",lazyDate.isLazy());
+    }
+
+    @Theory
+    public void matchesGetYearSQLDate(String date) throws Exception{
+        LazyDate lazyDate=new LazyDate();
+        SQLDate eager = new SQLDate();
+        lazyDate.setValue(date);
+        eager.setValue(date);
+
+        Assert.assertFalse("Still shows null!",lazyDate.isNull());
+        Assert.assertEquals("Incorrect getString()",eager.getString(),lazyDate.getString());
+        SQLInteger result = new SQLInteger();
+        eager.getYear(result);
+        int cYear = result.getInt();
+        result.restoreToNull();
+        lazyDate.getYear(result);
+        int aYear =result.getInt();
+        Assert.assertEquals("Incorrect getYear()",cYear,aYear);
+
+        result.restoreToNull();
+        eager.getQuarter(result);
+        int cQuarter = result.getInt();
+        result.restoreToNull();
+        lazyDate.getQuarter(result);
+        int aQuarter = result.getInt();
+        Assert.assertEquals("Incorrect getQuarter()",cQuarter,aQuarter);
     }
 
     /* **************************************************************************************************************
@@ -238,13 +261,12 @@ public class LazyDateTest {
     @Theory
     public void twoValuesEqualOneSerializedOneNot(String text) throws Exception{
         LazyDataValueDescriptor first = new LazyDate();
-        LazyDate ld = new LazyDate();
-        LazyDataValueDescriptor second = ld;
+        LazyDataValueDescriptor second = new LazyDate();
 
         byte[] data = dateEncode(text);
         first.initForDeserialization(null,serializer,data,0,data.length,false);
 
-        ld.setValue(text);
+        second.setValue(text);
 
         Assert.assertEquals("Incorrect equality!",first,second);
 
@@ -280,10 +302,9 @@ public class LazyDateTest {
 
     @Theory
     public void setValueDeserializedThenSerializingIsCorrect(String text) throws Exception{
-        LazyDate ld = new LazyDate();
-        LazyDataValueDescriptor first = ld;
+        LazyDataValueDescriptor first = new LazyDate();
 
-        ld.setValue(text);
+        first.setValue(text);
         Assert.assertFalse("Already believed to be serialized!",first.isSerialized());
         byte[] bytes=first.getBytes();
         byte[] correct = dateEncode(text);
@@ -294,13 +315,11 @@ public class LazyDateTest {
 
     @Theory
     public void twoValuesEqualBothDeserializedNoSerialization(String text) throws Exception{
-        LazyDate ld1 = new LazyDate();
-        LazyDate ld2 = new LazyDate();
-        LazyDataValueDescriptor first = ld1;
-        LazyDataValueDescriptor second = ld2;
+        LazyDataValueDescriptor first = new LazyDate();
+        LazyDataValueDescriptor second = new LazyDate();
 
-        ld1.setValue(text);
-        ld2.setValue(text);
+        first.setValue(text);
+        second.setValue(text);
 
         Assert.assertEquals("Incorrect equality!",first,second);
 
@@ -321,10 +340,9 @@ public class LazyDateTest {
     /* serialization tests*/
     @Theory
     public void testCanSerializeAndDeserializeProperly(String text) throws Exception {
-        LazyDate ld = new LazyDate();
-        LazyDataValueDescriptor dvd = ld;
+        LazyDataValueDescriptor dvd = new LazyDate();
 
-        ld.setValue(text);
+        dvd.setValue(text);
 
         Output output = new Output(4096,-1);
         KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
@@ -355,8 +373,6 @@ public class LazyDateTest {
 
         LazyDataValueDescriptor deserialized = (LazyDataValueDescriptor)koi.readObject();
 
-        String one = dvd.getString();
-        String two = deserialized.getString();
         Assert.assertEquals("Incorrect serialization/deserialization!",dvd.getString(),deserialized.getString());
     }
 
