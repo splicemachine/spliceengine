@@ -145,6 +145,7 @@ public class SpliceSpark {
         conf.set("spark.logConf", "true");
         conf.set("spark.executor.cores",cores);
         conf.set("spark.dynamicAllocation.enabled","true");
+        conf.set("spark.shuffle.service.enabled","true");
 
 
         if (master.startsWith("local[8]")) {
