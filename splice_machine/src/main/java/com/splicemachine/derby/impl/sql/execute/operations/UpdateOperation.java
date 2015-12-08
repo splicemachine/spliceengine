@@ -209,7 +209,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 .txn(txn);
         try {
             operationContext.pushScope();
-            return set.index(new InsertPairFunction(operationContext)).updateData(builder, operationContext);
+            return set.index(new InsertPairFunction(operationContext), true).updateData(builder, operationContext);
         } finally {
             operationContext.popScope();
         }

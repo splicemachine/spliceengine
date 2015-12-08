@@ -1122,12 +1122,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     @Override
     public NoPutResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
                                              GeneratedMethod checkGM,double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost) throws StandardException {
+                                             double optimizerEstimatedCost, String explainPlan) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation(),optimizerEstimatedCost,optimizerEstimatedRowCount);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
+            top.setExplainPlan(explainPlan);
             return top;
         }catch(Exception e){
             throw Exceptions.parseException(e);
@@ -1142,12 +1143,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 
     @Override
     public NoPutResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost)
+                                             double optimizerEstimatedCost, String explainPlan)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost);
             top.markAsTopResultSet();
+            top.setExplainPlan(explainPlan);
             return top;
         }catch(Exception e){
             throw Exceptions.parseException(e);
