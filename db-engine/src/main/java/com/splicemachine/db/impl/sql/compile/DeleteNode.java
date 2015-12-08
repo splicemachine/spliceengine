@@ -643,8 +643,11 @@ public class DeleteNode extends DMLModStatementNode
         mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
         mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
         mb.push(targetTableDescriptor.getVersion());
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
-
+        if ("getDeleteResultSet".equals(resultSetGetter)) {
+            mb.push(this.printExplainInformationForActivation());
+            argCount++;
+        }
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
 
 		if(!isDependentTable && cascadeDelete)
 		{
@@ -1027,16 +1030,16 @@ public class DeleteNode extends DMLModStatementNode
 	}
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Delete").append("(")
                 .append("n=").append(order);
                 if (this.resultSet!=null) {
-                    sb.append(", totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-                    sb.append(", deletedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                    sb.append(attrDelim).append("totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                    sb.append(attrDelim).append("deletedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
                 }
-                sb.append(", targetTable=").append(targetTableName)
+                sb.append(attrDelim).append("targetTable=").append(targetTableName)
                 .append(")");
         return sb.toString();
     }

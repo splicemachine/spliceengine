@@ -2316,7 +2316,7 @@ public class FromBaseTable extends FromTable {
                 colRefItem,
                 indexColItem,
                 getTrulyTheBestAccessPath().
-                        getLockMode(),
+                getLockMode(),
                 (tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY),
                 getCompilerContext().getScanIsolationLevel(),
                 ap.getOptimizer().getMaxMemoryPerTable(),
@@ -3319,18 +3319,18 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(spaceToLevel())
-                .append(getClassName(indexName)).append("(")
-                .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
+                .append(getClassName(indexName)).append("(");
+        sb.append("n=").append(order).append(attrDelim);
+        sb.append(getFinalCostEstimate().prettyFromBaseTableString());
         if (indexName != null)
-            sb.append(",baseTable=").append(getPrettyTableName());
-        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+            sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
+        List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
-            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+            sb.append(attrDelim).append("preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
         sb.append(")");
         return sb.toString();
     }

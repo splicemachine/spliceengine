@@ -614,8 +614,9 @@ public class UnionNode extends SetOperatorNode{
         mb.push(resultSetNumber);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getUnionResultSet", ClassName.NoPutResultSet,5);
+        mb.push(printExplainInformationForActivation());
+        
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getUnionResultSet", ClassName.NoPutResultSet,6);
     }
 
     /**
@@ -646,12 +647,12 @@ public class UnionNode extends SetOperatorNode{
         return "UNION";
     }
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Union").append("(")
                 .append("n=").append(order);
-        sb.append(",").append(costEstimate.prettyProcessingString());
+        sb.append(attrDelim).append(costEstimate.prettyProcessingString());
         sb = sb.append(")");
         return sb.toString();
     }

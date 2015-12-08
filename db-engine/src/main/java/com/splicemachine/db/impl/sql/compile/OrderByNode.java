@@ -107,7 +107,7 @@ public class OrderByNode extends SingleChildResultSetNode {
             costEstimate = getFinalCostEstimate();
         }
 
-        orderByList.generate(acb, mb, childResult,costEstimate);
+        orderByList.generate(acb, mb, this, childResult,costEstimate);
 
         // We need to take note of result set number if ORDER BY is used in a
         // subquery for the case where a PRN is inserted in top of the select's
@@ -138,12 +138,12 @@ public class OrderByNode extends SingleChildResultSetNode {
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("OrderBy").append("(")
                 .append("n=").append(order);
-        sb.append(",").append(costEstimate.prettyProcessingString());
+        sb.append(attrDelim).append(costEstimate.prettyProcessingString());
         sb = sb.append(")");
         return sb.toString();
     }

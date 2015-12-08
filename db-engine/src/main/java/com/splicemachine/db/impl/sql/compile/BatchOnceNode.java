@@ -101,12 +101,12 @@ public class BatchOnceNode extends SingleChildResultSetNode {
 
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("BatchOnce").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
         sb.append(")");
         return sb.toString();
     }

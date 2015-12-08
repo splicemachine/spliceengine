@@ -30,8 +30,6 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.PropertyUtil;
 
-import java.util.BitSet;
-
 public abstract class BaseJoinStrategy implements JoinStrategy{
     public BaseJoinStrategy(){
     }
@@ -185,6 +183,8 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                 innerTable.getTrulyTheBestAccessPath().
                         getCostEstimate().getEstimatedCost());
         mb.push(tableVersion);
+
+        mb.push(innerTable instanceof ResultSetNode ? ((ResultSetNode)innerTable).printExplainInformationForActivation() : "");
     }
 
     /**

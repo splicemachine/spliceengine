@@ -1207,7 +1207,7 @@ public class JoinNode extends TableOperatorNode{
      * be overridden for other types of joins (for example, outer joins).
      */
     protected int getNumJoinArguments(){
-        return 11;
+        return 12;
     }
 
     /**
@@ -1843,8 +1843,9 @@ public class JoinNode extends TableOperatorNode{
         else
             mb.pushNull("java.lang.String");
 
-        return numArgs;
+        mb.push(printExplainInformationForActivation());
 
+        return numArgs;
     }
 
     private boolean isNestedLoopOverHashableJoin(){
@@ -1868,17 +1869,17 @@ public class JoinNode extends TableOperatorNode{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && joinPreds.size() > 0) //add
-                sb.append(",preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+                sb.append(attrDelim).append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
         }
         sb.append(")");
         return sb.toString();

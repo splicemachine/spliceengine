@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.collect.Sets;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -875,8 +874,9 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push((double) this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
             mb.push(targetTableDescriptor.getVersion());
+            mb.push(this.printExplainInformationForActivation());
 
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 9);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 10);
 		}
 		else
 		{
@@ -988,17 +988,17 @@ public final class InsertNode extends DMLModStatementNode {
 	}
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Insert").append("(")
                 .append("n=").append(order);
             if (this.resultSet!=null) {
-                sb.append(", totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-                sb.append(", insertedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                sb.append(attrDelim).append("totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                sb.append(attrDelim).append("insertedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
             }
-            sb.append(", targetTable=").append(targetTableName)
-                    .append(")");
+            sb.append(attrDelim).append("targetTable=").append(targetTableName)
+                .append(")");
         return sb.toString();
     }
 

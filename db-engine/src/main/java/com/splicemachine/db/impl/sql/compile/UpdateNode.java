@@ -879,8 +879,9 @@ public final class UpdateNode extends DMLModStatementNode
                 mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
                 mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
                 mb.push(targetTableDescriptor.getVersion());
+                mb.push(this.printExplainInformationForActivation());
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
-                              ClassName.ResultSet, 6);
+                              ClassName.ResultSet, 7);
             }
         }
 	}
@@ -1509,16 +1510,16 @@ public final class UpdateNode extends DMLModStatementNode
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Update").append("(")
                 .append("n=").append(order);
                 if (this.resultSet!=null) {
-                    sb.append(", totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-                    sb.append(", updatedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                    sb.append(attrDelim).append("totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                    sb.append(attrDelim).append("updatedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
                 }
-                sb.append(", targetTable=").append(targetTableName)
+                sb.append(attrDelim).append("targetTable=").append(targetTableName)
                 .append(")");
         return sb.toString();
     }

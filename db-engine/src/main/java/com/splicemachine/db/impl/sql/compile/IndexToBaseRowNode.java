@@ -249,8 +249,9 @@ public class IndexToBaseRowNode extends FromTable{
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(source.getTableDescriptor().getVersion());
+        mb.push(printExplainInformationForActivation());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,15);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,16);
 
 		/* The IndexRowToBaseRowResultSet generator is what we return */
 
@@ -387,12 +388,12 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("IndexLookup").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyIndexLookupString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyIndexLookupString());
         sb.append(")");
         return sb.toString();
     }

@@ -1112,7 +1112,7 @@ public class GroupByNode extends SingleChildResultSetNode{
     /**
      * Generate the code to evaluate scalar aggregates.
      */
-    private void genScalarAggregateResultSet(MethodBuilder mb){
+    private void genScalarAggregateResultSet(MethodBuilder mb) throws StandardException {
 		/* Generate the (Distinct)ScalarAggregateResultSet:
 		 *	arg1: childExpress - Expression for childResult
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
@@ -1130,9 +1130,10 @@ public class GroupByNode extends SingleChildResultSetNode{
         mb.push(singleInputRowOptimization);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
+        mb.push(this.printExplainInformationForActivation());
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSet,
-                ClassName.NoPutResultSet,10);
+                ClassName.NoPutResultSet,11);
     }
 
     ///////////////////////////////////////////////////////////////
@@ -1162,10 +1163,10 @@ public class GroupByNode extends SingleChildResultSetNode{
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(groupingList.isRollup());
-
+        mb.push(printExplainInformationForActivation());
+        
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSet,
-                ClassName.NoPutResultSet,10);
-
+                ClassName.NoPutResultSet,11);
     }
 
     /**
@@ -1238,12 +1239,12 @@ public class GroupByNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("GroupBy").append("(")
                 .append("n=").append(order);
-        sb.append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
         sb = sb.append(")");
         return sb.toString();
     }

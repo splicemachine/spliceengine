@@ -646,9 +646,10 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 		mb.push(costEstimate.rowCount());
 		mb.push(costEstimate.getEstimatedCost());
 		mb.push(forUpdate);
-
+		mb.push(printExplainInformationForActivation());
+		
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getNormalizeResultSet",
-					ClassName.NoPutResultSet, 6);
+					ClassName.NoPutResultSet, 7);
 	}
 
 	/**
@@ -693,12 +694,12 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 
 
     @Override
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("NormalizeResult").append("(")
                 .append("n=").append(order);
-        sb.append(",").append(getFinalCostEstimate().prettyScrollInsensitiveString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyScrollInsensitiveString());
         sb = sb.append(")");
         return sb.toString();
     }

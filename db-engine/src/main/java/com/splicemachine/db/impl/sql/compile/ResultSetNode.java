@@ -895,8 +895,15 @@ public abstract class ResultSetNode extends QueryTreeNode{
         mb.push(getCostEstimate().getEstimatedCost());
         mb.push(false);
 
+        // The only use of this method is from UnionNode, which passes in ProjectRestrictNodes
+        // as 'callerNode' for left and right of the Union. However, we invoke getNormalizeResultSet
+        // here and end up with a NormalizeOperation. To avoid putting the explain plan of
+        // the Union or the ProjectRestricts, for now leave the explain plan blank
+        // on the implicitly instantiated NormalizeOperation.
+        mb.push(""); // blank explain plan
+        
         mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,"getNormalizeResultSet",
-                ClassName.NoPutResultSet,6);
+                ClassName.NoPutResultSet,7);
     }
 
     /**
@@ -1692,6 +1699,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return newResultColumn;
     }
 
+    public String printExplainInformation() throws StandardException {
+        return printExplainInformation(getResultSetNumber());
+    }
+    
+    public String printExplainInformationForActivation() throws StandardException {
+        return printExplainInformation("\n", getResultSetNumber());
+    }
 
 
 }
