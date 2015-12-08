@@ -156,10 +156,17 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet) {
-        return new SparkDataSet<>(rdd.union(((SparkDataSet) dataSet).rdd));
+    public DataSet<V> union(DataSet< V> dataSet) {
+        return union(dataSet, SparkConstants.RDD_NAME_UNION);
     }
 
+    @Override
+    public DataSet< V> union(DataSet< V> dataSet, String name) {
+        JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
+        rdd1.setName(name);
+        return new SparkDataSet<>(rdd1);
+    }
+    
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
         return new SparkDataSet<>(rdd.filter(f), f.getSparkName());

@@ -522,16 +522,19 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                             NoPutResultSet rightResultSet,
                                             int resultSetNumber,
                                             double optimizerEstimatedRowCount,
-                                            double optimizerEstimatedCost) throws StandardException {
+                                            double optimizerEstimatedCost,
+                                            String explainPlan) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getUnionResultSet");
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
-            return new UnionOperation(left.getOperation(),
+            SpliceOperation op = new UnionOperation(left.getOperation(),
                     right.getOperation(),
                     leftResultSet.getActivation(),
                     resultSetNumber,
                     optimizerEstimatedRowCount,optimizerEstimatedCost);
+            op.setExplainPlan(explainPlan);
+            return op;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
