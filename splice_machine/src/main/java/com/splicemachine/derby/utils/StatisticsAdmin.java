@@ -88,14 +88,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                  String table,
                                                  String columnName) throws SQLException {
 
-        if (schema == null)
-            schema = getCurrentSchema();
-        else
-            schema = schema.toUpperCase();
-        if (table == null)
-            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-        else
-            table = table.toUpperCase();
+        schema=processSchema(schema);
+        table=processTable(table);
         if (columnName == null)
             throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
         else
@@ -128,18 +122,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
 
+
     @SuppressWarnings("UnusedDeclaration")
     public static void ENABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException {
-        if (schema == null)
-            schema = getCurrentSchema();
-        else
-            schema = schema.toUpperCase();
-        if (table == null)
-            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
-        else
-            table = table.toUpperCase();
+        schema =processSchema(schema);
+        table = processTable(table);
         if (columnName == null)
             throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
         else
@@ -187,9 +176,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             if (schema == null)
-                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException(); //TODO -sf- change this to proper SCHEMA
-                // error?
-            schema = schema.toUpperCase();
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException(); //TODO -sf- change this to proper SCHEMA error?
+            else{
+                schema = schema.trim();
+                if(!schema.startsWith("\""))
+                    schema = schema.toUpperCase();
+            }
 
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
@@ -277,13 +269,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ResultSet[] outputResults) throws SQLException {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
-            if (schema == null)
-                schema = getCurrentSchema();
-            if (table == null)
-                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
-
-            schema = schema.toUpperCase();
-            table = table.toUpperCase();
+            schema = processSchema(schema);
+            table = processTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
             List<TableDescriptor> tableDescriptorList = new ArrayList<>();
             tableDescriptorList.add(tableDesc);
@@ -314,6 +301,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
+    @SuppressWarnings("unused")
     public static void DROP_SCHEMA_STATISTICS(String schema) throws SQLException {
         EmbedConnection conn = (EmbedConnection) getDefaultConn();
         PreparedStatement ps = null, ps2 = null;
@@ -321,7 +309,11 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         try {
             if (schema == null)
                 throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
-            schema = schema.toUpperCase();
+            else{
+                schema = schema.trim();
+                if(!schema.startsWith("\""))
+                    schema = schema.toUpperCase();
+            }
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
 
@@ -362,18 +354,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
+    @SuppressWarnings("unused")
     public static void DROP_TABLE_STATISTICS(String schema, String table) throws SQLException {
         EmbedConnection conn = (EmbedConnection) getDefaultConn();
         PreparedStatement ps = null, ps2 = null;
 
         try {
-            if (schema == null)
-                schema = "SPLICE";
-            if (table == null)
-                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
-
-            schema = schema.toUpperCase();
-            table = table.toUpperCase();
+            schema = processSchema(schema);
+            table = processTable(table);
             verifyTableExists(conn, schema, table);
             long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, table);
             assert conglomIds != null && conglomIds.length > 0;
@@ -403,6 +391,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+
     private static void notifyServersClearStatsCache(TxnView txn, long[] conglomIds) throws SQLException {
         // Notify: listener on each region server will invalidate cache
         // If this fails or times out, rethrow the exception as usual
@@ -429,8 +420,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
     
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
 
     private static void submitStatsCollection(TableDescriptor table,
                                               TxnView txn,
@@ -784,8 +773,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return toCollect;
     }
 
-    private static Collection<HRegionInfo> getCollectedRegions(Connection conn, long heapConglomerateId, boolean
-        staleOnly) throws StandardException {
+    private static Collection<HRegionInfo> getCollectedRegions(Connection conn, long heapConglomerateId, boolean staleOnly) throws StandardException {
         //TODO -sf- adjust the regions if staleOnly == true
         return getAllRegions(heapConglomerateId);
     }
@@ -862,11 +850,42 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
     private static String getCurrentSchema() throws SQLException {
-
         EmbedConnection connection = (EmbedConnection) SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = connection.getLanguageConnection();
-        String schema = lcc.getCurrentSchemaName();
+        return lcc.getCurrentSchemaName();
+    }
 
+    private static String processSchema(String schema) throws SQLException{
+        if (schema == null)
+            schema = getCurrentSchema();
+        else{
+            schema = schema.trim();
+            if(schema.startsWith("\"")){
+                /*
+                 * The parser won't even complete if you don't close your " properly, so we can assume
+                 * that the last character in the table name is a single " as well
+                 */
+                schema=schema.substring(1,schema.length()-1);
+            }else
+                schema=schema.toUpperCase();
+        }
         return schema;
+    }
+
+    private static String processTable(String table) throws SQLException{
+        if (table == null)
+            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
+        else{
+            table = table.trim();
+            if(table.startsWith("\"")){
+                /*
+                 * The parser won't even complete if you don't close your " properly, so we can assume
+                 * that the last character in the table name is a single " as well
+                 */
+                table=table.substring(1,table.length()-1);
+            }else
+                table = table.toUpperCase();
+        }
+        return table;
     }
 }
