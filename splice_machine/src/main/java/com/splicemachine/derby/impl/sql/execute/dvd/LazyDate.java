@@ -26,7 +26,7 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
      * Initializes the Lazy String DVD, needs to call super to make sure the dvd on
      * the parent is set properly.
      *
-     * @param dtdv
+     * @param dtdv the underlying data value
      */
     protected void init(DateTimeDataValue dtdv) {
         super.init(dtdv);
@@ -42,15 +42,6 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
     protected DataValueDescriptor newDescriptor() {
         dtdv = new SQLDate();
         return dtdv;
-    }
-
-    protected void forceDeserialization() {
-        if(dvd==null)
-            dvd = newDescriptor();
-        if (!isDeserialized() && isSerialized()) {
-            super.forceDeserialization();
-            this.dtdv = (DateTimeDataValue) this.dvd;
-        }
     }
 
     @Override
@@ -265,32 +256,24 @@ public class LazyDate extends LazyDataValueDescriptor implements DateTimeDataVal
     @Override
     public Date getDate(java.util.Calendar cal) throws StandardException {
         forceDeserialization();
-        if (dvd == null)
-                return null;
         return dvd.getDate(cal);
     }
 
     @Override
     public Timestamp getTimestamp(java.util.Calendar cal) throws StandardException {
         forceDeserialization();
-        if (dvd == null)
-            return null;
         return dvd.getTimestamp(cal);
     }
 
     @Override
     public String getString() throws StandardException {
         forceDeserialization();
-        if (dvd == null)
-            return null;
         return dvd.getString();
     }
 
     @Override
     public Object getObject() throws StandardException {
         forceDeserialization();
-        if (dvd == null)
-            return null;
         return dvd.getObject();
     }
 

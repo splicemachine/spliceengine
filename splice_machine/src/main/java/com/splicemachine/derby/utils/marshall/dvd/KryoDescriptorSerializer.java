@@ -38,15 +38,17 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
                             if (dvd == null)
                                 return false;
 
-                            try {
-                                Object o = dvd.getObject();
-                                if (o!= null && o instanceof UDTBase)
-                                    return false;
-                                else
-                                    return applies(dvd.getTypeFormatId());
-                            } catch (Exception e) {
-                                throw new RuntimeException(Throwables.getRootCause(e));
-                            }
+							boolean applies = applies(dvd.getTypeFormatId());
+							if(applies){
+								try {
+									Object o = dvd.getObject();
+									if (o!= null && o instanceof UDTBase)
+										return false;
+								} catch (Exception e) {
+									throw new RuntimeException(Throwables.getRootCause(e));
+								}
+							}
+							return applies;
                         }
 
 						@Override
