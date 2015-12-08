@@ -248,8 +248,9 @@ public class IndexToBaseRowNode extends FromTable{
         mb.push(forUpdate);
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,14);
+        mb.push(printExplainInformationForActivation());
+        
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,15);
 
 		/* The IndexRowToBaseRowResultSet generator is what we return */
 
