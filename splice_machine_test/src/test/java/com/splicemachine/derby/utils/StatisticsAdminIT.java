@@ -34,7 +34,8 @@ public class StatisticsAdminIT {
     private static final String TABLE_EMPTY = "EMPTY";
     private static final String TABLE_OCCUPIED = "OCCUPIED";
     private static final String TABLE_OCCUPIED2 = "OCCUPIED2";
-    
+    private static final String TABLE_MIXED_CASE = "\"MixedCase\"";
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
     	.around(spliceSchemaWatcher);
@@ -77,6 +78,24 @@ public class StatisticsAdminIT {
         new TableCreator(conn)
                 .withCreate("create table " + TABLE_EMPTY + " (a int)")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table " + TABLE_MIXED_CASE + " (a int)")
+                .create();
+    }
+
+    @Test
+    public void testCanCollectForMixedCaseTable() throws Exception{
+        //regression test for DB-4188
+        Connection conn = methodWatcher.getOrCreateConnection();
+        try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?)")){
+            cs.setString(1,SCHEMA);
+            cs.setString(2,TABLE_MIXED_CASE);
+            cs.setBoolean(3,false);
+
+            //all we need to do here is verify that no errors are thrown, in order to protect against regression
+            cs.execute();
+        }
     }
 
     @Test
@@ -221,8 +240,8 @@ public class StatisticsAdminIT {
         cs2.close();
 
         // Check collected stats for both schemas
-        verifyStatsCounts(conn, SCHEMA, null, 5, 3);
-        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+        verifyStatsCounts(conn, SCHEMA, null, 6, 4);
+        verifyStatsCounts(conn2, SCHEMA2, null, 6, 4);
 
         // Drop stats for schema 1
         callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
@@ -232,7 +251,7 @@ public class StatisticsAdminIT {
 
         // Make sure only schema 1 stats were dropped, not schema 2 stats
         verifyStatsCounts(conn, SCHEMA, null, 0, 0);
-        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+        verifyStatsCounts(conn2, SCHEMA2, null, 6, 4);
 
         // Drop stats again for schema 1 to make sure it works with no stats
         callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
@@ -242,7 +261,7 @@ public class StatisticsAdminIT {
 
         // Make sure only schema 1 stats were dropped, not schema 2 stats
         verifyStatsCounts(conn, SCHEMA, null, 0, 0);
-        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+        verifyStatsCounts(conn2, SCHEMA2, null, 6, 4);
 
         // Drop stats for schema 2
         cs2 = conn2.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
@@ -282,8 +301,8 @@ public class StatisticsAdminIT {
         cs2.close();
 
         // Check collected stats for both schemas
-        verifyStatsCounts(conn, SCHEMA, null, 5, 3);
-        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+        verifyStatsCounts(conn, SCHEMA, null, 6, 4);
+        verifyStatsCounts(conn2, SCHEMA2, null, 6, 4);
 
         // Drop stats for schema 1, table 1
         callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)");
@@ -293,9 +312,9 @@ public class StatisticsAdminIT {
         callableStatement.close();
 
         // Make sure stats for both table and index were dropped in schema 1.
-        verifyStatsCounts(conn, SCHEMA, null, 3, 2);
+        verifyStatsCounts(conn, SCHEMA, null, 4, 3);
         verifyStatsCounts(conn, SCHEMA, TABLE_OCCUPIED, 0, 0);
-        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+        verifyStatsCounts(conn2, SCHEMA2, null, 6, 4);
 
         // Drop stats again for schema 1 to make sure it works with no stats
         callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)");
@@ -305,9 +324,9 @@ public class StatisticsAdminIT {
         callableStatement.close();
 
         // Same as prior check
-        verifyStatsCounts(conn, SCHEMA, null, 3, 2);
+        verifyStatsCounts(conn, SCHEMA, null, 4, 3);
         verifyStatsCounts(conn, SCHEMA, TABLE_OCCUPIED, 0, 0);
-        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+        verifyStatsCounts(conn2, SCHEMA2, null, 6, 4);
 
         conn2.rollback();
         conn2.reset();
