@@ -94,7 +94,6 @@ public class SpliceSpark {
         String master = "yarn-client";
         String home = System.getProperty("splice.spark.home", null);
         String jars = System.getProperty("splice.spark.jars", "");
-//        System.setProperty("YARN_CONF_DIR","/Users/jleach/Downloads/bs");
         String environment = System.getProperty("splice.spark.env", "");
         String cores = System.getProperty("splice.spark.cores", "8");
         String memory = System.getProperty("splice.spark.memory", "2g");
@@ -144,6 +143,9 @@ public class SpliceSpark {
         conf.set("spark.shuffle.memoryFraction", shuffleMemory);
         conf.set("spark.locality.wait", "600000"); // wait up to 10 minutes for a local execution
         conf.set("spark.logConf", "true");
+        conf.set("spark.executor.cores",cores);
+        conf.set("spark.dynamicAllocation.enabled","true");
+
 
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
@@ -156,7 +158,6 @@ public class SpliceSpark {
                 conf.setSparkHome(home);
             }
             // conf.setJars(files);
-            conf.set("spark.cores.max", cores);
             conf.set("spark.executor.memory", memory);
             conf.set("spark.task.maxFailures", failures);
             conf.set("spark.local.dir", temp);
