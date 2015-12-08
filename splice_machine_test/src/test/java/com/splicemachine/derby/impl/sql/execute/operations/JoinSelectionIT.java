@@ -30,6 +30,8 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("PERSON",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("RP_BC_14_1",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("T",CLASS_NAME,"(i int)");
+    public static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("A",CLASS_NAME,"(v1 varchar(10), v2 varchar(10))");
+    public static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",CLASS_NAME,"(v1 varchar(10), v2 varchar(10))");
     public static final SpliceTableWatcher spliceTableRegion = new SpliceTableWatcher("REGION2",CLASS_NAME,
     	"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
     public static final SpliceTableWatcher spliceTableNation = new SpliceTableWatcher("NATION2",CLASS_NAME,
@@ -42,11 +44,14 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     private static final SpliceTableWatcher product = new SpliceTableWatcher("PRODUCT",CLASS_NAME,"(PROD_ID varchar(6),LOB_CD varchar(13))");
     private static final SpliceIndexWatcher card_idx = new SpliceIndexWatcher("CARD",CLASS_NAME,"CARD_IDX",CLASS_NAME,"(BASE_ACCT_ID ,BASIC_SUPP_NO, PROD_ID)");
     private static final SpliceIndexWatcher product_idx = new SpliceIndexWatcher("PRODUCT",CLASS_NAME,"PROD_IDX",CLASS_NAME,"(PROD_ID,LOB_CD)");
+    private static final SpliceIndexWatcher a_idx = new SpliceIndexWatcher("A",CLASS_NAME,"A_IDX",CLASS_NAME,"(V1)");
+    private static final SpliceIndexWatcher b_idx = new SpliceIndexWatcher("B",CLASS_NAME,"B_IDX",CLASS_NAME,"(V1, V2)");
 
     private static final String PLAN_LINE_LEADER = "->  ";
     private static final String JOIN_STRATEGY_TERMINATOR = "(";
     private static final String NESTED_LOOP_JOIN = "NestedLoopJoin";
     private static final String MERGE_SORT_JOIN = "MergeSortJoin";
+    private static final String MERGE_JOIN = "MergeJoin";
     private static final String LO_MERGE_SORT_JOIN = "MergeSortLeftOuterJoin";
     private static final String BROADCAST_JOIN = "BroadcastJoin";
     private static final String LO_BROADCAST_JOIN = "BroadcastLeftOuterJoin";
@@ -62,13 +67,17 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             .around(card_idx)
             .around(product)
             .around(product_idx)
+            .around(spliceTableWatcher4)
+            .around(a_idx)
+            .around(spliceTableWatcher5)
+            .around(b_idx)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
                         spliceClassWatcher.setAutoCommit(true);
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
-							spliceTableWatcher));
+                                spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
@@ -84,7 +93,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
 
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
-							spliceTableWatcher2));
+                                spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
@@ -97,23 +106,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                                 spliceTableWatcher3));
 
                         spliceClassWatcher.executeUpdate(format(
-                    		"insert into %s (r_regionkey, r_name) values " +
-                            "(0, 'AFRICA'), (1, 'AMERICA'), (2, 'ASIA'), (3, 'EUROPE'), (4, 'MIDDLE EAST'), " +
-                            "(5, 'AMERICA'), (6, 'AMERICA'), (7, 'AMERICA'), (8, 'AMERICA'), (9, 'AMERICA')",
-                            spliceTableRegion));
-                        
-                        spliceClassWatcher.executeUpdate(format(
-                    		"insert into %s (n_nationkey, n_name, n_regionkey) values " +
-                            "(0, 'ALGERIA', 0), " +
-                            "(1, 'ARGENTINA', 1), " +
-                            "(2, 'BRAZIL', 1), " +
-                            "(4, 'EGYPT', 4), " +
-                            "(5, 'ETHIOPIA', 0), " +
-                            "(6, 'FRANCE', 3)",
-                            spliceTableNation));
+                                "insert into %s (r_regionkey, r_name) values " +
+                                        "(0, 'AFRICA'), (1, 'AMERICA'), (2, 'ASIA'), (3, 'EUROPE'), (4, 'MIDDLE EAST'), " +
+                                        "(5, 'AMERICA'), (6, 'AMERICA'), (7, 'AMERICA'), (8, 'AMERICA'), (9, 'AMERICA')",
+                                spliceTableRegion));
 
-						spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)",CLASS_NAME));
-                        
+                        spliceClassWatcher.executeUpdate(format(
+                                "insert into %s (n_nationkey, n_name, n_regionkey) values " +
+                                        "(0, 'ALGERIA', 0), " +
+                                        "(1, 'ARGENTINA', 1), " +
+                                        "(2, 'BRAZIL', 1), " +
+                                        "(4, 'EGYPT', 4), " +
+                                        "(5, 'ETHIOPIA', 0), " +
+                                        "(6, 'FRANCE', 3)",
+                                spliceTableNation));
+
+                        spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)", CLASS_NAME));
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -133,7 +142,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-            NESTED_LOOP_JOIN, methodWatcher);
+            MERGE_SORT_JOIN, methodWatcher);
     }
     
     @Test
@@ -181,23 +190,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueries() throws Exception {
 		explainQueryNoNestedLoops(
-            format("explain SELECT a2.pid FROM %s a2 " + 
-        			  "LEFT OUTER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
+                format("explain SELECT a2.pid FROM %s a2 " +
+                        "LEFT OUTER JOIN " +
+                        "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                        "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                        "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
     }
     
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
         fourthRowContainsQuery(
-            format("explain SELECT a2.pid FROM %s a2 " + 
-            		  "LEFT OUTER JOIN " +
-            		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
-            				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID " +
-            				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-			  LO_MERGE_SORT_JOIN, methodWatcher);
+                format("explain SELECT a2.pid FROM %s a2 " +
+                        "LEFT OUTER JOIN " +
+                        "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
+                        "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
+                        "ON a2.PID = a3.PID " +
+                        "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+                LO_MERGE_SORT_JOIN, methodWatcher);
     }
 
     @Test
@@ -220,7 +229,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID" +
             				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-            NESTED_LOOP_JOIN, methodWatcher);
+            BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -230,7 +239,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            MERGE_SORT_JOIN, methodWatcher);
     }
     
     @Test
@@ -261,7 +270,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            MERGE_SORT_JOIN, methodWatcher);
     }
 
     @Test
@@ -282,7 +291,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            BROADCAST_JOIN, methodWatcher);
     }
     
     @Test
@@ -294,7 +303,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-            NESTED_LOOP_JOIN, methodWatcher);
+            BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -324,7 +333,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     	// This tests DB-3608 (wrong row estimate for frequent element match of type varchar).
     	// If it fails, do not ignore it or comment it out. Let it fail until it is fixed.
     	explainQueryNoNestedLoops(
-            "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'");
+                "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'");
     }
     
     private void explainQueryNoNestedLoops(String query) throws Exception {
@@ -391,16 +400,16 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         String explainUnhinted = format(query, "explain", "NLJ3812C2", "");
 
         rowContainsQuery(
-                new int[] {3, 4, 5},
+                new int[]{3, 4, 5},
                 explainHinted,
                 methodWatcher,
-                "NestedLoopJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
+                MERGE_SORT_JOIN, "TableScan[NLJ3812A", "TableScan[NLJ3812B");
 
         rowContainsQuery(
-                new int[] {3, 4, 5},
+                new int[]{2, 3, 4},
                 explainUnhinted,
                 methodWatcher,
-                "NestedLoopJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
+                BROADCAST_JOIN, "TableScan[NLJ3812B", "TableScan[NLJ3812A");
     }
 
     //DB-3865
@@ -430,5 +439,23 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             Assert.assertTrue("Does not contain A MergeSortJoin!",explainPlan.contains("MergeSortJoin"));
             Assert.assertTrue("Does not contain an Order BY!",explainPlan.contains("OrderBy"));
         }
+    }
+
+    @Test
+    public void testHintDisableTransitiveClosure() throws Exception {
+        String query = "explain\n" +
+                "select * from a %s\n" +
+                "join b  %s\n" +
+                "on a.v1 = b.v1\n" +
+                "where a.v1 = '5'";
+
+        String broadcast = String.format(query, "", "--SPLICE-PROPERTIES joinStrategy=BROADCAST");
+        String mergeSort = String.format(query, "", "--SPLICE-PROPERTIES joinStrategy=SORTMERGE");
+        String merge = String.format(query, "--SPLICE-PROPERTIES index = a_idx",
+                "--SPLICE-PROPERTIES index = b_idx,joinStrategy=MERGE");
+
+        thirdRowContainsQuery(broadcast, BROADCAST_JOIN, methodWatcher);
+        thirdRowContainsQuery(mergeSort, MERGE_SORT_JOIN, methodWatcher);
+        thirdRowContainsQuery(merge, MERGE_JOIN, methodWatcher);
     }
 }
