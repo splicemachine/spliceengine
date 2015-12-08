@@ -133,6 +133,7 @@ public class StatisticsTask extends ZkTask{
     @Override
     public void prepareTask(byte[] start, byte[] stop, RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         partitionScan = new Scan(start,stop);
+        partitionScan.setMaxVersions();
 
         super.prepareTask(start, stop, rce, zooKeeper);
     }
