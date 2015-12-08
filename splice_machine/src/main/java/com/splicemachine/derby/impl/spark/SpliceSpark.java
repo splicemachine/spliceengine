@@ -90,9 +90,11 @@ public class SpliceSpark {
 
     private static JavaSparkContext initializeSparkContext() {
         System.setProperty("spark.driver.port", "0");
-        String master = System.getProperty("splice.spark.master", "local[8]");
+//        String master = System.getProperty("splice.spark.master", "local[8]");
+        String master = "yarn-client";
         String home = System.getProperty("splice.spark.home", null);
         String jars = System.getProperty("splice.spark.jars", "");
+//        System.setProperty("YARN_CONF_DIR","/Users/jleach/Downloads/bs");
         String environment = System.getProperty("splice.spark.env", "");
         String cores = System.getProperty("splice.spark.cores", "8");
         String memory = System.getProperty("splice.spark.memory", "2g");
@@ -103,6 +105,7 @@ public class SpliceSpark {
         String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
         String shuffleMemory = System.getProperty("splice.spark.shuffleMemory", "0.5");
         String schedulerFile = System.getProperty("splice.spark.scheduler.allocation.file");
+        String historyServer = System.getProperty("splice.spark.yarn.historyServer.address");
 
 
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
@@ -112,6 +115,7 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
+        conf.set("spark.yarn.historyServer.address",historyServer);
 //        conf.setJars(files);
         conf.set("spark.yarn.am.waitTime","10");
 
@@ -140,6 +144,7 @@ public class SpliceSpark {
         conf.set("spark.shuffle.memoryFraction", shuffleMemory);
         conf.set("spark.locality.wait", "600000"); // wait up to 10 minutes for a local execution
         conf.set("spark.logConf", "true");
+
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
             if (localContext == null) {

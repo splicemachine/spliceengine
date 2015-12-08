@@ -5,7 +5,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Booleans;
 import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -23,20 +22,26 @@ import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.primitives.BooleanArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
+import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by jleach on 11/13/15.
  */
 public class ProtoUtil {
     private static final Logger LOG = Logger.getLogger(ProtoUtil.class);
+    private static Function TABLEDESCRIPTORTOUUID = new Function<TableDescriptor,DerbyMessage.UUID>() {
+        @Override
+        public DerbyMessage.UUID apply(@Nullable TableDescriptor td) {
+            return transferDerbyUUID((BasicUUID)td.getUUID());
+        }
+    };
 
-
-    public static DDLChange clearStats(long txnId, long[] conglomIds) {
+    public static DDLChange alterStats(long txnId, List<TableDescriptor> tableDescriptors) {
         return DDLChange.newBuilder().setTxnId(txnId)
-                .setClearStats(ClearStats.newBuilder().addAllConglomerateIds(Longs.asList(conglomIds)))
-                .setDdlChangeType(DDLChangeType.CLEAR_STATS_CACHE)
+                .setAlterStats(AlterStats.newBuilder().addAllTableId(Lists.transform(tableDescriptors,TABLEDESCRIPTORTOUUID)))
+                .setDdlChangeType(DDLChangeType.ALTER_STATS)
                 .build();
     }
 
@@ -58,10 +63,9 @@ public class ProtoUtil {
     }
 
 
-    public static DDLChange createDropTable(long txnId, long conglomerateId, BasicUUID basicUUID) {
+    public static DDLChange createDropTable(long txnId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropTable(DropTable.newBuilder()
-                .setTableId(transferDerbyUUID(basicUUID))
-                .setBaseConglomerate(conglomerateId).build())
+                .setTableId(transferDerbyUUID(basicUUID)))
                 .setDdlChangeType(DDLChangeType.DROP_TABLE)
                 .build();
     }

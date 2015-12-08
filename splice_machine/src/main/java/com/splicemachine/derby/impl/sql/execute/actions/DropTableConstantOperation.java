@@ -139,8 +139,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
         /* Invalidate dependencies remotely. */
 
-        DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                this.conglomerateNumber,(BasicUUID) this.tableId);
+        DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId);
 
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 

@@ -2,16 +2,22 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
+import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -32,6 +38,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.Arrays;
+import java.util.List;
+
 import com.carrotsearch.hppc.BitSet;
 
 /**
@@ -311,10 +319,47 @@ public class DDLUtils {
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
             if (td==null) // Table Descriptor transaction never committed
                 return;
+            flushCachesBasedOnTableDescriptor(td,dd);
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
+    }
+
+    public static void preAlterStats(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            List<DerbyMessage.UUID> tdUIDs = change.getAlterStats().getTableIdList();
+            for (DerbyMessage.UUID uuuid : tdUIDs) {
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                if (td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+
+    private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
+        DataDictionaryCache cache = dd.getDataDictionaryCache();
+        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
+        cache.nameTdCacheRemove(tableKey);
+        cache.oidTdCacheRemove(td.getUUID());
+        // Remove Conglomerate Level and Statistics Caching..
+        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
+            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
+            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
+        }
+
     }
 
 }

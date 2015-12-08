@@ -17,6 +17,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriter;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -205,7 +206,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (statusDirectory!=null) {
-            dsp.setSchedulerPool("import");
             dsp.setPermissive();
             dsp.setFailBadRecordCount(this.failBadRecordCount);
         }
@@ -242,6 +242,15 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     @Override
     public String getVTIFileName() {
         return getSubOperations().get(0).getVTIFileName();
+    }
+
+
+    @Override
+    public void openCore() throws StandardException {
+        if (statusDirectory != null) // Always go to spark...
+            openCore(StreamUtils.sparkDataSetProcessor);
+        else
+            openCore(StreamUtils.getDataSetProcessorFromActivation(activation, this));
     }
 
 }
