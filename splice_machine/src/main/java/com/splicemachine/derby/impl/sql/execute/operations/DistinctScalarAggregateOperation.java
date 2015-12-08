@@ -531,14 +531,16 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             }
         };
         // reset baseScan to bucket# + uniqueId
+        byte[] bucket = new byte[1];
         byte[] regionStart = region.getStartKey();
         if(regionStart == null || regionStart.length == 0) {
-            regionStart = new byte[1];
-            regionStart[0] = 0;
+            bucket[0] = 0;
+        } else {
+          bucket[0] = regionStart[0];
         }
-        byte[] start = new byte[regionStart.length+uniqueID.length];
-        System.arraycopy(regionStart, 0, start, 0, regionStart.length);
-        System.arraycopy(uniqueID, 0, start, regionStart.length, uniqueID.length);
+        byte[] start = new byte[1+uniqueID.length];
+        System.arraycopy(bucket, 0, start, 0, 1);
+        System.arraycopy(uniqueID, 0, start, 1, uniqueID.length);
         try {
             baseScan = Scans.buildPrefixRangeScan(start, null);
         }  catch (IOException e) {
