@@ -3,7 +3,6 @@ package com.splicemachine.derby.utils;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -11,6 +10,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSPARTITIONSTATISTICSRowFactory;
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -41,7 +41,6 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.ErrorState;
@@ -49,7 +48,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import javax.annotation.Nullable;
 
 /**
  * @author Scott Fines
@@ -139,6 +137,11 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
 
+                    /* Invalidate dependencies remotely. */
+
+            TransactionController tc = lcc.getTransactionExecute();
+
+
             SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
@@ -147,6 +150,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 return;
             }
             authorize(tds);
+            ddlNotification(tc,tds);
+            dropTableStatistics(tds,dd,tc);
             ExecRow templateOutputRow = buildOutputTemplateRow();
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
@@ -214,18 +219,19 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             schema = SpliceUtils.validateSchema(schema);
             table = SpliceUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
-            List<TableDescriptor> tableDescriptorList = new ArrayList<>();
-            tableDescriptorList.add(tableDesc);
-            authorize(tableDescriptorList);
+            List<TableDescriptor> tds = Collections.singletonList(tableDesc);
+            authorize(tds);
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
             ExecRow outputRow = buildOutputTemplateRow();
-            TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
-            transactionExecute.elevate("statistics");
-            TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
+            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
+            tc.elevate("statistics");
+            ddlNotification(tc, tds);
+            dropTableStatistics(tds,dd,tc);
+            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(collectTableStatistics(tableDesc, txn, conn),dd,transactionExecute,display));
+                    displayTableStatistics(collectTableStatistics(tableDesc, txn, conn),dd,tc,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
 
         } catch (StandardException se) {
@@ -243,21 +249,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             schema = schema.toUpperCase();
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
-
             SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
             List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
             authorize(tds);
-            long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, null);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             tc.elevate("statistics");
-            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
-
-            for (int i =0; i< conglomIds.length;i++) {
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG,"Dropping conglomerate %d",conglomIds[i]);
-                dd.deletePartitionStatistics(conglomIds[i],tc);
-            }
-            notifyServersClearStatsCache(txn, conglomIds);
+            ddlNotification(tc,tds);
+            dropTableStatistics(tds,dd,tc);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -268,24 +266,16 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     public static void DROP_TABLE_STATISTICS(String schema, String table) throws SQLException {
         EmbedConnection conn = (EmbedConnection) getDefaultConn();
-
         try {
             schema = SpliceUtils.validateSchema(schema);
             table = SpliceUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
-            long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, table);
-            assert conglomIds != null && conglomIds.length > 0;
-
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             tc.elevate("statistics");
-            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
-            for (int i =0; i< conglomIds.length;i++) {
-                if (LOG.isDebugEnabled())
-                    SpliceLogUtils.debug(LOG,"Dropping conglomerate %d",conglomIds[i]);
-                dd.deletePartitionStatistics(conglomIds[i],tc);
-            }
-            notifyServersClearStatsCache(txn, conglomIds);
+            List<TableDescriptor> tds = Collections.singletonList(tableDesc);
+            ddlNotification(tc,tds);
+            dropTableStatistics(tds,dd,tc);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for table %s.", table);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -294,32 +284,11 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    private static void notifyServersClearStatsCache(TxnView txn, long[] conglomIds) throws SQLException {
-        // Notify: listener on each region server will invalidate cache
-        // If this fails or times out, rethrow the exception as usual
-        // which will roll back the deletions.
-
-        SpliceLogUtils.debug(LOG, "Notifying region servers to clear statistics caches.");
-        String changeId = null;
-
-        DDLChange change = ProtoUtil.clearStats(txn.getTxnId(),conglomIds);
-        try {
-            changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        } finally {
-            try {
-                if (changeId != null) {
-                    // Finish (nothing more than clearing zk nodes)
-                    DDLCoordinationFactory.getController().finishMetadataChange(changeId);
-                }
-                SpliceLogUtils.debug(LOG, "Notified servers are finished clearing statistics caches.");
-            } catch (StandardException e) {
-                SpliceLogUtils.error(LOG, "Error finishing dropping statistics", e);
-            }
-        }
+    private static void ddlNotification(TransactionController tc,  List<TableDescriptor> tds) throws StandardException {
+        DDLChange ddlChange = ProtoUtil.alterStats(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),tds);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
-    
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static DataSet<ExecRow> collectTableStatistics(TableDescriptor table,
@@ -614,4 +583,23 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
         });
     }
+
+    private static void dropTableStatistics(TableDescriptor td, DataDictionary dd, TransactionController tc) throws StandardException {
+        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"Dropping conglomerate statistics [%d]",cd.getConglomerateNumber());
+            dd.deletePartitionStatistics(cd.getConglomerateNumber(),tc);
+        }
+    }
+
+    private static void dropTableStatistics(List<TableDescriptor> tds, DataDictionary dd, TransactionController tc) throws StandardException {
+
+        for (TableDescriptor td: tds) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"Dropping Table statistics [%s]",td.getName());
+            dropTableStatistics(td,dd,tc);
+        }
+    }
+
+
 }

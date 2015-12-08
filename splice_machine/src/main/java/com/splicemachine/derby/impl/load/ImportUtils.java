@@ -29,15 +29,9 @@ public class ImportUtils {
      * @throws IOException
      */
     public static ContentSummary getImportDataSize(Path filePath) throws IOException {
-        FileSystem fs = null;
-        try {
-            fs = FileSystem.get(SpliceConstants.config);
+        FileSystem fs = FileSystem.get(SpliceConstants.config);
             ContentSummary summary = fs.getContentSummary(filePath);
             return summary;
-        } finally {
-            if (fs!=null)
-                fs.close();
-        }
     }
 
 

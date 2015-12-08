@@ -276,7 +276,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                             indexFactories.add(new DropIndexFactory(txn, null, indexConglomId));
                         }
                         break;
-                    case CLEAR_STATS_CACHE:
+                    case ALTER_STATS:
                         break;
                     case ENTER_RESTORE_MODE:
                         break;

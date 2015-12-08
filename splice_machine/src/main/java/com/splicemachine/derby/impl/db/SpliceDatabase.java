@@ -254,9 +254,13 @@ public class SpliceDatabase extends BasicDatabase{
             @Override
             public void startChange(DDLChange change) throws StandardException{
 
-                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
-                   DDLUtils.preDropTable(change,getDataDictionary(),getDataDictionary().getDependencyManager());
-                }else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
+                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE) {
+                    DDLUtils.preDropTable(change, getDataDictionary(), getDataDictionary().getDependencyManager());
+                }
+                else if (change.getDdlChangeType()==DDLChangeType.ALTER_STATS) {
+                    DDLUtils.preAlterStats(change,getDataDictionary(),getDataDictionary().getDependencyManager());
+                }
+                else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
                     TransactionLifecycle.getLifecycleManager().enterRestoreMode();
                     Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
                     for(LanguageConnectionContext context : allContexts){
