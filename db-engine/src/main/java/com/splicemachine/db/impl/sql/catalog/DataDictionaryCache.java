@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
 import javax.management.MXBean;
 import java.util.List;
@@ -30,7 +31,7 @@ public class DataDictionaryCache {
     private Cache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
     private Cache<UUID, SPSDescriptor> storedPreparedStatementCache;
     private Cache<Long,Conglomerate> conglomerateCache;
-    private Cache<GenericStatement,GenericStatement> statementCache;
+    private Cache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private Cache<String,SchemaDescriptor> schemaCache;
     private Cache<String,Optional<RoleGrantDescriptor>> roleCache;
     private int tdCacheSize;
@@ -72,17 +73,6 @@ public class DataDictionaryCache {
         this.dd = dd;
     }
 
-    public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
-        if (LOG.isDebugEnabled())
-            LOG.debug("oidTdCacheFind " + tableID);
-        if (!dd.canUseCache())
-            return null;
-        TableDescriptor td =  oidTdCache.getIfPresent(tableID);
-        if (td!=null) // bind in previous command might have set
-            td.setReferencedColumnMap(null);
-        return td;
-    }
-
     public TableDescriptor nameTdCacheFind(TableKey tableKey) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheFind " + tableKey);
@@ -98,6 +88,42 @@ public class DataDictionaryCache {
             return;
         nameTdCache.put(tableKey,td);
     }
+
+    public TableDescriptor nameTdCacheRemove(TableKey tableKey) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("nameTdCacheInvalidate " + tableKey);
+        TableDescriptor td = nameTdCache.getIfPresent(tableKey);
+        nameTdCache.invalidate(tableKey);
+        return td;
+    }
+
+    public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidTdCacheFind " + tableID);
+        if (!dd.canUseCache())
+            return null;
+        TableDescriptor td =  oidTdCache.getIfPresent(tableID);
+        if (td!=null) // bind in previous command might have set
+            td.setReferencedColumnMap(null);
+        return td;
+    }
+
+    public void oidTdCacheAdd(UUID tableID, TableDescriptor td) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidTdCacheAdd " + tableID + " : " + td);
+        if (!dd.canUseCache())
+            return;
+        oidTdCache.put(tableID,td);
+    }
+
+    public TableDescriptor oidTdCacheRemove(UUID tableID) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidTdCacheRemove " + tableID);
+        TableDescriptor td = oidTdCache.getIfPresent(tableID);
+        oidTdCache.invalidate(tableID);
+        return td;
+    }
+
 
     public List<PartitionStatisticsDescriptor> partitionStatisticsCacheFind(Long conglomID) throws StandardException {
         if (LOG.isDebugEnabled())
@@ -115,12 +141,10 @@ public class DataDictionaryCache {
         partitionStatisticsCache.put(conglomID, list);
     }
 
-    public TableDescriptor nameTdCacheInvalidate(TableKey tableKey) throws StandardException {
+    public void partitionStatisticsCacheRemove(Long conglomID) throws StandardException {
         if (LOG.isDebugEnabled())
-            LOG.debug("nameTdCacheInvalidate " + tableKey);
-        TableDescriptor td = nameTdCache.getIfPresent(tableKey);
-        nameTdCache.invalidate(tableKey);
-        return td;
+            LOG.debug("invalidateCachedStatistics " + conglomID);
+        partitionStatisticsCache.invalidate(conglomID);
     }
 
 
@@ -217,13 +241,8 @@ public class DataDictionaryCache {
             LOG.debug("schemaCacheRemove " + schemaName);
         if (!dd.canUseCache())
             return;
-        conglomerateCache.invalidate(schemaName);
+        schemaCache.invalidate(schemaName);
     }
-
-
-
-
-
 
     public void storedPreparedStatementCacheRemove(SPSDescriptor desc) throws StandardException {
         if (LOG.isDebugEnabled())
@@ -243,12 +262,6 @@ public class DataDictionaryCache {
         if (!dd.canUseCache())
             return null;
         return sequenceGeneratorCache.getIfPresent(uuid);
-    }
-
-    public void invalidateCachedStatistics(Long conglomID) throws StandardException {
-        if (LOG.isDebugEnabled())
-            LOG.debug("invalidateCachedStatistics " + conglomID);
-        partitionStatisticsCache.invalidate(conglomID);
     }
 
     public void clearAll() {
@@ -274,15 +287,15 @@ public class DataDictionaryCache {
         statementCache.invalidateAll();
     }
 
-    public void statementCacheAdd(GenericStatement gs) throws StandardException {
+    public void statementCacheAdd(GenericStatement gs, GenericStorablePreparedStatement gsp) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheAdd " + gs);
         if (!dd.canUseCache())
             return;
-        statementCache.put(gs,gs);
+        statementCache.put(gs,gsp);
     }
 
-    public GenericStatement statementCacheFind(GenericStatement gs) throws StandardException {
+    public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheFind " + gs);
         if (!dd.canUseCache())
@@ -312,6 +325,5 @@ public class DataDictionaryCache {
     public interface DataDictionaryCacheIFace {
 
     }
-
 
 }

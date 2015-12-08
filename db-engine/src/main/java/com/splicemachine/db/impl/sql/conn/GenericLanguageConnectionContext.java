@@ -1154,14 +1154,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown if lookup goes wrong.
      */
     public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException{
-        GenericStorablePreparedStatement ps = null;
-
-        GenericStatement gc = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
-        if (gc!=null)
-            ps = new GenericStorablePreparedStatement(gc);
-        else {
-            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement);
-            ps = new GenericStorablePreparedStatement(gc);
+        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
+        if (ps==null) {
+            ps = new GenericStorablePreparedStatement(statement);
+            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement,ps);
         }
         synchronized(ps){
             if(ps.upToDate()){

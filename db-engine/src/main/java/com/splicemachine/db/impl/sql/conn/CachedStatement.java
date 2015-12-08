@@ -31,7 +31,6 @@ public class CachedStatement implements Cacheable {
 
         identity = key;
         ps = new GenericStorablePreparedStatement((GenericStatement) key);
-        ps.setCacheHolder(this);
 
         return this;
     }
@@ -50,7 +49,6 @@ public class CachedStatement implements Cacheable {
 
         if (SanityManager.DEBUG)
             SanityManager.DEBUG("StatementCacheInfo", "CLEARING IDENTITY: " + ps.getSource());
-        ps.setCacheHolder(null);
 
         identity = null;
         ps = null;

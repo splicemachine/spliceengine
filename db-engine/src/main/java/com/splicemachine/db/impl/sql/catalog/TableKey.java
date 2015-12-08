@@ -29,7 +29,7 @@ import com.splicemachine.db.catalog.UUID;
  *
  */
 
-final class TableKey 
+public final class TableKey
 {
 	private final String	tableName;
 	private final UUID	schemaId;
@@ -41,7 +41,7 @@ final class TableKey
 	 * @param schemaUUID		The UUID of the schema being referecned
 	 * @param tableName		The name of the table being referenced	 
 	 */
-	TableKey(UUID schemaUUID, String tableName)
+	public TableKey(UUID schemaUUID, String tableName)
 	{
 		this.tableName = tableName;
 		this.schemaId = schemaUUID;

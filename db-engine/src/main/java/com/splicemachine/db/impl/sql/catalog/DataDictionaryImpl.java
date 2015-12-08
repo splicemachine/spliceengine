@@ -1427,19 +1427,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TableDescriptor td = dataDictionaryCache.oidTdCacheFind(tableID);
         if (td != null)
             return td;
-        return getTableDescriptorIndex2Scan(tableID.toString());
-    }
-
-    /**
-     * This method can get called from the DataDictionary cache.
-     *
-     * @param tableID The UUID of the table to get the descriptor for
-     * @return The descriptor for the table, null if the table does
-     * not exist.
-     * @throws StandardException Thrown on failure
-     */
-    protected TableDescriptor getUncachedTableDescriptor(UUID tableID) throws StandardException{
-        return getTableDescriptorIndex2Scan(tableID.toString());
+        td = getTableDescriptorIndex2Scan(tableID.toString());
+        if (td != null)
+            dataDictionaryCache.oidTdCacheAdd(tableID,td);
+        return td;
     }
 
     /**
@@ -2958,7 +2949,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SPSDescriptor sps = dataDictionaryCache.spsNameCacheFind(stmtKey);
         if (sps!=null)
             return sps;
-        return getSPSDescriptorIndex1Scan(stmtName,schemaUUID.toString());
+        sps = getSPSDescriptorIndex1Scan(stmtName,schemaUUID.toString());
+        dataDictionaryCache.spsNameCacheAdd(stmtKey,sps);
+        return sps;
     }
 
     /**

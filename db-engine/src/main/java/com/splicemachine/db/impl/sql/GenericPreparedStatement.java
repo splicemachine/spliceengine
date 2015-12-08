@@ -121,13 +121,6 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
     protected boolean isValid;
     protected boolean spsAction;
 
-    // state for caching.
-    /**
-     * If non-null then this object is the cacheable
-     * that holds us in the cache.
-     */
-    private Cacheable cacheHolder;
-
     /* Incremented for each (re)compile. */
     private long versionCounter;
 
@@ -538,34 +531,9 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
      */
     @Override
     public void finish(LanguageConnectionContext lcc) {
-
         synchronized (this) {
             inUseCount--;
-
-            if (cacheHolder != null)
                 return;
-
-            if (inUseCount != 0) {
-                //if (SanityManager.DEBUG) {
-                //    if (inUseCount < 0)
-                //        SanityManager.THROWASSERT("inUseCount is negative " + inUseCount + " for " + this);
-                //}
-                return;
-            }
-        }
-
-        // invalidate any prepared statements that
-        // depended on this statement (including this one)
-        // prepareToInvalidate(this, DependencyManager.PREPARED_STATEMENT_INVALID);
-        try {
-            /* NOTE: Since we are non-persistent, we "know" that no exception
-             * will be thrown under us.
-             */
-            makeInvalid(DependencyManager.PREPARED_STATEMENT_RELEASE, lcc);
-        } catch (StandardException se) {
-            if (SanityManager.DEBUG) {
-                SanityManager.THROWASSERT("Unexpected exception", se);
-            }
         }
     }
 
@@ -1075,36 +1043,6 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
         clone.updateColumns = updateColumns;
         clone.updateMode = updateMode;
         clone.needsSavepoint = needsSavepoint;
-    }
-
-    // cache holder stuff.
-    public void setCacheHolder(Cacheable cacheHolder) {
-
-        this.cacheHolder = cacheHolder;
-
-        if (cacheHolder == null) {
-
-            // need to invalidate the statement
-            if (!isValid || (inUseCount != 0))
-                return;
-
-            ContextManager cm = ContextService.getFactory().getCurrentContextManager();
-            LanguageConnectionContext lcc = (LanguageConnectionContext) (cm.getContext(LanguageConnectionContext.CONTEXT_ID));
-
-            // invalidate any prepared statements that
-            // depended on this statement (including this one)
-            // prepareToInvalidate(this, DependencyManager.PREPARED_STATEMENT_INVALID);
-            try {
-                /* NOTE: Since we are non-persistent, we "know" that no exception
-                 * will be thrown under us.
-                 */
-                makeInvalid(DependencyManager.PREPARED_STATEMENT_RELEASE, lcc);
-            } catch (StandardException se) {
-                if (SanityManager.DEBUG) {
-                    SanityManager.THROWASSERT("Unexpected exception", se);
-                }
-            }
-        }
     }
 
     @Override
