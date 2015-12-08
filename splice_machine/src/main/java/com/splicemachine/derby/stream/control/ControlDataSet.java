@@ -165,6 +165,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet< V> union(DataSet< V> dataSet, String name) {
+        return union(dataSet);
+    }
+
+    @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
         return new ControlDataSet<>(Iterables.filter(iterable,f));
     }

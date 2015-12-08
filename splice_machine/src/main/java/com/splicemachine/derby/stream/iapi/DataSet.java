@@ -85,7 +85,9 @@ public interface DataSet<V> {
      * @param dataSet
      * @return
      */
-    DataSet<V> union (DataSet<V> dataSet);
+    DataSet<V> union(DataSet<V> dataSet);
+
+    DataSet<V> union(DataSet<V> dataSet, String name);
 
     /**
      * Applies a filter to the results, possible removing a row.
