@@ -1,16 +1,13 @@
 package com.splicemachine.derby.stream.function;
 
 import com.clearspring.analytics.util.Lists;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.window.BaseFrameBuffer;
 import com.splicemachine.derby.stream.window.WindowFrameBuffer;
 import scala.Tuple2;
@@ -28,13 +25,11 @@ import static java.util.Collections.sort;
  */
 
 public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatMapFunction<Op, Tuple2<ExecRow, Iterable<LocatedRow>>,LocatedRow> implements Serializable {
-    protected WindowAggregator[] aggregates;
     public MergeWindowFunction() {
     }
 
     public MergeWindowFunction(OperationContext<Op> operationContext, WindowAggregator[] aggregates) {
         super(operationContext);
-        this.aggregates = aggregates;
     }
 
     @Override
@@ -45,7 +40,6 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        aggregates = operationContext.getOperation().getWindowContext().getWindowFunctions();
     }
 
     @Override
@@ -55,7 +49,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         WindowContext windowContext = operationContext.getOperation().getWindowContext();
         sort(partitionRows, new LocatedRowComparator(windowContext.getKeyColumns(), windowContext.getKeyOrders()));
 
-        /// window logic
+        // window logic
         final WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(
                 windowContext.getWindowFunctions(),
                 RDDUtils.toExecRowsIterator(partitionRows.iterator()),
