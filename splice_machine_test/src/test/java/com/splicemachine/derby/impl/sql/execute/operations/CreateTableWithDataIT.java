@@ -175,7 +175,7 @@ public class CreateTableWithDataIT {
                 row(20, "Joe", "Blow"),
                 row(70, "Fred", "Ziffle"),
                 row(60, "Floyd", "Jones"),
-                row(20, "Janice", "Jones")
+                row(40, "Janice", "Jones")
             ))
             .create();
 
@@ -191,7 +191,7 @@ public class CreateTableWithDataIT {
                 row(20, 1, 75000),
                 row(70, 3, 76000),
                 row(60, 2, 78000),
-                row(20, 2, 52000)
+                row(40, 2, 52000)
             ))
             .create();
 
@@ -207,7 +207,7 @@ public class CreateTableWithDataIT {
                 row(20, 11199222),
                 row(70, 33366777),
                 row(60, 88844777),
-                row(20, 22200555)
+                row(40, 22200555)
             ))
             .create();
 
