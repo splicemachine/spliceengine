@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.ScalarAggregateFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -19,6 +21,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collections;
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
  *
@@ -122,7 +125,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         operationContext.popScope();
         
         if (result==null) {
-			return returnDefault ? dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
+            // return returnDefault ? dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
+            return returnDefault ? new ControlDataSet(Collections.singletonList(new LocatedRow(getExecRowDefinition()))) : null;
 		}
         if (!isInitialized(result.getRow())) {
             initializeVectorAggregation(result.getRow());
@@ -132,7 +136,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         setCurrentLocatedRow(lr);
         
         operationContext.pushScope(this.getSparkStageName() + ": Prepare Result");
-        DataSet<LocatedRow> singleRowDataSet = dsp.singleRowDataSet(lr, this, true);
+        // DataSet<LocatedRow> singleRowDataSet = dsp.singleRowDataSet(lr, this, true);
+        DataSet<LocatedRow> singleRowDataSet = new ControlDataSet<>(Lists.newArrayList(lr));
         operationContext.popScope();
 
         return singleRowDataSet;
