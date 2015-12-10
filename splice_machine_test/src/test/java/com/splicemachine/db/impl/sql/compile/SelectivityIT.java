@@ -223,34 +223,34 @@ public class SelectivityIT extends SpliceUnitTest {
     @Ignore("DB-3629")
     public void testInSelectivity() throws Exception {
         // with stats
-        secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
-        secondRowContainsQuery("explain select * from ts_nonulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
-        secondRowContainsQuery("explain select * from ts_notnulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_singlepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_multiplepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)", "outputRows=3", methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nonulls where c1 in (1,2,3)", "outputRows=3", methodWatcher);
+        secondRowContainsQuery("explain select * from ts_notnulls where c1 in (1,2,3)", "outputRows=3", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_singlepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_multiplepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
         // without stats
-        secondRowContainsQuery("explain select * from tns_nulls where c1 in (1,2,3)","outputRows=2",methodWatcher);
-        secondRowContainsQuery("explain select * from tns_nonulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
-        secondRowContainsQuery("explain select * from tns_notnulls where c1 in (1,2,3)","outputRows=0",methodWatcher);
-        secondRowContainsQuery("explain select * from tns_singlepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
-        secondRowContainsQuery("explain select * from tns_multiplepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from tns_nulls where c1 in (1,2,3)", "outputRows=2", methodWatcher);
+        secondRowContainsQuery("explain select * from tns_nonulls where c1 in (1,2,3)", "outputRows=3", methodWatcher);
+        secondRowContainsQuery("explain select * from tns_notnulls where c1 in (1,2,3)", "outputRows=0", methodWatcher);
+        secondRowContainsQuery("explain select * from tns_singlepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
+        secondRowContainsQuery("explain select * from tns_multiplepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
 
     }
 
     @Test
     public void testWildcardLikeSelectivity() throws Exception {
         // with stats
-        rowContainsQuery(3,"explain select * from ts_nulls where c2 like '%1'","outputRows=4,",methodWatcher); // ?JL
-        rowContainsQuery(3,"explain select * from ts_nonulls where c2 like '%1'","outputRows=3,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_notnulls where c2 like '%1'","outputRows=3,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_singlepk where c2 like '%1'","outputRows=3,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_multiplepk where c2 like '%1'","outputRows=3,",methodWatcher);
+        rowContainsQuery(3, "explain select * from ts_nulls where c2 like '%1'", "outputRows=4,", methodWatcher); // ?JL
+        rowContainsQuery(3, "explain select * from ts_nonulls where c2 like '%1'", "outputRows=3,", methodWatcher);
+        rowContainsQuery(3, "explain select * from ts_notnulls where c2 like '%1'", "outputRows=3,", methodWatcher);
+        rowContainsQuery(3, "explain select * from ts_singlepk where c2 like '%1'", "outputRows=3,", methodWatcher);
+        rowContainsQuery(3, "explain select * from ts_multiplepk where c2 like '%1'", "outputRows=3,", methodWatcher);
         // without stats
-        rowContainsQuery(3,"explain select * from tns_nulls where c2 like '%1'","outputRows=10,",methodWatcher);
-        rowContainsQuery(3,"explain select * from tns_nonulls where c2 like '%1'","outputRows=10,",methodWatcher);
-        rowContainsQuery(3,"explain select * from tns_notnulls where c2 like '%1'","outputRows=10,",methodWatcher);
-        rowContainsQuery(3,"explain select * from tns_singlepk where c2 like '%1'","outputRows=10,",methodWatcher);
-        rowContainsQuery(3,"explain select * from tns_multiplepk where c2 like '%1'","outputRows=10,",methodWatcher);
+        rowContainsQuery(3, "explain select * from tns_nulls where c2 like '%1'", "outputRows=10,", methodWatcher);
+        rowContainsQuery(3, "explain select * from tns_nonulls where c2 like '%1'", "outputRows=10,", methodWatcher);
+        rowContainsQuery(3, "explain select * from tns_notnulls where c2 like '%1'", "outputRows=10,", methodWatcher);
+        rowContainsQuery(3, "explain select * from tns_singlepk where c2 like '%1'", "outputRows=10,", methodWatcher);
+        rowContainsQuery(3, "explain select * from tns_multiplepk where c2 like '%1'", "outputRows=10,", methodWatcher);
 
     }
 
@@ -374,8 +374,20 @@ public class SelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testLimitCosting() throws Exception {
-        rowsContainsQuery("explain select * from ts_low_cardinality {limit 10}", new Contains().add(1,"rows=10,"), methodWatcher);
+        rowsContainsQuery("explain select * from ts_low_cardinality {limit 10}", new Contains().add(1, "rows=10,"), methodWatcher);
     }
 
-
+    @Test
+    public void testLikeConstant() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("explain select * from ts_nulls where c2 like '1'");
+        while(rs.next()) {
+            String s = rs.getString(1);
+            if (s.contains("ScrollInsensitive")) {
+                Assert.assertTrue("row count inaccurate: " + s, s.contains("outputRows=1"));
+            }
+            if (s.contains("ProjectRestrict")) {
+                Assert.assertFalse("Like predicate should be transformed: " + s, s.contains("preds=[like(C2"));
+            }
+        }
+    }
 }

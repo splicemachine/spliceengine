@@ -32,6 +32,10 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("T",CLASS_NAME,"(i int)");
     public static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("A",CLASS_NAME,"(v1 varchar(10), v2 varchar(10))");
     public static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",CLASS_NAME,"(v1 varchar(10), v2 varchar(10))");
+    public static final SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("T1",CLASS_NAME,"(i int)");
+    public static final SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("T2",CLASS_NAME,"(i int, j int)");
+    public static final SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("T3",CLASS_NAME,"(i int, j int)");
+
     public static final SpliceTableWatcher spliceTableRegion = new SpliceTableWatcher("REGION2",CLASS_NAME,
     	"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
     public static final SpliceTableWatcher spliceTableNation = new SpliceTableWatcher("NATION2",CLASS_NAME,
@@ -46,6 +50,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     private static final SpliceIndexWatcher product_idx = new SpliceIndexWatcher("PRODUCT",CLASS_NAME,"PROD_IDX",CLASS_NAME,"(PROD_ID,LOB_CD)");
     private static final SpliceIndexWatcher a_idx = new SpliceIndexWatcher("A",CLASS_NAME,"A_IDX",CLASS_NAME,"(V1)");
     private static final SpliceIndexWatcher b_idx = new SpliceIndexWatcher("B",CLASS_NAME,"B_IDX",CLASS_NAME,"(V1, V2)");
+    private static final SpliceIndexWatcher t2_idx = new SpliceIndexWatcher("T3",CLASS_NAME,"T3_IDX",CLASS_NAME,"(j)");
 
     private static final String PLAN_LINE_LEADER = "->  ";
     private static final String JOIN_STRATEGY_TERMINATOR = "(";
@@ -71,6 +76,10 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             .around(a_idx)
             .around(spliceTableWatcher5)
             .around(b_idx)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8)
+            .around(t2_idx)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -104,6 +113,13 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
                                 spliceTableWatcher3));
+
+                        spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4",
+                                spliceTableWatcher6));
+                        spliceClassWatcher.executeUpdate(format("insert into %s (i,j) values (1,1),(2,2),(3,3),(4,4)",
+                                spliceTableWatcher7));
+                        spliceClassWatcher.executeUpdate(format("insert into %s (i,j) values (1,1),(2,2),(3,3),(4,4)",
+                                spliceTableWatcher8));
 
                         spliceClassWatcher.executeUpdate(format(
                                 "insert into %s (r_regionkey, r_name) values " +
@@ -457,5 +473,58 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         thirdRowContainsQuery(broadcast, BROADCAST_JOIN, methodWatcher);
         thirdRowContainsQuery(mergeSort, MERGE_SORT_JOIN, methodWatcher);
         thirdRowContainsQuery(merge, MERGE_JOIN, methodWatcher);
+    }
+
+
+    //DB-4189
+    @Test
+    public void testMergeSortJoinCost() throws Exception {
+
+        String query = "explain\n" +
+                "select t1.i, t2.j, t3.i, t3.j\n" +
+                "from t1\n" +
+                ", t2 --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
+                ", t3 --SPLICE-PROPERTIES %s joinStrategy=SORTMERGE\n" +
+                "where t1.i=t2.i and t2.j=t3.j";
+
+        String withIndex = String.format(query, "index=t3_idx,");
+        ResultSet rs = methodWatcher.executeQuery(withIndex);
+        String costString = null;
+        while(rs.next()) {
+            String s = rs.getString(1);
+            if (s.contains("ScrollInsensitive")) {
+                costString = s;
+            }
+        }
+        double costWithIndex = getTotalCost(costString);
+
+        String withoutIndex = String.format(query, "");
+        rs = methodWatcher.executeQuery(withoutIndex);
+
+        while(rs.next()) {
+            String s = rs.getString(1);
+            if (s.contains("ScrollInsensitive")) {
+                costString = s;
+            }
+            // Should not use an index
+            Assert.assertFalse(s.contains("IndexLookup"));
+        }
+        double costWithoutIndex = getTotalCost(costString);
+
+        // The plan without an index lookup should be less expensive
+        Assert.assertTrue(costWithoutIndex < costWithIndex);
+    }
+
+    private double getTotalCost(String s) {
+        double cost = 0.0d;
+        String[] strings = s.split(",");
+        for(String string : strings) {
+            String[] s1 = string.split("=");
+            if (s1[0].compareTo("totalCost") == 0) {
+                cost = Double.parseDouble(s1[1]);
+                break;
+            }
+        }
+        return cost;
     }
 }
