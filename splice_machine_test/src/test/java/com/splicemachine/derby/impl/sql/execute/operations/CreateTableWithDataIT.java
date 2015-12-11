@@ -222,7 +222,6 @@ public class CreateTableWithDataIT {
                                     "LEFT OUTER JOIN %s C ON A.ID = C.ID ", viewRef, nameTableRef, empTableRef,
                                 ssnTableRef);
 
-        System.out.println(viewDef);
         methodWatcher.execute(viewDef);
 
         String depsalTable = "depsal";

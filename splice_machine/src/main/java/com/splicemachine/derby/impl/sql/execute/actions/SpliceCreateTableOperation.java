@@ -128,6 +128,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
         if (withDataQueryString != null) {
             ConnectionContext cc = (ConnectionContext)
                 lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+            activation.setupSQLSessionContextForChildren(false);
             try ( // try with resources
                 Connection conn = cc.getNestedConnection(true);
                  PreparedStatement ps =
