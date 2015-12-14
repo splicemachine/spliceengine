@@ -1,8 +1,8 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.si.coprocessors.BaseSICompactionScanner;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SICompactionState;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.impl.server.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;

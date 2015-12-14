@@ -23,6 +23,16 @@
 			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
 		</repository>
 	</repositories>
+    <modules>
+        <module>splice_encoding</module>
+        <module>splice_timestamp_api</module>
+        <module>splice_si_api</module>
+        <module>splice_access_api</module>
+        <module>splice_cdh5.4.1</module>
+        <module>splice_memory</module>
+        <module>splice_si</module>
+        <module>splice_dataset_api</module>
+    </modules>
 	<properties>
 		<derby.version>2.0.0.1-SNAPSHOT</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest, com.splicemachine.test.BackupTest</excluded.categories>
@@ -802,46 +812,6 @@
 				<obfuscate.si>obfuscated</obfuscate.si>
 				<obfuscate.si.tag>-obfuscated</obfuscate.si.tag>
 			</properties>
-		</profile>
-		<profile>
-			<id>all</id>
-			<modules>
-				<module>cdh5.4.1</module>
-			<!--	<module>hdp2.2.4</module-->
-		<!--		<module>hdp2.3.0</module-->
-	<!--			<module>mapr0.98.4</module-->
-<!--				<module>mapr0.98.12</module-->
-			</modules>
-		</profile>
-		<profile>
-			<id>cdh5.4.1</id>
-			<modules>
-				<module>cdh5.4.1</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>hdp2.2.4</id>
-			<modules>
-				<module>hdp2.2.4</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>hdp2.3.0</id>
-			<modules>
-				<module>hdp2.3.0</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>mapr0.98.4</id>
-			<modules>
-				<module>mapr0.98.4</module>
-			</modules>
-		</profile>
-		<profile>
-			<id>mapr0.98.12</id>
-			<modules>
-				<module>mapr0.98.12</module>
-			</modules>
 		</profile>
 	</profiles>
 </project>

@@ -21,7 +21,11 @@
 		<version>2.0.0-SNAPSHOT</version>
 	</parent>
 	<modules>
+        <module>../splice_encoding</module>
 		<module>splice_constants</module>
+       	<module>../splice_si_api</module>
+        <module>../splice_timestamp</module>
+        <module>../splice_access_api</module>
 		<module>splice_si</module>
 		<module>splice_protocol</module>
 		<module>splice_si_adapter_98</module>

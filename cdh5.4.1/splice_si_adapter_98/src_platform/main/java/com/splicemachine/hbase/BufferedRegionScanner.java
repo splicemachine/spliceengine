@@ -1,7 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.data.SDataLib;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Delete;
