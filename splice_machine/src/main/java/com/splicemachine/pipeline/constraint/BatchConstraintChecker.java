@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.si.api.ConstraintChecker;
+import com.splicemachine.si.api.server.ConstraintChecker;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 /**

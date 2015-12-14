@@ -2,8 +2,8 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.CannotCommitException;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import com.splicemachine.db.iapi.error.StandardException;

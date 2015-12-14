@@ -6,6 +6,7 @@ package com.splicemachine.derby.iapi.sql.execute;
  * @author Scott Fines
  * Created on: 9/23/13
  */
+// DO WE NEED THIS?
 public interface ConvertedResultSet {
 
     SpliceOperation getOperation();

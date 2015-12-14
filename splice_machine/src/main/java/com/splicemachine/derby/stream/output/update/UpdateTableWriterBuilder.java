@@ -7,7 +7,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Base64;
 import java.io.Externalizable;

@@ -12,7 +12,7 @@ import com.splicemachine.derby.utils.marshall.SkippingKeyDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.db.iapi.error.StandardException;

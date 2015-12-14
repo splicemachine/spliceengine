@@ -1,6 +1,6 @@
 package com.splicemachine.derby.stream.output;
 
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptID;

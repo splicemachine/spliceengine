@@ -7,7 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.IndexWriteHandler;
 import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 

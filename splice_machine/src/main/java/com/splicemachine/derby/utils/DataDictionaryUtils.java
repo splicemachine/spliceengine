@@ -2,16 +2,13 @@ package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
 import java.sql.SQLException;
 import java.util.List;

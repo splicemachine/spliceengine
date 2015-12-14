@@ -11,7 +11,7 @@ import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 public class WriteNode implements WriteContext {
 

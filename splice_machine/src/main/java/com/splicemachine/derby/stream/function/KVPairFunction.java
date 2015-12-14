@@ -1,14 +1,8 @@
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.primitives.Bytes;
 import scala.Tuple2;
 
 /**

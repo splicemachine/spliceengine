@@ -15,7 +15,7 @@ import com.splicemachine.derby.stream.control.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;

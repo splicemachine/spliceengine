@@ -24,9 +24,9 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -40,7 +40,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
 
-import org.apache.commons.lang.WordUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -53,7 +52,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
         private static Logger LOG_CLOSE = Logger.getLogger(SpliceBaseOperation.class.getName() + ".close");
-        protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+        protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
 		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		/* Run time statistics variables */
 		public int numOpens;

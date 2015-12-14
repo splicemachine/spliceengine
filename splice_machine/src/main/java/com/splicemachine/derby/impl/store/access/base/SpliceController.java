@@ -14,8 +14,8 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 public abstract class SpliceController<Data> implements ConglomerateController {
-		protected static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+		protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
 		protected static Logger LOG = Logger.getLogger(SpliceController.class);
 		protected OpenSpliceConglomerate openSpliceConglomerate;
 		protected BaseSpliceTransaction trans;

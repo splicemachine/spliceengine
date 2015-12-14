@@ -3,7 +3,7 @@ package com.splicemachine.pipeline.api;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;

@@ -1,16 +1,13 @@
 package com.splicemachine.derby.stream.function;
 
 import com.clearspring.analytics.util.Lists;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.window.BaseFrameBuffer;
 import com.splicemachine.derby.stream.window.WindowFrameBuffer;
 import scala.Tuple2;

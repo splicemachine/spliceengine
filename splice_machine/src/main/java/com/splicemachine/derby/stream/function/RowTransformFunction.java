@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

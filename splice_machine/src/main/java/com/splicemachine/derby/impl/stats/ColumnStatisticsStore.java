@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 
 import java.util.Collection;

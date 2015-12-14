@@ -14,10 +14,10 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.commons.lang.SerializationUtils;
@@ -249,7 +249,7 @@ public class TableScannerBuilder implements Externalizable {
 		public SITableScanner build(){
             if (fieldLengths != null) {
                 return new StatisticsScanner(
-                        SIFactoryDriver.siFactory.getDataLib(),
+                        SIDriver.siFactory.getDataLib(),
                         scanner,
                         region,
                         template,
@@ -270,7 +270,7 @@ public class TableScannerBuilder implements Externalizable {
             }
             else {
                 return new SITableScanner(
-                        SIFactoryDriver.siFactory.getDataLib(),
+                        SIDriver.siFactory.getDataLib(),
                         scanner,
                         region,
                         template,

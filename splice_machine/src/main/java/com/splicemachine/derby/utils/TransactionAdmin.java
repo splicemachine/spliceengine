@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.stream.Stream;

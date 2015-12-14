@@ -1,44 +1,15 @@
 package com.splicemachine.derby.impl.job.altertable;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.concurrent.ExecutionException;
-import com.google.common.base.Throwables;
+
 import com.splicemachine.ddl.DDLMessage.*;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
-import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
-import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.DDLTxnView;
-import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 
 /**
@@ -60,7 +31,7 @@ public class PopulateConglomerateTask{
 
     private byte[] scanStart;
     private byte[] scanStop;
-    private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+    private static SDataLib dataLib = SIDriver.siFactory.getDataLib();
     private KeyEncoder noPKKeyEncoder;
 
     public PopulateConglomerateTask() { }

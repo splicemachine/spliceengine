@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
-import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;

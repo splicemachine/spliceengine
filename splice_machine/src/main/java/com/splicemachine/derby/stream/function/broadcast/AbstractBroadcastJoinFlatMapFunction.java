@@ -2,8 +2,6 @@ package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
 import org.sparkproject.guava.collect.FluentIterable;
-import org.sparkproject.guava.collect.Iterators;
-import org.sparkproject.guava.collect.PeekingIterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
@@ -16,7 +14,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
-import scala.Tuple2;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

@@ -7,8 +7,6 @@ import com.splicemachine.derby.stream.utils.StreamUtils;
 
 import java.io.*;
 
-import org.apache.commons.lang3.StringUtils;
-
 /**
  * Created by jleach on 4/17/15.
  */

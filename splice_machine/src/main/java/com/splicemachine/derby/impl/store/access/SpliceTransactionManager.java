@@ -1,12 +1,9 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.si.api.ReadOnlyModificationException;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.Serializable;
 import java.util.*;
@@ -30,7 +27,6 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.pipeline.exception.Exceptions;
 
 public class SpliceTransactionManager implements XATransactionController,
         TransactionManager {

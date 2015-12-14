@@ -3,6 +3,7 @@ package com.splicemachine.derby.iapi.storage;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import java.io.IOException;
+import java.lang.Deprecated;
 
 /**
  * This class mimics the Iterator interface (minus the remove) but throws Derby's Standard Exception.
@@ -13,6 +14,7 @@ import java.io.IOException;
  * @author John Leach
  * 
  */
+@Deprecated
 public interface RowProviderIterator<T> {
 	/**
 	 * Returns true if the iteration has more elements.

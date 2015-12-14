@@ -3,9 +3,9 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.io.HdfsDirStorageFactory;
 import com.splicemachine.derby.impl.store.access.base.SpliceHdfsFileResource;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -192,7 +192,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 		 * way is likely very inexpensive to call this method, but it will be doubly expensive when elevateTransaction()
 		 * is called (as it will require 2 network calls to elevate).
 		 *
-		 * @see com.splicemachine.si.api.TxnLifecycleManager#beginChildTransaction(com.splicemachine.si.api.TxnView, com.splicemachine.si.api.Txn.IsolationLevel, boolean, byte[])
+		 * @see com.splicemachine.si.api.txn.TxnLifecycleManager#beginChildTransaction(com.splicemachine.si.api.txn.TxnView, com.splicemachine.si.api.txn.Txn.IsolationLevel, boolean, byte[])
 		 */
 		protected final SpliceTransaction startCommonTransaction(HBaseStore hbaseStore,
 																										 ContextManager contextMgr,

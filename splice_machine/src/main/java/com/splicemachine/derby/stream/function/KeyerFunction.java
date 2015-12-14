@@ -8,7 +8,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 
 public class KeyerFunction<T extends KeyableRow> extends SpliceFunction<SpliceOperation,T, ExecRow> {
 

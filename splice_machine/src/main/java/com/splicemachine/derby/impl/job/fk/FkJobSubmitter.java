@@ -9,7 +9,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 import java.util.List;
 

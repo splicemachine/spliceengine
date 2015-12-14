@@ -3,7 +3,7 @@ package com.splicemachine.derby.stream.output.delete;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Base64;
 import java.io.Externalizable;

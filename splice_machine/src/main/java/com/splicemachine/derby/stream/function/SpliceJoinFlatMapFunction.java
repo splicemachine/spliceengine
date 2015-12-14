@@ -4,10 +4,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import com.google.common.base.Function;
 
-import javax.annotation.Nullable;
 import java.io.Serializable;
 
 /**

@@ -9,7 +9,7 @@ import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.MergingWriteStats;
 import com.splicemachine.pipeline.writeconfiguration.UpdatingWriteConfiguration;
 import com.splicemachine.pipeline.writer.RegulatedWriter;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;

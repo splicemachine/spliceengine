@@ -6,8 +6,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.hbase.AbstractSkippingScanFilter;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -63,7 +63,7 @@ public class Scans extends SpliceUtils {
     }
 
     /**
-     * Convenience utility for calling {@link #newScan(byte[], byte[], com.splicemachine.si.api.Txn, int)} when
+     * Convenience utility for calling {@link #newScan(byte[], byte[], com.splicemachine.si.api.txn.Txn, int)} when
      * the Default cache size is acceptable and the transactionID is a string.
      *
      * @param start  the start row of the scan

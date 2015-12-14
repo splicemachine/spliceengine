@@ -9,7 +9,7 @@ import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
-import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.TrafficControl;

@@ -1,8 +1,6 @@
 package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;

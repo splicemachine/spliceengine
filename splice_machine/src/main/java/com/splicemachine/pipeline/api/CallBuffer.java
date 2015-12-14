@@ -1,9 +1,6 @@
 package com.splicemachine.pipeline.api;
 
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.si.api.TxnView;
-
-import java.util.Collection;
+import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * This is an interface to a data structure to buffer (or queue) HBase RPC calls.

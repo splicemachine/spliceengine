@@ -1,6 +1,6 @@
 package com.splicemachine.derby.iapi.storage;
 
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.txn.Txn;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 

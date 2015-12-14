@@ -1,6 +1,6 @@
 package com.splicemachine.pipeline.impl;
 
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 import java.util.ArrayList;
 import java.util.Collection;

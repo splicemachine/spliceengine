@@ -4,7 +4,7 @@ import com.splicemachine.encoding.ExpandedDecoder;
 import com.splicemachine.encoding.ExpandingEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 
 import java.util.AbstractCollection;

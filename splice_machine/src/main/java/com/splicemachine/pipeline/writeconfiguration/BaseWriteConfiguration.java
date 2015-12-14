@@ -1,6 +1,5 @@
 package com.splicemachine.pipeline.writeconfiguration;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
 import org.apache.log4j.Logger;
@@ -8,7 +7,6 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -17,7 +15,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWriteResult;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
 
 import java.util.concurrent.ExecutionException;
 

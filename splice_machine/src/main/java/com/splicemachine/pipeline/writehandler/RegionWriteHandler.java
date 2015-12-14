@@ -13,7 +13,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;

@@ -11,7 +11,7 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import java.io.IOException;
 import java.util.List;
 

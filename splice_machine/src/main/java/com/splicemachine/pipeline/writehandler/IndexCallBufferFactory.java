@@ -7,7 +7,7 @@ import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.pipeline.writeconfiguration.IndexSharedWriteConfiguration;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 /*
  * When performing the region-side processing of a base-table BulkWrite, writing to N regions on a single region server,

@@ -2,11 +2,10 @@ package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.derby.stream.output.SMRecordWriter;
 import com.splicemachine.derby.stream.output.SpliceOutputCommitter;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;

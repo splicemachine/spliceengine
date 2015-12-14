@@ -3,7 +3,7 @@ package com.splicemachine.pipeline.callbuffer;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.WriteConfiguration;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * @author Scott Fines

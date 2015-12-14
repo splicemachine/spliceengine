@@ -1,17 +1,14 @@
 package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Base64;
@@ -79,7 +76,7 @@ public class HTableScannerBuilder implements Externalizable {
     }
 
     public HTableScanner build(){
-        return new HTableScanner(SIFactoryDriver.siFactory.getDataLib(),
+        return new HTableScanner(SIDriver.siFactory.getDataLib(),
                 scanner,
                 region,
                 scan,

@@ -2,8 +2,8 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.esotericsoftware.kryo.KryoException;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.Cell;
@@ -15,7 +15,7 @@ import java.io.IOException;
  * Date: 11/15/13
  */
 public class PairDecoder<Data> {
-		private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+		private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
 		private final KeyDecoder keyDecoder;
 		private final KeyHashDecoder rowDecoder;
 		private final ExecRow templateRow;

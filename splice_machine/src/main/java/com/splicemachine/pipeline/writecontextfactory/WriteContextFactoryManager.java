@@ -1,6 +1,6 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
-import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.server.TransactionalRegion;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

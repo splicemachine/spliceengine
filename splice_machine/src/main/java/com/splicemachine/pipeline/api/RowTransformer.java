@@ -2,8 +2,6 @@ package com.splicemachine.pipeline.api;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

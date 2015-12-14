@@ -29,7 +29,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 

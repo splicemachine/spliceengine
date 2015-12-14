@@ -3,12 +3,8 @@ package com.splicemachine.pipeline.utils;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
-
-import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.log4j.Logger;
 
@@ -18,11 +14,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.compress.SnappyCodec;
-import org.apache.log4j.Logger;
-
-import java.lang.reflect.Method;
 
 public class PipelineConstants extends SIConstants {
 		private static final Logger LOG = Logger.getLogger(PipelineConstants.class);

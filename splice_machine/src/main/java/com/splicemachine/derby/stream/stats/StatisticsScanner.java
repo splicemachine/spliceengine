@@ -10,9 +10,9 @@ import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatisti
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.stats.ColumnStatistics;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;

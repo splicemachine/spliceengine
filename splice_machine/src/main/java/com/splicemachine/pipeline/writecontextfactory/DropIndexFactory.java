@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 import java.io.IOException;
 

@@ -1,8 +1,8 @@
 package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import java.io.Closeable;
@@ -13,7 +13,7 @@ import java.io.IOException;
  * Date: 11/15/13
  */
 public class KeyDecoder<Data> implements Closeable{
-		private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+		private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
 		private final KeyHashDecoder hashDecoder;
 		private final int prefixOffset;
 

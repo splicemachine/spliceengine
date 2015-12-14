@@ -47,8 +47,8 @@ import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**

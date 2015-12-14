@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.si.api.SIFactory;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
 import java.io.IOException;
@@ -15,7 +15,7 @@ public class ActiveTransactionReader {
     private final long minTxnId;
     private final long maxTxnId;
     private final byte[] writeTable;
-    private static final SIFactory siFactory = SIFactoryDriver.getSIFactory();
+    private static final SIFactory siFactory = SIDriver.getSIFactory();
 
     public ActiveTransactionReader(long minTxnId, long maxTxnId, byte[] writeTable){
         this.minTxnId = minTxnId;

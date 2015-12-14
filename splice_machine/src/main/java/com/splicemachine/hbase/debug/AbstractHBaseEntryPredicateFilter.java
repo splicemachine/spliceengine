@@ -4,19 +4,17 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.filter.Filter;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public abstract class AbstractHBaseEntryPredicateFilter<Data> extends FilterBase implements Writable {
-	private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+	private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
     private EntryPredicateFilter epf;
     private EntryAccumulator accumulator;
     private EntryDecoder decoder;

@@ -10,7 +10,7 @@ import com.splicemachine.pipeline.writeconfiguration.DefaultWriteConfiguration;
 import com.splicemachine.pipeline.writeconfiguration.ForwardingWriteConfiguration;
 import com.splicemachine.pipeline.writer.AsyncBucketingWriter;
 import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import javax.management.*;
 import java.io.IOException;

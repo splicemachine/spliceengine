@@ -1,10 +1,8 @@
 package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.PublicAPI;

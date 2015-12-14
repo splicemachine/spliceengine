@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 

@@ -1,7 +1,6 @@
 package com.splicemachine.derby.stream.function.merge;
 
 import com.google.common.base.Function;
-import org.sparkproject.guava.collect.FluentIterable;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
@@ -9,16 +8,11 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
-import com.splicemachine.derby.stream.function.CountReadFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
-import com.splicemachine.derby.stream.iterator.merge.MergeAntiJoinIterator;
-import com.splicemachine.derby.stream.iterator.merge.MergeInnerJoinIterator;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;

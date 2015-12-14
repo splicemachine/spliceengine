@@ -6,7 +6,7 @@ import com.splicemachine.ddl.DDLMessage;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * Simply delegates to another TransactionalRegion, keeps a reference count, only invokes real close() when ref count

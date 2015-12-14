@@ -3,7 +3,7 @@ package com.splicemachine.pipeline.writecontextfactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import java.io.IOException;
 

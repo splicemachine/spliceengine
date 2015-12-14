@@ -6,7 +6,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iterator.merge.MergeOuterJoinIterator;
 import org.apache.log4j.Logger;
 import com.google.common.collect.PeekingIterator;
 

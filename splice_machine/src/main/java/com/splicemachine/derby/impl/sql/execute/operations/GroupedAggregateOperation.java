@@ -11,8 +11,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.spark.SparkConstants;
-import com.splicemachine.derby.stream.spark.SparkDataSet;
-import com.splicemachine.derby.stream.spark.SparkPairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
@@ -26,7 +24,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.Properties;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
