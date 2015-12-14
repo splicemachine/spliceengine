@@ -78,7 +78,6 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
     // but use a short just in case.
     private AtomicInteger clientCallCounter = new AtomicInteger(CLIENT_COUNTER_INIT);
 
-    private int port;
     int timeoutMillis;
 
     // Metrics to expose via JMX. See TimestampRegionManagement
@@ -88,9 +87,8 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
     private TimestampHostProvider timestampHostProvider;
 
 
-    public TimestampClient(int port, int timeoutMillis,TimestampHostProvider timestampHostProvider) {
+    public TimestampClient(int timeoutMillis,TimestampHostProvider timestampHostProvider) {
         this.timeoutMillis = timeoutMillis;
-        this.port = port;
         this.timestampHostProvider = timestampHostProvider;
         clientCallbacks = new ConcurrentHashMap<>();
 
@@ -146,7 +144,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
      * to the timestamp server.
      */
     protected int getPort() {
-        return port;
+        return timestampHostProvider.getPort();
     }
 
     protected void connectIfNeeded() throws TimestampIOException {

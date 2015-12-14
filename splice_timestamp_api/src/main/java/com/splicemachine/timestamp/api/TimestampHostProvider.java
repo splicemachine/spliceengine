@@ -7,4 +7,5 @@ import com.splicemachine.timestamp.impl.TimestampIOException;
  */
 public interface TimestampHostProvider {
     public String getHost() throws TimestampIOException;
+    public int getPort();
 }
