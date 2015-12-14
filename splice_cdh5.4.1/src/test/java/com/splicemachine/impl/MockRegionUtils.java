@@ -2,6 +2,7 @@ package com.splicemachine.impl;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
+import com.splicemachine.si.impl.IteratorRegionScanner;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -17,7 +18,6 @@ import java.io.IOException;
 import java.util.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
-import com.splicemachine.impl.IteratorRegionScanner;
 
 /**
  * @author Scott Fines

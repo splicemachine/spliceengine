@@ -28,8 +28,8 @@
         <module>splice_timestamp_api</module>
         <module>splice_si_api</module>
         <module>splice_access_api</module>
+<!--        <module>splice_memory</module>  -->
         <module>splice_cdh5.4.1</module>
-        <module>splice_memory</module>
         <module>splice_si</module>
         <module>splice_dataset_api</module>
     </modules>

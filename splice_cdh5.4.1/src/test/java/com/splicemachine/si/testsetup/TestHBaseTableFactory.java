@@ -2,9 +2,7 @@ package com.splicemachine.si.testsetup;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.access.hbase.HBaseTableFactory;
-import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;

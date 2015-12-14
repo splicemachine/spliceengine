@@ -1,25 +1,10 @@
 package com.splicemachine.si.impl.data.light;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.KeyValueUtils;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.primitives.Bytes;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.*;
 

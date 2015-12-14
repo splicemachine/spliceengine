@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.impl.MockRegionUtils;
-import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.driver.SIFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
