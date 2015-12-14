@@ -1,9 +1,8 @@
 package com.splicemachine.si.data.hbase;
 
 import com.google.common.collect.Iterables;
-import com.splicemachine.com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.region.ActiveTxnFilter;
@@ -14,7 +13,6 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Pair;

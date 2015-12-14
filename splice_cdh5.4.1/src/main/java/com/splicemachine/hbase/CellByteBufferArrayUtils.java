@@ -1,4 +1,4 @@
-package com.splicemachine.com.splicemachine.hbase;
+package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.lucene.util.ArrayUtil;

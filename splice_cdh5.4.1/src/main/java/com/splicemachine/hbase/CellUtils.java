@@ -1,4 +1,4 @@
-package com.splicemachine.com.splicemachine.hbase;
+package com.splicemachine.hbase;
 
 import java.util.List;
 import org.apache.hadoop.hbase.Cell;
