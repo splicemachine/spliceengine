@@ -5,21 +5,20 @@ import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.impl.region.ActiveTxnFilter;
-import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
 import static com.splicemachine.si.constants.SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP;
@@ -528,22 +527,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,Cell,Delete,Fi
 			return new ActiveTxnFilter(beforeTs,afterTs,destinationTable);
 		}
 
-		@Override
-		public InternalScanner getCompactionScanner(InternalScanner scanner,
-				SICompactionState state) {
-			 return new SICompactionScanner(state,scanner,this);			
-		}
-
-		@Override
-		public boolean internalScannerNext(InternalScanner internalScanner,
-				List<Cell> data) throws IOException {
-			return internalScanner.next(data);
-		}
-
-		@Override
-		public boolean isDataInRange(Cell data, Pair<byte[], byte[]> range) {
-			return CellUtils.isKeyValueInRange(data, range);
-		}
 
 		@Override
 		public byte[] getDataQualifierBuffer(Cell element) {
@@ -604,4 +587,76 @@ public class HDataLib implements SDataLib<OperationWithAttributes,Cell,Delete,Fi
 		public boolean matchingQualifier(Cell element, byte[] qualifier) {
 			return CellUtil.matchingQualifier(element, qualifier);
 		}
+
+
+    @Override
+    public void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, byte[] value) {
+        put.addColumn(family,qualifier,value);
+    }
+
+    @Override
+    public Get newGet(byte[] key) {
+        return new Get(key);
+    }
+
+    @Override
+    public void addFamilyQualifierToGet(Get get, byte[] family, byte[] column) {
+        get.addColumn(family,column);
+
+    }
+
+    @Override
+    public Scan newScan() {
+        return new Scan();
+    }
+
+    @Override
+    public Scan newScan(byte[] startRowKey, byte[] endRowKey) {
+        return new Scan(startRowKey,endRowKey);
+    }
+
+    @Override
+    public void setScanMaxVersions(Scan scan, int maxVersions) {
+        scan.setMaxVersions(maxVersions);
+    }
+
+    @Override
+    public Map<byte[], byte[]> getFamilyMap(Result result, byte[] family) {
+        return null;
+    }
+
+    @Override
+    public void setAttribute(OperationWithAttributes operation, String name, byte[] value) {
+
+    }
+
+    @Override
+    public byte[] getAttribute(OperationWithAttributes operation, String attributeName) {
+        return new byte[0];
+    }
+
+    @Override
+    public boolean noResult(Result result) {
+        return false;
+    }
+
+    @Override
+    public void setFilterOnScan(Scan scan, Filter filter) {
+
+    }
+
+    @Override
+    public int getResultSize(Result result) {
+        return 0;
+    }
+
+    @Override
+    public boolean isResultEmpty(Result result) {
+        return false;
+    }
+
+    @Override
+    public ConstraintChecker getNoOpConstraintChecker() {
+        return null;
+    }
 }

@@ -641,7 +641,7 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         // Update counter value if the calling transaction started after counter value.
         if (txnView.getTxnId() > counterTransactionId) {
             long offset = txnView.getTxnId() - counterTransactionId;
-            tableWriter.increment(hbRegion, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES, offset, rowLock);
+            tableWriter.increment(hbRegion, rowKey,DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES, offset);
         }
         // Throw WriteConflict exception if the target row has already been deleted concurrently.
         Result possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle((Table) hbRegion, rowKey);

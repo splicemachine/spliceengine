@@ -36,6 +36,7 @@ public interface IHTable<OperationWithAttributes,Delete extends OperationWithAtt
     SRowLock tryLock(ByteSlice rowKey) throws IOException;
     byte[] getStartKey();
     byte[] getEndKey();
-    void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, SRowLock rowLock) throws IOException;
-
+    void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException;
+    boolean isClosed();
+    boolean isClosing();
 }

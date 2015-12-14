@@ -5,6 +5,7 @@ import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.api.data.IHTable;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.readresolve.RollForwardAction;
+import com.splicemachine.si.impl.readresolve.RegionSegmentContext;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -138,7 +139,7 @@ public class SegmentedRollForward implements RollForward {
                     if(LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG,"Submitting task on segment %s as it has the largest size of %d",maxSegment,maxSize);
                     maxSegment.markInProgress();
-                    action.submitAction(region,maxSegment.getRangeStart(),maxSegment.getRangeEnd(),new Context(maxSegment,status));
+                    action.submitAction(region,maxSegment.getRangeStart(),maxSegment.getRangeEnd(),new RegionSegmentContext(maxSegment,status));
                 }finally{
                     //reschedule us for future execution
                     rollForwardScheduler.schedule(this,rollForwardIntervalMs,TimeUnit.MILLISECONDS);
@@ -158,7 +159,7 @@ public class SegmentedRollForward implements RollForward {
 		 *
 		 * The strategy is to repeatedly subdivide the ranges until we reach the number of sugments specified.
 		 */
-        List<Pair<byte[], byte[]>> endPoints=split(region.getRegionInfo().getStartKey(),region.getRegionInfo().getEndKey(),numSegments);
+        List<Pair<byte[], byte[]>> endPoints=split(region.getStartKey(),region.getEndKey(),numSegments);
 
         RegionSegment[] segments=new RegionSegment[endPoints.size()];
         //e is in sorted order, so just make an entry
@@ -377,7 +378,7 @@ public class SegmentedRollForward implements RollForward {
                     SpliceLogUtils.trace(LOG,"segment %s has %d transactions, exceeding the threshold. Rolling forward",regionSegment,uniqueTxns);
                 //we've exceeded our thresholds, a RollForward action is a good option now
                 regionSegment.markInProgress();
-                action.submitAction(region,regionSegment.getRangeStart(),regionSegment.getRangeEnd(),new Context(regionSegment,status));
+                action.submitAction(region,regionSegment.getRangeStart(),regionSegment.getRangeEnd(),new RegionSegmentContext(regionSegment,status));
             }
         }
     }

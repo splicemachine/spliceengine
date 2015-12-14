@@ -104,8 +104,7 @@ public class HbRegion extends BaseHbRegion {
     }
 
     @Override
-    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, SRowLock rowLock) throws IOException {
-        // 98 increment method does not require row lock.
+    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException {
         Increment increment = new Increment(rowKey);
         increment.addColumn(family, qualifier, amount);
         region.increment(increment);
@@ -174,4 +173,13 @@ public class HbRegion extends BaseHbRegion {
         return region.batchMutate(mutations);
     }
 
+    @Override
+    public boolean isClosed() {
+        return region.isClosed();
+    }
+
+    @Override
+    public boolean isClosing() {
+        return region.isClosing();
+    }
 }

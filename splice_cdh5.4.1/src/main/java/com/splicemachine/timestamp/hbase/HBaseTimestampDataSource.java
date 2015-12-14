@@ -23,11 +23,11 @@ public class HBaseTimestampDataSource implements TimestampDataSource {
      *
      * @param rzk
      * @param blockNode Pointer to the specific znode instance that is specifically configured for timestamp block storage
-     * @param blockSize
      */
-    public HBaseTimestampDataSource(RecoverableZooKeeper rzk, String blockNode) {
+    public HBaseTimestampDataSource(RecoverableZooKeeper rzk, String blockNode, int blockSize) {
         this.rzk = rzk;
         this.blockNode = blockNode;
+        this.blockSize = blockSize;
     }
 
 

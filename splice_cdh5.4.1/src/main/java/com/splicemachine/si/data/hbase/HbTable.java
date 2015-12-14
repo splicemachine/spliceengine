@@ -90,7 +90,7 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     }
 
     @Override
-    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, SRowLock rowLock) throws IOException {
+    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException {
         throw new UnsupportedOperationException("Cannot increment with row lock at table level.");
     }
 
@@ -153,5 +153,15 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     @Override
     public byte[] getEndKey() {
         return HConstants.EMPTY_END_ROW;
+    }
+
+    @Override
+    public boolean isClosed() {
+        throw new RuntimeException("Not to be called on Table");
+    }
+
+    @Override
+    public boolean isClosing() {
+        throw new RuntimeException("not to be called on table");
     }
 }

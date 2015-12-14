@@ -28,6 +28,6 @@ public interface STableWriter<Delete,Mutation,OperationStatus,Put,RowLock,Table>
     SRowLock lockRow(Table Table, byte[] rowKey) throws IOException;
     void unLockRow(Table Table, SRowLock lock) throws IOException;
     boolean checkAndPut(Table Table, byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
-    void increment (Table table,byte[] family,byte[] column,long offset,RowLock rowLock);
+    void increment(Table table,byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException;
 
 }

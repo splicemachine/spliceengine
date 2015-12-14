@@ -35,8 +35,8 @@ public class HTableWriter implements STableWriter<Delete,Mutation,OperationStatu
     }
 
     @Override
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, SRowLock>[] puts) throws IOException {
-        return table.batchPut(puts);
+    public OperationStatus[] writeBatch(IHTable table, Pair[] puts) throws IOException {
+        return (OperationStatus[])table.batchPut(puts); // Need to fix..  JL-TODO
     }
 
     @Override
@@ -67,5 +67,10 @@ public class HTableWriter implements STableWriter<Delete,Mutation,OperationStatu
     @Override
     public void unLockRow(IHTable table, SRowLock lock) throws IOException {
         table.unLockRow(lock);
+    }
+
+    @Override
+    public void increment(IHTable table, byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException {
+        table.increment(rowKey,family,qualifier,amount);
     }
 }

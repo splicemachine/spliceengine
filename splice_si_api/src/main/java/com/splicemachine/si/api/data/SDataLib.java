@@ -43,7 +43,7 @@ public interface SDataLib<OperationWithAttributes,Data,Delete extends OperationW
     Scan newScan(byte[] startRowKey, byte[] endRowKey);
     void setScanTimeRange(Scan get, long minTimestamp, long maxTimestamp);
     void setScanMaxVersions(Scan get);
-    void setScanMaxVersions(Scan get, long maxVersions);
+    void setScanMaxVersions(Scan get, int maxVersions);
 	void addFamilyToScan(Scan read, byte[] family);
     void addFamilyToScanIfNeeded(Scan get, byte[] family);
     Delete newDelete(byte[] rowKey);
