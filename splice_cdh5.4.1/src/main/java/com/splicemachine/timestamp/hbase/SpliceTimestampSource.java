@@ -1,4 +1,4 @@
-package com.splicemachine.si.txn;
+package com.splicemachine.timestamp.hbase;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.timestamp.impl.TimestampServer;
 
 /**
  * Timestamp source implementation that utilizes a special purpose service
@@ -36,7 +37,8 @@ public class SpliceTimestampSource implements TimestampSource {
     	synchronized(this) {
     		if (_tc == null) {
 		    	LOG.info("Creating the TimestampClient...");
-		    	_tc = new TimestampClient();
+                _tc = new TimestampClient(SpliceConstants.timestampClientWaitTime,
+                        new HBaseTimestampHostProvider());
     		}
     	}
     }
