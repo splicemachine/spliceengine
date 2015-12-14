@@ -2,11 +2,11 @@ package com.splicemachine.si.impl.rollforward;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.annotations.ThreadSafe;
-import com.splicemachine.si.api.RollForward;
-import com.splicemachine.si.data.api.IHTable;
+import com.splicemachine.si.api.data.IHTable;
+import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.readresolve.RollForwardAction;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  *         Date: 7/2/14
  */
-public class SegmentedRollForward implements RollForward{
+public class SegmentedRollForward implements RollForward {
     private static final Logger LOG=Logger.getLogger(SegmentedRollForward.class);
 
     public static class Context{
@@ -81,7 +81,7 @@ public class SegmentedRollForward implements RollForward{
     private final long rollForwardRowThreshold;
     private final long rollForwardTransactionThreshold;
 
-    private final Action action;
+    private final RollForwardAction action;
 
     private final AtomicLong updateCount=new AtomicLong(0l);
     private final RollForwardStatus status;
@@ -92,7 +92,7 @@ public class SegmentedRollForward implements RollForward{
                                 long rollForwardRowThreshold,
                                 long rollForwardTransactionThreshold,
                                 final long rollForwardIntervalMs,
-                                final @ThreadSafe Action action,
+                                final @ThreadSafe RollForwardAction action,
                                 final RollForwardStatus status){
         this.region=region;
         this.segments=buildSegments(region,numSegments);

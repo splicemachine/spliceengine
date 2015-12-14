@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * An HBase filter that applies SI logic when reading data values.
  */
-public class SIFilterPacked extends FilterBase implements Writeable {
+public class SIFilterPacked extends FilterBase {
         BaseSIFilterPacked<Cell,Filter,Get,Result,ReturnCode,Scan> baseSIFilterPacked;
 
 		public SIFilterPacked() {
@@ -56,8 +56,4 @@ public class SIFilterPacked extends FilterBase implements Writeable {
 	        }
 	    }
 
-    @Override
-    public void write(OutputStream outputStream) {
-
-    }
 }

@@ -525,13 +525,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,Cell,Delete,Fi
 		}
 
 		@Override
-		public MeasuredRegionScanner<Cell> getBufferedRegionScanner(HRegion region,
-				RegionScanner delegate, Scan scan, int bufferSize,
-				MetricFactory metricFactory) {
-			return new BufferedRegionScanner(region,delegate,scan,bufferSize,metricFactory,this);
-		}
-
-		@Override
 		public Filter getActiveTransactionFilter(long beforeTs, long afterTs,
 				byte[] destinationTable) {
 			return new ActiveTxnFilter(beforeTs,afterTs,destinationTable);

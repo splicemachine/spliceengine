@@ -1,4 +1,4 @@
-package com.splicemachine.si.api;
+package com.splicemachine.si.impl;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 

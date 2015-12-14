@@ -11,6 +11,10 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Scott Fines
@@ -34,7 +38,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 				this.maxWaitIntervalMs = maxWaitIntervalMs;
 				ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("keepAlive-thread-%d").setDaemon(true).build();
 
-				this.threadPool = Executors.newScheduledThreadPool(numKeepers,factory);
+				this.threadPool = Executors.newScheduledThreadPool(numKeepers, factory);
 				this.random = ThreadLocalRandom.current();
 				this.txnStore = txnStore;
 				this.maxKeepAliveIntervalMs = maxKeepAliveIntervalMs;
