@@ -7,6 +7,7 @@ import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.txn.WritableTxn;
+import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.util.*;

@@ -4,7 +4,6 @@ import com.splicemachine.si.api.driver.SIFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.junit.Assert;
 import org.junit.Test;
-import com.splicemachine.si.api.SIFactory;
 
 public class SIFactoryTest {
 	@Test

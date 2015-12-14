@@ -28,7 +28,7 @@ public class RegionTxnStoreTest extends TxnTestUtils {
 		public void testCanWriteAndReadNewTransactionInformation() throws Exception {
 				HRegion region = MockRegionUtils.getMockRegion();
 				TransactionResolver resolver = getTransactionResolver();
-				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class), SIDriver.siFactory.getDataLib(), SIDriver.siFactory.getTransactionLib());
+				RegionTxnStore store = new RegionTxnStore(region,resolver,mock(TxnSupplier.class), SIDriver.siFactory.getTransactionLib());
 				Object txn = factory.getTransaction(1,1,-1,-1,-1,true,true, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE,"1234");
 				factory.storeTransaction(store,txn);
 				assertTxnsMatch("Transactions do not match!",txn,store.getTransaction(1));

@@ -1,7 +1,5 @@
 package com.splicemachine.si.impl.region;
 
-import com.carrotsearch.hppc.LongArrayList;
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.si.api.data.SExceptionLib;
 import com.splicemachine.si.api.txn.STransactionLib;
 import com.splicemachine.si.api.txn.Txn;
@@ -9,16 +7,13 @@ import com.splicemachine.si.api.txn.TxnDecoder;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.IHTable;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;

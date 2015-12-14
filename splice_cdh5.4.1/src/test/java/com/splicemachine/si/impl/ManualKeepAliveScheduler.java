@@ -1,9 +1,8 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.TransactionTimeoutException;
+import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
