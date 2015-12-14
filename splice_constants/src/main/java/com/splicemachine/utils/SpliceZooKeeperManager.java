@@ -8,7 +8,6 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-
 import java.io.Closeable;
 import java.io.IOException;
 

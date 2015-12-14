@@ -2,8 +2,6 @@ package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.KeyValue;
 
-import com.splicemachine.constants.SpliceConstants;
-
 /**
  * @author Scott Fines
  *         Date: 2/14/14

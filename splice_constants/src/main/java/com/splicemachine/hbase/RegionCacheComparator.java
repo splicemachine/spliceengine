@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.util.Pair;
  * 
  *
  */
+@Deprecated
 public class RegionCacheComparator implements Comparator<Pair<HRegionInfo,ServerName>>{
 
 	@Override

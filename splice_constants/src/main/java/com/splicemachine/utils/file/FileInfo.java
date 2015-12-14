@@ -1,7 +1,6 @@
 package com.splicemachine.utils.file;
 
 import org.apache.hadoop.fs.Path;
-
 import java.io.IOException;
 
 /**
