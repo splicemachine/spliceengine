@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.timestamp.api.TimestampDataSource;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
@@ -28,12 +28,12 @@ public class TimestampServer {
     private int port;
     private ChannelFactory factory;
     private Channel channel;
-    private TimestampDataSource timestampDataSource;
+    private TimestampBlockManager timestampBlockManager;
     private int blockSize;
 
-    public TimestampServer(int port, TimestampDataSource timestampDataSource, int blockSize) {
+    public TimestampServer(int port, TimestampBlockManager timestampBlockManager, int blockSize) {
         this.port = port;
-        this.timestampDataSource = timestampDataSource;
+        this.timestampBlockManager=timestampBlockManager;
         this.blockSize = blockSize;
     }
 
@@ -47,7 +47,7 @@ public class TimestampServer {
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
 
         // Instantiate handler once and share it
-        final TimestampServerHandler handler = new TimestampServerHandler(timestampDataSource,blockSize);
+        final TimestampServerHandler handler = new TimestampServerHandler(timestampBlockManager,blockSize);
 
         // If we end up needing to use one of the memory aware executors,
         // do so with code like this (leave commented out for reference).

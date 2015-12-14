@@ -18,8 +18,10 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
+import com.splicemachine.timestamp.api.Callback;
+import com.splicemachine.timestamp.api.TimestampClientStatistics;
 import com.splicemachine.timestamp.api.TimestampHostProvider;
-import com.splicemachine.timestamp.api.TimestampRegionManagement;
+import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
@@ -39,7 +41,7 @@ import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
  *
  * @author Walt Koetke
  */
-public class TimestampClient extends TimestampBaseHandler implements TimestampRegionManagement {
+public class TimestampClient extends TimestampBaseHandler implements TimestampClientStatistics{
 
 
     private static final Logger LOG = Logger.getLogger(TimestampClient.class);
@@ -59,7 +61,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
      * A map representing all currently active callers to this TimestampClient
      * waiting for their response.
      */
-    private ConcurrentMap<Short, ClientCallback> clientCallbacks = null;
+    private ConcurrentMap<Short, Callback> clientCallbacks = null;
 
     private final AtomicReference<State> state = new AtomicReference<>(State.DISCONNECTED);
 
@@ -80,7 +82,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 
     int timeoutMillis;
 
-    // Metrics to expose via JMX. See TimestampRegionManagement
+    // Metrics to expose via JMX. See TimestampClientStatistics
     // for solid definitions of each metric.
     private AtomicLong numRequests = new AtomicLong(0);
     private AtomicLong totalRequestDuration = new AtomicLong(0);
@@ -147,7 +149,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         return timestampHostProvider.getPort();
     }
 
-    protected void connectIfNeeded() throws TimestampIOException {
+    protected void connectIfNeeded() throws TimestampIOException{
 
         // Even though state is an atomic reference, synchronize on whole block
         // including code that attempts connection. Otherwise, two threads might
@@ -272,7 +274,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         ensureReadableBytes(buf, 0);
 
         SpliceLogUtils.debug(LOG, "Response from server: clientCallerId = %s, timestamp = %s", clientCallerId, timestamp);
-        ClientCallback cb = clientCallbacks.remove(clientCallerId);
+        Callback cb = clientCallbacks.remove(clientCallerId);
         if (cb == null) {
             doClientErrorThrow(LOG, "Client callback with id %s not found, so unable to deliver timestamp %s", null, clientCallerId, timestamp);
         }
@@ -329,7 +331,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
     }
 
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement"); // Same string is in JMXUtils
+        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.request:type=TimestampClientStatistics"); // Same string is in JMXUtils
         mbs.registerMBean(this, name);
     }
 

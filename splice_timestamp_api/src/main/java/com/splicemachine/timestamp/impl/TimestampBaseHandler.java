@@ -1,5 +1,6 @@
 package com.splicemachine.timestamp.impl;
 
+import com.splicemachine.timestamp.api.TimestampIOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -76,7 +77,7 @@ public abstract class TimestampBaseHandler extends SimpleChannelHandler {
     	super.childChannelClosed(ctx, e);
     }
 
-    protected void ensureReadableBytes(ChannelBuffer buf, int expected) throws TimestampIOException {
+    protected void ensureReadableBytes(ChannelBuffer buf, int expected) throws TimestampIOException{
  		if (buf.readableBytes() != expected) {
  			throw new TimestampIOException("Invalid number of readable bytes " + buf.readableBytes() +
 				" where " + expected + " was expected.");

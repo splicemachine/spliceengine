@@ -1,6 +1,7 @@
 package com.splicemachine.timestamp.impl;
 
-import com.splicemachine.timestamp.api.TimestampDataSource;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -15,20 +16,20 @@ public class TimestampServerHandler extends TimestampBaseHandler {
     private static final Logger LOG = Logger.getLogger(TimestampServerHandler.class);
 
     private TimestampOracle oracle;
-    private TimestampDataSource timestampDataSource;
+    private TimestampBlockManager timestampBlockManager;
     private int blockSize;
 
-    public TimestampServerHandler(TimestampDataSource timestampDataSource, int blockSize) {
+    public TimestampServerHandler(TimestampBlockManager timestampBlockManager, int blockSize) {
         super();
-        this.timestampDataSource = timestampDataSource;
+        this.timestampBlockManager=timestampBlockManager;
         this.blockSize = blockSize;
     }
 
-    public void initializeIfNeeded() throws TimestampIOException {
+    public void initializeIfNeeded() throws TimestampIOException{
         SpliceLogUtils.trace(LOG, "Checking whether initialization is needed");
         synchronized (this) {
             if (oracle == null) {
-                oracle = TimestampOracle.getInstance(timestampDataSource,blockSize);
+                oracle = TimestampOracle.getInstance(timestampBlockManager,blockSize);
             }
         }
     }

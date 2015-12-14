@@ -10,7 +10,7 @@ import javax.management.MXBean;
  */
 
 @MXBean
-public interface TimestampMasterManagement {
+public interface TimestampOracleStatistics{
 
     /**
      * Returns the total number of timestamps that have been created
@@ -18,7 +18,7 @@ public interface TimestampMasterManagement {
      * 
      * @return number of timestamps created
      */
-	public long getNumberTimestampsCreated();
+    long getNumberTimestampsCreated();
 	
     /**
      * Returns the total number of timestamp 'blocks' reserved
@@ -26,6 +26,6 @@ public interface TimestampMasterManagement {
      * 
      * @return number of timestamp blocks reserved
      */
-	public long getNumberBlocksReserved();
+    long getNumberBlocksReserved();
 	
 }

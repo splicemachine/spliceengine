@@ -1,4 +1,4 @@
-package com.splicemachine.timestamp.impl;
+package com.splicemachine.timestamp.api;
 
 import java.io.IOException;
 

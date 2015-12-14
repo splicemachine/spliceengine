@@ -10,10 +10,10 @@ import javax.management.MXBean;
  */
 
 @MXBean
-public interface TimestampRegionManagement {
+public interface TimestampClientStatistics{
 
-	public long getNumberTimestampRequests();
+	long getNumberTimestampRequests();
 	
- 	public double getAvgTimestampRequestDuration();
+ 	double getAvgTimestampRequestDuration();
 	
 }

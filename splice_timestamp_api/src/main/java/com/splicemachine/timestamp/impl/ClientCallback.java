@@ -32,6 +32,28 @@ public class ClientCallback implements Callback {
         return _latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
+    public boolean awaitUninterruptibly(long timeoutMillis){
+        boolean interrupted =false;
+        long timeRemaining = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+        while(timeRemaining>0){
+            try{
+                long t = System.nanoTime();
+                if(_latch.await(timeRemaining,TimeUnit.NANOSECONDS)){
+                    if(interrupted)
+                        Thread.currentThread().interrupt(); //reset the interrupt flag
+                    return true;
+                }
+                timeRemaining-=(System.nanoTime()-t);
+            }catch(InterruptedException e){
+                interrupted=true;
+                Thread.interrupted(); //clear the interrupt status temporarily
+            }
+        }
+        if(interrupted)
+            Thread.currentThread().interrupt(); //reset the interrupt flag
+        return false;
+    }
+
     public long getNewTimestamp() {
     	return _newTimestamp;
     }

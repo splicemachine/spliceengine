@@ -1,7 +1,8 @@
 package com.splicemachine.timestamp.impl;
 
-import com.splicemachine.timestamp.api.TimestampDataSource;
-import com.splicemachine.timestamp.api.TimestampMasterManagement;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.timestamp.api.TimestampIOException;
+import com.splicemachine.timestamp.api.TimestampOracleStatistics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.lang.management.ManagementFactory;
@@ -13,7 +14,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-public class TimestampOracle implements TimestampMasterManagement {
+public class TimestampOracle implements TimestampOracleStatistics{
 
     private static final Logger LOG = Logger.getLogger(TimestampOracle.class);
 
@@ -24,41 +25,44 @@ public class TimestampOracle implements TimestampMasterManagement {
 	private volatile long _maxReservedTimestamp = -1l;
 
 	// Singleton instance, used by TimestampServerHandler
-	private static TimestampOracle _instance;
+	private static volatile TimestampOracle _instance;
 	
-	// Metrics to expose via JMX. See TimestampMasterManagement
+	// Metrics to expose via JMX. See TimestampOracleStatistics
 	// for solid definitions of each metric.
     private AtomicLong _numBlocksReserved = new AtomicLong(0);
     private AtomicLong _numTimestampsCreated = new AtomicLong(0);
 
-    private TimestampDataSource timestampDataSource;
+    private TimestampBlockManager timestampBlockManager;
     private int blockSize;
 
-    public static final TimestampOracle getInstance(TimestampDataSource timestampDataSource, int blockSize)
-	    throws TimestampIOException {
-		synchronized(TimestampOracle.class) {
-			if (_instance == null) {
-                SpliceLogUtils.info(LOG, "Initializing TimestampOracle...");
-				_instance = new TimestampOracle(timestampDataSource,blockSize);
+    public static TimestampOracle getInstance(TimestampBlockManager timestampBlockManager, int blockSize) throws TimestampIOException{
+		TimestampOracle to = _instance;
+		if(to==null){
+			synchronized(TimestampOracle.class){
+				to = _instance;
+				if(to==null){
+					SpliceLogUtils.info(LOG,"Initializing TimestampOracle...");
+					to=_instance=new TimestampOracle(timestampBlockManager,blockSize);
+				}
 			}
-			return _instance;
 		}
+		return to;
 	}
 	
-	private TimestampOracle(TimestampDataSource timestampDataSource, int blockSize) throws TimestampIOException {
-        this.timestampDataSource = timestampDataSource;
+	private TimestampOracle(TimestampBlockManager timestampBlockManager, int blockSize) throws TimestampIOException {
+        this.timestampBlockManager=timestampBlockManager;
         this.blockSize = blockSize;
 		initialize();
 	}
 
     /**
-     * Read the current state of the block from the timestampDataSource
+     * Read the current state of the block from the timestampBlockManager
      *
      * @throws TimestampIOException
      */
 	private void initialize() throws TimestampIOException {
 			synchronized(this) {
-                _maxReservedTimestamp = timestampDataSource.initialize();
+                _maxReservedTimestamp = timestampBlockManager.initialize();
 				_timestampCounter.set(_maxReservedTimestamp + 1);
 			}
 			try {
@@ -82,7 +86,7 @@ public class TimestampOracle implements TimestampMasterManagement {
         synchronized(this)  {
             if (_maxReservedTimestamp > priorMaxReservedTimestamp) return; // some other thread got there first
             long nextMax = _maxReservedTimestamp + blockSize;
-            timestampDataSource.reserveNextBlock(nextMax);
+            timestampBlockManager.reserveNextBlock(nextMax);
             _maxReservedTimestamp = nextMax;
             _numBlocksReserved.incrementAndGet(); // JMX metric
             SpliceLogUtils.debug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
@@ -96,7 +100,7 @@ public class TimestampOracle implements TimestampMasterManagement {
 	}
 
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement");  // Same string is in JMXUtils
+        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.generator:type=TimestampOracleStatistics");  // Same string is in JMXUtils
         mbs.registerMBean(this, name);
     }
 
