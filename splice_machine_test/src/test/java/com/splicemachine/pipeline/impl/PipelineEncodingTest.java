@@ -1,8 +1,8 @@
 package com.splicemachine.pipeline.impl;
 
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;

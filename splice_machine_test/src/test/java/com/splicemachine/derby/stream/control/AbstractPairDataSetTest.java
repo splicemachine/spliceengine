@@ -12,7 +12,6 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import scala.Tuple2;
 

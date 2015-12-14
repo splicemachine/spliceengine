@@ -1,5 +1,6 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.si.api.txn.Txn;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
 /**

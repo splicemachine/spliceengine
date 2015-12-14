@@ -1,16 +1,15 @@
 package com.splicemachine.si.txn;
 
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
 /**
- * View hbase as a JTA transactional resource. This allows it to participate in transactions across multiple resources.
+ * View Splice as a JTA transactional resource. This allows it to participate in transactions across multiple resources.
  */
 public class JtaXAResource implements XAResource {
     private static final Logger LOG = Logger.getLogger(JtaXAResource.class);

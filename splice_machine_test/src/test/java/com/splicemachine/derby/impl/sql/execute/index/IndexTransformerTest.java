@@ -1,18 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import org.junit.Test;
-
-import java.util.Random;
 
 import static com.splicemachine.utils.BitSets.newBitSet;
-import static org.junit.Assert.*;
 
 
 public class IndexTransformerTest {

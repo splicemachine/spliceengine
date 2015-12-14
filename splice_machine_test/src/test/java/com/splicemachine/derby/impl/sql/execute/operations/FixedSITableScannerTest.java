@@ -9,10 +9,10 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.si.api.RowAccumulator;
-import com.splicemachine.si.api.SIFilter;
+import com.splicemachine.si.api.filter.RowAccumulator;
+import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -167,7 +167,7 @@ public class FixedSITableScannerTest {
 													 EntryDecoder decoder,
 													 EntryPredicateFilter predicateFilter,
 													 boolean isCountStar) {
-						this.accumulator = new HRowAccumulator(SIFactoryDriver.siFactory.getDataLib(),predicateFilter,decoder,accumulator,isCountStar);
+						this.accumulator = new HRowAccumulator(SIDriver.siFactory.getDataLib(),predicateFilter,decoder,accumulator,isCountStar);
 				}
 
 				@Override public void nextRow() {  }
@@ -179,7 +179,7 @@ public class FixedSITableScannerTest {
 
 				@Override
 				public Filter.ReturnCode filterKeyValue(Data kv) throws IOException {
-						if(!SIFactoryDriver.siFactory.getDataLib().singleMatchingQualifier(kv, SpliceConstants.PACKED_COLUMN_BYTES))
+						if(!SIDriver.siFactory.getDataLib().singleMatchingQualifier(kv, SpliceConstants.PACKED_COLUMN_BYTES))
 								return Filter.ReturnCode.SKIP;
 						if(!accumulator.isFinished() && accumulator.isOfInterest(kv)){
 								if(!accumulator.accumulate(kv))

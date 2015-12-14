@@ -1,38 +1,10 @@
 package com.splicemachine.pipeline.callbuffer;
 
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.metrics.Metrics;
-import com.splicemachine.hbase.RegionCacheComparator;
-import com.splicemachine.pipeline.api.BufferConfiguration;
-import com.splicemachine.pipeline.api.WriteConfiguration;
-import com.splicemachine.pipeline.api.WriteCoordinatorStatus;
-import com.splicemachine.pipeline.api.Writer;
-import com.splicemachine.pipeline.impl.BulkWrites;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import javax.management.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Assert;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines

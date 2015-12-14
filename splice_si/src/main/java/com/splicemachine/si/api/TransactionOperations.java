@@ -1,5 +1,6 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.SimpleOperationFactory;
 
 /**

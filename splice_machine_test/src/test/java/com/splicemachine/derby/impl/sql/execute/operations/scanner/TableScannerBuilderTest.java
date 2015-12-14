@@ -9,9 +9,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
-import com.splicemachine.si.api.Txn.IsolationLevel;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.si.api.txn.Txn.IsolationLevel;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 
 public class TableScannerBuilderTest {
 	protected static Scan scan = new Scan(Bytes.toBytes("1"));

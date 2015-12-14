@@ -26,8 +26,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.ClientSideRegionScanner;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
 
 @Ignore

@@ -11,8 +11,6 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 public class TransactionTimeoutException  extends DoNotRetryIOException{
 		public TransactionTimeoutException() {
 		}
-
-
 		public TransactionTimeoutException(long txnId) {
 				super("Transaction "+ txnId+" has timed out");
 		}

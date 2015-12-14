@@ -1,20 +1,7 @@
 package com.splicemachine.hbase.writer;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.pipeline.impl.BulkWrite;
-import com.splicemachine.pipeline.utils.PipelineUtils;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.ByteDataOutput;
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Histogram;
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.Timer;
-import com.yammer.metrics.reporting.ConsoleReporter;
-import java.io.IOException;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Compares performance of raw Java serialization with that of BulkWrite.toBytes()

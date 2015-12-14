@@ -1,7 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
