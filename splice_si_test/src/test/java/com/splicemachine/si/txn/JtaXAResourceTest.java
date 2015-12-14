@@ -3,7 +3,7 @@ package com.splicemachine.si.txn;
 import com.splicemachine.si.testsetup.LStoreSetup;
 import com.splicemachine.si.testsetup.StoreSetup;
 import com.splicemachine.si.testsetup.TestTransactionSetup;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.server.Transactor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
 

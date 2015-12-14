@@ -1,10 +1,10 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.testsetup.LStoreSetup;
@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import static com.splicemachine.constants.SIConstants.*;
 
 /**
  * @author Scott Fines

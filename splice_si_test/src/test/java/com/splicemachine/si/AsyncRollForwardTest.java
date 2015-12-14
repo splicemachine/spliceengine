@@ -1,10 +1,10 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.si.testsetup.LStoreSetup;

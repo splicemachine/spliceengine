@@ -3,8 +3,10 @@ package com.splicemachine.si.impl;
 import com.google.common.collect.*;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.KeyValueType;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.data.light.LDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.STransactionLib;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
@@ -21,7 +23,7 @@ import static org.mockito.Mockito.*;
  *         Date: 7/1/14
  */
 public class TxnTestUtils {
-		public static STransactionLib transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
+		public static STransactionLib transactionLib = SIDriver.siFactory.getTransactionLib();
 		public TxnTestUtils(){}
 
 		public static <Transaction,TableBuffer> void assertTxnsMatch(String baseErrorMessage, Transaction correct, Transaction actual) {

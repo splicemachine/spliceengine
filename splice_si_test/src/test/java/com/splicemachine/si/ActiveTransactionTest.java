@@ -2,7 +2,9 @@ package com.splicemachine.si;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.Lists;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.testsetup.LStoreSetup;
 import com.splicemachine.si.testsetup.StoreSetup;

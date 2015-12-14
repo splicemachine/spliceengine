@@ -1,8 +1,8 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnView;
 
 import java.io.IOException;
 

@@ -1,7 +1,7 @@
 package com.splicemachine.si;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.data.light.LDataLib;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;

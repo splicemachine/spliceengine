@@ -1,7 +1,8 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.AbstractTxn;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
@@ -11,7 +12,7 @@ import java.util.Iterator;
  * @author Scott Fines
  *         Date: 8/20/14
  */
-public abstract class ForwardingTxnView extends AbstractTxn{
+public abstract class ForwardingTxnView extends AbstractTxn {
     protected final Txn delegate;
 
     protected ForwardingTxnView(Txn delegate) {

@@ -1,12 +1,12 @@
 package com.splicemachine.si;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnLifecycleManager;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
-import com.splicemachine.si.impl.ReadOnlyTxn;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.si.testsetup.LStoreSetup;
 import com.splicemachine.si.testsetup.StoreSetup;

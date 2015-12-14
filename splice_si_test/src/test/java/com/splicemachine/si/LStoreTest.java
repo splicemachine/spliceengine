@@ -1,6 +1,6 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.data.light.*;
 
 import com.splicemachine.si.testsetup.RelationHelper;

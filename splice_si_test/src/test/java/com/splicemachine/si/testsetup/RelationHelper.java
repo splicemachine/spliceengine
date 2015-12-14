@@ -1,8 +1,8 @@
 package com.splicemachine.si.testsetup;
 
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.api.data.STableReader;
+import com.splicemachine.si.api.data.STableWriter;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
 import java.io.IOException;
