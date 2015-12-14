@@ -33,7 +33,7 @@ public class SimpleCostEstimate implements CostEstimate{
     protected double indexLookupRows =-1.0d;
     protected double projectionCost =-1.0d;
     protected double projectionRows =-1.0d;
-
+    private double localCostPerPartition;
 
     public SimpleCostEstimate(){ }
 
@@ -88,6 +88,7 @@ public class SimpleCostEstimate implements CostEstimate{
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
             this.baseCost = (SimpleCostEstimate) base.cloneMe();
+        this.localCostPerPartition = other.localCostPerPartition();
     }
 
     @Override
@@ -209,6 +210,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setIndexLookupRows(indexLookupRows);
         if(baseCost!=null)
             clone.setBase(baseCost.cloneMe());
+        clone.setLocalCostPerPartition(localCostPerPartition);
         return clone;
     }
 
@@ -388,4 +390,13 @@ public class SimpleCostEstimate implements CostEstimate{
         return (SimpleCostEstimate) getBase();
     }
 
+    @Override
+    public double localCostPerPartition() {
+        return localCostPerPartition;
+    }
+
+    @Override
+    public void setLocalCostPerPartition(double localCostPerPartition) {
+        this.localCostPerPartition = localCostPerPartition;
+    }
 }

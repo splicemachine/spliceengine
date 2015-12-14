@@ -137,7 +137,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity,outerCost.rowCount(),innerCost.rowCount());
         innerCost.setNumPartitions(outerCost.partitionCount());
-        innerCost.setLocalCost(SelectivityUtil.broadcastJoinStrategyLocalCost(innerCost,outerCost));
+        double joinCost = SelectivityUtil.broadcastJoinStrategyLocalCost(innerCost, outerCost);
+        innerCost.setLocalCost(joinCost);
+        innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);

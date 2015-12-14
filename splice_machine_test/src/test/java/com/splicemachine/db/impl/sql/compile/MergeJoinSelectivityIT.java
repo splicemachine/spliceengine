@@ -93,17 +93,4 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
 
         Assert.assertTrue(cost1 < cost2);
     }
-
-    private double getTotalCost(String s) {
-        double cost = 0.0d;
-        String[] strings = s.split(",");
-        for(String string : strings) {
-            String[] s1 = string.split("=");
-            if (s1[0].compareTo("totalCost") == 0) {
-                cost = Double.parseDouble(s1[1]);
-                break;
-            }
-        }
-        return cost;
-    }
 }
