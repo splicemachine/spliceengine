@@ -1,9 +1,9 @@
 package com.splicemachine.si.impl.region;
 
 import com.google.protobuf.ByteString;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.Txn.IsolationLevel;
-import com.splicemachine.si.api.Txn.State;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.Txn.IsolationLevel;
+import com.splicemachine.si.api.txn.Txn.State;
 import com.splicemachine.si.coprocessor.TxnMessage;
 
 public class HTransactionLib implements STransactionLib<TxnMessage.Txn,ByteString> {

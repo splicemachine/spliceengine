@@ -4,8 +4,8 @@ import com.splicemachine.access.hbase.HBaseSource;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.TxnStore;
-import com.splicemachine.si.api.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 
@@ -116,7 +116,7 @@ public class TransactionStorage {
         return store;
     }
 
-    private static class TxnStoreManagement implements com.splicemachine.si.impl.txnclient.TxnStoreManagement{
+    private static class TxnStoreManagement implements com.splicemachine.si.api.txn.TxnStoreManagement {
         @Override public long getTotalTxnLookups() { return baseStore.lookupCount(); }
         @Override public long getTotalTxnElevations() { return baseStore.elevationCount(); }
         @Override public long getTotalWritableTxnsCreated() { return baseStore.createdCount(); }

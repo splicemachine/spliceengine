@@ -12,9 +12,9 @@ import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.si.impl.region.RegionTxnStore;
@@ -77,7 +77,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
             lockStriper=LongStripedSynchronizer.stripedReadWriteLock(SIConstants.transactionlockStripes,false);
             TransactionResolver resolver=resolverRef.get();
-            regionStore=new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(),SIFactoryDriver.siFactory.getDataLib(),SIFactoryDriver.siFactory.getTransactionLib());
+            regionStore=new RegionTxnStore(region,resolver,TransactionStorage.getTxnSupplier(), SIDriver.siFactory.getDataLib(), SIDriver.siFactory.getTransactionLib());
             timestampSource=TransactionTimestamps.getTimestampSource();
             isTxnTable=true;
         }

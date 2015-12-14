@@ -5,8 +5,10 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.*;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.si.api.server.ConstraintChecker;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.filter.BaseSIFilterPacked;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -81,7 +83,7 @@ public class SIObserver extends SIBaseObserver {
 						byte[] fam = family.getKey();
 						Map<byte[],KVPair> cols = family.getValue();
 						for(Map.Entry<byte[],KVPair> column:cols.entrySet()){
-								OperationStatus[] status = region.bulkWrite(txn,fam,column.getKey(),ConstraintChecker.NO_CONSTRAINT, Collections.singleton(column.getValue()));
+								OperationStatus[] status = region.bulkWrite(txn,fam,column.getKey(), ConstraintChecker.NO_CONSTRAINT, Collections.singleton(column.getValue()));
 								switch(status[0].getOperationStatusCode()){
 										case NOT_RUN:
 												break;

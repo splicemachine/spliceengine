@@ -11,17 +11,16 @@ import java.io.IOException;
 import com.google.protobuf.ByteString;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.Txn.IsolationLevel;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.impl.SIFactoryDriver;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.TxnUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
-import org.apache.hadoop.hbase.client.Put;
 
 public class V2TxnDecoder<Put extends OperationWithAttributes,Delete,Get extends OperationWithAttributes, Scan> extends AbstractV2TxnDecoder<TxnMessage.TxnInfo,TxnMessage.Txn,Cell,Put,Delete,Get,Scan>{
-	public static final STransactionLib<TxnMessage.Txn,ByteString> transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
+	public static final STransactionLib<TxnMessage.Txn,ByteString> transactionLib = SIDriver.siFactory.getTransactionLib();
     public static final V2TxnDecoder INSTANCE = new V2TxnDecoder();
 
     private V2TxnDecoder() { 

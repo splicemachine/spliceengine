@@ -5,8 +5,8 @@ import org.apache.hadoop.hbase.CellUtil;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.Txn.IsolationLevel;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.coprocessor.TxnMessage;
 
 public class TXNDecoderUtils {

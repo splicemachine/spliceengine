@@ -2,10 +2,10 @@ package com.splicemachine.si.impl.readresolve;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.ReadResolver;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.readresolve.ReadResolver;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.annotations.ThreadSafe;

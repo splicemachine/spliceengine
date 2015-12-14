@@ -14,9 +14,12 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.hbase.table.SpliceRpcController;
-import com.splicemachine.si.api.*;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.impl.InheritingTxnView;
+import com.splicemachine.si.impl.txn.InheritingTxnView;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.HConstants;
@@ -42,7 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *         Date: 6/27/14
  */
 @ThreadSafe
-public class CoprocessorTxnStore implements TxnStore{
+public class CoprocessorTxnStore implements TxnStore {
     private final HBaseTableFactory tableFactory;
     protected static final TableName TABLE_NAME = TableName.valueOf(SIConstants.spliceNamespace,SIConstants.TRANSACTION_TABLE);
     private TxnSupplier cache; //a transaction store which uses a global cache for us

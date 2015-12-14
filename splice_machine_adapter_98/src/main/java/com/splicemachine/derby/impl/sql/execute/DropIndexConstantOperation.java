@@ -5,7 +5,7 @@ import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;

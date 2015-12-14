@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import java.io.IOException;
 import java.util.List;
 import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.si.api.driver.SIFactory;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -12,19 +13,19 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.si.api.RowAccumulator;
+import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.SIFactory;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnStore;
-import com.splicemachine.si.api.TxnSupplier;
-import com.splicemachine.si.api.Txn.IsolationLevel;
-import com.splicemachine.si.api.Txn.State;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.Txn.IsolationLevel;
+import com.splicemachine.si.api.txn.Txn.State;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.coprocessor.TxnMessage.Txn;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.api.data.STableReader;
+import com.splicemachine.si.api.data.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HTableReader;
@@ -37,7 +38,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.stream.StreamException;
 
-public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
+public class SIFactoryImpl implements SIFactory<Txn> {
 	
 	public static final SDataLib dataLib = new HDataLib();
 	public static final STableWriter tableWriter = new HTableWriter();
@@ -163,8 +164,8 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
                 .beginTimestamp(info.getBeginTs())
                 .commitTimestamp(txn.getCommitTs())
                 .globalCommitTimestamp(txn.getGlobalCommitTs())
-                .state(com.splicemachine.si.api.Txn.State.fromInt(txn.getState()))
-                .isolationLevel(com.splicemachine.si.api.Txn.IsolationLevel.fromInt(info.getIsolationLevel()))
+                .state(com.splicemachine.si.api.txn.Txn.State.fromInt(txn.getState()))
+                .isolationLevel(com.splicemachine.si.api.txn.Txn.IsolationLevel.fromInt(info.getIsolationLevel()))
                 .keepAliveTimestamp(txn.getLastKeepAliveTime())
                 .store(TransactionStorage.getTxnSupplier());
 

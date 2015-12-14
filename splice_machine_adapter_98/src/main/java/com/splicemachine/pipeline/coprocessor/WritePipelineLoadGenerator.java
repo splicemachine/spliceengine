@@ -1,8 +1,6 @@
 package com.splicemachine.pipeline.coprocessor;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.concurrent.traffic.TrafficController;
-import com.splicemachine.concurrent.traffic.TrafficShaping;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.DerbyFactoryImpl;
@@ -10,7 +8,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.si.impl.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.conf.Configuration;

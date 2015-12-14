@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.coprocessor;
 
+/*
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
@@ -26,7 +27,7 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-
+*/
 /**
  * @author Scott Fines
  *         Date: 1/14/15

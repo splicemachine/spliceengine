@@ -23,7 +23,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
