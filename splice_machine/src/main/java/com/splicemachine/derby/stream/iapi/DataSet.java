@@ -1,12 +1,9 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -27,10 +24,10 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
-    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name);
-
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast);
-
+    
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail);
+    
     /**
      * Removes duplicates from dataset
      */
@@ -42,6 +39,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * Decreases the number of partitions
      */
     DataSet<V> coalesce(int numPartitions, boolean shuffle);
+
+    DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
     /**
      * Iterate over all values and produce a single value.

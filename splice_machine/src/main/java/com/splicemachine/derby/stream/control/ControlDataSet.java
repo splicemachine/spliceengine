@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import scala.Tuple2;
@@ -53,12 +54,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
         return mapPartitions(f);
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail) {
         return mapPartitions(f);
     }
 
@@ -259,6 +260,11 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
+        return this;
+    }
+
+    @Override
+    public DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         return this;
     }
 
