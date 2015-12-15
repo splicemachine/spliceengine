@@ -2,29 +2,56 @@ package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.data.IHTable;
-import com.splicemachine.si.api.data.SRowLock;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.storage.*;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
+
 import java.io.IOException;
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
  */
-public class HbTable implements IHTable<OperationWithAttributes,Delete,
-        Get,Mutation,OperationStatus,Pair<Mutation, HRowLock>,
-        Put,Result,Scan> {
+public class HbTable implements Partition<OperationWithAttributes,Delete, Get, Put,Result,Scan>{
     final Table table;
 
     public HbTable(Table table) {
         this.table = table;
+    }
+
+    @Override
+    public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
+        if(previous==null)
+            previous = new HResult();
+
+        Get g = new Get(key);
+        g.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
+        assert previous instanceof HResult: "Programmer error: incorrect type for HbTable!";
+        ((HResult)previous).set(table.get(g));
+        return previous;
+    }
+
+    @Override
+    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+        if(previous==null)
+            previous = new HResult();
+
+        Get g = new Get(key);
+        g.setMaxVersions(1);
+        assert previous instanceof HResult: "Programmer error: incorrect type for HbTable!";
+        ((HResult)previous).set(table.get(g));
+        return previous;
     }
 
     @Override
@@ -66,6 +93,11 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     }
 
     @Override
+    public DataScanner openScanner(DataScan scan) throws IOException{
+        return openScanner(scan,Metrics.noOpMetricFactory());
+    }
+
+    @Override
     public void startOperation() throws IOException {
         throw new RuntimeException("not implemented");
     }
@@ -76,7 +108,7 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     }
 
     @Override
-    public HRowLock getLock(byte[] rowKey, boolean waitForLock) {
+    public Lock getLock(byte[] rowKey, boolean waitForLock) {
         try {
             return lockRow(rowKey);
         } catch (IOException e) {
@@ -84,9 +116,18 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
         }
     }
 
+    private Lock lockRow(byte[] byteCopy) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
     @Override
-    public HRowLock tryLock(ByteSlice rowKey) throws IOException {
-        return lockRow(rowKey.getByteCopy());
+    public Lock getRowLock(ByteSlice byteSlice) throws IOException{
+        return getRowLock(byteSlice.array(),byteSlice.offset(),byteSlice.length());
+    }
+
+    @Override
+    public Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override
@@ -100,7 +141,7 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     }
 
     @Override
-    public void put(Put put, SRowLock rowLock) throws IOException {
+    public void put(Put put, Lock rowLock) throws IOException {
         table.put(put);
     }
 
@@ -115,8 +156,10 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     }
 
     @Override
-    public OperationStatus[] batchPut(Pair<Mutation, HRowLock>[] puts) throws IOException {
-        throw new RuntimeException("not implemented");
+    public void put(DataPut put) throws IOException{
+        assert put instanceof HPut: "Programmer error: wrong type for put!";
+        Put p = ((HPut)put).unwrapDelegate();
+        table.put(p);
     }
 
     @Override
@@ -125,25 +168,9 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     }
 
     @Override
-    public void delete(Delete delete, SRowLock rowLock) throws IOException {
+    public void delete(Delete delete, Lock rowLock) throws IOException {
         throw new RuntimeException("not implemented");
     }
-
-    @Override
-    public HRowLock lockRow(byte[] rowKey) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public void unLockRow(SRowLock lock) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-	@Override
-	public OperationStatus[] batchMutate(Collection<KVPair> data, TxnView txn)
-			throws IOException {
-        throw new RuntimeException("not implemented");
-	}
 
     @Override
     public byte[] getStartKey() {
@@ -163,5 +190,30 @@ public class HbTable implements IHTable<OperationWithAttributes,Delete,
     @Override
     public boolean isClosing() {
         throw new RuntimeException("not to be called on table");
+    }
+
+    @Override
+    public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
+        return null;
+    }
+
+    @Override
+    public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+        return null;
+    }
+
+    @Override
+    public DataResultScanner openResultScanner(DataScan scan) throws IOException{
+        return null;
+    }
+
+    @Override
+    public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
+        return null;
+    }
+
+    @Override
+    public void delete(DataDelete delete) throws IOException{
+
     }
 }

@@ -10,7 +10,7 @@ import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.SimpleOperationFactory;
+import com.splicemachine.si.impl.BaseOperationFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
@@ -51,7 +51,7 @@ public class SpliceUtils extends SpliceUtilities {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
-        operationFactory = new SimpleOperationFactory();
+        operationFactory = new BaseOperationFactory();
     }
 
     /**

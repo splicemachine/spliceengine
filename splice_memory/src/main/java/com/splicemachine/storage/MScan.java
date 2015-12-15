@@ -1,0 +1,92 @@
+package com.splicemachine.storage;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author Scott Fines
+ *         Date: 12/16/15
+ */
+public class MScan implements DataScan{
+    private byte[] startKey;
+    private byte[] stopKey;
+    private DataFilter filter;
+
+    private Map<String,byte[]> attrs = new HashMap<>();
+    private long highTs = Long.MAX_VALUE;
+    private long lowTs = 0l;
+
+    @Override
+    public DataScan startKey(byte[] startKey){
+        this.startKey =startKey;
+        return this;
+    }
+
+    @Override
+    public DataScan stopKey(byte[] stopKey){
+        this.stopKey = stopKey;
+        return this;
+    }
+
+    @Override
+    public void addAttribute(String key,byte[] value){
+        attrs.put(key,value);
+    }
+
+    @Override
+    public byte[] getAttribute(String key){
+        return attrs.get(key);
+    }
+
+    @Override
+    public DataScan filter(DataFilter df){
+        this.filter = df;
+        return this;
+    }
+
+    @Override
+    public byte[] getStartKey(){
+        return startKey;
+    }
+
+    @Override
+    public byte[] getStopKey(){
+        return stopKey;
+    }
+
+    @Override
+    public long highVersion(){
+        return highTs;
+    }
+
+    @Override
+    public long lowVersion(){
+        return lowTs;
+    }
+
+    @Override
+    public DataFilter getFilter(){
+        return filter;
+    }
+
+    @Override
+    public void setTimeRange(long lowVersion,long highVersion){
+        this.highTs = highVersion;
+        this.lowTs = lowVersion;
+    }
+
+    @Override
+    public void returnAllVersions(){
+
+    }
+
+    @Override
+    public Map<String, byte[]> allAttributes(){
+        return attrs;
+    }
+
+    @Override
+    public void setAllAttributes(Map<String, byte[]> attrMap){
+        attrs.putAll(attrMap);
+    }
+}

@@ -1,0 +1,77 @@
+package com.splicemachine.storage;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author Scott Fines
+ *         Date: 12/16/15
+ */
+public class MGet implements DataGet{
+    private byte[] key;
+
+    private Map<String,byte[]> attrs = new HashMap<>();
+    private DataFilter filter;
+    private long highTs;
+    private long lowTs;
+
+    public MGet(byte[] key){
+        this.key=key;
+    }
+
+    @Override
+    public void setTimeRange(int low,long high){
+        this.highTs = high;
+        this.lowTs = low;
+    }
+
+    @Override
+    public void returnAllVersions(){
+
+    }
+
+    @Override
+    public void setFilter(DataFilter txnFilter){
+        this.filter = txnFilter; //TODO -sf- combine multiple filters together
+    }
+
+    @Override
+    public byte[] key(){
+        return key;
+    }
+
+    @Override
+    public DataFilter filter(){
+        return filter;
+    }
+
+    @Override
+    public long highTimestamp(){
+        return highTs;
+    }
+
+    @Override
+    public long lowTimestamp(){
+        return lowTs;
+    }
+
+    @Override
+    public void addAttribute(String key,byte[] value){
+        attrs.put(key,value);
+    }
+
+    @Override
+    public byte[] getAttribute(String key){
+        return attrs.get(key);
+    }
+
+    @Override
+    public Map<String, byte[]> allAttributes(){
+        return attrs;
+    }
+
+    @Override
+    public void setAllAttributes(Map<String, byte[]> attrMap){
+        attrs.putAll(attrMap);
+    }
+}

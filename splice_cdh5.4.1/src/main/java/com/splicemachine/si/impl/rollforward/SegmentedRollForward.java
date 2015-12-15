@@ -2,7 +2,7 @@ package com.splicemachine.si.impl.rollforward;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.annotations.ThreadSafe;
-import com.splicemachine.si.api.data.IHTable;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.readresolve.RollForwardAction;
 import com.splicemachine.si.impl.readresolve.RegionSegmentContext;
@@ -70,7 +70,7 @@ public class SegmentedRollForward implements RollForward {
         }
     }
 
-    private final IHTable region;
+    private final Partition region;
     /*
      * We use our own internal RegionSegment implementations here, which
      * kind of sucks--once we have a Statistics Engine, we will likely want to build
@@ -87,7 +87,7 @@ public class SegmentedRollForward implements RollForward {
     private final AtomicLong updateCount=new AtomicLong(0l);
     private final RollForwardStatus status;
 
-    public SegmentedRollForward(final IHTable region,
+    public SegmentedRollForward(final Partition region,
                                 final ScheduledExecutorService rollForwardScheduler,
                                 int numSegments,
                                 long rollForwardRowThreshold,
@@ -148,7 +148,7 @@ public class SegmentedRollForward implements RollForward {
         },rollForwardIntervalMs,TimeUnit.MILLISECONDS); //force a submission every 10 seconds
     }
 
-    private RegionSegment[] buildSegments(IHTable region,int numSegments){
+    private RegionSegment[] buildSegments(Partition region,int numSegments){
 		/*
 		 * Build some equi-width segments which (theoretically) cover the possible row keys
 		 * for the region.

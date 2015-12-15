@@ -1,23 +1,23 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.data.IHTable;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
+
 import java.io.IOException;
+
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
 import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
 
-public abstract class BaseHbRegion implements IHTable<OperationWithAttributes,Delete,
-        Get,Mutation,OperationStatus, Pair<Mutation, HRowLock>,
-        Put,Result,Scan> {
+public abstract class BaseHbRegion implements Partition<OperationWithAttributes,Delete,
+        Get,
+        Put,Result,Scan>{
 
     protected Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
         assert kvPair.getType() == KVPair.Type.INSERT : "Performing an update/delete on a non-transactional table";

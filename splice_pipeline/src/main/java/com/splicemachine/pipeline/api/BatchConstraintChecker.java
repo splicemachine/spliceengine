@@ -8,6 +8,6 @@ import com.splicemachine.si.api.server.ConstraintChecker;
  *         Date: 3/14/14
  */
 public interface BatchConstraintChecker<OperationStatus> extends ConstraintChecker {
-    public WriteResult asWriteResult(OperationStatus status);
-    public boolean matches(OperationStatus status);
+    WriteResult asWriteResult(OperationStatus status);
+    boolean matches(OperationStatus status);
 }

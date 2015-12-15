@@ -191,7 +191,7 @@ public class LazyTxnView implements TxnView {
             try {
                 delegate = store.getTransaction(txnId);
                 if(delegate==null)
-                    throw SIDriver.getSIFactory().getExceptionLib().getReadOnlyModificationException("Txn "+ txnId+" is read only");
+                    throw SIDriver.getSIFactory().getExceptionLib().readOnlyModification("Txn "+txnId+" is read only");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

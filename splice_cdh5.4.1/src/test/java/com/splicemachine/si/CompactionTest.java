@@ -44,8 +44,8 @@ public class CompactionTest {
 //								new RollForwardAction() {
 //										@Override
 //										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-//												final STableReader reader = storeSetup.getReader();
-//												Object testSTable = reader.open(storeSetup.getPersonTableName());
+//												final STableReader reader = SITestEnv.getReader();
+//												Object testSTable = reader.open(SITestEnv.getPersonTableName());
 //												new RegionRollForwardAction(testSTable,
 //																Providers.basicProvider(transactorSetup.transactionStore),
 //																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);

@@ -14,8 +14,9 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 8/18/14
  */
+//TODO -sf- move this into the BaseActiveTxnFilter
 public class ActiveTxnFilter extends FilterBase implements Writable {
-    BaseActiveTxnFilter<OperationWithAttributes,Cell,Delete,Filter,Get,
+    BaseActiveTxnFilter<OperationWithAttributes,Delete,Filter,Get,
             Put,RegionScanner,Result,ReturnCode,Scan> baseActiveTxnFilter;
     public ActiveTxnFilter(long beforeTs, long afterTs, byte[] destinationTable) {
         baseActiveTxnFilter = new BaseActiveTxnFilter(beforeTs,afterTs,destinationTable);

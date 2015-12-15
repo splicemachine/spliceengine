@@ -17,7 +17,7 @@ public class LOperationWithAttributes {
         }
 
         if (attributes == null) {
-            attributes = new HashMap<String, byte[]>();
+            attributes =new HashMap<>();
         }
 
         if (value == null) {

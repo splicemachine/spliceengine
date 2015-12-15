@@ -7,7 +7,7 @@ import com.splicemachine.si.api.filter.TransactionalFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.SimpleOperationFactory;
+import com.splicemachine.si.impl.BaseOperationFactory;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -46,7 +46,7 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
 				SpliceLogUtils.trace(LOG, "starting %s", SIBaseObserver.class);
 				tableEnvMatch = doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getTableName());
         if(tableEnvMatch){
-            txnOperationFactory = new SimpleOperationFactory();
+            txnOperationFactory = new BaseOperationFactory();
             region = SIDriver.getTransactionalRegion((HRegion) ((RegionCoprocessorEnvironment) e).getRegion());
             Tracer.traceRegion(region.getTableName(), (HRegion) ((RegionCoprocessorEnvironment) e).getRegion());
         }

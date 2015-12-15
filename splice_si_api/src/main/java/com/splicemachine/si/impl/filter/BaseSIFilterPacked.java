@@ -16,7 +16,7 @@ import java.util.List;
  */
 public class BaseSIFilterPacked<Data,Filter,Get,Result,ReturnCode,Scan> implements HasPredicateFilter {
     private Txn txn;
-		private TransactionReadController<Data,Filter,Get,Result,ReturnCode,Scan> readController = SIDriver.getTransactionReadController();
+		private TransactionReadController<Data, Get, ReturnCode,Scan> readController = SIDriver.getTransactionReadController();
 		private EntryPredicateFilter predicateFilter;
 		public TxnFilter<Data,ReturnCode> filterState = null;
 		private boolean countStar = false;

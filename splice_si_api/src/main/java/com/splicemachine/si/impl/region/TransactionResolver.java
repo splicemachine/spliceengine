@@ -5,20 +5,15 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.concurrent.MoreExecutors;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.si.api.txn.STransactionLib;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.api.data.IHTable;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
+import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
-import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 
 /**
  * Asynchronous element for "resolving" transaction elements.
@@ -63,18 +58,12 @@ import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
  * Date: 8/19/14
  */
 
-public class TransactionResolver<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,
-        Get extends OperationWithAttributes,Put extends OperationWithAttributes,RegionScanner,Result,
-        ReturnCode,Scan extends OperationWithAttributes,Transaction,TableBuffer> {
+public class TransactionResolver{
     private static final Logger LOG = Logger.getLogger(TransactionResolver.class);
     @ThreadSafe private final TxnSupplier txnSupplier;
-    private final RingBuffer<TxnResolveEvent<Transaction>> ringBuffer;
-    private final Disruptor<TxnResolveEvent<Transaction>> disruptor;
+    private final RingBuffer<TxnResolveEvent> ringBuffer;
+    private final Disruptor<TxnResolveEvent> disruptor;
     private final ThreadPoolExecutor consumerThreads;
-    protected final STransactionLib<Transaction,TableBuffer> transactionLib = SIDriver.siFactory.getTransactionLib();
-    protected final SDataLib<OperationWithAttributes,Data,Delete,Filter,Get,
-    Put,RegionScanner,Result,Scan> dataLib = SIDriver.siFactory.getDataLib();
-
 
     public TransactionResolver(TxnSupplier txnSupplier, int numThreads, int bufferSize) {
         this.txnSupplier = txnSupplier;
@@ -85,10 +74,10 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
         while(bSize<bufferSize)
             bSize<<=1;
 
-        disruptor = new Disruptor<>(new EventFactory<TxnResolveEvent<Transaction>>() {
+        disruptor = new Disruptor<>(new EventFactory<TxnResolveEvent>() {
 			@Override
-			public TxnResolveEvent<Transaction> newInstance() {
-	                return new TxnResolveEvent<>();
+			public TxnResolveEvent newInstance() {
+	                return new TxnResolveEvent();
 			}
         },bSize,consumerThreads,
                 ProducerType.MULTI,
@@ -98,7 +87,7 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
         disruptor.start();
     }
 
-    public void resolveTimedOut(IHTable txnRegion,Transaction txn){
+    public void resolveTimedOut(TxnPartition txnRegion,TxnMessage.Txn txn){
         long sequence;
         try{
             sequence = ringBuffer.tryNext();
@@ -109,8 +98,8 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
             return;
         }
         try{
-            TxnResolveEvent<Transaction> event = ringBuffer.get(sequence);
-            event.txnRegion = txnRegion;
+            TxnResolveEvent event = ringBuffer.get(sequence);
+            event.partition = txnRegion;
             event.timedOut = true;
             event.txn = txn;
         }finally{
@@ -118,7 +107,7 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
         }
     }
 
-    public void resolveGlobalCommitTimestamp(IHTable txnRegion, Transaction txn){
+    public void resolveGlobalCommitTimestamp(TxnPartition txnRegion, TxnMessage.Txn txn){
         long sequence;
         try{
             sequence = ringBuffer.tryNext();
@@ -129,8 +118,8 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
             return;
         }
         try{
-            TxnResolveEvent<Transaction> event = ringBuffer.get(sequence);
-            event.txnRegion = txnRegion;
+            TxnResolveEvent event = ringBuffer.get(sequence);
+            event.partition = txnRegion;
             event.timedOut = false;
             event.txn = txn;
         }finally{
@@ -143,31 +132,29 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
         consumerThreads.shutdownNow();
     }
 
-    private static class TxnResolveEvent <Transaction>{
+    private static class TxnResolveEvent{
         private boolean timedOut;
-        private IHTable txnRegion;
-        private Transaction txn;
+        private TxnMessage.Txn txn;
+        private TxnPartition partition;
     }
 
-
-    private class ResolveEventHandler implements EventHandler<TxnResolveEvent<Transaction>> {
+    private class ResolveEventHandler implements EventHandler<TxnResolveEvent> {
         @Override
-        public void onEvent(TxnResolveEvent<Transaction> event, long sequence, boolean endOfBatch) throws Exception {
+        public void onEvent(TxnResolveEvent event, long sequence, boolean endOfBatch) throws Exception {
             if(event.timedOut){
-                resolveTimeOut(event.txnRegion,event.txn);
-            }
-            else
-                resolveCommit(event.txnRegion,event.txn);
+                resolveTimeOut(event.partition,event.txn);
+            } else
+                resolveCommit(event.partition,event.txn);
         }
     }
 
-    private void resolveCommit(IHTable txnRegion, Transaction txn) throws IOException {
+    private void resolveCommit(TxnPartition txnPartition,TxnMessage.Txn txn) throws IOException {
         assert txn!=null;
     	
-    	if(transactionLib.getTransactionState(txn)!= Txn.State.COMMITTED) return; //not committed, don't do anything
-        long txnId = transactionLib.getTxnId(txn);
+    	if(Txn.State.fromInt(txn.getState())!= Txn.State.COMMITTED) return; //not committed, don't do anything
+        long txnId = txn.getInfo().getTxnId();
         try{
-            TxnView parentView = txnSupplier.getTransaction(transactionLib.getParentTxnId(txn));
+            TxnView parentView = txnSupplier.getTransaction(txn.getInfo().getParentTxnid());
         /*
          * The logic necessary to acquire the transaction's global commit timestamp
          * is actually contained within the TxnView. We rely on the getEffectiveCommitTimestamp()
@@ -176,25 +163,17 @@ public class TransactionResolver<OperationWithAttributes,Data,Delete extends Ope
          */
             long globalCommitTs = parentView.getEffectiveCommitTimestamp();
             if(globalCommitTs<0) return; //transaction isn't actually committed, so don't do it
-
-            SpliceLogUtils.trace(LOG,"Adding global commit timestamp to transaction %d", txnId);
-            Put put = dataLib.newPut(TxnUtils.getRowKey(txnId));
-            dataLib.addKeyValueToPut(put,DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES, Encoding.encode(globalCommitTs));
-            dataLib.setWriteToWAL(put,false); //don't write to the WAL to avoid the write performance penalty
-            txnRegion.put(put);
+            txnPartition.recordGlobalCommit(txnId,globalCommitTs);
         }catch(Exception e){
             logError(txnId, e);
         }
     }
 
-    private void resolveTimeOut(IHTable txnRegion,Transaction txn) {
-        long txnId = transactionLib.getTxnId(txn);
+    private void resolveTimeOut(TxnPartition txnPartition,TxnMessage.Txn txn) {
+        long txnId = txn.getInfo().getTxnId();
         SpliceLogUtils.trace(LOG,"Moving Txn %d from timed out to outright rolled back",txnId);
         try{
-            Put put = dataLib.newPut(TxnUtils.getRowKey(txnId));
-            dataLib.addKeyValueToPut(put,DEFAULT_FAMILY_BYTES,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
-            dataLib.setWriteToWAL(put,false);
-            txnRegion.put(put);
+            txnPartition.recordRollback(txnId);
         }catch(Exception e){
             logError(txnId,e);
         }

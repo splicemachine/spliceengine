@@ -11,28 +11,25 @@ public class LGet extends LOperationWithAttributes{
     Long effectiveTimestamp;
     int maxVersions;
 
-    public LGet(byte[] startTupleKey, byte[] endTupleKey, List<byte[]> families, List<List<byte[]>> columns,
-                Long effectiveTimestamp) {
-        this.startTupleKey = startTupleKey;
-        this.endTupleKey = endTupleKey;
-        this.families = families;
-        this.columns = columns;
-        this.effectiveTimestamp = effectiveTimestamp;
-    }    
-   
-    public LGet(byte[] startTupleKey, byte[] endTupleKey, List<byte[]> families, List<List<byte[]>> columns,
-            Long effectiveTimestamp, int maxVersions) {
-    	this(startTupleKey,endTupleKey,families,columns,effectiveTimestamp);
-    	this.maxVersions = maxVersions;
-}
+    public LGet(byte[] startTupleKey,byte[] endTupleKey,List<byte[]> families,List<List<byte[]>> columns,
+                Long effectiveTimestamp){
+        this.startTupleKey=startTupleKey;
+        this.endTupleKey=endTupleKey;
+        this.families=families;
+        this.columns=columns;
+        this.effectiveTimestamp=effectiveTimestamp;
+    }
 
-		@Override public Map<String, Object> getFingerprint() { throw new UnsupportedOperationException(); }
-		@Override public Map<String, Object> toMap(int maxCols) { throw new UnsupportedOperationException(); }
+    public LGet(byte[] startTupleKey,byte[] endTupleKey,List<byte[]> families,List<List<byte[]>> columns,
+                Long effectiveTimestamp,int maxVersions){
+        this(startTupleKey,endTupleKey,families,columns,effectiveTimestamp);
+        this.maxVersions=maxVersions;
+    }
 
-		@Override
-		public String toString() {
-			return String.format("LGET { startTupleKey=%s, endTupleKey=%s, familes=%s, columns=%s, effectiveTimestamp=%s, maxVersions=%d}",startTupleKey,endTupleKey,families,columns,effectiveTimestamp, maxVersions);
-		}
-		
-		
+    @Override
+    public String toString(){
+        return String.format("LGET { startTupleKey=%s, endTupleKey=%s, familes=%s, columns=%s, effectiveTimestamp=%s, maxVersions=%d}",startTupleKey,endTupleKey,families,columns,effectiveTimestamp,maxVersions);
+    }
+
+
 }

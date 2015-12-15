@@ -110,7 +110,7 @@ public class ReadOnlyTxn extends AbstractTxn {
 								case COMMITTED:
 										return;
 								case ROLLEDBACK:
-										throw SIDriver.getSIFactory().getExceptionLib().getCannotCommitException(txnId,currState);
+										throw SIDriver.getSIFactory().getExceptionLib().cannotCommit(txnId,currState);
 								default:
 										shouldContinue = !state.compareAndSet(currState,State.COMMITTED);
 						}

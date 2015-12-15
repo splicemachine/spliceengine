@@ -2,6 +2,7 @@ package com.splicemachine.si.impl.filter;
 
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.filter.RowAccumulator;
+import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -16,6 +17,7 @@ public class HRowAccumulator<Data> implements RowAccumulator<Data> {
     private final SDataLib dataLib;
     private boolean countStar;
     private long bytesAccumulated = 0l;
+
     public HRowAccumulator(SDataLib dataLib, EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
         this(dataLib, predicateFilter, decoder, predicateFilter.newAccumulator(),countStar);
     }
@@ -37,6 +39,24 @@ public class HRowAccumulator<Data> implements RowAccumulator<Data> {
                 dataLib.getDataValuelength(data));
         final BitIndex currentIndex = decoder.getCurrentIndex();
         return entryAccumulator.isInteresting(currentIndex);
+    }
+
+    @Override
+    public boolean isInteresting(DataCell data){
+        if (countStar)
+            return false;
+        decoder.set(data.valueArray(),data.valueOffset(),data.valueLength());
+        final BitIndex currentIndex = decoder.getCurrentIndex();
+        return entryAccumulator.isInteresting(currentIndex);
+    }
+
+    @Override
+    public boolean accumulateCell(DataCell value) throws IOException{
+        bytesAccumulated+=value.encodedLength();
+        boolean pass = predicateFilter.match(decoder, entryAccumulator);
+        if(!pass)
+            entryAccumulator.reset();
+        return pass;
     }
 
     @Override

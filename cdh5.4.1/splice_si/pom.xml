@@ -176,14 +176,9 @@
 								<option>-keep public class com.splicemachine.si.data.api.HTableSource { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.data.IHTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.data.SDataLib {public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.data.SRowLock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowLock { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.data.STableReader { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.data.STableWriter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected *;}</option>
 								<option>-keep public class com.splicemachine.si.impl.filter.HRowAccumulator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.HTableReader { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.HTableWriter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; protected *;}</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HbTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }</option>
@@ -227,7 +222,6 @@
 								<option>-keep public class com.splicemachine.si.impl.txn.SITransactionReadController {
                                     public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SITransactor* { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.STableReaderDelegate { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SimpleOperationFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SimpleTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
 								<option>-keep public class com.splicemachine.si.impl.txn.SparseTxn { public *; }</option>
@@ -274,7 +268,6 @@
 								<option>-keep public class ManagedTransactor { public *; }</option>
 								<option>-keep public class TransactorStatus { public *; }</option>
 								<option>-keep public class com.splicemachine.si.testsetup.LStoreSetup { public *; }</option>
-								<option>-keep public class com.splicemachine.si.testsetup.TestTransactionSetup { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.JtaXAResource { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.ZooKeeperStatTimestampSource { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.ZooKeeperTimestampSource { public *; }</option>

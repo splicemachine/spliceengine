@@ -2,7 +2,6 @@ package com.splicemachine.si;
 
 import com.splicemachine.si.testsetup.SharedStoreHolder;
 import com.splicemachine.si.testsetup.TestTransactionSetup;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 

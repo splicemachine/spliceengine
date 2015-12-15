@@ -2,7 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.ThreadLocalRandom;
-import com.splicemachine.si.api.data.SExceptionLib;
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -24,7 +24,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 		private static final Logger LOG = Logger.getLogger(QueuedKeepAliveScheduler.class);
 		private final long maxWaitIntervalMs;
 		private final long maxKeepAliveIntervalMs;
-        private SExceptionLib exceptionLib = SIDriver.getExceptionLib();
+        private ExceptionFactory exceptionLib = SIDriver.getExceptionLib();
     private final ScheduledExecutorService threadPool;
 		private final com.splicemachine.concurrent.ThreadLocalRandom random;
 
@@ -113,7 +113,7 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler {
 										SpliceLogUtils.warn(LOG,"It took longer than 10% of the keep-alive interval to perform" +
 														"keep alive for transaction %d. This may be a sign that load will begin interfering" +
 														"with the transaction system",txn.getTxnId());
-						} catch(TransactionTimeoutException tte){
+						} catch(HTransactionTimeout tte){
 								LOG.error("Transaction "+ txn.getTxnId()+" has timed out");
 									/*
 									 * We attempted to keep alive a transaction that has already timed out for a different

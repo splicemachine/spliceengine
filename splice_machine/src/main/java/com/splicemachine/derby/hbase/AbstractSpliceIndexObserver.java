@@ -20,7 +20,7 @@ import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.SimpleOperationFactory;
+import com.splicemachine.si.impl.BaseOperationFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -86,7 +86,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         if (table.equals(SpliceConstants.TableEnv.USER_TABLE)) {
             try {
                 conglomId = Long.parseLong(tableName);
-                operationFactory = new SimpleOperationFactory();
+                operationFactory = new BaseOperationFactory();
                 region = TransactionalRegions.get((HRegion) e.getEnvironment().getRegion());
             } catch (NumberFormatException nfe) {
                 SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing will not be set up", tableName);

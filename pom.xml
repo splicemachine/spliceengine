@@ -25,6 +25,7 @@
 	</repositories>
     <modules>
         <module>splice_encoding</module>
+		<module>splice_protocol</module>
         <module>splice_timestamp_api</module>
         <module>splice_si_api</module>
         <module>splice_access_api</module>

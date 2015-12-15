@@ -2,6 +2,8 @@ package com.splicemachine.si.api.txn;
 
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.coprocessor.TxnMessage;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -20,17 +22,17 @@ import java.util.List;
 
 public interface TxnDecoder<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,
         Get extends OperationWithAttributes,Put extends OperationWithAttributes,RegionScanner,Result,
-        Scan extends OperationWithAttributes,Transaction,TxnInfo> {
+        Scan extends OperationWithAttributes,OperationStatus> {
 
-    public Transaction decode(SDataLib<OperationWithAttributes,Data,Delete,Filter,Get,
+    TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Data,Delete,Filter,Get,
             Put,RegionScanner,Result,Scan> dataLib, long txnId, Result result) throws IOException;
 
-    public Transaction decode(SDataLib<OperationWithAttributes,Data,Delete,Filter,Get,
-            Put,RegionScanner,Result,Scan> datalib, List<Data> keyValues) throws IOException;
+    TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Data, Delete, Filter, Get,
+            Put, RegionScanner, Result, Scan> datalib,List<Data> keyValues) throws IOException;
 
-	public Put encodeForPut(TxnInfo txn) throws IOException;
+	Put encodeForPut(TxnMessage.TxnInfo txn) throws IOException;
         
-    public Transaction composeValue(Data destinationTables, IsolationLevel level, long txnId, long beginTs, long parentTs, boolean hasAdditive,
-                                    boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime);
+    TxnMessage.Txn composeValue(Data destinationTables,IsolationLevel level,long txnId,long beginTs,long parentTs,boolean hasAdditive,
+                                boolean additive,long commitTs,long globalCommitTs,Txn.State state,long kaTime);
     
 }

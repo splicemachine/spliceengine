@@ -1,6 +1,9 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.MutationStatus;
+
 import java.io.IOException;
 
 /**
@@ -17,7 +20,7 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 3/14/14
  */
-public interface ConstraintChecker<OperationStatus,Result> {
+public interface ConstraintChecker{
 
     /**
      * Checks the constraint against the current row and the current modification.
@@ -42,5 +45,5 @@ public interface ConstraintChecker<OperationStatus,Result> {
      * @return a Status entity representing the Constraint's conclusion
      * @throws IOException
      */
-    public OperationStatus checkConstraint(KVPair mutation, Result existingRow) throws IOException;
+    MutationStatus checkConstraint(KVPair mutation,DataResult existingRow) throws IOException;
 }

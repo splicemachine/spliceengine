@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.data.IHTable;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.si.api.readresolve.RollForwardAction;
 
 /**
@@ -8,11 +8,11 @@ import com.splicemachine.si.api.readresolve.RollForwardAction;
  * Date: 9/4/14
  */
 public interface ActionFactory {
-    RollForwardAction newAction(IHTable region);
+    RollForwardAction newAction(Partition region);
 
     public static final ActionFactory NOOP_ACTION_FACTORY = new ActionFactory(){
         @Override
-        public RollForwardAction newAction(IHTable region) {
+        public RollForwardAction newAction(Partition region) {
             return RollForwardAction.NOOP_ACTION;
         }
     };

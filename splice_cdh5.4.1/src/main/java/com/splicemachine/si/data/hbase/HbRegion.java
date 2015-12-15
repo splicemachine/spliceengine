@@ -1,21 +1,25 @@
 package com.splicemachine.si.data.hbase;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.splicemachine.collections.CloseableIterator;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.data.SRowLock;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.locks.Lock;
+
 import static com.splicemachine.si.constants.SIConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 
 /**
@@ -31,6 +35,37 @@ public class HbRegion extends BaseHbRegion {
     @Override
     public String getName() {
         return region.getTableDesc().getNameAsString();
+    }
+
+    @Override
+    public void put(DataPut put) throws IOException{
+        assert put instanceof HPut: "Programmer error: incorrect type for Put!";
+        Put p = ((HPut)put).unwrapDelegate();
+        region.put(p);
+    }
+
+    @Override
+    public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
+        if(previous==null)
+            previous = new HResult();
+
+        Get g = new Get(key);
+        g.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
+        assert previous instanceof HResult: "Programmer error: incorrect type for HbTable!";
+        ((HResult)previous).set(region.get(g));
+        return previous;
+    }
+
+    @Override
+    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+        if(previous==null)
+            previous = new HResult();
+
+        Get g = new Get(key);
+        g.setMaxVersions(1);
+        assert previous instanceof HResult: "Programmer error: incorrect type for HbTable!";
+        ((HResult)previous).set(region.get(g));
+        return previous;
     }
 
     @Override
@@ -68,17 +103,6 @@ public class HbRegion extends BaseHbRegion {
         throw new RuntimeException("not implemented");
     }
 
-    @Override
-    public SRowLock lockRow(byte[] rowKey) throws IOException {
-        return new HRowLock(region.getRowLock(rowKey, true));
-    }
-
-    @Override
-    public void unLockRow(SRowLock lock) throws IOException {
-        List<HRegion.RowLock> locks = new ArrayList<HRegion.RowLock>(1);
-        locks.add((HRegion.RowLock)lock.getDelegate()); // Revisit JL-TODO
-        region.releaseRowLocks(locks);
-    }
 
     @Override
     public void startOperation() throws IOException {
@@ -91,16 +115,22 @@ public class HbRegion extends BaseHbRegion {
     }
 
     @Override
-    public SRowLock getLock(byte[] rowKey, boolean waitForLock) throws IOException {
-        HRegion.RowLock rowLock = region.getRowLock(rowKey, waitForLock);
-        if(rowLock == null) return null;
-        return new HRowLock(rowLock);
+    public Lock getLock(byte[] rowKey, boolean waitForLock) throws IOException {
+//        HRegion.RowLock rowLock = region.getRowLock(rowKey, waitForLock);
+//        if(rowLock == null) return null;
+        return new HLock(region,rowKey);
     }
 
     @Override
-    public SRowLock tryLock(ByteSlice rowKey) throws IOException {
-        //TODO -sf- HBase requires us to make a copy here, can we avoid that?
-        return getLock(rowKey.getByteCopy(), false);
+    public Lock getRowLock(ByteSlice byteSlice) throws IOException{
+        return new HLock(region,byteSlice.getByteCopy());
+    }
+
+    @Override
+    public Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException{
+        byte k [] = new byte[keyLen];
+        System.arraycopy(key,keyOff,k,0,keyLen);
+        return new HLock(region,k);
     }
 
     @Override
@@ -124,7 +154,7 @@ public class HbRegion extends BaseHbRegion {
     }
 
     @Override
-    public void put(Put put, SRowLock rowLock) throws IOException {
+    public void put(Put put, Lock rowLock) throws IOException {
         region.put(put);
     }
 
@@ -133,18 +163,6 @@ public class HbRegion extends BaseHbRegion {
         if (!durable)
             put.setDurability(Durability.SKIP_WAL);
         region.put(put);
-    }
-
-    @Override
-    public OperationStatus[] batchPut(Pair<Mutation, HRowLock>[] puts)
-            throws IOException {
-        Mutation[] mutations = new Mutation[puts.length];
-        int i=0;
-        for(Pair<Mutation, HRowLock> pair:puts){
-            mutations[i] = pair.getFirst();
-            i++;
-        }
-        return region.batchMutate(mutations);
     }
 
     @Override
@@ -158,20 +176,72 @@ public class HbRegion extends BaseHbRegion {
     }
 
     @Override
-    public void delete(Delete delete, SRowLock rowLock) throws IOException {
+    public void delete(Delete delete, Lock rowLock) throws IOException {
         region.delete(delete);
     }
 
     @Override
-    public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
-        Mutation[] mutations = new Mutation[data.size()];
-        int i=0;
-        for(KVPair pair:data){
-            mutations[i] = getMutation(pair,txn);
-            i++;
-        }
-        return region.batchMutate(mutations);
+    public DataScanner openScanner(DataScan scan) throws IOException{
+        return openScanner(scan,Metrics.noOpMetricFactory());
     }
+
+    @Override
+    public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
+        Mutation[] mutations = new Mutation[toWrite.length];
+        for(int i=0;i<toWrite.length;i++){
+            DataPut dp = toWrite[i];
+            assert dp instanceof HPut: "Programmer Error: cannot perform batch put with non-hbase cells";
+            mutations[i] = ((HPut)dp).unwrapDelegate();
+        }
+
+        OperationStatus[] delegates=region.batchMutate(mutations);
+        final HMutationStatus wrapper = new HMutationStatus();
+        return Iterators.transform(Iterators.forArray(delegates),new Function<OperationStatus, MutationStatus>(){
+            @Override
+            public MutationStatus apply(OperationStatus input){
+                wrapper.set(input);
+                return wrapper;
+            }
+        });
+    }
+
+    @Override
+    public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public DataResultScanner openResultScanner(DataScan scan){
+        return openResultScanner(scan,Metrics.noOpMetricFactory());
+    }
+
+    @Override
+    public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
+        return null;
+    }
+
+    @Override
+    public void delete(DataDelete delete) throws IOException{
+        assert delete instanceof HDelete: "Programmer Error: cannot issue a non-Hbase delete!";
+        Delete d=((HDelete)delete).unwrapDelegate();
+        region.delete(d);
+    }
+
+//    @Override
+//    public OperationStatus[] batchMutate(Collection<KVPair> data,TxnView txn) throws IOException {
+//        Mutation[] mutations = new Mutation[data.size()];
+//        int i=0;
+//        for(KVPair pair:data){
+//            mutations[i] = getMutation(pair,txn);
+//            i++;
+//        }
+//        return region.batchMutate(mutations);
+//    }
 
     @Override
     public boolean isClosed() {

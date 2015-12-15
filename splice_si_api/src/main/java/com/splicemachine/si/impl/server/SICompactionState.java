@@ -6,7 +6,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.api.txn.KeyValueType;
+import com.splicemachine.storage.CellType;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
 import com.splicemachine.si.impl.txn.RolledBackTxn;
@@ -26,11 +26,11 @@ import java.util.TreeSet;
  */
 public class SICompactionState<OperationWithAttributes,Data,Delete extends OperationWithAttributes,
     Put extends OperationWithAttributes, Filter, Get extends OperationWithAttributes,
-        Mutation extends OperationWithAttributes, OperationStatus,RegionScanner,Result,ReturnCode,RowLock,Scan extends OperationWithAttributes, Table> {
+        OperationStatus,RegionScanner,Result,Scan extends OperationWithAttributes> {
     private static final Logger LOG = Logger.getLogger(SICompactionState.class);
     private final DataStore<OperationWithAttributes,Data,Delete,Filter,
-                Get,Mutation,OperationStatus,
-                Put,RegionScanner,Result,ReturnCode,RowLock,Scan,Table> dataStore;
+                Get,
+            Put,RegionScanner,Result, Scan> dataStore;
     private final TxnSupplier transactionStore;
     public SortedSet<Data> dataToReturn;
     private final RollForward rollForward;
@@ -61,9 +61,9 @@ public class SICompactionState<OperationWithAttributes,Data,Delete extends Opera
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
     private void mutate(Data element) throws IOException {
-        final KeyValueType keyValueType = dataStore.getKeyValueType(element);
+        final CellType cellType= dataStore.getKeyValueType(element);
         long timestamp = dataStore.dataLib.getTimestamp(element);
-        switch (keyValueType) {
+        switch (cellType) {
             case COMMIT_TIMESTAMP:
                 /*
                  * Older versions of SI code would put an "SI Fail" element in the commit timestamp

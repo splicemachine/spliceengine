@@ -1,16 +1,20 @@
 package com.splicemachine.si.api.filter;
 
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.api.txn.KeyValueType;
+import com.splicemachine.storage.CellType;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataFilter;
 
 import java.io.IOException;
 
-public interface TxnFilter<Data,ReturnCode> {
+public interface TxnFilter<Data,ReturnCode> extends DataFilter{
     ReturnCode filterKeyValue(Data keyValue) throws IOException;
     void nextRow();
     Data produceAccumulatedKeyValue();
+
+    DataCell produceAccumulatedResult();
     boolean getExcludeRow();
-	KeyValueType getType(Data keyValue) throws IOException;
+	CellType getType(Data keyValue) throws IOException;
 	DataStore getDataStore();
     RowAccumulator<Data> getAccumulator();
 }

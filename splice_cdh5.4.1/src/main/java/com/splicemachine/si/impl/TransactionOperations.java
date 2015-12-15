@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.impl.SimpleOperationFactory;
 
 /**
  * Utility class for constructing a TxnOperationFactory.
@@ -26,7 +25,7 @@ public class TransactionOperations {
             TxnOperationFactory factory = operationFactory;
             if(factory!=null) return factory;
 
-            factory = new SimpleOperationFactory();
+            factory = new BaseOperationFactory();
             operationFactory = factory;
             return factory;
         }
