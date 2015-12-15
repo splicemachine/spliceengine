@@ -232,6 +232,20 @@ public class Subquery_Flattening_Exists_IT {
                         " 2 |");
     }
 
+    /* The subquery can have an OR node so long as everything below it is uncorrelated  */
+    @Test
+    public void correlated_withUnCorrelatedOrSubtree() throws Exception {
+        // DB-4217
+        assertUnorderedResult(conn(),
+                "select a1 from A where exists (select 1 from B join C on b1=c1 where b1=a1 and (b1>1 OR b2<100))", ZERO_SUBQUERY_NODES, "" +
+                        "A1 |\n" +
+                        "----\n" +
+                        " 0 |\n" +
+                        " 1 |\n" +
+                        "11 |\n" +
+                        " 2 |");
+    }
+
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // multiple exists
@@ -604,6 +618,7 @@ public class Subquery_Flattening_Exists_IT {
 
     @Test
     public void notFlattened_or() throws Exception {
+        // or between two exists
         assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "exists (select b1 from B where a1=b1 and b1 in (3,5))" +
@@ -614,6 +629,7 @@ public class Subquery_Flattening_Exists_IT {
                         " 0 |\n" +
                         " 3 |"
         );
+        // or between top level predicates
         assertUnorderedResult(conn(),
                 "select a1 from A where exists (select b1 from B where a1=b1 and b1 < 3) or a1=5", ONE_SUBQUERY_NODE, "" +
                         "A1 |\n" +
@@ -623,7 +639,17 @@ public class Subquery_Flattening_Exists_IT {
                         " 2 |\n" +
                         " 5 |"
         );
-
+        // or between correlated subquery predicates
+        assertUnorderedResult(conn(),
+                "select a1 from A where exists (select b1 from B join C on b1=c1 where a1=b1 or a2=b2)", ONE_SUBQUERY_NODE, "" +
+                        "A1 |\n" +
+                        "----\n" +
+                        " 0 |\n" +
+                        " 1 |\n" +
+                        "11 |\n" +
+                        "13 |\n" +
+                        " 2 |"
+        );
     }
 
     @Test

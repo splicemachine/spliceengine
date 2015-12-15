@@ -295,6 +295,16 @@ public class Subquery_Flattening_NotExists_IT {
                 "NULL |");
     }
 
+    /* The subquery can have an OR node so long as everything below it is uncorrelated  */
+    @Test
+    public void correlated_withUnCorrelatedOrSubtree() throws Exception {
+        // DB-4217
+        assertUnorderedResult(conn(),
+                "select * from A where NOT exists (select 1 from C join D on c1=d1 where c1=a1 and (c1 is null OR d1 is null))", ZERO_SUBQUERY_NODES, "" +
+                        RESULT_ALL_OF_A);
+    }
+
+
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // multiple NOT exists
@@ -757,6 +767,7 @@ public class Subquery_Flattening_NotExists_IT {
 
     @Test
     public void notFlattened_or() throws Exception {
+        // or between two exists
         assertUnorderedResult(conn(),
                 "select a1 from A where " +
                         "NOT exists (select b1 from B where a1=b1 and b1 in (3,5))" +
@@ -778,6 +789,7 @@ public class Subquery_Flattening_NotExists_IT {
                         "  7  |\n" +
                         "NULL |"
         );
+        // or between top level predicates
         assertUnorderedResult(conn(),
                 "select a1 from A where NOT exists (select b1 from B where a1=b1 and b1 < 3) or a1=11", ONE_SUBQUERY_NODE, "" +
                         "A1  |\n" +
@@ -786,6 +798,21 @@ public class Subquery_Flattening_NotExists_IT {
                         " 12  |\n" +
                         " 12  |\n" +
                         " 13  |\n" +
+                        " 13  |\n" +
+                        "  3  |\n" +
+                        "  4  |\n" +
+                        "  5  |\n" +
+                        "  6  |\n" +
+                        "  7  |\n" +
+                        "NULL |"
+        );
+        // or between correlated subquery predicates
+        assertUnorderedResult(conn(),
+                "select a1 from A where NOT exists (select b1 from B join C on b1=c1 where a1=b1 or a2=b2)", ONE_SUBQUERY_NODE, "" +
+                        "A1  |\n" +
+                        "------\n" +
+                        " 12  |\n" +
+                        " 12  |\n" +
                         " 13  |\n" +
                         "  3  |\n" +
                         "  4  |\n" +
