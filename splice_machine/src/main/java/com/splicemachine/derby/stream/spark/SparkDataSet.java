@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowW
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
@@ -27,6 +28,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.storage.StorageLevel;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -63,13 +65,18 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
-        return new SparkDataSet<U>(rdd.mapPartitions(f), name);
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
+        return new SparkDataSet<U>(rdd.mapPartitions(f), planIfLast(f, isLast));
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
-        return new SparkDataSet<U>(rdd.mapPartitions(f), planIfLast(f,  isLast));
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail) {
+        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        try {
+            return new SparkDataSet<U>(rdd.mapPartitions(f), planIfLast(f, isLast));
+        } finally {
+            if (pushScope) f.operationContext.popScope();
+        }
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -323,6 +330,20 @@ public class SparkDataSet<V> implements DataSet<V> {
         rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
         RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
         return new SparkDataSet<V>(rdd1);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+        if (pushScope) context.pushScopeForOp(scopeDetail);
+        try {
+            JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
+            rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
+            RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+            return new SparkDataSet<V>(rdd1);
+        } finally {
+            if (pushScope) context.popScope();
+        }
     }
 
     @Override
