@@ -567,7 +567,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(ProjectRestrictFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowComparator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowOperationFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(ScalarAggregateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ScalarAggregateFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SetCurrentLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(SpliceFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
