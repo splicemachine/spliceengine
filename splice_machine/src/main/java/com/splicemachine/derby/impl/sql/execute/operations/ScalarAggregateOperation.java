@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.control.ControlDataSet;
-import com.splicemachine.derby.stream.function.ScalarAggregateFunction;
+import com.splicemachine.derby.stream.function.ScalarAggregateFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -20,7 +18,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
+
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
  *
@@ -118,27 +116,26 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<ScalarAggregateOperation> operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> dsSource = source.getDataSet(dsp);
-        
-        operationContext.pushScope(this.getSparkStageName() + ": Aggregate");
-        LocatedRow result = dsSource.fold(null,new ScalarAggregateFunction(operationContext));
-        operationContext.popScope();
-        
-        if (result==null) {
-            // return returnDefault ? dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
-            return returnDefault ? new ControlDataSet(Collections.singletonList(new LocatedRow(getExecRowDefinition()))) : null;
-		}
-        if (!isInitialized(result.getRow())) {
-            initializeVectorAggregation(result.getRow());
-        }
-        finishAggregation(result.getRow());
-        LocatedRow lr = new LocatedRow(result.getRowLocation(),result.getRow());
-        setCurrentLocatedRow(lr);
-        
-        operationContext.pushScope(this.getSparkStageName() + ": Prepare Result");
-        // DataSet<LocatedRow> singleRowDataSet = dsp.singleRowDataSet(lr, this, true);
-        DataSet<LocatedRow> singleRowDataSet = new ControlDataSet<>(Lists.newArrayList(lr));
+
+        // Rather than invoke DataSet.fold(), which passes through to the spark fold operation,
+        // we write the equivalent of a fold operation ourselves. Otherwise, fold
+        // returns a row, not a dataset, which means additional processing of that dataset
+        // results in a new Job being launched, where we generally just want one Job.
+        // Also, this gives us better representation in the UI.
+
+        operationContext.pushScopeForOp("First Aggregation");
+        DataSet<LocatedRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false));
         operationContext.popScope();
 
-        return singleRowDataSet;
+        operationContext.pushScopeForOp("Coalesce");
+        DataSet<LocatedRow> ds2 = ds.coalesce(1, true);
+        operationContext.popScope();
+
+        operationContext.pushScopeForOp("Final Aggregation");
+        try {
+            return ds2.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, true), true);
+        } finally {
+            operationContext.popScope();
+        }
     }
 }
