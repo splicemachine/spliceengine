@@ -2,8 +2,7 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.si.api.TxnView;
-
+import com.splicemachine.si.api.txn.TxnView;
 import java.io.Externalizable;
 import java.util.List;
 

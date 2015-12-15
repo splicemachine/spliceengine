@@ -28,10 +28,10 @@
         <module>splice_timestamp_api</module>
         <module>splice_si_api</module>
         <module>splice_access_api</module>
-<!--        <module>splice_memory</module>  -->
+        <module>splice_pipeline</module>
+        <module>splice_machine</module>
+        <!--        <module>splice_memory</module>  -->
         <module>splice_cdh5.4.1</module>
-        <module>splice_si</module>
-        <module>splice_dataset_api</module>
     </modules>
 	<properties>
 		<derby.version>2.0.0.1-SNAPSHOT</derby.version>

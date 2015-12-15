@@ -23,7 +23,7 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.derby.utils.marshall.SaltedPrefix;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;

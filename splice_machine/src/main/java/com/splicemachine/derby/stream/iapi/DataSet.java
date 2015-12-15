@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
+
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Iterator;

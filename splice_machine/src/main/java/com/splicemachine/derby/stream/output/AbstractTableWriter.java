@@ -7,7 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
