@@ -2878,7 +2878,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 return sps;
         sps=getSPSDescriptorIndex2Scan(uuid.toString());
         TableKey stmtKey=new TableKey(sps.getSchemaDescriptor().getUUID(),sps.getName());
-        dataDictionaryCache.spsNameCacheAdd(stmtKey,sps);
+        dataDictionaryCache.storedPreparedStatementCacheAdd(sps);
         return sps;
     }
 
