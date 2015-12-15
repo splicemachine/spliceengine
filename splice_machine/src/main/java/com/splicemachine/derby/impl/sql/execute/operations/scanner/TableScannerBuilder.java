@@ -52,7 +52,6 @@ public class TableScannerBuilder implements Externalizable {
         protected int[] fieldLengths;
         protected int[] columnPositionMap;
         protected long baseTableConglomId = -1l;
-        protected long demarcationPoint = -1;
 
 		public TableScannerBuilder scanner(MeasuredRegionScanner scanner) {
 				assert scanner !=null :"Null scanners are not allowed!";
@@ -241,11 +240,6 @@ public class TableScannerBuilder implements Externalizable {
             return this;
         }
 
-        public TableScannerBuilder demarcationPoint(long demarcationPoint) {
-            this.demarcationPoint = demarcationPoint;
-            return this;
-        }
-
 		public SITableScanner build(){
             if (fieldLengths != null) {
                 return new StatisticsScanner(
@@ -285,15 +279,14 @@ public class TableScannerBuilder implements Externalizable {
                         reuseRowLocation,
                         indexName,
                         tableVersion,
-                        filterFactory,
-                        demarcationPoint);
+                        filterFactory);
             }
 		}
 
 		@Override
         public void writeExternal(ObjectOutput out) throws IOException {
             try {
-                out.writeBoolean(execRowTypeFormatIds!=null);
+                out.writeBoolean(execRowTypeFormatIds != null);
                 if (execRowTypeFormatIds!=null) {
                     out.writeInt(execRowTypeFormatIds.length);
                     for (int i = 0; i < execRowTypeFormatIds.length; ++i) {
@@ -344,7 +337,7 @@ public class TableScannerBuilder implements Externalizable {
                 if (operationContext!=null)
                     out.writeObject(operationContext);
 
-                out.writeBoolean(fieldLengths!=null);
+                out.writeBoolean(fieldLengths != null);
                 if (fieldLengths!=null) {
                     out.writeInt(fieldLengths.length);
                     for (int i = 0; i < fieldLengths.length; ++i) {
@@ -356,7 +349,6 @@ public class TableScannerBuilder implements Externalizable {
                     }
                     out.writeLong(baseTableConglomId);
                 }
-                out.writeLong(demarcationPoint);
             } catch (StandardException e) {
                 throw new IOException(e.getCause());
             }
@@ -420,7 +412,6 @@ public class TableScannerBuilder implements Externalizable {
                 }
                 baseTableConglomId = in.readLong();
             }
-            demarcationPoint = in.readLong();
         } catch (StandardException e) {
             throw new IOException(e.getCause());
         }

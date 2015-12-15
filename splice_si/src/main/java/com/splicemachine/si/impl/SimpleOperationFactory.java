@@ -59,7 +59,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
 						makeNonTransactional(get);
 						return get;
 				}
-				encodeForReads(get,txn,false);
+				encodeForReads(get, txn, false);
 				return get;
 		}
 
@@ -98,7 +98,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
         //throw away the allow reads bit, since we won't care anyway
         decoder.decodeNextBoolean();
-
+        decoder.decodeNextLong();
         TxnView parent = Txn.ROOT_TRANSACTION;
         while(decoder.available()){
             long id = decoder.decodeNextLong();
@@ -120,16 +120,21 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         byte[] txnData = new byte[size];
         oi.read(txnData);
 
-        return decode(txnData,0,txnData.length);
+        return decode(txnData, 0, txnData.length);
     }
 
     @Override
     public byte[] encode(TxnView txn) {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(5)
+        long demarcationPoint = -1;
+        if (txn instanceof DDLTxnView) {
+            demarcationPoint = ((DDLTxnView) txn).getDemarcationPoint();
+        }
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(6)
                 .encodeNext(txn.getTxnId())
                 .encodeNext(txn.isAdditive())
                 .encodeNext(txn.getIsolationLevel().encode())
-                .encodeNext(txn.allowsWrites());
+                .encodeNext(txn.allowsWrites())
+                .encodeNext(demarcationPoint);
 
         LongArrayList parentTxnIds = LongArrayList.newInstance();
         byte[] build = encodeParentIds(txn, parentTxnIds);
@@ -143,6 +148,7 @@ public class SimpleOperationFactory implements TxnOperationFactory {
         boolean additive = decoder.decodeNextBoolean();
         Txn.IsolationLevel level = Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
         boolean allowsWrites = decoder.decodeNextBoolean();
+        long demarcationPoint = decoder.decodeNextLong();
 
         TxnView parent = Txn.ROOT_TRANSACTION;
         while(decoder.available()){
@@ -152,10 +158,17 @@ public class SimpleOperationFactory implements TxnOperationFactory {
             else
                 parent = new ReadOnlyTxn(id,id,level,parent, UnsupportedLifecycleManager.INSTANCE,additive);
         }
+        TxnView txn = null;
         if(allowsWrites)
-            return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
+            txn = new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
         else
-            return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+            txn = new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+
+        if (demarcationPoint > 0) {
+            return new DDLTxnView(txn, demarcationPoint);
+        }
+
+        return txn;
     }
 
     /******************************************************************************************************************/
