@@ -1,5 +1,6 @@
 package com.splicemachine.concurrent;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -25,6 +26,12 @@ public class ConcurrentTicker implements TickingClock{
     @Override
     public long nanoTime(){
         return ticker.get();
+    }
+
+    @Override
+    public void sleep(long time,TimeUnit unit) throws InterruptedException{
+        long toTick = unit.toNanos(time);
+        ticker.addAndGet(toTick);
     }
 
     @Override
