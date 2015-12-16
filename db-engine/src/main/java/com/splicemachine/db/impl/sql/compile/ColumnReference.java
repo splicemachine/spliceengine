@@ -202,6 +202,17 @@ public class ColumnReference extends ValueNode {
 		}
 	}
 
+    public String printNameLoc() {
+        ResultColumn src = (source != null ? source : origSource);
+        String fullColumnName = columnName;
+        try {
+            fullColumnName = src.getSchemaName()+"."+src.getFullName();
+        } catch (StandardException e) {
+            // do nothing
+        }
+        return fullColumnName + "["+src.getResultSetNumber()+","+src.getVirtualColumnId()+"]";
+    }
+
     @Override
     public String toHTMLString() {
         return "" +

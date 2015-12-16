@@ -21,30 +21,27 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Properties;
+
+import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.AliasInfo;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import java.util.List;
-import java.util.Properties;
-import java.sql.Timestamp;
 
 /**
  * Factory for creating ConstantActions.
@@ -303,7 +300,7 @@ public abstract class GenericConstantActionFactory
 	 * @param lockGranularity	The lock granularity.
 	 * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
 	 * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
-	 * @param insertNode if not null, a statement that needs to execute to insert data into the table once fully created. If null, then nothing to be inserted
+	 * @param withDataQueryString if not null, a statement that needs to execute to insert data into the table once fully created. If null, then nothing to be inserted
 		 *                 If not null, this MUST be bound and optimized AFTER the table has been created, or else it will break
 	 */
 	public abstract	ConstantAction	getCreateTableConstantAction
@@ -317,7 +314,7 @@ public abstract class GenericConstantActionFactory
 		char			lockGranularity,
 		boolean			onCommitDeleteRows,
 		boolean			onRollbackDeleteRows,
-		StatementNode insertNode
+        String          withDataQueryString
 		);
 
 	/**

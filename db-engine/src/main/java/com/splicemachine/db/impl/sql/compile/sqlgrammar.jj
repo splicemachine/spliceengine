@@ -2238,6 +2238,31 @@ public class SQLParser
                                               truncValue,
                                               getContextManager());
 	}
+
+    /**
+     * Used by create table with data, this method parses the table population query. We pull out what's between
+     * the square brackets below []
+     * CREATE TABLE X AS [SELECT A, B, C FROM Y] WITH DATA
+     */
+   public String parseQueryString(String src) {
+       boolean inSection = false;
+       StringBuilder buf = new StringBuilder();
+        for (String part : src.split("\\s+")) {
+            if (inSection && part.equalsIgnoreCase("with")) {
+                inSection = false;
+            } else if (inSection) {
+                buf.append(part).append(" ");
+            } else if (! inSection && part.equalsIgnoreCase("as")) {
+                inSection = true;
+            }
+        }
+        if (buf.length() > 1) {
+            // remove the trailing space
+            buf.setLength(buf.length()-1);
+        }
+           return buf.toString();
+   }
+
 }
 
 PARSER_END(SQLParser)
@@ -11512,6 +11537,7 @@ tableDefinition() throws StandardException :
 	ResultColumnList	resultColumns = null;
 	QueryTreeNode		queryExpression;
 	boolean				withData = true;
+	String              queryString = null;
 }
 {
 	<TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
@@ -11537,13 +11563,13 @@ tableDefinition() throws StandardException :
 			queryExpression = queryExpression(null, NO_SET_OP, null)
 			<WITH> [ <NO> { withData = false; } ] <DATA>
 			{
-				// Raise error if WITH DATA is specified
-				// (until it is implemented)
-//				if (withData) {
-//				    queryExpression =
-//					throw StandardException.newException(
-//						SQLState.NOT_IMPLEMENTED, "WITH DATA");
-//				}
+                if (withData) {
+                    if (! (queryExpression instanceof SelectNode)) {
+                       // can't have "WITH DATA" without a query
+                       throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "WITH DATA must use a query.");
+                    }
+                    queryString = parseQueryString(statementSQLText);
+                }
 				/* Parameters not allowed in create table */
 				HasNodeVisitor visitor =
 					new HasNodeVisitor(ParameterNode.class);
@@ -11561,7 +11587,7 @@ tableDefinition() throws StandardException :
 										queryExpression,
 										getContextManager());
                 if (node instanceof CreateTableNode) {
-                    ((CreateTableNode)node).setWithData(withData);
+                    ((CreateTableNode)node).setQueryString(queryString);
                 }
                 return node;
 			}

@@ -64,7 +64,7 @@ public class CreateTableNode extends DDLStatementNode
 	protected int	tableType; //persistent table or global temporary table
 	private ResultColumnList	resultColumns;
 	private ResultSetNode		queryExpression;
-		private boolean withData;
+    private String              queryString;
 
 		/**
 	 * Initializer for a CreateTableNode for a base table
@@ -169,9 +169,9 @@ public class CreateTableNode extends DDLStatementNode
 		this.queryExpression = (ResultSetNode) queryExpression;
 	}
 
-		public void setWithData(boolean withData){
-				this.withData = withData;
-		}
+    public void setQueryString(String queryString) {
+        this.queryString = queryString;
+    }
 
 	/**
 	 * Convert this object to a String.  See comments in QueryTreeNode.java
@@ -528,19 +528,6 @@ public class CreateTableNode extends DDLStatementNode
             }
         }
 
-//			GenericStorablePreparedStatement gsps = null;
-			InsertNode node = null;
-			if(withData){
-					/*
-					 * We have indicated that we are a "create table as ... with data" type query,
-					 * which means we need to create an insert operation over top of the queryDescription,
-					 * and then pass that to the constant action for execution
-					 */
-					node = new InsertNode();
-					node.init(this.getObjectName(), queryExpression.getResultColumns(), queryExpression, properties, null, null, null, null);
-					node.setContextManager(getContextManager());
-			}
-
 		return(
             getGenericConstantActionFactory().getCreateTableConstantAction(
                 sd.getSchemaName(),
@@ -552,7 +539,7 @@ public class CreateTableNode extends DDLStatementNode
                 lockGranularity,
                 onCommitDeleteRows,
                 onRollbackDeleteRows,
-										node));
+                queryString));
 	}
 
 	/**

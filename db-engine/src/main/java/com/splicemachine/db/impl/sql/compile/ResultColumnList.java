@@ -3667,6 +3667,23 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    public String printCols() {
+        StringBuilder buf = new StringBuilder("[");
+        for (ResultColumn rc : this) {
+            try {
+                buf.append(rc.getSchemaName()).append(".");
+            } catch (StandardException e) {
+                // do nothing
+            }
+            buf.append(rc.getFullName()).append(",");
+        }
+        if (buf.length() > 1) {
+            buf.setLength(buf.length()-1);
+        }
+        buf.append("]");
+        return buf.toString();
+    }
+
     @Override
     public String toHTMLString() {
         return "" +
