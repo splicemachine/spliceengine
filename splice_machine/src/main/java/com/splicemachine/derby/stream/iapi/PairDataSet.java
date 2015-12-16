@@ -10,7 +10,9 @@ import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
+
 import scala.Tuple2;
+
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -21,9 +23,10 @@ public interface PairDataSet<K,V> {
     public DataSet<V> values();
     public DataSet<V> values(String name);
     public DataSet<V> values(boolean isLast);
+    public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
     public DataSet<K> keys();
     public <Op extends SpliceOperation> PairDataSet<K,V> reduceByKey(SpliceFunction2<Op,V,V,V> function2);
-    public <Op extends SpliceOperation> PairDataSet<K,V> reduceByKey(SpliceFunction2<Op,V,V,V> function2, boolean isLast);
+    public <Op extends SpliceOperation> PairDataSet<K,V> reduceByKey(SpliceFunction2<Op,V,V,V> function2, boolean isLast, boolean pushScope, String scopeDetail);
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,Tuple2<K,V>,U> function);
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op,Tuple2<K,V>,U> function);
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op,Tuple2<K,V>,U> function, boolean isLast);

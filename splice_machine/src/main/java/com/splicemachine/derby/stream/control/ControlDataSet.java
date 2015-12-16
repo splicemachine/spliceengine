@@ -83,24 +83,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         return distinct();
     }
 
-    @Override
-    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
-        try {
-            for (V v : iterable) {
-                zeroValue = function2.call(zeroValue, v);
-            }
-            return zeroValue;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
-        return fold(zeroValue, function2);
-    }
-
-    @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
         return new ControlPairDataSet<>(FluentIterable.from(iterable).transform(new Function<V, Tuple2<K, U>>() {
             @Nullable
@@ -140,12 +122,18 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function) {
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
         return new ControlPairDataSet<K,V>(entryToTuple(FluentIterable.from(iterable).index(function).entries()));
     }
 
     @Override
-    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
+        return keyBy(function);
+    }
+
+    @Override
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(
+        final SpliceFunction<Op, V, K> function, String name, boolean pushScope, String scopeDetail) {
         return keyBy(function);
     }
 

@@ -4,7 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.*;
 import com.splicemachine.derby.stream.function.KeyerFunction;
-import com.splicemachine.derby.stream.function.MergeAllAggregatesFunction;
+import com.splicemachine.derby.stream.function.MergeAllAggregatesFlatMapFunction;
 import com.splicemachine.derby.stream.function.MergeNonDistinctAggregatesFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -17,7 +17,9 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -109,22 +111,16 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         return String.format("DistinctScalarAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> dataSet = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
-        LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
-                .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext))
-                .values()
-                .fold(null, new MergeAllAggregatesFunction(operationContext), true);
-        setCurrentLocatedRow(finalRow);
-        return dsp.singleRowDataSet(finish(finalRow != null ? finalRow : new LocatedRow(new EmptyRowSupplier(aggregateContext).get()), aggregates));
+        DataSet<LocatedRow> dataSet = source.getDataSet(dsp);
+        DataSet<LocatedRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
+            .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext), false, true, "Reduce")
+            .values(null, false, operationContext, true, "Read Values");
+        DataSet<LocatedRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
+        DataSet<LocatedRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
+        DataSet<LocatedRow> ds5 = ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
+        return ds5;
     }
-
-    public LocatedRow finish (LocatedRow locatedRow, SpliceGenericAggregator[] aggregates) throws StandardException {
-        for(SpliceGenericAggregator aggregator:aggregates) {
-            aggregator.finish(locatedRow.getRow());
-        }
-        return locatedRow;
-    }
-
 }
