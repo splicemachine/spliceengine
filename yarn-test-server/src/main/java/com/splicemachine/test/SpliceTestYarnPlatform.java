@@ -19,14 +19,16 @@ import org.apache.log4j.Logger;
 /**
  * Starts Yarn server
  */
-public class SpliceTestYarnParticipant {
-    private static final Logger LOG = Logger.getLogger(SpliceTestYarnParticipant.class);
+public class SpliceTestYarnPlatform {
+    public static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
+
+    private static final Logger LOG = Logger.getLogger(SpliceTestYarnPlatform.class);
     private static int DEFAULT_NODE_COUNT = 3;
 
     private MiniYARNCluster yarnCluster = null;
     private Configuration conf = null;
 
-    public SpliceTestYarnParticipant() {
+    public SpliceTestYarnPlatform() {
         // default visibility
     }
 
@@ -36,7 +38,7 @@ public class SpliceTestYarnParticipant {
             nodeCount = Integer.parseInt(args[0]);
         }
 
-        SpliceTestYarnParticipant yarnParticipant = new SpliceTestYarnParticipant();
+        SpliceTestYarnPlatform yarnParticipant = new SpliceTestYarnPlatform();
         yarnParticipant.start(nodeCount);
     }
 
@@ -66,9 +68,10 @@ public class SpliceTestYarnParticipant {
             }
 
             conf = new YarnConfiguration();
+            conf.setInt(YarnConfiguration.RM_NM_HEARTBEAT_INTERVAL_MS, DEFAULT_HEARTBEAT_INTERVAL);
             conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);
             conf.setClass(YarnConfiguration.RM_SCHEDULER, FifoScheduler.class, ResourceScheduler.class);
-            yarnCluster = new MiniYARNCluster(SpliceTestYarnParticipant.class.getSimpleName(), nodeCount, 1, 1);
+            yarnCluster = new MiniYARNCluster(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
             yarnCluster.init(conf);
             yarnCluster.start();
 
@@ -89,9 +92,10 @@ public class SpliceTestYarnParticipant {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
-                LOG.info("setup thread sleep interrupted. message=" + e.getMessage());
+                LOG.warn("setup thread sleep interrupted. message=" + e.getMessage());
             }
         }
+        LOG.info("YARN cluster started.");
     }
 
     private static void waitForNMToRegister(NodeManager nm)

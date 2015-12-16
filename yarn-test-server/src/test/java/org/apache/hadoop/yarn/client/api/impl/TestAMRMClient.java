@@ -63,12 +63,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.mortbay.log.Log;
 
-import com.splicemachine.test.SpliceTestYarnParticipant;
+import com.splicemachine.test.SpliceTestYarnPlatform;
 
 public class TestAMRMClient {
     private static final org.apache.commons.logging.Log LOG = LogFactory.getLog(TestAMRMClient.class);
 
-    static SpliceTestYarnParticipant testYarnParticipant = null;
+    static SpliceTestYarnPlatform testYarnParticipant = null;
     static YarnClient yarnClient = null;
     static List<NodeReport> nodeReports = null;
     static ApplicationAttemptId attemptId = null;
@@ -86,7 +86,7 @@ public class TestAMRMClient {
     @BeforeClass
     public static void setup() throws Exception {
         // start yarn test platform
-        testYarnParticipant = new SpliceTestYarnParticipant();
+        testYarnParticipant = new SpliceTestYarnPlatform();
         testYarnParticipant.start(3);
 
         // start rm client
@@ -438,11 +438,11 @@ public class TestAMRMClient {
                 }
                 if(allocatedContainerCount < containersRequestedAny) {
                     // sleep to let NM's heartbeat to RM and trigger allocations
-                    sleep(100);
+                    sleep(SpliceTestYarnPlatform.DEFAULT_HEARTBEAT_INTERVAL);
                 }
             }
 
-            assertEquals(2, allocatedContainerCount);
+            assertEquals("Expected 2 allocated containers.", 2, allocatedContainerCount);
             AllocateResponse allocResponse = amClient.allocate(0.1f);
             assertEquals(0, amClient.release.size());
             assertEquals(0, amClient.ask.size());
@@ -588,7 +588,7 @@ public class TestAMRMClient {
 
             if(allocatedContainerCount == 0) {
                 // sleep to let NM's heartbeat to RM and trigger allocations
-                sleep(100);
+                sleep(SpliceTestYarnPlatform.DEFAULT_HEARTBEAT_INTERVAL);
             }
         }
         return allocatedContainerCount;
@@ -682,7 +682,7 @@ public class TestAMRMClient {
 
             if(allocatedContainerCount < containersRequestedAny) {
                 // sleep to let NM's heartbeat to RM and trigger allocations
-                sleep(100);
+                sleep(SpliceTestYarnPlatform.DEFAULT_HEARTBEAT_INTERVAL);
             }
         }
 
@@ -761,7 +761,7 @@ public class TestAMRMClient {
             }
             if(iterationsLeft > 0) {
                 // sleep to make sure NM's heartbeat
-                sleep(100);
+                sleep(SpliceTestYarnPlatform.DEFAULT_HEARTBEAT_INTERVAL);
             }
         }
         assertTrue(amClient.ask.size() == 0);

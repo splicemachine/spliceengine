@@ -8,6 +8,7 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd)
 ROOT_DIR=$(pwd)
 
 ZOOLOG="${ROOT_DIR}"/zoo_it.log
+YARNLOG="${ROOT_DIR}"/yarn_it.log
 SPLICELOG="${ROOT_DIR}"/splice_it.log
 
 CHAOS="false"
@@ -63,6 +64,10 @@ mvn -B exec:exec -PspliceZoo > ${ZOOLOG} 2>&1 &
 
 echo "waiting 30 seconds for Zookeeper startup"
 sleep 30
+
+# Start SpliceTestYarnPlatform in background.
+echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
+mvn -B exec:exec -X -PspliceYarn > ${YARNLOG} 2>&1 &
 
 # Start SpliceTestPlaform in background.
 echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"

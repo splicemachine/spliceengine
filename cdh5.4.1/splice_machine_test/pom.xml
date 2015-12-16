@@ -56,6 +56,12 @@
       <artifactId>sqlj-it-procs</artifactId>
       <version>1.0.2</version>
     </dependency>
+    <dependency>
+      <groupId>com.splicemachine.yarn</groupId>
+      <artifactId>yarn-test-server</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+      <scope>runtime</scope>
+    </dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -317,6 +323,71 @@
 								<argument>${memberNumber}</argument>
 							</arguments>
 						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>spliceYarn</id>
+			<activation>
+				<property>
+					<name>spliceYarn</name>
+				</property>
+			</activation>
+			<properties>
+				<nodeCount>3</nodeCount>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>java</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+              <executable>java</executable>
+              <includeProjectDependencies>false</includeProjectDependencies>
+              <includePluginDependencies>true</includePluginDependencies>
+              <executableDependency>
+                <groupId>com.splicemachine.yarn</groupId>
+                <artifactId>yarn-test-server</artifactId>
+              </executableDependency>
+              <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
+							<arguments>
+								<!--<argument>-cp</argument>-->
+								<!--<classpath>${maven.runtime.classpath}</classpath>-->
+								<!--<argument>-Djava.awt.headless=true</argument>-->
+								<!--<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>-->
+								<!--<argument>-Djava.net.preferIPv4Stack=true</argument>-->
+								<!--<argument>-Xmx2g</argument>-->
+								<!--<argument>-Xmn128m</argument>-->
+								<!--<argument>-XX:+UseConcMarkSweepGC</argument>-->
+								<!--<argument>-XX:+UseParNewGC</argument>-->
+								<!--<argument>-XX:NewSize=128m</argument>-->
+								<!--<argument>-XX:MaxNewSize=128m</argument>-->
+								<!--<argument>-XX:CMSInitiatingOccupancyFraction=70</argument>-->
+								<!--<argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>-->
+								<!--<argument>-XX:MaxGCPauseMillis=100</argument>-->
+								<!--<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>-->
+								<!--<argument>-XX:MaxPermSize=256M</argument>-->
+								<!--<argument>-XX:+CMSClassUnloadingEnabled</argument>-->
+								<!--<argument>-XX:MaxDirectMemorySize=1g</argument>-->
+								<!--<argument>${project.build.directory}/hbase</argument>-->
+								<argument>${nodeCount}</argument>
+							</arguments>
+						</configuration>
+            <dependencies>
+              <dependency>
+                <groupId>com.splicemachine.yarn</groupId>
+                <artifactId>yarn-test-server</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+              </dependency>
+            </dependencies>
 					</plugin>
 				</plugins>
 			</build>
