@@ -1,5 +1,6 @@
 package com.splicemachine.example;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.mllib.linalg.Vector;
@@ -11,18 +12,22 @@ import java.io.*;
  */
 public class ExecRowToVectorFunction implements Function<LocatedRow,Vector>, Externalizable{
     private int[] fieldsToConvert;
+
+    public ExecRowToVectorFunction() {
+    }
+
     public ExecRowToVectorFunction(int[] fieldsToConvert) {
         this.fieldsToConvert = fieldsToConvert;
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        // TODO Jun
+        ArrayUtil.writeIntArray(out, fieldsToConvert);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        // TODO Jun
+        fieldsToConvert = ArrayUtil.readIntArray(in);
     }
 
     @Override

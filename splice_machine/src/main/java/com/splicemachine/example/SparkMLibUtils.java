@@ -10,7 +10,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.linalg.DenseVector;
 import org.apache.spark.mllib.linalg.Vector;
 
-import java.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.ResultSet;
 
 /**
  * Created by jleach on 12/15/15.
