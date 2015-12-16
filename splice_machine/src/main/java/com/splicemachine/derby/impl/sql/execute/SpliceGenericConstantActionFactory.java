@@ -61,21 +61,21 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
         // Will sometimes hold DropConstraintConstantOperation, sometimes CreateConstraintConstantOperation
     	return new ConstraintConstantOperation[size];
     }
-    		    
+
     @Override
     public ConstantAction getCreateTableConstantAction(String schemaName, String tableName,
                                                        int tableType, ColumnInfo[] columnInfo,
                                                        ConstantAction[] constraintActions,
                                                        Properties properties,
-																											 char lockGranularity,
+                                                       char lockGranularity,
                                                        boolean onCommitDeleteRows,
-																											 boolean onRollbackDeleteRows,
-																											 StatementNode insertStatement) {
-    	SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
-							schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
+                                                       boolean onRollbackDeleteRows,
+                                                       String withDataQueryString) {
+        SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
+                             schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfo,
-                constraintActions,properties,lockGranularity,
-                onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
+                                              constraintActions,properties,lockGranularity,
+                                              onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString);
     }
 
     @Override

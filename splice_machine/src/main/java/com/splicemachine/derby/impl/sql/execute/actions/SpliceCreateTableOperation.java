@@ -1,31 +1,27 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Properties;
+
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
-import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.util.ByteArray;
-import com.splicemachine.db.impl.sql.CursorInfo;
-import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
-
-import java.sql.SQLWarning;
-import java.util.Properties;
 
 /**
  * A Constant Action for creating a table in a Splice-efficient fashion
@@ -37,7 +33,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
     private final int tableType;
     private final String tableName;
     private final String schemaName;
-		private final StatementNode insertNode;
+    private final String withDataQueryString;
     /**
      * Make the ConstantAction for a CREATE TABLE statement.
      *
@@ -50,7 +46,10 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
      * @param properties           Optional table properties
      * @param lockGranularity      The lock granularity.
      * @param onCommitDeleteRows   If true, on commit delete rows else on commit preserve rows of temporary table.
-     * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
+     * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified.
+     *                             true is the only supported value
+     * @param withDataQueryString  this is non-null only when the create table statement contains a query to create
+     *                             and populate the table with a query.
      */
     public SpliceCreateTableOperation(String schemaName,
 																			String tableName,
@@ -61,12 +60,12 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 																			char lockGranularity,
 																			boolean onCommitDeleteRows,
 																			boolean onRollbackDeleteRows,
-																			StatementNode insertNode) {
+																			String withDataQueryString) {
         super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
         this.tableType = tableType;
         this.tableName = tableName;
         this.schemaName = schemaName;
-				this.insertNode = insertNode;
+        this.withDataQueryString = withDataQueryString;
     }
 
     @Override
@@ -121,76 +120,25 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
          * The table didn't exist in a manner which is visible to us, so
          * it should be safe to try and create it.
          *
-         * We take the
          */
 				//if the table doesn't exist, allow super class to create it
 				super.executeConstantAction(activation);
 
-
-				if(insertNode!=null){
-					/*
-					 * If insertNode!=null, then this was a create table as ... with data statement,
-					 * so we have to execute the insertion here.
-					 *
-					 * Unfortunately, we MUST bind and optimize the statement here, because otherwise
-					 * the insert node will explode with a "Table does not exist" exception (or lots
-					 * of NullPointers if you try and fix it).
-					 */
-                    insertNode.treePrint();
-						GenericStorablePreparedStatement gsps = new GenericStorablePreparedStatement();
-						//CompilerContext cc = lcc.pushCompilerContext(insertNode.getSchemaDescriptor(schemaName));
-						CompilerContext cc = insertNode.getCompilerContext();
-						Dependent oldDependent = cc.getCurrentDependent();
-						if(oldDependent==null) {
-								cc.setCurrentDependent(gsps);
-                        }
-						/*
-						 * The following section is a stripped-down version of what occurs inside
-						 * for GenericStatement.prepMinion (minus the parsing). If we can somehow
-						 * find a better way to factor that code, we should delegate to it here
-						 * instead of duplicating the logic.
-						 */
-						insertNode.bindStatement();
-						insertNode.optimizeStatement();
-
-						ASTVisitor visitor = lcc.getASTVisitor();
-						if(visitor!=null){
-								visitor.begin(insertNode.statementToString(), CompilationPhase.AFTER_OPTIMIZE);
-								insertNode.accept(visitor);
-								visitor.end(CompilationPhase.AFTER_OPTIMIZE);
-						}
-
-
-						ByteArray array = gsps.getByteCodeSaver();
-						GeneratedClass ac = insertNode.generate(array);
-
-
-						gsps.setConstantAction(insertNode.makeConstantAction());
-						gsps.setSavedObjects(cc.getSavedObjects());
-						gsps.setRequiredPermissionsList(cc.getRequiredPermissionsList());
-						gsps.incrementVersionCounter();
-						gsps.setActivationClass(ac);
-						gsps.setNeedsSavepoint(insertNode.needsSavepoint());
-						gsps.setCursorInfo((CursorInfo)cc.getCursorInfo());
-						gsps.setIsAtomic(insertNode.isAtomic());
-						gsps.setExecuteStatementNameAndSchema(insertNode.executeStatementName(),insertNode.executeSchemaName());
-						gsps.setSPSName(insertNode.getSPSName());
-						gsps.completeCompile(insertNode);
-						gsps.setCompileTimeWarnings(cc.getWarnings());
+        // If "WITH DATA", parse, plan, etc, the insert query string now that we've created the table
+        if (withDataQueryString != null) {
+            ConnectionContext cc = (ConnectionContext)
+                lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
 						activation.setupSQLSessionContextForChildren(false);
-
-						Activation insertActivation = gsps.getActivation(lcc, true);
-						insertActivation.setupSQLSessionContextForChildren(false);
-						try{
-								ResultSet insertionRs = gsps.execute(insertActivation, -1);
-								SQLWarning warnings = insertionRs.getWarnings();
-								activation.addWarning(warnings);
-								int insertedRows = insertionRs.modifiedRowCount();
-								activation.addRowsSeen(insertedRows);
-								insertionRs.close();
-
-						}finally{
-								insertActivation.close();
+            try ( // try with resources
+                Connection conn = cc.getNestedConnection(true);
+                 PreparedStatement ps =
+                     conn.prepareStatement("insert into "+schemaName+"."+tableName+" "+withDataQueryString)
+                )  {
+                int rows = ps.executeUpdate();
+                activation.addRowsSeen(rows);
+            } catch (SQLException e) {
+                // TODO: JC - externalize msg
+                throw StandardException.newException("Failed execute create table with data insert string.", e);
 						}
 				}
     }
