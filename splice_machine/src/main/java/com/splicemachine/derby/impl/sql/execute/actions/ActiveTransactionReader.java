@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -29,7 +31,9 @@ public class ActiveTransactionReader {
 
     public Stream<TxnView> getActiveTransactions()
             throws IOException{
-        return Streams.empty(); // TODO JL
+
+        DataSetProcessor dsp = StreamUtils.getSparkDataSetProcessor();
+        return Streams.wrap(dsp.getTxnTableScanner(minTxnId, maxTxnId, writeTable).collect());
     }
 
 }

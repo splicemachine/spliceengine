@@ -49,14 +49,17 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         tableInputFormat.setConf(conf);
         try {
-            tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
+            String scanInfo = conf.get(MRConstants.SPLICE_SCAN_INFO);
+            if (scanInfo != null) {
+                tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(scanInfo).getScan());
+            }
         } catch (StandardException e) {
             SpliceLogUtils.error(LOG, e);
             throw new IOException(e);
         }
         List<InputSplit> splits = tableInputFormat.getSplits(context);
         String oneSplitPerRegion = conf.get(MRConstants.ONE_SPLIT_PER_REGION);
-        if (oneSplitPerRegion == null || oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0) {
+        if (oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0) {
             return toSMSplits(splits);
         }
         if (LOG.isDebugEnabled()) {

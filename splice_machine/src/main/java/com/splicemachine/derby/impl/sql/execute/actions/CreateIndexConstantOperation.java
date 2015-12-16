@@ -544,7 +544,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             // in and add it--if we don't have one already.
             //
             createConglomerateDescriptor(dd, userTransaction, sd, td, indexRowGenerator, alreadyHaveConglomDescriptor, ddg);
-            createAndPopulateIndex(activation, userTransaction, td, conglomId, indexRowGenerator);
+            createAndPopulateIndex(activation, userTransaction, td, conglomId, heapConglomerateId, indexRowGenerator);
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
         }
@@ -754,6 +754,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                                           TransactionController tc,
                                           TableDescriptor td,
                                           long indexConglomerate,
+                                          long heapConglomerateId,
                                           IndexDescriptor indexDescriptor) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
@@ -769,7 +770,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         }
         DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(), td.getHeapConglomerateId(), indexConglomerate, td, indexDescriptor);
         ddlChange = DDLUtils.performMetadataChange(ddlChange);
-        Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, indexConglomerate,indexName);
+        Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, heapConglomerateId,indexName);
         populateIndex(activation, indexTransaction,tentativeTransaction.getCommitTimestamp(),ddlChange.getTentativeIndex());
         indexTransaction.commit();
     }

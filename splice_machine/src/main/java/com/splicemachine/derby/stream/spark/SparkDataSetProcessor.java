@@ -1,10 +1,13 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
+import com.splicemachine.access.iapi.SpliceTableFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
@@ -12,7 +15,9 @@ import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
+import com.splicemachine.derby.stream.function.TxnViewDecoderFunction;
 import com.splicemachine.derby.stream.index.HTableInputFormat;
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -25,7 +30,10 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
-
+import com.splicemachine.mrio.api.core.SMTxnInputFormat;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.coprocessor.TxnMessage;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
@@ -132,7 +140,23 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         return new SparkDataSet(rawRDD.map(
                 new HTableScanTupleFunction()));
     }
-    
+
+    @Override
+    public DataSet<TxnView> getTxnTableScanner(long beforeTS, long afterTS, byte[] destinationTable) {
+        JavaSparkContext ctx = SpliceSpark.getContext();
+        Configuration conf = new Configuration(SIConstants.config);
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, HBaseTableInfoFactory.getInstance().getTableInfo(SIConstants.TRANSACTION_TABLE).getNameAsString());
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
+        conf.setLong(MRConstants.SPLICE_TXN_MIN_TIMESTAMP, afterTS);
+        conf.setLong(MRConstants.SPLICE_TXN_MAX_TIMESTAMP, beforeTS);
+        conf.set(MRConstants.SPLICE_TXN_DEST_TABLE, Bytes.toString(destinationTable));
+        JavaPairRDD<RowLocation, TxnMessage.Txn> rawRDD = ctx.newAPIHadoopRDD(conf, SMTxnInputFormat.class,
+                RowLocation.class, TxnMessage.Txn.class);
+
+        return new ControlDataSet<TxnMessage.Txn>(rawRDD.map(new HTableScanTupleFunction()).collect()).map(new TxnViewDecoderFunction());
+    }
+
     @Override
     public <V> DataSet<V> getEmpty() {
         return getEmpty(SparkConstants.RDD_NAME_EMPTY_DATA_SET);

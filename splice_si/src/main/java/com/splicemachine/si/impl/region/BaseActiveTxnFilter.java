@@ -23,8 +23,8 @@ import java.io.IOException;
 public abstract class BaseActiveTxnFilter<Data> extends FilterBase implements Writable {
     protected final long beforeTs;
     protected final long afterTs;
-    private final byte[] destinationTable;
-    private final byte[] newEncodedDestinationTable;
+    protected final byte[] destinationTable;
+    protected final byte[] newEncodedDestinationTable;
     private boolean isAlive = false;
     private boolean stateSeen= false;
     private boolean keepAliveSeen = false;

@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -35,39 +36,21 @@ import java.util.List;
  * Input Format that requires the following items passed to it.
  *
  */
-public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, Transaction> {
+public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, TxnMessage.Txn> {
     protected static final Logger LOG = Logger.getLogger(SMTxnInputFormat.class);
-    protected Configuration conf;
     protected Table table;
     protected Scan scan;
-    protected SMSQLUtil util;
     protected SMTxnRecordReaderImpl rr;
 
     @Override
     public void setConf(Configuration conf) {
         String tableName = SpliceConstants.TRANSACTION_TABLE;
         String conglomerate = SpliceConstants.TRANSACTION_TABLE;
-        String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
-        String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
         String rootDir = conf.get(HConstants.HBASE_DIR);
-        if (util==null)
-            util = SMSQLUtil.getInstance(jdbcString);
+        conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, tableScannerAsString=%s"
-                    + "jdbcString=%s, rootDir=%s",tableName,conglomerate,tableScannerAsString,jdbcString, rootDir);
-        if (conglomerate == null) {
-            if (jdbcString == null) {
-                LOG.error("JDBC String Not Supplied");
-                throw new RuntimeException("JDBC String Not Supplied");
-            }
-            try {
-                conglomerate = util.getConglomID(tableName);
-                conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerate);
-            } catch (SQLException e) {
-                LOG.error(StringUtils.stringifyException(e));
-                throw new RuntimeException(e);
-            }
-        }
+            SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, "
+                    + "jdbcString=%s, rootDir=%s",tableName,conglomerate, rootDir);
         try {
             setHTable(SpliceAccessManager.getHTable(conglomerate));
         } catch (Exception e) {
@@ -93,7 +76,7 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, Transac
     }
 
     @Override
-    public RecordReader<RowLocation, Transaction> createRecordReader(
+    public RecordReader<RowLocation, TxnMessage.Txn> createRecordReader(
             InputSplit split, TaskAttemptContext context) throws IOException,
             InterruptedException {
         if (LOG.isDebugEnabled())
