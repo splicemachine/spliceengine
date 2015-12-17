@@ -3,6 +3,12 @@
     <!-- Don't let minicluster overwrite ports we set in here -->
     <name>yarn.minicluster.fixed.ports</name>
     <value>true</value>
+    <description>Don't let minicluster overwrite ports we set in here</description>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.webapp.address</name>
+    <value>127.0.0.1:8042</value>
+    <description>Connect to resource manager web page.</description>
   </property>
 
   <property>
@@ -34,8 +40,9 @@
     <value>127.0.0.1:8031</value>
   </property>
   <property>
-    <name>yarn.resourcemanager.webapp.address</name>
-    <value>127.0.0.1:8042</value>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>128</value>
+    <description>Minimum limit of memory to allocate to each container request at the Resource Manager.</description>
   </property>
   <property>
     <name>yarn.scheduler.minimum-allocation-mb</name>
@@ -44,7 +51,7 @@
   </property>
   <property>
     <name>yarn.scheduler.maximum-allocation-mb</name>
-    <value>4096</value>
+    <value>5793</value>
     <description>Maximum limit of memory to allocate to each container request at the Resource Manager.</description>
   </property>
   <property>

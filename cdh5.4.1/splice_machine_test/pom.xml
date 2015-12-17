@@ -360,6 +360,8 @@
               </executableDependency>
               <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
               <arguments>
+                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
+                <argument>${project.build.directory}/classes</argument>
                 <argument>${nodeCount}</argument>
               </arguments>
             </configuration>
@@ -429,7 +431,40 @@
 								<argument>-XX:+PrintGCTimeStamps</argument>
 								<argument>-XX:+PrintGCDetails</argument>
 -->
-								<!-- CMS Garbage Collection -->
+                <!-- Spark Sys props -->
+                <argument>-Dsplice.spark.enabled=true</argument>
+                <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+                <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
+                <argument>-Dsplice.spark.driver.cores=1</argument>
+                <argument>-Dsplice.spark.driver.memory=1g</argument>
+                <argument>-Dsplice.spark.executor.cores=2</argument>
+                <argument>-Dsplice.spark.executor.memory=4g</argument>
+                <argument>-Dsplice.spark.logConf=true</argument>
+                <argument>-Dsplice.spark.master=yarn-client</argument>
+                <!--<argument>-Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar</argument>-->
+                <!--<argument>-Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native</argument>-->
+                <!--<argument>-Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar</argument>-->
+                <!--<argument>-Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native</argument>-->
+                <argument>-Dsplice.spark.shuffle.compress=false</argument>
+                <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
+                <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
+                <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
+                <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
+                <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
+                <argument>-Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator</argument>
+                <argument>-Dsplice.spark.kryoserializer.buffer.max=512m</argument>
+                <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
+                <argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer</argument>
+                <argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument>
+                <argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
+                <argument>-Dsplice.spark.locality.wait=60s</argument>
+                <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
+                <argument>-Dsplice.spark.executor.instances=2</argument>
+                <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
+<!-- TODO: assure history stuff gets written-->
+                <!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
+                <argument>-Dsplice.spark.eventLog.enabled=true</argument>
+                <!-- CMS Garbage Collection -->
 								<argument>-Xmn128m</argument>
 								<argument>-XX:+UseConcMarkSweepGC</argument>
 								<argument>-XX:+UseParNewGC</argument>
