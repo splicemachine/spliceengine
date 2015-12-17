@@ -29,7 +29,7 @@ public class SpliceTestYarnPlatform {
     private Configuration conf = null;
 
     public SpliceTestYarnPlatform() {
-        // default visibility
+        // for testing
     }
 
     public static void main(String[] args) throws Exception {
@@ -58,7 +58,7 @@ public class SpliceTestYarnPlatform {
 
     public void start(int nodeCount) throws Exception {
         if (yarnCluster == null) {
-            LOG.info("Starting up YARN cluster");
+            LOG.info("Starting up YARN cluster with "+nodeCount+" nodes.");
 
             URL url = Thread.currentThread().getContextClassLoader().getResource("yarn-site.xml");
             if (url == null) {
@@ -68,32 +68,18 @@ public class SpliceTestYarnPlatform {
             }
 
             conf = new YarnConfiguration();
+            // TODO: JC - take args from mvn exec
             conf.setInt(YarnConfiguration.RM_NM_HEARTBEAT_INTERVAL_MS, DEFAULT_HEARTBEAT_INTERVAL);
             conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);
             conf.setClass(YarnConfiguration.RM_SCHEDULER, FifoScheduler.class, ResourceScheduler.class);
+            conf.set("yarn.application.classpath", new File(url.getPath()).getParent());
+
             yarnCluster = new MiniYARNCluster(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
             yarnCluster.init(conf);
             yarnCluster.start();
 
             NodeManager nm = yarnCluster.getNodeManager(0);
             waitForNMToRegister(nm);
-
-            Configuration yarnClusterConfig = yarnCluster.getConfig();
-            yarnClusterConfig.set("yarn.application.classpath", new File(url.getPath()).getParent());
-            //write the document to a buffer (not directly to the file, as that
-            //can cause the file being written to get read -which will then fail.
-            ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-            yarnClusterConfig.writeXml(bytesOut);
-            bytesOut.close();
-            //write the bytes to the file in the classpath
-            OutputStream os = new FileOutputStream(new File(url.getPath()));
-            os.write(bytesOut.toByteArray());
-            os.close();
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                LOG.warn("setup thread sleep interrupted. message=" + e.getMessage());
-            }
         }
         LOG.info("YARN cluster started.");
     }

@@ -286,7 +286,7 @@ public class TestAMRMClient {
         }
     }
 
-    private void verifyMatches(
+    public static void verifyMatches(
         List<? extends Collection<AMRMClient.ContainerRequest>> matches,
         int matchSize) {
         assertTrue(matches.size() == 1);
