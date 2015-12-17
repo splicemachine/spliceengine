@@ -340,7 +340,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             } finally {
                 initializationLock.unlock();
 
-                transactionResource.resetContextManager();
+                transactionResource.popContextManager();
             }
         } catch (SQLException e) {
             SpliceLogUtils.error(LOG, "Unable to acquire a database connection, aborting write, but backing" +

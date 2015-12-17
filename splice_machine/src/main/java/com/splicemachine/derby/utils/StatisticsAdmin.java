@@ -3,11 +3,8 @@ package com.splicemachine.derby.utils;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+
 import com.google.common.collect.Lists;
-import com.clearspring.analytics.util.Lists;
-import com.google.common.base.Joiner;
-import com.google.common.primitives.Longs;
-import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.*;

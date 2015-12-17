@@ -86,9 +86,10 @@ public class ProtoUtil {
         }
     }
 
-    public static DDLChange createDropIndex(long indexConglomId, long tableConglomId, long txnId) {
+    public static DDLChange createDropIndex(long indexConglomId, long tableConglomId, long txnId, BasicUUID tableUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropIndex(DropIndex.newBuilder()
                 .setBaseConglomerate(tableConglomId)
+                .setTableUUID(transferDerbyUUID(tableUUID))
                 .setConglomerate(indexConglomId))
                 .setDdlChangeType(DDLChangeType.DROP_INDEX)
                 .build();
@@ -110,6 +111,7 @@ public class ProtoUtil {
         SpliceConglomerate sc = (SpliceConglomerate)((SpliceTransactionManager)lcc.getTransactionExecute()).findConglomerate(conglomerate);
         return Table.newBuilder()
                 .setConglomerate(conglomerate)
+                .setTableId(transferDerbyUUID((BasicUUID) td.getUUID()))
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
                 .setTableVersion(DataDictionaryUtils.getTableVersion(lcc, td.getUUID())).build();

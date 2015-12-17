@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
@@ -110,7 +111,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
             t = uTxn.getParentTxnView();
         }
         final TxnView userTxn = uTxn;
-        DDLMessage.DDLChange change = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId());
+        DDLMessage.DDLChange change = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId);
         DDLUtils.notifyMetadataChangeAndWait(change);
         dropIndexTrigger(tableConglomId, indexConglomId, userTxn);				
 		}

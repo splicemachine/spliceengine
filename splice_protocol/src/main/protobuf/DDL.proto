@@ -16,6 +16,7 @@ message AlterStats {
 message DropIndex {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
+        optional UUID tableUUID = 3;
 }
 
 message DropIndexTrigger {
@@ -117,6 +118,7 @@ message Table {
         repeated int32 columnOrdering = 3; // The ordering of the columns in the table
         repeated bool descColumns = 4; // The source tables columnSort, all ascending right now
         required string tableVersion = 5; // Table Version for SerDe
+        optional UUID tableId = 6; // Table UUID for invalidation
 }
 
 message TentativeIndex {

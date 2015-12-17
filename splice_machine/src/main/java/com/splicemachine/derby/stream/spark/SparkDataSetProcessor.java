@@ -76,7 +76,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
         
-        String displayableTableName = getDisplayableTableName(spliceOperation, tableName);
+        String displayableTableName = getDisplayableTableName(spliceOperation, tableName.getQualifierAsString());
         SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Table " + displayableTableName);
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);

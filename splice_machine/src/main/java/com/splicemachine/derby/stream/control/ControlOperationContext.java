@@ -96,7 +96,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
                 if (prepared) {
-                    impl.resetContextManager();
+                    impl.popContextManager();
                 }
             }
         }
