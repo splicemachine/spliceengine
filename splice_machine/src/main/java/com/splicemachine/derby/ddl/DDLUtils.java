@@ -346,6 +346,12 @@ public class DDLUtils {
         }
     }
 
+    public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
+        dd.getDataDictionaryCache().schemaCacheRemove(change.getDropSchema().getSchemaName());
+    }
+
 
     private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
         DataDictionaryCache cache = dd.getDataDictionaryCache();

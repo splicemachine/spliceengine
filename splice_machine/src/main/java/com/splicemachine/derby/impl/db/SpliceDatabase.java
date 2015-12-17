@@ -264,6 +264,9 @@ public class SpliceDatabase extends BasicDatabase{
                 if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE) {
                     DDLUtils.preDropTable(change, getDataDictionary(), getDataDictionary().getDependencyManager());
                 }
+                else if (change.getDdlChangeType()==DDLChangeType.DROP_SCHEMA) {
+                    DDLUtils.preDropSchema(change, getDataDictionary(), getDataDictionary().getDependencyManager());
+                }
                 else if(change.getDdlChangeType()==DDLChangeType.CREATE_INDEX) {
                     DDLUtils.preCreateIndex(change, getDataDictionary(), getDataDictionary().getDependencyManager());
                 }
