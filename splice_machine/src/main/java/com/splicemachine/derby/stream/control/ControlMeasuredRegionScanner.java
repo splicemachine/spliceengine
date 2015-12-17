@@ -60,7 +60,12 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
             }
             Result result = scanner.next();
             if (result!=null) {
-                results.addAll(result.listCells());
+                Cell[] rawCells = result.rawCells();
+//                results.addAll(result.listCells()); Removed this call which creates extra objects
+                for (int i =0; i<rawCells.length;i++) {
+                    results.add(rawCells[i]);
+
+                }
             }
             return result!=null;
         } catch (Exception e) {
