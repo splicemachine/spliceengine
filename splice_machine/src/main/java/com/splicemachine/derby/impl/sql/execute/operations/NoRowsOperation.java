@@ -17,17 +17,17 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class NoRowsOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(NoRowsOperation.class);
-	final Activation    activation;
+	final Activation activation;
 
 	public NoRowsOperation(Activation activation)  throws StandardException {
 		super(activation,-1,0d,0d);
 		this.activation = activation;
-			try {
-					init(SpliceOperationContext.newContext(activation));
-			} catch (IOException e) {
-					throw Exceptions.parseException(e);
-			}
-			recordConstructorTime();
+		try {
+			init(SpliceOperationContext.newContext(activation));
+		} catch (IOException e) {
+			throw Exceptions.parseException(e);
+		}
+		recordConstructorTime();
 	}
 	
 	@Override
@@ -36,8 +36,7 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
 	}
 
@@ -62,9 +61,9 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	}
 
 	protected void setup() throws StandardException {
-			isOpen = true;
-			StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
-			if (sc == null) {
+		isOpen = true;
+		StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+		if (sc == null) {
         	SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
         	return;
         }
