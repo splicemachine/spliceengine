@@ -6,5 +6,6 @@ package com.splicemachine.access.iapi;
 public interface SpliceTableInfoFactory<TableInfo> {
     public TableInfo getTableInfo(String name);
     public TableInfo getTableInfo(byte[] name);
+    public TableInfo parseTableInfo(String namespacePlusTable);
 
 }

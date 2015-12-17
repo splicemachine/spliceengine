@@ -29,4 +29,8 @@ public class HBaseTableInfoFactory implements SpliceTableInfoFactory<TableName> 
         return TableName.valueOf(SpliceConstants.spliceNamespaceBytes,name);
     }
 
+    @Override
+    public TableName parseTableInfo(String namespacePlusTable) {
+        return TableName.valueOf(namespacePlusTable);
+    }
 }
