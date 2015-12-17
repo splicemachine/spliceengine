@@ -48,20 +48,28 @@ public class HBaseTableFactory implements SpliceTableFactory<Connection,Table,Ta
     }
 
     public List<HRegionLocation> getRegions(byte[] tableName) throws IOException, ExecutionException, InterruptedException {
-        return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getAllRegionLocations();
+        return getRegions(hbaseTableInfoFactory.getTableInfo(tableName),false);
+    }
+
+    public List<HRegionLocation> getRegions(TableName tableName, boolean refresh) throws IOException {
+        if (refresh)
+            clearRegionCache(tableName);
+        return connection.getRegionLocator(tableName).getAllRegionLocations();
     }
 
     public List<HRegionLocation> getRegions(String tableName, boolean refresh) throws IOException, ExecutionException, InterruptedException {
-        if (refresh)
-            clearRegionCache(hbaseTableInfoFactory.getTableInfo(tableName));
-        return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getAllRegionLocations();
+        return getRegions(hbaseTableInfoFactory.getTableInfo(tableName),refresh);
     }
     public void clearRegionCache(TableName tableName) {
         ((HConnection) connection).clearRegionCache(tableName);
     }
 
     public List<HRegionLocation> getRegionsInRange(byte[] tableName, final byte[] startRow, final byte[] stopRow) throws IOException, ExecutionException, InterruptedException  {
-        List<HRegionLocation> locations = getRegions(tableName);
+        return getRegionsInRange(hbaseTableInfoFactory.getTableInfo(tableName),startRow,stopRow);
+    }
+
+    public List<HRegionLocation> getRegionsInRange(TableName tableName, final byte[] startRow, final byte[] stopRow) throws IOException, ExecutionException, InterruptedException  {
+        List<HRegionLocation> locations = getRegions(tableName,false);
         if (startRow.length <= 0 && stopRow.length <= 0)
             return locations;             //short circuit in the case where all regions are contained
         return Lists.newArrayList(Iterables.filter(locations,new Predicate<HRegionLocation>() {
