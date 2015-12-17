@@ -37,7 +37,7 @@ public class ActiveTransactionTest{
     @Before
     public void setUp() throws Exception {
         if(testEnv==null){
-            testEnv= SITestEnvironment.storeSetup();
+            testEnv= SITestEnvironment.loadTestEnvironment();
             transactorSetup = new TestTransactionSetup(testEnv,true);
         }
         control = new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){

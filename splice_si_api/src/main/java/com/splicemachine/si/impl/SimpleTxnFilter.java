@@ -193,11 +193,11 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
 		 */
         long ts=element.version();//dataStore.getDataLib().getTimestamp(element);
         if(!visitedTxnIds.add(ts)){
-						/*
-						 * We've already visited this version of the row data, so there's no
-						 * point in read-resolving this entry. This saves us from a
-						 * potentially expensive transactionStore read.
-						 */
+			/*
+			 * We've already visited this version of the row data, so there's no
+			 * point in read-resolving this entry. This saves us from a
+			 * potentially expensive transactionStore read.
+			 */
             return;
         }
 

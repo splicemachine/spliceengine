@@ -63,7 +63,7 @@ public class TransactionInteractionTest {
     @Before
     public void setUp() throws IOException {
         if(testEnv==null){
-            testEnv=SITestEnvironment.storeSetup();
+            testEnv=SITestEnvironment.loadTestEnvironment();
             transactorSetup=new TestTransactionSetup(testEnv,true);
         }
         baseSetUp();

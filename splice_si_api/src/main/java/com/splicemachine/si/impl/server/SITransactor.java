@@ -533,11 +533,12 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         if(conflictingChildren!=null && !conflictingChildren.isEmpty()){
             DataDelete delete=dataLib.newDataDelete(put.key());
             Iterable<DataCell> cells=put.cells();
-            for(DataCell dc : cells){
-                delete.deleteColumn(dc);
-            }
             for(LongCursor lc : conflictingChildren){
+                for(DataCell dc : cells){
+                    delete.deleteColumn(dc.family(),dc.qualifier(),lc.value);
+                }
                 delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,lc.value);
+                delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,lc.value);
             }
             delete.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
             table.delete(delete);

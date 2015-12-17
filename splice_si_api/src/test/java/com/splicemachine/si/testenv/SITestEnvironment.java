@@ -10,7 +10,7 @@ import java.util.ServiceLoader;
 public class SITestEnvironment{
     private static volatile SITestEnv SITestEnv;
 
-    public static SITestEnv storeSetup(){
+    public static SITestEnv loadTestEnvironment(){
         if(SITestEnv==null)
             initialize();
 

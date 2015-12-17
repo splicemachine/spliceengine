@@ -3,16 +3,16 @@ package com.splicemachine.si;
 
 import com.splicemachine.timestamp.api.TimestampSource;
 
-public class SimpleTimestampSource implements TimestampSource {
-    private long id = 0;
-    private long memory = 0;
+import java.util.concurrent.atomic.AtomicLong;
+
+public class MemTimestampSource implements TimestampSource {
+    private AtomicLong id =new AtomicLong(0l);
+    private volatile long memory = 0;
+
 
     @Override
     public long nextTimestamp() {
-        synchronized (this) {
-            id = id + 1;
-            return id;
-        }
+        return id.incrementAndGet();
     }
 
     @Override

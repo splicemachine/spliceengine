@@ -34,7 +34,7 @@ public class SIFilterTest{
     @Before
     public void setUp() throws Exception{
         if(testEnv==null)
-            testEnv = SITestEnvironment.storeSetup();
+            testEnv = SITestEnvironment.loadTestEnvironment();
         transactorSetup=new TestTransactionSetup(testEnv,true);
         baseSetup();
     }

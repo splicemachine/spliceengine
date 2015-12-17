@@ -41,8 +41,17 @@ public class MPut implements DataPut{
 
     @Override
     public void addCell(byte[] family,byte[] qualifier,long timestamp,byte[] value){
-        DataCell tCell = new MCell(key,family,
-                qualifier,timestamp,value,CellType.USER_DATA);
+        CellType ct;
+        if(qualifier==SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)
+            ct = CellType.COMMIT_TIMESTAMP;
+        else if(qualifier==SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)
+            ct = CellType.FOREIGN_KEY_COUNTER;
+        else if(qualifier==SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)
+            ct = CellType.TOMBSTONE;
+        else if(qualifier==SIConstants.PACKED_COLUMN_BYTES)
+            ct = CellType.USER_DATA;
+        else ct =CellType.OTHER;
+        DataCell tCell = new MCell(key,family, qualifier,timestamp,value,ct);
         data.add(tCell);
 
     }

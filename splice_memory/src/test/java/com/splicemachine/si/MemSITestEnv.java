@@ -29,8 +29,8 @@ public class MemSITestEnv implements SITestEnv{
     private final SDataLib dataLib = new LDataLib();
     private final ExceptionFactory exceptionFactory = new MExceptionFactory();
     private final Clock clock = new IncrementingClock();
-    private final TimestampSource tsSource = new SimpleTimestampSource();
-    private final TxnStore txnStore = new MemTxnStore(tsSource,exceptionFactory,1000);
+    private final TimestampSource tsSource = new MemTimestampSource();
+    private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
     private final Partition personPartition = new MPartition("person");
     private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib);
     private final DataFilterFactory filterFactory = new MFilterFactory();

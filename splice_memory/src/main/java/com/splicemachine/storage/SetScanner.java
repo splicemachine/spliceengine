@@ -74,6 +74,7 @@ class SetScanner implements DataScanner{
                     last=n;
                     return true;
                 }else{
+                    filter.reset(); //we've moved to a new row
                     currentKey=n.keyArray();
                     currentOffset=n.keyOffset();
                     currentLength=n.keyLength();
@@ -156,7 +157,8 @@ class SetScanner implements DataScanner{
     /*private helper methods*/
     private DataFilter.ReturnCode accept(DataCell n) throws IOException{
         long ts = n.version();
-        if(ts<lowVersion||ts>highVersion) return DataFilter.ReturnCode.NEXT_COL;
+        if(ts<lowVersion) return DataFilter.ReturnCode.NEXT_COL;
+        else if(ts>highVersion) return DataFilter.ReturnCode.SKIP;
         if(filter!=null){
             return filter.filterKeyValue(n);
         }

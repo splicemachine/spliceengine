@@ -158,7 +158,7 @@ public class MCell implements DataCell{
         if(compare!=0) return compare;
         compare=bc.compare(qualifier,mc.qualifier);
         if(compare!=0) return compare;
-        return -1*Long.compare(version,mc.version);
+        return version<mc.version?1:version==mc.version?0:-1;
     }
 
     @Override
