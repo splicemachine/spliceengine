@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.jmx.JMXUtils;
@@ -325,12 +326,12 @@ public class SpliceAdmin extends BaseAdminProcedures {
             // sys query for table conglomerate for in schema
             for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
                 try {
-                    admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
+                    admin.majorCompact(HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(conglomID)));
                 } catch (Exception e) {
                     SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s, waiting two seconds and will try again", Long.toString(conglomID),e.getMessage());
                     try {
                         Thread.sleep(2000);
-                        admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
+                        admin.majorCompact(HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(conglomID)));
                     } catch (Exception secondE) {
                         SpliceLogUtils.warn(LOG, "SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE failed on %s with this message %s after waiting 2 seconds, compaction attempt aborted", Long.toString(conglomID),e.getMessage());
                     }
