@@ -6,8 +6,6 @@
 ##################################################################################
 
 # Check if server running. If not, no need to proceed.
-# TODO: kill: 53917 ttys001    2:03.79 /Library/Java/JavaVirtualMachines/jdk1.7.0_72.jdk/Contents/Home/bin/java -classpath /usr/local/Cellar/maven/3.3.9/libexec/boot/plexus-classworlds-2.5.2.jar -Dclassworlds.conf=/usr/local/Cellar/maven/3.3.9/libexec/bin/m2.conf -Dmaven.home=/usr/local/Cellar/maven/3.3.9/libexec -Dmaven.multiModuleProjectDirectory=/Users/jeff/dev/spliceengine/cdh5.4.1/splice_machine_test org.codehaus.plexus.classworlds.launcher.Launcher -B exec:java -PspliceYarn
-
 yarn_pids=( $(ps -ef | awk '/PspliceYarn/ && !/awk/ {print $2}') )
 splice_pids=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
 zoo_pids=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )

@@ -21,9 +21,9 @@ import org.apache.log4j.Logger;
  */
 public class SpliceTestYarnPlatform {
     public static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
+    public static int DEFAULT_NODE_COUNT = 3;
 
     private static final Logger LOG = Logger.getLogger(SpliceTestYarnPlatform.class);
-    private static int DEFAULT_NODE_COUNT = 3;
 
     private MiniYARNCluster yarnCluster = null;
     private Configuration conf = null;

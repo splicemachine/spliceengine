@@ -9,39 +9,54 @@ import java.util.Collections;
 import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.protocolrecords.SubmitApplicationRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
+import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttemptState;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.splicemachine.test.SpliceTestYarnPlatform;
 
 /**
- * Test connecting and running against an existing (already running) YARN cluster.
+ * Test connecting and running Yarn client against a YARN cluster using only the yarn-site.xml,
+ * that is, don't get the config from the running server, get the config from yarn-site.xml to
+ * know where to connect to the server.
  *
  */
 public class BareYarnTest {
-    // TODO: JC - how to connect to server w/o knowing port (MiniYARNCluster ignores ports in yarn-site.xml
-
-    private static Configuration conf = null;
+    private static SpliceTestYarnPlatform yarnPlatform = null;
     private static YarnClient yarnClient = null;
 
-//    @BeforeClass
+    @BeforeClass
     public static void beforeClass() throws Exception {
+        // start yarn server
+        yarnPlatform = new SpliceTestYarnPlatform();
+        yarnPlatform.start(SpliceTestYarnPlatform.DEFAULT_NODE_COUNT);
+
         URL configURL = Thread.currentThread().getContextClassLoader().getResource("yarn-site.xml");
         if (configURL == null) {
             throw new RuntimeException("Could not find 'yarn-site.xml' file in classpath");
         }
 
-        conf = new YarnConfiguration();
+        Configuration conf = new YarnConfiguration();
         conf.set("yarn.application.classpath", new File(configURL.getPath()).getParent());
 
 
@@ -49,19 +64,31 @@ public class BareYarnTest {
         yarnClient = YarnClient.createYarnClient();
         yarnClient.init(conf);
         yarnClient.start();
-
     }
 
-//    @AfterClass
-    public static void tearDown() {
+    @AfterClass
+    public static void tearDown() throws Exception {
         if (yarnClient != null && yarnClient.getServiceState() == Service.STATE.STARTED) {
             yarnClient.stop();
         }
+
+        // stop yarn server
+        if (yarnPlatform != null &&
+            yarnPlatform.getYarnCluster() != null &&
+            yarnPlatform.getYarnCluster().getServiceState() == Service.STATE.STARTED) {
+            yarnPlatform.stop();
+        }
     }
 
-//    @Test (timeout=60000)
+    /**
+     * All we really need to do here is to create a yarn client, configure it using the same
+     * yarn-site.xml as was used by the server to start up.
+     * @throws YarnException
+     * @throws IOException
+     */
+    @Test(timeout=60000)
     public void testAMRMClientMatchingFitInferredRack() throws YarnException, IOException {
-        // submit new app
+        // create, submit new app
         ApplicationSubmissionContext appContext =
             yarnClient.createApplication().getApplicationSubmissionContext();
         ApplicationId appId = appContext.getApplicationId();
@@ -90,27 +117,27 @@ public class BareYarnTest {
         yarnClient.submitApplication(appContext);
 
         // wait for app to start
-//        RMAppAttempt appAttempt;
-//        while (true) {
-//            ApplicationReport appReport = yarnClient.getApplicationReport(appId);
-//            if (appReport.getYarnApplicationState() == YarnApplicationState.ACCEPTED) {
-//                ApplicationAttemptId attemptId = appReport.getCurrentApplicationAttemptId();
-//                appAttempt =
-//                    testYarnParticipant.getYarnCluster().getResourceManager().getRMContext().getRMApps()
-//                                       .get(attemptId.getApplicationId()).getCurrentAppAttempt();
-//                while (true) {
-//                    if (appAttempt.getAppAttemptState() == RMAppAttemptState.LAUNCHED) {
-//                        break;
-//                    }
-//                }
-//                break;
-//            }
-//        }
-//        // Just dig into the ResourceManager and get the AMRMToken just for the sake
-//        // of testing.
-//        UserGroupInformation.setLoginUser(UserGroupInformation
-//                                              .createRemoteUser(UserGroupInformation.getCurrentUser().getUserName()));
-//        UserGroupInformation.getCurrentUser().addToken(appAttempt.getAMRMToken());
+        RMAppAttempt appAttempt;
+        while (true) {
+            ApplicationReport appReport = yarnClient.getApplicationReport(appId);
+            if (appReport.getYarnApplicationState() == YarnApplicationState.ACCEPTED) {
+                ApplicationAttemptId attemptId = appReport.getCurrentApplicationAttemptId();
+                appAttempt =
+                    yarnPlatform.getYarnCluster().getResourceManager().getRMContext().getRMApps()
+                                       .get(attemptId.getApplicationId()).getCurrentAppAttempt();
+                while (true) {
+                    if (appAttempt.getAppAttemptState() == RMAppAttemptState.LAUNCHED) {
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        // Just dig into the ResourceManager and get the AMRMToken just for the sake
+        // of testing.
+        UserGroupInformation.setLoginUser(UserGroupInformation
+                                              .createRemoteUser(UserGroupInformation.getCurrentUser().getUserName()));
+        UserGroupInformation.getCurrentUser().addToken(appAttempt.getAMRMToken());
     }
 
 }

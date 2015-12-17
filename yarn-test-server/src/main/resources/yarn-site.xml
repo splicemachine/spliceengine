@@ -1,5 +1,11 @@
 <configuration>
   <property>
+    <!-- Don't let minicluster overwrite ports we set in here -->
+    <name>yarn.minicluster.fixed.ports</name>
+    <value>true</value>
+  </property>
+
+  <property>
     <name>yarn.nodemanager.hostname</name>
     <value>127.0.0.1</value>
   </property>
