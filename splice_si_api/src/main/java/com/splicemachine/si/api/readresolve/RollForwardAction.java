@@ -8,7 +8,7 @@ import com.splicemachine.si.impl.readresolve.RegionSegmentContext;
  */
 public interface RollForwardAction {
     void submitAction(Partition region,byte[] startKey,byte[] stopKey,RegionSegmentContext context);
-    public static final RollForwardAction NOOP_ACTION=new RollForwardAction(){
+    RollForwardAction NOOP_ACTION=new RollForwardAction(){
         @Override
         public void submitAction(Partition region,byte[] startKey,byte[] stopKey,RegionSegmentContext context){
         }

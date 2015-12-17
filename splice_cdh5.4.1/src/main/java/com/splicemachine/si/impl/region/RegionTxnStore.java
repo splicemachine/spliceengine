@@ -1,14 +1,12 @@
 package com.splicemachine.si.impl.region;
 
 import com.carrotsearch.hppc.LongArrayList;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.txn.STransactionLib;
+import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnDecoder;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
@@ -16,10 +14,12 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.HCannotCommitException;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataCell;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
@@ -39,26 +39,30 @@ import java.util.NoSuchElementException;
  * @author Scott Fines
  *         Date: 6/19/14
  */
-public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
+public class RegionTxnStore implements TxnPartition{
     private static final Logger LOG=Logger.getLogger(RegionTxnStore.class);
-    /*
-     * The region in which to access data
-     */
-    private final STransactionLib<TxnMessage.Txn, TableBuffer> transactionlib=SIDriver.getTransactionLib();
 
-    private final TxnDecoder<OperationWithAttributes, Cell, Delete, Filter,
-            Get, Put, RegionScanner, Result, Scan> newTransactionDecoder=transactionlib.getV2TxnDecoder();
-    private final SDataLib<OperationWithAttributes, Cell, Delete, Filter, Get,
-            Put, RegionScanner, Result, Scan> dataLib=SIDriver.getDataLib();
+    private final TxnDecoder newTransactionDecoder=V2TxnDecoder.INSTANCE;
+    private final SDataLib<OperationWithAttributes, Cell, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataLib;
     private final TransactionResolver resolver;
     private final ExceptionFactory exceptionLib=SIDriver.getExceptionLib();
     private final TxnSupplier txnSupplier;
     private final HRegion region;
+    private final long keepAliveTimeoutMs;
+    private final Clock clock;
 
-    public RegionTxnStore(HRegion region,TxnSupplier txnSupplier,TransactionResolver resolver){
-        this.txnSupplier = txnSupplier;
+    public RegionTxnStore(HRegion region,
+                          TxnSupplier txnSupplier,
+                          TransactionResolver resolver,
+                          SDataLib<OperationWithAttributes, Cell, Delete,Filter,Get, Put,RegionScanner,Result,Scan> dataLib,
+                          long keepAliveTimeoutMs,
+                          Clock keepAliveClock){
+        this.txnSupplier=txnSupplier;
         this.region=region;
-        this.resolver = resolver;
+        this.resolver=resolver;
+        this.dataLib = dataLib;
+        this.keepAliveTimeoutMs = keepAliveTimeoutMs;
+        this.clock = keepAliveClock;
     }
 
     @Override
@@ -82,10 +86,10 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"addDestinationTable txnId=%d, desinationTable",txnId,destinationTable);
         Get get=dataLib.newGet(TxnUtils.getRowKey(txnId));
-        byte[] destTableQualifier=AbstractV2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
+        byte[] destTableQualifier=V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
         dataLib.addFamilyQualifierToGet(get,FAMILY,destTableQualifier);
         /*
-		 * We only need to check the new transaction format, because we will never attempt to elevate
+         * We only need to check the new transaction format, because we will never attempt to elevate
 		 * a transaction created using the old transaction format.
 		 */
 
@@ -118,13 +122,13 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
             SpliceLogUtils.trace(LOG,"keepAlive txnId=%d",txnId);
         byte[] rowKey=TxnUtils.getRowKey(txnId);
         Get get=dataLib.newGet(rowKey);
-        dataLib.addFamilyQualifierToGet(get,FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
-        dataLib.addFamilyQualifierToGet(get,FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
+        dataLib.addFamilyQualifierToGet(get,FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+        dataLib.addFamilyQualifierToGet(get,FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
         //we don't try to keep alive transactions with an old form
         Result result=region.get(get);
         if(result==null) return false; //attempted to keep alive a read-only transaction? a waste, but whatever
 
-        Cell stateKv=result.getColumnLatestCell(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
+        Cell stateKv=result.getColumnLatestCell(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
         if(stateKv==null){
             // couldn't find the transaction data, it's fine under Restore Mode, issue a warning nonetheless
             LOG.warn("Couldn't load data for keeping alive transaction "+txnId+". This isn't an issue under Restore Mode");
@@ -132,14 +136,14 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         }
         Txn.State state=Txn.State.decode(stateKv.getValueArray(),stateKv.getValueOffset(),stateKv.getValueLength());
         if(state!=Txn.State.ACTIVE) return false; //skip the put if we don't need to do it
-        Cell oldKAKV=result.getColumnLatestCell(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+        Cell oldKAKV=result.getColumnLatestCell(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
         long currTime=System.currentTimeMillis();
-        Txn.State adjustedState=AbstractV2TxnDecoder.adjustStateForTimeout(state,oldKAKV,false);
+        Txn.State adjustedState=V2TxnDecoder.adjustStateForTimeout(state,oldKAKV,false);
         if(adjustedState!=Txn.State.ACTIVE)
             throw exceptionLib.transactionTimeout(txnId);
 
         Put newPut=dataLib.newPut(TxnUtils.getRowKey(txnId));
-        dataLib.addKeyValueToPut(newPut,FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
+        dataLib.addKeyValueToPut(newPut,FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
         region.put(newPut); //TODO -sf- does this work when the region is splitting?
         return true;
     }
@@ -150,19 +154,19 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
             SpliceLogUtils.trace(LOG,"getState txnId=%d",txnId);
         byte[] rowKey=TxnUtils.getRowKey(txnId);
         Get get=dataLib.newGet(rowKey);
-        dataLib.addFamilyQualifierToGet(get,FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
-        dataLib.addFamilyQualifierToGet(get,FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+        dataLib.addFamilyQualifierToGet(get,FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
+        dataLib.addFamilyQualifierToGet(get,FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
         //add the columns for the new encoding
         Result result=region.get(get);
         if(result==null)
             return null; //indicates that the transaction was probably read only--external callers can figure out what that means
 
         Cell keepAliveKv;
-        Cell stateKv=result.getColumnLatestCell(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
-        keepAliveKv=result.getColumnLatestCell(FAMILY,AbstractV2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
+        Cell stateKv=result.getColumnLatestCell(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
+        keepAliveKv=result.getColumnLatestCell(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
         Txn.State state=Txn.State.decode(stateKv.getValueArray(),stateKv.getValueOffset(),stateKv.getValueLength());
         if(state==Txn.State.ACTIVE)
-            state=AbstractV2TxnDecoder.adjustStateForTimeout(state,keepAliveKv,false);
+            state=V2TxnDecoder.adjustStateForTimeout(state,keepAliveKv,false);
 
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getState returnedState state=%s",state);
@@ -183,15 +187,15 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordCommit txnId=%d, commitTs=%d",txnId,commitTs);
         Put put=dataLib.newPut(TxnUtils.getRowKey(txnId));
-        dataLib.addKeyValueToPut(put,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
-        dataLib.addKeyValueToPut(put,FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.COMMITTED.encode());
+        dataLib.addKeyValueToPut(put,FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
+        dataLib.addKeyValueToPut(put,FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.COMMITTED.encode());
         region.put(put);
     }
 
     @Override
     public void recordGlobalCommit(long txnId,long globalCommitTs) throws IOException{
         Put put=new Put(TxnUtils.getRowKey(txnId));
-        put.addColumn(FAMILY,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
+        put.addColumn(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
 //        dataLib.addKeyValueToPut(put,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
         region.put(put);
     }
@@ -201,11 +205,11 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getCommitTimestamp txnId=%d",txnId);
         Get get=dataLib.newGet(TxnUtils.getRowKey(txnId));
-        dataLib.addFamilyQualifierToGet(get,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES);
+        dataLib.addFamilyQualifierToGet(get,FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES);
         Result result=region.get(get);
         if(result==null) return -1l; //no commit timestamp for read-only transactions
         DataCell kv;
-        if((kv=dataLib.getColumnLatest(result,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES))!=null)
+        if((kv=dataLib.getColumnLatest(result,FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES))!=null)
             return Encoding.decodeLong(kv.valueArray(),kv.valueOffset(),false);
         else{
             throw new IOException("V1 Decoder Required?");
@@ -217,9 +221,9 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordRollback txnId=%d",txnId);
         Put put=dataLib.newPut(TxnUtils.getRowKey(txnId));
-        dataLib.addKeyValueToPut(put,FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.ROLLEDBACK.encode());
-        dataLib.addKeyValueToPut(put,FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
-        dataLib.addKeyValueToPut(put,FAMILY,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
+        dataLib.addKeyValueToPut(put,FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.ROLLEDBACK.encode());
+        dataLib.addKeyValueToPut(put,FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
+        dataLib.addKeyValueToPut(put,FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
         region.put(put);
     }
 
@@ -231,7 +235,7 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         Source<TxnMessage.Txn> activeTxn=getActiveTxns(afterTs,beforeTs,destinationTable);
         LongArrayList lal=LongArrayList.newInstance();
         while(activeTxn.hasNext()){
-            lal.add(transactionlib.getTxnId(activeTxn.next()));
+            lal.add(activeTxn.next().getInfo().getTxnId());
         }
         return lal.toArray();
     }
@@ -247,17 +251,17 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
     }
 
     @Override
-    public Source<TxnMessage.Txn> getActiveTxns(long afterTs,long beforeTs, byte[] destinationTable) throws IOException{
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getActiveTxns afterTs=%d, beforeTs=%s",afterTs, beforeTs);
-    	Scan scan = setupScanOnRange(afterTs, beforeTs);
-        dataLib.setFilterOnScan(scan, dataLib.getActiveTransactionFilter(beforeTs, afterTs, destinationTable));
+    public Source<TxnMessage.Txn> getActiveTxns(long afterTs,long beforeTs,byte[] destinationTable) throws IOException{
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getActiveTxns afterTs=%d, beforeTs=%s",afterTs,beforeTs);
+        Scan scan=setupScanOnRange(afterTs,beforeTs);
+        dataLib.setFilterOnScan(scan,dataLib.getActiveTransactionFilter(beforeTs,afterTs,destinationTable));
 
-        final RegionScanner scanner = region.getScanner(scan);
+        final RegionScanner scanner=region.getScanner(scan);
         return new ScanIterator(scanner){
             @Override
             public TxnMessage.Txn next() throws IOException{
-                TxnMessage.Txn txn = super.next();
+                TxnMessage.Txn txn=super.next();
                 /*
                  * In normal circumstances, we would say that this transaction is active
                  * (since it passed the ActiveTxnFilter).
@@ -269,7 +273,7 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
                  * commit timestamp and move on.
                  */
 
-                long parentTxnId =transactionlib.getParentTxnId(txn);
+                long parentTxnId=txn.getInfo().getParentTxnid();
                 if(parentTxnId<0){
                     //we are a top-level transaction
                     return txn;
@@ -336,22 +340,26 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
     }
 
     private void resolveTxn(TxnMessage.Txn txn){
-        switch(transactionlib.getTransactionState(txn)){
+        switch(Txn.State.fromInt(txn.getState())){
             case ROLLEDBACK:
-                if(transactionlib.isTimedOut(txn)){
+                if(isTimedOut(txn)){
                     resolver.resolveTimedOut(RegionTxnStore.this,txn);
                 }
                 break;
             case COMMITTED:
-                if(transactionlib.getParentTxnId(txn)>0 && transactionlib.getGlobalCommitTimestamp(txn)<0){
-                /*
-                 * Just because the transaction was committed and has a parent doesn't mean that EVERY parent
-                 * has been committed; still, submit this to the resolver on the off chance that it
-                 * has been fully committed, so we can get away with the global commit work.
-                 */
+                if(txn.getInfo().getParentTxnid()>0 && txn.getGlobalCommitTs()<0){
+                    /*
+                     * Just because the transaction was committed and has a parent doesn't mean that EVERY parent
+                     * has been committed; still, submit this to the resolver on the off chance that it
+                     * has been fully committed, so we can get away with the global commit work.
+                     */
                     resolver.resolveGlobalCommitTimestamp(RegionTxnStore.this,txn);
                 }
         }
+    }
+
+    private boolean isTimedOut(TxnMessage.Txn txn){
+        return (clock.currentTimeMillis()-txn.getLastKeepAliveTime())>keepAliveTimeoutMs;
     }
 
     private class ScanIterator implements Source<TxnMessage.Txn>{
@@ -360,33 +368,36 @@ public class RegionTxnStore<Filter, TableBuffer> implements TxnPartition{
         private List<Cell> currentResults;
 
         public ScanIterator(RegionScanner scanner){
-            this.regionScanner = scanner;
+            this.regionScanner=scanner;
         }
 
         @Override
-        public boolean hasNext() throws IOException {
+        public boolean hasNext() throws IOException{
             if(next!=null) return true;
             if(currentResults==null)
-                currentResults = new ArrayList<>(10);
+                currentResults=new ArrayList<>(10);
             boolean shouldContinue;
             do{
-                shouldContinue = regionScanner.next(currentResults);
+                shouldContinue=regionScanner.next(currentResults);
                 if(currentResults.size()<0) return false;
 
-                this.next= decode(currentResults);
+                this.next=decode(currentResults);
             }while(next==null && shouldContinue);
 
             return true;
         }
 
         @Override
-        public TxnMessage.Txn next() throws IOException {
+        public TxnMessage.Txn next() throws IOException{
             if(!hasNext()) throw new NoSuchElementException();
-            TxnMessage.Txn n = next;
-            next = null;
+            TxnMessage.Txn n=next;
+            next=null;
             return n;
         }
 
-        @Override public void close() throws IOException { regionScanner.close(); }
+        @Override
+        public void close() throws IOException{
+            regionScanner.close();
+        }
     }
 }

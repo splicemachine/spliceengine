@@ -15,9 +15,7 @@ import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRI
 import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
 
-public abstract class BaseHbRegion implements Partition<OperationWithAttributes,Delete,
-        Get,
-        Put,Result,Scan>{
+public abstract class BaseHbRegion implements Partition{
 
     protected Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
         assert kvPair.getType() == KVPair.Type.INSERT : "Performing an update/delete on a non-transactional table";

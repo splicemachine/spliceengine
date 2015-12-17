@@ -66,18 +66,7 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public void setThreadReadPoint(LScan delegate){
-        throw new UnsupportedOperationException("IMPLEMENT");
-
-    }
-
-    @Override
     public boolean regionScannerNextRaw(LScan lScan,List<DataCell> data) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public Map<byte[], byte[]> getFamilyMap(MResult dataCells,byte[] family){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
@@ -98,16 +87,6 @@ public class LDataLib implements SDataLib<
 
     @Override
     public void setFilterOnScan(LGet lGet,Void aVoid){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public int getResultSize(MResult dataCells){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public boolean isResultEmpty(MResult dataCells){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
@@ -223,19 +202,8 @@ public class LDataLib implements SDataLib<
         return newPut(key,null);
     }
 
-    @Override
-    public LTuple newPut(ByteSlice slice){
-        return newPut(slice.getByteCopy(),null);
-    }
-
-    @Override
-    public LTuple newPut(byte[] key,Integer lock){
+    private LTuple newPut(byte[] key,Integer lock){
         return new LTuple(key,new ArrayList<DataCell>(),lock);
-    }
-
-    @Override
-    public LGet newGet(byte[] rowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp){
-        return new LGet(rowKey,rowKey,families,columns,effectiveTimestamp);
     }
 
     @Override
@@ -254,20 +222,6 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public void setGetMaxVersions(LGet get,int max){
-    }
-
-    @Override
-    public void addFamilyToGet(LGet get,byte[] family){
-        get.families.add(family);
-    }
-
-    @Override
-    public void addFamilyToGetIfNeeded(LGet get,byte[] family){
-        ensureFamilyDirect(get,family);
-    }
-
-    @Override
     public void setScanTimeRange(LGet get,long minTimestamp,long maxTimestamp){
         assert minTimestamp==0L;
         get.effectiveTimestamp=maxTimestamp-1;
@@ -275,16 +229,6 @@ public class LDataLib implements SDataLib<
 
     @Override
     public void setScanMaxVersions(LGet get){
-    }
-
-    @Override
-    public void addFamilyToScan(LGet get,byte[] family){
-        get.families.add(family);
-    }
-
-    @Override
-    public void addFamilyToScanIfNeeded(LGet get,byte[] family){
-        ensureFamilyDirect(get,family);
     }
 
     private void ensureFamilyDirect(LGet lGet,byte[] family){
@@ -295,16 +239,6 @@ public class LDataLib implements SDataLib<
                 lGet.families.add(family);
             }
         }
-    }
-
-    @Override
-    public LGet newScan(byte[] startRowKey,byte[] endRowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp){
-        return new LGet(startRowKey,endRowKey,families,columns,effectiveTimestamp);
-    }
-
-    @Override
-    public byte[] getPutKey(LTuple put){
-        return getTupleKey(put);
     }
 
     private byte[] getTupleKey(Object result){
@@ -318,50 +252,10 @@ public class LDataLib implements SDataLib<
         return values;
     }
 
-    @Override
-    public Iterable<DataCell> listPut(LTuple put){
-        List<DataCell> values=Lists.newArrayList(put.values);
-        Collections.sort(values);
-        return values;
-    }
-
 
     @Override
     public LTuple newDelete(byte[] rowKey){
         return newPut(rowKey,null);
-    }
-
-    @Override
-    public KVPair toKVPair(LTuple lTuple){
-        return new KVPair(lTuple.key,lTuple.values.get(0).value());
-    }
-
-    @Override
-    public LTuple toPut(KVPair kvPair,byte[] family,byte[] column,long longTransactionId){
-        //TODO -sf- get the correct CellType
-        DataCell kv=new MCell(kvPair.getRowKey(),family,column,longTransactionId,kvPair.getValue(),CellType.USER_DATA);
-        return new LTuple(kvPair.getRowKey(),Lists.newArrayList(kv));
-    }
-
-    @Override
-    public LGet newGet(byte[] rowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp,int maxVersions){
-        return new LGet(rowKey,rowKey,families,columns,effectiveTimestamp,maxVersions);
-    }
-
-    @Override
-    public void setWriteToWAL(LTuple put,boolean writeToWAL){
-        // no op
-    }
-
-    @Override
-    public void addFamilyQualifierToDelete(LTuple delete,byte[] family,
-                                           byte[] qualifier,long timestamp){
-        addKeyValueToTuple(delete,family,qualifier,timestamp,null);
-    }
-
-    @Override
-    public void addDataToDelete(LTuple delete,DataCell data,long timestamp){
-        addKeyValueToTuple(delete,data.family(),data.qualifier(),timestamp,null);
     }
 
     @Override
@@ -386,16 +280,6 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public boolean matchingFamilyKeyValue(DataCell element,DataCell other){
-        return element.matchesFamily(other.family());
-    }
-
-    @Override
-    public boolean matchingQualifierKeyValue(DataCell element,DataCell other){
-        return element.matchesQualifier(element.family(),other.qualifier());
-    }
-
-    @Override
     public boolean matchingRowKeyValue(DataCell element,DataCell other){
         return Bytes.equals(element.valueArray(),element.valueOffset(),element.valueLength(),
                 other.valueArray(),other.valueOffset(),other.valueLength());
@@ -404,21 +288,6 @@ public class LDataLib implements SDataLib<
     @Override
     public DataCell newValue(DataCell element,byte[] value){
         return element.copyValue(value);
-    }
-
-    @Override
-    public DataCell newValue(byte[] rowKey,byte[] family,byte[] qualifier,
-                             Long timestamp,byte[] value){
-        //TODO -sf- implement proper cell type
-        return new MCell(rowKey,family,qualifier,timestamp,value,CellType.USER_DATA);
-    }
-
-    @Override
-    public boolean isAntiTombstone(DataCell element,byte[] antiTombstone){
-        byte[] buffer=element.valueArray();
-        int valueOffset=element.valueOffset();
-        int valueLength=element.valueLength();
-        return Bytes.equals(antiTombstone,0,antiTombstone.length,buffer,valueOffset,valueLength);
     }
 
     @Override
@@ -468,16 +337,6 @@ public class LDataLib implements SDataLib<
     @Override
     public long getValueToLong(DataCell element){
         return element.valueAsLong();
-    }
-
-    @Override
-    public byte[] getDataFamily(DataCell element){
-        return element.family();
-    }
-
-    @Override
-    public byte[] getDataQualifier(DataCell element){
-        return element.qualifier();
     }
 
     @Override
@@ -554,26 +413,6 @@ public class LDataLib implements SDataLib<
         throw new RuntimeException("Not Implemented");
     }
 
-    @Override
-    public byte[] getDataQualifierBuffer(DataCell element){
-        return element.qualifierArray();
-    }
-
-    @Override
-    public int getDataQualifierOffset(DataCell element){
-        return element.qualifierOffset();
-    }
-
-    @Override
-    public DataCell matchKeyValue(Iterable<DataCell> kvs,
-                                  byte[] columnFamily,byte[] qualifier){
-        for(DataCell kv : kvs){
-            if(matchingColumn(kv,columnFamily,qualifier))
-                return kv;
-        }
-        return null;
-    }
-
     private static boolean matchingColumn(DataCell c,byte[] family,byte[] qualifier){
         return c.matchesQualifier(family,qualifier);
     }
@@ -597,30 +436,7 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public DataCell matchDataColumn(List<DataCell> kvs){
-        for(DataCell dc:kvs){
-            if(dc.dataType()==CellType.USER_DATA) return dc;
-        }
-        return null;
-    }
-
-    @Override
-    public DataCell matchDataColumn(MResult result){
-        return result.userData();
-    }
-
-    @Override
-    public boolean matchingQualifier(DataCell element,byte[] qualifier){
-        return element.matchesQualifier(element.family(),qualifier);
-    }
-
-    @Override
     public DataPut newDataPut(ByteSlice key){
-        return new MPut(key);
-    }
-
-    @Override
-    public DataPut newDataPut(byte[] key){
         return new MPut(key);
     }
 

@@ -33,7 +33,6 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -50,8 +49,8 @@ import static com.splicemachine.si.constants.SIConstants.*;
 public class SITransactor<OperationWithAttributes,Data,Delete extends OperationWithAttributes,
         Get extends OperationWithAttributes,Filter,
         Mutation extends OperationWithAttributes,
-        Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,RowLock,Scan extends OperationWithAttributes>
-        implements Transactor<Put, RowLock>{
+        Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>
+        implements Transactor{
     private static final Logger LOG=Logger.getLogger(SITransactor.class);
     private final SDataLib<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataLib;
     private final DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore;
@@ -80,15 +79,6 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
 
     // Process update operations
-
-    @Override
-    public boolean processPut(Partition table,RollForward rollForwardQueue,Put put) throws IOException{
-        if(!isFlaggedForSITreatment(put)) return false;
-        final Put[] mutations=(Put[])Array.newInstance(put.getClass(),1);
-        mutations[0]=put;
-        MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations);
-        return operationStatusLib.processPutStatus(operationStatuses[0]);
-    }
 
     @Override
     public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException{
@@ -146,135 +136,6 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
     }
 
     @Override
-    public MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,Put[] mutations)
-            throws IOException{
-        if(mutations.length==0){
-            //short-circuit special case of empty batch
-            //noinspection unchecked
-            return new MutationStatus[0];
-        }
-        /*
-         * Here we convert a Put into a KVPair.
-         *
-         * Each Put represents a single row, but a KVPair represents a single column. Each row
-         * is written with a single transaction.
-         *
-         * What we do here is we group up the puts by their Transaction id (just in case they are different),
-         * then we group them up by family and column to create proper KVPair groups. Then, we attempt
-         * to write all the groups in sequence.
-         *
-         * Note the following:
-         *
-         * 1) We do all this as support for things that probably don't happen. With Splice's Packed Row
-         * Encoding, it is unlikely that people will send more than a single column of data over each
-         * time. Additionally, people likely won't send over a batch of Puts that have more than one
-         * transaction id (as that would be weird). Still, better safe than sorry.
-         *
-         * 2). This method is, because of all the regrouping and the partial writes and stuff,
-         * Significantly slower than the equivalent KVPair method, so It is highly recommended that you
-         * use the BulkWrite pipeline along with the KVPair abstraction to improve your overall throughput.
-         *
-         *
-         * To be frank, this is only here to support legacy code without needing to rewrite everything under
-         * the sun. You should almost certainly NOT use it.
-         */
-        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=Maps.newHashMap();
-        for(Put mutation : mutations){
-            long txnId=txnOperationFactory.fromWrites(mutation).getTxnId();
-            boolean isDelete=dataStore.getDeletePutAttribute(mutation);
-            byte[] row=dataLib.getPutKey(mutation);
-            Iterable<Data> dataValues=dataLib.listPut(mutation);
-            boolean isSIDataOnly=true;
-            for(Data data : dataValues){
-                byte[] family=dataLib.getDataFamily(data);
-                byte[] column=dataLib.getDataQualifier(data);
-                if(!Bytes.equals(column,SIConstants.PACKED_COLUMN_BYTES)){
-                    continue; //skip SI columns
-                }
-
-                isSIDataOnly=false;
-                byte[] value=dataLib.getDataValue(data);
-                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnId);
-                if(familyMap==null){
-                    familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    kvPairMap.put(txnId,familyMap);
-                }
-                Map<byte[], List<KVPair>> columnMap=familyMap.get(family);
-                if(columnMap==null){
-                    columnMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    familyMap.put(family,columnMap);
-                }
-                List<KVPair> kvPairs=columnMap.get(column);
-                if(kvPairs==null){
-                    kvPairs=Lists.newArrayList();
-                    columnMap.put(column,kvPairs);
-                }
-                kvPairs.add(new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.INSERT));
-            }
-            if(isSIDataOnly){
-                /*
-                 * Someone attempted to write only SI data, which means that the values column is empty.
-                 * Put a KVPair which is an empty byte[] for all the columns in the data
-                 */
-                byte[] family=DEFAULT_FAMILY_BYTES;
-                byte[] column=PACKED_COLUMN_BYTES;
-                byte[] value=new byte[]{};
-                Map<byte[], Map<byte[], List<KVPair>>> familyMap=kvPairMap.get(txnId);
-                if(familyMap==null){
-                    familyMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    kvPairMap.put(txnId,familyMap);
-                }
-                Map<byte[], List<KVPair>> columnMap=familyMap.get(family);
-                if(columnMap==null){
-                    columnMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-                    familyMap.put(family,columnMap);
-                }
-                List<KVPair> kvPairs=columnMap.get(column);
-                if(kvPairs==null){
-                    kvPairs=Lists.newArrayList();
-                    columnMap.put(column,kvPairs);
-                }
-                kvPairs.add(new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.EMPTY_COLUMN));
-            }
-        }
-        final Map<byte[], MutationStatus> statusMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
-        for(Map.Entry<Long, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
-            long txnId=entry.getKey();
-            Map<byte[], Map<byte[], List<KVPair>>> familyMap=entry.getValue();
-            for(Map.Entry<byte[], Map<byte[], List<KVPair>>> familyEntry : familyMap.entrySet()){
-                byte[] family=familyEntry.getKey();
-                Map<byte[], List<KVPair>> columnMap=familyEntry.getValue();
-                for(Map.Entry<byte[], List<KVPair>> columnEntry : columnMap.entrySet()){
-                    byte[] qualifier=columnEntry.getKey();
-                    List<KVPair> kvPairs=Lists.newArrayList(Collections2.filter(columnEntry.getValue(),new Predicate<KVPair>(){
-                        @Override
-                        public boolean apply(@Nullable KVPair input){
-                            assert input!=null;
-                            return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
-                        }
-                    }));
-                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker());
-                    for(int i=0;i<statuses.length;i++){
-                        byte[] row=kvPairs.get(i).getRowKey();
-                        MutationStatus status=statuses[i];
-                        if(statusMap.containsKey(row)){
-                            MutationStatus oldStatus=statusMap.get(row);
-                            status=getCorrectStatus(status,oldStatus);
-                        }
-                        statusMap.put(row,status);
-                    }
-                }
-            }
-        }
-        MutationStatus[] retStatuses=new MutationStatus[mutations.length];
-        for(int i=0;i<mutations.length;i++){
-            Put put=mutations[i];
-            retStatuses[i]=statusMap.get(dataLib.getPutKey(put));
-        }
-        return retStatuses;
-    }
-
-    @Override
     public MutationStatus[] processKvBatch(Partition table,
                                             RollForward rollForward,
                                             byte[] defaultFamilyBytes,
@@ -287,23 +148,12 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
     }
 
-    @Override
-    public MutationStatus[] processKvBatch(Partition table,
-                                            RollForward rollForwardQueue,
-                                            TxnView txn,
-                                            byte[] family,byte[] qualifier,
-                                            Collection<KVPair> mutations,
-                                            ConstraintChecker constraintChecker) throws IOException{
-        ensureTransactionAllowsWrites(txn.getTxnId(),txn);
-        return processInternal(table,rollForwardQueue,txn,family,qualifier,mutations,constraintChecker);
-    }
-
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
         return operationStatusLib.getCorrectStatus(status,oldStatus);
     }
 
-    protected MutationStatus[] processInternal(Partition<OperationWithAttributes, Delete, Get, Put, Result, Scan> table,
+    protected MutationStatus[] processInternal(Partition table,
                                                 RollForward rollForwardQueue,
                                                 TxnView txn,
                                                 byte[] family,byte[] qualifier,
@@ -691,17 +541,12 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
     }
 
     @Override
-    public DataStore getDataStore(){
-        return dataStore;
-    }
-
-    @Override
     public SDataLib getDataLib(){
         return dataLib;
     }
 
     @Override
-    public void updateCounterColumn(Partition hbRegion,TxnView txnView,RowLock rowLock,byte[] rowKey) throws IOException{
+    public void updateCounterColumn(Partition hbRegion,TxnView txnView,byte[] rowKey) throws IOException{
         // Get the current counter value.
 //        Get get = dataLib.newGet(rowKey);
 //        dataLib.addFamilyQualifierToGet(get,DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);

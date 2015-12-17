@@ -89,11 +89,8 @@ public class TxnTestUtils{
                 SIConstants.EMPTY_BYTE_ARRAY,
                 SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
                 SIConstants.EMPTY_BYTE_ARRAY,
-                SIConstants.PACKED_COLUMN_BYTES,
-                SIConstants.DEFAULT_FAMILY_BYTES,
-                txnSupplier,
-                txnLifecycleManager,
-                exceptionFactory);
+                SIConstants.DEFAULT_FAMILY_BYTES
+        );
     }
 
 }

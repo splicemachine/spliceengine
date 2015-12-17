@@ -1,7 +1,5 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.collections.CloseableIterator;
-import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.storage.*;
@@ -12,13 +10,12 @@ import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 /**
  * Wrapper that makes an HBase table comply with an interface that allows regions and tables to be used in a uniform manner.
  */
-public class HbTable implements Partition<OperationWithAttributes,Delete, Get, Put,Result,Scan>{
+public class HbTable implements Partition{
     final Table table;
 
     public HbTable(Table table) {
@@ -69,30 +66,6 @@ public class HbTable implements Partition<OperationWithAttributes,Delete, Get, P
     }
 
     @Override
-    public Result get(Get get) throws IOException {
-        final Result result = table.get(get);
-        if (result.isEmpty()) {
-           return null;
-        } else {
-            return result;
-        }
-    }
-
-    @Override
-    public CloseableIterator<Result> scan(Scan scan) throws IOException {
-        if(scan.getStartRow() == null) {
-            scan.setStartRow(new byte[]{});
-        }
-        final ResultScanner scanner = table.getScanner(scan);
-				return new ForwardingCloseableIterator<Result>(scanner.iterator()) {
-						@Override
-						public void close() throws IOException {
-							scanner.close();
-						}
-				};
-    }
-
-    @Override
     public DataScanner openScanner(DataScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
@@ -105,15 +78,6 @@ public class HbTable implements Partition<OperationWithAttributes,Delete, Get, P
     @Override
     public void closeOperation() throws IOException {
         throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public Lock getLock(byte[] rowKey, boolean waitForLock) {
-        try {
-            return lockRow(rowKey);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private Lock lockRow(byte[] byteCopy) throws IOException{
@@ -136,40 +100,10 @@ public class HbTable implements Partition<OperationWithAttributes,Delete, Get, P
     }
 
     @Override
-    public void put(Put put) throws IOException {
-        table.put(put);
-    }
-
-    @Override
-    public void put(Put put, Lock rowLock) throws IOException {
-        table.put(put);
-    }
-
-    @Override
-    public void put(Put put, boolean durable) throws IOException {
-        table.put(put);
-    }
-
-    @Override
-    public void put(List<Put> puts) throws IOException {
-        table.put(puts);
-    }
-
-    @Override
     public void put(DataPut put) throws IOException{
         assert put instanceof HPut: "Programmer error: wrong type for put!";
         Put p = ((HPut)put).unwrapDelegate();
         table.put(p);
-    }
-
-    @Override
-    public boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
-        return table.checkAndPut(put.getRow(), family, qualifier, expectedValue, put);
-    }
-
-    @Override
-    public void delete(Delete delete, Lock rowLock) throws IOException {
-        throw new RuntimeException("not implemented");
     }
 
     @Override

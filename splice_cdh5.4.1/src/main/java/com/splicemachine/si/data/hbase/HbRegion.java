@@ -2,7 +2,6 @@ package com.splicemachine.si.data.hbase;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.constants.SIConstants;
@@ -17,10 +16,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
-
-import static com.splicemachine.si.constants.SIConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
@@ -73,36 +69,6 @@ public class HbRegion extends BaseHbRegion {
         throw new RuntimeException("not implemented");
     }
 
-    @Override
-    public Result get(Get get) throws IOException {
-        final byte[] checkBloomFamily = get.getAttribute(CHECK_BLOOM_ATTRIBUTE_NAME);
-        if (checkBloomFamily == null || rowExists(checkBloomFamily, get.getRow())) {
-            return region.get(get);
-        } else {
-            return emptyResult();
-        }
-    }
-
-    @Override
-    public CloseableIterator<Result> scan(Scan scan) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public void put(Put put) throws IOException {
-        region.put(put);
-    }
-
-    @Override
-    public void put(List<Put> puts) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException {
-        throw new RuntimeException("not implemented");
-    }
-
 
     @Override
     public void startOperation() throws IOException {
@@ -112,13 +78,6 @@ public class HbRegion extends BaseHbRegion {
     @Override
     public void closeOperation() throws IOException {
         region.closeRegionOperation();
-    }
-
-    @Override
-    public Lock getLock(byte[] rowKey, boolean waitForLock) throws IOException {
-//        HRegion.RowLock rowLock = region.getRowLock(rowKey, waitForLock);
-//        if(rowLock == null) return null;
-        return new HLock(region,rowKey);
     }
 
     @Override
@@ -154,18 +113,6 @@ public class HbRegion extends BaseHbRegion {
     }
 
     @Override
-    public void put(Put put, Lock rowLock) throws IOException {
-        region.put(put);
-    }
-
-    @Override
-    public void put(Put put, boolean durable) throws IOException {
-        if (!durable)
-            put.setDurability(Durability.SKIP_WAL);
-        region.put(put);
-    }
-
-    @Override
     public byte[] getStartKey() {
         return region.getStartKey();
     }
@@ -173,11 +120,6 @@ public class HbRegion extends BaseHbRegion {
     @Override
     public byte[] getEndKey() {
         return region.getEndKey();
-    }
-
-    @Override
-    public void delete(Delete delete, Lock rowLock) throws IOException {
-        region.delete(delete);
     }
 
     @Override

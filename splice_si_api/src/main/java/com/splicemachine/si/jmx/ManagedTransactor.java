@@ -5,7 +5,7 @@ import com.splicemachine.si.api.txn.TransactorListener;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ManagedTransactor<Mutation,OperationStatus,Put,RowLock,Table> implements TransactorListener, TransactorStatus {
-    private Transactor<Put,RowLock> transactor;
+    private Transactor transactor;
 
     private final AtomicLong createdChildTxns = new AtomicLong(0l);
 
@@ -17,7 +17,7 @@ public class ManagedTransactor<Mutation,OperationStatus,Put,RowLock,Table> imple
     private final AtomicLong writes = new AtomicLong(0l);
     private final AtomicLong loadedTxns = new AtomicLong(0l);
 
-    public Transactor<Put,RowLock> getTransactor() {
+    public Transactor getTransactor() {
         return transactor;
     }
 

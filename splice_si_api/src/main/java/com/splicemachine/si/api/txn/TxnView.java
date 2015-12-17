@@ -17,7 +17,7 @@ import java.util.Iterator;
  */
 public interface TxnView extends Externalizable {
 
-    public Txn.State getEffectiveState();
+    Txn.State getEffectiveState();
 
     /**
      * @return the read isolation level for this transaction.

@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.collect.Iterators;
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -16,7 +15,6 @@ import com.splicemachine.storage.*;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -56,11 +54,6 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public Object get(Object o) throws IOException{
-        return basePartition.get(o);
-    }
-
-    @Override
     public DataResult get(DataGet get,DataResult previous) throws IOException{
         txnReadController.preProcessGet(get);
         TxnView txnView=txnOpFactory.fromReads(get);
@@ -68,11 +61,6 @@ public class TxnPartition implements Partition{
             get.setFilter(new MTxnFilterWrapper(getFilter(get,txnView)));
         }
         return basePartition.get(get,previous);
-    }
-
-    @Override
-    public CloseableIterator scan(Object o) throws IOException{
-        return basePartition.scan(o);
     }
 
     @Override
@@ -92,38 +80,8 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public void put(Object o) throws IOException{
-        transactor.processPut(basePartition,rollForward,o);
-    }
-
-    @Override
-    public void put(Object o,Lock rowLock) throws IOException{
-        transactor.processPut(basePartition,rollForward,o);
-    }
-
-    @Override
-    public void put(Object o,boolean durable) throws IOException{
-        transactor.processPut(basePartition,rollForward,o);
-    }
-
-    @Override
-    public void put(List list) throws IOException{
-        transactor.processPutBatch(basePartition,rollForward,list.toArray());
-    }
-
-    @Override
     public void put(DataPut put) throws IOException{
         transactor.processPut(basePartition,rollForward,put);
-    }
-
-    @Override
-    public boolean checkAndPut(byte[] family,byte[] qualifier,byte[] expectedValue,Object o) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public void delete(Object o,Lock rowLock) throws IOException{
-        throw new UnsupportedOperationException("Deletes are not transactionally supported");
     }
 
     @Override
@@ -139,11 +97,6 @@ public class TxnPartition implements Partition{
     @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
         return Iterators.forArray(transactor.processPutBatch(basePartition,rollForward,toWrite));
-    }
-
-    @Override
-    public Lock getLock(byte[] rowKey,boolean waitForLock) throws IOException{
-        return basePartition.getLock(rowKey,waitForLock);
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.splicemachine.si.api.txn;
 
-import com.splicemachine.si.api.txn.TxnView;
 
 import java.io.IOException;
 

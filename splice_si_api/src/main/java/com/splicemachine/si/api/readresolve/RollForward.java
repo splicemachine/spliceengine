@@ -10,9 +10,7 @@ import com.splicemachine.utils.ByteSlice;
  */
 public interface RollForward {
 
-		void submitForResolution(byte[] rowKey, long txnId);
-
-		void submitForResolution(ByteSlice rowKey, long txnId);
+	void submitForResolution(ByteSlice rowKey, long txnId);
 
 		void recordResolved(ByteSlice rowKey,long txnId);
 }

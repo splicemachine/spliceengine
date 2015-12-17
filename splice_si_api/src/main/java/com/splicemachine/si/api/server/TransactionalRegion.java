@@ -76,8 +76,6 @@ public interface TransactionalRegion<OperationStatus,InternalScanner> extends Au
 
     ReadResolver getReadResolver();
 
-    DataStore getDataStore();
-
     void close();
 
     InternalScanner compactionScanner(InternalScanner scanner);

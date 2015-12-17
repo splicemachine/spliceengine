@@ -7,7 +7,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
@@ -338,39 +337,6 @@ public class TransactorTestUtility {
             timestampDecoder.put(timestamp, timestampString);
             return timestampString;
         }
-    }
-
-    public DataResult readRaw(String name) throws IOException {
-        return readAgeRawDirect(testEnv, name, true);
-    }
-
-    public DataResult readRaw(String name, boolean allVersions) throws IOException {
-        return readAgeRawDirect(testEnv, name, allVersions);
-    }
-
-    static DataResult readAgeRawDirect(SITestEnv SITestEnv, String name, boolean allversions) throws IOException {
-        final SDataLib dataLib = SITestEnv.getDataLib();
-
-        byte[] key = dataLib.newRowKey(new Object[]{name});
-        Attributable get = makeGet(dataLib, key);
-        if (allversions) {
-            dataLib.setGetMaxVersions(get);
-        }
-        try(Partition table =SIDriver.getTableFactory().getTable(SITestEnv.getPersonTableName())){
-            return (DataResult)table.get(get);
-        }
-    }
-
-    public static Attributable makeGet(SDataLib dataLib, byte[] key) throws IOException {
-        final Attributable get = (Attributable)dataLib.newGet(key, null, null, null);
-        addPredicateFilter(get);
-        return get;
-    }
-
-    private Object makeScan(SDataLib dataLib, byte[] endKey, ArrayList families, byte[] startKey) throws IOException {
-        final Attributable scan = (Attributable) dataLib.newScan(startKey, endKey, families, null, null);
-        addPredicateFilter(scan);
-        return scan;
     }
 
     private static void addPredicateFilter(Attributable operation) throws IOException {

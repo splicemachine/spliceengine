@@ -170,18 +170,6 @@ public class SegmentedRollForward implements RollForward {
         return segments;
     }
 
-    @Override
-    public void submitForResolution(byte[] rowKey,long txnId){
-        status.rowWritten();
-        RegionSegment regionSegment=getSegment(rowKey,0,segments.length);
-        regionSegment.update(txnId,1l);
-
-        long toResolveCount=updateCount.incrementAndGet();
-        if((toResolveCount&segmentCheckInterval)==0){
-            checkAndSubmit(regionSegment);
-        }
-    }
-
 
     @Override
     public void submitForResolution(ByteSlice rowKey,long txnId){

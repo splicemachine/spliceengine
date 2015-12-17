@@ -4,7 +4,6 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
@@ -16,16 +15,9 @@ import java.util.Collection;
  * The primary interface to the transaction module. This interface has the most burdensome generic signature so it is
  * only exposed in places where it is needed.
  */
-public interface Transactor<Put,RowLock>{
-
-    /**
-     * Execute the put operation (with SI treatment) on the table. Send roll-forward notifications to the rollForwardQueue.
-     */
-    boolean processPut(Partition table,RollForward rollForwardQueue,Put put) throws IOException;
+public interface Transactor{
 
     boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException;
-
-    MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,Put[] mutations) throws IOException;
 
     MutationStatus[] processPutBatch(Partition table,RollForward rollForwardQueue,DataPut[] mutations) throws IOException;
 
@@ -36,12 +28,6 @@ public interface Transactor<Put,RowLock>{
                                     Collection<KVPair> toProcess,
                                     long transactionId,
                                     ConstraintChecker constraintChecker) throws IOException;
-
-    MutationStatus[] processKvBatch(Partition table,RollForward rollForwardQueue,TxnView txnId,
-                                    byte[] family,byte[] qualifier,
-                                    Collection<KVPair> mutations,ConstraintChecker constraintChecker) throws IOException;
-
-    DataStore getDataStore();
 
     SDataLib getDataLib();
 
@@ -56,5 +42,5 @@ public interface Transactor<Put,RowLock>{
      * If we quickly do one million FK checks we can end up with zero associated writes to the parent table (though
      * every counter update is still written to the WAL).
      */
-    void updateCounterColumn(Partition hbRegion,TxnView txnView,RowLock rowLock,byte[] rowKey) throws IOException;
+    void updateCounterColumn(Partition hbRegion,TxnView txnView,byte[] rowKey) throws IOException;
 }

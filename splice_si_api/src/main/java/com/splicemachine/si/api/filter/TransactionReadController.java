@@ -38,8 +38,6 @@ public interface TransactionReadController<Data,Get,ReturnCode,Scan>{
 
     void preProcessScan(DataScan scan) throws IOException;
 
-    TxnFilter newFilterState(TxnView txn) throws IOException;
-
     TxnFilter newFilterState(ReadResolver readResolver,TxnView txn) throws IOException;
 
     TxnFilter newFilterStatePacked(ReadResolver readResolver,
@@ -50,18 +48,6 @@ public interface TransactionReadController<Data,Get,ReturnCode,Scan>{
      * Consider whether to use a key value in light of a given filterState.
      */
     ReturnCode filterKeyValue(TxnFilter<Data, ReturnCode> filterState,Data data) throws IOException;
-
-    /**
-     * Indicate that the filterState is now going to be used to process a new row.
-     */
-    void filterNextRow(TxnFilter<Data, ReturnCode> filterState);
-
-    /**
-     * This is for use in code outside of a proper HBase filter that wants to apply the equivalent of SI filter logic.
-     * Pass in an entire result object that contains all of the key values for a row. Receive back a new result that only
-     * contains the key values that should be visible in light of the filterState.
-     */
-    DataResult filterResult(TxnFilter<Data, ReturnCode> filterState,DataResult result) throws IOException;
 
     /**
      * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations

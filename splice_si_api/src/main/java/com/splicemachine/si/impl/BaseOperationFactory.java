@@ -11,11 +11,9 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.Attributable;
-import com.splicemachine.storage.DataScan;
 
 import java.io.IOException;
 import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 import static com.splicemachine.si.constants.SIConstants.*;
 
@@ -147,13 +145,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
             parent=new ActiveWriteTxn(id,id,parent,additive,level);
         }
         return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
-    }
-
-    @Override
-    public void writeTxn(TxnView txn,ObjectOutput oo) throws IOException{
-        byte[] txnData=encode(txn);
-        oo.writeInt(txnData.length);
-        oo.write(txnData);
     }
 
     @Override

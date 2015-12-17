@@ -6,8 +6,9 @@ package com.splicemachine.si.impl.region;
  * Date: 8/18/14
  */
 
+import com.google.protobuf.ByteString;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.TxnDecoder;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -17,17 +18,17 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.TxnUtils;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
 import java.util.List;
 
-public abstract class AbstractV2TxnDecoder<OperationWithAttributes, Delete extends OperationWithAttributes,Filter,Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,RegionScanner,Scan extends OperationWithAttributes> implements TxnDecoder<OperationWithAttributes,Cell,Delete,Filter,
-        Get,Put,RegionScanner,Result, Scan> {
+public class V2TxnDecoder implements TxnDecoder{
+    public static final V2TxnDecoder INSTANCE = new V2TxnDecoder();
     public static final byte[] FAMILY = SIConstants.DEFAULT_FAMILY_BYTES;
     public static final byte[] DATA_QUALIFIER_BYTES = Bytes.toBytes("d");
-//    public static final byte[] COUNTER_QUALIFIER_BYTES = Bytes.toBytes("c");
     public static final byte[] KEEP_ALIVE_QUALIFIER_BYTES = Bytes.toBytes("k");
     public static final byte[] COMMIT_QUALIFIER_BYTES = Bytes.toBytes("t");
     public static final byte[] GLOBAL_COMMIT_QUALIFIER_BYTES = Bytes.toBytes("g");
@@ -36,10 +37,11 @@ public abstract class AbstractV2TxnDecoder<OperationWithAttributes, Delete exten
     public static long TRANSACTION_TIMEOUT = SIDriver.getSIFactory().getTransactionTimeout();
     private static final long TRANSACTION_TIMEOUT_WINDOW = TRANSACTION_TIMEOUT+1000;
 
+    private V2TxnDecoder(){ } //singleton instance
 
     @Override
-    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Cell,Delete,Filter,Get,
-            Put,RegionScanner,Result,Scan> dataLib, List<Cell> keyValues) throws IOException {
+    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Cell,Delete,Filter,Get, Put,RegionScanner,Result,Scan> dataLib,
+                                 List<Cell> keyValues) throws IOException {
         if(keyValues.size()<=0) return null;
         Cell dataKv = null;
         Cell keepAliveKv = null;
@@ -69,8 +71,8 @@ public abstract class AbstractV2TxnDecoder<OperationWithAttributes, Delete exten
     }
 
     @Override
-    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Cell,Delete,Filter,Get,
-            Put,RegionScanner,Result,Scan> dataLib, long txnId, Result result) throws IOException {
+    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Cell,Delete,Filter,Get, Put,RegionScanner,Result,Scan> dataLib,
+                                 long txnId, Result result) throws IOException {
     	Cell dataKv = result.getColumnLatestCell(FAMILY,DATA_QUALIFIER_BYTES);
         Cell commitTsVal = result.getColumnLatestCell(FAMILY,COMMIT_QUALIFIER_BYTES);
         Cell globalTsVal = result.getColumnLatestCell(FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES);
@@ -180,6 +182,65 @@ public abstract class AbstractV2TxnDecoder<OperationWithAttributes, Delete exten
         return adjustStateForTimeout(currentState,columnLatest,System.currentTimeMillis(),oldForm);
     }
 
+    /*
+	 * Encodes transaction objects using the new, packed Encoding format
+	 *
+	 * The new way is a (more) compact representation which uses the Values CF (V) and compact qualifiers (using
+	 * the Encoding.encodeX() methods) as follows:
+	 *
+	 * "d"	--	packed tuple of (beginTimestamp,parentTxnId,isDependent,additive,isolationLevel)
+	 * "c"	--	counter (using a packed integer representation)
+	 * "k"	--	keepAlive timestamp
+	 * "t"	--	commit timestamp
+	 * "g"	--	globalCommitTimestamp
+	 * "s"	--	state
+	 *
+	 * The additional columns are kept separate so that they may be updated(and read) independently without
+	 * reading and decoding the entire transaction.
+	 *
+	 * In the new format, if a transaction has been written to the table, then it automatically allows writes
+	 *
+	 * order: c,d,e,g,k,s,t
+	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
+	 */
+    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo) throws IOException {
+        org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnInfo.getTxnId()));
+        MultiFieldEncoder metaFieldEncoder = MultiFieldEncoder.create(5);
+        metaFieldEncoder.encodeNext(txnInfo.getBeginTs()).encodeNext(txnInfo.getParentTxnid());
 
+        if(txnInfo.hasIsAdditive())
+            metaFieldEncoder.encodeNext(txnInfo.getIsAdditive());
+        else
+            metaFieldEncoder.encodeEmpty();
+
+        Txn.IsolationLevel level = Txn.IsolationLevel.fromInt(txnInfo.getIsolationLevel());
+        if(level!=null)
+            metaFieldEncoder.encodeNext(level.encode());
+        else
+            metaFieldEncoder.encodeEmpty();
+
+        Txn.State state = Txn.State.ACTIVE;
+
+        put.add(FAMILY,DATA_QUALIFIER_BYTES,metaFieldEncoder.build());
+//        put.add(FAMILY,COUNTER_QUALIFIER_BYTES, Encoding.encode(0l));
+        put.add(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(System.currentTimeMillis()));
+        put.add(FAMILY,STATE_QUALIFIER_BYTES,state.encode());
+//        if(state== Txn.State.COMMITTED){
+//            put.add(FAMILY,COMMIT_QUALIFIER_BYTES,Encoding.encode(transactionLib.getCommitTimestamp(txn)));
+//            long globalCommitTs = txn.getGlobalCommitTs();
+//            if(globalCommitTs>=0)
+//                put.add(FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
+//        }
+        ByteString destTableBuffer = txnInfo.getDestinationTables();
+        if(destTableBuffer!=null && !destTableBuffer.isEmpty())
+            put.add(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES,destTableBuffer.toByteArray());
+        return put;
+    }
+
+    protected TxnMessage.Txn composeValue(Cell destinationTables,
+                                          Txn.IsolationLevel level, long txnId, long beginTs,long parentTs,  boolean hasAdditive,
+                                          boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime) {
+        return TXNDecoderUtils.composeValue(destinationTables, level, txnId, beginTs, parentTs, hasAdditive, additive, commitTs, globalCommitTs, state, kaTime);
+    }
 
 }

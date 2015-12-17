@@ -1,15 +1,14 @@
 package com.splicemachine.si.data.hbase;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
@@ -25,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import static com.splicemachine.si.constants.SIConstants.*;
 
@@ -54,11 +52,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public byte[] getPutKey(Put put){
-        return put.getRow();
-    }
-
-    @Override
     public List<DataCell> listResult(Result result){
         final HCell newCellWrapper=new HCell();
         return Lists.transform(result.listCells(),new Function<Cell, DataCell>(){
@@ -68,11 +61,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
                 return newCellWrapper;
             }
         });
-    }
-
-    @Override
-    public Iterable<Cell> listPut(Put put){
-        return Iterables.concat(put.getFamilyCellMap().values());
     }
 
     @Override
@@ -148,18 +136,11 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         return new Put(key);
     }
 
-    @Override
-    public Put newPut(ByteSlice key){
+    private Put newPut(ByteSlice key){
         return new Put(key.array(),key.offset(),key.length());
     }
 
-    @Override
-    public Put newPut(byte[] key,Integer lock){
-        return new Put(key,lock);
-    }
-
-    @Override
-    public Get newGet(byte[] rowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp){
+    private Get newGet(byte[] rowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp){
         Get get=new Get(rowKey);
         get.setAttribute(ISOLATION_LEVEL,IsolationLevel.READ_UNCOMMITTED.toBytes());
         if(families!=null){
@@ -202,53 +183,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public void setGetMaxVersions(Get get,int max){
-        try{
-            get.setMaxVersions(max);
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void addFamilyToGet(Get get,byte[] family){
-        get.addFamily(family);
-    }
-
-    @Override
-    public void addFamilyToGetIfNeeded(Get get,byte[] family){
-        if(get.hasFamilies()){
-            get.addFamily(family);
-        }
-    }
-
-    @Override
-    public Scan newScan(byte[] startRowKey,byte[] endRowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp){
-        Scan scan=new Scan();
-        scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
-        scan.setStartRow(startRowKey);
-        scan.setStopRow(endRowKey);
-        if(families!=null){
-            for(byte[] f : families){
-                scan.addFamily(f);
-            }
-        }
-        if(columns!=null){
-            for(List<byte[]> c : columns){
-                scan.addColumn(c.get(0),c.get(1));
-            }
-        }
-        if(effectiveTimestamp!=null){
-            try{
-                scan.setTimeRange(effectiveTimestamp,Long.MAX_VALUE);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
-        }
-        return scan;
-    }
-
-    @Override
     public void setScanTimeRange(Scan scan,long minTimestamp,long maxTimestamp){
         try{
             scan.setTimeRange(minTimestamp,maxTimestamp);
@@ -260,18 +194,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public void setScanMaxVersions(Scan scan){
         scan.setMaxVersions();
-    }
-
-    @Override
-    public void addFamilyToScan(Scan scan,byte[] family){
-        scan.addFamily(family);
-    }
-
-    @Override
-    public void addFamilyToScanIfNeeded(Scan scan,byte[] family){
-        if(scan.hasFamilies()){
-            scan.addFamily(family);
-        }
     }
 
     @Override
@@ -299,63 +221,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public KVPair toKVPair(Put put){
-        return new KVPair(put.getRow(),
-                put.get(DEFAULT_FAMILY_BYTES,PACKED_COLUMN_BYTES).get(0).getValue());
-    }
-
-    @Override
-    public Put toPut(KVPair kvPair,byte[] family,byte[] column,long longTransactionId){
-        ByteSlice rowKey=kvPair.rowKeySlice();
-        ByteSlice val=kvPair.valueSlice();
-        Put put=newPut(rowKey);
-        KeyValue kv=new KeyValue(rowKey.array(),rowKey.offset(),rowKey.length(),
-                family,0,family.length,
-                column,0,column.length,
-                longTransactionId,
-                KeyValue.Type.Put,val.array(),val.offset(),val.length());
-        try{
-            put.add(kv);
-        }catch(IOException ignored){
-                        /*
-						 * This exception only appears to occur if the row in the Cell does not match
-						 * the row that's set in the Put. This is definitionally not the case for the above
-						 * code block, so we shouldn't have to worry about this error. As a result, throwing
-						 * a RuntimeException here is legitimate
-						 */
-            throw new RuntimeException(ignored);
-        }
-        return put;
-    }
-
-    @Override
-    public Get newGet(byte[] rowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp,int maxVersions){
-        Get get=newGet(rowKey,families,columns,effectiveTimestamp);
-        try{
-            get.setMaxVersions(maxVersions);
-        }catch(IOException e){
-            throw new RuntimeException(e+"Exception setting max versions");
-        }
-        return get;
-    }
-
-    @Override
-    public void setWriteToWAL(Put put,boolean writeToWAL){
-        put.setWriteToWAL(writeToWAL);
-    }
-
-    @Override
-    public void addFamilyQualifierToDelete(Delete delete,byte[] family,
-                                           byte[] qualifier,long timestamp){
-        delete.deleteColumn(family,qualifier,timestamp);
-    }
-
-    @Override
-    public void addDataToDelete(Delete delete,Cell data,long timestamp){
-        delete.deleteColumn(CellUtil.cloneFamily(data),CellUtil.cloneQualifier(data),timestamp);
-    }
-
-    @Override
     public boolean singleMatchingColumn(Cell element,byte[] family,
                                         byte[] qualifier){
         return CellUtils.singleMatchingColumn(element,family,qualifier);
@@ -377,16 +242,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public boolean matchingFamilyKeyValue(Cell element,Cell other){
-        return CellUtils.matchingFamilyKeyValue(element,other);
-    }
-
-    @Override
-    public boolean matchingQualifierKeyValue(Cell element,Cell other){
-        return CellUtils.matchingQualifierKeyValue(element,other);
-    }
-
-    @Override
     public boolean matchingRowKeyValue(Cell element,Cell other){
         return CellUtils.matchingRowKeyValue(element,other);
     }
@@ -394,20 +249,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public Cell newValue(Cell element,byte[] value){
         return CellUtils.newKeyValue(element,value);
-    }
-
-    @Override
-    public Cell newValue(byte[] rowKey,byte[] family,byte[] qualifier,
-                         Long timestamp,byte[] value){
-        return CellUtils.newKeyValue(rowKey,family,qualifier,timestamp,value);
-    }
-
-    @Override
-    public boolean isAntiTombstone(Cell element,byte[] antiTombstone){
-        byte[] buffer=element.getValueArray();
-        int valueOffset=element.getValueOffset();
-        int valueLength=element.getValueLength();
-        return Bytes.equals(antiTombstone,0,antiTombstone.length,buffer,valueOffset,valueLength);
     }
 
     @Override
@@ -453,16 +294,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public long getValueToLong(Cell element){
         return Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
-    }
-
-    @Override
-    public byte[] getDataFamily(Cell element){
-        return CellUtil.cloneFamily(element);
-    }
-
-    @Override
-    public byte[] getDataQualifier(Cell element){
-        return CellUtil.cloneQualifier(element);
     }
 
     @Override
@@ -534,13 +365,9 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public void setThreadReadPoint(RegionScanner delegate){
-    }
-
-    @Override
     public Filter getActiveTransactionFilter(long beforeTs,long afterTs,
                                              byte[] destinationTable){
-        return new ActiveTxnFilter(beforeTs,afterTs,destinationTable);
+        return new ActiveTxnFilter(this,beforeTs,afterTs,destinationTable);
     }
 
 //    @Override
@@ -561,26 +388,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public byte[] getDataQualifierBuffer(Cell element){
-        return element.getQualifierArray();
-    }
-
-    @Override
-    public int getDataQualifierOffset(Cell element){
-        return element.getQualifierOffset();
-    }
-
-    @Override
-    public Cell matchKeyValue(Iterable<Cell> kvs,byte[] columnFamily,
-                              byte[] qualifier){
-        for(Cell kv : kvs){
-            if(CellUtils.matchingColumn(kv,columnFamily,qualifier))
-                return kv;
-        }
-        return null;
-    }
-
-    @Override
     public Cell matchKeyValue(Cell[] kvs,byte[] columnFamily,
                               byte[] qualifier){
         int size=kvs!=null?kvs.length:0;
@@ -596,28 +403,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     public Cell matchDataColumn(Cell[] kvs){
         return matchKeyValue(kvs,DEFAULT_FAMILY_BYTES,
                 PACKED_COLUMN_BYTES);
-    }
-
-    @Override
-    public Cell matchDataColumn(List<Cell> kvs){
-        int size=kvs!=null?kvs.size():0;
-        for(int i=0;i<size;i++){
-            Cell kv=kvs.get(i);
-            if(CellUtils.matchingColumn(kv,DEFAULT_FAMILY_BYTES,
-                    PACKED_COLUMN_BYTES))
-                return kv;
-        }
-        return null;
-    }
-
-    @Override
-    public Cell matchDataColumn(Result result){
-        return matchDataColumn(result.rawCells());
-    }
-
-    @Override
-    public boolean matchingQualifier(Cell element,byte[] qualifier){
-        return CellUtil.matchingQualifier(element,qualifier);
     }
 
     @Override
@@ -668,11 +453,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public Map<byte[], byte[]> getFamilyMap(Result result,byte[] family){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public void setAttribute(OperationWithAttributes operation,String name,byte[] value){
         throw new UnsupportedOperationException("IMPLEMENT");
 
@@ -695,22 +475,7 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public int getResultSize(Result result){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public boolean isResultEmpty(Result result){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public DataPut newDataPut(ByteSlice key){
-        return new HPut(key);
-    }
-
-    @Override
-    public DataPut newDataPut(byte[] key){
         return new HPut(key);
     }
 

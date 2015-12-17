@@ -3,8 +3,9 @@ package com.splicemachine.pipeline.api;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.si.api.data.IHTable;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.Partition;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -46,7 +47,7 @@ public interface WriteContext {
     /**
      * Retrieve the region from the context
      */
-    IHTable getRegion();
+    Partition getRegion();
 
     /**
      * Retrieve the HTableInterface based on the index bytes[] name

@@ -2,13 +2,10 @@ package com.splicemachine.storage;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MappedDataResultScanner;
-import com.splicemachine.utils.ByteSlice;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -24,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Scott Fines
  *         Date: 12/16/15
  */
-public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MResult,MScan>{
+public class MPartition implements Partition{
     private final String partitionName;
 
     private final ConcurrentSkipListSet<DataCell> memstore = new ConcurrentSkipListSet<>();
@@ -36,11 +33,8 @@ public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MRe
 
     @Override public String getName(){ return partitionName; }
     @Override public void close() throws IOException{ }
-
-    @Override
-    public MResult get(MGet mGet) throws IOException{
-        return (MResult)get(mGet,null);
-    }
+    @Override public void startOperation() throws IOException{ }
+    @Override public void closeOperation() throws IOException{ }
 
     @Override
     public DataResult get(DataGet get,DataResult previous) throws IOException{
@@ -87,11 +81,6 @@ public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MRe
     }
 
     @Override
-    public CloseableIterator<MResult> scan(MScan mScan) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public DataScanner openScanner(DataScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
@@ -105,95 +94,17 @@ public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MRe
     }
 
     @Override
-    public void put(MPut mPut) throws IOException{
-        put(mPut,true);
-    }
-
-    @Override
-    public void put(MPut mPut,Lock rowLock) throws IOException{
-        put(mPut,true);
-    }
-
-    @Override
-    public void put(MPut mPut,boolean durable) throws IOException{
-        Lock lock=getRowLock(mPut.key(),0,mPut.key().length);
-        lock.lock();
-        try{
-            Iterable<DataCell> cells=mPut.cells();
-            for(DataCell dc : cells){
-                if(memstore.contains(dc)){
-                    memstore.remove(dc);
-                }
-                memstore.add(dc.getClone());
-            }
-        }finally{
-            lock.unlock();
-        }
-    }
-
-    @Override
-    public void put(List<MPut> mPuts) throws IOException{
-        for(MPut put:mPuts){
-            put(put,true);
-        }
-    }
-
-    @Override
     public void put(DataPut put) throws IOException{
         assert put instanceof MPut: "Programmer error: was not a memory put!";
         put((MPut)put);
     }
 
-    @Override
-    public boolean checkAndPut(byte[] family,byte[] qualifier,byte[] expectedValue,MPut mPut) throws IOException{
-        Lock rowLock = getRowLock(mPut.key(),0,mPut.key().length);
-        rowLock.lock();
-        try{
-            DataCell start=new MCell(mPut.key(),family,qualifier,Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-            DataCell stop=new MCell(mPut.key(),family,qualifier,0l,new byte[]{},CellType.USER_DATA);
-            NavigableSet<DataCell> dataCells=memstore.subSet(start,true,stop,true);
-            Iterator<DataCell> iter = dataCells.iterator();
-            if(iter.hasNext()){
-                DataCell dc=iter.next();
-                if(Bytes.BASE_COMPARATOR.equals(dc.value(),expectedValue)){
-                    put(mPut,rowLock);
-                    return true;
-                }
-            }
-            return false;
-        }finally{
-            rowLock.unlock();
-        }
-    }
 
-    @Override
-    public void delete(MDelete mDelete,Lock rowLock) throws IOException{
-        //remove elements from the row
-        rowLock.lock();
-        try{
-            Iterable<DataCell> exactCellsToDelete=mDelete.cells();
-            for(DataCell dc:exactCellsToDelete){
-                memstore.remove(dc);
-            }
-            //TODO -sf- make this also remove entire families and columns
-        }finally{
-            rowLock.unlock();
-        }
-    }
-
-    @Override
-    public void startOperation() throws IOException{
-
-    }
-
-    @Override
-    public void closeOperation() throws IOException{
-
-    }
 
     @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
         List<MutationStatus> status = new ArrayList<>(toWrite.length);
+        //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<toWrite.length;i++){
             DataPut dp = toWrite[i];
             assert dp instanceof MPut: "Incorrect put type";
@@ -201,11 +112,6 @@ public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MRe
             status.add(MOperationStatus.success());
         }
         return status.iterator();
-    }
-
-    @Override
-    public Lock getLock(byte[] rowKey,boolean waitForLock) throws IOException{
-        return getRowLock(rowKey,0,rowKey.length);
     }
 
     @Override
@@ -300,6 +206,26 @@ public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MRe
         else delete((DataDelete)put);
     }
 
+    @Override
+    public boolean containsRow(byte[] row){
+        return true;
+    }
+
+    @Override
+    public boolean containsRow(byte[] row,int offset,int length){
+        return true;
+    }
+
+    @Override
+    public boolean containsRange(byte[] start,byte[] stop){
+        return true;
+    }
+
+    @Override
+    public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+        return true;
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class MemLock implements Lock{
@@ -353,4 +279,34 @@ public class MPartition implements Partition<Attributable,MDelete,MGet, MPut,MRe
             return lock.newCondition();
         }
     }
+
+    private void put(MPut mPut) throws IOException{
+        Lock lock=getRowLock(mPut.key(),0,mPut.key().length);
+        lock.lock();
+        try{
+            Iterable<DataCell> cells=mPut.cells();
+            for(DataCell dc : cells){
+                if(memstore.contains(dc)){
+                    memstore.remove(dc);
+                }
+                memstore.add(dc.getClone());
+            }
+        }finally{
+            lock.unlock();
+        }
+    }
+    private void delete(MDelete mDelete,Lock rowLock) throws IOException{
+        //remove elements from the row
+        rowLock.lock();
+        try{
+            Iterable<DataCell> exactCellsToDelete=mDelete.cells();
+            for(DataCell dc:exactCellsToDelete){
+                memstore.remove(dc);
+            }
+            //TODO -sf- make this also remove entire families and columns
+        }finally{
+            rowLock.unlock();
+        }
+    }
+
 }

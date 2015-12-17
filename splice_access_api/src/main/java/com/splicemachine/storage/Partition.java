@@ -1,27 +1,21 @@
 package com.splicemachine.storage;
 
-import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.metrics.MetricFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 
 /**
  * Abstraction that makes HBase tables and regions have a uniform interface.
  */
-public interface Partition<OperationWithAttributes,Delete extends OperationWithAttributes,
-        Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,Result,Scan extends OperationWithAttributes> extends AutoCloseable{
+public interface Partition extends AutoCloseable{
 
     String getName();
 
     @Override
     void close() throws IOException;
-
-    Result get(Get get) throws IOException;
 
     /**
      * Get a single row. Generally you'll want to re-use the DataGet object that you create in order
@@ -33,25 +27,11 @@ public interface Partition<OperationWithAttributes,Delete extends OperationWithA
      */
     DataResult get(DataGet get,DataResult previous) throws IOException;
 
-    CloseableIterator<Result> scan(Scan scan) throws IOException;
-
     DataScanner openScanner(DataScan scan) throws IOException;
 
     DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException;
 
-    void put(Put put) throws IOException;
-
-    void put(Put put,Lock rowLock) throws IOException;
-
-    void put(Put put,boolean durable) throws IOException;
-
-    void put(List<Put> puts) throws IOException;
-
     void put(DataPut put) throws IOException;
-
-    boolean checkAndPut(byte[] family,byte[] qualifier,byte[] expectedValue,Put put) throws IOException;
-
-    void delete(Delete delete,Lock rowLock) throws IOException;
 
     void startOperation() throws IOException;
 
@@ -59,13 +39,14 @@ public interface Partition<OperationWithAttributes,Delete extends OperationWithA
 
     Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException;
 
-    Lock getLock(byte[] rowKey,boolean waitForLock) throws IOException;
-
     byte[] getStartKey();
 
     byte[] getEndKey();
+
     void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException;
+
     boolean isClosed();
+
     boolean isClosing();
 
     /**
@@ -107,4 +88,13 @@ public interface Partition<OperationWithAttributes,Delete extends OperationWithA
     void delete(DataDelete delete) throws IOException;
 
     void mutate(DataMutation put) throws IOException;
+
+    boolean containsRow(byte[] row);
+
+    boolean containsRow(byte[] row, int offset, int length);
+
+    boolean containsRange(byte[] start, byte[] stop);
+
+    boolean containsRange(byte[] start, int startOff, int startLen,
+                          byte[] stop, int stopOff, int stopLen);
 }

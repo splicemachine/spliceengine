@@ -1,24 +1,20 @@
 package com.splicemachine.si.impl.txn;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SimpleTxnFilter;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -90,11 +86,6 @@ public class SITransactionReadController<OperationWithAttributes,Data,
     }
 
     @Override
-    public TxnFilter newFilterState(TxnView txn) throws IOException{
-        return newFilterState(null,txn);
-    }
-
-    @Override
     public TxnFilter newFilterState(ReadResolver readResolver,TxnView txn) throws IOException{
         return new SimpleTxnFilter(null,txn,readResolver,txnSupplier,ignoreTxnSuppler,dataStore);
     }
@@ -109,29 +100,6 @@ public class SITransactionReadController<OperationWithAttributes,Data,
     @Override
     public ReturnCode filterKeyValue(TxnFilter<Data, ReturnCode> filterState,Data data) throws IOException{
         return filterState.filterKeyValue(data);
-    }
-
-    @Override
-    public void filterNextRow(TxnFilter filterState){
-        filterState.nextRow();
-    }
-
-    @Override
-    public DataResult filterResult(TxnFilter<Data, ReturnCode> filterState,DataResult result) throws IOException{
-        //TODO -sf- this is only used in testing--ignore when production tuning
-        final List<DataCell> filteredCells=Lists.newArrayList();
-        if(result!=null && result.size()>0){
-            for(DataCell kv : result){
-                filterState.filterKeyValue(kv);
-            }
-            if(!filterState.getExcludeRow())
-                filteredCells.add(filterState.produceAccumulatedResult());
-        }
-        if(filteredCells.isEmpty()){
-            return null;
-        }else{
-            return dataStore.dataLib.newResult(filteredCells);
-        }
     }
 
     @Override
