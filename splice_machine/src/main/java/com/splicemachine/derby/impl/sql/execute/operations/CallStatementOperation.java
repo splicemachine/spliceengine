@@ -4,13 +4,16 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
+
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -157,15 +160,28 @@ public class CallStatementOperation extends NoRowsOperation {
         return "CallStatement";
     }
 
+    public String getSparkStageName() {
+        return "Call Procedure";
+    }
+    
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
+        
         call();
+        
         registerCloseable(new AutoCloseable() {
             @Override
             public void close() throws Exception {
                 this.close();
             }
         });
-        return dsp.getEmpty();
+        
+        operationContext.pushScope();
+        try {
+            return dsp.getEmpty();
+        } finally {
+            operationContext.popScope();
+        }
     }
 }
