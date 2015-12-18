@@ -14,8 +14,6 @@
 		<sparkMasterIP>localhost</sparkMasterIP>
 		<sparkMasterPort>7077</sparkMasterPort>
 		<sparkMasterWebUIPort>8080</sparkMasterWebUIPort>
-		<sparkMasterURL>local[8]</sparkMasterURL>
-		<splice.spark.enabled>false</splice.spark.enabled>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -55,6 +53,12 @@
       <groupId>org.splicetest.sqlj</groupId>
       <artifactId>sqlj-it-procs</artifactId>
       <version>1.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.splicemachine.yarn</groupId>
+      <artifactId>yarn-test-server</artifactId>
+      <version>2.0.0-SNAPSHOT</version>
+      <scope>runtime</scope>
     </dependency>
 	</dependencies>
 	<profiles>
@@ -322,6 +326,55 @@
 			</build>
 		</profile>
 		<profile>
+			<id>spliceYarn</id>
+			<activation>
+				<property>
+					<name>spliceYarn</name>
+				</property>
+			</activation>
+			<properties>
+				<nodeCount>1</nodeCount>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.4.0</version>
+						<executions>
+							<execution>
+								<goals>
+									<goal>java</goal>
+								</goals>
+							</execution>
+						</executions>
+            <configuration>
+              <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
+              <includeProjectDependencies>false</includeProjectDependencies>
+              <includePluginDependencies>true</includePluginDependencies>
+              <executableDependency>
+                <groupId>com.splicemachine.yarn</groupId>
+                <artifactId>yarn-test-server</artifactId>
+              </executableDependency>
+              <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
+              <arguments>
+                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
+                <argument>${project.build.directory}/classes</argument>
+                <argument>${nodeCount}</argument>
+              </arguments>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>com.splicemachine.yarn</groupId>
+                <artifactId>yarn-test-server</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+              </dependency>
+            </dependencies>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>spliceFast</id>
 			<activation>
 				<property>
@@ -347,35 +400,49 @@
 								<!-- <argument>-verbose:gc</argument> -->
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
-                                <argument>-Dsplice.spark.extraClassPath=${project.build.directory}/dependency/*:${project.build.directory}/classes</argument>
-                                <argument>-Dsplice.spark.extra=-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020 -Dlog4j.configuration=${log4j.config.uri} -Dhbase.rootdir=${project.build.directory}/hbase -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml</argument>
 								<argument>-Xdebug</argument>
 								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Dzookeeper.sasl.client=false</argument>
-                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
 								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>
 								<argument>-Dsplice.authentication=NATIVE</argument>
-								<argument>-Dsplice.spark.master=${sparkMasterURL}</argument>
-								<argument>-Dsplice.spark.enabled=${splice.spark.enabled}</argument>
 								<argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
-								<!-- G1 Garbage Collection -->
-								<!--
-								<argument>-XX:MaxPermSize=256M</argument>
-								<argument>-XX:MaxDirectMemorySize=1g</argument>
-								<argument>-XX:+UseG1GC</argument>
-								<argument>-XX:MaxGCPauseMillis=100</argument>
-								<argument>-XX:InitiatingHeapOccupancyPercent=50</argument>
-								<argument>-XX:+ParallelRefProcEnabled</argument>
-								<argument>-XX:-ResizePLAB</argument>
-								<argument>-XX:ParallelGCThreads=8</argument>
-								<argument>-XX:+PrintGCTimeStamps</argument>
-								<argument>-XX:+PrintGCDetails</argument>
--->
+								<!-- Spark Sys props -->
+								<argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+								<argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument>
+								<argument>-Dsplice.spark.driver.cores=1</argument>
+								<argument>-Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
+								<argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
+								<argument>-Dsplice.spark.driver.memory=1g</argument>
+								<argument>-Dsplice.spark.enabled=true</argument>
+								<!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
+								<!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
+								<argument>-Dsplice.spark.executor.cores=2</argument>
+								<argument>-Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
+								<argument>-Dsplice.spark.executor.instances=2</argument>
+								<argument>-Dsplice.spark.executor.memory=2g</argument>
+								<argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
+								<argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
+								<argument>-Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator</argument>
+								<argument>-Dsplice.spark.kryoserializer.buffer.max=512m</argument>
+								<argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
+								<argument>-Dsplice.spark.locality.wait=60s</argument>
+								<argument>-Dsplice.spark.logConf=true</argument>
+								<argument>-Dsplice.spark.master=yarn-client</argument>
+								<argument>-Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml</argument>
+								<argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
+								<argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer</argument>
+								<argument>-Dsplice.spark.shuffle.compress=false</argument>
+								<argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
+								<argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
+								<argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
+								<argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
+								<argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
 								<!-- CMS Garbage Collection -->
 								<argument>-Xmn128m</argument>
 								<argument>-XX:+UseConcMarkSweepGC</argument>
