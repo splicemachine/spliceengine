@@ -73,8 +73,8 @@ mvn -B exec:java -PspliceYarn > ${YARNLOG} 2>&1 &
 # Start SpliceTestPlaform in background.
 echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
 mvn -B exec:exec -PspliceFast -DfailTasksRandomly=${CHAOS} > ${SPLICELOG} 2>&1 &
-#echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
-#mvn -B exec:exec -PspliceClusterMember -DmemberNumber=1             > ${SPLICELOG}.member1.log 2>&1 &
+echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
+mvn -B exec:exec -PspliceClusterMember -DmemberNumber=1             > ${SPLICELOG}.member1.log 2>&1 &
 # echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
 # mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             > ${SPLICELOG}.member2.log 2>&1 &
 
