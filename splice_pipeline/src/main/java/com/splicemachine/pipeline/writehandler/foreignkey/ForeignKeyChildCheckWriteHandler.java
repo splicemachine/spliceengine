@@ -1,27 +1,19 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.impl.HTransactorFactory;
-import com.splicemachine.si.impl.SIFilter;
-import com.splicemachine.si.api.filter.TxnFilter;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.PrefixFilter;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import com.splicemachine.storage.DataScan;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -33,16 +25,20 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
 
     private final TransactionalRegion transactionalRegion;
     private final TxnOperationFactory txnOperationFactory;
-    private final RegionCoprocessorEnvironment env;
+    private final ServerControl env;
     private final FKConstraintInfo fkConstraintInfo;
     private final SDataLib dataLib;
 
-    public ForeignKeyChildCheckWriteHandler(TransactionalRegion transactionalRegion, RegionCoprocessorEnvironment env, FKConstraintInfo fkConstraintInfo) {
+    public ForeignKeyChildCheckWriteHandler(TransactionalRegion transactionalRegion,
+                                            ServerControl env,
+                                            FKConstraintInfo fkConstraintInfo,
+                                            SDataLib dataLib) {
         this.transactionalRegion = transactionalRegion;
         this.env = env;
         this.fkConstraintInfo = fkConstraintInfo;
-        this.txnOperationFactory = TransactionOperations.getOperationFactory();
-        this.dataLib = HTransactorFactory.getTransactor().getDataLib();
+//        this.txnOperationFactory = transactionalRegion.getOperationFactory();
+        this.txnOperationFactory = null;
+        this.dataLib = dataLib;
     }
 
     @Override
@@ -74,23 +70,24 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
     private List scanForReferences(KVPair kvPair, WriteContext ctx) throws IOException {
         byte[] startKey = kvPair.getRowKey();
 
-        TxnFilter txnFilter = transactionalRegion.unpackedFilter(ctx.getTxn());
-        SIFilter siFilter = new SIFilter(txnFilter);
-        PrefixFilter prefixFilter = new PrefixFilter(startKey);
+//        TxnFilter txnFilter = transactionalRegion.unpackedFilter(ctx.getTxn());
+//        SIFilter siFilter = new SIFilter(txnFilter);
+//        PrefixFilter prefixFilter = new PrefixFilter(startKey);
 
-        Scan scan = txnOperationFactory.newScan(ctx.getTxn());
-        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-        scan.setStartRow(startKey);
-        scan.setFilter(new FilterList(prefixFilter, siFilter));
-
-        List result = Lists.newArrayList();
-        RegionScanner regionScanner = env.getRegion().getScanner(scan);
-        try {
-            dataLib.regionScannerNext(regionScanner, result);
-        } finally {
-            regionScanner.close();
-        }
-        return result;
+        DataScan scan = txnOperationFactory.newDataScan(ctx.getTxn());
+//        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
+        scan.startKey(startKey);
+        throw new UnsupportedOperationException("IMPLEMENT");
+//        scan.setFilter(new FilterList(prefixFilter, siFilter));
+//
+//        List result = Lists.newArrayList();
+//        RegionScanner regionScanner = env.getRegion().getScanner(scan);
+//        try {
+//            dataLib.regionScannerNext(regionScanner, result);
+//        } finally {
+//            regionScanner.close();
+//        }
+//        return result;
     }
 
     @Override

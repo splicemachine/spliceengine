@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl.region;
 
-import com.splicemachine.si.api.server.ServerControl;
+import com.splicemachine.access.api.ServerControl;
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.ipc.RpcServer;

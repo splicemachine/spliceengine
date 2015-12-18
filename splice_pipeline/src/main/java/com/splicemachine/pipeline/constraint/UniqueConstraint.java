@@ -1,11 +1,11 @@
 package com.splicemachine.pipeline.constraint;
 
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.BatchConstraintChecker;
 import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.Set;
@@ -38,7 +38,7 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public Result validate(KVPair mutation, TxnView txn, RegionCoprocessorEnvironment rce, Set<ByteSlice> priorValues) throws IOException {
+    public Result validate(KVPair mutation, TxnView txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException {
         KVPair.Type type = mutation.getType();
         // Only these mutation types can cause UniqueConstraint violations.
         if (type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT) {

@@ -14,6 +14,8 @@ import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -24,16 +26,17 @@ import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKE
 
 
 /**
+ * ConnectionFactory for the HBase architecture.
+ *
  * Created by jleach on 11/18/15.
  */
+@ThreadSafe
 public class HBaseConnectionFactory extends SIConstants implements SConnectionFactory<Connection,Admin> {
     private static final Logger LOG = Logger.getLogger(HBaseConnectionFactory.class);
     private static Connection connection;
     private static HBaseConnectionFactory INSTANCE = new HBaseConnectionFactory();
 
-    private HBaseConnectionFactory() {
-
-    }
+    private HBaseConnectionFactory() { } //singleton
 
     public static HBaseConnectionFactory getInstance() {
         return INSTANCE;
@@ -50,7 +53,6 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
         return connection;
     }
 
-
     public Admin getAdmin() throws IOException {
         return connection.getAdmin();
     }
@@ -64,8 +66,7 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
         try {
             admin = getAdmin();
             try {
-                servers = new ArrayList<ServerName>(admin.getClusterStatus()
-                        .getServers());
+                servers =new ArrayList<>(admin.getClusterStatus().getServers());
             } catch (IOException e) {
                 throw new SQLException(e);
             }
@@ -85,36 +86,20 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
         return servers;
     }
 
-
     /**
      * Returns master server name
      */
     public ServerName getMasterServer() throws SQLException {
-        Admin admin = null;
-        ServerName server = null;
-        try {
-            admin = getAdmin();
+        try(Admin admin = getAdmin()){
             try {
-                server = admin.getClusterStatus().getMaster();
+                return admin.getClusterStatus().getMaster();
             } catch (IOException e) {
                 throw new SQLException(e);
             }
-        }
-        catch (IOException ioe) {
+        } catch (IOException ioe) {
             throw new SQLException(ioe);
         }
-        finally {
-            if (admin != null)
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-        }
-        return server;
     }
-
-
 
     public static void deleteTable(HBaseAdmin admin, HTableDescriptor table) throws IOException {
         deleteTable(admin, table.getName());

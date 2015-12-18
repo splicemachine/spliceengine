@@ -299,5 +299,10 @@
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+		<dependency>
+			<groupId>com.splicemachine</groupId>
+			<artifactId>splice_protocol</artifactId>
+			<version>1.0.0RC2-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
 </project>

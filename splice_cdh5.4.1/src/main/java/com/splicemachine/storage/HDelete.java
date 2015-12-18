@@ -1,15 +1,18 @@
 package com.splicemachine.storage;
 
+import com.google.common.collect.Iterables;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Mutation;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * @author Scott Fines
  *         Date: 12/16/15
  */
-public class HDelete implements DataDelete{
+public class HDelete implements DataDelete,HMutation{
     private final Delete delete;
 
     public HDelete(byte[] rowKey){
@@ -40,6 +43,33 @@ public class HDelete implements DataDelete{
     @Override
     public byte[] getAttribute(String key){
         return delete.getAttribute(key);
+    }
+
+    @Override
+    public byte[] key(){
+        return delete.getRow();
+    }
+
+    @Override
+    public Iterable<DataCell> cells(){
+        return new CellIterable(Iterables.concat(delete.getFamilyCellMap().values()));
+    }
+
+    @Override
+    public Map<String, byte[]> allAttributes(){
+        return delete.getAttributesMap();
+    }
+
+    @Override
+    public void setAllAttributes(Map<String, byte[]> attrMap){
+        for(Map.Entry<String,byte[]> me:attrMap.entrySet()){
+            delete.setAttribute(me.getKey(),me.getValue());
+        }
+    }
+
+    @Override
+    public Mutation unwrapHbaseMutation(){
+        return delete;
     }
 
     public Delete unwrapDelegate(){

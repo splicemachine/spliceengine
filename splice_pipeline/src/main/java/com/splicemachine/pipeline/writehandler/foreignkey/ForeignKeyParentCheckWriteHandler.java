@@ -1,10 +1,7 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;

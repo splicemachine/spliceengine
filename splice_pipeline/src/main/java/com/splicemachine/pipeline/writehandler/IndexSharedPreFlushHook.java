@@ -1,16 +1,17 @@
 package com.splicemachine.pipeline.writehandler;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 /**
  * Attempt to share the call buffer between contexts using the context to lookup pre flush values...
  */
@@ -40,7 +41,7 @@ public class IndexSharedPreFlushHook implements PreFlushHook {
 				return newList;
 		}
     public void registerContext(WriteContext context, ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap) {
-        sharedMainMutationList.add(Pair.newPair(context, indexToMainMutationMap));
+        sharedMainMutationList.add(Pair.newPair(context,indexToMainMutationMap));
     }
 
 		public void cleanup() {

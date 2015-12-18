@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
  *         Date: 12/16/15
  */
 public class HMutationStatus implements MutationStatus{
+    private static final MutationStatus SUCCESS= new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.SUCCESS));
     private OperationStatus delegate;
 
     public HMutationStatus(){
@@ -44,5 +45,10 @@ public class HMutationStatus implements MutationStatus{
     @Override
     public MutationStatus getClone(){
         return new HMutationStatus(delegate);
+    }
+
+    public static MutationStatus success(){
+        //singleton instance to use when convenient
+        return SUCCESS;
     }
 }

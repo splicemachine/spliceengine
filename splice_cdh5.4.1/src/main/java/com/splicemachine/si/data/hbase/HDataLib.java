@@ -40,7 +40,7 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         Result,
         Scan
         >{
-    private static final String ISOLATION_LEVEL="_isolationlevel_";
+    private static final HDataLib INSTANCE= new HDataLib();
 
     @Override
     public byte[] newRowKey(Object... args){
@@ -125,9 +125,9 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,long timestamp,byte[] value){
         if(timestamp<0){
-            put.add(family,qualifier,value);
+            put.addColumn(family,qualifier,value);
         }else{
-            put.add(family,qualifier,timestamp,value);
+            put.addColumn(family,qualifier,timestamp,value);
         }
     }
 
@@ -136,31 +136,12 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         return new Put(key);
     }
 
-    private Put newPut(ByteSlice key){
-        return new Put(key.array(),key.offset(),key.length());
+    public static HDataLib instance(){
+       return INSTANCE;
     }
 
-    private Get newGet(byte[] rowKey,List<byte[]> families,List<List<byte[]>> columns,Long effectiveTimestamp){
-        Get get=new Get(rowKey);
-        get.setAttribute(ISOLATION_LEVEL,IsolationLevel.READ_UNCOMMITTED.toBytes());
-        if(families!=null){
-            for(byte[] f : families){
-                get.addFamily(f);
-            }
-        }
-        if(columns!=null){
-            for(List<byte[]> c : columns){
-                get.addColumn(c.get(0),c.get(1));
-            }
-        }
-        if(effectiveTimestamp!=null){
-            try{
-                get.setTimeRange(effectiveTimestamp,Long.MAX_VALUE);
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
-        }
-        return get;
+    private Put newPut(ByteSlice key){
+        return new Put(key.array(),key.offset(),key.length());
     }
 
     @Override

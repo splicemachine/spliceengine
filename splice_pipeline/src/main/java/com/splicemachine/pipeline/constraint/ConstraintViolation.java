@@ -1,7 +1,10 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.pipeline.api.Constraint;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+
+import java.io.IOException;
 
 /**
  * Indicates a Constraint Violation
@@ -13,22 +16,27 @@ public final class ConstraintViolation {
 
     private ConstraintViolation() {}
 
-    public static DoNotRetryIOException create(Constraint.Type type, ConstraintContext constraintContext) {
+    public static IOException create(Constraint.Type type,
+                                     ConstraintContext constraintContext,
+                                     PipelineExceptionFactory piplineExceptionFactory) {
         switch (type) {
             case PRIMARY_KEY:
-                return new PrimaryKeyViolation("Duplicate Primary Key", constraintContext);
+                return piplineExceptionFactory.primaryKeyViolation(constraintContext);
+//                return new PrimaryKeyViolation("Duplicate Primary Key", constraintContext);
             case FOREIGN_KEY:
-                return new ForeignKeyConstraintViolation(constraintContext);
+                return piplineExceptionFactory.foreignKeyViolation(constraintContext);
             case UNIQUE:
-                return new UniqueConstraintViolation("Violated Unique Constraint", constraintContext);
+                return piplineExceptionFactory.uniqueViolation(constraintContext);
+            //new UniqueConstraintViolation("Violated Unique Constraint", constraintContext);
             case NOT_NULL:
-                return new NotNullConstraintViolation("Non Null Constraint Violated", constraintContext);
+                return piplineExceptionFactory.notNullViolation(constraintContext);
+//                return new NotNullConstraintViolation("Non Null Constraint Violated", constraintContext);
             default:
                 throw new IllegalStateException("Programmer error, unexpected constraint type = " + type);
         }
     }
 
-    public static class ConstraintViolationException extends DoNotRetryIOException {
+    public static class ConstraintViolationException extends IOException {
 
         private ConstraintContext constraintContext = null;
 

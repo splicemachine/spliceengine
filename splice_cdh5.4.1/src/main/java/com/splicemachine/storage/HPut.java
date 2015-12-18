@@ -3,15 +3,17 @@ package com.splicemachine.storage;
 import com.google.common.collect.Iterables;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * @author Scott Fines
  *         Date: 12/16/15
  */
-public class HPut implements DataPut{
+public class HPut implements HMutation,DataPut{
     private Put put;
 
     public HPut(byte[] rowKey){
@@ -76,7 +78,24 @@ public class HPut implements DataPut{
         return put.getAttribute(key);
     }
 
+    @Override
+    public Map<String, byte[]> allAttributes(){
+        return put.getAttributesMap();
+    }
+
+    @Override
+    public void setAllAttributes(Map<String, byte[]> attrMap){
+        for(Map.Entry<String,byte[]> me:attrMap.entrySet()){
+            put.setAttribute(me.getKey(),me.getValue());
+        }
+    }
+
     public Put unwrapDelegate(){
+        return put;
+    }
+
+    @Override
+    public Mutation unwrapHbaseMutation(){
         return put;
     }
 }

@@ -177,10 +177,7 @@
 								<option>-keep public class com.splicemachine.si.api.data.IHTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.data.SDataLib {public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.HRowLock { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected *;}</option>
 								<option>-keep public class com.splicemachine.si.impl.filter.HRowAccumulator { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.HbRegion { public *; protected *;}</option>
-								<option>-keep public class com.splicemachine.si.data.hbase.HbTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.IHTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.IncrementingClock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LDataLib { public *; }</option>

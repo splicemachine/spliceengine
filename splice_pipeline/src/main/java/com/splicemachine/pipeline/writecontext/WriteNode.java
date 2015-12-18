@@ -2,6 +2,8 @@ package com.splicemachine.pipeline.writecontext;
 
 import java.io.IOException;
 import java.util.Map;
+
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.kvpair.KVPair;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.pipeline.api.CallBuffer;
@@ -9,6 +11,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.Partition;
 
 public class WriteNode implements WriteContext {
 
@@ -78,8 +81,8 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public Table getHTable(byte[] indexConglomBytes) {
-        return pipelineWriteContext.getHTable(indexConglomBytes);
+    public Partition remotePartition(byte[] indexConglomBytes) {
+        return pipelineWriteContext.remotePartition(indexConglomBytes);
     }
 
     @Override
@@ -90,7 +93,7 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public RegionCoprocessorEnvironment getCoprocessorEnvironment() {
+    public ServerControl getCoprocessorEnvironment() {
         return pipelineWriteContext.getCoprocessorEnvironment();
     }
 
@@ -105,8 +108,9 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
-    public HRegion getRegion() {
-        return (HRegion) getCoprocessorEnvironment().getRegion();
+    public Partition getRegion() {
+        throw new UnsupportedOperationException("IMPLEMENT");
+//        return (HRegion) getCoprocessorEnvironment().getRegion();
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -2,7 +2,7 @@ package com.splicemachine.si.impl.data;
 
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
-import com.splicemachine.si.api.server.ServerControl;
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;

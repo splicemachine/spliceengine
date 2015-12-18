@@ -16,7 +16,7 @@ public interface DataFilter{
 
     DataFilter.ReturnCode filterKeyValue(DataCell keyValue) throws IOException;
 
-    boolean filterRow();
+    boolean filterRow() throws IOException;
 
-    void reset();
+    void reset() throws IOException;
 }

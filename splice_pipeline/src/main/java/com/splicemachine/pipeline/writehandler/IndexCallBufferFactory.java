@@ -1,8 +1,7 @@
 package com.splicemachine.pipeline.writehandler;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
@@ -20,6 +19,11 @@ public class IndexCallBufferFactory {
 
     /* conglomerateId to CallBuffer */
     private ObjectObjectOpenHashMap<byte[], CallBuffer<KVPair>> sharedCallBufferMap = new ObjectObjectOpenHashMap<>();
+    private final WriteCoordinator writerPool;
+
+    public IndexCallBufferFactory(WriteCoordinator writerPool){
+        this.writerPool=writerPool;
+    }
 
     public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
                                              WriteContext context,
@@ -49,7 +53,6 @@ public class IndexCallBufferFactory {
         hook.registerContext(context, indexToMainMutationMap);
         wc.registerContext(context, indexToMainMutationMap);
         CallBuffer<KVPair> writeBuffer;
-        WriteCoordinator writerPool = SpliceDriver.driver().getTableWriter();
         if (useAsyncWriteBuffers) {
             writeBuffer = writerPool.writeBuffer(conglomBytes, txn, hook, wc);
         } else {

@@ -15,7 +15,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class PipelineConstants extends SIConstants {
+public class PipelineConstants {
 		private static final Logger LOG = Logger.getLogger(PipelineConstants.class);
 		public static final String WRITE_COORDINATOR_OBJECT_LOCATION = "com.splicemachine.writer:type=WriteCoordinatorStatus";
 		public static final String WRITER_STATUS_OBJECT_LOCATION = "com.splicemachine.writer.async:type=WriterStatus";

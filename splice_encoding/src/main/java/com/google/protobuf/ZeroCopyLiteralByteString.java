@@ -34,7 +34,6 @@ package com.google.protobuf;  // This is a lie.
  * top of the copies the JVM does to go from kernel buffer to C buffer and
  * from C buffer to JVM buffer).
  * <p>
- * <strong>This class isn't part of the public API of AsyncHBase.</strong>
  * @since 1.5
  */
 public final class ZeroCopyLiteralByteString extends LiteralByteString {

@@ -1,4 +1,4 @@
-package com.splicemachine.si.data.hbase;
+package com.splicemachine.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;

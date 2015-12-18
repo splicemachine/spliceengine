@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.api;
 
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.BatchConstraintChecker;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
@@ -76,7 +77,7 @@ public interface Constraint {
      * context of a given BatchWrite -- used to validate the mutations within that batch do not violate the constraint.
      * BatchConstraintChecker is then used to fully validate the constraint.
      */
-    Result validate(KVPair mutation, TxnView txn, RegionCoprocessorEnvironment rce, Set<ByteSlice> priorValues) throws IOException;
+    Result validate(KVPair mutation, TxnView txn, ServerControl rce, Set<ByteSlice> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();
 

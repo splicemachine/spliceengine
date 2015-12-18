@@ -1,7 +1,7 @@
 package com.splicemachine.si.impl.rollforward;
 
 import com.splicemachine.si.api.readresolve.RollForwardAction;
-import com.splicemachine.si.data.hbase.HbRegion;
+import com.splicemachine.storage.RegionPartition;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -32,6 +32,6 @@ public class SegmentedRollForwardTest {
 
         RollForwardStatus status = new RollForwardStatus();
 
-        SegmentedRollForward rollForward = new SegmentedRollForward(new HbRegion(region),noopService,4,1<<10,1<<10,10, RollForwardAction.NOOP_ACTION,status);
+        SegmentedRollForward rollForward = new SegmentedRollForward(new RegionPartition(region),noopService,4,1<<10,1<<10,10, RollForwardAction.NOOP_ACTION,status);
     }
 }

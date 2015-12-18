@@ -3,6 +3,7 @@ package com.splicemachine.pipeline.api;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 
@@ -50,9 +51,9 @@ public interface WriteContext {
     Partition getRegion();
 
     /**
-     * Retrieve the HTableInterface based on the index bytes[] name
+     * Retrieve a remote partition based on the index bytes[] name
      */
-    Table getHTable(byte[] indexConglomBytes);
+    Partition remotePartition(byte[] indexConglomBytes);
 
     /**
      * Retrieve the sharedWriteBuffer for the index upsert handler
@@ -66,7 +67,7 @@ public interface WriteContext {
     /**
      * Retrieve the coprocessor environment
      */
-    RegionCoprocessorEnvironment getCoprocessorEnvironment();
+    ServerControl getCoprocessorEnvironment();
 
     /**
      * Flush

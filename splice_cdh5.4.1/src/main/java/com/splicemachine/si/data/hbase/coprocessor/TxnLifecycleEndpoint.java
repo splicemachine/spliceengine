@@ -5,12 +5,14 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.splicemachine.concurrent.CountedReference;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.data.StripedTxnLifecycleStore;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -58,7 +60,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
             TransactionResolver resolver=resolverRef.get();
-            TxnPartition regionStore=new RegionTxnStore(region,TransactionStorage.getTxnSupplier(),resolver);
+            TxnPartition regionStore=new RegionTxnStore(region,TransactionStorage.getTxnSupplier(),resolver,HDataLib.instance(),SIConstants.transactionKeepAliveInterval,new SystemClock());
             TimestampSource timestampSource=SIDriver.getTimestampSource();
             lifecycleStore = new StripedTxnLifecycleStore(SIConstants.transactionlockStripes,regionStore,new RegionServerControl(region),timestampSource);
             isTxnTable=true;

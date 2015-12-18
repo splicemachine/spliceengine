@@ -1,4 +1,4 @@
-package com.splicemachine.si.api.server;
+package com.splicemachine.access.api;
 
 import java.io.IOException;
 

@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
@@ -8,6 +9,7 @@ import org.apache.hadoop.hbase.client.Result;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -82,4 +84,18 @@ public class HResult implements DataResult{
         return Iterators.transform(result.listCells().iterator(),transform);
     }
 
+    @Override
+    public Iterable<DataCell> columnCells(byte[] family,byte[] qualifier){
+        return Iterables.transform(result.getColumnCells(family,qualifier),transform);
+    }
+
+    @Override
+    public byte[] key(){
+        return result.getRow();
+    }
+
+    @Override
+    public Map<byte[], byte[]> familyCellMap(byte[] userColumnFamily){
+        return result.getFamilyMap(userColumnFamily);
+    }
 }

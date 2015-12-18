@@ -2,9 +2,8 @@ package com.splicemachine.pipeline.writecontext;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.hbase.DerbyFactory;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -13,10 +12,8 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Arrays;
@@ -28,28 +25,35 @@ import java.util.concurrent.atomic.AtomicInteger;
  *         Created on: 4/30/13
  */
 public class PipelineWriteContext implements WriteContext, Comparable<PipelineWriteContext> {
-
-    private static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
     private static final AtomicInteger idGen = new AtomicInteger(0);
 
     private final Map<KVPair, WriteResult> resultsMap;
     private final TransactionalRegion rce;
-    private final Map<byte[], Table> tableCache = Maps.newHashMapWithExpectedSize(0);
+    private final Map<byte[], Partition> tableCache = Maps.newHashMapWithExpectedSize(0);
     private final TxnView txn;
     private final IndexCallBufferFactory indexSharedCallBuffer;
     private final int id = idGen.incrementAndGet();
     private final boolean skipIndexWrites;
-    private final RegionCoprocessorEnvironment env;
+    private final ServerControl env;
     private final WriteNode head;
 
     private WriteNode tail;
 
-    public PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion rce, boolean skipIndexWrites, RegionCoprocessorEnvironment env) {
+    public PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer,
+                                TxnView txn,
+                                TransactionalRegion rce,
+                                boolean skipIndexWrites,
+                                ServerControl env) {
         this(indexSharedCallBuffer, txn, rce, skipIndexWrites, env, true);
     }
 
-    private PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion rce, boolean skipIndexWrites, RegionCoprocessorEnvironment env, boolean keepState) {
+    private PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer,
+                                 TxnView txn,
+                                 TransactionalRegion rce,
+                                 boolean skipIndexWrites,
+                                 ServerControl env,
+                                 boolean keepState) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
         this.env = env;
         this.rce = rce;
@@ -104,20 +108,22 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
-    public HRegion getRegion() {
-        return (HRegion)getCoprocessorEnvironment().getRegion();
+    public Partition getRegion() {
+        throw new UnsupportedOperationException("IMPLEMENT");
+//        return (HRegion)getCoprocessorEnvironment().getRegion();
     }
 
     @Override
-    public Table getHTable(byte[] indexConglomBytes) {
-        Table table = tableCache.get(indexConglomBytes);
+    public Partition remotePartition(byte[] indexConglomBytes) {
+        Partition table = tableCache.get(indexConglomBytes);
         if (table == null) {
-            try {
-                table = derbyFactory.getTable(getCoprocessorEnvironment(), indexConglomBytes);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            tableCache.put(indexConglomBytes, table);
+//            try {
+                    throw new UnsupportedOperationException("IMPLEMENT");
+//                table = derbyFactory.getTable(getCoprocessorEnvironment(), indexConglomBytes);
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//            tableCache.put(indexConglomBytes, table);
         }
         return table;
     }
@@ -132,8 +138,8 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public void flush() throws IOException {
-        if (env != null && env.getRegion() != null)
-            derbyFactory.checkCallerDisconnect((HRegion)env.getRegion());
+        if (env != null)
+            env.ensureNetworkOpen();
 
         try {
             WriteNode next = head.getNext();
@@ -149,7 +155,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
         } finally {
             //clean up any outstanding table resources
-            for (Table table : tableCache.values()) {
+            for (Partition table : tableCache.values()) {
                 try {
                     table.close();
                 } catch (Exception e) {
@@ -193,7 +199,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
-    public RegionCoprocessorEnvironment getCoprocessorEnvironment() {
+    public ServerControl getCoprocessorEnvironment() {
         return env;
     }
 
