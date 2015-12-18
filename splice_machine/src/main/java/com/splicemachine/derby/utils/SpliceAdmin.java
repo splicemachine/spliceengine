@@ -1,13 +1,22 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
+import com.splicemachine.db.impl.sql.GenericActivationHolder;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
+import com.splicemachine.derby.hbase.*;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions.ActivationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang.SerializationUtils;
 import com.splicemachine.utils.logging.Logging;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
@@ -55,6 +64,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -716,5 +726,49 @@ public class SpliceAdmin extends BaseAdminProcedures {
     			}
     		}
     	});
+    }
+
+    public static void GET_ACTIVATION(final String statement, final ResultSet[] resultSet) throws SQLException, StandardException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        GenericPreparedStatement gps = (GenericPreparedStatement)lcc.prepareInternalStatement(statement);
+        GenericActivationHolder activationHolder = (GenericActivationHolder)gps.getActivation(lcc, false);
+        Activation activation = activationHolder.ac;
+        SpliceOperation operation = (SpliceOperation)activation.execute();
+        ActivationContext activationContext = ActivationContext.create(activation, operation);
+        TriggerExecutionStack triggerExecutionStack = null;
+        if (lcc.hasTriggers()) {
+            triggerExecutionStack = lcc.getTriggerStack();
+        }
+
+        SpliceObserverInstructions soi = new SpliceObserverInstructions(
+                (GenericStorablePreparedStatement) activation.getPreparedStatement(),
+                operation,
+                activationContext,
+                lcc.getSessionUserId(),
+                lcc.getDefaultSchema(),
+                triggerExecutionStack);
+
+        byte[] soiBytes = SerializationUtils.serialize(soi);
+        DataValueDescriptor[] dvds = new DataValueDescriptor[] {
+                new SQLBlob()
+        };
+        int numCols = dvds.length;
+        ExecRow dataTemplate = new ValueRow(numCols);
+        dataTemplate.setRowArray(dvds);
+
+        List<ExecRow> rows = Lists.newArrayList();
+        dvds[0].setValue(soiBytes);
+        rows.add(dataTemplate);
+
+        // Describe the format of the output rows (ResultSet).
+        ResultColumnDescriptor[]columnInfo = new ResultColumnDescriptor[numCols];
+        columnInfo[0] = new GenericColumnDescriptor("ACTIVATION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BLOB));
+        EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+        Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo, lastActivation);
+        resultsToWrap.openCore();
+        EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap, false, null, true);
+
+        resultSet[0] = ers;
     }
 }

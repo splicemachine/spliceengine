@@ -30,7 +30,9 @@ public class SpliceMachineSource implements Source {
     }
 
     public static void register() {
-        SparkEnv.get().metricsSystem().registerSource(new SpliceMachineSource());
+        if (SparkEnv.get() != null) {
+            SparkEnv.get().metricsSystem().registerSource(new SpliceMachineSource());
+        }
     }
 
     public static SpliceMachineSource getMetrics() {

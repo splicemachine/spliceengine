@@ -13,18 +13,18 @@ import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
 
 public class SMHiveOutputFormat implements OutputFormat<RowLocationWritable, ExecRowWritable>, Configurable {
-	protected com.splicemachine.mrio.api.core.SMOutputFormat outputFormat;
+	protected com.splicemachine.derby.stream.output.SMOutputFormat outputFormat;
 
     public SMHiveOutputFormat() {}
 
-	public SMHiveOutputFormat(com.splicemachine.mrio.api.core.SMOutputFormat outputFormat) {
+	public SMHiveOutputFormat(com.splicemachine.derby.stream.output.SMOutputFormat outputFormat) {
 		this.outputFormat = outputFormat;
 	}
-	
+
 	@Override
 	public void setConf(Configuration conf) {
         if (outputFormat ==null)
-            outputFormat = new com.splicemachine.mrio.api.core.SMOutputFormat();
+            outputFormat = new com.splicemachine.derby.stream.output.SMOutputFormat();
 		outputFormat.setConf(conf);
 	}
 
@@ -37,7 +37,7 @@ public class SMHiveOutputFormat implements OutputFormat<RowLocationWritable, Exe
 	public RecordWriter<RowLocationWritable, ExecRowWritable> getRecordWriter(
 			FileSystem ignored, JobConf job, String name, Progressable progress)
 			throws IOException {
-        return new SMHiveRecordWriter(new SMRecordWriterImpl(job));
+        return new SMHiveRecordWriter(job);
 	}
 
 	@Override
