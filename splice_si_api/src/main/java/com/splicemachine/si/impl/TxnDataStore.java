@@ -3,12 +3,14 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Factory class for directly acccessing DataStore entities
  * @author Scott Fines
  * Date: 7/3/14
  */
+@SuppressFBWarnings({"DL_SYNCHRONIZATION_ON_UNSHARED_BOXED_PRIMITIVE","DM_NUMBER_CTOR"})
 public class TxnDataStore {
 		private static final Object lock = new Integer("1");
 

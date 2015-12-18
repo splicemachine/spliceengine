@@ -104,7 +104,7 @@ public class LDataLib implements SDataLib<
             }
             builder.append(toAppend);
         }
-        return builder.toString().getBytes();
+        return Bytes.toBytes(builder.toString());
     }
 
     private boolean nullSafeComparison(Object o1,Object o2){
@@ -123,9 +123,11 @@ public class LDataLib implements SDataLib<
     @Override
     public byte[] encode(Object value){
         if(value instanceof String){
-            return ((String)value).getBytes();
+            return Bytes.toBytes(((String)value));
         }else if(value instanceof Boolean)
-            return new byte[]{((Boolean)value)?(byte)-1:(byte)0};
+            if((Boolean)value){
+                return new byte[]{0x01};
+            }else return new byte[]{0x00};
         else if(value instanceof Integer)
             return Bytes.toBytes((Integer)value);
         else if(value instanceof Long)
@@ -153,14 +155,14 @@ public class LDataLib implements SDataLib<
             return (T)(Long)Bytes.toLong(value);
         else if(Integer.class.equals(type)){
             if(value.length<4)
-                return (T)new Integer(-1);
+                return (T)Integer.valueOf(-1);
             return (T)(Integer)Bytes.toInt(value);
         }else if(Boolean.class.equals(type))
             return (T)(Boolean)Bytes.toBoolean(value);
         else if(Byte.class.equals(type))
             return (T)(Byte)value[0];
         else
-            throw new RuntimeException("types don't match "+value.getClass().getName()+" "+type.getName()+" "+value);
+            throw new RuntimeException("types don't match "+value.getClass().getName()+" "+type.getName()+" "+Arrays.toString(value));
     }
 
     public <T> T decode(byte[] value,int offset,int length,Class<T> type){
@@ -176,14 +178,14 @@ public class LDataLib implements SDataLib<
             return (T)(Long)Bytes.toLong(value,offset);
         else if(Integer.class.equals(type)){
             if(length<4)
-                return (T)new Integer(-1);
+                return (T)Integer.valueOf(-1);
             return (T)(Integer)Bytes.toInt(value,offset);
         }else if(Boolean.class.equals(type))
             return (T)(Boolean)Bytes.toBoolean(value,offset);
         else if(Byte.class.equals(type))
             return (T)(Byte)value[offset];
         else
-            throw new RuntimeException("types don't match "+value.getClass().getName()+" "+type.getName()+" "+value);
+            throw new RuntimeException("types don't match "+value.getClass().getName()+" "+type.getName()+" "+Arrays.toString(value));
     }
 
     @Override

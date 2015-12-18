@@ -190,9 +190,9 @@
 								<option>-keep public class com.splicemachine.si.impl.txn.ActiveWriteTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.AdditiveWriteConflict { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.filter.BaseSIFilter { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.filter.BaseSIFilterPacked { public
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public
                                     *; protected *;}</option>
-								<option>-keep public class com.splicemachine.si.impl.filter.BaseSIFilterPacked { public
+								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public
                                     *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.ClientTxnLifecycleManager { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.DDLFilter { public *; }</option>

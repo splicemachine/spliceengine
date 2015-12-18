@@ -160,11 +160,6 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
     }
 
     @Override
-    public Data produceAccumulatedKeyValue(){
-        return null;
-    }
-
-    @Override
     public boolean getExcludeRow(){
         return false;
     }

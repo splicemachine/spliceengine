@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +21,7 @@ public class MPut implements DataPut{
         this.key = key.getByteCopy();
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public MPut(byte[] key){
         this.key = key;
     }
@@ -57,6 +59,7 @@ public class MPut implements DataPut{
     }
 
     @Override
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] key(){
         return key;
     }

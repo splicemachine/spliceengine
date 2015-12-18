@@ -4,7 +4,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.filter.TxnFilter;
-import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessors.SIBaseObserver;
@@ -23,10 +22,8 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -134,7 +131,7 @@ public class SIObserver extends SIBaseObserver{
     @Override
     protected Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
         TxnFilter txnFilter=region.packedFilter(txn,predicateFilter,countStar);
-        SIFilterPacked siFilter=new SIFilterPacked(txnFilter);
+        SIFilterPacked siFilter=new SIFilterPacked(txnFilter); //TODO -sf- add readController
         if(needsCompositeFilter(currentFilter)){
             return composeFilters(orderFilters(currentFilter,siFilter));
         }else{

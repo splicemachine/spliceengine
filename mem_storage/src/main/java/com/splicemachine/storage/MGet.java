@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +17,7 @@ public class MGet implements DataGet{
     private long highTs;
     private long lowTs;
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public MGet(byte[] key){
         this.key=key;
     }
@@ -36,6 +39,7 @@ public class MGet implements DataGet{
     }
 
     @Override
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] key(){
         return key;
     }

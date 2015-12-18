@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.Map;
@@ -14,7 +15,7 @@ import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRI
  * transaction table).
  */
 
-
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DataStore<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,
         Get extends OperationWithAttributes,
         Put extends OperationWithAttributes,RegionScanner,Result,Scan extends OperationWithAttributes> {

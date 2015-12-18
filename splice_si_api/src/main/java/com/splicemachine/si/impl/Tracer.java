@@ -11,7 +11,7 @@ public class Tracer {
     private static transient Function<byte[],byte[]> fRowRollForward = null;
     private static transient Function<Long, Object> fTransactionRollForward = null;
     private static transient Function<Object[], Object> fStatus = null;
-    public static transient Runnable fCompact = null;
+    private static transient Runnable fCompact = null;
     private static transient Function<Long, Object> fCommitting = null;
     private static transient Function<Long, Object> fWaiting = null;
     private static transient Function<Object[], Object> fRegion = null;

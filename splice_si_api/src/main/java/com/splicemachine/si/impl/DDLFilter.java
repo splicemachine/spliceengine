@@ -62,6 +62,16 @@ public class DDLFilter implements Comparable<DDLFilter> {
 		}
 
     @Override
+    public boolean equals(Object o){
+        return this==o || o instanceof DDLFilter && compareTo((DDLFilter)o)==0;
+    }
+
+    @Override
+    public int hashCode(){
+        return myTransaction.hashCode();
+    }
+
+    @Override
     public int compareTo(DDLFilter o) {
         if (o == null) {
             return 1;

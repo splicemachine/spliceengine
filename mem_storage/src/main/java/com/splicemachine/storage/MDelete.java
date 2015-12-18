@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.*;
 
 /**
@@ -11,11 +13,13 @@ public class MDelete implements DataDelete{
     private Set<DataCell> exactColsToDelete;
     private final Map<String, byte[]> attrs = new HashMap<>();
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public MDelete(byte[] key){
         this.key=key;
         this.exactColsToDelete = new TreeSet<>();
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     @Override
     public byte[] key(){
         return key;

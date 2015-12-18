@@ -18,6 +18,13 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
+            <artifactId>splice_si_api</artifactId>
+            <type>test-jar</type>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
             <artifactId>utilities</artifactId>
         </dependency>
     </dependencies>

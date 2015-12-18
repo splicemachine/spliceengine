@@ -22,12 +22,12 @@ public class MTxnFilterWrapper implements DataFilter{
     }
 
     @Override
-    public boolean filterRow(){
+    public boolean filterRow() throws IOException{
         return delegate.filterRow();
     }
 
     @Override
-    public void reset(){
+    public void reset() throws IOException{
         delegate.reset();
     }
 

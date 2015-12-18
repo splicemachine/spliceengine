@@ -189,6 +189,26 @@ public class TxnPartition implements Partition{
 
     }
 
+    @Override
+    public boolean containsRow(byte[] row){
+        return this.basePartition.containsRow(row);
+    }
+
+    @Override
+    public boolean containsRow(byte[] row,int offset,int length){
+        return basePartition.containsRow(row,offset,length);
+    }
+
+    @Override
+    public boolean containsRange(byte[] start,byte[] stop){
+        return basePartition.containsRange(start,stop);
+    }
+
+    @Override
+    public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+        return basePartition.containsRange(start,startOff,startLen,stop,stopOff,stopLen);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private EntryPredicateFilter getEntryPredicateFilter(Attributable scan) throws IOException{

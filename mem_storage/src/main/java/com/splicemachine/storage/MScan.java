@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,12 +19,14 @@ public class MScan implements DataScan{
     private long lowTs = 0l;
 
     @Override
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan startKey(byte[] startKey){
         this.startKey =startKey;
         return this;
     }
 
     @Override
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan stopKey(byte[] stopKey){
         this.stopKey = stopKey;
         return this;
@@ -45,11 +49,13 @@ public class MScan implements DataScan{
     }
 
     @Override
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getStartKey(){
         return startKey;
     }
 
     @Override
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getStopKey(){
         return stopKey;
     }

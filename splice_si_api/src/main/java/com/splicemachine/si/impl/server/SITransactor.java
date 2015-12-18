@@ -207,12 +207,6 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         }
     }
 
-    @SuppressWarnings("UnusedDeclaration")
-    private void checkPermission(Partition table,Mutation[] mutations) throws IOException{
-        final String tableName=dataStore.getTableName(table);
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
     private void releaseLocksForKvBatch(Pair<KVPair, Lock>[] locks){
         if(locks==null) return;
         for(Pair<KVPair, Lock> lock : locks){
@@ -522,13 +516,6 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
     }
 
     // Helpers
-
-    /**
-     * Is this operation supposed to be handled by "snapshot isolation".
-     */
-    private boolean isFlaggedForSITreatment(OperationWithAttributes operation){
-        return dataStore.getSINeededAttribute(operation)!=null;
-    }
 
     private boolean isFlaggedForSITreatment(Attributable operation){
         return dataStore.getSINeededAttribute(operation)!=null;

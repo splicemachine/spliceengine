@@ -8,6 +8,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Factory class for obtaining a transaction store, Transaction supplier, etc.
@@ -15,10 +16,10 @@ import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
  * @author Scott Fines
  *         Date: 7/3/14
  */
+@SuppressFBWarnings("DM_NUMBER_CTOR") //for some reason, FindBug ignores this when it's on a field
 public class TransactionStorage{
     //the boxing is actually necessary, regardless of what the compiler says
-    @SuppressWarnings("UnnecessaryBoxing")
-    private static final Object lock=new Integer(1);
+    private static final Object lock=new Integer("1");
     /*
      * The Base Txn Store for use. This store does NOT necessarily
      * cache any transactions of any kind, and callers should be aware of that.
@@ -67,6 +68,7 @@ public class TransactionStorage{
     /*
      * Useful primarily for testing
      */
+    @SuppressFBWarnings("DL_SYNCHRONIZATION_ON_UNSHARED_BOXED_PRIMITIVE")
     public static void setTxnStore(@ThreadSafe TxnStore store){
         synchronized(lock){
             baseStore=store;
@@ -79,6 +81,7 @@ public class TransactionStorage{
         }
     }
 
+    @SuppressFBWarnings("DL_SYNCHRONIZATION_ON_UNSHARED_BOXED_PRIMITIVE")
     private static void lazyInitialize(){
         /*
 		 * We use this to initialize our transaction stores

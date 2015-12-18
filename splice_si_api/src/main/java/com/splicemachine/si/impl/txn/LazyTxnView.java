@@ -6,6 +6,8 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -15,6 +17,7 @@ import java.util.Iterator;
  * @author Scott Fines
  * Date: 6/19/14
  */
+@SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
 public class LazyTxnView implements TxnView {
     private volatile TxnView delegate;
     private volatile boolean lookedUp = false;
@@ -209,15 +212,13 @@ public class LazyTxnView implements TxnView {
     }
 
 	@Override
-	public void readExternal(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		throw new RuntimeException("Not Supported");
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		throw new RuntimeException("Not Supported");		
+        throw new UnsupportedOperationException();
 	}
-
 
 }

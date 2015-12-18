@@ -29,6 +29,9 @@ public class DDLTxnView extends AbstractTxnView {
     private TxnView txn;
     private long demarcationPoint;
 
+    @Deprecated//"Serializability constructor: DO NOT USE"
+    public DDLTxnView(){ }
+
     public DDLTxnView(TxnView delegate, long demarcationPoint) {
         super(delegate.getTxnId(),delegate.getBeginTimestamp(),delegate.getIsolationLevel());
         this.txn = delegate;

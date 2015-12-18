@@ -1,7 +1,11 @@
 package com.splicemachine.storage;
 
+import com.google.common.primitives.Longs;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.util.Arrays;
 
 /**
  * A cell representing an "In-Memory cell", which is really just a collection of byte arrays.
@@ -9,6 +13,7 @@ import com.splicemachine.primitives.Bytes;
  * @author Scott Fines
  *         Date: 12/15/15
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class MCell implements DataCell{
     private byte[] key;
     private byte[] value;
@@ -44,6 +49,7 @@ public class MCell implements DataCell{
         set(k,family,qualifier,version,v,cellType);
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public void set(byte[] key,byte[] family,byte[] qualifier,long version,byte[] value,CellType cellType){
         if(key==null){
             if(value!=null)
@@ -146,19 +152,36 @@ public class MCell implements DataCell{
     }
 
     @Override
+    public boolean equals(Object o){
+        if(o==this) return true;
+        if(!(o instanceof DataCell)) return false;
+
+        return compareTo((DataCell)o)==0;
+    }
+
+    @Override
+    public int hashCode(){
+        int r = 17;
+        r+=31*r+Arrays.hashCode(key);
+        r+=31*r+Arrays.hashCode(family);
+        r+=31*r+Arrays.hashCode(qualifier);
+        r+=31*r+Longs.hashCode(version);
+        r+=31*r+Arrays.hashCode(value);
+        return r;
+    }
+
+    @Override
     public int compareTo(DataCell o){
         if(o==this) return 0;
-        assert o instanceof MCell:"Programmer error: cannot compare non-MCell datacells";
-        MCell mc=(MCell)o;
 
         ByteComparator bc=Bytes.basicByteComparator();
-        int compare=bc.compare(key,mc.key);
+        int compare=bc.compare(key,0,key.length,o.keyArray(),o.keyOffset(),o.keyLength());
         if(compare!=0) return compare;
-        compare=bc.compare(family,mc.family);
+        compare=bc.compare(family,o.family());
         if(compare!=0) return compare;
-        compare=bc.compare(qualifier,mc.qualifier);
+        compare=bc.compare(qualifier,o.qualifier());
         if(compare!=0) return compare;
-        return version<mc.version?1:version==mc.version?0:-1;
+        return version<o.version()?1:version==o.version()?0:-1;
     }
 
     @Override

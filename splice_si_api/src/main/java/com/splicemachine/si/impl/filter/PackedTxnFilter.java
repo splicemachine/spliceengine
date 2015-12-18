@@ -13,7 +13,6 @@ import java.io.IOException;
 public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnCode>, SIFilter<Data, ReturnCode>{
     protected final TxnFilter<Data, ReturnCode> simpleFilter;
     public final RowAccumulator<Data> accumulator;
-    private Data lastValidKeyValue;
     private DataCell lastValidCell;
     protected boolean excludeRow=false;
 
@@ -107,29 +106,14 @@ public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnC
     }
 
     @Override
-    public Data produceAccumulatedKeyValue(){
-        if(accumulator.isCountStar())
-            return lastValidKeyValue;
-        if(lastValidKeyValue==null)
-            return null;
-        final byte[] resultData=accumulator.result();
-        if(resultData!=null){
-            return (Data)getDataStore().dataLib.newValue(lastValidKeyValue,resultData);
-        }else{
-            return null;
-        }
-    }
-
-    @Override
     public boolean getExcludeRow(){
-        return excludeRow || lastValidKeyValue==null;
+        return excludeRow || lastValidCell==null;
     }
 
     @Override
     public void nextRow(){
         simpleFilter.nextRow();
         accumulator.reset();
-        lastValidKeyValue=null;
         lastValidCell=null;
         excludeRow=false;
     }

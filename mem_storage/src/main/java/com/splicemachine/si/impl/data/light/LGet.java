@@ -1,5 +1,8 @@
 package com.splicemachine.si.impl.data.light;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +14,7 @@ public class LGet extends LOperationWithAttributes{
     Long effectiveTimestamp;
     int maxVersions;
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public LGet(byte[] startTupleKey,byte[] endTupleKey,List<byte[]> families,List<List<byte[]>> columns,
                 Long effectiveTimestamp){
         this.startTupleKey=startTupleKey;
@@ -28,7 +32,8 @@ public class LGet extends LOperationWithAttributes{
 
     @Override
     public String toString(){
-        return String.format("LGET { startTupleKey=%s, endTupleKey=%s, familes=%s, columns=%s, effectiveTimestamp=%s, maxVersions=%d}",startTupleKey,endTupleKey,families,columns,effectiveTimestamp,maxVersions);
+        return String.format("LGET { startTupleKey=%s, endTupleKey=%s, familes=%s, columns=%s, effectiveTimestamp=%s, maxVersions=%d}",
+                Arrays.toString(startTupleKey),Arrays.toString(endTupleKey),families,columns,effectiveTimestamp,maxVersions);
     }
 
 

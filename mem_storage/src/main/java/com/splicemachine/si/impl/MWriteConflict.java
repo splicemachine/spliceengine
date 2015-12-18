@@ -2,6 +2,7 @@ package com.splicemachine.si.impl;
 
 
 import com.splicemachine.si.api.txn.WriteConflict;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -9,6 +10,7 @@ import java.io.IOException;
  * Exception indicating that a transaction failed because it tried to write to data that was modified since the
  * transaction began (i.e. the transaction collided with another).
  */
+@SuppressFBWarnings("DLS_DEAD_LOCAL_STORE") //we use local store to make sure the messages parse properly
 public class MWriteConflict extends IOException implements WriteConflict{
     private long txn1 = -1l;
     private long txn2 = -1l;

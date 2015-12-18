@@ -1,10 +1,12 @@
 package com.splicemachine.si.constants;
 
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Created by jleach on 12/9/15.
  */
+@SuppressFBWarnings("MS_MUTABLE_ARRAY")
 public class SIConstants {
     public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16; //must be a power of 2
     public static final byte[] TRUE_BYTES = Bytes.toBytes(true);

@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataResult;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -24,6 +25,7 @@ public class LTuple extends LOperationWithAttributes{
         this(key,values,attributes,null);
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public LTuple(byte[] key,List<DataCell> values,Map<String, byte[]> attributes,Integer lock){
         this.key=key;
         this.values=values;

@@ -4,6 +4,8 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -55,6 +57,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier {
 		}
 
 		@Override
+		@SuppressFBWarnings("SF_SWITCH_NO_DEFAULT") //intentional
 		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
 			if(txnId==-1) 
 				return Txn.ROOT_TRANSACTION;
