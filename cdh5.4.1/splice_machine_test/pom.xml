@@ -333,7 +333,7 @@
 				</property>
 			</activation>
 			<properties>
-				<nodeCount>3</nodeCount>
+				<nodeCount>1</nodeCount>
 			</properties>
 			<build>
 				<plugins>
@@ -416,16 +416,16 @@
 								<argument>-Dsplice.spark.app.name=SpliceMachine</argument>
 								<argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument>
 								<argument>-Dsplice.spark.driver.cores=1</argument>
-								<argument>-Dsplice.spark.driver.extraClassPath=${project.build.directory}/dependency/*:${project.build.directory}/classes</argument>
+								<argument>-Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
 								<argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
 								<argument>-Dsplice.spark.driver.memory=1g</argument>
 								<argument>-Dsplice.spark.enabled=true</argument>
-								<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>
-								<argument>-Dsplice.spark.eventLog.enabled=true</argument>
+								<!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
+								<!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
 								<argument>-Dsplice.spark.executor.cores=2</argument>
-								<argument>-Dsplice.spark.executor.extraClassPath=${project.build.directory}/dependency/*:${project.build.directory}/classes</argument>
+								<argument>-Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
 								<argument>-Dsplice.spark.executor.instances=2</argument>
-								<argument>-Dsplice.spark.executor.memory=4g</argument>
+								<argument>-Dsplice.spark.executor.memory=2g</argument>
 								<argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
 								<argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
 								<argument>-Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator</argument>

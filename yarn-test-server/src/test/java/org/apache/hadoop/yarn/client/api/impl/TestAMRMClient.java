@@ -72,7 +72,6 @@ public class TestAMRMClient {
     static YarnClient yarnClient = null;
     static List<NodeReport> nodeReports = null;
     static ApplicationAttemptId attemptId = null;
-    static int nodeCount = 3;
 
     static Resource capability;
     static Priority priority;
@@ -82,12 +81,13 @@ public class TestAMRMClient {
     static String[] nodes;
     static String[] racks;
     private final static int DEFAULT_ITERATION = 3;
+    private final static int NODECOUNT = 3;
 
     @BeforeClass
     public static void setup() throws Exception {
         // start yarn test platform
         testYarnParticipant = new SpliceTestYarnPlatform();
-        testYarnParticipant.start(3);
+        testYarnParticipant.start(NODECOUNT);
 
         // start rm client
         yarnClient = YarnClient.createYarnClient();
@@ -419,7 +419,7 @@ public class TestAMRMClient {
                 assertEquals(0, amClient.ask.size());
                 assertEquals(0, amClient.release.size());
 
-                assertEquals(nodeCount, amClient.getClusterNodeCount());
+                assertEquals(NODECOUNT, amClient.getClusterNodeCount());
                 allocatedContainerCount += allocResponse.getAllocatedContainers().size();
                 for(Container container : allocResponse.getAllocatedContainers()) {
                     AMRMClient.ContainerRequest expectedRequest =
@@ -583,7 +583,7 @@ public class TestAMRMClient {
             assertTrue(amClient.ask.size() == 0);
             assertTrue(amClient.release.size() == 0);
 
-            assertTrue(nodeCount == amClient.getClusterNodeCount());
+            assertTrue(NODECOUNT == amClient.getClusterNodeCount());
             allocatedContainerCount += allocResponse.getAllocatedContainers().size();
 
             if(allocatedContainerCount == 0) {
@@ -664,7 +664,7 @@ public class TestAMRMClient {
             assertTrue(amClient.ask.size() == 0);
             assertTrue(amClient.release.size() == 0);
 
-            assertTrue(nodeCount == amClient.getClusterNodeCount());
+            assertTrue(NODECOUNT == amClient.getClusterNodeCount());
             allocatedContainerCount += allocResponse.getAllocatedContainers().size();
             for(Container container : allocResponse.getAllocatedContainers()) {
                 ContainerId rejectContainerId = container.getId();
@@ -688,7 +688,7 @@ public class TestAMRMClient {
 
         // Should receive atleast 1 token
         assertTrue("Tokens, "+receivedNMTokens.size()+", must be > 0", receivedNMTokens.size() > 0);
-        assertTrue("Tokens, "+receivedNMTokens.size()+", must be <= nodeCount, "+nodeCount, receivedNMTokens.size() <= nodeCount);
+        assertTrue("Tokens, "+receivedNMTokens.size()+", must be <= nodeCount, "+NODECOUNT, receivedNMTokens.size() <= NODECOUNT);
 
         assertTrue(allocatedContainerCount == containersRequestedAny);
         assertTrue(amClient.release.size() == 2);

@@ -23,7 +23,7 @@ import org.apache.log4j.Logger;
  */
 public class SpliceTestYarnPlatform {
     public static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
-    public static int DEFAULT_NODE_COUNT = 3;
+    public static int DEFAULT_NODE_COUNT = 1;
 
     private static final Logger LOG = Logger.getLogger(SpliceTestYarnPlatform.class);
 
