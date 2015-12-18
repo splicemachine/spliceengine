@@ -28,7 +28,6 @@ public class DDLTxnView extends AbstractTxnView {
     private TxnView txn;
     private long demarcationPoint;
 
-    public DDLTxnView() {}
     public DDLTxnView(TxnView delegate, long demarcationPoint) {
         super(delegate.getTxnId(),delegate.getBeginTimestamp(),delegate.getIsolationLevel());
         this.txn = delegate;
@@ -168,9 +167,5 @@ public class DDLTxnView extends AbstractTxnView {
     @Override
     public String toString() {
         return "DDL" + txn;
-    }
-
-    public long getDemarcationPoint() {
-        return demarcationPoint;
     }
 }

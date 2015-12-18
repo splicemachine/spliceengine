@@ -78,6 +78,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final SDataLib dataLib;
     private EntryDecoder entryDecoder;
     private final Counter outputBytesCounter;
+    private long demarcationPoint;
 
     protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
@@ -114,35 +115,34 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 keyColumnTypes, VersionedSerializers.typesForVersion(tableVersion));
         this.tableVersion = tableVersion;
         if(filterFactory==null){
-            this.filterFactory = new SIFilterFactory<Data>() {
-                @Override
-                public SIFilter<Data> newFilter(EntryPredicateFilter predicateFilter,
-                                                EntryDecoder rowEntryDecoder,
-                                                EntryAccumulator accumulator,
-                                                boolean isCountStar) throws IOException {
-
-                    TxnFilter<Data> txnFilter = region.unpackedFilter(txn);
-
-                    HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib,predicateFilter,
-                            rowEntryDecoder, accumulator,
-                            isCountStar);
-                    //noinspection unchecked
-                    return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator){
-                        @Override
-                        public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
-                            if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-                                if (!accumulator.accumulate(dataKeyValue)) {
-                                    return Filter.ReturnCode.NEXT_ROW;
-                                }
-                                return Filter.ReturnCode.INCLUDE;
-                            }else return Filter.ReturnCode.INCLUDE;
-                        }
-                    };
-                }
-            };
+            this.filterFactory = createFilterFactory(txn, demarcationPoint);
         }
         else
             this.filterFactory = filterFactory;
+    }
+
+    protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
+                             final TransactionalRegion region,
+                             final ExecRow template,
+                             Scan scan,
+                             final int[] rowDecodingMap,
+                             final TxnView txn,
+                             int[] keyColumnEncodingOrder,
+                             boolean[] keyColumnSortOrder,
+                             int[] keyColumnTypes,
+                             int[] keyDecodingMap,
+                             FormatableBitSet accessedPks,
+                             boolean reuseRowLocation,
+                             String indexName,
+                             final String tableVersion,
+                             SIFilterFactory filterFactory,
+                             final long demarcationPoint) {
+        this(dataLib, scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+                keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
+                tableVersion, filterFactory);
+        this.demarcationPoint = demarcationPoint;
+        if(filterFactory==null)
+            this.filterFactory = createFilterFactory(txn, demarcationPoint);
     }
 
     @Override
@@ -266,8 +266,47 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     /*********************************************************************************************************************/
-    /*Private helper methods*/
+		/*Private helper methods*/
+    private SIFilterFactory createFilterFactory(TxnView txn, long demarcationPoint) {
+        TxnView txnView = txn;
+        if (demarcationPoint > 0) {
+            txnView = new DDLTxnView(txn,demarcationPoint);
+        }
 
+        SIFilterFactory siFilterFactory = null;
+        try {
+            final TxnFilter<Data> txnFilter = region.unpackedFilter(txnView);
+
+            siFilterFactory = new SIFilterFactory<Data>() {
+                @Override
+                public SIFilter<Data> newFilter(EntryPredicateFilter predicateFilter,
+                                                EntryDecoder rowEntryDecoder,
+                                                EntryAccumulator accumulator,
+                                                boolean isCountStar) throws IOException {
+
+                    HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib, predicateFilter,
+                            rowEntryDecoder, accumulator,
+                            isCountStar);
+                    //noinspection unchecked
+                    return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator) {
+                        @Override
+                        public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
+                            if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+                                if (!accumulator.accumulate(dataKeyValue)) {
+                                    return Filter.ReturnCode.NEXT_ROW;
+                                }
+                                return Filter.ReturnCode.INCLUDE;
+                            } else return Filter.ReturnCode.INCLUDE;
+                        }
+                    };
+                }
+            };
+        } catch (Exception e) {
+            throw new RuntimeException(Throwables.getRootCause(e));
+        }
+
+        return siFilterFactory;
+    }
     private Supplier<MultiFieldDecoder> getKeyDecoder(FormatableBitSet accessedPks,
                                                       int[] allPkColumns,
                                                       int[] keyColumnTypes,

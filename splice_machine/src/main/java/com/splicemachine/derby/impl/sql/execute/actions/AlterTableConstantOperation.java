@@ -18,7 +18,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.impl.DDLTxnView;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -1100,11 +1099,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
     // Create a table scanner for old conglomerate. Make sure to pass in demarcation point to pick up writes before it.
     private TableScannerBuilder createTableScannerBuilder(Txn txn, long demarcationPoint, DDLChange ddlChange) throws IOException{
 
-        DDLTxnView txnView = new DDLTxnView(txn,demarcationPoint);
         TableScannerBuilder builder =
                 new TableScannerBuilder()
                         .scan(DDLUtils.createFullScan())
-                        .transaction(txnView);
+                        .transaction(txn)
+                        .demarcationPoint(demarcationPoint);
 
        // TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
        // tdl.setScannerBuilderProperties(builder);
