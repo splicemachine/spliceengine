@@ -306,9 +306,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
+        // TODO (wjk): API for resource pool
         StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn);
-        DataSet dataSet = (DataSet)dsp.getTableScanner(activation, tableScannerBuilder, HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(heapConglomerateId)));
+        DataSet dataSet = (DataSet)dsp.getTableScanner(
+            activation,
+            tableScannerBuilder,
+            HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(heapConglomerateId)),
+            "Collect Table Statistics");
         return dataSet;
     }
 

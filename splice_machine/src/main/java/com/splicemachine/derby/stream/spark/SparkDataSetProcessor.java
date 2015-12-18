@@ -2,18 +2,15 @@ package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
-import com.splicemachine.access.iapi.SpliceTableFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
@@ -34,6 +31,7 @@ import com.splicemachine.mrio.api.core.SMTxnInputFormat;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
@@ -76,36 +74,33 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
         
-        String displayableTableName = getDisplayableTableName(spliceOperation, tableName.getQualifierAsString());
-        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Table " + displayableTableName);
+        // TODO (wjk): this shows table name like 'splice:1428' - we want readable name like 'LINEITEM'.
+        // This worked on my dev branch but the APIs were removed by data dictionary refactoring.
+        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Scan " + tableName.getNameAsString());
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
-        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, displayableTableName));
+        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableName.getNameAsString()));
         SpliceSpark.popScope();
         
         SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
         TableScanTupleFunction<Op> f = new TableScanTupleFunction<Op>(createOperationContext(spliceOperation));
-        JavaRDD<LocatedRow> appliedRDD = rawRDD.map(f);
-        appliedRDD.setName(spliceOperation.getPrettyExplainPlan());
-        SpliceSpark.popScope();
-        
-        return new SparkDataSet(appliedRDD);
+        try {
+            return new SparkDataSet(rawRDD.map(f), spliceOperation.getPrettyExplainPlan());
+        } finally {
+            SpliceSpark.popScope();
+        }
     }
 
-    private String getDisplayableTableName(SpliceOperation spliceOperation, String conglomId) {
-        String displayableTableName;
-        if (spliceOperation instanceof ScanOperation) {
-            displayableTableName = ((ScanOperation)spliceOperation).getDisplayableTableName();
-            if (displayableTableName == null || displayableTableName.isEmpty())
-                displayableTableName = conglomId;
-        } else {
-            displayableTableName = conglomId;
-        }
-        return displayableTableName;
+    @Override
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
+        final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
+        return getTableScanner(activation, siTableBuilder, tableName, null);
     }
     
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
+        final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName, String callerName) throws StandardException {
+        
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName.getNameAsString());
@@ -116,11 +111,20 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
-        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
-                RowLocation.class, ExecRow.class);
 
-        return new SparkDataSet(rawRDD.map(
-                new TableScanTupleFunction(createOperationContext(activation))));
+        SpliceSpark.pushScope((callerName != null ? callerName + ": " : "") + "Scan " + tableName.getNameAsString());
+        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
+            conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
+        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableName.getNameAsString()));
+        SpliceSpark.popScope();
+
+        SpliceSpark.pushScope((callerName != null ? callerName + ": " : "") + "Deserialize");
+        TableScanTupleFunction f = new TableScanTupleFunction(createOperationContext(activation));
+        try {
+            return new SparkDataSet(rawRDD.map(f), f.getPrettyFunctionName());
+        } finally {
+            SpliceSpark.popScope();
+        }
     }
 
     @Override
@@ -135,10 +139,10 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
         JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(conf, HTableInputFormat.class,
-                byte[].class, KVPair.class);
+            byte[].class, KVPair.class);
 
-        return new SparkDataSet(rawRDD.map(
-                new HTableScanTupleFunction()));
+        HTableScanTupleFunction f = new HTableScanTupleFunction();
+        return new SparkDataSet(rawRDD.map(f), f.getPrettyFunctionName());
     }
 
     @Override

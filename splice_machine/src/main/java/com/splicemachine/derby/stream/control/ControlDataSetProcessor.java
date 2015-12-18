@@ -82,10 +82,15 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         return null;
     }
 
+    @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
+        return getTableScanner(activation, siTableBuilder, tableName, null);
+    }
+
+    @Override
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, TableName tableName, String callerName) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
-
 
         siTableBuilder
                 .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),siTableBuilder.getScan()))

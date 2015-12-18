@@ -1,24 +1,22 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.coprocessor.TxnMessage;
-import org.apache.hadoop.hbase.TableName;;
+import org.apache.hadoop.hbase.TableName;
 
 import java.io.InputStream;
 
 /**
- *
  * Higher Level Constructs for getting Datasets and manipulating the processsing mechanisms.
  *
  * Created by jleach on 4/13/15.
  */
 public interface DataSetProcessor {
+    
     /**
      * TableScanner interface for scanning data in HBase structures.
      *
@@ -42,11 +40,16 @@ public interface DataSetProcessor {
      * @throws StandardException
      */
     <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, TableName tableName) throws StandardException;
+    
     /**
      * TableScanner Builder for reading transactions
      */
     DataSet<TxnView> getTxnTableScanner(long beforeTS, long afterTS, byte[] destinationTable);
+    
     <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException;
+
+    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName, String callerName) throws StandardException;
+
     /**
      * Get an empty dataset
      *
