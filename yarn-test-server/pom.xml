@@ -46,7 +46,11 @@
       <version>2.6.0-cdh5.4.1</version>
       <classifier>tests</classifier>
     </dependency>
-
+    <dependency>
+      <groupId>net.java.dev.jets3t</groupId>
+      <artifactId>jets3t</artifactId>
+      <version>0.9.3</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-yarn-applications-distributedshell</artifactId>
