@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 
 import org.apache.hadoop.fs.*;
@@ -63,12 +64,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
         return mapPartitions(f);
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail) {
         return mapPartitions(f);
     }
 
@@ -82,24 +83,6 @@ public class ControlDataSet<V> implements DataSet<V> {
         return distinct();
     }
 
-    @Override
-    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
-        try {
-            for (V v : iterable) {
-                zeroValue = function2.call(zeroValue, v);
-            }
-            return zeroValue;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
-        return fold(zeroValue, function2);
-    }
-
-    @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
         return new ControlPairDataSet<>(FluentIterable.from(iterable).transform(new Function<V, Tuple2<K, U>>() {
             @Nullable
@@ -139,12 +122,18 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function) {
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
         return new ControlPairDataSet<K,V>(entryToTuple(FluentIterable.from(iterable).index(function).entries()));
     }
 
     @Override
-    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
+        return keyBy(function);
+    }
+
+    @Override
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(
+        final SpliceFunction<Op, V, K> function, String name, boolean pushScope, String scopeDetail) {
         return keyBy(function);
     }
 
@@ -305,6 +294,11 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
+        return this;
+    }
+
+    @Override
+    public DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         return this;
     }
 

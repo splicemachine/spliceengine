@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
+
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Iterator;
@@ -25,10 +26,10 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
-    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name);
-
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast);
-
+    
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail);
+    
     /**
      * Removes duplicates from dataset
      */
@@ -41,13 +42,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     DataSet<V> coalesce(int numPartitions, boolean shuffle);
 
-    /**
-     * Iterate over all values and produce a single value.
-     */
-    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
-    
-    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2, boolean isLast);
-    
+    DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
+
     /**
      * Applies function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
@@ -68,6 +64,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name);
+
+    <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name, boolean pushScope, String scopeDetail);
 
     /**
      * Returns a localiterator for computation.

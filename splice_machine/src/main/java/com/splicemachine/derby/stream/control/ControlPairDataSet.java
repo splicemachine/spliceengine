@@ -26,15 +26,16 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
+
 import org.sparkproject.guava.base.Predicate;
 import org.sparkproject.guava.collect.FluentIterable;
+
 import scala.Tuple2;
+
 import javax.annotation.Nullable;
+
 import java.util.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterable;
 
@@ -74,6 +75,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetails) {
+        return values();
+    }
+
+    @Override
     public DataSet<K> keys() {
         return new ControlDataSet(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, K>() {
             @Nullable
@@ -104,7 +110,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
         return reduceByKey(function2);
     }
     

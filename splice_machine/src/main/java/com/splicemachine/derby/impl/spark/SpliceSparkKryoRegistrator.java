@@ -553,6 +553,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(KeyerFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(LocatedRowToRowLocationFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeAllAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeAllAggregatesFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeNonDistinctAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
 
 
@@ -568,7 +569,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(ProjectRestrictFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowComparator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowOperationFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(ScalarAggregateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ScalarAggregateFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SetCurrentLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(SpliceFlatMap2Function.class,EXTERNALIZABLE_SERIALIZER);
