@@ -122,7 +122,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(baseColumnMap);
-        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, HBaseTableInfoFactory.getInstance().getTableInfo(tableName))
+        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, tableName)
                 .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
                 .coalesce(1,true)
                 .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));

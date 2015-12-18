@@ -9,6 +9,7 @@ import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessorService;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceRequest;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceResponse;
+import com.splicemachine.derby.impl.job.coprocessor.BytesCopyTaskSplitter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -89,8 +90,7 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
     }
 
     private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
-        throw new RuntimeException("Not Implemented");
-//        return null;//BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
+        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
     }
 
     /**

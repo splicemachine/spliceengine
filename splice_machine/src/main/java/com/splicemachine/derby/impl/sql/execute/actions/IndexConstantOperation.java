@@ -107,7 +107,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                     .heapConglom(tentativeIndex.getIndex().getConglomerate())
                     .txn(childTxn);
             DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder,
-					HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(tentativeIndex.getTable().getConglomerate())));
+					Long.toString(tentativeIndex.getTable().getConglomerate()));
             DataSet<LocatedRow> result = dataset.map(new IndexTransformFunction(tentativeIndex))
                     .index(new KVPairFunction()).writeKVPair(builder);
             childTxn.commit();

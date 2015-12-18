@@ -44,6 +44,7 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, TxnMess
 
     @Override
     public void setConf(Configuration conf) {
+        this.conf = conf;
         String tableName = SpliceConstants.TRANSACTION_TABLE;
         String conglomerate = SpliceConstants.TRANSACTION_TABLE;
         String rootDir = conf.get(HConstants.HBASE_DIR);
@@ -58,7 +59,6 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, TxnMess
         }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "finishingSetConf");
-        this.conf = conf;
     }
 
     public SMTxnRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
@@ -67,7 +67,7 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, TxnMess
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         rr = new SMTxnRecordReaderImpl(config);
         if(table == null)
-            table = new HTable(HBaseConfiguration.create(config), config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+            table = new HTable(HBaseConfiguration.create(config), config.get(TableInputFormat.INPUT_TABLE));
         rr.setHTable(table);
         rr.init(config, split);
         if (LOG.isDebugEnabled())

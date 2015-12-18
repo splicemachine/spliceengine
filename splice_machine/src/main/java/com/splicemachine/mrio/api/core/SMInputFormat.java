@@ -53,6 +53,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     public void setConf(Configuration conf) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf conf=%s",conf);
+        this.conf = conf;
         String tableName = conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME);
         String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
         String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
@@ -87,7 +88,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             }
         }
         try {
-                setHTable(HBaseTableFactory.getInstance().getTable(conglomerate));
+            setHTable(HBaseTableFactory.getInstance().getTable(conglomerate));
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }
@@ -105,7 +106,6 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
         }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "finishingSetConf");
-        this.conf = conf;
     }
 
     public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
@@ -114,7 +114,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         rr = new SMRecordReaderImpl(config);
         if(table == null)
-            table = new HTable(HBaseConfiguration.create(config), config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+            table = new HTable(HBaseConfiguration.create(config), config.get(TableInputFormat.INPUT_TABLE));
         rr.setHTable(table);
         //if (!conf.getBoolean("splice.spark", false))
         rr.init(config, split);

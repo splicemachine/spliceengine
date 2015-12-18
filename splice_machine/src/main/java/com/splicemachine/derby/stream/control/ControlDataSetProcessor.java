@@ -1,6 +1,8 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -50,13 +52,13 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     private static final Logger LOG = Logger.getLogger(ControlDataSetProcessor.class);
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
 
                 siTableBuilder
-                        .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),siTableBuilder.getScan()))
+                        .scanner(new ControlMeasuredRegionScanner(HBaseTableInfoFactory.getInstance().getTableInfo(conglomerateId).getName(),siTableBuilder.getScan()))
                         .region(localRegion);
         TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,spliceOperation);
         spliceOperation.registerCloseable(tableScannerIterator);
@@ -64,13 +66,13 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, TableName tableName) throws StandardException {
+    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(),
                 TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
         hTableBuilder
-                .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),hTableBuilder.getScan()))
+                .scanner(new ControlMeasuredRegionScanner(HBaseTableInfoFactory.getInstance().getTableInfo(conglomerateId).getName(),hTableBuilder.getScan()))
                 .region(localRegion)
                 .metricFactory(Metrics.noOpMetricFactory());
         HTableScannerIterator tableScannerIterator = new HTableScannerIterator(hTableBuilder);
@@ -83,17 +85,17 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
-        return getTableScanner(activation, siTableBuilder, tableName, null);
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
+        return getTableScanner(activation, siTableBuilder, null);
     }
 
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, TableName tableName, String callerName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String callerName) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
         siTableBuilder
-                .scanner(new ControlMeasuredRegionScanner(tableName.getQualifier(),siTableBuilder.getScan()))
+                .scanner(new ControlMeasuredRegionScanner(HBaseTableInfoFactory.getInstance().getTableInfo(conglomerateId).getName(),siTableBuilder.getScan()))
                 .region(localRegion);
         TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,null);
         return new ControlDataSet(tableScannerIterator);

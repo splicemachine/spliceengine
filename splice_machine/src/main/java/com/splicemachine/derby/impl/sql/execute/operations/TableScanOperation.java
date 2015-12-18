@@ -173,7 +173,7 @@ public class TableScanOperation extends ScanOperation {
             assert currentTemplate != null: "Current Template Cannot Be Null";
             OperationContext<TableScanOperation> operationContext = dsp.createOperationContext(this);
             TableScannerBuilder tsb = getTableScannerBuilder(dsp);
-            return dsp.getTableScanner(this, tsb,  HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
+            return dsp.getTableScanner(this, tsb, tableName);
         }
 
         @Override

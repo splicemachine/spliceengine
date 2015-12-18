@@ -6,6 +6,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -26,6 +27,10 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
     public ControlMeasuredRegionScanner(byte[] tableName, Scan scan) {
         this.tableName = tableName;
         this.scan = scan;
+    }
+
+    public ControlMeasuredRegionScanner(String tableName, Scan scan) {
+        this(TableName.valueOf(tableName).getName(), scan);
     }
 
     @Override

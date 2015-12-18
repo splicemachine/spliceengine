@@ -312,7 +312,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         DataSet dataSet = (DataSet)dsp.getTableScanner(
             activation,
             tableScannerBuilder,
-            HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(heapConglomerateId)),
+            Long.toString(heapConglomerateId),
             "Collect Table Statistics");
         return dataSet;
     }

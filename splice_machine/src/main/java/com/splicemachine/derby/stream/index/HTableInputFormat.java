@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.index;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
@@ -12,6 +13,7 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -110,7 +112,9 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         TableInputFormat tableInputFormat = new TableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
+        TableName hTableName = HBaseTableInfoFactory.getInstance().getTableInfo(conglomerate);
+        conf.set(TableInputFormat.INPUT_TABLE, hTableName.getNameAsString());
         tableInputFormat.setConf(conf);
         try {
             tableInputFormat.setScan(HTableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());

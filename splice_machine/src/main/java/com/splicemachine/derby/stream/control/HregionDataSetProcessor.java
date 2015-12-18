@@ -27,9 +27,9 @@ import java.io.IOException;
 public class HregionDataSetProcessor extends ControlDataSetProcessor {
     private static final Logger LOG = Logger.getLogger(HregionDataSetProcessor.class);
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
         Scan scan = siTableBuilder.getScan();
-        Table htable = SpliceAccessManager.getHTable(tableName.getQualifierAsString());
+        Table htable = SpliceAccessManager.getHTable(conglomerateId);
 
         try {
             SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan, htable);

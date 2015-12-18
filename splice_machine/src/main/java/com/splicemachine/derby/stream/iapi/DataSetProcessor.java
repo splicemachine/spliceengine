@@ -28,7 +28,7 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation,TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException;
+    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException;
 
     /**
      * TableScanner Builder for Statistics Operations
@@ -39,16 +39,16 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, TableName tableName) throws StandardException;
+    <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId) throws StandardException;
     
     /**
      * TableScanner Builder for reading transactions
      */
     DataSet<TxnView> getTxnTableScanner(long beforeTS, long afterTS, byte[] destinationTable);
     
-    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName) throws StandardException;
+    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException;
 
-    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, TableName tableName, String callerName) throws StandardException;
+    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String callerName) throws StandardException;
 
     /**
      * Get an empty dataset

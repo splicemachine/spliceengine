@@ -63,7 +63,7 @@ public class StatisticsCollector {
         HRegionInfo region = regionScanner.getRegionInfo();
         String conglomId = region.getTable().getQualifierAsString();
         regionId = region.getEncodedName();
-        tableConglomerateId = new Long((TableName.valueOf(conglomId).getQualifierAsString()));
+        tableConglomerateId = Long.parseLong(conglomId);
         dvdCollectors = getCollectors();
         fieldLengths = new int[dvdCollectors.length];
     }

@@ -178,7 +178,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(colMap);
-        return dsp.<DistinctScanOperation, LocatedRow>getTableScanner(this,tsb, HBaseTableInfoFactory.getInstance().getTableInfo(tableName)).distinct();
+        return dsp.<DistinctScanOperation, LocatedRow>getTableScanner(this,tsb, tableName).distinct();
     }
 
 }

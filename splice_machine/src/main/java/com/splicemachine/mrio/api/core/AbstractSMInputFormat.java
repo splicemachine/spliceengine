@@ -1,6 +1,7 @@
 package com.splicemachine.mrio.api.core;
 
 import com.clearspring.analytics.util.Lists;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
@@ -9,6 +10,7 @@ import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
@@ -46,7 +48,6 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         CloseableTableInputFormat tableInputFormat = new CloseableTableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         tableInputFormat.setConf(conf);
         try {
             String scanInfo = conf.get(MRConstants.SPLICE_SCAN_INFO);
@@ -88,6 +89,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
      */
     protected void setHTable(Table table) {
         this.table = table;
+        conf.set(TableInputFormat.INPUT_TABLE, table.getName().getNameAsString());
     }
 
     @Override

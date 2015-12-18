@@ -1076,7 +1076,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         long baseConglomerateNumber = ddlChange.getTentativeIndex().getTable().getConglomerate();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
         StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
-        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, HBaseTableInfoFactory.getInstance().getTableInfo(Long.toString(baseConglomerateNumber)));
+        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, Long.toString(baseConglomerateNumber), Long.toString(baseConglomerateNumber));
 
         //Create table writer for new conglomerate
         HTableWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);
