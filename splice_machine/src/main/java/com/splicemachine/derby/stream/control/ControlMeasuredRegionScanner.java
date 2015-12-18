@@ -30,7 +30,7 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
     }
 
     public ControlMeasuredRegionScanner(String tableName, Scan scan) {
-        this(TableName.valueOf(tableName).getName(), scan);
+        this(Bytes.toBytes(tableName), scan);
     }
 
     @Override

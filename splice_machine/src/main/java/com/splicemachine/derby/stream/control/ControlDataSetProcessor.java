@@ -58,7 +58,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
 
                 siTableBuilder
-                        .scanner(new ControlMeasuredRegionScanner(HBaseTableInfoFactory.getInstance().getTableInfo(conglomerateId).getName(),siTableBuilder.getScan()))
+                        .scanner(new ControlMeasuredRegionScanner(conglomerateId,siTableBuilder.getScan()))
                         .region(localRegion);
         TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,spliceOperation);
         spliceOperation.registerCloseable(tableScannerIterator);
@@ -72,7 +72,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
                 TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
         hTableBuilder
-                .scanner(new ControlMeasuredRegionScanner(HBaseTableInfoFactory.getInstance().getTableInfo(conglomerateId).getName(),hTableBuilder.getScan()))
+                .scanner(new ControlMeasuredRegionScanner(conglomerateId,hTableBuilder.getScan()))
                 .region(localRegion)
                 .metricFactory(Metrics.noOpMetricFactory());
         HTableScannerIterator tableScannerIterator = new HTableScannerIterator(hTableBuilder);
@@ -95,7 +95,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 
         siTableBuilder
-                .scanner(new ControlMeasuredRegionScanner(HBaseTableInfoFactory.getInstance().getTableInfo(conglomerateId).getName(),siTableBuilder.getScan()))
+                .scanner(new ControlMeasuredRegionScanner(conglomerateId,siTableBuilder.getScan()))
                 .region(localRegion);
         TableScannerIterator tableScannerIterator = new TableScannerIterator(siTableBuilder,null);
         return new ControlDataSet(tableScannerIterator);

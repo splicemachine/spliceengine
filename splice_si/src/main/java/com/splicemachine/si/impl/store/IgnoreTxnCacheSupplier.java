@@ -78,7 +78,7 @@ public class IgnoreTxnCacheSupplier {
     }
 
     private void openScanner(String tableName) throws IOException {
-        HTable hTable = new HTable(SpliceConstants.config, TableName.valueOf(SpliceConstants.SPLICE_NAMESPACE, SpliceConstants.RESTORE_TABLE_NAME));
+        HTable hTable = new HTable(SpliceConstants.config, TableName.valueOf(SpliceConstants.spliceNamespace, SpliceConstants.RESTORE_TABLE_NAME));
         Scan scan = new Scan();
         byte[] startRow = MultiFieldEncoder.create(1).encodeNext(tableName).build();
         byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
