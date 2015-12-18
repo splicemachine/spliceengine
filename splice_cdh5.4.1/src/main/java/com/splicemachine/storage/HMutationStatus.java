@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
  */
 public class HMutationStatus implements MutationStatus{
     private static final MutationStatus SUCCESS= new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.SUCCESS));
+    private static final MutationStatus NOT_RUN= new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.NOT_RUN));
     private OperationStatus delegate;
 
     public HMutationStatus(){
@@ -50,5 +51,13 @@ public class HMutationStatus implements MutationStatus{
     public static MutationStatus success(){
         //singleton instance to use when convenient
         return SUCCESS;
+    }
+
+    public static MutationStatus notRun(){
+        return NOT_RUN;
+    }
+
+    public OperationStatus unwrapDelegate(){
+        return delegate;
     }
 }

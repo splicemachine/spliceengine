@@ -15,7 +15,6 @@ import java.util.List;
 public interface SDataLib<OperationWithAttributes,
         Data,
         Delete extends OperationWithAttributes,
-        Filter,
         Get extends OperationWithAttributes,
         Put extends OperationWithAttributes,
         RegionScanner,
@@ -37,17 +36,11 @@ public interface SDataLib<OperationWithAttributes,
 
     void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,long timestamp,byte[] value);
 
-    void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,byte[] value);
-
     Get newGet(byte[] key);
-
-    byte[] getGetRow(Get get);
 
     void setGetTimeRange(Get get,long minTimestamp,long maxTimestamp);
 
     void setGetMaxVersions(Get get);
-
-    void addFamilyQualifierToGet(Get read,byte[] family,byte[] column);
 
     Scan newScan();
 
@@ -58,8 +51,6 @@ public interface SDataLib<OperationWithAttributes,
     void setScanTimeRange(Scan get,long minTimestamp,long maxTimestamp);
 
     void setScanMaxVersions(Scan get);
-
-    void setScanMaxVersions(Scan get,int maxVersions);
 
     Delete newDelete(byte[] rowKey);
 
@@ -74,8 +65,6 @@ public interface SDataLib<OperationWithAttributes,
     boolean matchingValue(Data element,byte[] value);
 
     boolean matchingRowKeyValue(Data element,Data other);
-
-    Data newValue(Data element,byte[] value);
 
     Comparator getComparator();
 
@@ -115,21 +104,13 @@ public interface SDataLib<OperationWithAttributes,
 
     Data[] getDataFromResult(Result result);
 
-    DataCell getColumnLatest(Result result,byte[] family,byte[] qualifier);
-
     boolean regionScannerNext(RegionScanner regionScanner,List<Data> data) throws IOException;
 
     boolean regionScannerNextRaw(RegionScanner regionScanner,List<Data> data) throws IOException;
 
-    Filter getActiveTransactionFilter(long beforeTs,long afterTs,byte[] destinationTable);
-
     void setAttribute(OperationWithAttributes operation,String name,byte[] value);
 
     byte[] getAttribute(OperationWithAttributes operation,String attributeName);
-
-    boolean noResult(Result result); //result==null || result.size()<=0
-
-    void setFilterOnScan(Scan scan,Filter filter);
 
     Data matchKeyValue(Data[] kvs,byte[] columnFamily,byte[] qualifier);
 

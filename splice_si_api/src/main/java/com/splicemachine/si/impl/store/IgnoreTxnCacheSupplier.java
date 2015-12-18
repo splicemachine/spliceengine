@@ -20,11 +20,11 @@ import java.util.List;
 public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,Get extends OperationWithAttributes,
         Put extends OperationWithAttributes,RegionScanner,Result,Scan extends OperationWithAttributes,OperationStatus> {
     private ConcurrentLinkedHashMap<String,List<Pair<Long, Long>>> cache;
-    private final SDataLib<OperationWithAttributes,Data,Delete,Filter,Get, Put,RegionScanner,Result,Scan>  dataLib;
+    private final SDataLib<OperationWithAttributes,Data,Delete, Get, Put,RegionScanner,Result,Scan>  dataLib;
 
     private EntryDecoder entryDecoder;
 
-    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes,Data,Delete,Filter,Get, Put,RegionScanner,Result,Scan>  dataLib) {
+    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes,Data,Delete, Get, Put,RegionScanner,Result,Scan>  dataLib) {
         this.dataLib = dataLib;
         cache = new ConcurrentLinkedHashMap.Builder<String, List<Pair<Long, Long>>>()
                 .maximumWeightedCapacity(1024)

@@ -9,5 +9,5 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
  * @author Scott Fines
  *         Date: 10/17/14
  */
-public class AdditiveWriteConflict extends DoNotRetryIOException{
+public class AdditiveWriteConflict extends DoNotRetryIOException {
 }

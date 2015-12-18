@@ -25,17 +25,16 @@ import static com.splicemachine.si.constants.SIConstants.*;
 public abstract class BaseOperationFactory<OperationWithAttributes,
         Data,
         Delete extends OperationWithAttributes,
-        Filter,
         Get extends OperationWithAttributes,
         Mutation extends OperationWithAttributes,
         Put extends OperationWithAttributes,
         RegionScanner,
         Result,
         Scan extends OperationWithAttributes> implements TxnOperationFactory<OperationWithAttributes, Get, Mutation, Put, Scan>{
-    private SDataLib<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataLib;
+    private SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
     private ExceptionFactory exceptionLib;
 
-    public BaseOperationFactory(SDataLib<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataLib,
+    public BaseOperationFactory(SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,
                                 ExceptionFactory exceptionFactory){
         this.dataLib = dataLib;
         this.exceptionLib = exceptionFactory;

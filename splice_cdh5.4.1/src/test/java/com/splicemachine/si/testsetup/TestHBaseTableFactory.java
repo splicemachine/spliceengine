@@ -2,7 +2,11 @@ package com.splicemachine.si.testsetup;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.storage.Partition;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
@@ -21,8 +25,6 @@ public class TestHBaseTableFactory extends HBaseTableFactory {
 
     private final HBaseTestingUtility testCluster;
     private final String[] families;
-
-    private final ExecutorService tableExecutorService = Executors.newCachedThreadPool();
 
     public TestHBaseTableFactory(HBaseTestingUtility testCluster, String[] families) {
         this.testCluster = testCluster;
@@ -53,11 +55,6 @@ public class TestHBaseTableFactory extends HBaseTableFactory {
         testCluster.getHBaseAdmin().createTable(descriptor);
     }
 
-    @Override
-    public Table getTable(String tableName) throws IOException {
-        return new HTable(new Configuration(testCluster.getConfiguration()), Bytes.toBytes(tableName), tableExecutorService);
-    }
-
     protected byte[][] getFamilyBytes(String[] families) {
         byte[][] familyBytes = new byte[families.length][];
         int i = 0;
@@ -66,11 +63,5 @@ public class TestHBaseTableFactory extends HBaseTableFactory {
             i++;
         }
         return familyBytes;
-    }
-
-
-    @Override
-    public Table getTable(TableName tableName) throws IOException {
-        return getTable(tableName.getNameAsString());
     }
 }

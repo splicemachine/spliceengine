@@ -1,12 +1,13 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.txn.WriteConflict;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
 /**
  * Exception indicating that a transaction failed because it tried to write to data that was modified since the
  * transaction began (i.e. the transaction collided with another).
  */
-public class WriteConflict extends DoNotRetryIOException {
+public class HWriteConflict extends DoNotRetryIOException implements WriteConflict{
     private long txn1 = -1l;
     private long txn2 = -1l;
 
@@ -14,9 +15,9 @@ public class WriteConflict extends DoNotRetryIOException {
      * Used for serialization, DO NOT USE
      */
     @Deprecated
-    public WriteConflict() { super(); }
+    public HWriteConflict() { super(); }
 
-    public WriteConflict(long txn1,long txn2){
+    public HWriteConflict(long txn1,long txn2){
         this(String.format("[%1$d,%2$d] Write conflict detected between transactions %1$d and %2$d",txn1,txn2));
         this.txn1 = txn1;
         this.txn2 = txn2;
@@ -31,28 +32,28 @@ public class WriteConflict extends DoNotRetryIOException {
      * which makes it vitally important that the error message be
      * properly formatted for easy reading.
      *
-     * As a result, we remove the ability to create WriteConflict
+     * As a result, we remove the ability to create HWriteConflict
      * exceptions from string messages, because we want to validate
      * that the message is created properly
      */
 
-    public static WriteConflict fromString(String message){
+    public static HWriteConflict fromString(String message){
         long txn1 = parseTxn1(message); //will throw an error if it can't be parsed
         long txn2 = parseTxn2(message); //will throw an error if it can't be parsed
 
-        return new WriteConflict(message);
+        return new HWriteConflict(message);
     }
 
-    public static WriteConflict fromThrowable(String message,Throwable baseCause){
+    public static HWriteConflict fromThrowable(String message,Throwable baseCause){
         long txn1 = parseTxn1(message); //will throw an error if it can't be parsed
         long txn2 = parseTxn2(message); //will throw an error if it can't be parsed
 
-        return new WriteConflict(message,baseCause);
+        return new HWriteConflict(message,baseCause);
     }
 
 
-    public WriteConflict(String message) { super(message); }
-    public WriteConflict(String message, Throwable cause) { super(message, cause);}
+    public HWriteConflict(String message) { super(message); }
+    public HWriteConflict(String message,Throwable cause) { super(message, cause);}
 
 //    @Override
 //    public String getMessage() {

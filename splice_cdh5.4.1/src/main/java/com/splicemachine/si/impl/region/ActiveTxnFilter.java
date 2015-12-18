@@ -8,7 +8,6 @@ import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.io.Writable;
@@ -22,7 +21,7 @@ import java.io.IOException;
  *         Date: 8/18/14
  */
 public class ActiveTxnFilter extends FilterBase implements Writable{
-    private final SDataLib<OperationWithAttributes,Cell,Delete,Filter,Get, Put,RegionScanner,Result,Scan> datalib;
+    private final SDataLib<OperationWithAttributes,Cell,Delete, Get, Put,RegionScanner,Result,Scan> datalib;
     protected final long beforeTs;
     protected final long afterTs;
     private final byte[] destinationTable;
@@ -36,7 +35,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private boolean committed = false;
     private MultiFieldDecoder fieldDecoder;
     
-    public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Delete, Filter, Get, Put, RegionScanner, Result, Scan> datalib,
+    public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> datalib,
                            long beforeTs,long afterTs,byte[] destinationTable) {
         this.datalib=datalib;
         this.beforeTs = beforeTs;

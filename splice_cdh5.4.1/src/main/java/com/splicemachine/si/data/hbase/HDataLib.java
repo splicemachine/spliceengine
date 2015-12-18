@@ -3,22 +3,16 @@ package com.splicemachine.si.data.hbase;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.region.ActiveTxnFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,13 +27,11 @@ import static com.splicemachine.si.constants.SIConstants.*;
 public class HDataLib implements SDataLib<OperationWithAttributes,
         Cell,
         Delete,
-        Filter,
         Get,
         Put,
         RegionScanner,
         Result,
-        Scan
-        >{
+        Scan>{
     private static final HDataLib INSTANCE= new HDataLib();
 
     @Override
@@ -68,8 +60,8 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         return convertToBytes(value,value.getClass());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T decode(byte[] value,Class<T> type){
         if(value==null){
             return null;
@@ -95,8 +87,8 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         throw new RuntimeException("unsupported type conversion: "+type.getName());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T decode(byte[] value,int offset,int length,Class<T> type){
         if(value==null){
             return null;
@@ -142,11 +134,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
 
     private Put newPut(ByteSlice key){
         return new Put(key.array(),key.offset(),key.length());
-    }
-
-    @Override
-    public byte[] getGetRow(Get get){
-        return get.getRow();
     }
 
     @Override
@@ -228,11 +215,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public Cell newValue(Cell element,byte[] value){
-        return CellUtils.newKeyValue(element,value);
-    }
-
-    @Override
     public Comparator getComparator(){
         return KeyValue.COMPARATOR;
     }
@@ -293,12 +275,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public DataCell getColumnLatest(Result result,byte[] family,
-                                byte[] qualifier){
-        return new HCell(result.getColumnLatestCell(family,qualifier));
-    }
-
-    @Override
     public byte[] getDataValueBuffer(Cell element){
         return element.getValueArray();
     }
@@ -346,29 +322,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public Filter getActiveTransactionFilter(long beforeTs,long afterTs,
-                                             byte[] destinationTable){
-        return new ActiveTxnFilter(this,beforeTs,afterTs,destinationTable);
-    }
-
-//    @Override
-    public InternalScanner getCompactionScanner(InternalScanner scanner,
-                                                SICompactionState state){
-        return new SICompactionScanner(state,scanner);
-    }
-
-//    @Override
-    public boolean internalScannerNext(InternalScanner internalScanner,
-                                       List<Cell> data) throws IOException{
-        return internalScanner.next(data);
-    }
-
-//    @Override
-    public boolean isDataInRange(Cell data,Pair<byte[], byte[]> range){
-        return CellUtils.isKeyValueInRange(data,range);
-    }
-
-    @Override
     public Cell matchKeyValue(Cell[] kvs,byte[] columnFamily,
                               byte[] qualifier){
         int size=kvs!=null?kvs.length:0;
@@ -397,18 +350,7 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,byte[] value){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public Get newGet(byte[] key){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public void addFamilyQualifierToGet(Get read,byte[] family,byte[] column){
-
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
@@ -428,12 +370,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public void setScanMaxVersions(Scan get,int maxVersions){
-        throw new UnsupportedOperationException("IMPLEMENT");
-
-    }
-
-    @Override
     public void setAttribute(OperationWithAttributes operation,String name,byte[] value){
         throw new UnsupportedOperationException("IMPLEMENT");
 
@@ -441,17 +377,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
 
     @Override
     public byte[] getAttribute(OperationWithAttributes operation,String attributeName){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public boolean noResult(Result result){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public void setFilterOnScan(Scan scan,Filter filter){
-
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 

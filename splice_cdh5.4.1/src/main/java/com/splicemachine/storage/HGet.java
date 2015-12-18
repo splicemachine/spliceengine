@@ -95,4 +95,8 @@ public class HGet implements DataGet{
     public Get unwrapDelegate(){
         return get;
     }
+
+    public void reset(byte[] rowKey){
+        get = new Get(rowKey);
+    }
 }

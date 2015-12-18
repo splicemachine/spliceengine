@@ -22,7 +22,7 @@ public interface SIFactory<OperationWithAttributes,Data,Delete extends Operation
         Get extends OperationWithAttributes,Put extends OperationWithAttributes,Region,
         RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>{
 
-    SDataLib<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> getDataLib();
+    SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> getDataLib();
 
     DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> getDataStore();
 

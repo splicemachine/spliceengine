@@ -52,7 +52,7 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>
         implements Transactor{
     private static final Logger LOG=Logger.getLogger(SITransactor.class);
-    private final SDataLib<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataLib;
+    private final SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
     private final DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore;
     private final OperationStatusFactory operationStatusLib;
     private final ExceptionFactory exceptionLib;

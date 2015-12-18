@@ -16,7 +16,6 @@ public class LDataLib implements SDataLib<
         LOperationWithAttributes,
         DataCell,
         LTuple,
-        Void,
         LGet,
         LTuple,
         LScan,
@@ -25,18 +24,8 @@ public class LDataLib implements SDataLib<
 
 
     @Override
-    public void addKeyValueToPut(LTuple dataCells,byte[] family,byte[] qualifier,byte[] value){
-        dataCells.values.add(new MCell(dataCells.key,family,qualifier,1l,value,CellType.USER_DATA));
-    }
-
-    @Override
     public LGet newGet(byte[] key){
         return new LGet(key,key,null,null,null);
-    }
-
-    @Override
-    public void addFamilyQualifierToGet(LGet read,byte[] family,byte[] column){
-        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override
@@ -52,12 +41,6 @@ public class LDataLib implements SDataLib<
     @Override
     public DataScan newDataScan(){
         return new MScan();
-    }
-
-    @Override
-    public void setScanMaxVersions(LGet get,int maxVersions){
-        throw new UnsupportedOperationException("IMPLEMENT");
-
     }
 
     @Override
@@ -77,16 +60,6 @@ public class LDataLib implements SDataLib<
 
     @Override
     public byte[] getAttribute(LOperationWithAttributes operation,String attributeName){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public boolean noResult(MResult dataCells){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public void setFilterOnScan(LGet lGet,Void aVoid){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
@@ -209,11 +182,6 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public byte[] getGetRow(LGet get){
-        return get.startTupleKey;
-    }
-
-    @Override
     public void setGetTimeRange(LGet get,long minTimestamp,long maxTimestamp){
         assert minTimestamp==0L;
         get.effectiveTimestamp=maxTimestamp-1;
@@ -285,11 +253,6 @@ public class LDataLib implements SDataLib<
     public boolean matchingRowKeyValue(DataCell element,DataCell other){
         return Bytes.equals(element.valueArray(),element.valueOffset(),element.valueLength(),
                 other.valueArray(),other.valueOffset(),other.valueLength());
-    }
-
-    @Override
-    public DataCell newValue(DataCell element,byte[] value){
-        return element.copyValue(value);
     }
 
     @Override
@@ -369,12 +332,6 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public DataCell getColumnLatest(MResult result,byte[] family,
-                                    byte[] qualifier){
-        return result.latestCell(family,qualifier);
-    }
-
-    @Override
     public byte[] getDataValueBuffer(DataCell element){
         return element.valueArray();
     }
@@ -407,12 +364,6 @@ public class LDataLib implements SDataLib<
     @Override
     public int getDataRowlength(DataCell element){
         return element.keyLength();
-    }
-
-    @Override
-    public Void getActiveTransactionFilter(long beforeTs,long afterTs,
-                                             byte[] destinationTable){
-        throw new RuntimeException("Not Implemented");
     }
 
     private static boolean matchingColumn(DataCell c,byte[] family,byte[] qualifier){

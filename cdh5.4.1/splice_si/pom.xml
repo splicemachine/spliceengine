@@ -165,9 +165,9 @@
 								<option>-keep public class com.splicemachine.si.api.txn.TxnStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.txn.TxnSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.txn.TxnView { public *; }</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.BaseSICompactionScanner { public *; protected boolean nextDirect(java.util.List, int); }</option>
+								<option>-keep public class com.splicemachine.hbase.BaseSICompactionScanner { public *; protected boolean nextDirect(java.util.List, int); }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.RollForwardQueueMap { public *; }</option>
-								<option>-keep public class com.splicemachine.si.coprocessors.SIBaseObserver { public *; protected *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.coprocessor.SIBaseObserver { public *; protected *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIFilterPacked { public *; }</option>
 								<option>-keep public class com.splicemachine.si.coprocessors.SIObserver { public *; }</option>

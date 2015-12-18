@@ -2,41 +2,133 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.filter.TransactionalFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.coprocessors.SIBaseObserver;
+import com.splicemachine.si.impl.HTxnOperationFactory;
 import com.splicemachine.si.impl.SIFilterPacked;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryPredicateFilter;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Durability;
-import org.apache.hadoop.hbase.client.Put;
+import com.splicemachine.storage.HMutationStatus;
+import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+
+import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
-public class SIObserver extends SIBaseObserver{
+public class SIObserver extends BaseRegionObserver{
+    private static Logger LOG=Logger.getLogger(SIObserver.class);
+    protected boolean tableEnvMatch=false;
+    protected TxnOperationFactory txnOperationFactory;
+    protected TransactionalRegion region;
 
+    @Override
+    public void start(CoprocessorEnvironment e) throws IOException{
+        SpliceLogUtils.trace(LOG,"starting %s",SIObserver.class);
+        tableEnvMatch=doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getTableName());
+        if(tableEnvMatch){
+            txnOperationFactory=new HTxnOperationFactory(SIDriver.getDataLib(),SIDriver.getExceptionLib());
+            region=SIDriver.getTransactionalRegion(((RegionCoprocessorEnvironment)e).getRegion());
+            Tracer.traceRegion(region.getTableName(),((RegionCoprocessorEnvironment)e).getRegion());
+        }
+        super.start(e);
+    }
+
+    @Override
+    public void stop(CoprocessorEnvironment e) throws IOException{
+        SpliceLogUtils.trace(LOG,"stopping %s",SIObserver.class);
+        if(region!=null)
+            region.close();
+        super.stop(e);
+    }
+
+    @Override
+    public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
+        SpliceLogUtils.trace(LOG,"preGet %s",get);
+        if(tableEnvMatch && shouldUseSI(get)){
+            SIDriver.getTransactionReadController().preProcessGet(get);
+            assert (get.getMaxVersions()==Integer.MAX_VALUE);
+            addSIFilterToGet(get);
+        }
+        SpliceLogUtils.trace(LOG,"preGet after %s",get);
+        super.preGetOp(e,get,results);
+    }
+
+    @Override
+    public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException{
+        SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
+        if(tableEnvMatch && shouldUseSI(scan)){
+            SIDriver.getTransactionReadController().preProcessScan(scan);
+            assert (scan.getMaxVersions()==Integer.MAX_VALUE);
+            addSIFilterToScan(scan);
+        }
+        return super.preScannerOpen(e,scan,s);
+    }
+
+    @Override
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile){
+        if(tableEnvMatch){
+            Tracer.compact();
+        }
+    }
+
+    @Override
+    public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,Delete delete,WALEdit edit,
+                          Durability writeToWAL) throws IOException{
+        if(tableEnvMatch){
+            if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
+                TableName tableName=e.getEnvironment().getRegion().getTableDesc().getTableName();
+                String message="Direct deletes are not supported under snapshot isolation. "+
+                        "Instead a Put is expected that will set a record level tombstone. tableName="+tableName;
+                throw new RuntimeException(message);
+            }
+        }
+        super.preDelete(e,delete,edit,writeToWAL);
+    }
+
+    @Override
+    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
+                                      InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
+        if(tableEnvMatch){
+            throw new UnsupportedOperationException("IMPLEMENT COMPACTION");
+//			return region.compactionScanner(scanner);
+        }else{
+            return super.preCompact(e,store,scanner,scanType,compactionRequest);
+        }
+    }
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e,Put put,WALEdit edit,Durability writeToWAL) throws IOException{
-            /*
-				 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
-				 */
+        /*
+		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
+		 */
         if(!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED)==null){
             super.prePut(e,put,edit,writeToWAL);
             return;
@@ -74,70 +166,95 @@ public class SIObserver extends SIBaseObserver{
             columnMap.put(column,new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.EMPTY_COLUMN));
         }
         boolean processed=false;
-        throw new UnsupportedOperationException("IMPLEMENT");
-//        for(Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()){
-//            byte[] fam=family.getKey();
-//            Map<byte[], KVPair> cols=family.getValue();
-//            for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
-////                OperationStatus[] status=region.bulkWrite(txn,fam,column.getKey(),ConstraintChecker.NO_CONSTRAINT,Collections.singleton(column.getValue()));
-//                OperationStatus[] status=region.bulkWrite(txn,fam,column.getKey(),null,Collections.singleton(column.getValue()));
-//                switch(status[0].getOperationStatusCode()){
-//                    case NOT_RUN:
-//                        break;
-//                    case BAD_FAMILY:
-//                        throw new NoSuchColumnFamilyException(status[0].getExceptionMsg());
-//                    case SANITY_CHECK_FAILURE:
-//                        throw new IOException("Sanity Check failure:"+status[0].getExceptionMsg());
-//                    case FAILURE:
-//                        throw new IOException(status[0].getExceptionMsg());
-//                    default:
-//                        processed=true;
-//                }
-//            }
-//        }
-
-//        if(processed){
-//            e.bypass();
-//            e.complete();
-//        }
-    }
-
-
-    @Override
-    public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,Delete delete,WALEdit edit,
-                          Durability writeToWAL) throws IOException{
-        if(tableEnvMatch){
-            if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
-                TableName tableName=e.getEnvironment().getRegion().getTableDesc().getTableName();
-                String message="Direct deletes are not supported under snapshot isolation. "+
-                        "Instead a Put is expected that will set a record level tombstone. tableName="+tableName;
-                throw new RuntimeException(message);
+        for(Map.Entry<byte[], Map<byte[], KVPair>> family : familyMap.entrySet()){
+            byte[] fam=family.getKey();
+            Map<byte[], KVPair> cols=family.getValue();
+            for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
+                Iterable<MutationStatus> status=region.bulkWrite(txn,fam,column.getKey(),null,Collections.singleton(column.getValue()));
+                Iterator<MutationStatus> itr= status.iterator();
+                if(!itr.hasNext())
+                    throw new IllegalStateException();
+                OperationStatus ms = ((HMutationStatus)itr.next()).unwrapDelegate();
+                switch(ms.getOperationStatusCode()){
+                    case NOT_RUN:
+                        break;
+                    case BAD_FAMILY:
+                        throw new NoSuchColumnFamilyException(ms.getExceptionMsg());
+                    case SANITY_CHECK_FAILURE:
+                        throw new IOException("Sanity Check failure:"+ms.getExceptionMsg());
+                    case FAILURE:
+                        throw new IOException(ms.getExceptionMsg());
+                    default:
+                        processed=true;
+                }
             }
         }
-        super.preDelete(e,delete,edit,writeToWAL);
-    }
 
-    @Override
-    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
-                                      InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
-        if(tableEnvMatch){
-            throw new UnsupportedOperationException("IMPLEMENT COMPACTION");
-//			return region.compactionScanner(scanner);
-        }else{
-            return super.preCompact(e,store,scanner,scanType,compactionRequest);
+        if(processed){
+            e.bypass();
+            e.complete();
         }
     }
 
-    @Override
-    protected Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private void addSIFilterToGet(Get get) throws IOException{
+        TxnView txn=txnOperationFactory.fromReads(get);
+        final Filter newFilter=makeSIFilter(txn,get.getFilter(),
+                getPredicateFilter(get),false);
+        get.setFilter(newFilter);
+    }
+
+    private void addSIFilterToScan(Scan scan) throws IOException{
+        TxnView txn=txnOperationFactory.fromReads(scan);
+        final Filter newFilter=makeSIFilter(txn,scan.getFilter(),
+                getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null);
+        scan.setFilter(newFilter);
+    }
+
+    private EntryPredicateFilter getPredicateFilter(OperationWithAttributes operation) throws IOException{
+        final byte[] serializedPredicateFilter=operation.getAttribute(ENTRY_PREDICATE_LABEL);
+        return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
+    }
+
+    private boolean shouldUseSI(Get get){
+        return SIDriver.getTransactionReadController().isFilterNeededGet(get);
+    }
+
+    private boolean shouldUseSI(Scan scan){
+        return SIDriver.getTransactionReadController().isFilterNeededScan(scan);
+    }
+
+    private static boolean doesTableNeedSI(TableName tableName){
+        SpliceConstants.TableEnv tableEnv=EnvUtils.getTableEnv(tableName);
+        SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableEnv);
+        if(SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEnv) ||
+                SpliceConstants.TableEnv.META_TABLE.equals(tableEnv) ||
+                SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv) ||
+                SpliceConstants.TableEnv.HBASE_TABLE.equals(tableEnv)) return false;
+        if(SpliceConstants.TEST_TABLE.equals(tableName)) return false;
+        return true;
+    }
+
+    private Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
         TxnFilter txnFilter=region.packedFilter(txn,predicateFilter,countStar);
         SIFilterPacked siFilter=new SIFilterPacked(txnFilter); //TODO -sf- add readController
-        if(needsCompositeFilter(currentFilter)){
+        if(currentFilter!=null){
             return composeFilters(orderFilters(currentFilter,siFilter));
         }else{
             return siFilter;
         }
     }
 
+    private Filter[] orderFilters(Filter currentFilter,Filter siFilter){
+        if(currentFilter instanceof TransactionalFilter && ((TransactionalFilter)currentFilter).isBeforeSI()){
+            return new Filter[]{currentFilter,siFilter};
+        }else{
+            return new Filter[]{siFilter,currentFilter};
+        }
+    }
 
+    private FilterList composeFilters(Filter[] filters){
+        return new FilterList(FilterList.Operator.MUST_PASS_ALL,filters[0],filters[1]);
+    }
 }

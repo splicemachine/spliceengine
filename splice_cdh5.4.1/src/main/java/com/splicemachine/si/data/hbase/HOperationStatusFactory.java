@@ -1,69 +1,58 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.api.server.ConstraintChecker;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.HMutationStatus;
+import com.splicemachine.storage.MutationStatus;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import java.io.IOException;
 
 /**
+ * HBase implementation of an OperationStatus factory
  * Created by jleach on 12/14/15.
  */
 public class HOperationStatusFactory implements OperationStatusFactory{
-   private static final ExceptionFactory exceptionLib = SIDriver.getExceptionLib();
-    public static final OperationStatus NOT_RUN = new OperationStatus(HConstants.OperationStatusCode.NOT_RUN);
-    public static final OperationStatus SUCCESS = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
-    public static final OperationStatus FAILURE = new OperationStatus(HConstants.OperationStatusCode.FAILURE);
-
-
-    @Override
-    public boolean isSuccess(OperationStatus operationStatus) {
-        return operationStatus.getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
-    }
-
-    @Override
-    public OperationStatus[] getArrayOfSize(int size) {
-        return new OperationStatus[size];
-    }
-
-    @Override
-    public boolean processPutStatus(OperationStatus operationStatus) throws IOException {
-        switch (operationStatus.getOperationStatusCode()) {
-            case NOT_RUN:
-                throw new IOException("Could not acquire Lock");
-            case BAD_FAMILY:
-                throw exceptionLib.noSuchFamily(operationStatus.getExceptionMsg());
-            case SANITY_CHECK_FAILURE:
-                throw new IOException("Sanity Check failure:" + operationStatus.getExceptionMsg());
-            case FAILURE:
-                throw new IOException(operationStatus.getExceptionMsg());
-            default:
-                return true;
+    private static final ConstraintChecker NO_OP_CHECKER = new ConstraintChecker(){
+        @Override
+        public MutationStatus checkConstraint(KVPair mutation,DataResult existingRow) throws IOException{
+            return HMutationStatus.success();
         }
+    };
+    @Override
+    public boolean processPutStatus(MutationStatus operationStatus) throws IOException{
+        return false;
     }
 
     @Override
-    public OperationStatus getCorrectStatus(OperationStatus status, OperationStatus oldStatus) {
-        switch (oldStatus.getOperationStatusCode()) {
-            case SUCCESS:
-                return status;
-            case NOT_RUN:
-            case BAD_FAMILY:
-            case SANITY_CHECK_FAILURE:
-            case FAILURE:
-                return oldStatus;
-        }
+    public MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
         return null;
     }
 
     @Override
-    public OperationStatus getAdditiveWriteConflictOperationStatus() {
-        return new OperationStatus(HConstants.OperationStatusCode.FAILURE, exceptionLib.additiveWriteConflict().getMessage());
+    public MutationStatus success(){
+        return HMutationStatus.success();
     }
 
     @Override
-    public OperationStatus newFailureOperationStatus(Exception ex) {
-        return new OperationStatus(HConstants.OperationStatusCode.FAILURE, ex.getMessage());
+    public MutationStatus notRun(){
+        return HMutationStatus.notRun();
+    }
+
+    @Override
+    public MutationStatus failure(String messsage){
+        return new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.FAILURE,messsage));
+    }
+
+    @Override
+    public MutationStatus failure(Throwable t){
+        return new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.FAILURE,t.getMessage()));
+    }
+
+    @Override
+    public ConstraintChecker getNoOpConstraintChecker(){
+        return NO_OP_CHECKER;
     }
 }

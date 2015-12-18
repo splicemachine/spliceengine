@@ -10,6 +10,7 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.util.Collection;
@@ -20,7 +21,7 @@ import java.util.Collection;
  * @author Scott Fines
  *         Date: 7/1/14
  */
-public interface TransactionalRegion<OperationStatus,InternalScanner> extends AutoCloseable{
+public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
 
     /**
      * Create a new Transactional Filter for the region.
@@ -57,7 +58,7 @@ public interface TransactionalRegion<OperationStatus,InternalScanner> extends Au
 
     void updateReadRequests(long readRequests);
 
-    OperationStatus[] bulkWrite(TxnView txn,
+    Iterable<MutationStatus> bulkWrite(TxnView txn,
                                 byte[] family, byte[] qualifier,
                                 ConstraintChecker constraintChecker,
                                 Collection<KVPair> data) throws IOException;

@@ -32,7 +32,7 @@ public class SITransactionReadController<OperationWithAttributes,Data,
         Scan extends OperationWithAttributes>
         implements TransactionReadController<Data, Get, ReturnCode, Scan>{
     private final DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore;
-    private final SDataLib<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataLib;
+    private final SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSuppler;
 

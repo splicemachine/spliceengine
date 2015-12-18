@@ -20,7 +20,7 @@ public class DataStore<OperationWithAttributes,Data,Delete extends OperationWith
         Get extends OperationWithAttributes,
         Put extends OperationWithAttributes,RegionScanner,Result,Scan extends OperationWithAttributes> {
 
-    public final SDataLib<OperationWithAttributes,Data,Delete,Filter,Get,
+    public final SDataLib<OperationWithAttributes,Data,Delete, Get,
             Put,RegionScanner,Result,Scan> dataLib;
     private final String siNeededAttribute;
     private final String deletePutAttribute;
@@ -112,7 +112,7 @@ public class DataStore<OperationWithAttributes,Data,Delete extends OperationWith
         return table.getName();
     }
 
-    public SDataLib<OperationWithAttributes,Data,Delete,Filter,Get,
+    public SDataLib<OperationWithAttributes,Data,Delete, Get,
             Put,RegionScanner,Result,Scan> getDataLib() {
         return this.dataLib;
     }
