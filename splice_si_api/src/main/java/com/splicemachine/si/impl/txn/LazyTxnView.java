@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -22,15 +23,17 @@ public class LazyTxnView implements TxnView {
     private volatile TxnView delegate;
     private volatile boolean lookedUp = false;
     private volatile  TxnSupplier store;
+    private final ExceptionFactory exceptionFactory;
     private final long txnId;
     private final boolean hasAdditive;
     private final boolean additive;
     private final Txn.IsolationLevel isolationLevel;
     private volatile boolean inFinalState = false; //set to true if/when the lookup reveals the transaction is in the final state
 
-    public LazyTxnView(long txnId, TxnSupplier store) {
+    public LazyTxnView(long txnId, TxnSupplier store,ExceptionFactory exceptionFactory) {
         this.txnId = txnId;
         this.store = store;
+        this.exceptionFactory = exceptionFactory;
 
         this.hasAdditive = false;
         this.additive = false;
@@ -39,12 +42,14 @@ public class LazyTxnView implements TxnView {
 
     public LazyTxnView(long txnId, TxnSupplier store,
                        boolean hasAdditive, boolean additive,
-                       Txn.IsolationLevel isolationLevel) {
+                       Txn.IsolationLevel isolationLevel,
+                       ExceptionFactory exceptionFactory) {
         this.store = store;
         this.txnId = txnId;
         this.hasAdditive = hasAdditive;
         this.additive = additive;
         this.isolationLevel = isolationLevel;
+        this.exceptionFactory = exceptionFactory;
     }
 
     @Override
@@ -194,7 +199,7 @@ public class LazyTxnView implements TxnView {
             try {
                 delegate = store.getTransaction(txnId);
                 if(delegate==null)
-                    throw SIDriver.getSIFactory().getExceptionLib().readOnlyModification("Txn "+txnId+" is read only");
+                    throw exceptionFactory.readOnlyModification("Txn "+txnId+" is read only");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

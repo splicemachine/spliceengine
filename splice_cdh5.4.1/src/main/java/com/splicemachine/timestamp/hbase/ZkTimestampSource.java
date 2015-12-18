@@ -18,14 +18,14 @@ import com.splicemachine.timestamp.impl.TimestampServer;
  *
  * @author Walt Koetke
  */
-public class SpliceTimestampSource implements TimestampSource {
+public class ZkTimestampSource implements TimestampSource {
 
-    private static final Logger LOG = Logger.getLogger(SpliceTimestampSource.class);
+    private static final Logger LOG = Logger.getLogger(ZkTimestampSource.class);
 
     private RecoverableZooKeeper _rzk;
     private TimestampClient _tc = null;
 
-    public SpliceTimestampSource(RecoverableZooKeeper rzk) {
+    public ZkTimestampSource(RecoverableZooKeeper rzk) {
         _rzk = rzk;
         initialize();
     }

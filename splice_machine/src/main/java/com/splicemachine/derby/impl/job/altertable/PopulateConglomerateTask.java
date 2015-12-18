@@ -31,7 +31,7 @@ public class PopulateConglomerateTask{
 
     private byte[] scanStart;
     private byte[] scanStop;
-    private static SDataLib dataLib = SIDriver.siFactory.getDataLib();
+    private static SDataLib dataLib = SIDriver.driver().getDataLib();
     private KeyEncoder noPKKeyEncoder;
 
     public PopulateConglomerateTask() { }

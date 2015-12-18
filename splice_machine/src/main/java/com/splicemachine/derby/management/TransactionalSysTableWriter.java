@@ -47,7 +47,7 @@ public abstract class TransactionalSysTableWriter<T> {
     protected DataValueDescriptor[] dvds;
     protected DescriptorSerializer[] serializers;
     protected EntryDecoder entryDecoder;
-    protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+    protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 
     private final ThreadLocal<Pair<DataHash<T>,DataHash<T>>> hashLocals;
 

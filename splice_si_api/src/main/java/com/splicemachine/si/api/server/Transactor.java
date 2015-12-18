@@ -29,6 +29,14 @@ public interface Transactor{
                                     long transactionId,
                                     ConstraintChecker constraintChecker) throws IOException;
 
+    MutationStatus[] processKvBatch(Partition table,
+                                    RollForward rollForward,
+                                    byte[] defaultFamilyBytes,
+                                    byte[] packedColumnBytes,
+                                    Collection<KVPair> toProcess,
+                                    TxnView txn,
+                                    ConstraintChecker constraintChecker) throws IOException;
+
     SDataLib getDataLib();
 
     /**

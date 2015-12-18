@@ -76,7 +76,7 @@ public class HTableScannerBuilder implements Externalizable {
     }
 
     public HTableScanner build(){
-        return new HTableScanner(SIDriver.siFactory.getDataLib(),
+        return new HTableScanner(SIDriver.driver().getDataLib(),
                 scanner,
                 region,
                 scan,

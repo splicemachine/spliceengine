@@ -144,10 +144,14 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
                                             long txnId,
                                             ConstraintChecker constraintChecker) throws IOException{
         TxnView txn=txnSupplier.getTransaction(txnId);
-        ensureTransactionAllowsWrites(txnId,txn);
-        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
+        return processKvBatch(table,rollForward,defaultFamilyBytes,packedColumnBytes,toProcess,txn,constraintChecker);
     }
 
+    @Override
+    public MutationStatus[] processKvBatch(Partition table,RollForward rollForward,byte[] defaultFamilyBytes,byte[] packedColumnBytes,Collection<KVPair> toProcess,TxnView txn,ConstraintChecker constraintChecker) throws IOException{
+        ensureTransactionAllowsWrites(txn.getTxnId(),txn);
+        return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
+    }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
         return operationStatusLib.getCorrectStatus(status,oldStatus);

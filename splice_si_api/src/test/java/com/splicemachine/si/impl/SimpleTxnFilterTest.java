@@ -57,7 +57,7 @@ public class SimpleTxnFilterTest{
     @Test
     public void testCanSeeCommittedRowSnapshotIsolation() throws Exception{
         TxnSupplier baseStore=testEnv.getTxnStore();
-        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=new IgnoreTxnCacheSupplier(testEnv.getDataLib());
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=testEnv.getIgnoreTxnStore();
 
         TxnView committed=new CommittedTxn(0l,1l);
         baseStore.cache(committed);
@@ -89,7 +89,7 @@ public class SimpleTxnFilterTest{
     @Test
     public void testCannotSeeRolledBackRow() throws Exception{
         TxnSupplier baseStore=testEnv.getTxnStore();
-        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=new IgnoreTxnCacheSupplier(testEnv.getDataLib());
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=testEnv.getIgnoreTxnStore();
 
         Txn rolledBack=txnLifecycleManager.beginTransaction(Bytes.toBytes("hello"));
         rolledBack.rollback();
@@ -321,7 +321,7 @@ public class SimpleTxnFilterTest{
 
         final Pair<ByteSlice, Long> rolledBackTs=new Pair<>();
         ReadResolver resolver=getRollBackReadResolver(rolledBackTs);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=new IgnoreTxnCacheSupplier(testEnv.getDataLib());
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=testEnv.getIgnoreTxnStore();
         SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore,ignoreTxnCacheSupplier,ds);
 
         DataCell testDataKv=getUserCell(rolledBackTxn);
@@ -343,7 +343,7 @@ public class SimpleTxnFilterTest{
 
         final Pair<ByteSlice, Pair<Long, Long>> committedTs=new Pair<>();
         ReadResolver resolver=getCommitReadResolver(committedTs,baseStore);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=new IgnoreTxnCacheSupplier(testEnv.getDataLib());
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=testEnv.getIgnoreTxnStore();
         SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore,ignoreTxnCacheSupplier,ds);
 
         DataCell testDataKv=getUserCell(committed);
@@ -364,8 +364,8 @@ public class SimpleTxnFilterTest{
 
 
     private void assertActive(TxnSupplier baseStore,TxnView active,long readTs) throws IOException{
-        Txn myTxn=new ReadOnlyTxn(readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=new IgnoreTxnCacheSupplier(testEnv.getDataLib());
+        Txn myTxn=new ReadOnlyTxn(readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),testEnv.getExceptionFactory(),false);
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=testEnv.getIgnoreTxnStore();
         ReadResolver resolver=getActiveReadResolver();
 
         SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore,ignoreTxnCacheSupplier,ds);

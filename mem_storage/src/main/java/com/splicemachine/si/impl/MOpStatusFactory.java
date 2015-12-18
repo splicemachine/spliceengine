@@ -43,8 +43,8 @@ public class MOpStatusFactory implements OperationStatusFactory{
     }
 
     @Override
-    public MutationStatus failure(String messsage){
-        return MOperationStatus.failure(messsage);
+    public MutationStatus failure(String message){
+        return MOperationStatus.failure(message);
     }
 
     @Override

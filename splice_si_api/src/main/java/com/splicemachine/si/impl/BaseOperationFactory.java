@@ -183,12 +183,12 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
             if(allowsWrites)
                 parent=new ActiveWriteTxn(id,id,parent,additive,level);
             else
-                parent=new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+                parent=new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
         }
         if(allowsWrites)
             return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
         else
-            return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,additive);
+            return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
     }
 
     /******************************************************************************************************************/

@@ -22,6 +22,7 @@ import java.io.IOException;
  */
 public class ActiveTxnFilter extends FilterBase implements Writable{
     private final SDataLib<OperationWithAttributes,Cell,Delete, Get, Put,RegionScanner,Result,Scan> datalib;
+    private final RegionTxnStore txnStore;
     protected final long beforeTs;
     protected final long afterTs;
     private final byte[] destinationTable;
@@ -36,7 +37,11 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private MultiFieldDecoder fieldDecoder;
     
     public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> datalib,
-                           long beforeTs,long afterTs,byte[] destinationTable) {
+                           RegionTxnStore txnStore,
+                           long beforeTs,
+                           long afterTs,
+                           byte[] destinationTable) {
+        this.txnStore = txnStore;
         this.datalib=datalib;
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;
@@ -172,7 +177,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
         if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES)){
             if(keepAliveSeen)
                 return ReturnCode.SKIP;
-            adjustedState = V2TxnDecoder.adjustStateForTimeout(Txn.State.ACTIVE,kv,false);
+            adjustedState = txnStore.adjustStateForTimeout(Txn.State.ACTIVE,kv);
         } else{
             return ReturnCode.INCLUDE; //not the keep alive column
         }

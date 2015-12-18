@@ -177,7 +177,7 @@ public class SpliceConstants {
 
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
-     * from the SpliceTimestampSource implementation.
+     * from the ZkTimestampSource implementation.
      * Defaults to /transactions/maxReservedTimestamp
      */
     @Parameter public static final String MAX_RESERVED_TIMESTAMP_PATH = "splice.max_reserved_timestamp_node";

@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -12,8 +11,9 @@ import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.HCannotCommitException;
+import com.splicemachine.si.impl.HReadOnlyModificationException;
+import com.splicemachine.si.impl.HTransactionTimeout;
 import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
@@ -43,7 +43,6 @@ public class RegionTxnStore implements TxnPartition{
     private final TxnDecoder newTransactionDecoder=V2TxnDecoder.INSTANCE;
     private final SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
     private final TransactionResolver resolver;
-    private final ExceptionFactory exceptionLib=SIDriver.getExceptionLib();
     private final TxnSupplier txnSupplier;
     private final HRegion region;
     private final long keepAliveTimeoutMs;
@@ -94,7 +93,7 @@ public class RegionTxnStore implements TxnPartition{
         Result result=region.get(get);
         //should never happen, this is in place to protect against programmer error
         if(result==null||result==Result.EMPTY_RESULT)
-            throw exceptionLib.readOnlyModification("Transaction "+txnId+" is read-only, and was not properly elevated.");
+            throw new HReadOnlyModificationException("Transaction "+txnId+" is read-only, and was not properly elevated.");
         Cell kv=result.getColumnLatestCell(FAMILY,destTableQualifier);
         byte[] newBytes;
         if(kv==null){
@@ -137,9 +136,9 @@ public class RegionTxnStore implements TxnPartition{
         if(state!=Txn.State.ACTIVE) return false; //skip the put if we don't need to do it
         Cell oldKAKV=result.getColumnLatestCell(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
         long currTime=clock.currentTimeMillis();
-        Txn.State adjustedState=V2TxnDecoder.adjustStateForTimeout(state,oldKAKV,false);
+        Txn.State adjustedState=adjustStateForTimeout(state,oldKAKV);
         if(adjustedState!=Txn.State.ACTIVE)
-            throw exceptionLib.transactionTimeout(txnId);
+            throw new HTransactionTimeout(txnId);
 
         Put newPut=new Put(TxnUtils.getRowKey(txnId));
         newPut.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
@@ -165,7 +164,7 @@ public class RegionTxnStore implements TxnPartition{
         keepAliveKv=result.getColumnLatestCell(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
         Txn.State state=Txn.State.decode(stateKv.getValueArray(),stateKv.getValueOffset(),stateKv.getValueLength());
         if(state==Txn.State.ACTIVE)
-            state=V2TxnDecoder.adjustStateForTimeout(state,keepAliveKv,false);
+            state=adjustStateForTimeout(state,keepAliveKv);
 
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getState returnedState state=%s",state);
@@ -253,7 +252,7 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getActiveTxns afterTs=%d, beforeTs=%s",afterTs,beforeTs);
         Scan scan=setupScanOnRange(afterTs,beforeTs);
-        scan.setFilter(new ActiveTxnFilter(dataLib,beforeTs,afterTs,destinationTable));
+        scan.setFilter(new ActiveTxnFilter(dataLib,this,beforeTs,afterTs,destinationTable));
 
         final RegionScanner scanner=region.getScanner(scan);
         return new ScanIterator(scanner){
@@ -293,11 +292,20 @@ public class RegionTxnStore implements TxnPartition{
         };
     }
 
+    public Txn.State adjustStateForTimeout(Txn.State currentState,Cell keepAliveCell){
+        long lastKATime = V2TxnDecoder.decodeKeepAlive(keepAliveCell,false);
+
+        if((clock.currentTimeMillis()-lastKATime)>keepAliveTimeoutMs)
+            return Txn.State.ROLLEDBACK;
+        return currentState;
+    }
+
     /******************************************************************************************************************/
-		/*private helper methods*/
+	/*private helper methods*/
 
     //easy reference for code clarity
     private static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
+
 
     private Scan setupScanOnRange(long afterTs,long beforeTs){
 			  /*
@@ -325,14 +333,14 @@ public class RegionTxnStore implements TxnPartition{
 
 
     private TxnMessage.Txn decode(long txnId,Result result) throws IOException{
-        TxnMessage.Txn txn=newTransactionDecoder.decode(dataLib,txnId,result);
+        TxnMessage.Txn txn=newTransactionDecoder.decode(dataLib,this,txnId,result);
         resolveTxn(txn);
         return txn;
 
     }
 
     private TxnMessage.Txn decode(List<Cell> keyValues) throws IOException{
-        TxnMessage.Txn txn=newTransactionDecoder.decode(dataLib,keyValues);
+        TxnMessage.Txn txn=newTransactionDecoder.decode(dataLib,this,keyValues);
         resolveTxn(txn);
         return txn;
     }

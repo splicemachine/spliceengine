@@ -2,76 +2,129 @@ package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.STableFactory;
-import com.splicemachine.si.api.data.*;
-import com.splicemachine.si.api.filter.TransactionReadController;
-import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.KeepAliveScheduler;
+import com.splicemachine.si.api.SIConfigurations;
+import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationStatusFactory;
+import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.readresolve.ReadResolver;
+import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.api.driver.SIFactory;
+import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.timestamp.api.TimestampSource;
-import com.splicemachine.timestamp.impl.TimestampServer;
 
 public class SIDriver {
+    private static final SIDriver INSTANCE = new SIDriver();
 
-	public static final String SI_FACTORY_CLASS = "com.splicemachine.si.impl.SIFactoryImpl";
-	public static final SIFactory siFactory;
+    public static SIDriver driver(){ return INSTANCE;}
 
-    public static STableFactory getTableFactory(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+    public static void loadDriver(SIEnvironment env){
+        INSTANCE.tableFactory = env.tableFactory();
+        INSTANCE.exceptionFactory = env.exceptionFactory();
+        INSTANCE.config = env.configuration();
+        INSTANCE.dataLib = env.dataLib();
+        INSTANCE.txnStore = env.txnStore();
+        INSTANCE.operationStatusFactory = env.statusFactory();
+        INSTANCE.timestampSource = env.timestampSource();
+        INSTANCE.txnSupplier = env.txnSupplier();
+        INSTANCE.ignoreTxnSupplier = env.ignoreTxnSupplier();
+        INSTANCE.txnOpFactory = env.operationFactory();
+        INSTANCE.rollForward = env.rollForward();
+
+        INSTANCE.dataStore = new DataStore(INSTANCE.dataLib,
+                SIConstants.SI_NEEDED,
+                SIConstants.SI_DELETE_PUT,
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
+                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
+                SIConstants.EMPTY_BYTE_ARRAY,
+                SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
+                SIConstants.DEFAULT_FAMILY_BYTES);
+        //noinspection unchecked
+        INSTANCE.transactor = new SITransactor<>(
+                INSTANCE.txnSupplier,
+                INSTANCE.ignoreTxnSupplier,
+                INSTANCE.txnOpFactory,
+                INSTANCE.dataStore,
+                INSTANCE.operationStatusFactory,
+                INSTANCE.exceptionFactory);
     }
 
+    private STableFactory tableFactory;
+    private ExceptionFactory exceptionFactory;
+    private SConfiguration config;
+    private SDataLib dataLib;
+    private TxnStore txnStore;
+    private OperationStatusFactory operationStatusFactory;
+    private TimestampSource timestampSource;
+    private TxnSupplier txnSupplier;
+    private IgnoreTxnCacheSupplier ignoreTxnSupplier;
+    private DataStore dataStore;
+    private Transactor transactor;
+    private TxnOperationFactory txnOpFactory;
+    private RollForward rollForward;
+    private ReadResolver readResolver;
 
-    static {
-		try {
-			siFactory = (SIFactory) Class.forName(SI_FACTORY_CLASS).newInstance();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
+    public STableFactory getTableFactory(){
+        return tableFactory;
+    }
+
+    public ExceptionFactory getExceptionFactory(){
+        return exceptionFactory;
+    }
 
     /**
      * @return the configuration specific to this architecture.
      */
-    public static SConfiguration getConfiguration(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+    public SConfiguration getConfiguration(){
+        return config;
     }
 
-	public static SIFactory getSIFactory() {
-		return siFactory;
-	}
-
-    public static SDataLib getDataLib() {return siFactory.getDataLib();}
-
-    /**
-     * Get the base Transaction storage mechanism. The implementation returned
-     * here is focused on <em>only</em> handling the network layer communication, and should
-     * never be called except to set up the more sophisticated stores available in the transaction
-     * package (which include caching etc). {@link com.splicemachine.si.impl.TransactionStorage.getTxnStore()}
-     * should be used instead.
-     *
-     * @return a basic Transaction store, specific to this architecture
-     */
-    public static TxnStore getTxnStore() {
-        throw new UnsupportedOperationException("IMPLEMENT");
+	public SDataLib getDataLib() {
+        return dataLib;
     }
 
-    public static OperationStatusFactory getOperationStatusLib() {return siFactory.getOperationStatusLib();}
-
-    public static TransactionReadController getTransactionReadController() {return siFactory.getTransactionReadController();}
-
-    public static TimestampSource getTimestampSource() {return siFactory.getTimestampSource();}
-
-    public static ExceptionFactory getExceptionLib() {return siFactory.getExceptionLib();}
-
-    public static TransactionalRegion getTransactionalRegion(Object region) {
-        return siFactory.getTransactionalRegion(region);
-    };
-
-    public static TimestampServer getTimestampServer() {
-        return siFactory.getTimestampServer();
+    public TxnStore getTxnStore() {
+        return txnStore;
     }
 
+    public TxnSupplier getTxnSupplier(){
+        return txnSupplier;
+    }
+
+    public OperationStatusFactory getOperationStatusLib() {
+        return operationStatusFactory;
+    }
+
+    public TimestampSource getTimestampSource() {
+        return timestampSource;
+    }
+
+    public DataStore getDataStore(){
+        return dataStore;
+    }
+
+    public Transactor getTransactor(){
+        return transactor;
+    }
+
+    public TxnOperationFactory getOperationFactory(){
+        return txnOpFactory;
+    }
+
+    public IgnoreTxnCacheSupplier getIgnoreTxnSupplier(){
+        return ignoreTxnSupplier;
+    }
+
+    public RollForward getRollForward(){
+        return rollForward;
+    }
+
+    public ReadResolver getReadResolver(){
+        return readResolver;
+    }
 }

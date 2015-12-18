@@ -15,7 +15,7 @@ import java.io.IOException;
  * Date: 11/15/13
  */
 public class PairDecoder<Data> {
-		private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+		private static final SDataLib dataLib = SIDriver.driver().getDataLib();
 		private final KeyDecoder keyDecoder;
 		private final KeyHashDecoder rowDecoder;
 		private final ExecRow templateRow;

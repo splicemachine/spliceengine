@@ -12,6 +12,8 @@ import java.util.concurrent.locks.Lock;
  */
 public interface Partition extends AutoCloseable{
 
+    String getTableName();
+
     String getName();
 
     @Override
@@ -97,4 +99,8 @@ public interface Partition extends AutoCloseable{
 
     boolean containsRange(byte[] start, int startOff, int startLen,
                           byte[] stop, int stopOff, int stopLen);
+
+    void writesRequested(long writeRequests);
+
+    void readsRequested(long readRequests);
 }

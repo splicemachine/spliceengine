@@ -9,11 +9,10 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.data.hbase.HDataLib;
-import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.data.StripedTxnLifecycleStore;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.RegionServerControl;
@@ -45,7 +44,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     public static final CountedReference<TransactionResolver> resolverRef=new CountedReference<>(new Supplier<TransactionResolver>(){
         @Override
         public TransactionResolver get(){
-            return new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);
+            return new TransactionResolver(SIDriver.driver().getTxnSupplier(),2,128);
         }
     },new CountedReference.ShutdownAction<TransactionResolver>(){
         @Override
@@ -59,9 +58,16 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         HRegion region=((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
+            HbaseSIEnvironment siEnv = HbaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
             TransactionResolver resolver=resolverRef.get();
-            TxnPartition regionStore=new RegionTxnStore(region,TransactionStorage.getTxnSupplier(),resolver,HDataLib.instance(),SIConstants.transactionKeepAliveInterval,new SystemClock());
-            TimestampSource timestampSource=SIDriver.getTimestampSource();
+            SIDriver driver=siEnv.getDriver();
+            @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
+                    driver.getTxnSupplier(),
+                    resolver,
+                    driver.getDataLib(),
+                    SIConstants.transactionKeepAliveInterval,
+                    new SystemClock());
+            TimestampSource timestampSource=driver.getTimestampSource();
             lifecycleStore = new StripedTxnLifecycleStore(SIConstants.transactionlockStripes,regionStore,new RegionServerControl(region),timestampSource);
             isTxnTable=true;
         }

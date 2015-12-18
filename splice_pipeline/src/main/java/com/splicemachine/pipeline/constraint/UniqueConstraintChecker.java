@@ -16,8 +16,8 @@ import java.io.IOException;
  *         Date: 3/14/14
  */
 public class UniqueConstraintChecker implements BatchConstraintChecker {
-    private OperationStatusFactory statusLib = SIDriver.getOperationStatusLib();
-    private final MutationStatus SUCCESS = statusLib.success();
+    private final OperationStatusFactory statusLib;
+    private final MutationStatus SUCCESS;
 
     private final WriteResult result;
     private final boolean isPrimaryKey;
@@ -26,10 +26,13 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
     private MutationStatus failure;
 
 
-    public UniqueConstraintChecker(boolean isPrimaryKey, ConstraintContext constraintContext) {
+    public UniqueConstraintChecker(boolean isPrimaryKey, ConstraintContext constraintContext,
+                                   OperationStatusFactory statusLib) {
         this.isPrimaryKey = isPrimaryKey;
         this.result = new WriteResult(isPrimaryKey ? Code.PRIMARY_KEY_VIOLATION : Code.UNIQUE_VIOLATION, constraintContext);
-//        this.failure = new OperationStatus(HConstants.OperationStatusCode.FAILURE, isPrimaryKey ? "PrimaryKey" : "UniqueConstraint");
+        this.statusLib = statusLib;
+        this.SUCCESS = statusLib.success();
+        this.failure = statusLib.failure(isPrimaryKey? "PrimaryKey": "UniqueConstraint");
     }
 
     @Override

@@ -32,8 +32,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Properties;
 
-public abstract class SpliceController<Data> implements ConglomerateController {
-		protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+public abstract class SpliceController implements ConglomerateController {
+		protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 		protected static Logger LOG = Logger.getLogger(SpliceController.class);
 		protected OpenSpliceConglomerate openSpliceConglomerate;
 		protected BaseSpliceTransaction trans;

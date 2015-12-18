@@ -29,8 +29,13 @@ public class ClientPartition implements Partition{
     }
 
     @Override
-    public String getName(){
+    public String getTableName(){
         return table.getName().getNameAsString();
+    }
+
+    @Override
+    public String getName(){
+        return getTableName();
     }
 
     @Override
@@ -185,5 +190,15 @@ public class ClientPartition implements Partition{
     @Override
     public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         return true;
+    }
+
+    @Override
+    public void writesRequested(long writeRequests){
+        //no-op
+    }
+
+    @Override
+    public void readsRequested(long readRequests){
+       //no-op
     }
 }

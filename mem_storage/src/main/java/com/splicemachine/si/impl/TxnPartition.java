@@ -44,6 +44,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public String getTableName(){
+        return "SPLICE_TXN";
+    }
+
+    @Override
     public String getName(){
         return basePartition.getName();
     }
@@ -207,6 +212,16 @@ public class TxnPartition implements Partition{
     @Override
     public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         return basePartition.containsRange(start,startOff,startLen,stop,stopOff,stopLen);
+    }
+
+    @Override
+    public void writesRequested(long writeRequests){
+        basePartition.writesRequested(writeRequests);
+    }
+
+    @Override
+    public void readsRequested(long readRequests){
+        basePartition.readsRequested(readRequests);
     }
 
     /* ****************************************************************************************************************/

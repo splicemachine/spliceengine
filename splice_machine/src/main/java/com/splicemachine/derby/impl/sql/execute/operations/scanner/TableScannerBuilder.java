@@ -249,7 +249,7 @@ public class TableScannerBuilder implements Externalizable {
 		public SITableScanner build(){
             if (fieldLengths != null) {
                 return new StatisticsScanner(
-                        SIDriver.siFactory.getDataLib(),
+                        SIDriver.driver().getDataLib(),
                         scanner,
                         region,
                         template,
@@ -270,7 +270,7 @@ public class TableScannerBuilder implements Externalizable {
             }
             else {
                 return new SITableScanner(
-                        SIDriver.siFactory.getDataLib(),
+                        SIDriver.driver().getDataLib(),
                         scanner,
                         region,
                         template,

@@ -7,6 +7,7 @@ import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.HMutationStatus;
 import com.splicemachine.storage.MutationStatus;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import java.io.IOException;
 
@@ -15,19 +16,45 @@ import java.io.IOException;
  * Created by jleach on 12/14/15.
  */
 public class HOperationStatusFactory implements OperationStatusFactory{
+    public static final HOperationStatusFactory INSTANCE = new HOperationStatusFactory();
+
     private static final ConstraintChecker NO_OP_CHECKER = new ConstraintChecker(){
         @Override
         public MutationStatus checkConstraint(KVPair mutation,DataResult existingRow) throws IOException{
             return HMutationStatus.success();
         }
     };
+
+    private HOperationStatusFactory(){}
+
     @Override
     public boolean processPutStatus(MutationStatus operationStatus) throws IOException{
-        return false;
+        OperationStatus opStat = ((HMutationStatus)operationStatus).unwrapDelegate();
+         switch (opStat.getOperationStatusCode()) {
+            case NOT_RUN:
+                throw new IOException("Could not acquire Lock");
+            case BAD_FAMILY:
+                throw new NoSuchColumnFamilyException(opStat.getExceptionMsg());
+            case SANITY_CHECK_FAILURE:
+                throw new IOException("Sanity Check failure:" + opStat.getExceptionMsg());
+            case FAILURE:
+                throw new IOException(opStat.getExceptionMsg());
+            default:
+                return true;
+         }
     }
 
     @Override
     public MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
+        switch (((HMutationStatus)oldStatus).unwrapDelegate().getOperationStatusCode()) {
+            case SUCCESS:
+                return status;
+            case NOT_RUN:
+            case BAD_FAMILY:
+            case SANITY_CHECK_FAILURE:
+            case FAILURE:
+                return oldStatus;
+        }
         return null;
     }
 
@@ -42,8 +69,8 @@ public class HOperationStatusFactory implements OperationStatusFactory{
     }
 
     @Override
-    public MutationStatus failure(String messsage){
-        return new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.FAILURE,messsage));
+    public MutationStatus failure(String message){
+        return new HMutationStatus(new OperationStatus(HConstants.OperationStatusCode.FAILURE,message));
     }
 
     @Override

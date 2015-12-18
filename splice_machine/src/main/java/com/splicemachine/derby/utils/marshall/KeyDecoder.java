@@ -13,7 +13,7 @@ import java.io.IOException;
  * Date: 11/15/13
  */
 public class KeyDecoder<Data> implements Closeable{
-		private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+		private static final SDataLib dataLib = SIDriver.driver().getDataLib();
 		private final KeyHashDecoder hashDecoder;
 		private final int prefixOffset;
 

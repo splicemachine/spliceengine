@@ -4,20 +4,19 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TransactionalFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.HTxnOperationFactory;
-import com.splicemachine.si.impl.SIFilterPacked;
-import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.HMutationStatus;
-import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.si.impl.txn.SITransactionReadController;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
@@ -45,18 +44,37 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
  */
 public class SIObserver extends BaseRegionObserver{
     private static Logger LOG=Logger.getLogger(SIObserver.class);
-    protected boolean tableEnvMatch=false;
-    protected TxnOperationFactory txnOperationFactory;
-    protected TransactionalRegion region;
+    private boolean tableEnvMatch=false;
+    private TxnOperationFactory<OperationWithAttributes,Get,Mutation,Put,Scan> txnOperationFactory;
+    private TransactionalRegion region;
+    private TransactionReadController<Cell,Get,Filter.ReturnCode,Scan> txnReadController;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
         SpliceLogUtils.trace(LOG,"starting %s",SIObserver.class);
-        tableEnvMatch=doesTableNeedSI(((RegionCoprocessorEnvironment)e).getRegion().getTableDesc().getTableName());
+        RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)e;
+        tableEnvMatch=doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
         if(tableEnvMatch){
-            txnOperationFactory=new HTxnOperationFactory(SIDriver.getDataLib(),SIDriver.getExceptionLib());
-            region=SIDriver.getTransactionalRegion(((RegionCoprocessorEnvironment)e).getRegion());
-            Tracer.traceRegion(region.getTableName(),((RegionCoprocessorEnvironment)e).getRegion());
+            HbaseSIEnvironment env=HbaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
+            SIDriver driver = env.getDriver();
+            //noinspection unchecked
+            txnOperationFactory=new HTxnOperationFactory(driver.getDataLib(),driver.getExceptionFactory());
+            //noinspection unchecked
+            txnReadController = new SITransactionReadController<>(
+                    driver.getDataStore(),
+                    driver.getTxnSupplier(),
+                    driver.getIgnoreTxnSupplier());
+            Partition regionPartition = new RegionPartition(rce.getRegion());
+            region=new TxnRegion(regionPartition,
+                    driver.getRollForward(),
+                    env.getReadResolver(rce.getRegion()), //TODO -sf- is there a cleaner way to do this?
+                    driver.getTxnSupplier(),
+                    driver.getIgnoreTxnSupplier(),
+                    driver.getDataStore(),
+                    driver.getTransactor(),
+                    driver.getOperationFactory()
+                    );
+            Tracer.traceRegion(region.getTableName(),rce.getRegion());
         }
         super.start(e);
     }
@@ -64,8 +82,6 @@ public class SIObserver extends BaseRegionObserver{
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException{
         SpliceLogUtils.trace(LOG,"stopping %s",SIObserver.class);
-        if(region!=null)
-            region.close();
         super.stop(e);
     }
 
@@ -73,7 +89,7 @@ public class SIObserver extends BaseRegionObserver{
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
         SpliceLogUtils.trace(LOG,"preGet %s",get);
         if(tableEnvMatch && shouldUseSI(get)){
-            SIDriver.getTransactionReadController().preProcessGet(get);
+            txnReadController.preProcessGet(get);
             assert (get.getMaxVersions()==Integer.MAX_VALUE);
             addSIFilterToGet(get);
         }
@@ -85,7 +101,7 @@ public class SIObserver extends BaseRegionObserver{
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException{
         SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
         if(tableEnvMatch && shouldUseSI(scan)){
-            SIDriver.getTransactionReadController().preProcessScan(scan);
+            txnReadController.preProcessScan(scan);
             assert (scan.getMaxVersions()==Integer.MAX_VALUE);
             addSIFilterToScan(scan);
         }
@@ -139,14 +155,14 @@ public class SIObserver extends BaseRegionObserver{
         boolean isSIDataOnly=true;
         //convert the put into a collection of KVPairs
         Map<byte[], Map<byte[], KVPair>> familyMap=Maps.newHashMap();
-        Iterable<KeyValue> keyValues=Iterables.concat(put.getFamilyMap().values());
-        for(KeyValue kv : keyValues){
-            byte[] family=kv.getFamily();
-            byte[] column=kv.getQualifier();
+        Iterable<Cell> keyValues=Iterables.concat(put.getFamilyCellMap().values());
+        for(Cell kv : keyValues){
+            @SuppressWarnings("deprecation") byte[] family=kv.getFamily();
+            @SuppressWarnings("deprecation") byte[] column=kv.getQualifier();
             if(!Bytes.equals(column,SIConstants.PACKED_COLUMN_BYTES)) continue; //skip SI columns
 
             isSIDataOnly=false;
-            byte[] value=kv.getValue();
+            @SuppressWarnings("deprecation") byte[] value=kv.getValue();
             Map<byte[], KVPair> columnMap=familyMap.get(family);
             if(columnMap==null){
                 columnMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -170,7 +186,8 @@ public class SIObserver extends BaseRegionObserver{
             byte[] fam=family.getKey();
             Map<byte[], KVPair> cols=family.getValue();
             for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
-                Iterable<MutationStatus> status=region.bulkWrite(txn,fam,column.getKey(),null,Collections.singleton(column.getValue()));
+                @SuppressWarnings("unchecked") Iterable<MutationStatus> status=
+                        region.bulkWrite(txn,fam,column.getKey(),null,Collections.singleton(column.getValue()));
                 Iterator<MutationStatus> itr= status.iterator();
                 if(!itr.hasNext())
                     throw new IllegalStateException();
@@ -218,13 +235,14 @@ public class SIObserver extends BaseRegionObserver{
     }
 
     private boolean shouldUseSI(Get get){
-        return SIDriver.getTransactionReadController().isFilterNeededGet(get);
+        return txnReadController.isFilterNeededGet(get);
     }
 
     private boolean shouldUseSI(Scan scan){
-        return SIDriver.getTransactionReadController().isFilterNeededScan(scan);
+        return txnReadController.isFilterNeededScan(scan);
     }
 
+    @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
     private static boolean doesTableNeedSI(TableName tableName){
         SpliceConstants.TableEnv tableEnv=EnvUtils.getTableEnv(tableName);
         SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableEnv);
@@ -232,13 +250,13 @@ public class SIObserver extends BaseRegionObserver{
                 SpliceConstants.TableEnv.META_TABLE.equals(tableEnv) ||
                 SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv) ||
                 SpliceConstants.TableEnv.HBASE_TABLE.equals(tableEnv)) return false;
-        if(SpliceConstants.TEST_TABLE.equals(tableName)) return false;
+        else if(SpliceConstants.TEST_TABLE.equals(tableName.getNameAsString())) return false;
         return true;
     }
 
     private Filter makeSIFilter(TxnView txn,Filter currentFilter,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
         TxnFilter txnFilter=region.packedFilter(txn,predicateFilter,countStar);
-        SIFilterPacked siFilter=new SIFilterPacked(txnFilter); //TODO -sf- add readController
+        @SuppressWarnings("unchecked") SIFilterPacked siFilter=new SIFilterPacked(txnFilter);
         if(currentFilter!=null){
             return composeFilters(orderFilters(currentFilter,siFilter));
         }else{

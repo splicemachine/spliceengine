@@ -6,7 +6,6 @@ import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.timestamp.api.TimestampSource;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -127,9 +126,9 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
             return createWritableTransaction(oldTs,isolationLevel,additive,parentTxn,destinationTable);
         else{
             if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
-                return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,additive);
+                return ReadOnlyTxn.createReadOnlyParentTransaction(oldTs,oldTs,isolationLevel,this,exceptionFactory,additive);
             }else{
-                return ReadOnlyTxn.createReadOnlyTransaction(oldTs,parentTxn,oldTs,isolationLevel,additive,this);
+                return ReadOnlyTxn.createReadOnlyTransaction(oldTs,parentTxn,oldTs,isolationLevel,additive,this,exceptionFactory);
             }
         }
     }
@@ -213,9 +212,9 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 */
         if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
             long beginTimestamp=timestampSource.nextTimestamp();
-            return ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp,beginTimestamp,isolationLevel,this,additive);
+            return ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp,beginTimestamp,isolationLevel,this,exceptionFactory,additive);
         }else{
-            return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this,additive);
+            return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this,additive,exceptionFactory);
         }
     }
 

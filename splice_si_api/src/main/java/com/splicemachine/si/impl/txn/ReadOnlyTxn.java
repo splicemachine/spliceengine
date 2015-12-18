@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -23,17 +24,19 @@ public class ReadOnlyTxn extends AbstractTxn{
     private AtomicReference<State> state=new AtomicReference<State>(State.ACTIVE);
     private final TxnLifecycleManager tc;
     private final boolean additive;
+    private final ExceptionFactory exceptionFactory;
 
-    public static Txn create(long txnId,IsolationLevel isolationLevel,TxnLifecycleManager tc){
-        return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,false);
+    public static Txn create(long txnId,IsolationLevel isolationLevel,TxnLifecycleManager tc,ExceptionFactory exceptionFactory){
+        return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,exceptionFactory,false);
     }
 
-    public static Txn wrapReadOnlyInformation(TxnView myInformation,TxnLifecycleManager control){
+    public static Txn wrapReadOnlyInformation(TxnView myInformation,TxnLifecycleManager control,ExceptionFactory exceptionFactory){
         return new ReadOnlyTxn(myInformation.getTxnId(),
                 myInformation.getBeginTimestamp(),
                 myInformation.getIsolationLevel(),
                 myInformation.getParentTxnView(),
                 control,
+                exceptionFactory,
                 myInformation.isAdditive());
     }
 
@@ -42,25 +45,28 @@ public class ReadOnlyTxn extends AbstractTxn{
                                                 long beginTs,
                                                 IsolationLevel level,
                                                 boolean additive,
-                                                TxnLifecycleManager control){
-        return new ReadOnlyTxn(txnId,beginTs,level,parentTxn,control,additive);
+                                                TxnLifecycleManager control,
+                                                ExceptionFactory exceptionFactory){
+        return new ReadOnlyTxn(txnId,beginTs,level,parentTxn,control,exceptionFactory,additive);
     }
 
     public static ReadOnlyTxn createReadOnlyChildTransaction(
             TxnView parentTxn,
             TxnLifecycleManager tc,
-            boolean additive){
+            boolean additive,
+            ExceptionFactory exceptionFactory){
         //make yourself a copy of the parent transaction, for the purposes of reading
         return new ReadOnlyTxn(parentTxn.getTxnId(),
-                parentTxn.getBeginTimestamp(),
-                parentTxn.getIsolationLevel(),parentTxn,tc,additive);
+                        parentTxn.getBeginTimestamp(),
+                        parentTxn.getIsolationLevel(),parentTxn,tc,exceptionFactory,additive);
     }
 
     public static ReadOnlyTxn createReadOnlyParentTransaction(long txnId,long beginTimestamp,
                                                               IsolationLevel isolationLevel,
                                                               TxnLifecycleManager tc,
+                                                              ExceptionFactory exceptionFactory,
                                                               boolean additive){
-        return new ReadOnlyTxn(txnId,beginTimestamp,isolationLevel,ROOT_TRANSACTION,tc,additive);
+        return new ReadOnlyTxn(txnId,beginTimestamp,isolationLevel,ROOT_TRANSACTION,tc,exceptionFactory,additive);
     }
 
     public ReadOnlyTxn(long txnId,
@@ -68,11 +74,13 @@ public class ReadOnlyTxn extends AbstractTxn{
                        IsolationLevel isolationLevel,
                        TxnView parentTxn,
                        TxnLifecycleManager tc,
+                       ExceptionFactory exceptionFactory,
                        boolean additive){
         super(txnId,beginTimestamp,isolationLevel);
         this.parentTxn=parentTxn;
         this.tc=tc;
         this.additive=additive;
+        this.exceptionFactory = exceptionFactory;
     }
 
     @Override
@@ -119,7 +127,7 @@ public class ReadOnlyTxn extends AbstractTxn{
                 case COMMITTED:
                     return;
                 case ROLLEDBACK:
-                    throw SIDriver.getSIFactory().getExceptionLib().cannotCommit(txnId,currState);
+                    throw exceptionFactory.cannotCommit(txnId,currState);
                 default:
                     shouldContinue=!state.compareAndSet(currState,State.COMMITTED);
             }

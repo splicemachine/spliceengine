@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.table;
+package com.splicemachine.hbase;
 
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;

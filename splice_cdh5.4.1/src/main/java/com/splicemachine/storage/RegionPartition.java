@@ -8,6 +8,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MeasuredListScanner;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -39,6 +40,11 @@ public class RegionPartition implements Partition{
 
     public RegionPartition(HRegion region){
         this.region=region;
+    }
+
+    @Override
+    public String getTableName(){
+        return region.getTableDesc().getTableName().getNameAsString();
     }
 
     @Override
@@ -233,5 +239,15 @@ public class RegionPartition implements Partition{
         else e = Bytes.copy(stop,stopOff,stopLen);
 
         return region.getRegionInfo().containsRange(s,e);
+    }
+
+    @Override
+    public void writesRequested(long writeRequests){
+        HRegionUtil.updateWriteRequests(region,writeRequests);
+    }
+
+    @Override
+    public void readsRequested(long readRequests){
+        HRegionUtil.updateReadRequests(region,readRequests);
     }
 }

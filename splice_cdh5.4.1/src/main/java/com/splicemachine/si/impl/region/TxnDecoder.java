@@ -25,10 +25,12 @@ import java.util.List;
 public interface TxnDecoder {
 
     TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Cell,Delete, Get,
-            Put,RegionScanner,Result,Scan> dataLib, long txnId, Result result) throws IOException;
+            Put,RegionScanner,Result,Scan> dataLib,
+                          RegionTxnStore txnStore,long txnId, Result result) throws IOException;
 
     TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Delete, Get,
-            Put, RegionScanner, Result, Scan> datalib,List<Cell> keyValues) throws IOException;
+            Put, RegionScanner, Result, Scan> datalib,
+                          RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
 
 	Put encodeForPut(TxnMessage.TxnInfo txn) throws IOException;
 

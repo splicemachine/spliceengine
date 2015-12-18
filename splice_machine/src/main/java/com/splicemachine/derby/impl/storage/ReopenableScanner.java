@@ -22,7 +22,7 @@ import java.io.IOException;
  */
 public abstract class ReopenableScanner {
     private static Logger LOG = Logger.getLogger(ReopenableScanner.class);
-    protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+    protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
     public static final int MAX_RETIRES = 10;
     private byte[] lastRow;
     private int numRetries;

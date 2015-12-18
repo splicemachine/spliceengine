@@ -1,5 +1,6 @@
 package com.splicemachine.si.testenv;
 
+import com.splicemachine.access.api.STableFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -29,8 +30,6 @@ public interface SITestEnv{
 
     Partition getPersonTable(TestTransactionSetup tts);
 
-    void configureSIDriver();
-
     DataFilterFactory getFilterFactory();
 
     ExceptionFactory getExceptionFactory();
@@ -38,4 +37,6 @@ public interface SITestEnv{
     OperationStatusFactory getOperationStatusFactory();
 
     TxnOperationFactory getOperationFactory();
+
+    STableFactory getTableFactory();
 }

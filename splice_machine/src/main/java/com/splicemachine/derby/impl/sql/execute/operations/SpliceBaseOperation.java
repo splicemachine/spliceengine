@@ -51,7 +51,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
         private static Logger LOG_CLOSE = Logger.getLogger(SpliceBaseOperation.class.getName() + ".close");
-        protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+        protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 		protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		/* Run time statistics variables */
 		public int numOpens;

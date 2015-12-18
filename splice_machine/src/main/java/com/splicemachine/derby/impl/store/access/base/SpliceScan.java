@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
-	protected static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+	protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 	protected static Logger LOG = Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;

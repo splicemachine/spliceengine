@@ -5,7 +5,6 @@ import com.splicemachine.si.impl.ManualKeepAliveScheduler;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
-import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -13,7 +12,6 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
-import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -49,7 +47,6 @@ public class TestTransactionSetup {
     public final TxnSupplier txnSupplier;
     public final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     public TxnLifecycleManager txnLifecycleManager;
-    public ReadResolver readResolver = NoOpReadResolver.INSTANCE; //test read-resolvers through different mechanisms
     private DataFilterFactory filterFactory;
 
     public TestTransactionSetup(SITestEnv testEnv, boolean simple) {
@@ -66,7 +63,7 @@ public class TestTransactionSetup {
 
         txnStore = testEnv.getTxnStore();
         txnSupplier = new CompletedTxnCacheSupplier(txnStore, 100, 16);
-        ignoreTxnSupplier = new IgnoreTxnCacheSupplier(testEnv.getDataLib());
+        ignoreTxnSupplier = testEnv.getIgnoreTxnStore();
         filterFactory = testEnv.getFilterFactory();
         lfManager.setTxnStore(txnStore);
         txnLifecycleManager = lfManager;

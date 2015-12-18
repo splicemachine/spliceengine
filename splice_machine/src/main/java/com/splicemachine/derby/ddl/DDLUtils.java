@@ -27,7 +27,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;

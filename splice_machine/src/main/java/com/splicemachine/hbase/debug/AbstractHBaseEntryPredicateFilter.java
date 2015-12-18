@@ -14,7 +14,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public abstract class AbstractHBaseEntryPredicateFilter<Data> extends FilterBase implements Writable {
-	private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+	private static final SDataLib dataLib = SIDriver.driver().getDataLib();
     private EntryPredicateFilter epf;
     private EntryAccumulator accumulator;
     private EntryDecoder decoder;

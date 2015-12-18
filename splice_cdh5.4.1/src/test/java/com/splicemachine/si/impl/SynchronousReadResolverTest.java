@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.access.api.STableFactory;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.impl.MockRegionUtils;
@@ -10,6 +11,7 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HDataLib;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -53,7 +55,7 @@ public class SynchronousReadResolverTest {
 
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(region, store, new RollForwardStatus(), control, false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance());
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance(),mock(STableFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
             @Override
@@ -76,7 +78,7 @@ public class SynchronousReadResolverTest {
         region.put(testPut);
 
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l, Txn.ROOT_TRANSACTION, 2l,
-                Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class));
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
         DataStore ds = TxnTestUtils.playDataStore(HDataLib.instance(),store,tc,HExceptionFactory.INSTANCE);
         SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier, ds );
 
@@ -100,7 +102,7 @@ public class SynchronousReadResolverTest {
         final TestingTimestampSource commitTsGenerator = new TestingTimestampSource();
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),commitTsGenerator,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance());
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance(),mock(STableFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
             @Override
@@ -123,7 +125,7 @@ public class SynchronousReadResolverTest {
         region.put(testPut);
 
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(3l, Txn.ROOT_TRANSACTION, 3l,
-                Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class));
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
         DataStore ds = TxnTestUtils.playDataStore(HDataLib.instance(),store,tc,HExceptionFactory.INSTANCE);
         SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier, ds );
 
@@ -149,7 +151,7 @@ public class SynchronousReadResolverTest {
         HRegion region = MockRegionUtils.getMockRegion();
 
         TestingTimestampSource timestampSource = new TestingTimestampSource();
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance());
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance(),mock(STableFactory.class));
         TxnStore store = new TestingTxnStore(new IncrementingClock(),timestampSource,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(region, store, new RollForwardStatus(), GreenLight.INSTANCE, false);
 

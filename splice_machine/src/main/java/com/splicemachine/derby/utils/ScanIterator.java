@@ -14,7 +14,7 @@ import java.io.IOException;
  *         Created on: 11/2/13
  */
 public class ScanIterator implements StandardIterator<ExecRow>{
-	private static final SDataLib dataLib = SIDriver.siFactory.getDataLib();
+	private static final SDataLib dataLib = SIDriver.driver().getDataLib();
     private final SpliceResultScanner scanner;
     private final PairDecoder rowDecoder;
 

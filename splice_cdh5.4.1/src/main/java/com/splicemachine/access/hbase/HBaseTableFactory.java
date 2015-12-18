@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
 
 import javax.annotation.Nullable;
@@ -26,7 +27,7 @@ public class HBaseTableFactory implements STableFactory<TableName>{
     protected HBaseTableInfoFactory hbaseTableInfoFactory;
     private static HBaseTableFactory INSTANCE=new HBaseTableFactory();
 
-    protected HBaseTableFactory(){
+    public HBaseTableFactory(){
         try{
             connection=HBaseConnectionFactory.getInstance().getConnection();
             hbaseTableInfoFactory=HBaseTableInfoFactory.getInstance();
@@ -80,4 +81,7 @@ public class HBaseTableFactory implements STableFactory<TableName>{
         return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getRegionLocation(startRow);
     }
 
+    public Table getRawTable(TableName tableName) throws IOException{
+        return connection.getTable(tableName);
+    }
 }

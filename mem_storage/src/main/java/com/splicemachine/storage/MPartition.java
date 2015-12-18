@@ -8,11 +8,13 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MappedDataResultScanner;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -21,14 +23,24 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Scott Fines
  *         Date: 12/16/15
  */
+@ThreadSafe
 public class MPartition implements Partition{
     private final String partitionName;
+    private final String tableName;
 
     private final ConcurrentSkipListSet<DataCell> memstore = new ConcurrentSkipListSet<>();
     private final BiMap<ByteBuffer,Lock> lockMap =HashBiMap.create();
+    private AtomicLong writes = new AtomicLong(0l);
+    private AtomicLong reads = new AtomicLong(0l);
 
-    public MPartition(String partitionName){
+    public MPartition(String tableName,String partitionName){
         this.partitionName=partitionName;
+        this.tableName = tableName;
+    }
+
+    @Override
+    public String getTableName(){
+        return tableName;
     }
 
     @Override public String getName(){ return partitionName; }
@@ -224,6 +236,16 @@ public class MPartition implements Partition{
     @Override
     public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         return true;
+    }
+
+    @Override
+    public void writesRequested(long writeRequests){
+        writes.addAndGet(writeRequests);
+    }
+
+    @Override
+    public void readsRequested(long readRequests){
+       reads.addAndGet(readRequests);
     }
 
     /* ****************************************************************************************************************/

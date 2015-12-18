@@ -1,4 +1,4 @@
-package com.splicemachine.utils;
+package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;

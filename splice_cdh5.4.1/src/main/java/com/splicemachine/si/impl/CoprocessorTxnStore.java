@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl.txnclient;
+package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.google.common.collect.Iterators;
@@ -13,14 +13,14 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.access.hbase.HBaseTableFactory;
-import com.splicemachine.hbase.table.SpliceRpcController;
+import com.splicemachine.hbase.SpliceRpcController;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.txn.InheritingTxnView;
-import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -69,9 +69,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public void recordNewTransaction(Txn txn) throws IOException {
-        Table table = null;
-        try {
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             byte[] rowKey=getTransactionRowKey(txn.getTxnId());
 
             TxnMessage.TxnInfo.Builder request=TxnMessage.TxnInfo.newBuilder()
@@ -92,6 +90,7 @@ public class CoprocessorTxnStore implements TxnStore {
             }
             if(bytes!=null){
                 MultiFieldEncoder encoder=MultiFieldEncoder.create(bytes.size());
+                //noinspection ForLoopReplaceableByForEach
                 for(int i=0;i<bytes.size();i++){
                     encoder=encoder.encodeNextUnsorted(bytes.get(i));
                 }
@@ -104,58 +103,46 @@ public class CoprocessorTxnStore implements TxnStore {
             service.beginTransaction(controller,request.build(),new BlockingRpcCallback<TxnMessage.VoidResponse>());
             dealWithError(controller);
             txnsCreated.incrementAndGet();
-        }finally{
-            table.close();
         }
     }
 
 
     @Override
     public void rollback(long txnId) throws IOException{
-        Table table = null;
-        try{
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             byte[] rowKey=getTransactionRowKey(txnId);
             TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
             TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage.TxnLifecycleMessage.newBuilder()
                     .setTxnId(txnId).setAction(TxnMessage.LifecycleAction.ROLLBACk).build();
 
             SpliceRpcController controller=new SpliceRpcController();
-            BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<TxnMessage.ActionResponse>();
+            BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<>();
             service.lifecycleAction(controller,lifecycle,done);
             dealWithError(controller);
             rollbacks.incrementAndGet();
-        }finally{
-            table.close();
         }
     }
 
     @Override
     public long commit(long txnId) throws IOException{
-        Table table = null;
-        try{
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             byte[] rowKey=getTransactionRowKey(txnId);
             TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
             TxnMessage.TxnLifecycleMessage lifecycle=TxnMessage.TxnLifecycleMessage.newBuilder()
                     .setTxnId(txnId).setAction(TxnMessage.LifecycleAction.COMMIT).build();
 
             SpliceRpcController controller=new SpliceRpcController();
-            BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<TxnMessage.ActionResponse>();
+            BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<>();
             service.lifecycleAction(controller,lifecycle,done);
             dealWithError(controller);
             commits.incrementAndGet();
             return done.get().getCommitTs();
-        }finally{
-            table.close();
         }
     }
 
     @Override
     public boolean keepAlive(long txnId) throws IOException{
-        Table table = null;
-        try{
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             byte[] rowKey=getTransactionRowKey(txnId);
             TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
 
@@ -163,20 +150,16 @@ public class CoprocessorTxnStore implements TxnStore {
                     .setTxnId(txnId).setAction(TxnMessage.LifecycleAction.KEEPALIVE).build();
 
             SpliceRpcController controller=new SpliceRpcController();
-            BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<TxnMessage.ActionResponse>();
+            BlockingRpcCallback<TxnMessage.ActionResponse> done=new BlockingRpcCallback<>();
             service.lifecycleAction(controller,lifecycle,done);
             dealWithError(controller);
             return done.get().getContinue();
-        }finally{
-            table.close();
         }
     }
 
     @Override
     public void elevateTransaction(Txn txn,byte[] newDestinationTable) throws IOException{
-        Table table = null;
-        try{
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             byte[] rowKey=getTransactionRowKey(txn.getTxnId());
             TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
             TxnMessage.ElevateRequest elevateRequest=TxnMessage.ElevateRequest.newBuilder()
@@ -187,8 +170,6 @@ public class CoprocessorTxnStore implements TxnStore {
             service.elevateTransaction(controller,elevateRequest,new BlockingRpcCallback<TxnMessage.VoidResponse>());
             dealWithError(controller);
             elevations.incrementAndGet();
-        }finally{
-            table.close();
         }
     }
 
@@ -199,9 +180,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public long[] getActiveTransactionIds(final long minTxnId,final long maxTxnId,final byte[] writeTable) throws IOException{
-        Table table = null;
-        try{
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
                     .newBuilder().setStartTxnId(minTxnId).setEndTxnId(maxTxnId);
             if(writeTable!=null)
@@ -213,7 +192,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         @Override
                         public TxnMessage.ActiveTxnIdResponse call(TxnMessage.TxnLifecycleService instance) throws IOException{
                             SpliceRpcController controller=new SpliceRpcController();
-                            BlockingRpcCallback<TxnMessage.ActiveTxnIdResponse> response=new BlockingRpcCallback<TxnMessage.ActiveTxnIdResponse>();
+                            BlockingRpcCallback<TxnMessage.ActiveTxnIdResponse> response=new BlockingRpcCallback<>();
 
                             instance.getActiveTransactionIds(controller,request,response);
                             dealWithError(controller);
@@ -234,16 +213,12 @@ public class CoprocessorTxnStore implements TxnStore {
 
         }catch(Throwable throwable){
             throw new IOException(throwable);
-        }finally{
-            table.close();
         }
     }
 
     @Override
     public List<TxnView> getActiveTransactions(final long minTxnid,final long maxTxnId,final byte[] activeTable) throws IOException{
-        Table table = null;
-        try{
-            table = tableFactory.getTable(TABLE_NAME);
+        try(Table table = tableFactory.getRawTable(TABLE_NAME)){
             TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
                     .newBuilder().setStartTxnId(minTxnid).setEndTxnId(maxTxnId);
             if(activeTable!=null)
@@ -255,7 +230,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         @Override
                         public TxnMessage.ActiveTxnResponse call(TxnMessage.TxnLifecycleService instance) throws IOException{
                             SpliceRpcController controller=new SpliceRpcController();
-                            BlockingRpcCallback<TxnMessage.ActiveTxnResponse> response=new BlockingRpcCallback<TxnMessage.ActiveTxnResponse>();
+                            BlockingRpcCallback<TxnMessage.ActiveTxnResponse> response=new BlockingRpcCallback<>();
 
                             instance.getActiveTransactions(controller,request,response);
                             dealWithError(controller);
@@ -285,8 +260,6 @@ public class CoprocessorTxnStore implements TxnStore {
 
         }catch(Throwable throwable){
             throw new IOException(throwable);
-        }finally{
-            table.close();
         }
     }
 
@@ -298,22 +271,18 @@ public class CoprocessorTxnStore implements TxnStore {
     @Override
     public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
         lookups.incrementAndGet(); //we are performing a lookup, so increment the counter
-        Table table = null;
-        try {
-            table = tableFactory.getTable(TABLE_NAME);
+        try (Table table = tableFactory.getRawTable(TABLE_NAME)){
             byte[] rowKey=getTransactionRowKey(txnId);
             TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
             TxnMessage.TxnRequest request=TxnMessage.TxnRequest.newBuilder().setTxnId(txnId).build();
             SpliceRpcController controller=new SpliceRpcController();
-            BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<TxnMessage.Txn>();
+            BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
             service.getTransaction(controller,request,done);
             dealWithError(controller);
             TxnMessage.Txn messageTxn=done.get();
             return decode(messageTxn);
         } catch(Throwable throwable){
             throw new IOException(throwable);
-        }finally{
-            table.close();
         }
     }
 
