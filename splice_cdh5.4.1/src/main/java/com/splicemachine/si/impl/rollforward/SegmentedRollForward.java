@@ -320,7 +320,7 @@ public class SegmentedRollForward implements RollForward {
 
 
     private RegionSegment getSegment(ByteSlice rowKey,int start,int stop){
-        int pos=(stop+start)/2;
+        int pos=(stop+start)>>>1;
         RegionSegment segment=segments[pos];
         int p=segment.position(rowKey);
         if(p==0) return segment;
@@ -332,7 +332,7 @@ public class SegmentedRollForward implements RollForward {
     }
 
     private RegionSegment getSegment(byte[] rowKey,int start,int stop){
-        int pos=(stop+start)/2;
+        int pos=(stop+start)>>>1;
         RegionSegment seg=segments[pos];
         int p=seg.position(rowKey);
         if(p==0)

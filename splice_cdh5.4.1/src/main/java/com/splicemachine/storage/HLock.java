@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ public class HLock implements Lock{
     private HRegion region;
     private final byte[] key;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public HLock(HRegion region,byte[] key){
         this.key = key;
         this.region = region;

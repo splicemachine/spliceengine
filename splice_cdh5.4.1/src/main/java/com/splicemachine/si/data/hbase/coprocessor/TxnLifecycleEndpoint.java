@@ -21,6 +21,7 @@ import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
@@ -117,6 +118,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public void lifecycleAction(RpcController controller,TxnMessage.TxnLifecycleMessage request,RpcCallback<TxnMessage.ActionResponse> done){
         try{
             TxnMessage.ActionResponse response=null;

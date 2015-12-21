@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * @author Scott Fines
@@ -85,13 +86,18 @@ public class MeasuredResultScanner implements ResultScanner{
         private Result currResult;
         @Override
         public boolean hasNext(){
-            currResult = next();
+            try{
+                currResult=MeasuredResultScanner.this.next();
+            }catch(IOException e){
+                throw new RuntimeException(e);
+            }
             return currResult!=null;
         }
 
         @Override
         public Result next(){
             Result r = currResult;
+            if(r==null) throw new NoSuchElementException();
             currResult = null;
             return r;
         }

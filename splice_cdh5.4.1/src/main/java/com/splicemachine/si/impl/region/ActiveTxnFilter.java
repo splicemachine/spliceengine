@@ -6,6 +6,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -36,6 +37,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private boolean committed = false;
     private MultiFieldDecoder fieldDecoder;
     
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> datalib,
                            RegionTxnStore txnStore,
                            long beforeTs,

@@ -2,6 +2,7 @@ package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -16,6 +17,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+@SuppressFBWarnings(value={"IC_SUPERCLASS_USES_SUBCLASS_DURING_INITIALIZATION","MS_PKGPROTECT","MS_MUTABLE_ARRAY","MS_CANNOT_BE_FINAL"}, justification="not a problem for static fields, or was intentionally done")
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
@@ -42,6 +44,7 @@ public class SpliceConstants {
     /**
      * Ignore SavePts flag for experimental TPCC testing.
      */
+    @SuppressFBWarnings("MS_SHOULD_BE_FINAL")
     @Parameter public static final String IGNORE_SAVEPTS = "splice.ignore.savepts";
     @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
     public static boolean ignoreSavePts;
@@ -139,7 +142,7 @@ public class SpliceConstants {
     }
 
     // Splice Configuration
-    public static Configuration config = SpliceConfiguration.create();
+    public static final Configuration config = SpliceConfiguration.create();
 
     /**
      * The Path in zookeeper for broadcasting messages to all servers
@@ -984,7 +987,7 @@ public class SpliceConstants {
     public static int maxFlushesPerRegion;
 
     public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
-    public static int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
+    public static final int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
     public static int batchOnceBatchSize;
 
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
@@ -1049,7 +1052,7 @@ public class SpliceConstants {
         maxConcurrentWrites = config.getInt(MAX_CONCURRENT_WRITES, DEFAULT_MAX_CONCURRENT_WRITES);
         maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
         maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
-        try { HBASE_ROOT_DIR = FSUtils.getRootDir(config); } catch (IOException e) {}
+        try { HBASE_ROOT_DIR = FSUtils.getRootDir(config); } catch (IOException e) { throw new RuntimeException(e);}
         remoteRead = config.getDouble(OPTIMIZER_REMOTE_READ, DEFAULT_OPTIMIZER_REMOTE_READ);
         maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
@@ -1150,7 +1153,6 @@ public class SpliceConstants {
 
         maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
 
-        long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
         tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,100*1024 * 1024 * 1024L); // 100 Gigs...
 
         collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
@@ -1166,7 +1168,7 @@ public class SpliceConstants {
         upgradeForced = config.getBoolean(UPGRADE_FORCED, DEFAULT_UPGRADE_FORCED);
         upgradeForcedFromVersion = config.get(UPGRADE_FORCED_FROM, DEFAULT_UPGRADE_FORCED_FROM);
         spliceNamespace = config.get(SPLICE_NAMESPACE,DEFAULT_SPLICE_NAMESPACE);
-        spliceNamespaceBytes = spliceNamespace.getBytes();
+        spliceNamespaceBytes = Bytes.toBytes(spliceNamespace);
 
         numRollForwardSegments = config.getInt(ROLL_FORWARD_SEGMENTS,DEFAULT_ROLLFORWARD_SEGMENTS);
         rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);

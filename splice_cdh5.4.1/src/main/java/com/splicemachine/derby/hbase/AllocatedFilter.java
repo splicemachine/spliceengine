@@ -4,6 +4,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.constants.SIConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.FilterBase;
@@ -25,6 +26,7 @@ public class AllocatedFilter extends FilterBase implements Writable{
         super();
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public AllocatedFilter(byte[] localAddress){
         this.addressMatch=localAddress;
         this.foundMatch=false;

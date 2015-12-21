@@ -72,6 +72,7 @@ public class HBaseTableFactory implements STableFactory<TableName>{
         return Lists.newArrayList(Iterables.filter(locations,new Predicate<HRegionLocation>(){
             @Override
             public boolean apply(@Nullable HRegionLocation hRegionLocation){
+                assert hRegionLocation!=null;
                 return BaseHRegionUtil.containsRange(hRegionLocation.getRegionInfo(),startRow,stopRow);
             }
         }));

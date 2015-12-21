@@ -1,5 +1,6 @@
 package com.splicemachine.constants;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 
@@ -7,6 +8,7 @@ import org.apache.hadoop.hbase.HConstants;
  * Defines the schema used by SI for the transaction table and for additional metadata on data tables.
  */
 
+@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL",justification = "Intentional")
 public class SIConstants extends SpliceConstants {
     static {
         setParameters();

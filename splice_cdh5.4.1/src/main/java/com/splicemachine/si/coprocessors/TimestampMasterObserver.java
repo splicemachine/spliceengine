@@ -1,7 +1,10 @@
 package com.splicemachine.si.coprocessors;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
@@ -28,8 +31,9 @@ public class TimestampMasterObserver extends BaseMasterObserver {
         
         ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
         RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
+        TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,SIConstants.zkSpliceMaxReservedTimestampPath);
+        this.timestampServer =new TimestampServer(SIConstants.timestampServerBindPort,tbm,SIConstants.timestampBlockSize);
 
-//        this.timestampServer = SIDriver.getTimestampServer();
         this.timestampServer.startServer();
         
         super.start(ctx);

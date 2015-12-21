@@ -1,6 +1,8 @@
 package com.splicemachine.hbase;
 
 import java.util.Comparator;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
@@ -12,6 +14,7 @@ import org.apache.hadoop.hbase.util.Pair;
  *
  */
 @Deprecated
+@SuppressFBWarnings(value = "SE_COMPARATOR_SHOULD_BE_SERIALIZABLE",justification = "Serialization unnecessary")
 public class RegionCacheComparator implements Comparator<Pair<HRegionInfo,ServerName>>{
 
 	@Override

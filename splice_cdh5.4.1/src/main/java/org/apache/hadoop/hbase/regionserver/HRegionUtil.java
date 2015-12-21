@@ -1,40 +1,37 @@
 package org.apache.hadoop.hbase.regionserver;
 
-import java.io.IOException;
-import java.util.*;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.*;
+
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES;
 
 /**
  * Class for accessing protected methods in HBase.
- * 
- * @author johnleach
  *
+ * @author johnleach
  */
-public class HRegionUtil extends BaseHRegionUtil {
-    private static final Logger LOG = Logger.getLogger(HRegionUtil.class);
-    public static KeyExists keyExists;
+public class HRegionUtil extends BaseHRegionUtil{
+    private static final Logger LOG=Logger.getLogger(HRegionUtil.class);
+    public static final KeyExists keyExists;
 
-		public static void lockStore(Store store) {
-			((HStore)store).lock.readLock().lock();
-		}
+    public static void lockStore(Store store){
+        ((HStore)store).lock.readLock().lock();
+    }
 
-		public static void unlockStore(Store store){
-			((HStore)store).lock.readLock().unlock();
-		}
+    public static void unlockStore(Store store){
+        ((HStore)store).lock.readLock().unlock();
+    }
 
-    public static void startRegionOperation(HRegion region) throws IOException {
+    public static void startRegionOperation(HRegion region) throws IOException{
         region.startRegionOperation();
     }
 
@@ -47,18 +44,18 @@ public class HRegionUtil extends BaseHRegionUtil {
      * @return
      * @throws IOException
      */
-    public static boolean keyExists(Store store, byte[] key) throws IOException {
-        return keyExists.keyExists(store, key);
+    public static boolean keyExists(Store store,byte[] key) throws IOException{
+        return keyExists.keyExists(store,key);
     }
 
-    protected static boolean checkMemstoreSet(SortedSet<Cell> set, byte[] key, Cell kv) {
+    protected static boolean checkMemstoreSet(SortedSet<Cell> set,byte[] key,Cell kv){
         Cell placeHolder;
-        try {
-            SortedSet<Cell> kvset = set.tailSet(kv);
-            placeHolder = kvset.isEmpty() ? null : kvset.first();
-            if (placeHolder != null && CellUtil.matchingRow(placeHolder, key))
+        try{
+            SortedSet<Cell> kvset=set.tailSet(kv);
+            placeHolder=kvset.isEmpty()?null:kvset.first();
+            if(placeHolder!=null && CellUtil.matchingRow(placeHolder,key))
                 return true;
-        } catch (NoSuchElementException ignored) {
+        }catch(NoSuchElementException ignored){
         } // This keeps us from constantly performing key value comparisons for empty set
         return false;
     }
@@ -67,30 +64,32 @@ public class HRegionUtil extends BaseHRegionUtil {
         region.closeRegionOperation();
     }
 
-    public static void updateWriteRequests(HRegion region, long numWrites) {
+    public static void updateWriteRequests(HRegion region,long numWrites){
         HBasePlatformUtils.updateWriteRequests(region,numWrites);
     }
 
-    public static void updateReadRequests(HRegion region, long numReads) {
+    public static void updateReadRequests(HRegion region,long numReads){
         HBasePlatformUtils.updateReadRequests(region,numReads);
     }
 
 
-    public static boolean containsRange(HRegionInfo region, byte[] taskStart, byte[] taskEnd) {
-        byte[] regionStart = region.getStartKey();
+    public static boolean containsRange(HRegionInfo region,byte[] taskStart,byte[] taskEnd){
+        byte[] regionStart=region.getStartKey();
 
         if(regionStart.length!=0){
             if(taskStart.length==0) return false;
-            if(taskEnd.length!=0 && Bytes.compareTo(taskEnd,taskStart)<=0) return false; //task end is before region start
+            if(taskEnd.length!=0 && Bytes.compareTo(taskEnd,taskStart)<=0)
+                return false; //task end is before region start
 
             //make sure taskStart >= regionStart
             if(Bytes.compareTo(regionStart,taskStart)>0) return false; //task start is before region start
         }
 
-        byte[] regionStop = region.getEndKey();
+        byte[] regionStop=region.getEndKey();
         if(regionStop.length!=0){
             if(taskEnd.length==0) return false;
-            if(taskStart.length!=0 && Bytes.compareTo(taskStart,regionStop)>=0) return false; //task start is after region stop
+            if(taskStart.length!=0 && Bytes.compareTo(taskStart,regionStop)>=0)
+                return false; //task start is after region stop
 
             if(Bytes.compareTo(regionStop,taskEnd)<0) return false; //task goes past end of region
         }
@@ -102,109 +101,110 @@ public class HRegionUtil extends BaseHRegionUtil {
      * specified HRegionInfo
      *
      * @param info HRegionInfo that specifies the row range
-     * @param row row to be checked
+     * @param row  row to be checked
      * @return true if the row is within the range specified by the HRegionInfo
      */
-    public static boolean containsRow(HRegionInfo info,byte[] row, int rowOffset,int rowLength){
-        byte[] startKey = info.getStartKey();
-        byte[] endKey = info.getEndKey();
-        return ((startKey.length == 0) ||
-                (Bytes.compareTo(startKey,0,startKey.length, row,rowOffset,rowLength) <= 0)) &&
-                ((endKey.length == 0) ||
-                        (Bytes.compareTo(endKey,0,endKey.length,row,rowOffset,rowLength) > 0));
+    public static boolean containsRow(HRegionInfo info,byte[] row,int rowOffset,int rowLength){
+        byte[] startKey=info.getStartKey();
+        byte[] endKey=info.getEndKey();
+        return ((startKey.length==0) ||
+                (Bytes.compareTo(startKey,0,startKey.length,row,rowOffset,rowLength)<=0)) &&
+                ((endKey.length==0) ||
+                        (Bytes.compareTo(endKey,0,endKey.length,row,rowOffset,rowLength)>0));
     }
 
-    public static boolean containsRange(HRegion region, byte[] taskStart, byte[] taskEnd) {
-        byte[] regionStart = region.getRegionInfo().getStartKey();
+    public static boolean containsRange(HRegion region,byte[] taskStart,byte[] taskEnd){
+        byte[] regionStart=region.getRegionInfo().getStartKey();
 
-        if (regionStart.length != 0) {
-            if (taskStart.length == 0) return false;
-            if (taskEnd.length != 0 && Bytes.compareTo(taskEnd, taskStart) <= 0)
+        if(regionStart.length!=0){
+            if(taskStart.length==0) return false;
+            if(taskEnd.length!=0 && Bytes.compareTo(taskEnd,taskStart)<=0)
                 return false; //task end is before region start
 
             //make sure taskStart >= regionStart
-            if (Bytes.compareTo(regionStart, taskStart) > 0) return false; //task start is before region start
+            if(Bytes.compareTo(regionStart,taskStart)>0) return false; //task start is before region start
         }
 
-        byte[] regionStop = region.getRegionInfo().getEndKey();
-        if (regionStop.length != 0) {
-            if (taskEnd.length == 0) return false;
-            if (taskStart.length != 0 && Bytes.compareTo(taskStart, regionStop) >= 0)
+        byte[] regionStop=region.getRegionInfo().getEndKey();
+        if(regionStop.length!=0){
+            if(taskEnd.length==0) return false;
+            if(taskStart.length!=0 && Bytes.compareTo(taskStart,regionStop)>=0)
                 return false; //task start is after region stop
 
-            if (Bytes.compareTo(regionStop, taskEnd) < 0) return false; //task goes past end of region
+            if(Bytes.compareTo(regionStop,taskEnd)<0) return false; //task goes past end of region
         }
 
         return true;
     }
-    
-    public static long getBlocksToRead(Store store, byte[] start, byte[] end) throws IOException {
-    	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
-	     Collection<StoreFile> storeFiles;
-	      storeFiles = store.getStorefiles();
-	      HFileBlockIndex.BlockIndexReader fileReader;
-	      long sizeOfBlocks = 0;
-	      for (StoreFile file: storeFiles) {
-	    	  if (file != null) {
-	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
-	    		  int size = fileReader.getRootBlockCount();
-	    		  for (int i =0; i<size;i++) {
-	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
-	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) // Do not include cutpoints out of bounds
-	    				  sizeOfBlocks+=fileReader.getRootBlockDataSize(i);
-	    		  }
-	    	  }  
-	      }
-	      return sizeOfBlocks;
+
+    public static long getBlocksToRead(Store store,byte[] start,byte[] end) throws IOException{
+        assert Bytes.compareTo(start,end)<=0 || start.length==0 || end.length==0;
+        Collection<StoreFile> storeFiles;
+        storeFiles=store.getStorefiles();
+        HFileBlockIndex.BlockIndexReader fileReader;
+        long sizeOfBlocks=0;
+        for(StoreFile file : storeFiles){
+            if(file!=null){
+                fileReader=file.createReader().getHFileReader().getDataBlockIndexReader();
+                int size=fileReader.getRootBlockCount();
+                for(int i=0;i<size;i++){
+                    byte[] possibleCutpoint=KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
+                    if((start.length==0 || Bytes.compareTo(start,possibleCutpoint)<0) && (end.length==0 || Bytes.compareTo(end,possibleCutpoint)>0)) // Do not include cutpoints out of bounds
+                        sizeOfBlocks+=fileReader.getRootBlockDataSize(i);
+                }
+            }
+        }
+        return sizeOfBlocks;
     }
-    
-    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
-    	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "getCutpoints");
-	    Collection<StoreFile> storeFiles;
-	      storeFiles = store.getStorefiles();
-	      HFileBlockIndex.BlockIndexReader fileReader;
-	      List<byte[]> cutPoints = new ArrayList<byte[]>();
-	      for (StoreFile file: storeFiles) {
-	    	  if (file != null) {
-                  long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
-                  if (LOG.isTraceEnabled())
-	    	    		SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d",file.getPath(),storeFileInBytes);
-	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
-	    		  int size = fileReader.getRootBlockCount();
-                  long incrementalSize = size==0?storeFileInBytes:storeFileInBytes/(long) size;
-                  int blockCounter = 0;
-	    		  long lastOffset = 0;
-	    		  for (int i =0; i<size;i++) {
-                      blockCounter += incrementalSize;
-                      if (LOG.isTraceEnabled())
-                    	  SpliceLogUtils.trace(LOG, "block %d, with blockCounter=%d",i,blockCounter);
-	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
-	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) { // Do not include cutpoints out of bounds
-                          if (blockCounter >= SIConstants.splitBlockSize) {
-                        	  lastOffset = fileReader.getRootBlockOffset(i);
-                              blockCounter = 0;
-                              cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
-                          }
-                      }
-	    		  }
-	    	  }  
-	      }
-	      if (storeFiles.size() > 1) { 	    	  // have to sort, hopefully will not happen a lot if major compaction is working properly...
-	    	  Collections.sort(cutPoints, new Comparator<byte[]>() {
-				@Override
-				public int compare(byte[] left, byte[] right) {
-					return Bytes.compareTo(left, right) ;
-				}});
-	      }
-	      return cutPoints;
+
+    public static List<byte[]> getCutpoints(Store store,byte[] start,byte[] end) throws IOException{
+        assert Bytes.compareTo(start,end)<=0 || start.length==0 || end.length==0;
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getCutpoints");
+        Collection<StoreFile> storeFiles;
+        storeFiles=store.getStorefiles();
+        HFileBlockIndex.BlockIndexReader fileReader;
+        List<byte[]> cutPoints=new ArrayList<byte[]>();
+        for(StoreFile file : storeFiles){
+            if(file!=null){
+                long storeFileInBytes=file.getFileInfo().getFileStatus().getLen();
+                if(LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG,"getCutpoints with file=%s with size=%d",file.getPath(),storeFileInBytes);
+                fileReader=file.createReader().getHFileReader().getDataBlockIndexReader();
+                int size=fileReader.getRootBlockCount();
+                long incrementalSize=size==0?storeFileInBytes:storeFileInBytes/(long)size;
+                int blockCounter=0;
+                long lastOffset=0;
+                for(int i=0;i<size;i++){
+                    blockCounter+=incrementalSize;
+                    if(LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG,"block %d, with blockCounter=%d",i,blockCounter);
+                    byte[] possibleCutpoint=KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
+                    if((start.length==0 || Bytes.compareTo(start,possibleCutpoint)<0) && (end.length==0 || Bytes.compareTo(end,possibleCutpoint)>0)){ // Do not include cutpoints out of bounds
+                        if(blockCounter>=SIConstants.splitBlockSize){
+                            lastOffset=fileReader.getRootBlockOffset(i);
+                            blockCounter=0;
+                            cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
+                        }
+                    }
+                }
+            }
+        }
+        if(storeFiles.size()>1){              // have to sort, hopefully will not happen a lot if major compaction is working properly...
+            Collections.sort(cutPoints,new Comparator<byte[]>(){
+                @Override
+                public int compare(byte[] left,byte[] right){
+                    return Bytes.compareTo(left,right);
+                }
+            });
+        }
+        return cutPoints;
     }
-    
-    static {
-        keyExists = new LogNKeyExists();
+
+    static{
+        keyExists=new LogNKeyExists();
         /*
-		try {
+        try {
 			KeyValueSkipListSet test = new KeyValueSkipListSet(KeyValue.COMPARATOR);
 			KeyValue keyValue = new KeyValue(Bytes.toBytes("sdf"),Bytes.toBytes("sdf"),Bytes.toBytes("sdf"),
 			Bytes.toBytes("sdf"));
@@ -217,24 +217,24 @@ public class HRegionUtil extends BaseHRegionUtil {
 		*/
     }
 
-    public interface KeyExists {
-        public boolean keyExists(Store store, byte[] key) throws IOException;    	
+    public interface KeyExists{
+        public boolean keyExists(Store store,byte[] key) throws IOException;
     }
 
-    static class LogNKeyExists implements KeyExists {
+    static class LogNKeyExists implements KeyExists{
         // TODO: jc - using package access classes, methods and instance members is advised against
         @Override
-        public boolean keyExists(Store store, byte[] key) throws IOException {
-            if (key == null)
+        public boolean keyExists(Store store,byte[] key) throws IOException{
+            if(key==null)
                 return false;
-            if (! (store instanceof HStore)) {
+            if(!(store instanceof HStore)){
                 return false;
             }
-            HStore hstore = (HStore)store;
+            HStore hstore=(HStore)store;
             hstore.lock.readLock().lock();
             Collection<StoreFile> storeFiles;
-            try {
-                storeFiles = store.getStorefiles();
+            try{
+                storeFiles=store.getStorefiles();
                 /*
                  * Apparently, there's an issue where, when you first start up an HBase instance, if you
                  * call this code directly, you can break. In essence, there are no storefiles, so it goes
@@ -251,40 +251,40 @@ public class HRegionUtil extends BaseHRegionUtil {
                   * store
                  * files to check.
                  */
-                if (storeFiles.size() <= 0) return true;
+                if(storeFiles.size()<=0) return true;
 
                 Reader fileReader;
-                for (StoreFile file : storeFiles) {
-                    if (file != null) {
-                        fileReader = file.createReader();
-                        if (fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0,
-                                key.length, null))
+                for(StoreFile file : storeFiles){
+                    if(file!=null){
+                        fileReader=file.createReader();
+                        if(fileReader.generalBloomFilter!=null && fileReader.generalBloomFilter.contains(key,0,
+                                key.length,null))
                             return true;
                     }
                 }
-                Cell kv = new KeyValue(key,
+                Cell kv=new KeyValue(key,
                         DEFAULT_FAMILY_BYTES,
                         SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
                         HConstants.LATEST_TIMESTAMP,
                         HConstants.EMPTY_BYTE_ARRAY);
-                return checkMemstore(HBasePlatformUtils.getKvset(hstore), key, kv) || checkMemstore(HBasePlatformUtils.getSnapshot(hstore), key, kv);
-            } catch (IOException ioe) {
+                return checkMemstore(HBasePlatformUtils.getKvset(hstore),key,kv) || checkMemstore(HBasePlatformUtils.getSnapshot(hstore),key,kv);
+            }catch(IOException ioe){
                 ioe.printStackTrace();
                 throw ioe;
-            } finally {
+            }finally{
                 hstore.lock.readLock().unlock();
             }
         }
 
-        protected boolean checkMemstore(NavigableSet<Cell> kvSet, byte[] key, Cell kv) {
+        protected boolean checkMemstore(NavigableSet<Cell> kvSet,byte[] key,Cell kv){
             Cell placeHolder;
-            try {
+            try{
                 // FIXME: remove ref to private audience KeyValueSkipListSet and so remove cast
-                SortedSet<? super Cell> kvset = kvSet.tailSet(kv);
-                placeHolder = kvset.isEmpty() ? null : (Cell)kvset.first();
-                if (placeHolder != null && CellUtil.matchingRow(placeHolder, key))
+                SortedSet<? super Cell> kvset=kvSet.tailSet(kv);
+                placeHolder=kvset.isEmpty()?null:(Cell)kvset.first();
+                if(placeHolder!=null && CellUtil.matchingRow(placeHolder,key))
                     return true;
-            } catch (NoSuchElementException ignored) {
+            }catch(NoSuchElementException ignored){
             } // This keeps us from constantly performing key value comparisons for empty set
             return false;
         }

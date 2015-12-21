@@ -133,6 +133,18 @@ public class HCell implements DataCell{
     }
 
     @Override
+    public boolean equals(Object o){
+        if(o==this) return true;
+        if(!(o instanceof DataCell)) return false;
+        return compareTo((DataCell)o)==0;
+    }
+
+    @Override
+    public int hashCode(){
+        return delegate!=null?delegate.hashCode():0;
+    }
+
+    @Override
     public int compareTo(DataCell o){
         if(o==this) return 0;
         assert o instanceof HCell: "Programmer error: Must implement comparison for non-HCell versions!";

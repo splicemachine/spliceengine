@@ -16,6 +16,7 @@ import com.splicemachine.si.impl.HTransactionTimeout;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -345,6 +346,7 @@ public class RegionTxnStore implements TxnPartition{
         return txn;
     }
 
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     private void resolveTxn(TxnMessage.Txn txn){
         switch(Txn.State.fromInt(txn.getState())){
             case ROLLEDBACK:

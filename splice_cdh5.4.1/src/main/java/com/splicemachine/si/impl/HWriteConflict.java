@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.txn.WriteConflict;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
 /**
@@ -37,6 +38,7 @@ public class HWriteConflict extends DoNotRetryIOException implements WriteConfli
      * that the message is created properly
      */
 
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "intentional")
     public static HWriteConflict fromString(String message){
         long txn1 = parseTxn1(message); //will throw an error if it can't be parsed
         long txn2 = parseTxn2(message); //will throw an error if it can't be parsed
@@ -44,6 +46,7 @@ public class HWriteConflict extends DoNotRetryIOException implements WriteConfli
         return new HWriteConflict(message);
     }
 
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "intentional")
     public static HWriteConflict fromThrowable(String message,Throwable baseCause){
         long txn1 = parseTxn1(message); //will throw an error if it can't be parsed
         long txn2 = parseTxn2(message); //will throw an error if it can't be parsed

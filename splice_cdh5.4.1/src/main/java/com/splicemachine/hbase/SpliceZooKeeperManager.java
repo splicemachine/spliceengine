@@ -50,9 +50,9 @@ public class SpliceZooKeeperManager extends SpliceConstants implements Abortable
             try{
                 LOG.info("Lost connection with ZooKeeper, attempting reconnect");
                 watcher=null;
-                getZooKeeperWatcher();
+                initialize(config);
                 LOG.info("Successfully reconnected to ZooKeeper");
-            }catch(ZooKeeperConnectionException zce){
+            }catch(RuntimeException zce){
                 LOG.error("Could not reconnect to zookeeper after session expiration, aborting");
                 e=zce;
             }

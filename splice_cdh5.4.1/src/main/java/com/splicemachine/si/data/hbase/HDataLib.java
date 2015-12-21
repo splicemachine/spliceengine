@@ -71,7 +71,7 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         }else if(type.equals(Short.class)){
             return (T)(Short)Bytes.toShort(value);
         }else if(type.equals(Integer.class)){
-            if(value.length<4) return (T)new Integer(-1);
+            if(value.length<4) return (T)Integer.valueOf(-1);
             return (T)(Integer)Bytes.toInt(value);
         }else if(type.equals(Long.class)){
             return (T)(Long)Bytes.toLong(value);
@@ -98,7 +98,7 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         }else if(type.equals(Short.class)){
             return (T)(Short)Bytes.toShort(value,offset);
         }else if(type.equals(Integer.class)){
-            if(length<4) return (T)new Integer(-1);
+            if(length<4) return (T)Integer.valueOf(-1);
             return (T)(Integer)Bytes.toInt(value,offset);
         }else if(type.equals(Long.class)){
             return (T)(Long)Bytes.toLong(value,offset);
