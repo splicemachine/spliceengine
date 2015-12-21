@@ -237,6 +237,9 @@ public class DDLUtils {
 
     public static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, BitSet indexedCols) {
         int[] mainColToIndexPosMap = new int[(int) indexedCols.length()];
+        for (int i = 0 ; i < indexColsToMainColMap.length; ++i) {
+            mainColToIndexPosMap[i] = -1;
+        }
         for (int indexCol = 0; indexCol < indexColsToMainColMap.length; indexCol++) {
             int mainCol = indexColsToMainColMap[indexCol];
             mainColToIndexPosMap[mainCol - 1] = indexCol;
