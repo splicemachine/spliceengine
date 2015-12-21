@@ -67,7 +67,7 @@ public class SIObserver extends BaseRegionObserver{
             Partition regionPartition = new RegionPartition(rce.getRegion());
             region=new TxnRegion(regionPartition,
                     driver.getRollForward(),
-                    env.getReadResolver(rce.getRegion()), //TODO -sf- is there a cleaner way to do this?
+                    env.getReadResolver(regionPartition),
                     driver.getTxnSupplier(),
                     driver.getIgnoreTxnSupplier(),
                     driver.getDataStore(),

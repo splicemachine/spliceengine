@@ -21,6 +21,7 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.storage.DataFilter;
 import com.splicemachine.storage.HCell;
+import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.GreenLight;
 import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.Cell;
@@ -51,10 +52,11 @@ public class SynchronousReadResolverTest {
     @Test
     public void testResolveRolledBackWorks() throws Exception {
         HRegion region = MockRegionUtils.getMockRegion();
+        RegionPartition rp = new RegionPartition(region);
         TrafficControl control = GreenLight.INSTANCE;
 
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),HExceptionFactory.INSTANCE,Long.MAX_VALUE);
-        ReadResolver resolver = SynchronousReadResolver.getResolver(region, store, new RollForwardStatus(), control, false);
+        ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), control, false);
         final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance(),mock(STableFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
@@ -98,10 +100,11 @@ public class SynchronousReadResolverTest {
     @Test
     public void testResolvingCommittedWorks() throws Exception {
         HRegion region = MockRegionUtils.getMockRegion();
+        RegionPartition rp = new RegionPartition(region);
 
         final TestingTimestampSource commitTsGenerator = new TestingTimestampSource();
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),commitTsGenerator,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
-        ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
+        ReadResolver resolver = SynchronousReadResolver.getResolver(rp,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
         final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance(),mock(STableFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
@@ -149,11 +152,12 @@ public class SynchronousReadResolverTest {
     @Test
     public void testResolvingCommittedDoesNotHappenUntilParentCommits() throws Exception {
         HRegion region = MockRegionUtils.getMockRegion();
+        RegionPartition rp = new RegionPartition(region);
 
         TestingTimestampSource timestampSource = new TestingTimestampSource();
         final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HDataLib.instance(),mock(STableFactory.class));
         TxnStore store = new TestingTxnStore(new IncrementingClock(),timestampSource,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
-        ReadResolver resolver = SynchronousReadResolver.getResolver(region, store, new RollForwardStatus(), GreenLight.INSTANCE, false);
+        ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), GreenLight.INSTANCE, false);
 
         ClientTxnLifecycleManager tc = new ClientTxnLifecycleManager(timestampSource,HExceptionFactory.INSTANCE);
         tc.setTxnStore(store);

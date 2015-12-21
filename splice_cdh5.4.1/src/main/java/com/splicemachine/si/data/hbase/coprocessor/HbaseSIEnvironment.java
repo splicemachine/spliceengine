@@ -9,6 +9,7 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.readresolve.AsyncReadResolver;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -21,15 +22,18 @@ import com.splicemachine.si.impl.HTxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
+import com.splicemachine.utils.GreenLight;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
@@ -47,6 +51,7 @@ public class HbaseSIEnvironment implements SIEnvironment{
     private final IgnoreTxnCacheSupplier<OperationWithAttributes,Cell,Delete,
             Get,Put,RegionScanner,Result,Scan,TableName> ignoreTxnSupplier;
     private final HTxnOperationFactory txnOpFactory;
+    private final AsyncReadResolver readResolver;
 
     public static HbaseSIEnvironment loadEnvironment(RecoverableZooKeeper rzk){
         HbaseSIEnvironment env = INSTANCE;
@@ -62,8 +67,13 @@ public class HbaseSIEnvironment implements SIEnvironment{
         return env;
     }
 
-    private HbaseSIEnvironment(RecoverableZooKeeper rzk){
-        this.timestampSource = new ZkTimestampSource(rzk);
+    public static void setEnvironment(HBaseSIEnvironment siEnv){
+        INSTANCE = siEnv;
+    }
+
+    @SuppressWarnings("unchecked")
+    public HBaseSIEnvironment(TimestampSource timestampSource){
+        this.timestampSource =timestampSource;
         HBaseTableFactory hBaseTableFactory=new HBaseTableFactory();
         this.tableFactory =hBaseTableFactory;
         this.txnStore = new CoprocessorTxnStore(hBaseTableFactory,timestampSource,null);
@@ -71,7 +81,10 @@ public class HbaseSIEnvironment implements SIEnvironment{
         this.txnStore.setCache(txnSupplier);
         this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(dataLib(),tableFactory);
         this.txnOpFactory = new HTxnOperationFactory(dataLib(),exceptionFactory());
+
+        this.readResolver = initializeReadResolver();
     }
+
 
     @Override public STableFactory tableFactory(){ return tableFactory; }
 
@@ -116,8 +129,9 @@ public class HbaseSIEnvironment implements SIEnvironment{
         return SIDriver.driver();
     }
 
-    public ReadResolver getReadResolver(HRegion region){
-        return NoOpReadResolver.INSTANCE; //TODO -sf- re-enable this
+    public ReadResolver getReadResolver(Partition region){
+        if(readResolver==null) return NoOpReadResolver.INSTANCE; //disabled read resolution
+        return readResolver.getResolver(region,rollForward());
     }
 
     @Override
@@ -128,5 +142,13 @@ public class HbaseSIEnvironment implements SIEnvironment{
     @Override
     public TxnOperationFactory operationFactory(){
         return txnOpFactory;
+    }
+
+    private AsyncReadResolver initializeReadResolver(){
+        int readResolverQueueSize=SIConstants.readResolverQueueSize;
+        if(readResolverQueueSize<=0) return null; //read resolution is disabled
+        //TODO -sf- add in the proper TrafficControl and RollForwardStatus fields
+        return new AsyncReadResolver(SIConstants.readResolverThreads,readResolverQueueSize,
+                txnSupplier(),new RollForwardStatus(),new GreenLight(),SynchronousReadResolver.INSTANCE);
     }
 }

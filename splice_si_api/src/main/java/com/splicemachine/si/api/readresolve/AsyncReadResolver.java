@@ -1,16 +1,15 @@
-package com.splicemachine.si.impl.readresolve;
+package com.splicemachine.si.api.readresolve;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.splicemachine.annotations.ThreadSafe;
-import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -26,7 +25,6 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Scott Fines
  *         Date: 7/1/14
- * @see com.splicemachine.si.impl.readresolve.SynchronousReadResolver
  */
 @ThreadSafe
 public class AsyncReadResolver{
@@ -39,14 +37,17 @@ public class AsyncReadResolver{
     private final TxnSupplier txnSupplier;
     private final RollForwardStatus status;
     private final TrafficControl trafficControl;
+    private final KeyedReadResolver synchronousResolver;
 
     public AsyncReadResolver(int maxThreads,int bufferSize,
                              TxnSupplier txnSupplier,
                              RollForwardStatus status,
-                             TrafficControl trafficControl){
+                             TrafficControl trafficControl,
+                             KeyedReadResolver synchronousResolver){
         this.txnSupplier=txnSupplier;
         this.trafficControl=trafficControl;
         this.status=status;
+        this.synchronousResolver = synchronousResolver;
         consumerThreads=new ThreadPoolExecutor(maxThreads,maxThreads,
                 60,TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
@@ -55,7 +56,7 @@ public class AsyncReadResolver{
         int bSize=1;
         while(bSize<bufferSize)
             bSize<<=1;
-        disruptor=new Disruptor<ResolveEvent>(new ResolveEventFactory(),bSize,consumerThreads,
+        disruptor=new Disruptor<>(new ResolveEventFactory(),bSize,consumerThreads,
                 ProducerType.MULTI,
                 new BlockingWaitStrategy()); //we want low latency here, but it might cost too much in CPU
         disruptor.handleEventsWith(new ResolveEventHandler());
@@ -72,14 +73,13 @@ public class AsyncReadResolver{
         consumerThreads.shutdownNow();
     }
 
-    public
     @ThreadSafe
-    ReadResolver getResolver(HRegion region,RollForward rollForward){
-        return new RegionReadResolver(region,rollForward);
+    public ReadResolver getResolver(Partition region,RollForward rollForward){
+        return new PartitionReadResolver(region,rollForward);
     }
 
     private static class ResolveEvent{
-        HRegion region;
+        Partition region;
         long txnId;
         ByteSlice rowKey=new ByteSlice();
         RollForward rollForward;
@@ -98,7 +98,7 @@ public class AsyncReadResolver{
         @Override
         public void onEvent(ResolveEvent event,long sequence,boolean endOfBatch) throws Exception{
             try{
-                if(SynchronousReadResolver.INSTANCE.resolve(event.region,
+                if(synchronousResolver.resolve(event.region,
                         event.rowKey,
                         event.txnId,
                         txnSupplier,
@@ -114,11 +114,11 @@ public class AsyncReadResolver{
         }
     }
 
-    private class RegionReadResolver implements ReadResolver{
-        private final HRegion region;
+    private class PartitionReadResolver implements ReadResolver{
+        private final Partition region;
         private final RollForward rollForward;
 
-        public RegionReadResolver(HRegion region,RollForward rollForward){
+        public PartitionReadResolver(Partition region,RollForward rollForward){
             this.region=region;
             this.rollForward=rollForward;
         }

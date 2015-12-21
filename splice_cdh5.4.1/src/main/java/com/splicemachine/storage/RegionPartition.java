@@ -250,4 +250,8 @@ public class RegionPartition implements Partition{
     public void readsRequested(long readRequests){
         HRegionUtil.updateReadRequests(region,readRequests);
     }
+
+    public HRegion unwrapDelegate(){
+        return region;
+    }
 }

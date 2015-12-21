@@ -44,7 +44,6 @@ public class SpliceConstants {
     /**
      * Ignore SavePts flag for experimental TPCC testing.
      */
-    @SuppressFBWarnings("MS_SHOULD_BE_FINAL")
     @Parameter public static final String IGNORE_SAVEPTS = "splice.ignore.savepts";
     @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
     public static boolean ignoreSavePts;
@@ -142,7 +141,8 @@ public class SpliceConstants {
     }
 
     // Splice Configuration
-    public static final Configuration config = SpliceConfiguration.create();
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL",justification = "Exposed for testing purposes")
+    public static Configuration config = SpliceConfiguration.create();
 
     /**
      * The Path in zookeeper for broadcasting messages to all servers
@@ -1010,7 +1010,7 @@ public class SpliceConstants {
 
     public static int ipcThreads;
 
-    public static List<String> zookeeperPaths = Lists.newArrayList(
+    public static final List<String> zookeeperPaths = Lists.newArrayList(
             zkSpliceConglomeratePath,
             zkSpliceConglomerateSequencePath,
             zkSpliceDerbyPropertyPath,

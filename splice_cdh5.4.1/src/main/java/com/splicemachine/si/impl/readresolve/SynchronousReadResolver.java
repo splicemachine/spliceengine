@@ -1,12 +1,15 @@
 package com.splicemachine.si.impl.readresolve;
 
 import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -14,7 +17,6 @@ import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -27,7 +29,7 @@ import java.io.IOException;
  *         Date: 7/2/14
  */
 @ThreadSafe
-public class SynchronousReadResolver{
+public class SynchronousReadResolver implements KeyedReadResolver{
     private static final Logger LOG=Logger.getLogger(SynchronousReadResolver.class);
 
     //don't instantiate me, I'm a singleton!
@@ -42,15 +44,13 @@ public class SynchronousReadResolver{
      * @param txnSupplier a Transaction Supplier for fetching transaction information
      * @return a ReadResolver which uses Synchronous Read Resolution under the hood.
      */
-    public static
     @ThreadSafe
-    ReadResolver getResolver(final HRegion region,final TxnSupplier txnSupplier,final RollForwardStatus status){
+    public static ReadResolver getResolver(final Partition region,final TxnSupplier txnSupplier,final RollForwardStatus status){
         return getResolver(region,txnSupplier,status,null,false);
     }
 
-    public static
     @ThreadSafe
-    ReadResolver getResolver(final HRegion region,
+    public static ReadResolver getResolver(final Partition region,
                              final TxnSupplier txnSupplier,
                              final RollForwardStatus status,
                              final TrafficControl trafficControl,
@@ -63,7 +63,7 @@ public class SynchronousReadResolver{
         };
     }
 
-    boolean resolve(HRegion region,ByteSlice rowKey,long txnId,TxnSupplier supplier,RollForwardStatus status,boolean failOnError,TrafficControl trafficControl){
+    public boolean resolve(Partition region,ByteSlice rowKey,long txnId,TxnSupplier supplier,RollForwardStatus status,boolean failOnError,TrafficControl trafficControl){
         try{
             TxnView transaction=supplier.getTransaction(txnId);
             boolean resolved=false;
@@ -106,7 +106,8 @@ public class SynchronousReadResolver{
 
     /******************************************************************************************************************/
     /*private helper methods */
-    private void resolveCommitted(HRegion region,ByteSlice rowKey,long txnId,long commitTimestamp,boolean failOnError){
+    private void resolveCommitted(Partition region,ByteSlice rowKey,long txnId,long commitTimestamp,boolean failOnError){
+        assert region instanceof RegionPartition: "Not on a region!";
         /*
          * Resolve the row as committed directly.
          *
@@ -123,7 +124,7 @@ public class SynchronousReadResolver{
         put.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         put.setDurability(Durability.SKIP_WAL);
         try{
-            region.put(put);
+            ((RegionPartition)region).unwrapDelegate().put(put);
         }catch(IOException e){
             if(!(e instanceof RegionTooBusyException) && !(e instanceof NotServingRegionException)){
                 LOG.info("Exception encountered when attempting to resolve a row as committed",e);
@@ -133,7 +134,8 @@ public class SynchronousReadResolver{
         }
     }
 
-    private void resolveRolledback(HRegion region,ByteSlice rowKey,long txnId,boolean failOnError){
+    private void resolveRolledback(Partition region,ByteSlice rowKey,long txnId,boolean failOnError){
+        assert region instanceof RegionPartition: "Not on a region!";
         /*
          * Resolve the row as rolled back directly.
          *
@@ -149,7 +151,7 @@ public class SynchronousReadResolver{
         delete.setDurability(Durability.SKIP_WAL);
         delete.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         try{
-            region.delete(delete);
+            ((RegionPartition)region).unwrapDelegate().delete(delete);
         }catch(IOException ioe){
             LOG.info("Exception encountered when attempting to resolve a row as rolled back",ioe);
             if(failOnError)
