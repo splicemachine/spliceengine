@@ -4,7 +4,8 @@ import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.stats.cardinality.ConcurrentHyperLogLogCounter;
 import com.splicemachine.utils.ByteSlice;
-import org.cliffc.high_scale_lib.Counter;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
@@ -18,7 +19,7 @@ import org.cliffc.high_scale_lib.Counter;
 public class RegionSegment {
 	private final byte[] startKey;
 	private final byte[] endKey;
-	private final Counter toResolve = new Counter();
+	private final AtomicLong toResolve = new AtomicLong();
 	private final ConcurrentHyperLogLogCounter txnCounter =  new ConcurrentHyperLogLogCounter(6,HashFunctions.murmur2_64(0));
 	private volatile boolean inProgress;
 	private String toString; //cache the toString for performance when needed
@@ -29,12 +30,12 @@ public class RegionSegment {
 	}
 
 	void update(long txnId,long rowsWritten){
-		toResolve.add(rowsWritten);
+		toResolve.addAndGet(rowsWritten);
 		txnCounter.update(txnId);
 	}
 
 	long getToResolveCount(){
-		return toResolve.estimate_get();
+		return toResolve.get();
 	}
 
 	double estimateUniqueWritingTransactions(){
@@ -66,7 +67,7 @@ public class RegionSegment {
 	}
 
 	public void rowResolved() {
-		toResolve.decrement();
+		toResolve.decrementAndGet();
 	}
 
 	@Override

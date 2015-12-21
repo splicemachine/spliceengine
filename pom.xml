@@ -32,7 +32,7 @@
         <module>splice_pipeline</module>
         <module>splice_machine</module>
         <!--        <module>splice_memory</module>  -->
-        <module>splice_cdh5.4.1</module>
+        <module>hbase_storage</module>
     </modules>
 	<properties>
 		<derby.version>2.0.0.1-SNAPSHOT</derby.version>

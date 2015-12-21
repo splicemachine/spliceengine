@@ -1,6 +1,5 @@
 package com.splicemachine.encoding;
 
-import com.splicemachine.encoding.debug.BitFormat;
 import org.junit.Test;
 
 import java.util.Arrays;

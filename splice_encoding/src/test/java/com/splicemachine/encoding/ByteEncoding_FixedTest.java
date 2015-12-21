@@ -1,6 +1,5 @@
 package com.splicemachine.encoding;
 
-import com.splicemachine.encoding.debug.BitFormat;
 import org.junit.Assert;
 import org.junit.Test;
 
