@@ -66,7 +66,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
     private final AtomicReference<State> state = new AtomicReference<>(State.DISCONNECTED);
 
     private ClientBootstrap bootstrap;
-    private Channel channel;
+    private volatile Channel channel;
     private NioClientSocketChannelFactory factory;
 
     /**
@@ -125,19 +125,21 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
     }
 
     public void shutdown() {
-        synchronized (state) {
-            if (state.get() != State.SHUTDOWN) {
-                LOG.info(String.format("shutting down TimestampClient state=%s", state.get()));
-                try {
-                    state.set(State.SHUTDOWN);
-                    if (channel != null && channel.isOpen()) {
-                        channel.close().awaitUninterruptibly();
-                    }
-                    factory.releaseExternalResources();
-                } catch (Throwable t) {
-                    LOG.error("error shutting down", t);
-                }
+        boolean shouldContinue = true;
+        while(shouldContinue){
+            State state=this.state.get();
+            if(state==State.SHUTDOWN) return;
+            shouldContinue=!this.state.compareAndSet(state,State.SHUTDOWN);
+        }
+        LOG.info(String.format("shutting down TimestampClient state=%s", this.state.get()));
+        try {
+            this.state.set(State.SHUTDOWN);
+            if (channel != null && channel.isOpen()) {
+                channel.close().awaitUninterruptibly();
             }
+            factory.releaseExternalResources();
+        } catch (Throwable t) {
+            LOG.error("error shutting down", t);
         }
     }
 
@@ -155,40 +157,39 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         // including code that attempts connection. Otherwise, two threads might
         // end up trying to connect at the same time.
 
-        synchronized (state) {
+        boolean shouldContinue = true;
+        while(shouldContinue){
+            State s = state.get();
+            if(s !=State.DISCONNECTED) return;
+            shouldContinue = !state.compareAndSet(s,State.CONNECTING);
+        }
 
-            if (state.get() != State.DISCONNECTED) {
-                return;
-            }
+        if (LOG.isInfoEnabled()) {
+            SpliceLogUtils.info(LOG, "Attempting to connect to server (host %s, port %s)", timestampHostProvider.getHost(), getPort());
+        }
 
-            if (LOG.isInfoEnabled()) {
-                SpliceLogUtils.info(LOG, "Attempting to connect to server (host %s, port %s)", timestampHostProvider.getHost(), getPort());
-            }
-
-            ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(timestampHostProvider.getHost(), getPort()));
-            final CountDownLatch latchConnect = new CountDownLatch(1);
-            futureConnect.addListener(new ChannelFutureListener() {
-                                          public void operationComplete(ChannelFuture cf) throws Exception {
-                                              if (cf.isSuccess()) {
-                                                  channel = cf.getChannel();
-                                                  latchConnect.countDown();
-                                              } else {
-                                                  latchConnect.countDown();
-                                                  doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
-                                              }
+        ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(timestampHostProvider.getHost(), getPort()));
+        final CountDownLatch latchConnect = new CountDownLatch(1);
+        futureConnect.addListener(new ChannelFutureListener() {
+                                      public void operationComplete(ChannelFuture cf) throws Exception {
+                                          if (cf.isSuccess()) {
+                                              channel = cf.getChannel();
+                                              latchConnect.countDown();
+                                          } else {
+                                              latchConnect.countDown();
+                                              doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
                                           }
                                       }
-            );
+                                  }
+        );
 
-            CountDownLatches.uncheckedAwait(latchConnect);
-            if(channel == null) {
-                throw new TimestampIOException("Unable to connect to TimestampServer");
-            }
-
-            // Can only assume connecting (not connected) until channelConnected method is invoked
-            state.set(State.CONNECTING);
-
+        CountDownLatches.uncheckedAwait(latchConnect);
+        if(channel == null) {
+            throw new TimestampIOException("Unable to connect to TimestampServer");
         }
+
+        // Can only assume connecting (not connected) until channelConnected method is invoked
+        state.set(State.CONNECTING);
     }
 
     public long getNextTimestamp() throws TimestampIOException {
@@ -290,23 +291,22 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
     @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
         SpliceLogUtils.info(LOG, "Successfully connected to server");
-        synchronized (state) {
-            channel = e.getChannel();
-            state.set(State.CONNECTED);
-        }
+        channel = e.getChannel();
+        state.set(State.CONNECTED);
         super.channelConnected(ctx, e);
     }
 
     @Override
     public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
         LOG.info("TimestampClient was disconnected from the server");
-        synchronized (state) {
-            if(state.get() != State.SHUTDOWN) {
-                channel = null;
-                state.set(State.DISCONNECTED);
-                connectIfNeeded();
-            }
-        }
+        boolean shouldContinue;
+        do{
+            State s = state.get();
+            if(s==State.SHUTDOWN) return; //ignore shut down errors
+            channel=null;
+            shouldContinue = !state.compareAndSet(s,State.DISCONNECTED);
+        }while(shouldContinue);
+        connectIfNeeded();
     }
 
     @Override

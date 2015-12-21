@@ -15,7 +15,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 
     private static final Logger LOG = Logger.getLogger(TimestampServerHandler.class);
 
-    private TimestampOracle oracle;
+    private volatile TimestampOracle oracle;
     private TimestampBlockManager timestampBlockManager;
     private int blockSize;
 
@@ -27,9 +27,11 @@ public class TimestampServerHandler extends TimestampBaseHandler {
 
     public void initializeIfNeeded() throws TimestampIOException{
         SpliceLogUtils.trace(LOG, "Checking whether initialization is needed");
-        synchronized (this) {
-            if (oracle == null) {
-                oracle = TimestampOracle.getInstance(timestampBlockManager,blockSize);
+        if(oracle==null){
+            synchronized(this){
+                if(oracle==null){
+                    oracle=TimestampOracle.getInstance(timestampBlockManager,blockSize);
+                }
             }
         }
     }
