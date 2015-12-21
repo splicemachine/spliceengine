@@ -135,7 +135,7 @@ public class SynchronousReadResolverTest {
         Assert.assertNotNull("No data column found!", kv);
 
         DataFilter.ReturnCode returnCode = filter.filterKeyValue(new HCell(kv));
-        Assert.assertEquals("Incorrect return code!", Filter.ReturnCode.INCLUDE, returnCode);
+        Assert.assertEquals("Incorrect return code!", DataFilter.ReturnCode.INCLUDE, returnCode);
 
         //check to see if the resolver added the proper key value
         result = region.get(new Get(rowKey));

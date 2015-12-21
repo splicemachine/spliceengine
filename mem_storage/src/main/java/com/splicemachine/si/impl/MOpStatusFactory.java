@@ -13,9 +13,10 @@ import java.io.IOException;
  *         Date: 12/16/15
  */
 public class MOpStatusFactory implements OperationStatusFactory{
+    public static final MOpStatusFactory INSTANCE = new MOpStatusFactory();
     private final ConstraintChecker noOpChecker;
 
-    public MOpStatusFactory(){
+    private MOpStatusFactory(){
         this.noOpChecker = new NoOpConstraintChecker(this);
     }
 

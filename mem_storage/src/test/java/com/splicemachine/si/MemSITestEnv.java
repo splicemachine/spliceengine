@@ -30,7 +30,7 @@ import java.io.IOException;
  */
 public class MemSITestEnv implements SITestEnv{
     private final SDataLib dataLib = new LDataLib();
-    private final ExceptionFactory exceptionFactory = new MExceptionFactory();
+    private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
@@ -49,8 +49,8 @@ public class MemSITestEnv implements SITestEnv{
         }
     };
     private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
-    private final DataFilterFactory filterFactory = new MFilterFactory();
-    private final OperationStatusFactory operationStatusFactory = new MOpStatusFactory();
+    private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
+    private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
 
     public MemSITestEnv(){

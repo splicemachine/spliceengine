@@ -197,12 +197,11 @@ public class TransactionInteractionTest {
 
         Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
         Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
-//        try{
-        error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
-        testUtility.deleteRow(deleteChild,name);
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        try{
+            testUtility.deleteRow(deleteChild,name);
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -225,12 +224,11 @@ public class TransactionInteractionTest {
 
         Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
         Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.deleteRow(deleteChild,name);
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -258,12 +256,11 @@ public class TransactionInteractionTest {
         Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
         insertTxn.commit();
         Txn deleteChild = control.beginChildTransaction(deleteTxn,DESTINATION_TABLE);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.deleteRow(deleteChild, name);
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     /*
@@ -312,12 +309,11 @@ public class TransactionInteractionTest {
 
         Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
         Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.insertAge(insertChild, name, 29);
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -336,12 +332,11 @@ public class TransactionInteractionTest {
         Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
         deleteTxn.commit();
         Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.insertAge(insertChild,name,29);
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -358,12 +353,11 @@ public class TransactionInteractionTest {
 
         Txn insertTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
         Txn insertChild = control.beginChildTransaction(insertTxn,DESTINATION_TABLE);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.insertAge(insertChild,name,29);
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     /*
@@ -482,12 +476,11 @@ public class TransactionInteractionTest {
         Txn child2 = control.beginChildTransaction(userTxn,Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE);
 
         testUtility.insertAge(child1,name,29);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.insertJob(child2,name,"plumber");
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -499,12 +492,11 @@ public class TransactionInteractionTest {
         Txn child2 = control.beginChildTransaction(u2,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
 
         testUtility.insertAge(child1,name,29);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.insertJob(child2,name,"plumber");
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -516,12 +508,11 @@ public class TransactionInteractionTest {
         Txn grandChild = control.beginChildTransaction(child2,Txn.IsolationLevel.SNAPSHOT_ISOLATION,true,DESTINATION_TABLE);
 
         testUtility.insertAge(child1,name,29);
-//        try{
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try{
             testUtility.insertJob(grandChild,name,"plumber");
-//        }catch(RetriesExhaustedWithDetailsException re){
-//            throw re.getCauses().get(0);
-//        }
+        }catch(IOException re){
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     /**

@@ -13,6 +13,10 @@ import java.io.IOException;
  *         Date: 12/16/15
  */
 public class MExceptionFactory implements ExceptionFactory{
+    public static final ExceptionFactory INSTANCE= new MExceptionFactory();
+
+    private MExceptionFactory(){}
+
     @Override
     public IOException writeWriteConflict(long txn1,long txn2){
         return new MWriteConflict(txn1,txn2);

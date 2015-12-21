@@ -12,9 +12,9 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
 
-public interface SITestEnv{
+import java.io.IOException;
 
-    SDataLib getDataLib();
+public interface SITestEnv extends SITestDataEnv{
 
     Object getStore();
 
@@ -29,14 +29,6 @@ public interface SITestEnv{
     TimestampSource getTimestampSource();
 
     Partition getPersonTable(TestTransactionSetup tts);
-
-    DataFilterFactory getFilterFactory();
-
-    ExceptionFactory getExceptionFactory();
-
-    OperationStatusFactory getOperationStatusFactory();
-
-    TxnOperationFactory getOperationFactory();
 
     STableFactory getTableFactory();
 }
