@@ -3165,8 +3165,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     FormatableBitSet getReferencedFormatableBitSet(boolean positionedUpdate,boolean always,boolean onlyBCNs){
         int index;
+        int colsAdded=0;
         int size=size();
-        FormatableBitSet newReferencedCols=new FormatableBitSet(getMaxSize());
+
+        FormatableBitSet newReferencedCols=new FormatableBitSet(size);
 
 		/*
 		** For an updatable cursor, we need
@@ -3175,8 +3177,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         if(positionedUpdate){
             if(always){
 				/* Set all bits in the bit map */
-                for(ResultColumn rc: this){
-                    newReferencedCols.set(rc.getColumnPosition()-1);
+                for(index=0;index<size;index++){
+                    newReferencedCols.set(index);
                 }
 
                 return newReferencedCols;
@@ -3194,14 +3196,19 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 if(onlyBCNs && !(oldCol.getExpression() instanceof BaseColumnNode)){
                     continue;
                 }
-                newReferencedCols.set(oldCol.getColumnPosition()-1);
+                newReferencedCols.set(index);
+                colsAdded++;
             }
         }
 
 		/* Return the FormatableBitSet if not all RCs are referenced or if
 		 * the caller always wants the FormatableBitSet returned.
 		 */
-        return newReferencedCols;
+        if(colsAdded!=index || always){
+            return newReferencedCols;
+        }else{
+            return null;
+        }
     }
 
     /**
