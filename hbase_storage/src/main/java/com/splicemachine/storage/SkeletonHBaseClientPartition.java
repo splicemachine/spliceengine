@@ -7,7 +7,6 @@ import com.splicemachine.storage.util.MeasuredResultScanner;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -15,39 +14,22 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 /**
- * Represents an HBase Table as a single Partition.
- *
  * @author Scott Fines
- *         Date: 12/17/15
+ *         Date: 12/22/15
  */
-@NotThreadSafe
-public class ClientPartition implements Partition{
-    private final Table table;
-
-    public ClientPartition(Table table){
-        this.table=table;
-    }
-
-    @Override
-    public String getTableName(){
-        return table.getName().getNameAsString();
-    }
+public abstract class SkeletonHBaseClientPartition implements Partition{
 
     @Override
     public String getName(){
         return getTableName();
     }
 
-    @Override
-    public void close() throws IOException{
-        table.close();
-    }
 
     /*Single row access methods*/
     @Override
     public DataResult get(DataGet get,DataResult previous) throws IOException{
         assert get instanceof HGet : "Programmer Error: incorrect type for performing a Get!";
-        Result result=table.get(((HGet)get).unwrapDelegate());
+        Result result=doGet(((HGet)get).unwrapDelegate());
 
         if(previous==null)
             previous = new HResult(result);
@@ -56,12 +38,13 @@ public class ClientPartition implements Partition{
         return previous;
     }
 
+
     @Override
     public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
         Get g = new Get(key);
         g.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
 
-        Result r = table.get(g);
+        Result r = doGet(g);
         if(previous==null)
             previous = new HResult(r);
         else{
@@ -75,7 +58,7 @@ public class ClientPartition implements Partition{
         Get g = new Get(key);
         g.setMaxVersions(1);
 
-        Result result=table.get(g);
+        Result result=doGet(g);
         if(previous==null)
             previous = new HResult(result);
         else{
@@ -90,7 +73,7 @@ public class ClientPartition implements Partition{
         g.setMaxVersions(1);
         g.addFamily(family);
 
-        Result result=table.get(g);
+        Result result=doGet(g);
         if(previous==null)
             previous = new HResult(result);
         else{
@@ -112,33 +95,36 @@ public class ClientPartition implements Partition{
 
     @Override
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        MeasuredResultScanner scanner=new MeasuredResultScanner(table.getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
+        MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
         return new ListingResultScanner(scanner);
     }
 
+
     @Override
     public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        MeasuredResultScanner scanner=new MeasuredResultScanner(table.getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
+        MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
         return new ResultDataScanner(scanner);
     }
+
 
     /*Data Mutation methods*/
     @Override
     public void put(DataPut put) throws IOException{
-        table.put(((HPut)put).unwrapDelegate());
+        doPut(((HPut)put).unwrapDelegate());
     }
 
     @Override
     public void delete(DataDelete delete) throws IOException{
-        table.delete(((HDelete)delete).unwrapDelegate());
+        doDelete(((HDelete)delete).unwrapDelegate());
     }
 
     @Override
     public void mutate(DataMutation put) throws IOException{
         if(put instanceof HPut)
-            table.put(((HPut)put).unwrapDelegate());
-        else table.delete(((HDelete)put).unwrapDelegate());
+            doPut(((HPut)put).unwrapDelegate());
+        else doDelete(((HDelete)put).unwrapDelegate());
     }
+
 
     @Override
     @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -147,10 +133,10 @@ public class ClientPartition implements Partition{
         for(int i=0;i<toWrite.length;i++){
             puts.add(((HPut)toWrite[i]).unwrapDelegate());
         }
-        table.put(puts);
+        doPut(puts);
         List<MutationStatus> results = new ArrayList<>(toWrite.length);
         for(int i=0;i<toWrite.length;i++){
-           results.add(HMutationStatus.success());
+            results.add(HMutationStatus.success());
         }
 
         return results.iterator();
@@ -167,10 +153,8 @@ public class ClientPartition implements Partition{
     public void increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
         Increment incr = new Increment(rowKey);
         incr.addColumn(family,qualifier,amount);
-        table.increment(incr);
+        doIncrement(incr);
     }
-
-
 
     @Override
     public Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException{
@@ -199,6 +183,18 @@ public class ClientPartition implements Partition{
 
     @Override
     public void readsRequested(long readRequests){
-       //no-op
+        //no-op
     }
+
+    protected abstract Result doGet(Get get) throws IOException;
+
+    protected abstract ResultScanner getScanner(Scan scan) throws IOException;
+
+    protected abstract void doDelete(Delete delete) throws IOException;
+
+    protected abstract void doPut(Put put) throws IOException;
+
+    protected abstract void doPut(List<Put> puts) throws IOException;
+
+    protected abstract void doIncrement(Increment incr) throws IOException;
 }

@@ -171,15 +171,12 @@
                                 <id>add-platform-source</id>
                                 <phase>generate-sources</phase>
                                 <goals> <goal>add-source</goal> </goals>
-                                <!--
-                                CDH 5.4.1 and 5.4.8 are identical, so there's no reason to duplicate
-                                our tiny little bit of storage code. Instead, just rely on the CDH5.4.1 sources
-                                until such time as we decide that either A) CDH5.4.8 actually DOES differ enough
-                                to merit its own folders, or B) we get rid of 5.4.1 and decide to make everything
-                                say 5.4.8 for our own organizational reasons.
-                                -->
                                 <configuration>
-                                    <sources> <source>cdh5.4.1/src/main/java</source> </sources>
+                                    <sources>
+                                        <source>cdh5.4.x/src/main/java</source>
+                                        <source>hbase1.0/src/main/java</source>
+                                        <source>hbase1.0/src/main/resources</source>
+                                    </sources>
                                 </configuration>
                             </execution>
                             <execution>
@@ -187,7 +184,10 @@
                                 <phase>generate-sources</phase>
                                 <goals> <goal>add-test-source</goal> </goals>
                                 <configuration>
-                                    <sources> <source>cdh5.4.1/src/test/java</source> </sources>
+                                    <sources>
+                                        <source>cdh5.4.x/src/test/java</source>
+                                        <source>hbase1.0/src/test/java</source>
+                                    </sources>
                                 </configuration>
                             </execution>
                         </executions>
@@ -226,7 +226,20 @@
                                 <phase>generate-sources</phase>
                                 <goals> <goal>add-source</goal> </goals>
                                 <configuration>
-                                    <sources> <source>cdh5.5.1/src/main/java</source> </sources>
+                                    <sources>
+                                        <source>cdh5.5.1/src/main/java</source>
+                                        <source>hbase1.0/src/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-resources</id>
+                                <phase>generate-resources</phase>
+                                <goals><goal>add-resource</goal></goals>
+                                <configuration>
+                                    <resources>
+                                        <resource>hbase1.0/src/main/resources</resource>
+                                    </resources>
                                 </configuration>
                             </execution>
                             <execution>
@@ -234,7 +247,10 @@
                                 <phase>generate-sources</phase>
                                 <goals> <goal>add-test-source</goal> </goals>
                                 <configuration>
-                                    <sources> <source>cdh5.5.1/src/test/java</source> </sources>
+                                    <sources>
+                                        <source>cdh5.5.1/src/test/java</source>
+                                        <source>hbase1.0/src/test/java</source>
+                                    </sources>
                                 </configuration>
                             </execution>
                         </executions>
@@ -242,5 +258,70 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>mapr4.5.1</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>mapr4.5.1</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mapr4.5.1</envClassifier>
+                <!-- platform component versions -->
+                <hadoop.version>2.7.0-mapr-1506</hadoop.version>
+                <hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>
+                <hive.version>0.13.0-mapr-1504-protobuf250</hive.version>
+                <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
+                <maprfs.version>4.1.0-mapr</maprfs.version>
+                <spark.version>1.5.0</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-platform-source</id>
+                                <phase>generate-sources</phase>
+                                <goals> <goal>add-source</goal> </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase0.98/src/main/java</source>
+                                        <source>hbase0.98/src/main/resources</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-resource</id>
+                                <phase>generate-resources</phase>
+                                <goals> <goal>add-resource</goal> </goals>
+                                <configuration>
+                                    <resources>
+                                        <resource>hbase0.98/src/main/resources</resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-platform-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals> <goal>add-test-source</goal> </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>hbase0.98/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+
     </profiles>
 </project>

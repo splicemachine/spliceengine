@@ -16,6 +16,7 @@ import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TableFactoryService;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.si.impl.HTxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -38,6 +39,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -117,7 +119,7 @@ public class HBaseSITestEnv implements SITestEnv{
 
     @Override
     public STableFactory getTableFactory(){
-        return new TestHBaseTableFactory(testUtility,new String[]{"test"});
+        return TableFactoryService.loadTableFactory();
     }
 
     private static HTableDescriptor generateTransactionTable() throws IOException{
@@ -169,7 +171,6 @@ public class HBaseSITestEnv implements SITestEnv{
         testUtility = new HBaseTestingUtility(conf);
 
         Configuration configuration = testUtility.getConfiguration();
-        configuration.set("hbase.coprocessor.region.classes", TxnLifecycleEndpoint.class.getName());
         // -> MapR work-around
         configuration.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
         configuration.set("fs.default.name", "file:///");

@@ -30,14 +30,14 @@ public class HPut implements HMutation,DataPut{
 
     @Override
     public void tombstone(long txnIdLong){
-        put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
+        put.add(SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
                 txnIdLong,SIConstants.EMPTY_BYTE_ARRAY);
     }
 
     @Override
     public void antiTombstone(long txnIdLong){
-        put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
+        put.add(SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
                 txnIdLong,
                 SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES);
@@ -45,7 +45,7 @@ public class HPut implements HMutation,DataPut{
 
     @Override
     public void addCell(byte[] family,byte[] qualifier,long timestamp,byte[] value){
-        put.addColumn(family,qualifier,timestamp,value);
+        put.add(family,qualifier,timestamp,value);
     }
 
     @Override

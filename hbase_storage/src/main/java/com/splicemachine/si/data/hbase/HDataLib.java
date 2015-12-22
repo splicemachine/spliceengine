@@ -117,9 +117,9 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,long timestamp,byte[] value){
         if(timestamp<0){
-            put.addColumn(family,qualifier,value);
+            put.add(family,qualifier,value);
         }else{
-            put.addColumn(family,qualifier,timestamp,value);
+            put.add(family,qualifier,timestamp,value);
         }
     }
 

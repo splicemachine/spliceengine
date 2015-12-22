@@ -110,7 +110,7 @@ public class RegionTxnStore implements TxnPartition{
             System.arraycopy(destinationTable,0,newBytes,valueLength+1,destinationTable.length);
         }
         Put put=new Put(get.getRow());
-        put.addColumn(FAMILY,destTableQualifier,newBytes);
+        put.add(FAMILY,destTableQualifier,newBytes);
         region.put(put);
     }
 
@@ -142,7 +142,7 @@ public class RegionTxnStore implements TxnPartition{
             throw new HTransactionTimeout(txnId);
 
         Put newPut=new Put(TxnUtils.getRowKey(txnId));
-        newPut.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
+        newPut.add(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
         region.put(newPut); //TODO -sf- does this work when the region is splitting?
         return true;
     }
@@ -186,15 +186,15 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordCommit txnId=%d, commitTs=%d",txnId,commitTs);
         Put put=new Put(TxnUtils.getRowKey(txnId));
-        put.addColumn(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
-        put.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.COMMITTED.encode());
+        put.add(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
+        put.add(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.COMMITTED.encode());
         region.put(put);
     }
 
     @Override
     public void recordGlobalCommit(long txnId,long globalCommitTs) throws IOException{
         Put put=new Put(TxnUtils.getRowKey(txnId));
-        put.addColumn(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
+        put.add(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
         region.put(put);
     }
 
@@ -219,9 +219,9 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordRollback txnId=%d",txnId);
         Put put=new Put(TxnUtils.getRowKey(txnId));
-        put.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.ROLLEDBACK.encode());
-        put.addColumn(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
-        put.addColumn(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
+        put.add(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.ROLLEDBACK.encode());
+        put.add(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
+        put.add(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
         region.put(put);
     }
 

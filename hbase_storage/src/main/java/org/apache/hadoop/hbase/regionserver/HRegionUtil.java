@@ -4,15 +4,11 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
-import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
-
-import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
-import static com.splicemachine.si.constants.SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES;
 
 /**
  * Class for accessing protected methods in HBase.
@@ -21,7 +17,6 @@ import static com.splicemachine.si.constants.SIConstants.SNAPSHOT_ISOLATION_COMM
  */
 public class HRegionUtil extends BaseHRegionUtil{
     private static final Logger LOG=Logger.getLogger(HRegionUtil.class);
-    public static final KeyExists keyExists;
 
     public static void lockStore(Store store){
         ((HStore)store).lock.readLock().lock();
@@ -33,19 +28,6 @@ public class HRegionUtil extends BaseHRegionUtil{
 
     public static void startRegionOperation(HRegion region) throws IOException{
         region.startRegionOperation();
-    }
-
-    /**
-     * Tests if the key exists in the memstore (hard match) or in the bloom filters (false positives allowed).  This
-     * code is utilized via constraint checking and SI Write/Write conflict checking
-     *
-     * @param store
-     * @param key
-     * @return
-     * @throws IOException
-     */
-    public static boolean keyExists(Store store,byte[] key) throws IOException{
-        return keyExists.keyExists(store,key);
     }
 
     protected static boolean checkMemstoreSet(SortedSet<Cell> set,byte[] key,Cell kv){
@@ -202,7 +184,6 @@ public class HRegionUtil extends BaseHRegionUtil{
     }
 
     static{
-        keyExists=new LogNKeyExists();
         /*
         try {
 			KeyValueSkipListSet test = new KeyValueSkipListSet(KeyValue.COMPARATOR);
@@ -218,75 +199,9 @@ public class HRegionUtil extends BaseHRegionUtil{
     }
 
     public interface KeyExists{
-        public boolean keyExists(Store store,byte[] key) throws IOException;
     }
 
     static class LogNKeyExists implements KeyExists{
-        // TODO: jc - using package access classes, methods and instance members is advised against
-        @Override
-        public boolean keyExists(Store store,byte[] key) throws IOException{
-            if(key==null)
-                return false;
-            if(!(store instanceof HStore)){
-                return false;
-            }
-            HStore hstore=(HStore)store;
-            hstore.lock.readLock().lock();
-            Collection<StoreFile> storeFiles;
-            try{
-                storeFiles=store.getStorefiles();
-                /*
-                 * Apparently, there's an issue where, when you first start up an HBase instance, if you
-                 * call this code directly, you can break. In essence, there are no storefiles, so it goes
-                 * to the memstore, where SOMETHING (and I don't know what) causes it to mistakenly return
-                 * false,
-                 * which tells the writing code that it's safe to write, resulting in some missing Primary Key
-                 * errors.
-                 *
-                 * And in practice, it doesn't do you much good to check the memstore if there are no store
-                 * files,
-                 * since you'll just have to turn around and check the memstore again when you go to perform
-                 * your
-                 * get/scan. So may as well save ourselves the extra effort and skip operation if there are no
-                  * store
-                 * files to check.
-                 */
-                if(storeFiles.size()<=0) return true;
 
-                Reader fileReader;
-                for(StoreFile file : storeFiles){
-                    if(file!=null){
-                        fileReader=file.createReader();
-                        if(fileReader.generalBloomFilter!=null && fileReader.generalBloomFilter.contains(key,0,
-                                key.length,null))
-                            return true;
-                    }
-                }
-                Cell kv=new KeyValue(key,
-                        DEFAULT_FAMILY_BYTES,
-                        SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-                        HConstants.LATEST_TIMESTAMP,
-                        HConstants.EMPTY_BYTE_ARRAY);
-                return checkMemstore(HBasePlatformUtils.getKvset(hstore),key,kv) || checkMemstore(HBasePlatformUtils.getSnapshot(hstore),key,kv);
-            }catch(IOException ioe){
-                ioe.printStackTrace();
-                throw ioe;
-            }finally{
-                hstore.lock.readLock().unlock();
-            }
-        }
-
-        protected boolean checkMemstore(NavigableSet<Cell> kvSet,byte[] key,Cell kv){
-            Cell placeHolder;
-            try{
-                // FIXME: remove ref to private audience KeyValueSkipListSet and so remove cast
-                SortedSet<? super Cell> kvset=kvSet.tailSet(kv);
-                placeHolder=kvset.isEmpty()?null:(Cell)kvset.first();
-                if(placeHolder!=null && CellUtil.matchingRow(placeHolder,key))
-                    return true;
-            }catch(NoSuchElementException ignored){
-            } // This keeps us from constantly performing key value comparisons for empty set
-            return false;
-        }
     }
 }

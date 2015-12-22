@@ -3,7 +3,6 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.STableFactory;
-import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -19,6 +18,7 @@ import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import com.splicemachine.si.impl.CoprocessorTxnStore;
 import com.splicemachine.si.impl.HTxnOperationFactory;
+import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -45,7 +45,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private static volatile HBaseSIEnvironment INSTANCE;
 
     private final TimestampSource timestampSource;
-    private final HBaseTableFactory tableFactory;
+    private final STableFactory<TableName> tableFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier<OperationWithAttributes,Cell,Delete,
@@ -74,9 +74,9 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @SuppressWarnings("unchecked")
     public HBaseSIEnvironment(TimestampSource timestampSource){
         this.timestampSource =timestampSource;
-        HBaseTableFactory hBaseTableFactory=new HBaseTableFactory();
-        this.tableFactory =hBaseTableFactory;
-        this.txnStore = new CoprocessorTxnStore(hBaseTableFactory,timestampSource,null);
+        this.tableFactory=TableFactoryService.loadTableFactory();
+        TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer();
+        this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,SIConstants.completedTransactionCacheSize,SIConstants.completedTransactionConcurrency);
         this.txnStore.setCache(txnSupplier);
         this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(dataLib(),tableFactory);

@@ -1,7 +1,6 @@
 package com.splicemachine.access.hbase;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.access.api.SConnectionFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.SI_PERMISSION_FAMILY;
 import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKET_COUNT;
@@ -31,7 +31,7 @@ import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKE
  * Created by jleach on 11/18/15.
  */
 @ThreadSafe
-public class HBaseConnectionFactory extends SIConstants implements SConnectionFactory<Connection,Admin> {
+public class HBaseConnectionFactory {
     private static final Logger LOG = Logger.getLogger(HBaseConnectionFactory.class);
     private static Connection connection;
     private static HBaseConnectionFactory INSTANCE = new HBaseConnectionFactory();
@@ -116,7 +116,7 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
 
     public static HTableDescriptor generateDefaultSIGovernedTable(
             String tableName) {
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespace, tableName));
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespace,tableName));
         desc.addFamily(createDataFamily());
         return desc;
     }
@@ -128,17 +128,16 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
     }
 
     public static HTableDescriptor generateTransactionTable() {
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespaceBytes, TRANSACTION_TABLE_BYTES));
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespaceBytes, SIConstants.TRANSACTION_TABLE_BYTES));
         HColumnDescriptor columnDescriptor = new HColumnDescriptor(
                 DEFAULT_FAMILY_BYTES);
         columnDescriptor.setMaxVersions(5);
         columnDescriptor.setCompressionType(Compression.Algorithm
-                .valueOf(compression.toUpperCase()));
-        columnDescriptor.setInMemory(DEFAULT_IN_MEMORY);
-        columnDescriptor.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        columnDescriptor.setBloomFilterType(BloomType
-                .valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
-        columnDescriptor.setTimeToLive(DEFAULT_TTL);
+                .valueOf(SIConstants.compression.toUpperCase()));
+        columnDescriptor.setInMemory(SIConstants.DEFAULT_IN_MEMORY);
+        columnDescriptor.setBlockCacheEnabled(SIConstants.DEFAULT_BLOCKCACHE);
+        columnDescriptor.setBloomFilterType(BloomType.valueOf(SIConstants.DEFAULT_BLOOMFILTER.toUpperCase()));
+        columnDescriptor.setTimeToLive(SIConstants.DEFAULT_TTL);
         desc.addFamily(columnDescriptor);
         desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)));
         return desc;
@@ -156,12 +155,11 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
         HColumnDescriptor snapshot = new HColumnDescriptor(
                 DEFAULT_FAMILY_BYTES);
         snapshot.setMaxVersions(Integer.MAX_VALUE);
-        snapshot.setCompressionType(Compression.Algorithm.valueOf(compression
-                .toUpperCase()));
-        snapshot.setInMemory(DEFAULT_IN_MEMORY);
-        snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+        snapshot.setCompressionType(Compression.Algorithm.valueOf(SIConstants.compression.toUpperCase()));
+        snapshot.setInMemory(SIConstants.DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(SIConstants.DEFAULT_BLOCKCACHE);
         snapshot.setBloomFilterType(BloomType.ROW);
-        snapshot.setTimeToLive(DEFAULT_TTL);
+        snapshot.setTimeToLive(SIConstants.DEFAULT_TTL);
         return snapshot;
     }
 
@@ -173,25 +171,22 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
             admin = connection.getAdmin();
             admin.createNamespace(NamespaceDescriptor.create("splice").build());
 
-            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,TRANSACTION_TABLE_BYTES))) {
+            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SIConstants.TRANSACTION_TABLE_BYTES))) {
                 HTableDescriptor td = generateTransactionTable();
                 admin.createTable(td, generateTransactionSplits());
-                SpliceLogUtils.info(LOG, TRANSACTION_TABLE
-                        + " created");
+                SpliceLogUtils.info(LOG, SIConstants.TRANSACTION_TABLE + " created");
             }
-            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,TENTATIVE_TABLE_BYTES))) {
-                HTableDescriptor td = generateDefaultSIGovernedTable(TENTATIVE_TABLE);
+            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SIConstants.TENTATIVE_TABLE_BYTES))) {
+                HTableDescriptor td = generateDefaultSIGovernedTable(SIConstants.TENTATIVE_TABLE);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, TENTATIVE_TABLE
-                        + " created");
+                SpliceLogUtils.info(LOG, SIConstants.TENTATIVE_TABLE + " created");
             }
 
             if (!admin
-                    .tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,CONGLOMERATE_TABLE_NAME_BYTES))) {
-                HTableDescriptor td = generateDefaultSIGovernedTable(CONGLOMERATE_TABLE_NAME);
+                    .tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SIConstants.CONGLOMERATE_TABLE_NAME_BYTES))) {
+                HTableDescriptor td = generateDefaultSIGovernedTable(SIConstants.CONGLOMERATE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,
-                        CONGLOMERATE_TABLE_NAME + " created");
+                SpliceLogUtils.info(LOG, SIConstants.CONGLOMERATE_TABLE_NAME + " created");
             }
 
 			/*
@@ -200,10 +195,9 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
 			 * transactionally.
 			 */
             if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SpliceConstants.SEQUENCE_TABLE_NAME_BYTES))) {
-                HTableDescriptor td = generateNonSITable(SEQUENCE_TABLE_NAME);
+                HTableDescriptor td = generateNonSITable(SIConstants.SEQUENCE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, SEQUENCE_TABLE_NAME
-                        + " created");
+                SpliceLogUtils.info(LOG, SIConstants.SEQUENCE_TABLE_NAME + " created");
             }
 
             createRestoreTableIfNecessary();
@@ -220,11 +214,10 @@ public class HBaseConnectionFactory extends SIConstants implements SConnectionFa
         Admin admin = null;
         try {
             admin = connection.getAdmin();
-            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,RESTORE_TABLE_NAME_BYTES))) {
-                HTableDescriptor td = generateNonSITable(RESTORE_TABLE_NAME);
+            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SIConstants.RESTORE_TABLE_NAME_BYTES))) {
+                HTableDescriptor td = generateNonSITable(SIConstants.RESTORE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, RESTORE_TABLE_NAME
-                        + " created");
+                SpliceLogUtils.info(LOG, SIConstants.RESTORE_TABLE_NAME + " created");
             }
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, "Unable to set up HBase Tables", e);

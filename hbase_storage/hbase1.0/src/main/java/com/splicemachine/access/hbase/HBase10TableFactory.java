@@ -22,12 +22,12 @@ import java.util.concurrent.ExecutionException;
  *
  * Created by jleach on 11/18/15.
  */
-public class HBaseTableFactory implements STableFactory<TableName>{
+public class HBase10TableFactory implements STableFactory<TableName>{
     protected Connection connection;
     protected HBaseTableInfoFactory hbaseTableInfoFactory;
-    private static HBaseTableFactory INSTANCE=new HBaseTableFactory();
+    private static STableFactory<TableName> INSTANCE=new HBase10TableFactory();
 
-    public HBaseTableFactory(){
+    public HBase10TableFactory(){
         try{
             connection=HBaseConnectionFactory.getInstance().getConnection();
             hbaseTableInfoFactory=HBaseTableInfoFactory.getInstance();
@@ -36,7 +36,7 @@ public class HBaseTableFactory implements STableFactory<TableName>{
         }
     }
 
-    public static HBaseTableFactory getInstance(){
+    public static STableFactory<TableName> getInstance(){
         return INSTANCE;
     }
 

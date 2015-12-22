@@ -32,7 +32,7 @@ public class HDelete implements DataDelete,HMutation{
 
     @Override
     public void deleteColumn(byte[] family,byte[] qualifier,long version){
-        delete.addColumn(family,qualifier,version);
+        delete.deleteColumn(family,qualifier,version);
     }
 
     @Override
