@@ -260,15 +260,15 @@
         </profile>
 
         <profile>
-            <id>mapr4.5.1</id>
+            <id>mapr5.0.0</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>mapr4.5.1</value>
+                    <value>mapr5.0.0</value>
                 </property>
             </activation>
             <properties>
-                <envClassifier>mapr4.5.1</envClassifier>
+                <envClassifier>mapr5.0.0</envClassifier>
                 <!-- platform component versions -->
                 <hadoop.version>2.7.0-mapr-1506</hadoop.version>
                 <hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>
@@ -321,7 +321,6 @@
                 </plugins>
             </build>
         </profile>
-
 
     </profiles>
 </project>
