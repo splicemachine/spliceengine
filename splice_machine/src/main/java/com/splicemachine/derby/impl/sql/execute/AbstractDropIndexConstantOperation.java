@@ -4,7 +4,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;

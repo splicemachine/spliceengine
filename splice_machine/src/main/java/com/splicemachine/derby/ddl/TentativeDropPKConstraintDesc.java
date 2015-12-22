@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.ddl.DDLMessage;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -19,9 +18,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
 import org.sparkproject.guava.primitives.Ints;
 
 /**

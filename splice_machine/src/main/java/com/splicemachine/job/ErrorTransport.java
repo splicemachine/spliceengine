@@ -1,7 +1,7 @@
 package com.splicemachine.job;
 
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.reflect.ConstructorUtils;
 import com.splicemachine.db.iapi.error.StandardException;

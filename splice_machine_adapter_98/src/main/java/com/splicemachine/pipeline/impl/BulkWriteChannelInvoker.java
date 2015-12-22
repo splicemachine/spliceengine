@@ -1,4 +1,4 @@
-package com.splicemachine.pipeline.impl;
+package com.splicemachine.pipeline.client;
 
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;

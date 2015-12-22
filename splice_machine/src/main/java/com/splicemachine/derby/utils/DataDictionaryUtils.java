@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;

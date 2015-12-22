@@ -1,6 +1,6 @@
 package com.splicemachine.si;
 
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -35,7 +35,7 @@ public class MemSITestEnv implements SITestEnv{
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
     private final Partition personPartition = new MPartition("person","person");
-    private final STableFactory tableFactory = new STableFactory(){
+    private final PartitionFactory tableFactory = new PartitionFactory(){
         @Override
         public Partition getTable(Object tableName) throws IOException{
             assert tableName instanceof String: "Programmer error: improper type!";
@@ -85,7 +85,7 @@ public class MemSITestEnv implements SITestEnv{
     }
 
     @Override
-    public STableFactory getTableFactory(){
+    public PartitionFactory getTableFactory(){
         return tableFactory;
     }
 

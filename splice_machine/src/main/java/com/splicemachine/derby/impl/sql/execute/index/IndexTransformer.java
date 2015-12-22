@@ -1,35 +1,25 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import java.io.IOException;
-import java.util.Arrays;
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.primitives.Ints;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.storage.ByteEntryAccumulator;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-import org.sparkproject.guava.primitives.Ints;
+
+import java.io.IOException;
+import java.util.Arrays;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -103,23 +93,16 @@ public class IndexTransformer {
      */
     public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
         // do a Get() on all the indexed columns of the base table
-        Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRowKey());
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
-        get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-        Result result = ctx.getRegion().get(get);
-        if(result==null||result.isEmpty()){
+        DataResult result = ctx.txnRegion().get(mutation.getRowKey(),ctx.getTxn(),indexedColumns);
+//        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
+//        get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+//        DataResult result = ctx.getRegion().get(get);
+        if(result==null||result.size()<=0){
             // we can't find the old row, may have been deleted already
             return null;
         }
 
-        Cell resultValue = null;
-        for(Cell value:result.rawCells()){
-            if(CellUtil.matchingFamily(value, SpliceConstants.DEFAULT_FAMILY_BYTES)
-                && CellUtil.matchingQualifier(value,SpliceConstants.PACKED_COLUMN_BYTES)){
-                resultValue = value;
-                break;
-            }
-        }
+        DataCell resultValue = result.userData();
         if(resultValue==null){
             // we can't find the old row, may have been deleted already
             return null;
@@ -128,8 +111,8 @@ public class IndexTransformer {
         // transform the results into an index row (as if we were inserting it) but create a delete for it
 
         KVPair toTransform = new KVPair(
-                resultValue.getRowArray(),resultValue.getRowOffset(),resultValue.getRowLength(),
-                resultValue.getValueArray(),resultValue.getValueOffset(),resultValue.getValueLength(),KVPair.Type.DELETE);
+                resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
+                resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
         return translate(toTransform);
     }
 
@@ -325,13 +308,13 @@ public class IndexTransformer {
 
     private void accumulateNull(EntryAccumulator keyAccumulator, int pos, int type){
         if (typeProvider.isScalar(type))
-            keyAccumulator.addScalar(pos,HConstants.EMPTY_BYTE_ARRAY,0,0);
+            keyAccumulator.addScalar(pos,SIConstants.EMPTY_BYTE_ARRAY,0,0);
         else if (typeProvider.isDouble(type))
             keyAccumulator.addDouble(pos,Encoding.encodedNullDouble(),0,Encoding.encodedNullDoubleLength());
         else if (typeProvider.isFloat(type))
             keyAccumulator.addDouble(pos,Encoding.encodedNullFloat(),0,Encoding.encodedNullFloatLength());
         else
-            keyAccumulator.add(pos,HConstants.EMPTY_BYTE_ARRAY,0,0);
+            keyAccumulator.add(pos,SIConstants.EMPTY_BYTE_ARRAY,0,0);
 
     }
 

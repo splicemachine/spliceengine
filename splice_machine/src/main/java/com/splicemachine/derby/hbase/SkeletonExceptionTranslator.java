@@ -1,10 +1,9 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
-import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
+import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
+
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 

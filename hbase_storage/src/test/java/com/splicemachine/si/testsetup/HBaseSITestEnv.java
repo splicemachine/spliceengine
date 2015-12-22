@@ -1,6 +1,6 @@
 package com.splicemachine.si.testsetup;
 
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.constants.SpliceConstants;
@@ -39,7 +39,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -118,7 +117,7 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     @Override
-    public STableFactory getTableFactory(){
+    public PartitionFactory getTableFactory(){
         return TableFactoryService.loadTableFactory();
     }
 
@@ -174,7 +173,7 @@ public class HBaseSITestEnv implements SITestEnv{
         // -> MapR work-around
         configuration.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
         configuration.set("fs.default.name", "file:///");
-        configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+        configuration.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
         System.setProperty("zookeeper.sasl.client", "false");
         System.setProperty("zookeeper.sasl.serverconfig", "fake");
         // <- MapR work-around

@@ -331,7 +331,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
     }
 
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.request:type=TimestampClientStatistics"); // Same string is in JMXUtils
+        ObjectName name = new ObjectName("com.splicemachine.si.client.timestamp.request:type=TimestampClientStatistics"); // Same string is in JMXUtils
         mbs.registerMBean(this, name);
     }
 

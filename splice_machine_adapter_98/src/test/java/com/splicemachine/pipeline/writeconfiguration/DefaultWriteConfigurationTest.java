@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.splicemachine.pipeline.writeconfiguration;
+package com.splicemachine.pipeline.config;
 
 import java.util.concurrent.ExecutionException;
 

@@ -56,7 +56,7 @@ import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.pipeline.impl.*;
+import com.splicemachine.pipeline.client.*;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.ByteSlice;
@@ -591,7 +591,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class, new MapSerializer(), 146);
 
-        //instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
+        //instance.register(com.splicemachine.derby.client.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
         instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
         instance.register(com.splicemachine.db.impl.sql.execute.IndexRow.class,
                 new ValueRowSerializer<com.splicemachine.db.impl.sql.execute.IndexRow>(){

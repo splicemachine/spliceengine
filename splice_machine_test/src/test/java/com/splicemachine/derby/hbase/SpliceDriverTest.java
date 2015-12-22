@@ -3,7 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.pipeline.api.Service;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.pipeline.client.WriteCoordinator;
 import org.junit.Test;
 import java.util.Collections;
 import java.util.List;

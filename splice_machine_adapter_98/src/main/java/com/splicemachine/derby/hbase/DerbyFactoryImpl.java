@@ -96,7 +96,7 @@ import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 import com.splicemachine.mrio.api.core.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
+import com.splicemachine.pipeline.client.BulkWritesRPCInvoker;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;

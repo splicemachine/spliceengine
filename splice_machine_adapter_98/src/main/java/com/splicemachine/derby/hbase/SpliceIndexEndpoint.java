@@ -15,8 +15,8 @@ import com.google.protobuf.Service;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceIndexService;
 import com.splicemachine.pipeline.coprocessor.BatchProtocol;
-import com.splicemachine.pipeline.impl.BulkWrites;
-import com.splicemachine.pipeline.impl.BulkWritesResult;
+import com.splicemachine.pipeline.client.BulkWrites;
+import com.splicemachine.pipeline.client.BulkWritesResult;
 import org.apache.log4j.Logger;
 
 public class SpliceIndexEndpoint extends SpliceIndexService implements BatchProtocol, Coprocessor, IndexEndpoint{

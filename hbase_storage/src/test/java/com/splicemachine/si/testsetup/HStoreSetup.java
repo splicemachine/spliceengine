@@ -10,9 +10,9 @@
 //import com.splicemachine.si.api.data.SDataLib;
 //import com.splicemachine.si.api.data.STableReader;
 //import com.splicemachine.si.data.hbase.HDataLib;
-//import com.splicemachine.si.impl.*;
-//import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-//import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+//import com.splicemachine.si.client.*;
+//import com.splicemachine.si.client.store.CompletedTxnCacheSupplier;
+//import com.splicemachine.si.client.store.IgnoreTxnCacheSupplier;
 //import com.splicemachine.timestamp.api.TimestampSource;
 //import org.apache.hadoop.conf.Configuration;
 //import org.apache.hadoop.fs.FileSystem;
@@ -68,7 +68,7 @@
 //        // -> MapR work-around
 //        configuration.set(FileSystem.FS_DEFAULT_NAME_KEY, "file:///");
 //        configuration.set("fs.default.name", "file:///");
-//        configuration.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+//        configuration.set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
 //        System.setProperty("zookeeper.sasl.client", "false");
 //        System.setProperty("zookeeper.sasl.serverconfig", "fake");
 //        // <- MapR work-around

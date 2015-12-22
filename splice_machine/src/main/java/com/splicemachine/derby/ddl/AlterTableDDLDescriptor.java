@@ -25,8 +25,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 

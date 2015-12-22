@@ -6,7 +6,7 @@ import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.txn.Txn;

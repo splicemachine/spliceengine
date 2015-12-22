@@ -293,7 +293,7 @@ public class SpliceTableMapReduceUtil {
    * Pass <code> &lt;hbase.zookeeper.quorum>:&lt;hbase.zookeeper.client.port>:&lt;zookeeper.znode.parent>
    * </code> such as <code>server,server2,server3:2181:/hbase</code>.
    * @param serverClass redefined hbase.regionserver.class
-   * @param serverImpl redefined hbase.regionserver.impl
+   * @param serverImpl redefined hbase.regionserver.client
    * @throws IOException When determining the region count fails.
  * @throws SQLException 
    */
@@ -325,7 +325,7 @@ public class SpliceTableMapReduceUtil {
    * Pass <code> &lt;hbase.zookeeper.quorum>:&lt;hbase.zookeeper.client.port>:&lt;zookeeper.znode.parent>
    * </code> such as <code>server,server2,server3:2181:/hbase</code>.
    * @param serverClass redefined hbase.regionserver.class
-   * @param serverImpl redefined hbase.regionserver.impl
+   * @param serverImpl redefined hbase.regionserver.client
    * @param addDependencyJars upload HBase jars and jars for any of the configured
    *           job classes via the distributed cache (tmpjars).
    * @throws IOException When determining the region count fails.

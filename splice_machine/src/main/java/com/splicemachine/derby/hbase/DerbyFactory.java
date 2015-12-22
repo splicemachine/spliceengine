@@ -48,7 +48,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
-import com.splicemachine.pipeline.api.BulkWritesInvoker;
+import com.splicemachine.pipeline.api.BulkWriter;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public interface DerbyFactory<Transaction> {
@@ -64,7 +64,7 @@ public interface DerbyFactory<Transaction> {
 		Path getTableDir(HRegion region) throws IOException;
         Path getRegionDir(HRegion region);
 		void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
-		BulkWritesInvoker.Factory getBulkWritesInvoker(byte[] tableName);
+		BulkWriter.Factory getBulkWritesInvoker(byte[] tableName);
 		long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
 		void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
 		int getRegionsSizeMB(String tableName);

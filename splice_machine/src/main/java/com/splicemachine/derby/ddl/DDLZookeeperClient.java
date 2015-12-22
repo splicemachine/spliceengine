@@ -3,7 +3,7 @@ package com.splicemachine.derby.ddl;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.log4j.Logger;

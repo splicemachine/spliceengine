@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 
 public abstract class AbstractSequence implements Sequence, Externalizable {
 	protected final AtomicLong remaining = new AtomicLong(0l);

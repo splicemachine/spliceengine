@@ -6,7 +6,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 import com.google.common.base.Strings;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;

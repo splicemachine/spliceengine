@@ -107,7 +107,7 @@ public class CsvUtil {
         return max;
     }
 
-    // TODO - this impl blows memory, of course, when there's too many lines in the file
+    // TODO - this client blows memory, of course, when there's too many lines in the file
     public static List<String> fileToLines(String filePath, String commentPattern) {
         List<String> lines = new LinkedList<String>();
         BufferedReader in = null;

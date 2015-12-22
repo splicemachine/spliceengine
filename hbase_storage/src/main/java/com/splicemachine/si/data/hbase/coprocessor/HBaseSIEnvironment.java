@@ -2,7 +2,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -45,7 +45,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private static volatile HBaseSIEnvironment INSTANCE;
 
     private final TimestampSource timestampSource;
-    private final STableFactory<TableName> tableFactory;
+    private final PartitionFactory<TableName> tableFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier<OperationWithAttributes,Cell,Delete,
@@ -86,7 +86,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
 
-    @Override public STableFactory tableFactory(){ return tableFactory; }
+    @Override public PartitionFactory tableFactory(){ return tableFactory; }
 
     @Override
     public ExceptionFactory exceptionFactory(){

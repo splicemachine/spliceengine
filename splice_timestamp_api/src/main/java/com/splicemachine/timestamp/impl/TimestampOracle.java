@@ -100,7 +100,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
 	}
 
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName name = new ObjectName("com.splicemachine.si.impl.timestamp.generator:type=TimestampOracleStatistics");  // Same string is in JMXUtils
+        ObjectName name = new ObjectName("com.splicemachine.si.client.timestamp.generator:type=TimestampOracleStatistics");  // Same string is in JMXUtils
         mbs.registerMBean(this, name);
     }
 

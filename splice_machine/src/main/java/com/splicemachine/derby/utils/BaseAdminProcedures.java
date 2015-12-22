@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,7 +10,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
@@ -32,7 +30,7 @@ import org.apache.hadoop.hbase.util.Pair;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 
 /**
  * Common static utility functions for subclasses which provide

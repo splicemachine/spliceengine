@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import com.splicemachine.db.iapi.jdbc.EngineConnection;
+
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
@@ -14,7 +14,6 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -23,7 +22,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.pipeline.exception.ErrorState;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;

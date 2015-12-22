@@ -326,7 +326,7 @@ public class TransactorTestUtility {
 
 //    public void assertWriteConflict(RetriesExhaustedWithDetailsException e) {
 //        Assert.assertEquals(1, e.getNumExceptions());
-//        assertTrue(e.getMessage().startsWith("Failed 1 action: com.splicemachine.si.impl.WriteConflict:"));
+//        assertTrue(e.getMessage().startsWith("Failed 1 action: com.splicemachine.si.client.WriteConflict:"));
 //    }
 
     private static String timestampToStableString(Map<Long, String> timestampDecoder, long timestamp) {

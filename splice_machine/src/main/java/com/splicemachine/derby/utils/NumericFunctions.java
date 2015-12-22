@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.ErrorState;
 
 /**
  * Collection of static functions for use as derby stored functions.

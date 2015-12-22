@@ -4,7 +4,7 @@ import com.google.common.base.Splitter;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.db.impl.jdbc.Util;

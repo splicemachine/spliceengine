@@ -14,8 +14,8 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.pipeline.api.Code;
-import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
+import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;

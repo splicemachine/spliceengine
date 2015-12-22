@@ -9,7 +9,7 @@ import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-//import com.splicemachine.db.impl.sql.execute.RankFunction;
+//import com.splicemachine.db.client.sql.execute.RankFunction;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.junit.BeforeClass;
 import org.junit.Ignore;

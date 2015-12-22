@@ -249,7 +249,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
          // and subsquently the returned column is used for some sort of
          // comparison.  Also could be a problem is reader of tempoary 
          // table uses qualifiers, that would result in comparisons internal
-         // to store.  I believe the below impl is incomplete - either
+         // to store.  I believe the below client is incomplete - either
          // it should always be default, or real collate_ids should be 
          // passed in.
 

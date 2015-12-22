@@ -9,8 +9,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.si.api.txn.TxnView;
 
 import java.util.concurrent.Callable;

@@ -1,4 +1,4 @@
-package com.splicemachine.pipeline.impl;
+package com.splicemachine.pipeline.client;
 
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceDriver;

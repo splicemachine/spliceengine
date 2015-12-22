@@ -12,9 +12,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
 import org.sparkproject.guava.primitives.Ints;
 
 /**

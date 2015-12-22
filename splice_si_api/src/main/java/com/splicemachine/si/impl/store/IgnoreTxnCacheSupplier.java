@@ -1,7 +1,7 @@
 package com.splicemachine.si.impl.store;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.metrics.Metrics;
@@ -27,11 +27,11 @@ public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,Delete extends 
         TableInfo> {
     private final ConcurrentLinkedHashMap<String,List<Pair<Long, Long>>> cache;
     private final SDataLib<OperationWithAttributes,Data,Delete, Get, Put,RegionScanner,Result,Scan>  dataLib;
-    private final STableFactory<TableInfo> tableFactory;
+    private final PartitionFactory<TableInfo> tableFactory;
 
     private EntryDecoder entryDecoder;
 
-    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,STableFactory<TableInfo> tableFactory) {
+    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,PartitionFactory<TableInfo> tableFactory) {
         this.dataLib = dataLib;
         this.tableFactory=tableFactory;
         cache = new ConcurrentLinkedHashMap.Builder<String, List<Pair<Long, Long>>>()

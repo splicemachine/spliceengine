@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;

@@ -9,7 +9,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 
 public class SpliceMethod<T> {
     private static Logger LOG = Logger.getLogger(SpliceMethod.class);

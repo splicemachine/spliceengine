@@ -24,7 +24,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.uuid.Snowflake;

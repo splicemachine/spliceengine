@@ -12,11 +12,11 @@ import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.hbase.backup.BackupUtils;
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
+import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
-import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
+import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
@@ -61,7 +61,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
      * Log component specific to compaction related code, so that this functionality
      * can be logged in isolation without having to also see the rest of the logging
      * from this class. To see additional temp table compaction logging,
-     * also use log component: com.splicemachine.derby.impl.temp.TempTable.
+     * also use log component: com.splicemachine.derby.client.temp.TempTable.
      */
     private static final Logger LOG_COMPACT = Logger.getLogger(AbstractSpliceIndexObserver.class.getName() + ".Compaction");
     private static final Logger LOG_SPLIT = Logger.getLogger(AbstractSpliceIndexObserver.class.getName() + ".Split");

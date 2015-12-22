@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils.marshall;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.kryo.KryoPool;

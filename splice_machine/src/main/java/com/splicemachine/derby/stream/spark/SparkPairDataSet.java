@@ -24,7 +24,7 @@ import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
-import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.ErrorState;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;

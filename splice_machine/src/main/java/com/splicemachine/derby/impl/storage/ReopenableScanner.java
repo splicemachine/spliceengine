@@ -4,7 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;

@@ -10,7 +10,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
 
 /**

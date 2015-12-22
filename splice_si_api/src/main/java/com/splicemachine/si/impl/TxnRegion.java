@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -172,4 +174,13 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     public void close(){
     } //no-op
 
+    @Override
+    public DataResult get(byte[] rowKey,TxnView txn,BitSet interestingColumns) throws IOException{
+        EntryPredicateFilter epf;
+        if(interestingColumns!=null && interestingColumns.size()>0){
+            epf = new EntryPredicateFilter(interestingColumns,new ObjectArrayList<Predicate>(0));
+        }else epf = EntryPredicateFilter.EMPTY_PREDICATE;
+
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 }

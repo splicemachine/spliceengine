@@ -1,14 +1,15 @@
 package com.splicemachine.si.api.server;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.ByteSlice;
@@ -80,4 +81,6 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     void close();
 
     InternalScanner compactionScanner(InternalScanner scanner);
+
+    DataResult get(byte[] rowKey, TxnView txn, BitSet interestingColumns) throws IOException;
 }

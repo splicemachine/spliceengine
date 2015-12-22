@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.metrics.*;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;

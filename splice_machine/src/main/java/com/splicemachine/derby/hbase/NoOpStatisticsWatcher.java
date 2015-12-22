@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.pipeline.api.StatisticsWatcher;
+
 /**
  * A No-op implementation of a Statistics Watcher
  * @author Scott Fines

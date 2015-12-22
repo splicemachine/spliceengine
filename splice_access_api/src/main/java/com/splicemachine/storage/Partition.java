@@ -4,13 +4,14 @@ import com.splicemachine.metrics.MetricFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 
 /**
  * Abstraction that makes HBase tables and regions have a uniform interface.
  */
-public interface Partition extends AutoCloseable{
+public interface Partition extends AutoCloseable, Comparable<Partition>{
 
     String getTableName();
 
@@ -103,4 +104,8 @@ public interface Partition extends AutoCloseable{
     void writesRequested(long writeRequests);
 
     void readsRequested(long readRequests);
+
+    List<Partition> subPartitions();
+
+    PartitionServer owningServer();
 }

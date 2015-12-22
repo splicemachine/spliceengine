@@ -1,8 +1,9 @@
 package com.splicemachine.derby.ddl;
 
 import java.io.IOException;
+
+import com.google.common.primitives.Ints;
 import com.splicemachine.ddl.DDLMessage;
-import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -13,10 +14,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
-import org.sparkproject.guava.primitives.Ints;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * Add column descriptor

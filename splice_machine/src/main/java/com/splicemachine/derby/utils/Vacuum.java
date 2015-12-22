@@ -7,8 +7,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceUtilities;
 
 import com.splicemachine.db.iapi.error.PublicAPI;

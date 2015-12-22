@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
@@ -61,7 +61,7 @@ public class SimpleTxnFilterTest{
         SDataLib dataLib=testEnv.getDataLib();
 
         TimestampSource tss = new TestingTimestampSource();
-        this.ignoreSupplier=new IgnoreTxnCacheSupplier(dataLib,mock(STableFactory.class));
+        this.ignoreSupplier=new IgnoreTxnCacheSupplier(dataLib,mock(PartitionFactory.class));
         this.txnStore=new TestingTxnStore(new IncrementingClock(),tss,exceptionFactory,Long.MAX_VALUE);
         this.txnSupplier = new ActiveTxnCacheSupplier(txnStore,1024);
         this.txnLifecycleManager= new ClientTxnLifecycleManager(tss,exceptionFactory);

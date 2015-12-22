@@ -1,6 +1,6 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
@@ -15,7 +15,7 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 12/22/15
  */
-public class HBase98TableFactory implements STableFactory<TableName>{
+public class HBase98TableFactory implements PartitionFactory<TableName>{
     //-sf- this may not be necessary
     private final HConnectionPool connectionPool;
 

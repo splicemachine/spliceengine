@@ -3,12 +3,12 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
-import com.splicemachine.pipeline.impl.*;
+import com.splicemachine.pipeline.client.*;
 import com.splicemachine.pipeline.api.Service;
-import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
+import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.utils.PipelineUtils;
-import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
-import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
+import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
+import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -129,7 +129,7 @@ public class SpliceBaseIndexEndpoint {
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
         int numBulkWrites = bulkWrites.getBulkWrites().size();
         List<BulkWriteResult> result = new ArrayList<>(numBulkWrites);
-        IndexCallBufferFactory indexWriteBufferFactory = new IndexCallBufferFactory();
+        SharedCallBufferFactory indexWriteBufferFactory = new SharedCallBufferFactory();
 
         if (numBulkWrites==0) {
             if (LOG.isDebugEnabled())

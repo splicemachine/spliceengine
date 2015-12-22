@@ -10,7 +10,7 @@ import com.splicemachine.derby.stream.output.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import java.io.IOException;
 import java.util.Iterator;

@@ -23,7 +23,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.driver.SIDriver;

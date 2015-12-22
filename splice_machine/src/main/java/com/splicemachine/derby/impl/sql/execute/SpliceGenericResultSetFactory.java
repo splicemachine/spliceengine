@@ -22,7 +22,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceGenericResultSetFactory implements ResultSetFactory {

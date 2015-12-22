@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;

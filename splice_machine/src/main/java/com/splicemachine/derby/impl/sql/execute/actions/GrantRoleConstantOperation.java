@@ -19,7 +19,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 public class GrantRoleConstantOperation extends DDLConstantOperation {
     private List roleNames;
     private List grantees;
-    private final boolean withAdminOption = false; // not impl.
+    private final boolean withAdminOption = false; // not client.
     /**
      *  Make the ConstantAction for a CREATE ROLE statement.
      *  When executed, will create a role by the given name.

@@ -125,7 +125,7 @@ public class SpliceSpark {
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("executor.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
         conf.set("driver.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
-        conf.set("spark.kryo.registrator", "com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator");
+        conf.set("spark.kryo.registrator", "com.splicemachine.derby.client.spark.SpliceSparkKryoRegistrator");
         // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");
        // conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");

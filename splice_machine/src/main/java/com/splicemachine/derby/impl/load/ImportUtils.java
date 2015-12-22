@@ -2,10 +2,8 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
-import com.splicemachine.derby.vti.SpliceFileVTI;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.file.DefaultFileInfo;
 import com.splicemachine.utils.file.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;

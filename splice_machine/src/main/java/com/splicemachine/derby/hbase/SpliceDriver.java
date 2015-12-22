@@ -56,7 +56,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.backup.BackupHFileCleaner;
 import com.splicemachine.pipeline.api.Service;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;

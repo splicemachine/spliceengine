@@ -14,7 +14,7 @@ import com.splicemachine.derby.stream.function.IndexToBaseRowFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;

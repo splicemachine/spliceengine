@@ -3,12 +3,12 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
+import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.pipeline.impl.BulkWrite;
-import com.splicemachine.pipeline.impl.BulkWriteResult;
-import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
+import com.splicemachine.pipeline.client.BulkWrite;
+import com.splicemachine.pipeline.client.BulkWriteResult;
+import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.yammer.metrics.core.Meter;
@@ -66,7 +66,7 @@ public class RegionWritePipeline {
 
     public BulkWriteResult submitBulkWrite(TxnView txn,
                                            BulkWrite toWrite,
-                                                   IndexCallBufferFactory writeBufferFactory,
+                                                   SharedCallBufferFactory writeBufferFactory,
                                                    RegionCoprocessorEnvironment rce) throws IOException{
         assert txn!=null: "No transaction specified!";
 

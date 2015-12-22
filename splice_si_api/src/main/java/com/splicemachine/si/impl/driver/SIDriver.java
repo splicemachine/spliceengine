@@ -1,8 +1,7 @@
 package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.STableFactory;
-import com.splicemachine.si.api.SIConfigurations;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -54,7 +53,7 @@ public class SIDriver {
                 INSTANCE.exceptionFactory);
     }
 
-    private STableFactory tableFactory;
+    private PartitionFactory tableFactory;
     private ExceptionFactory exceptionFactory;
     private SConfiguration config;
     private SDataLib dataLib;
@@ -69,7 +68,7 @@ public class SIDriver {
     private RollForward rollForward;
     private ReadResolver readResolver;
 
-    public STableFactory getTableFactory(){
+    public PartitionFactory getTableFactory(){
         return tableFactory;
     }
 

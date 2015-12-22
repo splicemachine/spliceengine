@@ -11,7 +11,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceUtilities;
 
 import java.sql.Types;

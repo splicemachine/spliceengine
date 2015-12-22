@@ -35,7 +35,7 @@ import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.ErrorTransport;
-import com.splicemachine.pipeline.impl.BulkWrite;
+import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
@@ -462,8 +462,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(SpliceStddevSamp.class);
         instance.register(Properties.class, new MapSerializer());
 
-//        instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER);
-//        instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER);
+//        instance.register(com.splicemachine.derby.client.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER);
+//        instance.register(com.splicemachine.derby.client.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(IndexRow.class,
                 new SparkValueRowSerializer<IndexRow>(){
                     @Override

@@ -58,8 +58,8 @@ import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -1097,14 +1097,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
     // Create a table scanner for old conglomerate. Make sure to pass in demarcation point to pick up writes before it.
     private TableScannerBuilder createTableScannerBuilder(Txn txn, long demarcationPoint, DDLChange ddlChange) throws IOException{
 
-        TableScannerBuilder builder =
-                new TableScannerBuilder()
+        TableScannerBuilder builder = new TableScannerBuilder()
                         .scan(DDLUtils.createFullScan())
                         .transaction(txn)
                         .demarcationPoint(demarcationPoint);
 
-       // TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
-       // tdl.setScannerBuilderProperties(builder);
         return builder;
     }
 }

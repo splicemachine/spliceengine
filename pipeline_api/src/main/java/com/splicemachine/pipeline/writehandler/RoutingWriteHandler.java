@@ -1,0 +1,104 @@
+package com.splicemachine.pipeline.writehandler;
+
+import java.io.IOException;
+import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import org.apache.log4j.Logger;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.client.WriteFailedException;
+import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.utils.SpliceLogUtils;
+
+/**
+ * A WriteHandler which routes a KVPair to another conglomerate; either a transformed KVPair(like an index), or
+ * the Pair itself(like an AlterTable-type operation).
+ *
+ * @author Scott Fines
+ *         Created on: 5/1/13
+ */
+public abstract class RoutingWriteHandler implements WriteHandler {
+    private static final Logger LOG = Logger.getLogger(RoutingWriteHandler.class);
+    private final byte[] destination;
+    private boolean failed = false;
+    /*
+     * A Map from the routed KVPair (i.e. the one that is going from this partition to somewhere else) to the
+     * original (i.e. the base partition) KVPair. This allows us to backtrack and identify the source for a given
+     * destination write.
+     */
+    protected final ObjectObjectOpenHashMap<KVPair, KVPair> routedToBaseMutationMap= ObjectObjectOpenHashMap.newInstance();
+    protected final boolean keepState;
+
+    protected RoutingWriteHandler(byte[] destination,boolean keepState) {
+        this.destination=destination;
+        this.keepState = keepState;
+    }
+
+    @Override
+    public void next(KVPair mutation, WriteContext ctx) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "next %s", mutation);
+        if (failed) // Do not run...
+            ctx.notRun(mutation);
+        else {
+            if (!isHandledMutationType(mutation.getType())) { // Send Upstream
+                ctx.sendUpstream(mutation);
+                return;
+            }
+            if (route(mutation,ctx))
+                ctx.sendUpstream(mutation);
+            else
+                failed=true;
+        }
+    }
+
+    @Override
+    public void flush(WriteContext ctx) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "flush, calling subflush");
+        try {
+            doFlush(ctx);
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, e);
+            if (e instanceof WriteFailedException) {
+                WriteFailedException wfe = (WriteFailedException) e;
+                Object[] buffer = routedToBaseMutationMap.values;
+                int size = routedToBaseMutationMap.size();
+                for (int i = 0; i < size; i++) {
+                    ctx.failed((KVPair) buffer[i], WriteResult.failed(wfe.getMessage()));
+                }
+            } else throw new IOException(e); //something unexpected went bad, need to propagate
+        }
+    }
+
+    @Override
+    public void close(WriteContext ctx) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "close, calling subClose");
+        try {
+            doClose(ctx);
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, e);
+            if (e instanceof WriteFailedException) {
+                WriteFailedException wfe = (WriteFailedException) e;
+                Object[] buffer = routedToBaseMutationMap.values;
+                int size = routedToBaseMutationMap.size();
+                for (int i = 0; i < size; i++) {
+                    ctx.failed((KVPair) buffer[i], WriteResult.failed(wfe.getMessage()));
+                }
+            } else throw new IOException(e); //something unexpected went bad, need to propagate
+        }
+    }
+
+    protected abstract boolean isHandledMutationType(KVPair.Type type);
+
+    protected abstract boolean route(KVPair mutation,WriteContext ctx);
+
+    protected abstract void doFlush(WriteContext ctx) throws Exception;
+
+    protected abstract void doClose(WriteContext ctx) throws Exception;
+
+    protected final CallBuffer<KVPair> getRoutedWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
+        return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true, ctx.getTxn()); //make sure we don't flush before we can
+    }
+}

@@ -66,7 +66,7 @@ public class SnapshotUtilsTestIT {
     // -> MapR work-around
     TEST_UTIL.getConfiguration().set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
     TEST_UTIL.getConfiguration().set("fs.default.name", "file:///");
-    TEST_UTIL.getConfiguration().set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
+    TEST_UTIL.getConfiguration().set("fs.hdfs.client", "org.apache.hadoop.hdfs.DistributedFileSystem");
     System.setProperty("zookeeper.sasl.client", "false");   
     System.setProperty("zookeeper.sasl.serverconfig", "fake");
     // <- MapR work-around

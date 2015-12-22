@@ -3,7 +3,8 @@ package com.splicemachine.access.hbase;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.splicemachine.access.api.STableFactory;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.HRegionLocation;
@@ -22,21 +23,19 @@ import java.util.concurrent.ExecutionException;
  *
  * Created by jleach on 11/18/15.
  */
-public class HBase10TableFactory implements STableFactory<TableName>{
+public class HBase10TableFactory implements PartitionFactory<TableName>{
     protected Connection connection;
-    protected HBaseTableInfoFactory hbaseTableInfoFactory;
-    private static STableFactory<TableName> INSTANCE=new HBase10TableFactory();
+    private static PartitionFactory<TableName> INSTANCE=new HBase10TableFactory();
 
     public HBase10TableFactory(){
         try{
             connection=HBaseConnectionFactory.getInstance().getConnection();
-            hbaseTableInfoFactory=HBaseTableInfoFactory.getInstance();
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
     }
 
-    public static STableFactory<TableName> getInstance(){
+    public static PartitionFactory<TableName> getInstance(){
         return INSTANCE;
     }
 
@@ -47,17 +46,17 @@ public class HBase10TableFactory implements STableFactory<TableName>{
 
     @Override
     public Partition getTable(String name) throws IOException{
-        return new ClientPartition(connection.getTable(hbaseTableInfoFactory.getTableInfo(name)));
+        return new ClientPartition(connection.getTable(TableName.valueOf(SpliceConstants.spliceNamespace,name)));
     }
 
     public List<HRegionLocation> getRegions(byte[] tableName) throws IOException, ExecutionException, InterruptedException{
-        return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getAllRegionLocations();
+        return connection.getRegionLocator(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,tableName)).getAllRegionLocations();
     }
 
     public List<HRegionLocation> getRegions(String tableName,boolean refresh) throws IOException, ExecutionException, InterruptedException{
         if(refresh)
-            clearRegionCache(hbaseTableInfoFactory.getTableInfo(tableName));
-        return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getAllRegionLocations();
+            clearRegionCache(TableName.valueOf(SpliceConstants.spliceNamespace,tableName));
+        return connection.getRegionLocator(TableName.valueOf(SpliceConstants.spliceNamespace,tableName)).getAllRegionLocations();
     }
 
     public void clearRegionCache(TableName tableName){
@@ -79,7 +78,7 @@ public class HBase10TableFactory implements STableFactory<TableName>{
     }
 
     public HRegionLocation getRegionInRange(byte[] tableName,final byte[] startRow) throws IOException, ExecutionException, InterruptedException{
-        return connection.getRegionLocator(hbaseTableInfoFactory.getTableInfo(tableName)).getRegionLocation(startRow);
+        return connection.getRegionLocator(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,tableName)).getRegionLocation(startRow);
     }
 
     public Table getRawTable(TableName tableName) throws IOException{
