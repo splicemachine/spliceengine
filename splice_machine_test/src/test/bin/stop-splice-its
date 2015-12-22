@@ -6,7 +6,7 @@
 ##################################################################################
 
 # Check if server running. If not, no need to proceed.
-yarn_pids=( $(ps -ef | awk '/PspliceYarn/ && !/awk/ {print $2}') )
+yarn_pids=( $(ps -ef | awk '/PspliceYarn|CoarseGrainedScheduler/ && !/awk/ {print $2}') )
 splice_pids=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
 zoo_pids=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
 if [[ -z ${yarn_pids[0]} && -z ${splice_pids[0]} && -z ${zoo_pids[0]} ]]; then
