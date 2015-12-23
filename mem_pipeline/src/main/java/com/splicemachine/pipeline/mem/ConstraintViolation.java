@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.mem;
 
 import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 
 import java.io.IOException;
 
@@ -63,7 +64,7 @@ public class ConstraintViolation extends IOException{
         }
     }
 
-    public static class UniqueViolation extends ConstraintViolation{
+    public static class UniqueViolation extends ConstraintViolation implements UniqueConstraintViolation{
         public UniqueViolation(){ }
 
         public UniqueViolation(String message){
