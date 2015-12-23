@@ -1,5 +1,7 @@
 package com.splicemachine.pipeline;
 
+import com.splicemachine.access.api.SConfiguration;
+
 /**
  * @author Scott Fines
  *         Date: 12/22/15
@@ -70,7 +72,7 @@ public class PipelineConfiguration{
      * Defaults to 1000 ms (1 s)
      */
     public static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
-    public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
+    public static final long DEFAULT_STARTUP_LOCK_PERIOD=1000;
 
     /**
      * The maximum number of threads which may be used to concurrently write data to any HBase table.
@@ -109,4 +111,79 @@ public class PipelineConfiguration{
      */
     public static final String THREAD_KEEPALIVE_TIME= "hbase.htable.threads.keepalivetime";
     public static final long DEFAULT_THREAD_KEEPALIVE_TIME= 60;
+
+    public static final String MAX_INDEPENDENT_WRITES = "splice.client.write.maxIndependentWrites";
+    public static final int DEFAULT_MAX_INDEPENDENT_WRITES = 40000;
+
+    public static final String MAX_DEPENDENT_WRITES = "splice.client.write.maxDependentWrites";
+    public static final int DEFAULT_MAX_DEPENDENT_WRITES = 40000;
+
+    public static final String IPC_THREADS="hbase.regionserver.handler.count";
+
+    public static final String PIPELINE_KRYO_POOL_SIZE= "splice.writer.kryoPoolSize";
+    private static final int DEFAULT_PIPELINE_KRYO_POOL_SIZE=1024;
+
+    public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
+        @Override
+        public boolean hasLongDefault(String key){
+            switch(key){
+                case THREAD_KEEPALIVE_TIME:
+                case CLIENT_PAUSE:
+                case MAX_BUFFER_HEAP_SIZE:
+                case STARTUP_LOCK_WAIT_PERIOD:
+                    return true;
+                default:
+                    throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+            }
+        }
+
+        @Override
+        public long defaultLongFor(String key){
+            assert hasLongDefault(key): "No pipeline default for key '"+key+"'";
+            switch(key){
+                case THREAD_KEEPALIVE_TIME: return DEFAULT_THREAD_KEEPALIVE_TIME;
+                case CLIENT_PAUSE: return DEFAULT_CLIENT_PAUSE;
+                case MAX_BUFFER_HEAP_SIZE: return DEFAULT_WRITE_BUFFER_SIZE;
+                case STARTUP_LOCK_WAIT_PERIOD: return DEFAULT_STARTUP_LOCK_PERIOD;
+                default:
+                    throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+            }
+        }
+
+        @Override
+        public boolean hasIntDefault(String key){
+            switch(key){
+                case MAX_INDEPENDENT_WRITES:
+                case MAX_DEPENDENT_WRITES:
+                case CORE_WRITER_THREADS:
+                case MAX_WRITER_THREADS:
+                case STARTUP_LOCK_WAIT_PERIOD:
+                case WRITE_MAX_FLUSHES_PER_REGION:
+                case MAX_RETRIES:
+                case MAX_BUFFER_ENTRIES:
+                case PIPELINE_KRYO_POOL_SIZE:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public int defaultIntFor(String key){
+            assert hasIntDefault(key): "No pipeline default for key '"+key+"'";
+
+            switch(key){
+                case MAX_INDEPENDENT_WRITES: return DEFAULT_MAX_INDEPENDENT_WRITES;
+                case MAX_DEPENDENT_WRITES: return DEFAULT_MAX_DEPENDENT_WRITES;
+                case CORE_WRITER_THREADS: return DEFAULT_WRITE_THREADS_CORE;
+                case MAX_WRITER_THREADS: return DEFAULT_MAX_WRITER_THREADS;
+                case WRITE_MAX_FLUSHES_PER_REGION: return WRITE_DEFAULT_MAX_FLUSHES_PER_REGION;
+                case MAX_RETRIES: return DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
+                case MAX_BUFFER_ENTRIES: return DEFAULT_MAX_BUFFER_ENTRIES;
+                case PIPELINE_KRYO_POOL_SIZE: return DEFAULT_PIPELINE_KRYO_POOL_SIZE;
+                default:
+                    throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+            }
+        }
+    };
 }

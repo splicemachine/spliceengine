@@ -131,7 +131,13 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
     public TxnView fromWrites(Attributable op) throws IOException{
         byte[] txnData=op.getAttribute(SI_TRANSACTION_ID_KEY);
         if(txnData==null) return null; //non-transactional
-        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(txnData);
+        return fromWrites(txnData,0,txnData.length);
+    }
+
+    @Override
+    public TxnView fromWrites(byte[] data,int off,int length) throws IOException{
+        if(length<=0) return null; //non-transactional
+        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(data,off,length);
         long beginTs=decoder.decodeNextLong();
         boolean additive=decoder.decodeNextBoolean();
         Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
@@ -144,6 +150,11 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
             parent=new ActiveWriteTxn(id,id,parent,additive,level);
         }
         return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
+    }
+
+    @Override
+    public TxnView fromReads(byte[] data,int off,int length) throws IOException{
+        return decode(data,off,length);
     }
 
     @Override

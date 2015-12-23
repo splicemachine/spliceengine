@@ -4,6 +4,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -95,7 +96,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     @Override
     public SConfiguration configuration(){
-        return new HConfiguration(SIConstants.config);
+        return new HConfiguration(SIConstants.config,SIConfigurations.defaults);
     }
 
     @Override public SDataLib dataLib(){ return HDataLib.instance(); }
@@ -125,10 +126,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         return timestampSource;
     }
 
-    public SIDriver getDriver(){
-        return SIDriver.driver();
-    }
-
     public ReadResolver getReadResolver(Partition region){
         if(readResolver==null) return NoOpReadResolver.INSTANCE; //disabled read resolution
         return readResolver.getResolver(region,rollForward());
@@ -142,6 +139,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public TxnOperationFactory operationFactory(){
         return txnOpFactory;
+    }
+
+    @Override
+    public SIDriver getSIDriver(){
+        return SIDriver.driver();
     }
 
     private AsyncReadResolver initializeReadResolver(){

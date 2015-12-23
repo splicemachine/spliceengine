@@ -13,6 +13,10 @@ import java.io.IOException;
  *         Created on: 8/15/13
  */
 public class ExternalizableSerializer extends Serializer<Externalizable> {
+    public static final ExternalizableSerializer INSTANCE = new ExternalizableSerializer();
+
+    private ExternalizableSerializer(){}
+
     @Override
     public void write(Kryo kryo, Output output, Externalizable object) {
         KryoObjectOutput koo = new KryoObjectOutput(output, kryo);
@@ -31,15 +35,8 @@ public class ExternalizableSerializer extends Serializer<Externalizable> {
             KryoObjectInput koi = new KryoObjectInput(input,kryo);
             e.readExternal(koi);
             return e;
-        } catch (IOException e1) {
+        } catch (IOException | ClassNotFoundException | IllegalAccessException | InstantiationException e1) {
             throw new RuntimeException(e1);
-        } catch (ClassNotFoundException e1) {
-            throw new RuntimeException(e1);
-        } catch (InstantiationException e) {
-        	e.printStackTrace();
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
     }
 }

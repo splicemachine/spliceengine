@@ -207,13 +207,13 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public boolean containsRange(byte[] start,byte[] stop){
-        return basePartition.containsRange(start,stop);
+    public boolean overlapsRange(byte[] start,byte[] stop){
+        return basePartition.overlapsRange(start,stop);
     }
 
     @Override
-    public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
-        return basePartition.containsRange(start,startOff,startLen,stop,stopOff,stopLen);
+    public boolean overlapsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+        return basePartition.overlapsRange(start,startOff,startLen,stop,stopOff,stopLen);
     }
 
     @Override

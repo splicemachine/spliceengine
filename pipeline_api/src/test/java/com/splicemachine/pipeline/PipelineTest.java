@@ -9,7 +9,6 @@ import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraint;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.pipeline.contextfactory.ConstraintFactory;
@@ -50,12 +49,13 @@ public class PipelineTest{
            testEnv=PipelineTestEnvironment.loadTestEnvironment();
            tts = new TestTransactionSetup(testEnv,false);
            lifecycleManager =tts.txnLifecycleManager;
-           testEnv.createTransactionalTable(DESTINATION_TABLE_BYTES);
            //add a unique constraint
            ConstraintContext cc = ConstraintContext.unique("data","unique");
            Constraint c = new UniqueConstraint(cc,testEnv.getOperationStatusFactory());
            ConstraintFactory cf = new ConstraintFactory(c,testEnv.pipelineExceptionFactory());
            testEnv.contextFactoryLoader(1232).getConstraintFactories().add(cf);
+
+           testEnv.createTransactionalTable(DESTINATION_TABLE_BYTES);
        }
     }
 
@@ -85,7 +85,7 @@ public class PipelineTest{
         PartitionFactory partitionFactory=writeCoordinator.getPartitionFactory();
         Txn txn =lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)){
-            KVPair data = encode("scott1",null,29);
+            KVPair data = encode("scott2",null,29);
             callBuffer.add(data);
             callBuffer.flushBufferAndWait();
 
@@ -145,7 +145,7 @@ public class PipelineTest{
         Txn txn =lifecycleManager.beginTransaction(DESTINATION_TABLE_BYTES);
         try(RecordingCallBuffer<KVPair> callBuffer=writeCoordinator.synchronousWriteBuffer(partitionFactory.getTable(DESTINATION_TABLE_BYTES),txn)){
             List<KVPair> data=new ArrayList<>(numRecords);
-            for(int i=0;i<numRecords;i++){
+            for(int i=1000;i<1000+numRecords;i++){
                 KVPair kvP=encode("ryan"+i,null,i);
                 callBuffer.add(kvP);
                 data.add(kvP);

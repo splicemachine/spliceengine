@@ -25,15 +25,14 @@
 	</repositories>
     <modules>
         <module>splice_encoding</module>
-		<module>splice_protocol</module>
+				<module>splice_protocol</module>
         <module>splice_timestamp_api</module>
         <module>splice_si_api</module>
         <module>splice_access_api</module>
         <module>splice_pipeline</module>
         <module>splice_machine</module>
-        <!--        <module>splice_memory</module>  -->
         <module>hbase_storage</module>
-		<!--<module>mem_pipeline</module>-->
+        <module>hbase_pipeline</module>
 	</modules>
 	<properties>
 		<derby.version>2.0.0.1-SNAPSHOT</derby.version>

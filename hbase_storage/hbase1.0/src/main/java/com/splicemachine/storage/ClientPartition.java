@@ -1,9 +1,14 @@
 package com.splicemachine.storage;
 
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -14,15 +19,19 @@ import java.util.List;
  */
 @NotThreadSafe
 public class ClientPartition extends SkeletonHBaseClientPartition{
+    private TableName tableName;
     private final Table table;
+    private final Connection connection;
 
-    public ClientPartition(Table table){
+    public ClientPartition(Connection connection,TableName tableName,Table table){
+        this.tableName=tableName;
         this.table=table;
+        this.connection = connection;
     }
 
     @Override
     public String getTableName(){
-        return table.getName().getNameAsString();
+        return table.getName().getQualifierAsString();
     }
 
     @Override
@@ -58,5 +67,25 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     @Override
     protected void doIncrement(Increment incr) throws IOException{
         table.increment(incr);
+    }
+
+    @Override
+    public List<Partition> subPartitions(){
+        try(Admin admin = connection.getAdmin()){
+            //TODO -sf- does this cache region information?
+            List<HRegionInfo> tableRegions=admin.getTableRegions(tableName);
+            List<Partition> partitions = new ArrayList<>(tableRegions.size());
+            for(HRegionInfo info:tableRegions){
+                partitions.add(new RangedClientPartition(connection,tableName,table,info,new LazyPartitionServer(connection,info,tableName)));
+            }
+            return partitions;
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public PartitionServer owningServer(){
+        throw new UnsupportedOperationException("A Table is not owned by a single server, but by the cluster as a whole");
     }
 }

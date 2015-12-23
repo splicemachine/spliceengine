@@ -38,4 +38,6 @@ public interface SIEnvironment{
     RollForward rollForward();
 
     TxnOperationFactory operationFactory();
+
+    SIDriver getSIDriver();
 }

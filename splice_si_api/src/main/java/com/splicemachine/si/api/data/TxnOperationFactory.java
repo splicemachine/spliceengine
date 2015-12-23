@@ -41,6 +41,10 @@ public interface TxnOperationFactory<OperationWithAttributes,
 
     TxnView fromWrites(Attributable op) throws IOException;
 
+    TxnView fromWrites(byte[] data,int off,int length) throws IOException;
+
+    TxnView fromReads(byte[] data,int off,int length) throws IOException;
+
     TxnView readTxn(ObjectInput oi) throws IOException;
 
     byte[] encode(TxnView txn);

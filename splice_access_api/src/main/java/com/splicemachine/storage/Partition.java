@@ -96,10 +96,10 @@ public interface Partition extends AutoCloseable{
 
     boolean containsRow(byte[] row, int offset, int length);
 
-    boolean containsRange(byte[] start, byte[] stop);
+    boolean overlapsRange(byte[] start,byte[] stop);
 
-    boolean containsRange(byte[] start, int startOff, int startLen,
-                          byte[] stop, int stopOff, int stopLen);
+    boolean overlapsRange(byte[] start,int startOff,int startLen,
+                          byte[] stop,int stopOff,int stopLen);
 
     void writesRequested(long writeRequests);
 

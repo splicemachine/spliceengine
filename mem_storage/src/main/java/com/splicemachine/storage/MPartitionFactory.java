@@ -1,8 +1,8 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.TxnPartition;
 
 import java.io.IOException;
 import java.util.Map;
@@ -33,7 +33,29 @@ public class MPartitionFactory implements PartitionFactory<Object>{
     }
 
     @Override
-    public void createPartition(String name) throws IOException{
-        partitionMap.put(name,new MPartition(name,name));
+    public PartitionCreator createPartition() throws IOException{
+        return new Creator();
+    }
+
+    private class Creator implements PartitionCreator{
+        private String name;
+
+        @Override
+        public PartitionCreator withName(String name){
+            this.name = name;
+            return this;
+        }
+
+        @Override
+        public PartitionCreator withCoprocessor(String coprocessor) throws IOException{
+            //no-op
+            return this;
+        }
+
+        @Override
+        public void create() throws IOException{
+            assert name!=null: "No name specified!";
+            partitionMap.put(name,new MPartition(name,name));
+        }
     }
 }

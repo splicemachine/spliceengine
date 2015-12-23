@@ -15,4 +15,6 @@ public interface PipelineMeter{
     double fiveMThroughput();
 
     double oneMThroughput();
+
+    long rejectedCount();
 }

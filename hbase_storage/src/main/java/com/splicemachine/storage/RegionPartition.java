@@ -17,6 +17,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -222,12 +223,12 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public boolean containsRange(byte[] start,byte[] stop){
+    public boolean overlapsRange(byte[] start,byte[] stop){
         return region.getRegionInfo().containsRange(start,stop);
     }
 
     @Override
-    public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+    public boolean overlapsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         byte[] s;
         byte[] e;
         if(startOff==0 && startLen==start.length)
@@ -249,6 +250,16 @@ public class RegionPartition implements Partition{
     @Override
     public void readsRequested(long readRequests){
         HRegionUtil.updateReadRequests(region,readRequests);
+    }
+
+    @Override
+    public List<Partition> subPartitions(){
+        return Collections.<Partition>singletonList(this);
+    }
+
+    @Override
+    public PartitionServer owningServer(){
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     public HRegion unwrapDelegate(){

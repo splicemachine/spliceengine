@@ -61,7 +61,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
             HbaseSIEnvironment siEnv = HbaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
             TransactionResolver resolver=resolverRef.get();
-            SIDriver driver=siEnv.getDriver();
+            SIDriver driver=siEnv.getSIDriver();
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),
                     resolver,

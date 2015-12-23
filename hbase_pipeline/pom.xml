@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <packaging>jar</packaging>
+    <artifactId>hbase_pipeline</artifactId>
+    <name>${project.artifactId}</name>
+    <description>BulkWrite Pipeline for HBase</description>
+    <version>2.0.0-SNAPSHOT</version>
+    <parent>
+        <artifactId>spliceengine-parent</artifactId>
+        <groupId>com.splicemachine</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <envClassifier>cdh5.4.1</envClassifier>
+        <!-- platform component versions -->
+        <hadoop.version>2.6.0-cdh5.4.1</hadoop.version>
+        <hbase.version>1.0.0-cdh5.4.1-splice1.5.1-SNAPSHOT</hbase.version>
+        <hive.version>1.1.0-cdh5.4.1</hive.version>
+        <zookeeper.version>3.4.5-cdh5.4.1</zookeeper.version>
+        <spark.version>1.5.0</spark.version>
+        <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.1</spark-assembly-id>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>pipeline_api</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>hbase-storage-${envClassifier}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>pipeline_api</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_si_api</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>hbase-storage-${envClassifier}</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <!--Test dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.13</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.13</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-testing-util</artifactId>
+            <version>${hbase.version}</version>
+            <!--intentionally compile scope,we use this dependency at app compile and runtime-->
+            <scope>test</scope>
+            <exclusions>
+                <exclusion> <artifactId>microsoft-windowsazure-storage-sdk</artifactId> <groupId>com.microsoft.windowsazure.storage</groupId> </exclusion>
+                <exclusion> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-core</artifactId> </exclusion>
+                <exclusion><artifactId>org.mortbay.jetty</artifactId><groupId>jetty-sslengine</groupId></exclusion>
+                <exclusion><artifactId>org.mortbay.jetty</artifactId><groupId>jsp-2.1</groupId></exclusion>
+                <exclusion><artifactId>org.mortbay.jetty</artifactId><groupId>jsp-api-2.1</groupId></exclusion>
+                <exclusion><groupId>tomcat</groupId><artifactId>jasper-compiler</artifactId></exclusion>
+                <exclusion><groupId>tomcat</groupId><artifactId>jasper-runtime</artifactId></exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -1,17 +1,15 @@
 package com.splicemachine.pipeline.mem;
 
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.api.BulkWriter;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
-import com.splicemachine.si.api.server.TransactionalRegionFactory;
+import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.Map;
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -19,44 +17,24 @@ import java.util.Map;
  */
 @ThreadSafe
 public class DirectBulkWriterFactory implements BulkWriterFactory{
-    private final PartitionFactory<Object> partitionFactory;
-    private final SConfiguration config;
-    private final PipelineExceptionFactory exceptionFactory;
-    private final Map<Long,ContextFactoryLoader> factoryLoaderMap;
-    private final TransactionalRegionFactory txnRegionFactory;
-    private final ServerControl serverControl;
-    private WriteCoordinator writeCoordinator;
+    private final PipelineWriter pipelineWriter;
 
-    public DirectBulkWriterFactory(PartitionFactory<Object> partitionFactory,
-                                   SConfiguration config,
-                                   PipelineExceptionFactory exceptionFactory,
-                                   Map<Long,ContextFactoryLoader> factoryLoaderMap,
-                                   TransactionalRegionFactory txnRegionFactory,
-                                   ServerControl serverControl){
-        this.partitionFactory=partitionFactory;
-        this.config=config;
-        this.exceptionFactory=exceptionFactory;
-        this.factoryLoaderMap = factoryLoaderMap;
-        this.txnRegionFactory=txnRegionFactory;
-        this.serverControl=serverControl;
+    public DirectBulkWriterFactory(WritePipelineFactory wpf,
+                                   SpliceWriteControl writeControl,
+                                   PipelineExceptionFactory exceptionFactory) throws IOException{
+        this.pipelineWriter = new PipelineWriter(exceptionFactory,wpf,writeControl);
     }
 
-    public void setWriteCoordinator(WriteCoordinator wc){
-        this.writeCoordinator = wc;
+    public void setWriteCoordinator(WriteCoordinator writeCoordinator){
+        this.pipelineWriter.setWriteCoordinator(writeCoordinator);
     }
-
     @Override
-    public BulkWriter newWriter(){
-        return new DirectBulkWriter(partitionFactory,config,
-                exceptionFactory,
-                factoryLoaderMap,
-                txnRegionFactory,
-                serverControl,
-                writeCoordinator);
+    public BulkWriter newWriter(byte[] tableName){
+        return new DirectBulkWriter(pipelineWriter);
     }
 
     @Override
     public void invalidateCache(byte[] tableName){
-
+        //no-op for in-memory
     }
 }

@@ -169,10 +169,10 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     @Override public byte[] getEndKey(){ return HConstants.EMPTY_END_ROW; }
     @Override public boolean containsRow(byte[] row){ return true; }
     @Override public boolean containsRow(byte[] row,int offset,int length){ return true; }
-    @Override public boolean containsRange(byte[] start,byte[] stop){ return true; }
+    @Override public boolean overlapsRange(byte[] start,byte[] stop){ return true; }
 
     @Override
-    public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+    public boolean overlapsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         return true;
     }
 

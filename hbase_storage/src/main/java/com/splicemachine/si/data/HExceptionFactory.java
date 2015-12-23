@@ -15,7 +15,7 @@ import java.io.IOException;
 public class HExceptionFactory implements ExceptionFactory{
     public static final HExceptionFactory INSTANCE = new HExceptionFactory();
 
-    private HExceptionFactory(){}
+    protected HExceptionFactory(){}
     @Override
     public IOException writeWriteConflict(long txn1,long txn2){
         return new HWriteConflict(txn1,txn2);
@@ -49,5 +49,24 @@ public class HExceptionFactory implements ExceptionFactory{
     @Override
     public IOException doNotRetry(String message){
         return new DoNotRetryIOException(message);
+    }
+
+    @Override
+    public IOException processRemoteException(Throwable e){
+        if(e instanceof WriteConflict) return (IOException)e;
+        else if(e instanceof ReadOnlyModificationException) return (IOException)e;
+        else if(e instanceof TransactionTimeoutException) return (IOException)e;
+        else if(e instanceof CannotCommitException) return (IOException)e;
+        else if(e instanceof RetriesExhaustedWithDetailsException){
+            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)e;
+            for(Throwable c:rewde.getCauses()){
+                if(c instanceof IOException){
+                    return processRemoteException(c);
+                }
+            }
+            return new IOException(rewde.getCause(0));
+        }else if(e instanceof IOException) return (IOException)e;
+        else
+            return new IOException(e);
     }
 }

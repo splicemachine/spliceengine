@@ -227,12 +227,12 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public boolean containsRange(byte[] start,byte[] stop){
+    public boolean overlapsRange(byte[] start,byte[] stop){
         return true;
     }
 
     @Override
-    public boolean containsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
+    public boolean overlapsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         return true;
     }
 

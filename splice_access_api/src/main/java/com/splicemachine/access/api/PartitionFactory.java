@@ -16,6 +16,6 @@ public interface PartitionFactory<SpliceTableInfo> {
 
     Partition getTable(byte[] name) throws IOException;
 
-    void createPartition(String name) throws IOException;
+    PartitionCreator createPartition() throws IOException;
 
 }

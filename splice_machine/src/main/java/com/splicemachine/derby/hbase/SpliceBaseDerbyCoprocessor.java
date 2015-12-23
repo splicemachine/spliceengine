@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.impl.ActionFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;

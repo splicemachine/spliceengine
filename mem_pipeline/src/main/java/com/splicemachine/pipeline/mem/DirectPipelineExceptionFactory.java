@@ -58,7 +58,7 @@ public class DirectPipelineExceptionFactory extends MExceptionFactory implements
         else if(t instanceof MTooBusy)
             return t;
         else if(t instanceof IOException)
-            return super.processRemoteException((IOException)t);
+            return super.processRemoteException(t);
         else return super.processRemoteException(new IOException(t));
     }
 

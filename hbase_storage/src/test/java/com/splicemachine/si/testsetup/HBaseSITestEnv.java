@@ -1,5 +1,6 @@
 package com.splicemachine.si.testsetup;
 
+import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
@@ -35,8 +36,10 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 
 import java.io.IOException;
 import java.util.Random;
@@ -55,7 +58,11 @@ public class HBaseSITestEnv implements SITestEnv{
     private HBaseTestingUtility testUtility;
 
     public HBaseSITestEnv(){
-        configureLogging();
+        this(Level.ERROR,"person");
+    }
+
+    public HBaseSITestEnv(Level baseLoggingLevel,String...initialTables){
+        configureLogging(baseLoggingLevel);
         Configuration conf = SpliceConstants.config;
         try{
             startCluster(conf);
@@ -63,7 +70,9 @@ public class HBaseSITestEnv implements SITestEnv{
             HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin();
             hBaseAdmin.createNamespace(NamespaceDescriptor.create("splice").build());
             addTxnTable(hBaseAdmin);
-            hBaseAdmin.createTable(generateDefaultSIGovernedTable("person"));
+            for(String initialTable:initialTables){
+                hBaseAdmin.createTable(generateDefaultSIGovernedTable(initialTable));
+            }
 
             this.clock = new IncrementingClock();
             this.txnStore = hEnv.txnStore();
@@ -80,25 +89,12 @@ public class HBaseSITestEnv implements SITestEnv{
     @Override public ExceptionFactory getExceptionFactory(){ return HExceptionFactory.INSTANCE; }
     @Override public OperationStatusFactory getOperationStatusFactory(){ return HOperationStatusFactory.INSTANCE; }
 
-    @Override
-    public Clock getClock(){
-        return clock;
-    }
-
-    @Override
-    public TxnStore getTxnStore(){
-        return txnStore;
-    }
-
-    @Override
-    public IgnoreTxnCacheSupplier getIgnoreTxnStore(){
-        return ignoreTxnSupplier;
-    }
-
-    @Override
-    public TimestampSource getTimestampSource(){
-        return timestampSource;
-    }
+    @Override public Clock getClock(){ return clock; }
+    @Override public TxnStore getTxnStore(){ return txnStore; }
+    @Override public IgnoreTxnCacheSupplier getIgnoreTxnStore(){ return ignoreTxnSupplier; }
+    @Override public TimestampSource getTimestampSource(){ return timestampSource; }
+    @Override public DataFilterFactory getFilterFactory(){ return HFilterFactory.INSTANCE; }
+    @Override public PartitionFactory getTableFactory(){ return TableFactoryService.loadTableFactory(); }
 
     @Override
     public Partition getPersonTable(TestTransactionSetup tts) throws IOException{
@@ -106,20 +102,29 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     @Override
-    public DataFilterFactory getFilterFactory(){
-        return HFilterFactory.INSTANCE;
-    }
-
-
-    @Override
     public TxnOperationFactory getOperationFactory(){
         return new HTxnOperationFactory(HDataLib.instance(),getExceptionFactory());
     }
 
     @Override
-    public PartitionFactory getTableFactory(){
-        return TableFactoryService.loadTableFactory();
+    public Partition getPartition(String name,TestTransactionSetup tts) throws IOException{
+        return getTableFactory().getTable(name);
     }
+
+    @Override
+    public void createTransactionalTable(byte[] tableNameBytes) throws IOException{
+        PartitionCreator partitionCreator=getTableFactory().createPartition().withName(Bytes.toString(tableNameBytes))
+                .withCoprocessor(SIObserver.class.getName());
+        addCoprocessors(partitionCreator);
+        partitionCreator.create();
+    }
+
+    protected void addCoprocessors(PartitionCreator userTable) throws IOException{
+        //default no-op
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
 
     private static HTableDescriptor generateTransactionTable() throws IOException{
         HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",SpliceConstants.TRANSACTION_TABLE));
@@ -136,12 +141,6 @@ public class HBaseSITestEnv implements SITestEnv{
         return desc;
     }
 
-    private static HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",tableName));
-        desc.addFamily(createDataFamily());
-        desc.addCoprocessor(SIObserver.class.getName());
-        return desc;
-    }
 
     public static HColumnDescriptor createDataFamily() {
         HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_BYTES);
@@ -153,8 +152,14 @@ public class HBaseSITestEnv implements SITestEnv{
         return snapshot;
     }
 
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
+    private HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespace,tableName));
+        desc.addFamily(createDataFamily());
+        desc.addCoprocessor(SIObserver.class.getName());
+        return desc;
+    }
+
+
     private void addTxnTable(HBaseAdmin admin) throws IOException{
         byte[][] splits = new byte[15][];
 
@@ -203,19 +208,19 @@ public class HBaseSITestEnv implements SITestEnv{
         return siEnv;
     }
 
-    private void configureLogging(){
-        Level logLevel=Level.ERROR;
-        Level alwaysLevel=Level.ERROR;
+    private void configureLogging(Level baseLevel){
+        Logger.getRootLogger().setLevel(baseLevel);
+        Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
         Logger.getLogger("org.apache.hadoop.conf").setLevel(Level.WARN);
-        Logger.getLogger("org.apache.hadoop.hdfs").setLevel(alwaysLevel);
-        Logger.getLogger("org.apache.hadoop.http").setLevel(alwaysLevel);
-        Logger.getLogger("org.apache.hadoop.metrics2").setLevel(alwaysLevel);
-        Logger.getLogger("org.apache.hadoop.net").setLevel(alwaysLevel);
-        Logger.getLogger("org.apache.hadoop.ipc").setLevel(alwaysLevel);
-        Logger.getLogger("org.apache.hadoop.util").setLevel(alwaysLevel);
-        Logger.getLogger("org.apache.hadoop.hbase").setLevel(logLevel);
-        Logger.getLogger("BlockStateChange").setLevel(logLevel);
-        Logger.getLogger("org.mortbay.log").setLevel(logLevel);
-        Logger.getLogger("org.apache.zookeeper").setLevel(logLevel);
+        Logger.getLogger("org.apache.hadoop.hdfs").setLevel(baseLevel);
+        Logger.getLogger("org.apache.hadoop.http").setLevel(baseLevel);
+        Logger.getLogger("org.apache.hadoop.metrics2").setLevel(baseLevel);
+        Logger.getLogger("org.apache.hadoop.net").setLevel(baseLevel);
+        Logger.getLogger("org.apache.hadoop.ipc").setLevel(baseLevel);
+        Logger.getLogger("org.apache.hadoop.util").setLevel(baseLevel);
+        Logger.getLogger("org.apache.hadoop.hbase").setLevel(baseLevel);
+        Logger.getLogger("BlockStateChange").setLevel(baseLevel);
+        Logger.getLogger("org.mortbay.log").setLevel(baseLevel);
+        Logger.getLogger("org.apache.zookeeper").setLevel(baseLevel);
     }
 }

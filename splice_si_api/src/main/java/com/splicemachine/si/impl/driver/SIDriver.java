@@ -8,13 +8,18 @@ import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.si.impl.TxnRegion;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 public class SIDriver {
@@ -125,5 +130,27 @@ public class SIDriver {
 
     public ReadResolver getReadResolver(){
         return readResolver;
+    }
+
+    public TransactionalRegion transactionalPartition(long conglomId,Partition basePartition){
+        if(conglomId>=0){
+            return new TxnRegion(basePartition,
+                    getRollForward(),
+                    getReadResolver(),
+                    getTxnSupplier(),
+                    getIgnoreTxnSupplier(),
+                    getDataStore(),
+                    getTransactor(),
+                    getOperationFactory());
+        }else{
+            return new TxnRegion(basePartition,
+                    NoopRollForward.INSTANCE,
+                    NoOpReadResolver.INSTANCE,
+                    getTxnSupplier(),
+                    getIgnoreTxnSupplier(),
+                    getDataStore(),
+                    getTransactor(),
+                    getOperationFactory());
+        }
     }
 }

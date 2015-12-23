@@ -43,7 +43,7 @@ public class MemSITestEnv implements SITestEnv{
     private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
 
     public MemSITestEnv() throws IOException{
-        this.tableFactory.createPartition("person");
+        this.tableFactory.createPartition().withName("person").create();
         this.personPartition = tableFactory.getTable("person");
 
     }
@@ -83,7 +83,7 @@ public class MemSITestEnv implements SITestEnv{
 
     @Override
     public void createTransactionalTable(byte[] tableNameBytes) throws IOException{
-        tableFactory.createPartition(Bytes.toString(tableNameBytes));
+        tableFactory.createPartition().withName(Bytes.toString(tableNameBytes)).create();
     }
 
     @Override

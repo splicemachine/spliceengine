@@ -16,4 +16,6 @@ public interface ExceptionFactory{
     IOException cannotCommit(long txnId,Txn.State actualState);
     IOException additiveWriteConflict();
     IOException doNotRetry(String message);
+
+    IOException processRemoteException(Throwable e);
 }

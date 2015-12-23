@@ -51,4 +51,10 @@ public class MExceptionFactory implements ExceptionFactory{
     public IOException doNotRetry(String message){
         return new IOException(message);
     }
+
+    @Override
+    public IOException processRemoteException(Throwable t){
+        if(t instanceof IOException) return (IOException)t;
+        else return new IOException(t);
+    }
 }

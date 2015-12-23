@@ -17,4 +17,5 @@ public class NoOpPipelineMeter implements PipelineMeter{
     @Override public double fifteenMThroughput(){ return 0; }
     @Override public double fiveMThroughput(){ return 0; }
     @Override public double oneMThroughput(){ return 0; }
+    @Override public long rejectedCount(){ return 0; }
 }

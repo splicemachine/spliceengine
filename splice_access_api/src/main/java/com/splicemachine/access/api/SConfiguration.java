@@ -29,4 +29,15 @@ public interface SConfiguration{
      * for the specified key.
      */
     int getInt(String key);
+
+    interface Defaults{
+
+        boolean hasLongDefault(String key);
+
+        long defaultLongFor(String key);
+
+        boolean hasIntDefault(String key);
+
+        int defaultIntFor(String key);
+    }
 }

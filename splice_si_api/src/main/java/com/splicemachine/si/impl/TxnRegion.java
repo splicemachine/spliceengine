@@ -106,7 +106,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
     @Override
     public boolean containsRange(byte[] start,byte[] stop){
-        return region.containsRange(start,stop);
+        return region.overlapsRange(start,stop);
     }
 
     @Override

@@ -168,7 +168,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             if(LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG,"Getting next BulkWrites in loop: id=%d, nextBulkWrites=%s",id,nextWrite);
             try{
-                BulkWriter writer=writerFactory.newWriter();
+                BulkWriter writer=writerFactory.newWriter(tableName);
                 writeTimer.startTiming();
                 BulkWritesResult bulkWritesResult=writer.write(nextWrite,numAttempts>0);
                 writeTimer.stopTiming();

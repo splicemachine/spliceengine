@@ -55,8 +55,8 @@ public class SIObserver extends BaseRegionObserver{
         RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)e;
         tableEnvMatch=doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
         if(tableEnvMatch){
-            HbaseSIEnvironment env=HbaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
-            SIDriver driver = env.getDriver();
+            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
+            SIDriver driver = env.getSIDriver();
             //noinspection unchecked
             txnOperationFactory=new HTxnOperationFactory(driver.getDataLib(),driver.getExceptionFactory());
             //noinspection unchecked
