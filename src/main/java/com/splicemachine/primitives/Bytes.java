@@ -265,6 +265,9 @@ public class Bytes {
         return toInt(bytes, 0);
     }
 
+    public static byte[] toBytes(float f){
+        return toBytes(Float.floatToRawIntBits(f));
+    }
     /**
      * Converts a byte array to an int value, using the platform byte order
      *
