@@ -18,6 +18,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.utils.Sleeper;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -53,6 +54,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private PipingCallBuffer retryPipingCallBuffer=null; // retryCallBuffer
 
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public BulkWriteAction(byte[] tableName,
                            BulkWrites writes,
                            WriteConfiguration writeConfiguration,
@@ -354,8 +356,9 @@ public class BulkWriteAction implements Callable<WriteStats>{
     }
 
     private void addToRetryCallBuffer(Collection<KVPair> retryBuffer,TxnView txn,boolean refreshCache) throws Exception{
+        if(retryBuffer==null) return; //actually nothing to do--probably doesn't happen, but just to be safe
         if(RETRY_LOG.isDebugEnabled())
-            SpliceLogUtils.debug(RETRY_LOG,"[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer==null?0:retryBuffer.size(),refreshCache);
+            SpliceLogUtils.debug(RETRY_LOG,"[%d] addToRetryCallBuffer %d rows, refreshCache=%s",id,retryBuffer.size(),refreshCache);
         if(retryPipingCallBuffer==null)
             retryPipingCallBuffer=new PipingCallBuffer(partitionFactory.getTable(Bytes.toString(tableName)),txn,null,PipelineUtils.noOpFlushHook,writeConfiguration,null,false);
         if(refreshCache){

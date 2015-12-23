@@ -3,6 +3,7 @@ package com.splicemachine.pipeline.client;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -20,8 +21,11 @@ public class WriteFailedException extends IOException {
     public static WriteFailedException create(Collection<Throwable> errors){
         return new WriteFailedException(Collections2.transform(errors,new Function<Throwable, String>() {
             @Override
+            @Nonnull
             public String apply(Throwable input) {
-                return input.getMessage();
+                if(input==null) return "";
+                else
+                    return input.getMessage();
             }
         }));
     }

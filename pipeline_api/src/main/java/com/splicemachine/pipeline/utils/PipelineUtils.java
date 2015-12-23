@@ -24,7 +24,7 @@ import java.util.List;
 public class PipelineUtils{
     private static final Logger LOG=Logger.getLogger(PipelineUtils.class);
 
-    public static PreFlushHook noOpFlushHook = new PreFlushHook() {
+    public static final PreFlushHook noOpFlushHook = new PreFlushHook() {
         @Override
         public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception {
             return new ArrayList<>(buffer);

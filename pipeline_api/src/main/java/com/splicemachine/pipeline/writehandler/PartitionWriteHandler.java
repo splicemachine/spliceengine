@@ -127,8 +127,9 @@ public class PartitionWriteHandler implements WriteHandler {
     }
 
     private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
+        assert toProcess!=null; //won't ever happen, but it's a nice safety check
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getName(), toProcess != null ? toProcess.size() : 0);
+            SpliceLogUtils.trace(LOG, "doWrite {region=%s, records=%d}", ctx.getRegion().getName(),toProcess.size());
 
         Iterable<MutationStatus> status = region.bulkWrite(
                 ctx.getTxn(),

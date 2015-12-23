@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.ddl.DDLMessage.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.ArrayUtils;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -69,6 +70,7 @@ public class ConstraintContext implements Externalizable {
         return new ConstraintContext(newArgs);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public String[] getMessages() {
         return messageArgs;
     }

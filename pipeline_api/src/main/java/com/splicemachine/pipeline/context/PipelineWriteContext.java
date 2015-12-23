@@ -184,6 +184,18 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
+    public boolean equals(Object o){
+        if(o==this) return true;
+        else if(!(o instanceof PipelineWriteContext)) return false;
+        return compareTo((PipelineWriteContext)o)==0;
+    }
+
+    @Override
+    public int hashCode(){
+       return id;
+    }
+
+    @Override
     public ServerControl getCoprocessorEnvironment() {
         return env;
     }

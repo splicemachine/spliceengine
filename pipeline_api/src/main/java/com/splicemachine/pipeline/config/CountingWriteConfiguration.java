@@ -11,6 +11,7 @@ import com.splicemachine.pipeline.client.ActionStatusReporter;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.concurrent.ExecutionException;
 
@@ -79,6 +80,7 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration{
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public WriteResponse partialFailure(BulkWriteResult result,BulkWrite request) throws ExecutionException{
         statusReporter.partialFailures.incrementAndGet();
         //look for timeouts, not serving regions, wrong regions, and so forth

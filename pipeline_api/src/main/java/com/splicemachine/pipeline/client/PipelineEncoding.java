@@ -7,6 +7,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 
+import javax.annotation.Nonnull;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,6 +110,7 @@ public class PipelineEncoding {
         }
 
         @Override
+        @Nonnull
         public Iterator<BulkWrite> iterator() {
             if(cache!=null) return cache.iterator();
             cache = new ArrayList<>(encodedStringNames.size());
@@ -119,13 +121,11 @@ public class PipelineEncoding {
 
         private class BulkIter implements Iterator<BulkWrite> {
             final Iterator<String> encodedStrings = encodedStringNames.iterator();
-            int iterOffset;
             int index;
             final ExpandedDecoder decoder;
 
             public BulkIter(int iterOffset) {
                 this.index = 0;
-                this.iterOffset = iterOffset;
                 this.decoder = new ExpandedDecoder(buffer,iterOffset);
             }
 
