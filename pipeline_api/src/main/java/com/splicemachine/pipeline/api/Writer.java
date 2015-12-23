@@ -15,10 +15,10 @@ import java.util.concurrent.Future;
  */
 public interface Writer {
 
-    public Future<WriteStats> write(byte[] tableName, BulkWrites action, WriteConfiguration writeConfiguration) throws ExecutionException;
+    Future<WriteStats> write(byte[] tableName,BulkWrites action,WriteConfiguration writeConfiguration) throws ExecutionException;
 
     void stopWrites();
 
-    public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException,NotCompliantMBeanException,InstanceAlreadyExistsException,MBeanRegistrationException;
+    void registerJMX(MBeanServer mbs) throws MalformedObjectNameException,NotCompliantMBeanException,InstanceAlreadyExistsException,MBeanRegistrationException;
 
 }

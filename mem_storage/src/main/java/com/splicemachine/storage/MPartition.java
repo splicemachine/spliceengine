@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MPartition implements Partition{
     private final String partitionName;
     private final String tableName;
+    private final PartitionServer owner;
 
     private final ConcurrentSkipListSet<DataCell> memstore = new ConcurrentSkipListSet<>();
     private final BiMap<ByteBuffer,Lock> lockMap =HashBiMap.create();
@@ -36,6 +37,7 @@ public class MPartition implements Partition{
     public MPartition(String tableName,String partitionName){
         this.partitionName=partitionName;
         this.tableName = tableName;
+        this.owner = new MPartitionServer();
     }
 
     @Override
@@ -128,16 +130,12 @@ public class MPartition implements Partition{
 
     @Override
     public byte[] getStartKey(){
-        DataCell first=memstore.first();
-        if(first==null) return SIConstants.EMPTY_BYTE_ARRAY;
-        else return first.key();
+        return SIConstants.EMPTY_BYTE_ARRAY;
     }
 
     @Override
     public byte[] getEndKey(){
-        DataCell last = memstore.last();
-        if(last==null) return SIConstants.EMPTY_BYTE_ARRAY;
-        else return last.key();
+        return SIConstants.EMPTY_BYTE_ARRAY;
     }
 
     @Override
@@ -246,6 +244,16 @@ public class MPartition implements Partition{
     @Override
     public void readsRequested(long readRequests){
        reads.addAndGet(readRequests);
+    }
+
+    @Override
+    public List<Partition> subPartitions(){
+        return Collections.<Partition>singletonList(this);
+    }
+
+    @Override
+    public PartitionServer owningServer(){
+        return owner;
     }
 
     /* ****************************************************************************************************************/

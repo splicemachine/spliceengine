@@ -14,7 +14,9 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -222,6 +224,16 @@ public class TxnPartition implements Partition{
     @Override
     public void readsRequested(long readRequests){
         basePartition.readsRequested(readRequests);
+    }
+
+    @Override
+    public List<Partition> subPartitions(){
+        return Collections.<Partition>singletonList(this);
+    }
+
+    @Override
+    public PartitionServer owningServer(){
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     /* ****************************************************************************************************************/

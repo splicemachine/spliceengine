@@ -25,5 +25,9 @@ public interface SITestEnv extends SITestDataEnv{
 
     Partition getPersonTable(TestTransactionSetup tts);
 
+    Partition getPartition(String name, TestTransactionSetup tts) throws IOException;
+
     PartitionFactory getTableFactory();
+
+    void createTransactionalTable(byte[] tableNameBytes) throws IOException;
 }

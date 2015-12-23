@@ -96,7 +96,7 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         }
         flushBufferCheckPrevious();
         BulkWrites bulkWrites = getBulkWrites();
-        if (bulkWrites.numEntries() != 0) {
+        if (bulkWrites!=null && bulkWrites.numEntries() != 0) {
             Future<WriteStats> write = writer.write(tableName, bulkWrites, writeConfiguration);
             outstandingRequests.add(write);
         }
@@ -133,7 +133,9 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
             bws.add(value.getBulkWrite());
             value.clear(); // zero out
         }
-        return new BulkWrites(bws, this.txn, this.buffers.lastKey());
+        if(bws.size()==0) return null;
+        else
+            return new BulkWrites(bws, this.txn, this.buffers.lastKey());
     }
 
     public int getHeapSize() {
@@ -160,9 +162,8 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
         while (futureIterator.hasNext()) {
             Future<WriteStats> future = futureIterator.next();
             if (future.isDone()) {
-                WriteStats retStats = future.get();//check for errors
-                //if it gets this far, it succeeded--strip the reference
                 futureIterator.remove();
+                WriteStats retStats = future.get();//check for errors
                 writeStats.merge(retStats);
             }
         }

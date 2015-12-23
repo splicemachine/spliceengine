@@ -12,6 +12,7 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.util.Collection;
@@ -83,4 +84,6 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     InternalScanner compactionScanner(InternalScanner scanner);
 
     DataResult get(byte[] rowKey, TxnView txn, BitSet interestingColumns) throws IOException;
+
+    Partition unwrap();
 }

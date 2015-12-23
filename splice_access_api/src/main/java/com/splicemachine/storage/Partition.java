@@ -11,7 +11,7 @@ import java.util.concurrent.locks.Lock;
 /**
  * Abstraction that makes HBase tables and regions have a uniform interface.
  */
-public interface Partition extends AutoCloseable, Comparable<Partition>{
+public interface Partition extends AutoCloseable{
 
     String getTableName();
 

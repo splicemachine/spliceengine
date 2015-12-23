@@ -15,7 +15,7 @@ import java.io.IOException;
 public class MExceptionFactory implements ExceptionFactory{
     public static final ExceptionFactory INSTANCE= new MExceptionFactory();
 
-    private MExceptionFactory(){}
+    protected MExceptionFactory(){}
 
     @Override
     public IOException writeWriteConflict(long txn1,long txn2){

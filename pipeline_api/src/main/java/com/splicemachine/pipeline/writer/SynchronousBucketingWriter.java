@@ -1,7 +1,10 @@
 package com.splicemachine.pipeline.writer;
 
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.pipeline.api.*;
+import com.splicemachine.pipeline.api.BulkWriterFactory;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.WriteStats;
+import com.splicemachine.pipeline.api.Writer;
 import com.splicemachine.pipeline.client.ActionStatusReporter;
 import com.splicemachine.pipeline.client.BulkWriteAction;
 import com.splicemachine.pipeline.client.BulkWrites;
@@ -10,6 +13,7 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.writerstatus.ActionStatusMonitor;
 import com.splicemachine.utils.Sleeper;
 
+import javax.annotation.Nonnull;
 import javax.management.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -29,21 +33,21 @@ public class SynchronousBucketingWriter implements Writer{
 
     public SynchronousBucketingWriter(BulkWriterFactory writerFactory,
                                       PipelineExceptionFactory exceptionFactory,
-                                      PartitionFactory partitionFactory) {
+                                      PartitionFactory partitionFactory){
         this.writerFactory=writerFactory;
         this.exceptionFactory=exceptionFactory;
         this.partitionFactory=partitionFactory;
-        this.statusMonitor = new ActionStatusReporter();
-        this.monitor = new ActionStatusMonitor(statusMonitor);
+        this.statusMonitor=new ActionStatusReporter();
+        this.monitor=new ActionStatusMonitor(statusMonitor);
 
     }
 
     @Override
     public Future<WriteStats> write(byte[] tableName,
-							BulkWrites bulkWrites,
-							WriteConfiguration writeConfiguration) throws ExecutionException {
-        WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration, statusMonitor,exceptionFactory);
-        BulkWriteAction action = new BulkWriteAction(tableName,
+                                    BulkWrites bulkWrites,
+                                    WriteConfiguration writeConfiguration) throws ExecutionException{
+        WriteConfiguration countingWriteConfiguration=new CountingWriteConfiguration(writeConfiguration,statusMonitor,exceptionFactory);
+        BulkWriteAction action=new BulkWriteAction(tableName,
                 bulkWrites,
                 countingWriteConfiguration,
                 statusMonitor,
@@ -52,48 +56,62 @@ public class SynchronousBucketingWriter implements Writer{
                 partitionFactory,
                 Sleeper.THREAD_SLEEPER);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();
-        Exception e = null;
-				WriteStats stats = null;
-        try {
-						stats = action.call();
-				} catch (Exception error) {
-           e = error;
+        Exception e=null;
+        WriteStats stats=null;
+        try{
+            stats=action.call();
+        }catch(Exception error){
+            e=error;
         }
         return new FinishedFuture(e,stats);
     }
 
     @Override
-    public void stopWrites() {
+    public void stopWrites(){
         //no-op
     }
 
     @Override
-    public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName monitorName = new ObjectName("com.splicemachine.writer.synchronous:type=WriterStatus");
+    public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException{
+        ObjectName monitorName=new ObjectName("com.splicemachine.writer.synchronous:type=WriterStatus");
         mbs.registerMBean(monitor,monitorName);
     }
 
-    private static class FinishedFuture implements Future<WriteStats> {
-				private final WriteStats stats;
-				private Exception e;
+    private static class FinishedFuture implements Future<WriteStats>{
+        private final WriteStats stats;
+        private Exception e;
 
-        public FinishedFuture(Exception e,WriteStats stats) {
-						this.e = e;
-						this.stats = stats;
-				}
-        @Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
-        @Override public boolean isCancelled() { return false; }
-        @Override public boolean isDone() { return true; }
-
-        @Override
-        public WriteStats get() throws InterruptedException, ExecutionException {
-            if(e!=null) throw new ExecutionException(e);
-						return stats;
+        public FinishedFuture(Exception e,WriteStats stats){
+            this.e=e;
+            this.stats=stats;
         }
 
         @Override
-        public WriteStats get(long timeout, TimeUnit unit) throws InterruptedException,
-                ExecutionException, TimeoutException {
+        public boolean cancel(boolean mayInterruptIfRunning){
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled(){
+            return false;
+        }
+
+        @Override
+        public boolean isDone(){
+            return true;
+        }
+
+        @Override
+        public WriteStats get() throws InterruptedException, ExecutionException{
+            if(e instanceof ExecutionException) throw (ExecutionException)e;
+            else if(e instanceof InterruptedException) throw (InterruptedException)e;
+            else if(e!=null) throw new ExecutionException(e);
+            return stats;
+        }
+
+        @Override
+        public WriteStats get(long timeout,@Nonnull TimeUnit unit) throws InterruptedException,
+                ExecutionException, TimeoutException{
             return get();
         }
     }

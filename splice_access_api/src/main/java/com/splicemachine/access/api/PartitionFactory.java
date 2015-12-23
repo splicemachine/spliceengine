@@ -9,8 +9,13 @@ import java.io.IOException;
  * Created by jleach on 11/18/15.
  */
 public interface PartitionFactory<SpliceTableInfo> {
+
     Partition getTable(SpliceTableInfo tableName) throws IOException;
+
     Partition getTable(String name) throws IOException;
+
     Partition getTable(byte[] name) throws IOException;
+
+    void createPartition(String name) throws IOException;
 
 }

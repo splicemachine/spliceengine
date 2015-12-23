@@ -104,7 +104,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public Partition getRegion() {
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return txnRegion().unwrap();
     }
 
     @Override

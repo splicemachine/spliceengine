@@ -98,7 +98,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, rce, false, env);
-        BatchConstraintChecker checker = buildConstraintChecker();
+        BatchConstraintChecker checker = buildConstraintChecker(txn);
         context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
         addWriteHandlerFactories(1000, context);
         return context;
@@ -112,21 +112,24 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, region, skipIndexWrites, env);
-        BatchConstraintChecker checker = buildConstraintChecker();
+        BatchConstraintChecker checker = buildConstraintChecker(txn);
         context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
         addWriteHandlerFactories(expectedWrites, context);
         return context;
     }
 
-    private BatchConstraintChecker buildConstraintChecker() {
-        if (constraintFactories.isEmpty()) {
-            return null;
-        }
-        List<BatchConstraintChecker> checkers = Lists.newArrayListWithCapacity(constraintFactories.size());
-        for (ConstraintFactory factory : constraintFactories) {
-            checkers.add(factory.getConstraintChecker());
-        }
-        return new ChainConstraintChecker(checkers);
+    private BatchConstraintChecker buildConstraintChecker(TxnView txn) throws IOException, InterruptedException{
+        isInitialized(txn);
+        if(state.get()==State.RUNNING){
+            if(constraintFactories.isEmpty()){
+                return null;
+            }
+            List<BatchConstraintChecker> checkers=Lists.newArrayListWithCapacity(constraintFactories.size());
+            for(ConstraintFactory factory : constraintFactories){
+                checkers.add(factory.getConstraintChecker());
+            }
+            return new ChainConstraintChecker(checkers);
+        }return null;
     }
 
 
@@ -227,7 +230,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             throw new IndexNotSetUpException("Unable to initialize index management for table " + conglomId
                     + " within a sufficient time frame. Please wait a bit and try again");
         }
-        if(state.get()!=State.READY_TO_START) return; //we got here in a weird way
+        if(state.get()!=State.STARTING) return; //we got here in a weird way
         try{
             factoryLoader.load(txn);
 

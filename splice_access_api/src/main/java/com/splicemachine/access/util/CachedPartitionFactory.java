@@ -44,6 +44,11 @@ public abstract class CachedPartitionFactory<TableInfo> implements PartitionFact
         return getTable(Bytes.toString(name));
     }
 
+    @Override
+    public void createPartition(String name) throws IOException{
+        delegate.createPartition(name);
+    }
+
     public Collection<Partition> cachedPartitions(){
         return tableCache.values();
     }

@@ -109,8 +109,7 @@ public class WriteNode implements WriteContext {
 
     @Override
     public Partition getRegion() {
-        throw new UnsupportedOperationException("IMPLEMENT");
-//        return (HRegion) getCoprocessorEnvironment().getRegion();
+        return pipelineWriteContext.getRegion();
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.io.Closeables;
+import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
 import org.apache.hadoop.conf.Configuration;
@@ -208,7 +209,7 @@ public class SpliceDriver {
         return ce == null ? null : ((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
     }
 
-    public RegionWritePipeline getWritePipeline(String encodedRegionName) {
+    public PartitionWritePipeline getWritePipeline(String encodedRegionName) {
         SpliceBaseIndexEndpoint endpoint = getIndexEndpoint(encodedRegionName);
         if (endpoint == null) {
         	SpliceLogUtils.debug(LOG, "IndexEndpoint not found for encoded region %s", encodedRegionName);

@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
+import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.client.*;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
@@ -62,9 +63,9 @@ public class SpliceBaseIndexEndpoint {
     //private Timer timer = SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
     private Meter rejectedMeter = SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName, "rejectedRows", TimeUnit.SECONDS);
 
-    private static final RegionWritePipeline.PipelineMeters pipelineMeter = new RegionWritePipeline.PipelineMeters();
+    private static final PartitionWritePipeline.PipelineMeters pipelineMeter = new PartitionWritePipeline.PipelineMeters();
 
-    private RegionWritePipeline regionWritePipeline;
+    private PartitionWritePipeline partitionWritePipeline;
     private static final AtomicLong rejectedCount = new AtomicLong(0l);
 
     private RegionCoprocessorEnvironment rce;
@@ -98,7 +99,7 @@ public class SpliceBaseIndexEndpoint {
                     } else {
                         region = TransactionalRegions.nonTransactionalRegion((HRegion) rce.getRegion());
                     }
-                    regionWritePipeline = new RegionWritePipeline(rce, (HRegion) rce.getRegion(), factory, region, pipelineMeter);
+                    partitionWritePipeline= new PartitionWritePipeline(rce, (HRegion) rce.getRegion(), factory, region, pipelineMeter);
                     SpliceDriver.driver().deregisterService(this);
                     return true;
                 }
@@ -108,8 +109,8 @@ public class SpliceBaseIndexEndpoint {
     }
 
     public void stop(CoprocessorEnvironment env) {
-        if (regionWritePipeline != null)
-            regionWritePipeline.close();
+        if (partitionWritePipeline!= null)
+            partitionWritePipeline.close();
     }
 
     /**
@@ -140,8 +141,8 @@ public class SpliceBaseIndexEndpoint {
         // Determine whether or not this write is dependent or independent.  Dependent writes are writes to a table with indexes.
         boolean dependent;
         try {
-            assert regionWritePipeline!=null:"Missed Service -> + " + rce.getRegion().getTableDesc().getTableName();
-        	dependent = regionWritePipeline.isDependent(bulkWrites.getTxn());
+            assert partitionWritePipeline!=null:"Missed Service -> + " + rce.getRegion().getTableDesc().getTableName();
+        	dependent = partitionWritePipeline.isDependent(bulkWrites.getTxn());
         } catch (InterruptedException e1) {
         	throw new IOException(e1);
         }
@@ -164,14 +165,14 @@ public class SpliceBaseIndexEndpoint {
         try {
 
             // Add the writes to the writePairMap, which helps link the BulkWrites to their result and write pipeline objects.
-            Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = getBulkWritePairMap(bws, numBulkWrites);
+            Map<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> writePairMap = getBulkWritePairMap(bws, numBulkWrites);
 
             //
-            // Submit the bulk writes for which we found a RegionWritePipeline.
+            // Submit the bulk writes for which we found a PartitionWritePipeline.
             //
-            for (Map.Entry<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> entry : writePairMap.entrySet()) {
-                Pair<BulkWriteResult, RegionWritePipeline> pair = entry.getValue();
-                RegionWritePipeline writePipeline = pair.getSecond();
+            for (Map.Entry<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> entry : writePairMap.entrySet()) {
+                Pair<BulkWriteResult, PartitionWritePipeline> pair = entry.getValue();
+                PartitionWritePipeline writePipeline = pair.getSecond();
                 if (writePipeline != null) {
                     BulkWrite bulkWrite = entry.getKey();
                     BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
@@ -182,9 +183,9 @@ public class SpliceBaseIndexEndpoint {
             //
             // Same iteration, now calling finishWrite() for each BulkWrite
             //
-            for (Map.Entry<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> entry : writePairMap.entrySet()) {
-                Pair<BulkWriteResult, RegionWritePipeline> pair = entry.getValue();
-                RegionWritePipeline writePipeline = pair.getSecond();
+            for (Map.Entry<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> entry : writePairMap.entrySet()) {
+                Pair<BulkWriteResult, PartitionWritePipeline> pair = entry.getValue();
+                PartitionWritePipeline writePipeline = pair.getSecond();
                 if (writePipeline != null) {
                     BulkWrite bulkWrite = entry.getKey();
                     BulkWriteResult writeResult = pair.getFirst();
@@ -203,7 +204,7 @@ public class SpliceBaseIndexEndpoint {
              * but it's not. I assure you.
              */
             for(BulkWrite bw:bws){
-                Pair<BulkWriteResult,RegionWritePipeline> results = writePairMap.get(bw);
+                Pair<BulkWriteResult,PartitionWritePipeline> results = writePairMap.get(bw);
                 result.add(results.getFirst());
             }
             return new BulkWritesResult(result);
@@ -229,13 +230,13 @@ public class SpliceBaseIndexEndpoint {
     }
 
     /**
-     * Just builds this map:  BulkWrite -> (BulkWriteResult, RegionWritePipeline) where the RegionWritePipeline may
+     * Just builds this map:  BulkWrite -> (BulkWriteResult, PartitionWritePipeline) where the PartitionWritePipeline may
      * be null for some BulkWrites.
      */
-    private Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> getBulkWritePairMap(Collection<BulkWrite> buffer, int size) {
-        Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = Maps.newIdentityHashMap();
+    private Map<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> getBulkWritePairMap(Collection<BulkWrite> buffer, int size) {
+        Map<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> writePairMap = Maps.newIdentityHashMap();
         for(BulkWrite bw:buffer){
-            RegionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bw.getEncodedStringName());
+            PartitionWritePipeline writePipeline = SpliceDriver.driver().getWritePipeline(bw.getEncodedStringName());
             BulkWriteResult writeResult;
             if (writePipeline != null) {
                 //we might be able to write this one
@@ -262,8 +263,8 @@ public class SpliceBaseIndexEndpoint {
         mbs.registerMBean(ActiveWriteHandlers.get(), coordinatorName);
     }
 
-    public RegionWritePipeline getWritePipeline() {
-        return regionWritePipeline;
+    public PartitionWritePipeline getWritePipeline() {
+        return partitionWritePipeline;
     }
 
     public static class ActiveWriteHandlers implements ActiveWriteHandlersIface {

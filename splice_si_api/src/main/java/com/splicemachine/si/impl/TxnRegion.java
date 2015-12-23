@@ -183,4 +183,9 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
         throw new UnsupportedOperationException("IMPLEMENT");
     }
+
+    @Override
+    public Partition unwrap(){
+        return region;
+    }
 }

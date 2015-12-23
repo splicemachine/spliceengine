@@ -58,7 +58,7 @@ public class WriteCoordinator {
         return new WriteCoordinator(writer, syncWriter, monitor,partitionFactory,exceptionFactory);
     }
 
-    private WriteCoordinator(Writer asynchronousWriter,
+    public WriteCoordinator(Writer asynchronousWriter,
                              Writer synchronousWriter,
                              Monitor monitor,
                              PartitionFactory partitionFactory,
@@ -95,6 +95,10 @@ public class WriteCoordinator {
         return writeBuffer(partition,txn, PipelineUtils.noOpFlushHook);
     }
 
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(Partition partition, TxnView txn) {
+        return synchronousWriteBuffer(partition,txn, PipelineUtils.noOpFlushHook,defaultWriteConfiguration);
+    }
+
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, PreFlushHook preFlushHook) {
         monitor.outstandingBuffers.incrementAndGet();
         return new MonitoredPipingCallBuffer(partition, txn, asynchronousWriter, preFlushHook, defaultWriteConfiguration, monitor, false);
@@ -118,10 +122,7 @@ public class WriteCoordinator {
         //if it isn't active, don't bother creating the extra object
         if (metricFactory.isActive()) {
             config = new ForwardingWriteConfiguration(defaultWriteConfiguration) {
-                @Override
-                public MetricFactory getMetricFactory() {
-                    return metricFactory;
-                }
+                @Override public MetricFactory getMetricFactory() { return metricFactory; }
             };
         }
         return writeBuffer(partition, txn, config);
@@ -170,9 +171,7 @@ public class WriteCoordinator {
         return new MonitoredPipingCallBuffer(partition, txn, synchronousWriter, flushHook, writeConfiguration, config, false);
     }
 
-    public PartitionFactory getPartitionFactory(){
-        return partitionFactory;
-    }
+    public PartitionFactory getPartitionFactory(){ return partitionFactory; }
 
     private class MonitoredPipingCallBuffer extends PipingCallBuffer {
 

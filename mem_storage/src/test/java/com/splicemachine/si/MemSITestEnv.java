@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -34,26 +35,17 @@ public class MemSITestEnv implements SITestEnv{
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
-    private final Partition personPartition = new MPartition("person","person");
-    private final PartitionFactory tableFactory = new PartitionFactory(){
-        @Override
-        public Partition getTable(Object tableName) throws IOException{
-            assert tableName instanceof String: "Programmer error: improper type!";
-            return getTable((String)tableName);
-        }
-
-        @Override
-        public Partition getTable(String name) throws IOException{
-            assert name.equalsIgnoreCase("person"): "Unknown table:"+name;
-            return personPartition;
-        }
-    };
+    private final Partition personPartition;
+    private final PartitionFactory tableFactory = new MPartitionFactory();
     private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
 
-    public MemSITestEnv(){
+    public MemSITestEnv() throws IOException{
+        this.tableFactory.createPartition("person");
+        this.personPartition = tableFactory.getTable("person");
+
     }
 
     @Override public SDataLib getDataLib(){ return dataLib; }
@@ -90,8 +82,23 @@ public class MemSITestEnv implements SITestEnv{
     }
 
     @Override
+    public void createTransactionalTable(byte[] tableNameBytes) throws IOException{
+        tableFactory.createPartition(Bytes.toString(tableNameBytes));
+    }
+
+    @Override
     public Partition getPersonTable(TestTransactionSetup tts){
         return new TxnPartition(personPartition,
+                tts.transactor,
+                NoopRollForward.INSTANCE,
+                txnOpFactory,
+                tts.readController,
+                NoOpReadResolver.INSTANCE);
+    }
+
+    @Override
+    public Partition getPartition(String name,TestTransactionSetup tts) throws IOException{
+        return new TxnPartition(tableFactory.getTable(name),
                 tts.transactor,
                 NoopRollForward.INSTANCE,
                 txnOpFactory,

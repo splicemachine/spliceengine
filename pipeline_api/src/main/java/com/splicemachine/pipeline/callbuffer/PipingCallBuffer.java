@@ -155,7 +155,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
             for (Pair<PartitionBuffer, PartitionServer> buffer : startKeyToRegionCBMap.values())
                 buffer.getFirst().clear();
             for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
-                assert (buffer.getBulkWrites().numEntries() == 0);  // This asserts that there are not any outstanding RegionCallBuffers for the region server that need to be flushed still.
+                assert buffer.getBulkWrites()==null || (buffer.getBulkWrites().numEntries() == 0);  // This asserts that there are not any outstanding RegionCallBuffers for the region server that need to be flushed still.
                 buffer.close();
             }
         }
