@@ -6,13 +6,13 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
+import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.DerbyMessage;
@@ -394,4 +394,120 @@ public class DDLUtils {
             throw StandardException.plainWrapException(e);
         }
     }
+
+    public static void preRenameTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preRenameTable with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DerbyMessage.UUID uuuid = change.getRenameTable().getTableId();
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            if (td==null) // Table Descriptor transaction never committed
+                return;
+            flushCachesBasedOnTableDescriptor(td,dd);
+            dm.invalidateFor(td, DependencyManager.RENAME, transactionResource.getLcc());
+    		/* look for foreign key dependency on the table. If found any,
+	    	use dependency manager to pass the rename action to the
+		    dependents. */
+            ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(td);
+            for(int index=0; index<constraintDescriptorList.size(); index++) {
+                ConstraintDescriptor constraintDescriptor = constraintDescriptorList.elementAt(index);
+                if (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor)
+                    dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, transactionResource.getLcc());
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preRenameColumn(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preRenameColumn with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DerbyMessage.UUID uuuid = change.getRenameColumn().getTableId();
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            if (td==null) // Table Descriptor transaction never committed
+                return;
+            ColumnDescriptor columnDescriptor = td.getColumnDescriptor(change.getRenameColumn().getColumnName());
+            if (columnDescriptor.isAutoincrement())
+                columnDescriptor.setAutoinc_create_or_modify_Start_Increment(
+                        ColumnDefinitionNode.CREATE_AUTOINCREMENT);
+
+            int columnPosition = columnDescriptor.getPosition();
+            FormatableBitSet toRename = new FormatableBitSet(td.getColumnDescriptorList().size() + 1);
+            toRename.set(columnPosition);
+            td.setReferencedColumnMap(toRename);
+            flushCachesBasedOnTableDescriptor(td, dd);
+            dm.invalidateFor(td, DependencyManager.RENAME, transactionResource.getLcc());
+
+            //look for foreign key dependency on the column.
+            ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(td);
+            for(int index=0; index<constraintDescriptorList.size(); index++)
+            {
+                ConstraintDescriptor constraintDescriptor = constraintDescriptorList.elementAt(index);
+                int[] referencedColumns = constraintDescriptor.getReferencedColumns();
+                int numRefCols = referencedColumns.length;
+                for (int j = 0; j < numRefCols; j++)
+                {
+                    if ((referencedColumns[j] == columnPosition) &&
+                            (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
+                        dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, transactionResource.getLcc());
+                }
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preRenameIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preRenameIndex with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DerbyMessage.UUID uuuid = change.getRenameIndex().getTableId();
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            if (td==null) // Table Descriptor transaction never committed
+                    return;
+            flushCachesBasedOnTableDescriptor(td,dd);
+            dm.invalidateFor(td, DependencyManager.RENAME_INDEX, transactionResource.getLcc());
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preAlterTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preAlterTable with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            for (DerbyMessage.UUID uuid : change.getAlterTable().getTableIdList()) {
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
+                if (td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+
 }
