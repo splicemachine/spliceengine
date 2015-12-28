@@ -72,6 +72,36 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createAlterTable(long txnId, BasicUUID basicUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setAlterTable(AlterTable.newBuilder()
+                .addTableId(transferDerbyUUID(basicUUID)))
+                .setDdlChangeType(DDLChangeType.ALTER_TABLE)
+                .build();
+    }
+
+    public static DDLChange createRenameTable(long txnId, BasicUUID basicUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRenameTable(RenameTable.newBuilder()
+                .setTableId(transferDerbyUUID(basicUUID)))
+                .setDdlChangeType(DDLChangeType.RENAME_TABLE)
+                .build();
+    }
+
+    public static DDLChange createRenameIndex(long txnId, BasicUUID basicUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRenameIndex(RenameIndex.newBuilder()
+                .setTableId(transferDerbyUUID(basicUUID)))
+                .setDdlChangeType(DDLChangeType.RENAME_INDEX)
+                .build();
+    }
+
+    public static DDLChange createRenameColumn(long txnId, BasicUUID basicUUID, String oldColumnName) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRenameColumn(RenameColumn.newBuilder()
+                .setTableId(transferDerbyUUID(basicUUID))
+                .setColumnName(oldColumnName))
+                .setDdlChangeType(DDLChangeType.RENAME_COLUMN)
+                .build();
+    }
+
+
     public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor) {
         ColumnDescriptorList columnDescriptors = fKConstraintDescriptor.getColumnDescriptors();
         return FKConstraintInfo.newBuilder().setTableName(fKConstraintDescriptor.getTableDescriptor().getName())

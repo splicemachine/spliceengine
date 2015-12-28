@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
@@ -20,7 +19,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 
 /**
  * This class  describes actions that are ALWAYS performed for a
@@ -244,25 +248,26 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 				   TableDescriptor td, Activation activation)
 		throws StandardException
 	{
-		ConstraintDescriptorList constraintDescriptorList;
-		ConstraintDescriptor constraintDescriptor;
 
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
 		TransactionController tc = lcc.getTransactionExecute();
-		dm.invalidateFor(td, DependencyManager.RENAME, lcc);
 
-		/* look for foreign key dependency on the table. If found any,
-		use dependency manager to pass the rename action to the
-		dependents. */
-		constraintDescriptorList = dd.getConstraintDescriptors(td);
-		for(int index=0; index<constraintDescriptorList.size(); index++)
-		{
-			constraintDescriptor = constraintDescriptorList.elementAt(index);
-			if (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor)
-				dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, lcc);
-		}
+        /** Invalidate Locally */
+        dm.invalidateFor(td, DependencyManager.RENAME, lcc);
+    		/* look for foreign key dependency on the table. If found any,
+	    	use dependency manager to pass the rename action to the
+		    dependents. */
+        ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(td);
+        for(int index=0; index<constraintDescriptorList.size(); index++) {
+            ConstraintDescriptor constraintDescriptor = constraintDescriptorList.elementAt(index);
+            if (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor)
+                dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, lcc);
+        }
+        // Invalidate Remotely
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createRenameTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
 		// Drop the table
 		dd.dropTableDescriptor(td, sd, tc);
@@ -281,8 +286,6 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 	{
 		ColumnDescriptor columnDescriptor = null;
 		int columnPosition = 0;
-		ConstraintDescriptorList constraintDescriptorList;
-		ConstraintDescriptor constraintDescriptor;
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
@@ -304,23 +307,27 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 		FormatableBitSet toRename = new FormatableBitSet(td.getColumnDescriptorList().size() + 1);
 		toRename.set(columnPosition);
 		td.setReferencedColumnMap(toRename);
-    
-		dm.invalidateFor(td, DependencyManager.RENAME, lcc);
 
-		//look for foreign key dependency on the column.
-		constraintDescriptorList = dd.getConstraintDescriptors(td);
-		for(int index=0; index<constraintDescriptorList.size(); index++)
-		{
-			constraintDescriptor = constraintDescriptorList.elementAt(index);
-			int[] referencedColumns = constraintDescriptor.getReferencedColumns();
-			int numRefCols = referencedColumns.length;
-			for (int j = 0; j < numRefCols; j++)
-			{
-				if ((referencedColumns[j] == columnPosition) &&
-					(constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
-					dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, lcc);
-			}
-		}
+        /* Invalidate dependencies locally. */
+        dm.invalidateFor(td, DependencyManager.RENAME, lcc);
+        //look for foreign key dependency on the column.
+        ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(td);
+        for(int index=0; index<constraintDescriptorList.size(); index++)
+        {
+            ConstraintDescriptor constraintDescriptor = constraintDescriptorList.elementAt(index);
+            int[] referencedColumns = constraintDescriptor.getReferencedColumns();
+            int numRefCols = referencedColumns.length;
+            for (int j = 0; j < numRefCols; j++)
+            {
+                if ((referencedColumns[j] == columnPosition) &&
+                        (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
+                    dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, lcc);
+            }
+        }
+
+        /* Invalidate dependencies remotely. */
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createRenameColumn(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId,oldObjectName);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
 		// Drop the column
 		dd.dropColumnDescriptor(td.getUUID(), oldObjectName, tc);
@@ -343,10 +350,15 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
 		TransactionController tc = lcc.getTransactionExecute();
-		//for indexes, we only invalidate sps, rest we ignore(ie views)
-		dm.invalidateFor(td, DependencyManager.RENAME_INDEX, lcc);
 
-		ConglomerateDescriptor conglomerateDescriptor =
+        /* Invalidate Dependencies locally */
+        dm.invalidateFor(td, DependencyManager.RENAME_INDEX, lcc);
+
+        /* Invalidate dependencies remotely. */
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createRenameIndex(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+        ConglomerateDescriptor conglomerateDescriptor =
 			dd.getConglomerateDescriptor(oldObjectName, sd, true);
 
 		if (conglomerateDescriptor == null)

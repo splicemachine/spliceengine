@@ -140,7 +140,9 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         /* Invalidate dependencies remotely. */
 
         DDLChange ddlChange = ProtoUtil.createDropTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId);
-
+        // Run locally first to capture any errors.
+        dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
+        // Run Remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
         // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.

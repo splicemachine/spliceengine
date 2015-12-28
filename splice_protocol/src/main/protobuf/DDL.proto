@@ -9,6 +9,19 @@ message AlterTable {
         repeated UUID tableId = 1;
 }
 
+message RenameTable {
+        required UUID tableId = 1;
+}
+
+message RenameColumn {
+        required UUID tableId = 1;
+        required string columnName = 2;
+}
+
+message RenameIndex{
+        required UUID tableId = 1;
+}
+
 message AlterStats {
         repeated UUID tableId = 1;
 }
@@ -152,6 +165,10 @@ enum DDLChangeType {
     ENTER_RESTORE_MODE = 16;
     DICTIONARY_UPDATE = 17;
     DROP_INDEX_TRIGGER = 18;
+    RENAME_TABLE = 19;
+    RENAME_COLUMN = 20;
+    RENAME_INDEX = 21;
+    ALTER_TABLE = 22;
 }
 
 message DDLChange {
@@ -171,4 +188,7 @@ message DDLChange {
     optional TentativeIndex tentativeIndex = 14;
     optional TentativeDropConstraint tentativeDropConstraint = 15;
     optional DropIndexTrigger dropIndexTrigger = 16;
+    optional RenameTable renameTable = 17;
+    optional RenameColumn renameColumn = 18;
+    optional RenameIndex renameIndex = 19;
 }
