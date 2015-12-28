@@ -260,9 +260,20 @@ public class SpliceDatabase extends BasicDatabase{
 
             @Override
             public void startChange(DDLChange change) throws StandardException{
-
-                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE) {
+                if(change.getDdlChangeType()==DDLChangeType.ALTER_TABLE) {
+                    DDLUtils.preAlterTable(change, getDataDictionary(), getDataDictionary().getDependencyManager());
+                }
+                else if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE) {
                     DDLUtils.preDropTable(change, getDataDictionary(), getDataDictionary().getDependencyManager());
+                }
+                else if (change.getDdlChangeType()==DDLChangeType.RENAME_TABLE) {
+                    DDLUtils.preRenameTable(change, getDataDictionary(), getDataDictionary().getDependencyManager());
+                }
+                else if (change.getDdlChangeType()==DDLChangeType.RENAME_INDEX) {
+                    DDLUtils.preRenameIndex(change, getDataDictionary(), getDataDictionary().getDependencyManager());
+                }
+                else if (change.getDdlChangeType()==DDLChangeType.RENAME_COLUMN) {
+                    DDLUtils.preRenameColumn(change, getDataDictionary(), getDataDictionary().getDependencyManager());
                 }
                 else if (change.getDdlChangeType()==DDLChangeType.DROP_SCHEMA) {
                     DDLUtils.preDropSchema(change, getDataDictionary(), getDataDictionary().getDependencyManager());
