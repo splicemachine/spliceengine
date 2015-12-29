@@ -33,17 +33,17 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     void setCurrentLocatedRow(LocatedRow locatedRow);
 
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
+    DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
 
-    public OperationContext getOperationContext();
+    OperationContext getOperationContext();
 
-    public void setOperationContext(OperationContext operationContext);
+    void setOperationContext(OperationContext operationContext);
 
-    public String getSparkStageName();
+    String getSparkStageName();
     
-    public String getPrettyExplainPlan();
+    String getPrettyExplainPlan();
     
-    public void setExplainPlan(String plan);
+    void setExplainPlan(String plan);
     
     /**
      * @return a descriptive name for this operation. Used for reporting information.
@@ -52,32 +52,32 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     OperationInformation getOperationInformation();
 
-    public int modifiedRowCount();
+    int modifiedRowCount();
 
-    public Activation getActivation();
+    Activation getActivation();
 
-    public void clearCurrentRow();
+    void clearCurrentRow();
 
-    public void markAsTopResultSet();
+    void markAsTopResultSet();
 
-    public void open() throws StandardException;
+    void open() throws StandardException;
 
-    public int resultSetNumber();
+    int resultSetNumber();
 
-    public void setCurrentRow(ExecRow row);
+    void setCurrentRow(ExecRow row);
 
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 
 	 * @throws StandardException
 	 */
-	public void init(SpliceOperationContext context) throws IOException, StandardException;
+    void init(SpliceOperationContext context) throws IOException, StandardException;
 
 	/**
 	 * Unique node sequence id.  Should move from Zookeeper to uuid generator.
 	 * 
 	 */
-	public byte[] getUniqueSequenceID();
+    byte[] getUniqueSequenceID();
 
 	/**
 	 * 
@@ -86,7 +86,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 * 
 	 * @return
 	 */
-	public SpliceOperation getLeftOperation();
+    SpliceOperation getLeftOperation();
 	/**
 	 * 
 	 * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
@@ -94,7 +94,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 * 
 	 * @return
 	 */
-	public void generateLeftOperationStack(List<SpliceOperation> operations);
+    void generateLeftOperationStack(List<SpliceOperation> operations);
 
 	/**
 	 * 
@@ -103,7 +103,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 * 
 	 * @return
 	 */
-	public SpliceOperation getRightOperation();
+    SpliceOperation getRightOperation();
 	/**
 	 * 
 	 * Recursively generates the left operation stack.  This method is implemented properly as long as you inherit from
@@ -111,9 +111,9 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 * 
 	 * @return
 	 */
-	public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations);
+    void generateRightOperationStack(boolean initial,List<SpliceOperation> operations);
 
-    public void generateAllOperationStack(List<SpliceOperation> operations);
+    void generateAllOperationStack(List<SpliceOperation> operations);
 	/**
 	 * 
 	 * The outgoing field definition of the record.  Do we need incoming as well?
@@ -122,7 +122,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 	 * @throws StandardException 
 	 */
 
-	public ExecRow getExecRowDefinition() throws StandardException;
+    ExecRow getExecRowDefinition() throws StandardException;
 
     /**
      * Returns an array containing integer pointers into the columns of the table. This
@@ -166,30 +166,30 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     double getEstimatedRowCount();
 
-    public TxnView getCurrentTransaction() throws StandardException;
+    TxnView getCurrentTransaction() throws StandardException;
 
-    public List<SpliceOperation> getSubOperations();
+    List<SpliceOperation> getSubOperations();
 
     Iterator<LocatedRow> getLocatedRowIterator();
 
-    public void openCore(DataSetProcessor dsp) throws StandardException;
+    void openCore(DataSetProcessor dsp) throws StandardException;
 
-    public void registerCloseable(AutoCloseable closeable) throws StandardException;
+    void registerCloseable(AutoCloseable closeable) throws StandardException;
 
-    public void fireBeforeStatementTriggers () throws StandardException;
+    void fireBeforeStatementTriggers() throws StandardException;
 
-    public void fireAfterStatementTriggers () throws StandardException;
+    void fireAfterStatementTriggers() throws StandardException;
 
-    public TriggerHandler getTriggerHandler() throws StandardException;
+    TriggerHandler getTriggerHandler() throws StandardException;
 
-    public ExecIndexRow getStartPosition() throws StandardException;
+    ExecIndexRow getStartPosition() throws StandardException;
 
-    public String getVTIFileName();
+    String getVTIFileName();
 
-    public TxnView createChildTransaction(byte[] table) throws StandardException;
+    TxnView createChildTransaction(byte[] table) throws StandardException;
 
-    public void rollbackTransaction(long txnId) throws StandardException;
+    void rollbackTransaction(long txnId) throws StandardException;
 
-    public void commitTransaction(long txnId) throws StandardException;
+    void commitTransaction(long txnId) throws StandardException;
 
 }

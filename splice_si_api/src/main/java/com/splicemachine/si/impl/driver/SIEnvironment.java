@@ -10,6 +10,7 @@ import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 /**
@@ -40,4 +41,6 @@ public interface SIEnvironment{
     TxnOperationFactory operationFactory();
 
     SIDriver getSIDriver();
+
+    PartitionInfoCache partitionInfoCache();
 }

@@ -53,20 +53,29 @@ public class HExceptionFactory implements ExceptionFactory{
 
     @Override
     public IOException processRemoteException(Throwable e){
-        if(e instanceof WriteConflict) return (IOException)e;
-        else if(e instanceof ReadOnlyModificationException) return (IOException)e;
-        else if(e instanceof TransactionTimeoutException) return (IOException)e;
-        else if(e instanceof CannotCommitException) return (IOException)e;
-        else if(e instanceof RetriesExhaustedWithDetailsException){
+        if(e instanceof WriteConflict){
+            assert e instanceof IOException: "Programmer error: WriteConflict should be an IOException";
+            return (IOException)e;
+        } else if(e instanceof ReadOnlyModificationException){
+            assert e instanceof IOException: "Programmer error: ReadOnlyModificationException should be an IOException";
+            return (IOException)e;
+        } else if(e instanceof TransactionTimeoutException) {
+            assert e instanceof IOException: "Programmer error: TransactionTimeoutException should be an IOException";
+            return (IOException)e;
+        } else if(e instanceof CannotCommitException) {
+            assert e instanceof IOException: "Programmer error: CannotCommitException should be an IOException";
+            return (IOException)e;
+        } else if(e instanceof RetriesExhaustedWithDetailsException){
             RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)e;
             for(Throwable c:rewde.getCauses()){
                 if(c instanceof IOException){
                     return processRemoteException(c);
                 }
             }
-            return new IOException(rewde.getCause(0));
-        }else if(e instanceof IOException) return (IOException)e;
-        else
+            return processRemoteException(rewde.getCause(0));
+        }else if(e instanceof IOException) {
+            return (IOException)e;
+        } else
             return new IOException(e);
     }
 }

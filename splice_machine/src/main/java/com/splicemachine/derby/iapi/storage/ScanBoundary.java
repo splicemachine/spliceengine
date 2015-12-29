@@ -1,8 +1,8 @@
 package com.splicemachine.derby.iapi.storage;
 
 import com.splicemachine.si.api.txn.Txn;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.DataScan;
 
 public interface ScanBoundary{
     /**
@@ -15,7 +15,7 @@ public interface ScanBoundary{
      * @param finish the end key of the scan
      * @return a constructed Scan representing the range given by {@code start} and {@code finish}
      */
-    Scan buildScan(Txn txn, byte[] start, byte[] finish);
+    DataScan buildScan(Txn txn, byte[] start, byte[] finish);
 
     /**
      * Get the beginning of the key range that this row belongs to.
@@ -23,7 +23,7 @@ public interface ScanBoundary{
      * @param result the row of interest
      * @return the start key for the row.
      */
-    byte[] getStartKey(Result result);
+    byte[] getStartKey(DataResult result);
 
     /**
      * Get the end of the key range that this row key belongs to (and/or the start of the
@@ -32,7 +32,7 @@ public interface ScanBoundary{
      * @param result the row of interest
      * @return the end key for the row (and/or) the start key of the key range immediately following.
      */
-    byte[] getStopKey(Result result);
+    byte[] getStopKey(DataResult result);
 
     /**
      * Determines if the RowProvider should perform an additional <em>lookbehind</em>

@@ -1,6 +1,5 @@
 package com.splicemachine.tools;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -10,21 +9,20 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import static java.lang.String.format;
 
 /**
  * Provides connections for internal use.
  */
-public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
+public final class EmbedConnectionMaker {
 
-    private static final String JDBC_URL = format("jdbc:splice:%s;user=splice", SpliceConstants.SPLICE_DB);
+    private static final String JDBC_URL = String.format("jdbc:splice:%s;user=splice", SpliceConstants.SPLICE_DB);
 
     private final EmbeddedDriver driver = new EmbeddedDriver();
 
     /**
      * Connection for internal use. Connects as 'splice' without using a password.
      */
-    @Override
+//    @Override
     public Connection createNew() throws SQLException {
         return driver.connect(JDBC_URL, SpliceDriver.driver().getProperties());
     }

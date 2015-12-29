@@ -22,12 +22,12 @@ public interface RowProviderIterator<T> {
 	 * @return boolean
 	 * @throws StandardException
 	 */
-	public boolean hasNext() throws StandardException, IOException;
+	boolean hasNext() throws StandardException, IOException;
 	/**
 	 * Returns the next element in the iteration.
 	 * 
 	 * @return boolean
 	 * @throws StandardException
 	 */
-	public T next() throws StandardException, IOException;
+	T next() throws StandardException, IOException;
 }

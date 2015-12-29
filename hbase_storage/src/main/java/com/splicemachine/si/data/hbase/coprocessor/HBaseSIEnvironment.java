@@ -29,6 +29,7 @@ import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
 import com.splicemachine.utils.GreenLight;
@@ -53,6 +54,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
             Get,Put,RegionScanner,Result,Scan,TableName> ignoreTxnSupplier;
     private final HTxnOperationFactory txnOpFactory;
     private final AsyncReadResolver readResolver;
+    private final PartitionInfoCache partitionCache;
 
     public static HBaseSIEnvironment loadEnvironment(RecoverableZooKeeper rzk){
         HBaseSIEnvironment env = INSTANCE;
@@ -76,6 +78,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     public HBaseSIEnvironment(TimestampSource timestampSource){
         this.timestampSource =timestampSource;
         this.tableFactory=TableFactoryService.loadTableFactory();
+        this.partitionCache = PartitionCacheService.loadPartitionCache();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer();
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,SIConstants.completedTransactionCacheSize,SIConstants.completedTransactionConcurrency);
@@ -144,6 +147,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public SIDriver getSIDriver(){
         return SIDriver.driver();
+    }
+
+    @Override
+    public PartitionInfoCache partitionInfoCache(){
+        return partitionCache;
     }
 
     private AsyncReadResolver initializeReadResolver(){

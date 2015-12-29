@@ -28,8 +28,8 @@
 				<module>splice_protocol</module>
         <module>splice_timestamp_api</module>
         <module>splice_si_api</module>
-        <module>splice_access_api</module>
         <module>splice_pipeline</module>
+        <module>splice_access_api</module>
         <module>splice_machine</module>
         <module>hbase_storage</module>
         <module>hbase_pipeline</module>

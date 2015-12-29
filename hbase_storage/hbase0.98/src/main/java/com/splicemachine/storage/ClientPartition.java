@@ -1,9 +1,11 @@
 package com.splicemachine.storage;
 
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.*;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,9 +15,11 @@ import java.util.List;
 @NotThreadSafe
 public class ClientPartition extends SkeletonHBaseClientPartition{
     private final HTableInterface table;
+    private final HConnection conn;
 
-    public ClientPartition(HTableInterface table){
+    public ClientPartition(HTableInterface table,HConnection connection){
         this.table=table;
+        this.conn = connection;
     }
 
     @Override
@@ -56,5 +60,26 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     @Override
     protected void doIncrement(Increment incr) throws IOException{
         table.increment(incr);
+    }
+
+    @Override
+    public List<Partition> subPartitions(){
+        try(HBaseAdmin admin = new HBaseAdmin(conn)){
+            //TODO -sf- does this cache region information?
+            List<HRegionInfo> tableRegions=admin.getTableRegions(table.getTableName());
+            List<Partition> partitions = new ArrayList<>(tableRegions.size());
+            for(HRegionInfo info:tableRegions){
+                LazyPartitionServer owningServer=new LazyPartitionServer(conn,info,table.getTableDescriptor().getTableName());
+                partitions.add(new RangedClientPartition(conn,table,info,owningServer));
+            }
+            return partitions;
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public PartitionServer owningServer(){
+        throw new UnsupportedOperationException("A Table is not owned by a single server, but by the cluster as a whole");
     }
 }

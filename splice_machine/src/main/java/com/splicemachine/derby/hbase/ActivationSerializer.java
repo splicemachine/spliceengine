@@ -56,11 +56,7 @@ public class ActivationSerializer {
                 classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
             }
             return new Visitor(destination).read(in);
-        } catch (IllegalAccessException e) {
-            throw new IOException(e);
-        } catch (NoSuchFieldException e) {
-            throw new IOException(e);
-        } catch (ClassNotFoundException e) {
+        } catch (IllegalAccessException | NoSuchFieldException | ClassNotFoundException e) {
             throw new IOException(e);
         }
     }
@@ -201,6 +197,8 @@ public class ActivationSerializer {
         if(baseActClass==null) return null;
         return baseActClass;
     }
+
+    @SuppressWarnings("SimplifiableIfStatement")
     private static boolean isQualifierType(Class clazz){
         if(Qualifier.class.isAssignableFrom(clazz)) return true;
         else if(clazz.isArray()){
@@ -217,12 +215,12 @@ public class ActivationSerializer {
         return null;
     }
 
-    private static interface FieldStorage extends Externalizable{
+    private interface FieldStorage extends Externalizable{
 
         Object getValue(Activation context) throws StandardException;
     }
 
-    private static interface FieldStorageFactory<F extends FieldStorage> {
+    private interface FieldStorageFactory<F extends FieldStorage> {
         F create(Object objectToStore, @SuppressWarnings("rawtypes") Class type);
         boolean isType(Object instance, Class type);
     }
@@ -278,6 +276,7 @@ public class ActivationSerializer {
         }
 
         @Override
+        @SuppressWarnings("ForLoopReplaceableByForEach")
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeUTF(arrayType.getName());
             out.writeInt(data.length);
@@ -375,11 +374,9 @@ public class ActivationSerializer {
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeBoolean(dvd.isNull());
             if (!dvd.isNull()) {
-                boolean useKryo = true;
                 if (dvd instanceof UserType && ((UserType) dvd).getObject() instanceof UDTBase) {
                     // If this is a UDT or UDA, do not serialize using kryo
-                    useKryo = false;
-                    out.writeBoolean(useKryo);
+                    out.writeBoolean(false);
                     ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
                     ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputBuffer);
                     objectOutputStream.writeObject(dvd);
@@ -389,7 +386,7 @@ public class ActivationSerializer {
                     out.write(bytes);
                     objectOutputStream.close();
                 } else {
-                    out.writeBoolean(useKryo);
+                    out.writeBoolean(true);
                     out.writeObject(dvd);
                 }
             } else {

@@ -8,5 +8,5 @@ import java.io.IOException;
  *         Date: 13/04/2014
  */
 public interface StandardCloseable {
-    public void close() throws StandardException, IOException;
+    void close() throws StandardException, IOException;
 }

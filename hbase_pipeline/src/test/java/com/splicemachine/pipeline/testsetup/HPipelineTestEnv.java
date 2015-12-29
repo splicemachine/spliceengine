@@ -7,9 +7,9 @@ import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.si.testsetup.HBaseSITestEnv;
-import com.splicemacine.derby.hbase.HBasePipelineEnvironment;
-import com.splicemacine.derby.hbase.SpliceIndexEndpoint;
-import com.splicemacine.derby.hbase.SpliceIndexObserver;
+import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import org.apache.log4j.Level;
 
 import java.io.IOException;

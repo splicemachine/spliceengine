@@ -23,4 +23,16 @@ public class LazyPartitionServer implements PartitionServer{
     public int compareTo(PartitionServer o){
        return 0;
     }
+
+    @Override
+    public int hashCode(){
+        return regionInfo.hashCode(); //actually should be the region server itself
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if(obj==this) return true;
+        else if(!(obj instanceof PartitionServer)) return false;
+        else return true;
+    }
 }

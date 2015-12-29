@@ -14,6 +14,9 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -1010,7 +1013,7 @@ public class SpliceConstants {
 
     public static int ipcThreads;
 
-    public static final List<String> zookeeperPaths = Lists.newArrayList(
+    public static final List<String> zookeeperPaths =Collections.unmodifiableList(Arrays.asList(
             zkSpliceConglomeratePath,
             zkSpliceConglomerateSequencePath,
             zkSpliceDerbyPropertyPath,
@@ -1018,7 +1021,7 @@ public class SpliceConstants {
             zkSpliceTransactionPath,
             zkSpliceMaxReservedTimestampPath,
             zkSpliceMinimumActivePath
-    );
+    ));
 
     public static void setParameters() {
         zkSpliceDDLPath = config.get(DDL_PATH,DEFAULT_DDL_PATH);

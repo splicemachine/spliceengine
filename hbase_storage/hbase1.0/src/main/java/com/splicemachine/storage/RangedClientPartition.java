@@ -115,6 +115,21 @@ public class RangedClientPartition extends ClientPartition implements Comparable
 
     @Override
     public int compareTo(RangedClientPartition o){
-        return 0;
+        return Bytes.basicByteComparator().compare(getStartKey(),o.getStartKey());
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if(obj==this) return true;
+        else if(!(obj instanceof Partition)) return false;
+
+        Partition p = (Partition)obj;
+        return Bytes.basicByteComparator().compare(getStartKey(),p.getStartKey())==0
+                &&Bytes.basicByteComparator().compare(getEndKey(),p.getEndKey())==0;
+    }
+
+    @Override
+    public int hashCode(){
+        return regionInfo.hashCode();
     }
 }
