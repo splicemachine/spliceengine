@@ -11,22 +11,17 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.spark.SparkConstants;
-import com.splicemachine.derby.stream.spark.SparkDataSet;
-import com.splicemachine.derby.stream.spark.SparkPairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.Properties;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
@@ -125,7 +120,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public void init(SpliceOperationContext context) throws StandardException,
                                                             IOException {
         SpliceLogUtils.trace(LOG, "init called");
-        context.setCacheBlocks(false);
         super.init(context);
         source.init(context);
         groupedAggregateContext.init(context, aggregateContext);

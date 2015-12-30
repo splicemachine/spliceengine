@@ -1,7 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -11,7 +10,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 
@@ -31,10 +29,7 @@ public class SpliceOperationContext {
     private final HRegion region;
     private final Activation activation;
     private final Scan scan;
-    private MeasuredRegionScanner scanner;
     private LanguageConnectionContext lcc;
-    private SpliceOperation topOperation;
-    private boolean cacheBlocks = true;
 	private TxnView txn;
     private TransactionalRegion txnRegion;
 
@@ -44,38 +39,15 @@ public class SpliceOperationContext {
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
-                                  SpliceOperation topOperation,
 								  TxnView txn){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.lcc = lcc;
-        this.topOperation = topOperation;
 	    this.txn = txn;
         this.txnRegion = txnRegion;
     }
-
-
-		public SpliceOperationContext(RegionScanner scanner,
-                                  HRegion region,
-                                  TransactionalRegion txnRegion,
-                                  Scan scan,
-                                  Activation activation,
-                                  GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc,
-                                  SpliceOperation topOperation,
-    							TxnView txn){
-        this.activation = activation;
-        this.preparedStatement = preparedStatement;
-        this.region=region;
-        this.txnRegion = txnRegion;
-        this.scan = scan;
-        this.lcc = lcc;
-        this.topOperation = topOperation;
-	    this.txn = txn;
-    }
-
 
     public HRegion getRegion(){
         return region;
@@ -92,8 +64,6 @@ public class SpliceOperationContext {
         try{
             closeDerby();
         }finally{
-            if(scanner!=null)
-                scanner.close();
         }
     }
 
@@ -124,20 +94,13 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,null,txn);
-    }
-
-    public SpliceOperation getTopOperation() {
-        return topOperation;
+                null,txn);
     }
 
     public Scan getScan() {
         return scan;
     }
 
-    public void setCacheBlocks(boolean cacheBlocks) {
-        this.cacheBlocks = cacheBlocks;
-    }
 
     public TransactionalRegion getTransactionalRegion() {
         return txnRegion;
