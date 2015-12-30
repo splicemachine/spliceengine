@@ -199,7 +199,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
                             continue;
                         case PARTIAL:
                             partialFailureCounter.increment();
-
                             WriteResponse writeResponse=writeConfiguration.partialFailure(bulkWriteResult,currentBulkWrite);
                             switch(writeResponse){
                                 case THROW_ERROR:
@@ -225,10 +224,9 @@ public class BulkWriteAction implements Callable<WriteStats>{
 //                                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()));
                                     break;
                                 default:
-                                    if(RETRY_LOG.isDebugEnabled())
-                                        SpliceLogUtils.debug(RETRY_LOG,
-                                                "Ignoring write after receiving unknown partial %s response: id=%d, bulkWriteResult=%s",
-                                                writeResponse,id,bulkWriteResult);
+                                    SpliceLogUtils.error(RETRY_LOG,
+                                            "Ignoring write after receiving unknown partial %s response: id=%d, bulkWriteResult=%s",
+                                            writeResponse,id,bulkWriteResult);
                             }
                             break;
                         case IGNORE:
