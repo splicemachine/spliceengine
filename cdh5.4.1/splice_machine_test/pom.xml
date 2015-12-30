@@ -443,6 +443,8 @@
 								<argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
 								<argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer</argument>
 								<argument>-Dsplice.spark.shuffle.compress=false</argument>
+
+                                <argument>-Dsplice.spark.executor.extraJavaOptions=-Dlog4j.configuration=${log4j.config.uri} -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020</argument>
 								<argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
 								<argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
 								<argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
