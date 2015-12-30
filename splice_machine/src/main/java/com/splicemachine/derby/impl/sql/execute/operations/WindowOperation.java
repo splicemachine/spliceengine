@@ -133,7 +133,6 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public ExecRow getExecRowDefinition() {
-        SpliceLogUtils.trace(LOG,"getExecRowDefinition");
         return templateRow;
     }
 
@@ -166,7 +165,6 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public List<SpliceOperation> getSubOperations() {
-        SpliceLogUtils.trace(LOG, "getSubOperations");
         List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
         operations.add(source);
         return operations;
@@ -174,8 +172,6 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceOperation getLeftOperation() {
-        if (LOG.isTraceEnabled())
-            LOG.trace("getLeftOperation");
         return this.source;
     }
 
