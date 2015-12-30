@@ -111,10 +111,6 @@ public class SpliceObserverInstructions implements Externalizable {
         }
     }
 
-    public SpliceOperation getTopOperation() {
-        return topOperation;
-    }
-
     public static SpliceObserverInstructions create(Activation activation,
                                                     SpliceOperation topOperation) {
         ActivationContext activationContext = ActivationContext.create(activation, topOperation);

@@ -61,11 +61,6 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
     }
 
 		@Override
-    public SpliceObserverInstructions buildInstructions(SpliceOperation operation) {
-        return SpliceObserverInstructions.create(activation,operation);
-    }
-
-		@Override
 		public ResultDescription getResultDescription() {
 				return activation.getResultDescription();
 		}

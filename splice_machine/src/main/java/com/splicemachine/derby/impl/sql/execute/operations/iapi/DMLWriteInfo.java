@@ -29,8 +29,6 @@ public interface DMLWriteInfo extends Externalizable {
 
     long getConglomerateId();
 
-		SpliceObserverInstructions buildInstructions(SpliceOperation operation);
-
-		ResultDescription getResultDescription();
+	ResultDescription getResultDescription();
 
 }
