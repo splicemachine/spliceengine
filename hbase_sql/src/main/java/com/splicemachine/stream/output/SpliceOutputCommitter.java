@@ -77,7 +77,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
     @Override
     public void commitTask(TaskAttemptContext taskContext) throws IOException {
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"commitTask");
+            SpliceLogUtils.debug(LOG,"commitTask " + taskContext.getTaskAttemptID());
         TxnView txn = taskAttemptMap.remove(taskContext.getTaskAttemptID());
         if (txn == null)
             throw new IOException("no transaction associated with task attempt Id "+taskContext.getTaskAttemptID());
@@ -88,6 +88,8 @@ public class SpliceOutputCommitter extends OutputCommitter {
 
     @Override
     public void abortTask(TaskAttemptContext taskContext) throws IOException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"abortTask " + taskContext.getTaskAttemptID());
         TxnView txn = taskAttemptMap.get(taskContext.getTaskAttemptID());
         if (txn == null)
             throw new IOException("no transaction associated with task attempt Id "+taskContext.getTaskAttemptID());
