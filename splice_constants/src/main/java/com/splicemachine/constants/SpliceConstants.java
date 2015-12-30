@@ -642,7 +642,7 @@ public class SpliceConstants {
     //
     
     @Parameter private static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
-    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 10*1000*1000; // based on a TPCC1000 run on an 8 node cluster
+    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 1*1000*1000; // based on a TPCC1000 run on an 8 node cluster
     public static double controlSideCostThreshold;
     
     @Parameter private static final String CONTROL_SIDE_ROWCOUNT_THRESHOLD = "splice.dataset.control.rowCountThreshold";
