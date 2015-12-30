@@ -117,7 +117,7 @@ public class WriteCoordinator {
    }
 
 
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, final MetricFactory metricFactory) {
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, final PreFlushHook metricFactory) {
         WriteConfiguration config = defaultWriteConfiguration;
         //if it isn't active, don't bother creating the extra object
         if (metricFactory.isActive()) {

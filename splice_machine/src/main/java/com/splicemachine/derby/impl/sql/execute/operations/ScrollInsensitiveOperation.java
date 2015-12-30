@@ -242,7 +242,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(source instanceof CursorResultSet, "source not CursorResultSet");
-        return ( (CursorResultSet)source ).getRowLocation();
+        return source.getRowLocation();
     }
     public void updateRow(ExecRow row, RowChanger rowChanger)
             throws StandardException {
@@ -251,7 +251,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         try {

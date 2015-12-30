@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import java.util.Properties;
 
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
@@ -9,8 +10,12 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 public abstract class SpliceConglomerateFactory implements ConglomerateFactory, ModuleControl, ModuleSupportable {
+	protected TxnOperationFactory operationFactory;
+	protected PartitionFactory partitionFactory;
 	protected UUID formatUUID;
 	public SpliceConglomerateFactory() {
 	
@@ -27,6 +32,9 @@ public abstract class SpliceConglomerateFactory implements ConglomerateFactory, 
 	public void	boot(boolean create, Properties startParams) throws StandardException {
 		UUIDFactory uuidFactory = Monitor.getMonitor().getUUIDFactory();
 		formatUUID = uuidFactory.recreateUUID(getFormatUUIDString());
+		SIDriver driver=SIDriver.driver();
+		operationFactory =driver.getOperationFactory();
+		partitionFactory = driver.getTableFactory();
 	}
 
 	public boolean supportsImplementation(String implementationId) {

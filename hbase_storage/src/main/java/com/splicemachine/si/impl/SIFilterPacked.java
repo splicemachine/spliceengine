@@ -27,7 +27,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
     @Override
     public long getBytesVisited(){
         if(filterState==null) return 0l;
-        RowAccumulator<Cell> accumulator=filterState.getAccumulator();
+        RowAccumulator accumulator=filterState.getAccumulator();
         return accumulator.getBytesVisited();
     }
 
@@ -41,7 +41,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
         try{
             initFilterStateIfNeeded();
             wrapper.set(keyValue);
-            DataFilter.ReturnCode code=filterState.filterKeyValue(wrapper);
+            DataFilter.ReturnCode code=filterState.filterCell(wrapper);
             switch(code){
                 case NEXT_ROW:
                     return Filter.ReturnCode.NEXT_ROW;

@@ -1,7 +1,6 @@
 package com.splicemachine.access.util;
 
 import com.google.common.collect.Maps;
-import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
@@ -43,11 +42,6 @@ public abstract class CachedPartitionFactory<TableInfo> implements PartitionFact
     @Override
     public Partition getTable(byte[] name) throws IOException{
         return getTable(Bytes.toString(name));
-    }
-
-    @Override
-    public PartitionCreator createPartition() throws IOException{
-        return delegate.createPartition();
     }
 
     public Collection<Partition> cachedPartitions(){

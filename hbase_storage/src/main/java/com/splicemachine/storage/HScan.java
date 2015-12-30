@@ -114,6 +114,30 @@ public class HScan implements DataScan{
         }
     }
 
+    @Override
+    public DataScan reverseOrder(){
+        scan.setReversed(true);
+        return this;
+    }
+
+    @Override
+    public DataScan cacheRows(int rowsToCache){
+        scan.setCaching(rowsToCache);
+        /*
+         * marking the scanner as "small" is a good idea when we are caching a relatively small number of records.
+         *
+         * TODO -sf- is this exactly right? or should we expose this in the DataScan interface
+         */
+        if(rowsToCache<10)
+            scan.setSmall(true);
+        return this;
+    }
+
+    @Override
+    public DataScan batchCells(int cellsToBatch){
+        return null;
+    }
+
     public Scan unwrapDelegate(){
         return scan;
     }

@@ -12,6 +12,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.AsyncReadResolver;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
@@ -19,6 +20,7 @@ import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import com.splicemachine.si.impl.CoprocessorTxnStore;
 import com.splicemachine.si.impl.HTxnOperationFactory;
+import com.splicemachine.si.impl.QueuedKeepAliveScheduler;
 import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
@@ -30,6 +32,7 @@ import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
+import com.splicemachine.storage.StorageConfiguration;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
 import com.splicemachine.utils.GreenLight;
@@ -55,6 +58,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final HTxnOperationFactory txnOpFactory;
     private final AsyncReadResolver readResolver;
     private final PartitionInfoCache partitionCache;
+    private final KeepAliveScheduler keepAlive;
+    private final SConfiguration config;
 
     public static HBaseSIEnvironment loadEnvironment(RecoverableZooKeeper rzk){
         HBaseSIEnvironment env = INSTANCE;
@@ -87,6 +92,13 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnOpFactory = new HTxnOperationFactory(dataLib(),exceptionFactory());
 
         this.readResolver = initializeReadResolver();
+
+        this.config=new HConfiguration(SIConstants.config,SIConfigurations.defaults);
+        this.config.addDefaults(StorageConfiguration.defaults);
+        this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
+                config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
+                config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),
+                txnStore);
     }
 
 
@@ -99,7 +111,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     @Override
     public SConfiguration configuration(){
-        return new HConfiguration(SIConstants.config,SIConfigurations.defaults);
+        return config;
     }
 
     @Override public SDataLib dataLib(){ return HDataLib.instance(); }
@@ -152,6 +164,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public PartitionInfoCache partitionInfoCache(){
         return partitionCache;
+    }
+
+    @Override
+    public KeepAliveScheduler keepAliveScheduler(){
+        return keepAlive;
     }
 
     private AsyncReadResolver initializeReadResolver(){

@@ -1,8 +1,10 @@
 package com.splicemachine.derby.ddl;
 
 import java.io.IOException;
+
+import com.google.common.primitives.Ints;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
-import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -10,11 +12,10 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
-import org.sparkproject.guava.primitives.Ints;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * Tentative constraint descriptor. Serves for both add and drop constraint currently.
@@ -28,7 +29,8 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
 
-    public TentativeAddConstraintDesc(DDLMessage.TentativeAddConstraint tentativeAddConstraint) {
+    public TentativeAddConstraintDesc(DDLMessage.TentativeAddConstraint tentativeAddConstraint,SqlExceptionFactory exceptionFactory) {
+        super(exceptionFactory);
         this.tableVersion = tentativeAddConstraint.getTableVersion();
         this.newConglomId = tentativeAddConstraint.getNewConglomId();
         this.oldConglomId = tentativeAddConstraint.getOldConglomId();
@@ -95,12 +97,12 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
+            throw exceptionFactory.asIOException(e);
         }
         return srcRow;
     }
 
-    private static RowTransformer create(String tableVersion,
+    private RowTransformer create(String tableVersion,
                                          int[] sourceKeyOrdering,
                                          int[] targetKeyOrdering,
                                          ColumnInfo[] columnInfos, KeyEncoder keyEncoder) throws IOException {
@@ -118,7 +120,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                 columnMapping[i] = columnPosition;
             }
         } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
+            throw exceptionFactory.asIOException(e);
         }
 
         // create the row transformer

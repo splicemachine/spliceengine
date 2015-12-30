@@ -171,7 +171,7 @@ public class BatchOnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(dsp);
         OperationContext<BatchOnceOperation> operationContext = dsp.createOperationContext(this);
         return set.mapPartitions(new BatchOnceFunction(operationContext));

@@ -1,7 +1,5 @@
 package com.splicemachine.derby.ddl;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -19,19 +17,20 @@ import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.LazyTxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.Arrays;
@@ -55,13 +54,13 @@ public class DDLUtils {
     public static String notifyMetadataChange(DDLMessage.DDLChange ddlChange) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"notifyMetadataChange ddlChange=%s",ddlChange);
-        return DDLCoordinationFactory.getController().notifyMetadataChange(ddlChange);
+        return DDLDriver.driver().ddlController().notifyMetadataChange(ddlChange);
     }
 
     public static void finishMetadataChange(String changeId) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"finishMetadataChange changeId=%s",changeId);
-        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+        DDLDriver.driver().ddlController().finishMetadataChange(changeId);
     }
 
 
@@ -71,11 +70,14 @@ public class DDLUtils {
         String changeId = notifyMetadataChange(ddlChange);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"notifyMetadataChangeAndWait changeId=%s",changeId);
-        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+        DDLDriver.driver().ddlController().finishMetadataChange(changeId);
     }
 
     public static TxnView getLazyTransaction(long txnId) {
-        return new LazyTxnView(txnId, TransactionStorage.getTxnSupplier());
+        //TODO -sf- could we remove this method somehow?
+        SIDriver driver=SIDriver.driver();
+
+        return new LazyTxnView(txnId, driver.getTxnSupplier(),driver.getExceptionFactory());
     }
 
     public static String outIntArray(int[] values) {
@@ -88,7 +90,10 @@ public class DDLUtils {
 
 
 
-    public static Txn getIndexTransaction(TransactionController tc, Txn tentativeTransaction, long tableConglomId, String indexName) throws StandardException {
+    public static Txn getIndexTransaction(TransactionController tc,
+                                          Txn tentativeTransaction,
+                                          long tableConglomId,
+                                          String indexName) throws StandardException {
         final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         /*
@@ -96,9 +101,10 @@ public class DDLUtils {
          * which commit after the demarcation point are committed BEFORE the populate part.
          */
         byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+        TxnLifecycleManager tlm = SIDriver.driver().lifecycleManager();
         Txn waitTxn;
         try{
-            waitTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
+            waitTxn = tlm.chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,tableBytes,tentativeTransaction);
         }catch(IOException ioe){
             LOG.error("Could not create a wait transaction",ioe);
             throw Exceptions.parseException(ioe);
@@ -129,8 +135,7 @@ public class DDLUtils {
              * that the write pipeline is able to see the conglomerate descriptor. However,
              * this makes the SI logic more complex during the populate phase.
              */
-            indexTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
-                    wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
+            indexTxn = tlm.chainTransaction(wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             // TODO must cleanup tentative DDL change
@@ -163,8 +168,9 @@ public class DDLUtils {
         byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-        long waitTime = SpliceConstants.ddlDrainingInitialWait; //the initial time to wait
-        long maxWait = SpliceConstants.ddlDrainingMaximumWait; // the maximum time to wait
+        //TODO -sf- make this configurable
+        long waitTime = 1000; //the initial time to wait
+        long maxWait = 100000; // the maximum time to wait
         long scale = 2; //the scale factor for the exponential backoff
         long timeAvailable = maxWait;
         long activeTxnId = -1l;
@@ -223,14 +229,15 @@ public class DDLUtils {
      * will happen at client side
      * @return
      */
-    public static Scan createFullScan() {
-        Scan scan = SpliceUtils.createScan(null);
-        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-        scan.setStartRow(new byte[0]);
-        scan.setStopRow(new byte[0]);
-        scan.setCacheBlocks(false);
-        scan.setMaxVersions();
+    public static DataScan createFullScan() {
+        DataScan scan = SIDriver.driver().getOperationFactory().newDataScan(null);
+        scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY).returnAllVersions();
+//        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+//        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
+//        scan.setStartRow(new byte[0]);
+//        scan.setStopRow(new byte[0]);
+//        scan.setCacheBlocks(false);
+//        scan.setMaxVersions();
         return scan;
     }
 

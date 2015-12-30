@@ -48,8 +48,12 @@ public class DerbyWindowContext implements WindowContext {
 
         GenericStorablePreparedStatement statement = context.getPreparedStatement();
 
+        ClassFactory classFactory = context.getActivation()
+                .getLanguageConnectionContext()
+                .getLanguageConnectionFactory()
+                .getClassFactory();
         this.windowAggregators = buildWindowAggregators((WindowFunctionInfoList)statement.getSavedObject(aggregateItem),
-                                                        context.getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory());
+                                                         classFactory);
         this.rowAllocator = (rowAllocatorMethodName==null)? null: new SpliceMethod<ExecRow>(rowAllocatorMethodName,activation);
     }
 

@@ -23,7 +23,6 @@ import com.splicemachine.hbase.backup.CreateIncrementalBackupTask;
 import com.splicemachine.hbase.backup.PurgeTransactionsTask;
 import com.splicemachine.hbase.backup.RestoreBackupTask;
 import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.txn.TxnView;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
@@ -54,7 +53,6 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.client.*;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
@@ -471,7 +469,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(GenericResultDescription.class,EXTERNALIZABLE_SERIALIZER,102);
         instance.register(GenericColumnDescriptor.class,EXTERNALIZABLE_SERIALIZER,103);
         instance.register(ReferencedColumnsDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER,104);
-        instance.register(ErrorTransport.class,EXTERNALIZABLE_SERIALIZER,105);
+//        instance.register(ErrorTransport.class,EXTERNALIZABLE_SERIALIZER,105);
         instance.register(DefaultInfoImpl.class,EXTERNALIZABLE_SERIALIZER,106);
 
         instance.register(BigDecimal.class,107);

@@ -1,22 +1,18 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
-import org.apache.hadoop.hbase.HColumnDescriptor;
+import com.splicemachine.storage.StorageConfiguration;
 import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.regionserver.BloomType;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,19 +23,18 @@ import java.util.concurrent.ExecutionException;
  * Created by jleach on 11/18/15.
  */
 public class HBase10TableFactory implements PartitionFactory<TableName>{
-    protected Connection connection;
-    private static PartitionFactory<TableName> INSTANCE=new HBase10TableFactory();
+    private Connection connection;
+    private Clock timeKeeper;
+    private long splitSleepIntervalMs;
 
-    public HBase10TableFactory(){
+    public HBase10TableFactory(Clock timeKeeper,SConfiguration configuration){
+        this.timeKeeper = timeKeeper;
+        this.splitSleepIntervalMs = configuration.getLong(StorageConfiguration.TABLE_SPLIT_SLEEP_INTERVAL);
         try{
             connection=HBaseConnectionFactory.getInstance().getConnection();
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
-    }
-
-    public static PartitionFactory<TableName> getInstance(){
-        return INSTANCE;
     }
 
     @Override
@@ -58,15 +53,8 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
     }
 
     @Override
-    public PartitionCreator createPartition() throws IOException{
-        //TODO -sf- configure this more carefully
-        HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_BYTES);
-        snapshot.setMaxVersions(Integer.MAX_VALUE);
-        snapshot.setCompressionType(Compression.Algorithm.NONE);
-        snapshot.setInMemory(true);
-        snapshot.setBlockCacheEnabled(true);
-        snapshot.setBloomFilterType(BloomType.ROW);
-        return new HPartitionCreator(connection,snapshot);
+    public PartitionAdmin getAdmin() throws IOException{
+        return new H10PartitionAdmin(connection.getAdmin(),splitSleepIntervalMs,timeKeeper);
     }
 
     public List<HRegionLocation> getRegions(String tableName,boolean refresh) throws IOException, ExecutionException, InterruptedException{

@@ -1,11 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.primitives.Bytes;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.GZIPOutputStream;

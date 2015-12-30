@@ -9,8 +9,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -141,7 +141,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
     @Override
     public int compare(DataValueDescriptor other) throws StandardException {
-        return Bytes.compareTo(getBytes(), other.getBytes());
+        return Bytes.basicByteComparator().compare(getBytes(),other.getBytes());
     }
 
     /**

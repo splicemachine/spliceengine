@@ -6,19 +6,18 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.hbase.KVPair.Type;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.pipeline.utils.PipelineConstants;
-import com.splicemachine.si.api.ReadOnlyModificationException;
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataResultScanner;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -26,8 +25,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -43,16 +41,19 @@ public abstract class TransactionalSysTableWriter<T> {
     private final String tableName;
     protected volatile String conglomIdString;
 
-    protected ResultScanner resultScanner = null;
+    protected DataResultScanner resultScanner = null;
     protected DataValueDescriptor[] dvds;
     protected DescriptorSerializer[] serializers;
     protected EntryDecoder entryDecoder;
     protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 
     private final ThreadLocal<Pair<DataHash<T>,DataHash<T>>> hashLocals;
+    private final ExceptionFactory exceptionFactory;
 
-    protected TransactionalSysTableWriter(final String tableName) {
+    protected TransactionalSysTableWriter(final String tableName,
+                                          ExceptionFactory exceptionFactory) {
         this.tableName = tableName;
+        this.exceptionFactory = exceptionFactory;
         this.hashLocals = new ThreadLocal<Pair<DataHash<T>, DataHash<T>>>(){
             @Override
             protected Pair<DataHash<T>, DataHash<T>> initialValue() {
@@ -67,7 +68,7 @@ public abstract class TransactionalSysTableWriter<T> {
 
     public void report(T element,TxnView txn) throws IOException{
         if(!txn.allowsWrites())
-            throw new ReadOnlyModificationException("Cannot write data with a read-only transaction "+ txn.getTxnId());
+            throw exceptionFactory.readOnlyModification("Cannot write data with a read-only transaction "+ txn.getTxnId());
         Pair<DataHash<T>,DataHash<T>> hashPair = hashLocals.get();
         DataHash<T> keyHash = hashPair.getFirst();
         DataHash<T> pairHash = hashPair.getSecond();
@@ -77,25 +78,17 @@ public abstract class TransactionalSysTableWriter<T> {
 
         String conglom = getConglomIdString(txn);
         WriteCoordinator tableWriter = SpliceDriver.driver().getTableWriter();
-        RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(),
-                txn, PipelineConstants.noOpFlushHook, tableWriter.defaultWriteConfiguration());
-        try{
+        try(RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(), txn)){
             callBuffer.add(new KVPair(keyHash.encode(),pairHash.encode()));
-            callBuffer.flushBuffer();
+            callBuffer.flushBufferAndWait();
         } catch (Exception e) {
             throw Exceptions.getIOException(e);
-        } finally{
-            try{
-                callBuffer.close();
-            }catch(Exception e){
-                throw Exceptions.getIOException(e);
-            }
         }
     }
 
     public void remove(T element,TxnView txn) throws IOException{
         if(!txn.allowsWrites())
-            throw new ReadOnlyModificationException("Cannot write data with a read-only transaction "+ txn.getTxnId());
+            throw exceptionFactory.readOnlyModification("Cannot write data with a read-only transaction "+ txn.getTxnId());
         Pair<DataHash<T>,DataHash<T>> hashPair = hashLocals.get();
         DataHash<T> keyHash = hashPair.getFirst();
         DataHash<T> pairHash = hashPair.getSecond();
@@ -105,19 +98,11 @@ public abstract class TransactionalSysTableWriter<T> {
 
         String conglom = getConglomIdString(txn);
         WriteCoordinator tableWriter = SpliceDriver.driver().getTableWriter();
-        RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(),
-                txn, PipelineConstants.noOpFlushHook, tableWriter.defaultWriteConfiguration());
-        try{
-            callBuffer.add(new KVPair(keyHash.encode(),new byte[0], Type.DELETE));
-            callBuffer.flushBuffer();
+        try(RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(), txn)){
+            callBuffer.add(new KVPair(keyHash.encode(),new byte[0], KVPair.Type.DELETE));
+            callBuffer.flushBufferAndWait();
         } catch (Exception e) {
             throw Exceptions.getIOException(e);
-        } finally{
-            try{
-                callBuffer.close();
-            }catch(Exception e){
-                throw Exceptions.getIOException(e);
-            }
         }
     }
 

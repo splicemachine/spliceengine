@@ -122,7 +122,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public void init(SpliceOperationContext context) throws StandardException,
                                                             IOException {
         SpliceLogUtils.trace(LOG, "init called");
-        context.setCacheBlocks(false);
+//        context.setCacheBlocks(false);
         super.init(context);
         source.init(context);
         groupedAggregateContext.init(context, aggregateContext);

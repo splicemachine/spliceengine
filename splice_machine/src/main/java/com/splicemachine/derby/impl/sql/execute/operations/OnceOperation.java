@@ -232,7 +232,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         // Not Lazy?
         DataSet<LocatedRow> raw = source.getDataSet(dsp);
         final Iterator<LocatedRow> iterator = raw.toLocalIterator();

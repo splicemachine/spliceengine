@@ -1,28 +1,19 @@
 package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.hbase.AbstractSkippingScanFilter;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.storage.AndPredicate;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.OrPredicate;
-import com.splicemachine.storage.Predicate;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
@@ -40,60 +31,6 @@ public class Scans extends SpliceUtils {
     private Scans() {
     } //can't construct me
 
-
-    /**
-     * Builds a correct scan to scan the range of a table which has the prefix specified by {@code prefix}.
-     *
-     * In essence, this creates a start key which is the prefix, and an end key which is a lexicographic
-     * increment of the prefix, so that all data which is lexicographically between those values will
-     * be returned by the scan.
-     *
-     * @param prefix the prefix to search
-     * @param txn    the transaction
-     * @return a transactionally-aware Scan which will scan all keys stored lexicographically between
-     * {@code prefix} and the lexicographic increment of {@code prefix}
-     * @throws IOException if {@code prefix} is unable to be correctly converted into a byte[]
-     */
-    public static Scan buildPrefixRangeScan(byte[] prefix, Txn txn) throws IOException {
-        byte[] start = new byte[prefix.length];
-        System.arraycopy(prefix, 0, start, 0, start.length);
-
-        byte[] finish = Bytes.unsignedCopyAndIncrement(start);
-        return newScan(start, finish, txn);
-    }
-
-    /**
-     * Convenience utility for calling {@link #newScan(byte[], byte[], com.splicemachine.si.api.txn.Txn, int)} when
-     * the Default cache size is acceptable and the transactionID is a string.
-     *
-     * @param start  the start row of the scan
-     * @param finish the stop row of the scan
-     * @param txn    the transaction for the scan.
-     * @return a transactionally-aware scan constructed with {@link #DEFAULT_CACHE_SIZE}
-     */
-    public static Scan newScan(byte[] start, byte[] finish, Txn txn) {
-        return newScan(start, finish, txn, DEFAULT_CACHE_SIZE);
-    }
-
-    /**
-     * Constructs a new Scan from the specified start and stop rows, and adds transaction information
-     * correctly.
-     *
-     * @param startRow the start of the scan
-     * @param stopRow  the end of the scan
-     * @param txn      the transaction for the scan
-     * @param caching  the number of rows to cache.
-     * @return a correctly constructed, transactionally-aware scan.
-     */
-    public static Scan newScan(byte[] startRow, byte[] stopRow,
-                               Txn txn, int caching) {
-        Scan scan = SpliceUtils.createScan(txn);
-        scan.setCaching(caching);
-        scan.setStartRow(startRow);
-        scan.setStopRow(stopRow);
-        scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
-        return scan;
-    }
 
     /**
      * Builds a Scan from qualified starts and stops.
@@ -123,7 +60,7 @@ public class Scans extends SpliceUtils {
      * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
      * filters aas specified by {@code qualifiers}
      */
-    public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+    public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                  DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
                                  Qualifier[][] qualifiers,
                                  boolean[] sortOrder,
@@ -138,7 +75,7 @@ public class Scans extends SpliceUtils {
                                  String tableVersion,
                                  boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
-        Scan scan = SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
+        DataScan scan = SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.setCaching(DEFAULT_CACHE_SIZE);
         try {
             if (rowIdKey) {
@@ -171,7 +108,7 @@ public class Scans extends SpliceUtils {
         return scan;
     }
 
-    public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+    public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                  DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
                                  Qualifier[][] qualifiers,
                                  boolean[] sortOrder,
@@ -193,7 +130,7 @@ public class Scans extends SpliceUtils {
                                             FormatableBitSet scanColumnList,
                                             int[] keyColumnEncodingMap,
                                             int[] columnTypes,
-                                            Scan scan,
+                                            DataScan scan,
                                             String tableVersion) throws StandardException, IOException {
         PredicateBuilder pb = new PredicateBuilder(keyColumnEncodingMap, null, columnTypes, tableVersion);
         buildPredicateFilter(qualifiers, scanColumnList, scan, pb, keyColumnEncodingMap);
@@ -201,12 +138,12 @@ public class Scans extends SpliceUtils {
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
                                             FormatableBitSet scanColumnList,
-                                            Scan scan,
+                                            DataScan scan,
                                             PredicateBuilder pb,
                                             int[] keyColumnEncodingOrder) throws StandardException, IOException {
         EntryPredicateFilter pqf = getPredicates(qualifiers,
                 scanColumnList, pb, keyColumnEncodingOrder);
-        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, pqf.toBytes());
+        scan.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, pqf.toBytes());
     }
 
     public static EntryPredicateFilter getPredicates(Qualifier[][] qualifiers,
@@ -275,7 +212,7 @@ public class Scans extends SpliceUtils {
         return ObjectArrayList.from(firstAndPredicate);
     }
 
-    private static void attachScanKeys(Scan scan,
+    private static void attachScanKeys(DataScan scan,
                                        DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                        DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
                                        int stopSearchOperator,
@@ -349,39 +286,22 @@ public class Scans extends SpliceUtils {
 
             if (generateStartKey) {
                 byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
-                scan.setStartRow(startRow);
+                scan.startKey(startRow);
                 if (startRow == null)
-                    scan.setStartRow(HConstants.EMPTY_START_ROW);
+                    scan.startKey(SIConstants.EMPTY_BYTE_ARRAY);
             }
             if (generateStopKey) {
                 byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
                 if (stopKeyPrefix != null) {
                     stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
                 }
-                scan.setStopRow(stopRow);
+                scan.stopKey(stopRow);
                 if (stopRow == null)
-                    scan.setStopRow(HConstants.EMPTY_END_ROW);
+                    scan.stopKey(SIConstants.EMPTY_BYTE_ARRAY);
             }
         } catch (StandardException e) {
             throw new IOException(e);
         }
     }
 
-    /**
-     * Return the scan's SkippingScanFilter if it has such, top level, or in a list (return first one)-- otherwise null.
-     */
-    public static AbstractSkippingScanFilter findSkippingScanFilter(Scan scan) {
-        Filter filter = scan.getFilter();
-        if (filter instanceof AbstractSkippingScanFilter) {
-            return (AbstractSkippingScanFilter) filter;
-        } else if (filter instanceof FilterList) {
-            FilterList fl = (FilterList) filter;
-            for (Filter f : fl.getFilters()) {
-                if (f instanceof AbstractSkippingScanFilter) {
-                    return (AbstractSkippingScanFilter) f;
-                }
-            }
-        }
-        return null;
-    }
 }

@@ -17,8 +17,8 @@ public class MTxnFilterWrapper implements DataFilter{
     }
 
     @Override
-    public ReturnCode filterKeyValue(DataCell keyValue) throws IOException{
-        return delegate.filterKeyValue(keyValue);
+    public ReturnCode filterCell(DataCell keyValue) throws IOException{
+        return delegate.filterCell(keyValue);
     }
 
     @Override

@@ -14,7 +14,7 @@ public interface DataFilter{
         NEXT_ROW,INCLUDE,INCLUDE_AND_NEXT_COL,NEXT_COL,SEEK,SKIP
     }
 
-    DataFilter.ReturnCode filterKeyValue(DataCell keyValue) throws IOException;
+    DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException;
 
     boolean filterRow() throws IOException;
 

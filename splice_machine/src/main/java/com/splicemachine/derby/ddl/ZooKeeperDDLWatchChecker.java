@@ -1,13 +1,10 @@
 package com.splicemachine.derby.ddl;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.ZkUtils;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.*;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;

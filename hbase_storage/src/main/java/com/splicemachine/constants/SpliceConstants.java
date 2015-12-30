@@ -1,6 +1,5 @@
 package com.splicemachine.constants;
 
-import com.google.common.collect.Lists;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
@@ -14,7 +13,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
-    public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
     public static final String BATCH_SAVEPOINT = "BATCH_SAVEPOINT";
 
     /**
@@ -966,9 +963,6 @@ public class SpliceConstants {
     public static final int DEFAULT_TTL = HColumnDescriptor.DEFAULT_TTL;
     public static final String DEFAULT_BLOOMFILTER = HColumnDescriptor.DEFAULT_BLOOMFILTER;
 
-    public static final String SPLICE_DB = "splicedb";
-    public static final String SPLICE_USER = "SPLICE";
-
     // Default Configuration Options
 
     /**
@@ -996,12 +990,11 @@ public class SpliceConstants {
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
     public static long tempTableMaxFileSize;
 
-    public static enum TableEnv {
+    public enum TableEnv {
         TRANSACTION_TABLE,
         ROOT_TABLE,
         META_TABLE,
         DERBY_SYS_TABLE,
-        USER_INDEX_TABLE,
         USER_TABLE,
         HBASE_TABLE
     }

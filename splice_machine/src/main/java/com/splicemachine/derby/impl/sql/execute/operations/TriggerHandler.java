@@ -19,7 +19,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
-import com.splicemachine.pipeline.api.CallBuffer;
+import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.tools.EmbedConnectionMaker;
 
 /**

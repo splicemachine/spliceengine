@@ -25,4 +25,6 @@ public interface DataResult extends Iterable<DataCell>{
     byte[] key();
 
     Map<byte[],byte[]> familyCellMap(byte[] userColumnFamily);
+
+    DataResult getClone();
 }

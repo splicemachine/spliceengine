@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations.iapi;
 
-import java.util.List;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -11,7 +10,10 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import org.apache.hadoop.hbase.client.Scan;
+import com.splicemachine.storage.DataScan;
+
+import java.util.List;
+
 /**
  * Represents metadata around Scanning operations. One implementation will delegate down to Derby,
  * another to some other method, depending on the shape of the implementation.
@@ -41,15 +43,15 @@ public interface ScanInformation<T> {
 
     int[] getIndexToBaseColumnMap() throws StandardException;
 
-    Scan getScan(TxnView txn) throws StandardException;
+    DataScan getScan(TxnView txn) throws StandardException;
 
-    Scan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
+    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, int[] scanKeys, T stopKeyPrefix) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
     long getConglomerateId();
     
-    List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
+    List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

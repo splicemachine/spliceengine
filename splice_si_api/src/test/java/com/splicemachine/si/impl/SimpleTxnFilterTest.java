@@ -88,7 +88,7 @@ public class SimpleTxnFilterTest{
 
         SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore,ignoreSupplier,ds);
 
-        DataFilter.ReturnCode code=filterState.filterKeyValue(commitCell);
+        DataFilter.ReturnCode code=filterState.filterCell(commitCell);
         Assert.assertEquals("Incorrect return code for commit keyvalue!",DataFilter.ReturnCode.SKIP,code);
 
         DataPut testUserPut=operationFactory.newDataPut(myTxn,Encoding.encode("1"));
@@ -97,7 +97,7 @@ public class SimpleTxnFilterTest{
         Assert.assertNotNull("Did not create a user cell!",userCell);
         Assert.assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
 
-        DataFilter.ReturnCode returnCode=filterState.filterKeyValue(userCell);
+        DataFilter.ReturnCode returnCode=filterState.filterCell(userCell);
         Assert.assertEquals("Incorrect return code for data cell!",DataFilter.ReturnCode.INCLUDE,returnCode);
     }
 
@@ -114,7 +114,7 @@ public class SimpleTxnFilterTest{
 
         DataCell userCell=getUserCell(rolledBack);
 
-        DataFilter.ReturnCode returnCode=filterState.filterKeyValue(userCell);
+        DataFilter.ReturnCode returnCode=filterState.filterCell(userCell);
         Assert.assertEquals("Incorrect return code for data cell!",DataFilter.ReturnCode.SKIP,returnCode);
     }
 
@@ -311,7 +311,7 @@ public class SimpleTxnFilterTest{
 
         DataCell testDataKv=getUserCell(rolledBackTxn);
 
-        DataFilter.ReturnCode returnCode=filter.filterKeyValue(testDataKv);
+        DataFilter.ReturnCode returnCode=filter.filterCell(testDataKv);
         Assert.assertEquals("Incorrect return code for data keyvalue!",DataFilter.ReturnCode.SKIP,returnCode);
 
         Assert.assertNotNull("ReadResolver was not told to rollback!",rolledBackTs.getFirst());
@@ -332,7 +332,7 @@ public class SimpleTxnFilterTest{
 
         DataCell testDataKv=getUserCell(committed);
 
-        DataFilter.ReturnCode returnCode=filter.filterKeyValue(testDataKv);
+        DataFilter.ReturnCode returnCode=filter.filterCell(testDataKv);
         Assert.assertEquals("Incorrect return code for data keyvalue!",DataFilter.ReturnCode.INCLUDE,returnCode);
 
         Assert.assertNotNull("ReadResolver was not told to commit!",committedTs.getFirst());
@@ -355,7 +355,7 @@ public class SimpleTxnFilterTest{
 
         DataCell testDataKv=getUserCell(active);
 
-        DataFilter.ReturnCode returnCode=filter.filterKeyValue(testDataKv);
+        DataFilter.ReturnCode returnCode=filter.filterCell(testDataKv);
         Assert.assertEquals("Incorrect return code for data keyValue!",DataFilter.ReturnCode.SKIP,returnCode);
 
         //the read-resolver will ensure that an error is thrown if we attempt to read-resolve

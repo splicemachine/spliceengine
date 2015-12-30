@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.primitives.Bytes;
@@ -33,8 +34,8 @@ public class MPartitionFactory implements PartitionFactory<Object>{
     }
 
     @Override
-    public PartitionCreator createPartition() throws IOException{
-        return new Creator();
+    public PartitionAdmin getAdmin() throws IOException{
+        return new Admin();
     }
 
     private class Creator implements PartitionCreator{
@@ -57,5 +58,24 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             assert name!=null: "No name specified!";
             partitionMap.put(name,new MPartition(name,name));
         }
+    }
+
+    private class Admin implements PartitionAdmin{
+        @Override
+        public PartitionCreator newPartition() throws IOException{
+            return new Creator();
+        }
+
+        @Override
+        public void deleteTable(String tableName) throws IOException{
+            partitionMap.remove(tableName);
+        }
+
+        @Override
+        public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
+            throw new UnsupportedOperationException("Cannot split partitions in an in-memory storage engine!");
+        }
+
+        @Override public void close() throws IOException{ } //no-op
     }
 }

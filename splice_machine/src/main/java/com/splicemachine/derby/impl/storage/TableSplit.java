@@ -1,16 +1,14 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Splitter;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -18,6 +16,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -94,41 +93,21 @@ public class TableSplit{
                                        String splitPoints) throws SQLException{
         long conglomId = getConglomerateId(conn, schemaName, tableName);
 
-        HBaseAdmin admin = SpliceUtilities.getAdmin();
-        doSplit(admin,splitPoints, conglomId);
-//        waitForSplitsToFinish(conglomId, admin);
-
-    }
-
-    private static void waitForSplitsToFinish(long conglomId, HBaseAdmin admin) throws SQLException {
-        boolean isSplitting = true;
-        while(isSplitting){
-            isSplitting=false;
-            try {
-                List<HRegionInfo> regions = admin.getTableRegions(Long.toString(conglomId).getBytes());
-                if(regions!=null){
-                    for(HRegionInfo region:regions){
-                        if(region.isSplit()){
-                            isSplitting=true;
-                            break;
-                        }
-                    }
-                }else{
-                    isSplitting=true;
-                }
-
-                Thread.sleep(SpliceConstants.sleepSplitInterval);
-            } catch (IOException e) {
-                throw new SQLException(e);
-            } catch (InterruptedException e) {
-                throw new SQLException("Interrupted while waiting for splits to complete",e);
-            }
+        SIDriver driver=SIDriver.driver();
+        try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
+            byte[][] splits = getSplitPoints(splitPoints);
+            pa.splitTable(Long.toString(conglomId),splits);
+        }catch(IOException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
 
-    private static void doSplit(HBaseAdmin admin,String splitPoints, long conglomId) throws SQLException {
-        byte[] tableName = Long.toString(conglomId).getBytes();
-        for(String splitPosition: Splitter.on(',').trimResults().omitEmptyStrings().split(splitPoints)){
+    /* ****************************************************************************************************************/
+    /*private helper functions*/
+    private static byte[][] getSplitPoints(String splitPointStrings) throws SQLException{
+        Iterable<String> splits = Splitter.on(',').trimResults().omitEmptyStrings().split(splitPointStrings);
+        List<byte[]> sps = new ArrayList<>(1);
+        for(String split:splits){
             /*
              * If the table has no primary keys, then an easy and convenient way of splitting the
              * table is to split the salts. e.g. pick some integers between Integer.MIN_VALUE
@@ -142,27 +121,14 @@ public class TableSplit{
              */
             byte[] pos;
             try{
-                pos = Encoding.encode(Integer.parseInt(splitPosition));
+                pos = Encoding.encode(Integer.parseInt(split));
             }catch(NumberFormatException nfe){
                 //not an integer, so assume you know what you're doing.
-                pos = Encoding.encode(splitPosition.getBytes());
+                pos = Encoding.encode(split.getBytes());
             }
-            try {
-                admin.split(tableName,pos);
-            }catch (Exception e) {
-                /*
-                 * We have to do this sort of awkward error handling here so that we can support
-                 * multiple versions of HBase. In HBase 98, we have to catch an interrupted exception
-                 * and an IOException. In Hbase 1.0, we only catch an IOException. Thus, the if-check
-                 * handles the INterruptedException appropriately.
-                 */
-                //noinspection ConstantConditions
-                if(e instanceof InterruptedException)
-                    throw new SQLException("Interrupted while attempting a split",e);
-                else throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-            }
-            waitForSplitsToFinish(conglomId,admin);
+            sps.add(pos);
         }
+        return sps.toArray(new byte[sps.size()][]);
     }
 
     private static long getConglomerateId(Connection conn, String schemaName, String tableName) throws SQLException {
@@ -194,8 +160,6 @@ public class TableSplit{
     }
 
 
-    /********************************************************************************************/
-    /*private helper functions*/
 
     private static Connection getDefaultConn() throws SQLException {
         InternalDriver id = InternalDriver.activeDriver();

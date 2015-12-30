@@ -66,7 +66,7 @@ public class DeleteOperation extends DMLWriteOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public  DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();

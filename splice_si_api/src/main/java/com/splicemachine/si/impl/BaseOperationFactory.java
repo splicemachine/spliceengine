@@ -14,6 +14,7 @@ import com.splicemachine.storage.Attributable;
 
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 import static com.splicemachine.si.constants.SIConstants.*;
 
@@ -202,6 +203,33 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
             return new ReadOnlyTxn(beginTs,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
     }
 
+    @Override
+    public void writeTxn(TxnView txn,ObjectOutput out) throws IOException{
+        byte[] eData= encode(txn);
+        out.writeInt(eData.length);
+        out.write(eData,0,eData.length);
+    }
+
+    @Override
+    public void encodeForWrites(Attributable op,TxnView txn){
+        byte[] data=encode(txn);
+        op.addAttribute(SI_TRANSACTION_ID_KEY,data);
+        op.addAttribute(SI_NEEDED,SI_NEEDED_VALUE_BYTES);
+    }
+
+    @Override
+    public void encodeForReads(Attributable op,TxnView txn,boolean isCountStar){
+        if(isCountStar)
+            op.addAttribute(SI_COUNT_STAR,TRUE_BYTES);
+        byte[] data=encode(txn);
+        op.addAttribute(SI_TRANSACTION_ID_KEY,data);
+        op.addAttribute(SI_NEEDED,SI_NEEDED_VALUE_BYTES);
+    }
+
+    protected void makeNonTransactional(Attributable op){
+        op.addAttribute(SI_EXEMPT,TRUE_BYTES);
+    }
+
     /******************************************************************************************************************/
         /*private helper functions*/
     private void encodeForWrites(OperationWithAttributes op,TxnView txn){
@@ -218,19 +246,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
         dataLib.setAttribute(op,SI_NEEDED,SI_NEEDED_VALUE_BYTES);
     }
 
-    protected void encodeForWrites(Attributable op,TxnView txn){
-        byte[] data=encode(txn);
-        op.addAttribute(SI_TRANSACTION_ID_KEY,data);
-        op.addAttribute(SI_NEEDED,SI_NEEDED_VALUE_BYTES);
-    }
-
-    protected void encodeForReads(Attributable op,TxnView txn,boolean isCountStar){
-        if(isCountStar)
-            op.addAttribute(SI_COUNT_STAR,TRUE_BYTES);
-        byte[] data=encode(txn);
-        op.addAttribute(SI_TRANSACTION_ID_KEY,data);
-        op.addAttribute(SI_NEEDED,SI_NEEDED_VALUE_BYTES);
-    }
 
     private byte[] encodeParentIds(TxnView txn,LongArrayList parentTxnIds){
         /*

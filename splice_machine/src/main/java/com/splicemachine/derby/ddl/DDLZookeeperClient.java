@@ -1,16 +1,10 @@
 package com.splicemachine.derby.ddl;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.utils.ZkUtils;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.util.Collection;

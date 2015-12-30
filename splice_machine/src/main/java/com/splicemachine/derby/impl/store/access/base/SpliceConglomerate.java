@@ -1,12 +1,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Properties;
-
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -20,150 +14,170 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Properties;
 
-public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo {
-    private static final long serialVersionUID = 7583841286945209190l;
-    protected static Logger LOG = Logger.getLogger(SpliceConglomerate.class);
+
+public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo{
+    private static final long serialVersionUID=7583841286945209190l;
+    protected static Logger LOG=Logger.getLogger(SpliceConglomerate.class);
     protected int conglom_format_id;
     protected int tmpFlag;
     protected ContainerKey id;
-    protected int[]    format_ids;
-    protected int[]   collation_ids;
+    protected int[] format_ids;
+    protected int[] collation_ids;
     protected int[] columnOrdering; // Primary Key Information
     protected boolean hasCollatedTypes;
-    protected long nextContainerId = System.currentTimeMillis();
+    protected long nextContainerId=System.currentTimeMillis();
     protected long containerId;
-    public SpliceConglomerate() {
+
+    protected TxnOperationFactory opFactory;
+    protected PartitionFactory partitionFactory;
+
+    public SpliceConglomerate(){
     }
+
     protected void create(
-            Transaction             rawtran,
-            int                     segmentId,
-            long                    input_containerid,
-            DataValueDescriptor[]   template,
-            ColumnOrdering[]        columnOrder,
-            int[]                   collationIds,
-            Properties              properties,
-            int                     conglom_format_id,
-            int                     tmpFlag) throws StandardException {
-        if (properties != null) {
-            String value = properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
-            int minimumRecordSize = (value == null) ? RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT : Integer.parseInt(value);
-            if (minimumRecordSize < RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT) {
+            Transaction rawtran,
+            int segmentId,
+            long input_containerid,
+            DataValueDescriptor[] template,
+            ColumnOrdering[] columnOrder,
+            int[] collationIds,
+            Properties properties,
+            int conglom_format_id,
+            int tmpFlag,
+            TxnOperationFactory opFactory,
+            PartitionFactory partitionFactory) throws StandardException{
+        this.opFactory = opFactory;
+        this.partitionFactory = partitionFactory;
+        if(properties!=null){
+            String value=properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
+            int minimumRecordSize=(value==null)?RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT:Integer.parseInt(value);
+            if(minimumRecordSize<RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT){
                 properties.put(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER,Integer.toString(RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT));
             }
         }
-        if (columnOrder != null) {
-            columnOrdering = new int[columnOrder.length];
-            for (int i=0;i<columnOrder.length;i++) {
-                columnOrdering[i] = columnOrder[i].getColumnId();
+        if(columnOrder!=null){
+            columnOrdering=new int[columnOrder.length];
+            for(int i=0;i<columnOrder.length;i++){
+                columnOrdering[i]=columnOrder[i].getColumnId();
             }
-        } else {
-            columnOrdering = new int[0];
+        }else{
+            columnOrdering=new int[0];
         }
-        containerId = input_containerid;
-        id = new ContainerKey(segmentId, containerId);
-        if ((template == null) || (template.length == 0)) {
+        containerId=input_containerid;
+        id=new ContainerKey(segmentId,containerId);
+        if((template==null) || (template.length==0)){
             throw StandardException.newException(SQLState.HEAP_COULD_NOT_CREATE_CONGLOMERATE);
         }
 
-        this.format_ids = ConglomerateUtil.createFormatIds(template);
-        this.conglom_format_id = conglom_format_id;
-        collation_ids = ConglomerateUtil.createCollationIds(format_ids.length, collationIds);
-        hasCollatedTypes = hasCollatedColumns(collation_ids);
-        this.tmpFlag = tmpFlag;
+        this.format_ids=ConglomerateUtil.createFormatIds(template);
+        this.conglom_format_id=conglom_format_id;
+        collation_ids=ConglomerateUtil.createCollationIds(format_ids.length,collationIds);
+        hasCollatedTypes=hasCollatedColumns(collation_ids);
+        this.tmpFlag=tmpFlag;
 
-        try {
-            ((SpliceTransaction)rawtran).setActiveState(false, false, null);
-        } catch (Exception e) {
-            e.printStackTrace();
+        try{
+            ((SpliceTransaction)rawtran).setActiveState(false,false,null);
+        }catch(Exception e){
+            throw new RuntimeException(e);
         }
     }
 
-    public void boot_create(long containerid,DataValueDescriptor[]   template) {
-        id = new ContainerKey(0, containerid);
-        this.format_ids = ConglomerateUtil.createFormatIds(template);
+    public void boot_create(long containerid,DataValueDescriptor[] template){
+        id=new ContainerKey(0,containerid);
+        this.format_ids=ConglomerateUtil.createFormatIds(template);
     }
 
-    synchronized long getNextId() {
-        if (LOG.isTraceEnabled())
+    synchronized long getNextId(){
+        if(LOG.isTraceEnabled())
             LOG.trace("getNextId ");
         return nextContainerId++;
     }
 
-    public int estimateMemoryUsage() {
-        if (LOG.isTraceEnabled())
+    public int estimateMemoryUsage(){
+        if(LOG.isTraceEnabled())
             LOG.trace("estimate Memory Usage");
-        int sz = getBaseMemoryUsage();
+        int sz=getBaseMemoryUsage();
 
-        if( null != id)
-            sz += getContainerKeyMemoryUsage();
-        if( null != format_ids)
-            sz += format_ids.length*ClassSize.getIntSize();
+        if(null!=id)
+            sz+=getContainerKeyMemoryUsage();
+        if(null!=format_ids)
+            sz+=format_ids.length*ClassSize.getIntSize();
         return sz;
     }
 
 
-    public final ContainerKey getId() {
-        if (LOG.isTraceEnabled())
+    public final ContainerKey getId(){
+        if(LOG.isTraceEnabled())
             LOG.trace("getId ");
-        return(id);
+        return (id);
     }
 
-    public boolean[] getAscDescInfo() {
+    public boolean[] getAscDescInfo(){
         return null;
     }
 
-    public final long getContainerid() {
-        return(id.getContainerId());
+    public final long getContainerid(){
+        return (id.getContainerId());
     }
 
-    public int[] getFormat_ids() {
+    public int[] getFormat_ids(){
         return format_ids;
     }
-    public int[] getCollation_ids() {
+
+    public int[] getCollation_ids(){
         return collation_ids;
     }
 
-    public boolean isNull() {
-        return id == null;
+    public boolean isNull(){
+        return id==null;
     }
 
     /**
      * Is this conglomerate temporary?
-     * <p>
+     * <p/>
      *
      * @return whether conglomerate is temporary or not.
      **/
-    public boolean isTemporary()
-    {
-        if (LOG.isTraceEnabled())
+    public boolean isTemporary(){
+        if(LOG.isTraceEnabled())
             LOG.trace("isTemporary ");
-        return (tmpFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY;
+        return (tmpFlag&TransactionController.IS_TEMPORARY)==TransactionController.IS_TEMPORARY;
     }
 
-    public void restoreToNull() {
-        id = null;
+    public void restoreToNull(){
+        id=null;
     }
 
-    public String toString() {
-        return (id == null) ? "null" : id.toString();
+    public String toString(){
+        return (id==null)?"null":id.toString();
     }
 
-    public int[] getColumnOrdering() {
+    public int[] getColumnOrdering(){
         return columnOrdering;
     }
-    public void setColumnOrdering(int[] columnOrdering) {
-        this.columnOrdering = columnOrdering;
+
+    public void setColumnOrdering(int[] columnOrdering){
+        this.columnOrdering=columnOrdering;
     }
+
     public abstract int getBaseMemoryUsage();
+
     public abstract int getContainerKeyMemoryUsage();
+
     public abstract void writeExternal(ObjectOutput out) throws IOException;
+
     public abstract void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
+
     public abstract int getTypeFormatId();
-
-
 
 
 }

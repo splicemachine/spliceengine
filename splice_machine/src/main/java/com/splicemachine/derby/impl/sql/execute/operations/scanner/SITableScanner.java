@@ -1,12 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -14,18 +11,17 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.txn.DDLTxnView;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
@@ -33,9 +29,6 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
@@ -51,17 +44,17 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
     private final Timer timer;
     private final Counter filterCounter;
-    private MeasuredRegionScanner<Data> regionScanner;
+    private DataScanner regionScanner;
     private final TransactionalRegion region;
-    private final Scan scan;
-    private ScopedPredicates<Data> scopedPredicates;
+    private final DataScan scan;
+//    private ScopedPredicates<Data> scopedPredicates;
     protected final ExecRow template;
     private final boolean reuseRowLocation;
     private final String tableVersion;
     protected final int[] rowDecodingMap;
-    private SIFilter<Data> siFilter;
+    private SIFilter siFilter;
     private EntryPredicateFilter predicateFilter;
-    private List<Data> keyValues;
+    private List<DataCell> keyValues;
     protected RowLocation currentRowLocation;
     private final boolean[] keyColumnSortOrder;
     private String indexName;
@@ -80,10 +73,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final Counter outputBytesCounter;
     private long demarcationPoint;
 
-    protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
+    protected SITableScanner(final SDataLib dataLib,
+                             DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             Scan scan,
+                             DataScan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
                              int[] keyColumnEncodingOrder,
@@ -121,10 +115,10 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             this.filterFactory = filterFactory;
     }
 
-    protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
+    protected SITableScanner(final SDataLib dataLib, DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
-                             Scan scan,
+                             DataScan scan,
                              final int[] rowDecodingMap,
                              final TxnView txn,
                              int[] keyColumnEncodingOrder,
@@ -155,16 +149,15 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         SIFilter filter = getSIFilter();
         if(keyValues==null)
             keyValues = Lists.newArrayListWithExpectedSize(2);
-        boolean hasRow;
         do{
             keyValues.clear();
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
-            hasRow = dataLib.regionScannerNext(regionScanner, keyValues);
+            keyValues = regionScanner.next(-1);
             if(keyValues.size()<=0){
                 currentRowLocation = null;
                 return null;
             }else{
-                Data currentKeyValue = keyValues.get(0);
+                DataCell currentKeyValue = keyValues.get(0);
                 updatePredicateFilterIfNecessary(currentKeyValue);
                 if(template.nColumns()>0){
                     if(!filterRowKey(currentKeyValue)||!filterRow(filter)){
@@ -185,9 +178,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 setRowLocation(currentKeyValue);
                 return template;
             }
-        }while(hasRow);
-        currentRowLocation = null;
-        return null;
+        }while(true); //TODO -sf- this doesn't seem quite right
     }
 
     public long getBytesOutput(){
@@ -196,14 +187,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     private void measureOutputSize(){
         if(outputBytesCounter.isActive()){
-            for(Data cell:keyValues){
-                long len = 0;
-                Cell c = (Cell)cell;
-                len+=c.getRowLength();
-                len+=c.getFamilyLength();
-                len+=c.getQualifierLength();
-                len+=c.getValueLength();
-                outputBytesCounter.add(len);
+            for(DataCell cell:keyValues){
+                DataCell c =cell;
+                outputBytesCounter.add(c.encodedLength());
             }
         }
 
@@ -253,15 +239,15 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return regionScanner.getRowsVisited();
     }
 
-    public void setRegionScanner(MeasuredRegionScanner scanner){
+    public void setRegionScanner(DataScanner scanner){
         this.regionScanner = scanner;
     }
 
     public long getBytesVisited() {
-        return regionScanner.getBytesVisited();
+        return regionScanner.getBytesOutput();
     }
 
-    public MeasuredRegionScanner<Data> getRegionScanner() {
+    public DataScanner getRegionScanner() {
         return regionScanner;
     }
 
@@ -275,28 +261,28 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
         SIFilterFactory siFilterFactory = null;
         try {
-            final TxnFilter<Data> txnFilter = region.unpackedFilter(txnView);
+            final TxnFilter txnFilter = region.unpackedFilter(txnView);
 
             siFilterFactory = new SIFilterFactory<Data>() {
                 @Override
-                public SIFilter<Data> newFilter(EntryPredicateFilter predicateFilter,
+                public SIFilter newFilter(EntryPredicateFilter predicateFilter,
                                                 EntryDecoder rowEntryDecoder,
                                                 EntryAccumulator accumulator,
                                                 boolean isCountStar) throws IOException {
 
-                    HRowAccumulator<Data> hRowAccumulator = new HRowAccumulator<Data>(dataLib, predicateFilter,
-                            rowEntryDecoder, accumulator,
+                    HRowAccumulator hRowAccumulator =new HRowAccumulator(dataLib,predicateFilter,
+                            rowEntryDecoder,accumulator,
                             isCountStar);
                     //noinspection unchecked
-                    return new PackedTxnFilter<Data>(txnFilter, hRowAccumulator) {
+                    return new PackedTxnFilter(txnFilter, hRowAccumulator) {
                         @Override
-                        public Filter.ReturnCode doAccumulate(Data dataKeyValue) throws IOException {
-                            if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-                                if (!accumulator.accumulate(dataKeyValue)) {
-                                    return Filter.ReturnCode.NEXT_ROW;
+                        public ReturnCode accumulate(DataCell data) throws IOException{
+                            if (!accumulator.isFinished() && accumulator.isInteresting(data)) {
+                                if (!accumulator.accumulateCell(data)) {
+                                    return DataFilter.ReturnCode.NEXT_ROW;
                                 }
-                                return Filter.ReturnCode.INCLUDE;
-                            } else return Filter.ReturnCode.INCLUDE;
+                                return DataFilter.ReturnCode.INCLUDE;
+                            } else return DataFilter.ReturnCode.INCLUDE;
                         }
                     };
                 }
@@ -338,10 +324,10 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     /* SkippingScanFilter can have different predicates for every range */
-    private void updatePredicateFilterIfNecessary(Data kv) throws IOException {
-        if(scopedPredicates.isScanWithScopedPredicates()) {
-            predicateFilter.setValuePredicates(scopedPredicates.getNextPredicates(kv));
-        }
+    private void updatePredicateFilterIfNecessary(DataCell kv) throws IOException {
+//        if(scopedPredicates.isScanWithScopedPredicates()) {
+//            predicateFilter.setValuePredicates(scopedPredicates.getNextPredicates(kv));
+//        }
     }
 
     protected EntryDecoder getRowEntryDecoder() {
@@ -349,25 +335,25 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     private EntryPredicateFilter buildInitialPredicateFilter() throws IOException {
-        scopedPredicates = new ScopedPredicates(Scans.findSkippingScanFilter(this.scan),dataLib);
+//        scopedPredicates = new ScopedPredicates(null,dataLib);//new ScopedPredicates(Scans.findSkippingScanFilter(this.scan),dataLib);
 
-        EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL));
+        EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SIConstants.ENTRY_PREDICATE_LABEL));
         BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
-        if(scopedPredicates.isScanWithScopedPredicates()){
-                /*
-                 * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
-                 * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
-                 * we have a skipscan filter (e.g. some kind of block scanning like a Batch NLJ) and we
-                 * have an empty Predicate Filter to begin with, then we clone the predicate filter to a new
-                 * one to avoid contamination.
-                 *
-                 */
-            return new EntryPredicateFilter(checkedColumns,new ObjectArrayList<Predicate>(),entryPredicateFilter.indexReturned());
-        }
+//        if(scopedPredicates.isScanWithScopedPredicates()){
+//                /*
+//                 * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
+//                 * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
+//                 * we have a skipscan filter (e.g. some kind of block scanning like a Batch NLJ) and we
+//                 * have an empty Predicate Filter to begin with, then we clone the predicate filter to a new
+//                 * one to avoid contamination.
+//                 *
+//                 */
+//            return new EntryPredicateFilter(checkedColumns,new ObjectArrayList<Predicate>(),entryPredicateFilter.indexReturned());
+//        }
         return entryPredicateFilter;
     }
 
-    protected void setRowLocation(Data sampleKv) throws StandardException {
+    protected void setRowLocation(DataCell sampleKv) throws StandardException {
         if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
             /*
 			 * If indexName !=null, then we are currently scanning an index,
@@ -380,9 +366,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 try {
                     if (entryDecoder == null)
                         entryDecoder = new EntryDecoder();
-                    entryDecoder.set(dataLib.getDataValueBuffer(sampleKv),
-                            dataLib.getDataValueOffset(sampleKv),
-                            dataLib.getDataValuelength(sampleKv));
+                    entryDecoder.set(sampleKv.valueArray(),sampleKv.valueOffset(),sampleKv.valueLength());
 
                     MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
                     byte[] bytes = decoder.decodeNextBytesUnsorted();
@@ -402,11 +386,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             }
         } else {
             if (reuseRowLocation) {
-                slice.set(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv),
-                        dataLib.getDataRowlength(sampleKv));
+                slice.set(sampleKv.keyArray(),sampleKv.keyOffset(),sampleKv.keyLength());
             } else {
-                slice = ByteSlice.wrap(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv),
-                        dataLib.getDataRowlength(sampleKv));
+                slice = ByteSlice.wrap(sampleKv.keyArray(),sampleKv.keyOffset(),sampleKv.keyLength());
             }
             if(currentRowLocation==null || !reuseRowLocation)
                 currentRowLocation = new HBaseRowLocation(slice);
@@ -417,14 +399,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     private boolean filterRow(SIFilter filter) throws IOException {
         filter.nextRow();
-        Iterator<Data> kvIter = keyValues.iterator();
+        Iterator<DataCell> kvIter = keyValues.iterator();
         while(kvIter.hasNext()){
-            Data kv = kvIter.next();
-            Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
+            DataCell kv = kvIter.next();
+            DataFilter.ReturnCode returnCode = filter.filterCell(kv);
             switch(returnCode){
                 case NEXT_COL:
                 case NEXT_ROW:
-                case SEEK_NEXT_USING_HINT:
+                case SEEK:
                     return false; //failed the predicate
                 case SKIP:
                     kvIter.remove();
@@ -435,9 +417,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return keyValues.size() > 0 && filter.getAccumulator().result() != null;
     }
 
-    private boolean filterRowKey(Data data) throws IOException {
+    private boolean filterRowKey(DataCell data) throws IOException {
         if(!isKeyed) return true;
-        keyDecoder.set(dataLib.getDataRowBuffer(data), dataLib.getDataRowOffset(data), dataLib.getDataRowlength(data));
+        keyDecoder.set(data.keyArray(), data.keyOffset(), data.keyLength());
         if(keyAccumulator==null)
             keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
                     keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);

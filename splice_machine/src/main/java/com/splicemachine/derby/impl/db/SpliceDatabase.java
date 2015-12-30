@@ -17,10 +17,10 @@ import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.ddl.DDLWatcher;
+import com.splicemachine.ddl.DDLMessage.DDLChangeType;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -227,6 +227,9 @@ public class SpliceDatabase extends BasicDatabase{
 
     @Override
     protected void bootStore(boolean create,Properties startParams) throws StandardException{
+        //boot the ddl environment if necessary
+        DDLEnvironment env = DDLEnvironmentLoader.loadEnvironment();
+
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
         ((SpliceAccessManager) af).setDatabase(this);
@@ -234,7 +237,8 @@ public class SpliceDatabase extends BasicDatabase{
             TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
             ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate("boot".getBytes());
         }
-        DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
+
+        DDLDriver.driver().ddlWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
             @Override
             public void startGlobalChange(){
                 System.out.println("Boot Store startGlobalChange -> ");
@@ -248,14 +252,12 @@ public class SpliceDatabase extends BasicDatabase{
             @Override
             public void startChange(DDLChange change) throws StandardException{
 
-                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE) {
-                    DDLUtils.preDropTable(change, getDataDictionary(), getDataDictionary().getDependencyManager());
-                }
-                else if (change.getDdlChangeType()==DDLChangeType.ALTER_STATS) {
+                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
+                    DDLUtils.preDropTable(change,getDataDictionary(),getDataDictionary().getDependencyManager());
+                }else if(change.getDdlChangeType()==DDLChangeType.ALTER_STATS){
                     DDLUtils.preAlterStats(change,getDataDictionary(),getDataDictionary().getDependencyManager());
-                }
-                else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
-                    TransactionLifecycle.getLifecycleManager().enterRestoreMode();
+                }else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
+                    SIDriver.driver().lifecycleManager().enterRestoreMode();
                     Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
                     for(LanguageConnectionContext context : allContexts){
                         context.enterRestoreMode();
@@ -263,13 +265,17 @@ public class SpliceDatabase extends BasicDatabase{
                 }
             }
 
-            @Override public void changeSuccessful(String changeId, DDLChange change) throws StandardException {
+            @Override
+            public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
                 if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
-                    System.out.println("Drop Table changeSuccessful -> changeId=" + changeId + " change=" + change);
+                    System.out.println("Drop Table changeSuccessful -> changeId="+changeId+" change="+change);
                     getDataDictionary().clearCaches();
                 }
             }
-            @Override public void changeFailed(String changeId){ }
+
+            @Override
+            public void changeFailed(String changeId){
+            }
         });
     }
 

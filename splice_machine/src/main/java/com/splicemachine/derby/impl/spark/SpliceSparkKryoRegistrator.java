@@ -34,7 +34,6 @@ import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
@@ -378,7 +377,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(GenericResultDescription.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(GenericColumnDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ReferencedColumnsDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(ErrorTransport.class,EXTERNALIZABLE_SERIALIZER);
+//        instance.register(ErrorTransport.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DefaultInfoImpl.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(BigDecimal.class);

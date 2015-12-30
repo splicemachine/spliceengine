@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -19,7 +18,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
@@ -576,6 +575,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public boolean canUseCache() throws StandardException {
-        return DDLCoordinationFactory.getWatcher().canUseCache((TransactionManager) getTransactionCompile());
+        return DDLDriver.driver().ddlWatcher().canUseCache((TransactionManager) getTransactionCompile());
     }
 }

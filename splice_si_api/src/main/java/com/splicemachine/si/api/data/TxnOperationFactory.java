@@ -47,11 +47,18 @@ public interface TxnOperationFactory<OperationWithAttributes,
 
     TxnView readTxn(ObjectInput oi) throws IOException;
 
+    void writeTxn(TxnView txn,ObjectOutput out) throws IOException;
+
     byte[] encode(TxnView txn);
+
+    void encodeForReads(Attributable attributable,TxnView txn, boolean isCountStar);
+
+    void encodeForWrites(Attributable attributable,TxnView txn);
 
     TxnView decode(byte[] data,int offset,int length);
 
     DataPut newDataPut(TxnView txn,byte[] key);
 
-    DataDelete newDataDelete(TxnView txn,byte[] key);
+    DataMutation newDataDelete(TxnView txn,byte[] key) throws IOException;
+
 }

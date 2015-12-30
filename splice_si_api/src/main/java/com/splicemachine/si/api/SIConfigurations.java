@@ -13,16 +13,30 @@ import com.splicemachine.access.api.SConfiguration;
  */
 public class SIConfigurations{
 
-    public static final String completedTxnCacheSize = "splice.txn.completedTxns.cacheSize";
-    private static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE = 1<<17; // want to hold lots of completed transactions
+    public static final String completedTxnCacheSize="splice.txn.completedTxns.cacheSize";
+    private static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE=1<<17; // want to hold lots of completed transactions
 
     public static final String completedTxnConcurrency="splice.txn.completedTxns.concurrency";
-    private static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY = 64;
+    private static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY=64;
 
-    public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
+    public static final String TRANSACTION_KEEP_ALIVE_INTERVAL="splice.txn.keepAliveIntervalMs";
+    public static final long DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=15000l;
+
+    public static final String TRANSACTION_TIMEOUT="splice.txn.timeout";
+    public static final long DEFAULT_TRANSACTION_TIMEOUT=10*DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; //100 minutes
+
+    public static final String TRANSACTION_KEEP_ALIVE_THREADS="splice.txn.keepAliveThreads";
+    public static final int DEFAULT_KEEP_ALIVE_THREADS=4;
+
+    public static final SConfiguration.Defaults defaults=new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
-            throw new IllegalArgumentException("No SI default for key '"+key+"'");
+            switch(key){
+                case TRANSACTION_TIMEOUT: return DEFAULT_TRANSACTION_TIMEOUT;
+                case TRANSACTION_KEEP_ALIVE_INTERVAL: return DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL;
+                default:
+                    throw new IllegalArgumentException("No long default for key '"+key+"'");
+            }
         }
 
         @Override
@@ -30,6 +44,7 @@ public class SIConfigurations{
             switch(key){
                 case completedTxnConcurrency: return DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY;
                 case completedTxnCacheSize: return DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE;
+                case TRANSACTION_KEEP_ALIVE_THREADS: return DEFAULT_KEEP_ALIVE_THREADS;
                 default:
                     throw new IllegalArgumentException("No SI default for key '"+key+"'");
             }
@@ -37,7 +52,13 @@ public class SIConfigurations{
 
         @Override
         public boolean hasLongDefault(String key){
-            return false;
+            switch(key){
+                case TRANSACTION_TIMEOUT:
+                case TRANSACTION_KEEP_ALIVE_INTERVAL:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         @Override
@@ -45,6 +66,7 @@ public class SIConfigurations{
             switch(key){
                 case completedTxnConcurrency:
                 case completedTxnCacheSize:
+                case TRANSACTION_KEEP_ALIVE_THREADS:
                     return true;
                 default:
                     return false;

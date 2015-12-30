@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 public class JoinUtils {
     private static Logger LOG = Logger.getLogger(JoinUtils.class);
 
-    public static enum JoinSide {RIGHT, LEFT} ;
+    public enum JoinSide {RIGHT, LEFT}
 
     public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow,
                                        boolean wasRightOuterJoin, ExecRow mergedRow) {

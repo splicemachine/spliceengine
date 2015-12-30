@@ -21,8 +21,7 @@ public class SpliceHdfsFileResource extends SpliceBaseFileResource {
 	}
 
 	@Override
-	protected void syncOutputStream(OutputStream os)
-			throws SyncFailedException, IOException {
+	protected void syncOutputStream(OutputStream os) throws IOException {
 		((FSDataOutputStream) os).hsync();
 	}
 }

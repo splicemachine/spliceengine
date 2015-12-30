@@ -20,8 +20,7 @@ public class SpliceLocalFileResource extends SpliceBaseFileResource {
 	}
 
 	@Override
-	protected void syncOutputStream(OutputStream os)
-			throws SyncFailedException, IOException {
+	protected void syncOutputStream(OutputStream os) throws IOException {
 		((FileOutputStream) os).getFD().sync();
 	}
 }

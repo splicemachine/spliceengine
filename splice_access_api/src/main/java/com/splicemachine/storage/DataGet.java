@@ -18,4 +18,6 @@ public interface DataGet extends Attributable{
     long highTimestamp();
 
     long lowTimestamp();
+
+    void addColumn(byte[] family,byte[] qualifier);
 }

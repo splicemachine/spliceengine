@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.client.HTableInterface;
 
 public class SpliceIdentityColumnKey extends AbstractSequenceKey {
 

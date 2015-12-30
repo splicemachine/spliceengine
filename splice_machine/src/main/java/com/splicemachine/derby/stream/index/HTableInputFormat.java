@@ -4,25 +4,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configurable;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Created by jyuan on 10/19/15.

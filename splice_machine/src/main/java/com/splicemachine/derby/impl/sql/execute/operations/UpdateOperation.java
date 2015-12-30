@@ -1,5 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -12,24 +19,19 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.stream.output.update.*;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.pipeline.api.PreFlushHook;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.derby.stream.output.update.ResultSupplier;
+import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
+import com.splicemachine.pipeline.callbuffer.PreFlushHook;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +41,7 @@ import java.util.Collection;
  * @author Scott Fines
  */
 public class UpdateOperation extends DMLWriteOperation{
-    private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
+    private static final Logger LOG=Logger.getLogger(UpdateOperation.class);
     private ResultSupplier resultSupplier;
     private DataValueDescriptor[] kdvds;
     public int[] colPositionMap;
@@ -47,51 +49,51 @@ public class UpdateOperation extends DMLWriteOperation{
     protected int[] columnOrdering;
     protected int[] format_ids;
 
-    protected static final String NAME = UpdateOperation.class.getSimpleName().replaceAll("Operation","");
+    protected static final String NAME=UpdateOperation.class.getSimpleName().replaceAll("Operation","");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
-	
+    @Override
+    public String getName(){
+        return NAME;
+    }
+
     @SuppressWarnings("UnusedDeclaration")
-		public UpdateOperation() {
-				super();
-		}
+    public UpdateOperation(){
+        super();
+    }
 
     int[] pkCols;
-    FormatableBitSet     pkColumns;
+    FormatableBitSet pkColumns;
 
-    public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
-                           GeneratedMethod checkGM, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion)
-            throws StandardException, IOException {
-        super(source, generationClauses, checkGM, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+    public UpdateOperation(SpliceOperation source,GeneratedMethod generationClauses,
+                           GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
+                           double optimizerEstimatedCost,String tableVersion)
+            throws StandardException, IOException{
+        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime();
     }
 
     @Override
-		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG,"init");
-				super.init(context);
-				heapConglom = writeInfo.getConglomerateId();
-				pkCols = writeInfo.getPkColumnMap();
-                pkColumns = writeInfo.getPkColumns();
+    public void init(SpliceOperationContext context) throws StandardException, IOException{
+        SpliceLogUtils.trace(LOG,"init");
+        super.init(context);
+        heapConglom=writeInfo.getConglomerateId();
+        pkCols=writeInfo.getPkColumnMap();
+        pkColumns=writeInfo.getPkColumns();
 
-            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
-            format_ids = conglomerate.getFormat_ids();
-            columnOrdering = conglomerate.getColumnOrdering();
-            kdvds = new DataValueDescriptor[columnOrdering.length];
-            for (int i = 0; i < columnOrdering.length; ++i) {
-                kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-            }
+        SpliceConglomerate conglomerate=(SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
+        format_ids=conglomerate.getFormat_ids();
+        columnOrdering=conglomerate.getColumnOrdering();
+        kdvds=new DataValueDescriptor[columnOrdering.length];
+        for(int i=0;i<columnOrdering.length;++i){
+            kdvds[i]=LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+        }
 
-		}
+    }
 
-    public int[] getColumnPositionMap(FormatableBitSet heapList) {
-        if(colPositionMap==null) {
-		        /*
+    public int[] getColumnPositionMap(FormatableBitSet heapList){
+        if(colPositionMap==null){
+                /*
 			       * heapList is the position of the columns in the original row (e.g. if cols 2 and 3 are being modified,
 						 * then heapList = {2,3}). We have to take that position and convert it into the actual positions
 						 * in nextRow.
@@ -116,10 +118,10 @@ public class UpdateOperation extends DMLWriteOperation{
 						 *
 						 * and so forth
 						 */
-            colPositionMap = new int[heapList.size()];
+            colPositionMap=new int[heapList.size()];
 
-            for(int i = heapList.anySetBit(),pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){
-                colPositionMap[i] = pos;
+            for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){
+                colPositionMap[i]=pos;
             }
         }
         return colPositionMap;
@@ -127,75 +129,75 @@ public class UpdateOperation extends DMLWriteOperation{
 
     public FormatableBitSet getHeapList() throws StandardException{
         if(heapList==null){
-            heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
+            heapList=((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
             if(heapList==null){
-                ExecRow row = ((UpdateConstantOperation)writeInfo.getConstantAction()).getEmptyHeapRow(activation.getLanguageConnectionContext());
-                int length = row.getRowArray().length;
-                heapList = new FormatableBitSet(length+1);
+                ExecRow row=((UpdateConstantOperation)writeInfo.getConstantAction()).getEmptyHeapRow(activation.getLanguageConnectionContext());
+                int length=row.getRowArray().length;
+                heapList=new FormatableBitSet(length+1);
 
-                for(int i = 1; i < length+1; ++i){
+                for(int i=1;i<length+1;++i){
                     heapList.set(i);
                 }
             }
         }
-				return heapList;
-		}
+        return heapList;
+    }
 
-		private boolean modifiedPrimaryKeys(FormatableBitSet heapList) {
-				boolean modifiedPrimaryKeys = false;
-				if(pkColumns!=null){
-						for(int pkCol = pkColumns.anySetBit();pkCol!=-1;pkCol= pkColumns.anySetBit(pkCol)){
-								if(heapList.isSet(pkCol+1)){
-										modifiedPrimaryKeys = true;
-										break;
-								}
-						}
-				}
-				return modifiedPrimaryKeys;
-		}
+    private boolean modifiedPrimaryKeys(FormatableBitSet heapList){
+        boolean modifiedPrimaryKeys=false;
+        if(pkColumns!=null){
+            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
+                if(heapList.isSet(pkCol+1)){
+                    modifiedPrimaryKeys=true;
+                    break;
+                }
+            }
+        }
+        return modifiedPrimaryKeys;
+    }
 
-
-		@Override
-		public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
-				if(modifiedPrimaryKeys(getHeapList())){
-                    TxnView txn = bufferToTransform.getTxn();
-                        WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
-                        return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn, new PreFlushHook() {
-                            @Override
-                            public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception {
-                                bufferToTransform.flushBufferAndWait();
-                                return new ArrayList<KVPair>(buffer); // Remove this but here to match no op...
-                            }
-                        })){
-								@Override
-								public void add(KVPair element) throws Exception {
-										byte[] oldLocation = ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-                                        if (!Bytes.equals(oldLocation, element.getRowKey())) {
-                                            bufferToTransform.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
-                                            element.setType(KVPair.Type.INSERT);
-                                        } else {
-                                            element.setType(KVPair.Type.UPDATE);
-                                        }
-                                    delegate.add(element);
-								}
-						};
-				} else
-                    return bufferToTransform;
-		}
-
-		@Override
-		public String toString() {
-				return "Update{destTable="+heapConglom+",source=" + source + "}";
-		}
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet set = source.getDataSet(dsp);
-        OperationContext operationContext = dsp.createOperationContext(this);
-        TxnView txn = getCurrentTransaction();
-        ExecRow execRow = getExecRowDefinition();
-        int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
-        UpdateTableWriterBuilder builder = new UpdateTableWriterBuilder()
+    public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
+        if(modifiedPrimaryKeys(getHeapList())){
+            TxnView txn=bufferToTransform.getTxn();
+            WriteCoordinator writeCoordinator=SpliceDriver.driver().getTableWriter();
+            return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn,new PreFlushHook(){
+                @Override
+                public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception{
+                    bufferToTransform.flushBufferAndWait();
+                    return new ArrayList<>(buffer); // Remove this but here to match no op...
+                }
+            })){
+                @Override
+                public void add(KVPair element) throws Exception{
+                    byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
+                    if(!Bytes.equals(oldLocation,element.getRowKey())){
+                        bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
+                        element.setType(KVPair.Type.INSERT);
+                    }else{
+                        element.setType(KVPair.Type.UPDATE);
+                    }
+                    delegate.add(element);
+                }
+            };
+        }else
+            return bufferToTransform;
+    }
+
+    @Override
+    public String toString(){
+        return "Update{destTable="+heapConglom+",source="+source+"}";
+    }
+
+    @Override
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        DataSet set=source.getDataSet(dsp);
+        OperationContext operationContext=dsp.createOperationContext(this);
+        TxnView txn=getCurrentTransaction();
+        ExecRow execRow=getExecRowDefinition();
+        int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
+        UpdateTableWriterBuilder builder=new UpdateTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .operationContext(operationContext)
                 .execRowDefinition(execRow)
@@ -207,10 +209,10 @@ public class UpdateOperation extends DMLWriteOperation{
                 .heapList(getHeapList())
                 .tableVersion(tableVersion)
                 .txn(txn);
-        try {
+        try{
             operationContext.pushScope();
-            return set.index(new InsertPairFunction(operationContext), true).updateData(builder, operationContext);
-        } finally {
+            return set.index(new InsertPairFunction(operationContext),true).updateData(builder,operationContext);
+        }finally{
             operationContext.popScope();
         }
     }

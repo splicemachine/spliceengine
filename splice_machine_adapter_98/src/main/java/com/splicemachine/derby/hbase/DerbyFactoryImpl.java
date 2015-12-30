@@ -201,7 +201,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 				SpliceLogUtils.trace(LOG, "computeRowCount {regions={%s}, regionLoad={%s}, constantRowSize=%d, hfileMaxSize=%d, scan={%s}",
 						regions==null?"null":Arrays.toString(regions.toArray()), regionLoads==null?"null":Arrays.toString(regionLoads.keySet().toArray()), constantRowSize, hfileMaxSize, scan);		
 			for (Pair<HRegionInfo,ServerName> info: regions) {
-				if (SpliceGenericCostController.isRegionInScan(scan,info.getFirst())) {
+				HRegionInfo regionInfo = info.getFirst();
+				if(Bytes.overlap(regionInfo.getStartKey(), regionInfo.getEndKey(), scan.getStartRow(), scan.getStopRow())){
 					if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG, "regionInfo with encodedname {%s} and region name as string %s", info.getFirst().getEncodedName(), info.getFirst().getRegionNameAsString());				
 					numberOfRegionsInvolved++;

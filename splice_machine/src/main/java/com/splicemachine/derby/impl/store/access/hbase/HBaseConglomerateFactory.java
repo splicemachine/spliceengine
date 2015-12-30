@@ -1,9 +1,5 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import java.util.Properties;
-
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -11,93 +7,91 @@ import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.ContainerKey;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
+import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.util.Properties;
 
 
 /**
  *
  *
-**/
+ **/
 
-public class HBaseConglomerateFactory extends SpliceConglomerateFactory {
-	protected static Logger LOG = Logger.getLogger(HBaseConglomerate.class);
-	public HBaseConglomerateFactory() {
-		super();
-	}
+public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
+    protected static Logger LOG=Logger.getLogger(HBaseConglomerate.class);
 
-	@Override
-	protected String getImplementationID() {
-		return "heap";
-	}
-
-	@Override
-	protected String getFormatUUIDString() {
-		return "D2976090-D9F5-11d0-B54D-00A024BF8878";
-	}
-	
-	@Override
-    public int getConglomerateFactoryId() {
-        return(ConglomerateFactory.HEAP_FACTORY_ID);
+    public HBaseConglomerateFactory(){
+        super();
     }
 
-	/**
-	Create the conglomerate and return a conglomerate object for it.
+    @Override
+    protected String getImplementationID(){
+        return "heap";
+    }
 
-	@exception StandardException Standard exception policy.
+    @Override
+    protected String getFormatUUIDString(){
+        return "D2976090-D9F5-11d0-B54D-00A024BF8878";
+    }
 
-	@see ConglomerateFactory#createConglomerate
-	**/
-	public Conglomerate createConglomerate(	
-    TransactionManager      xact_mgr,
-    int                     segment,
-    long                    input_containerid,
-    DataValueDescriptor[]   template,
-	ColumnOrdering[]        columnOrder,
-    int[]                   collationIds,
-    Properties              properties,
-	int                     temporaryFlag)
-		throws StandardException
-	{
-		HBaseConglomerate hbase = new HBaseConglomerate();
+    @Override
+    public int getConglomerateFactoryId(){
+        return (ConglomerateFactory.HEAP_FACTORY_ID);
+    }
 
-		hbase.create(
-            xact_mgr.getRawStoreXact(), segment, input_containerid, 
-            template, columnOrder, collationIds, properties, 
-            hbase.getTypeFormatId(), 
-            temporaryFlag);
+    /**
+     * Create the conglomerate and return a conglomerate object for it.
+     *
+     * @throws StandardException Standard exception policy.
+     * @see ConglomerateFactory#createConglomerate
+     **/
+    public Conglomerate createConglomerate(
+            TransactionManager xact_mgr,
+            int segment,
+            long input_containerid,
+            DataValueDescriptor[] template,
+            ColumnOrdering[] columnOrder,
+            int[] collationIds,
+            Properties properties,
+            int temporaryFlag)
+            throws StandardException{
+        HBaseConglomerate hbase=new HBaseConglomerate();
 
-		return hbase;
-	}
+        hbase.create(
+                xact_mgr.getRawStoreXact(),segment,input_containerid,
+                template,columnOrder,collationIds,properties,
+                hbase.getTypeFormatId(),
+                temporaryFlag);
+
+        return hbase;
+    }
 
     /**
      * Return Conglomerate object for conglomerate with container_key.
-     * <p>
+     * <p/>
      * Return the Conglomerate Object.  This is implementation specific.
      * Examples of what will be done is using the key to find the file where
      * the conglomerate is located, and then executing implementation specific
      * code to instantiate an object from reading a "special" row from a
      * known location in the file.  In the btree case the btree conglomerate
      * is stored as a column in the control row on the root page.
-     * <p>
+     * <p/>
      * This operation is costly so it is likely an implementation using this
      * will cache the conglomerate row in memory so that subsequent accesses
      * need not perform this operation.
      *
      * @param xact_mgr      transaction to perform the create in.
      * @param container_key The unique id of the existing conglomerate.
-     *
-	 * @return An instance of the conglomerate.
-     *
-	 * @exception  StandardException  Standard exception policy.
-	 * 
+     * @return An instance of the conglomerate.
+     * @throws StandardException Standard exception policy.
      **/
-    public Conglomerate readConglomerate(TransactionManager xact_mgr, ContainerKey container_key) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "readConglomerate container_key %d", container_key.getContainerId());
-    	return ConglomerateUtils.readConglomerate(container_key.getContainerId(), HBaseConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
+    public Conglomerate readConglomerate(TransactionManager xact_mgr,ContainerKey container_key) throws StandardException{
+        SpliceLogUtils.trace(LOG,"readConglomerate container_key %d",container_key.getContainerId());
+        return ConglomerateUtils.readConglomerate(container_key.getContainerId(),HBaseConglomerate.class,((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
     }
 }
 

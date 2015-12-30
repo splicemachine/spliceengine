@@ -8,7 +8,6 @@ import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Base64;
@@ -76,14 +75,11 @@ public class HTableScannerBuilder implements Externalizable {
     }
 
     public HTableScanner build(){
-        return new HTableScanner(SIDriver.driver().getDataLib(),
+        return new HTableScanner(
                 scanner,
                 region,
-                scan,
                 txn,
                 demarcationPoint,
-                indexColToMainColPosMap,
-                tableVersion,
                 metricFactory==null?Metrics.noOpMetricFactory():metricFactory);
 
     }

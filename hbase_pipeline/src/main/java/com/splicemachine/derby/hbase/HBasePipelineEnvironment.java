@@ -14,6 +14,7 @@ import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
@@ -117,5 +118,10 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public PartitionInfoCache partitionInfoCache(){
         return delegate.partitionInfoCache();
+    }
+
+    @Override
+    public KeepAliveScheduler keepAliveScheduler(){
+        return delegate.keepAliveScheduler();
     }
 }

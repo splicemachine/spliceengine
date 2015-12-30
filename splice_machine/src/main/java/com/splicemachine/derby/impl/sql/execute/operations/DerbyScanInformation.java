@@ -23,13 +23,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
-import org.apache.hadoop.hbase.client.Scan;
+import com.splicemachine.storage.DataScan;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Arrays;import java.util.List;
 
 /**
  * @author Scott Fines
@@ -79,7 +78,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                                 boolean sameStartStopPosition,
                                 int startSearchOperator,
                                 int stopSearchOperator,
-                                boolean rowIdKey,String tableVersion) {
+                                boolean rowIdKey,
+                                String tableVersion) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -230,12 +230,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     }
 
     @Override
-    public Scan getScan(TxnView txn) throws StandardException {
+    public DataScan getScan(TxnView txn) throws StandardException {
         return getScan(txn, null, null, null, null);
     }
 
     @Override
-    public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
+    public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys, ExecRow stopKeyPrefix) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -385,7 +385,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
 
     @Override
-    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 

@@ -304,9 +304,13 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         InsertTableWriter insertTableWriter = null;
-        TxnView txn = null;
+        /*
+         * -sf- we shouldn't need to do transactional management here, because Derby manages internal
+         * savepoints around insertion.
+         */
+//        TxnView txn = null;
         try {
-            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
+//            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
             builder.txn(txn);
             operationContext.getOperation().fireBeforeStatementTriggers();
             insertTableWriter = builder.build();
@@ -316,16 +320,16 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
-            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+//            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
             throw StandardException.plainWrapException(e);
         } finally {
             try {
                 if (insertTableWriter != null)
                         insertTableWriter.close();
                 operationContext.getOperation().fireAfterStatementTriggers();
-                operationContext.getOperation().commitTransaction(txn.getTxnId());
+//                operationContext.getOperation().commitTransaction(txn.getTxnId());
             } catch (Exception e) {
-                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+//                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
                 throw StandardException.plainWrapException(e);
             }
 
@@ -335,9 +339,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         UpdateTableWriter updateTableWriter = null;
-        TxnView txn = null;
+//        TxnView txn = null;
         try {
-            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
+//            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
             builder.txn(txn);
             operationContext.getOperation().fireBeforeStatementTriggers();
             updateTableWriter = builder.build();
@@ -347,16 +351,16 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
-            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+//            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
             throw StandardException.plainWrapException(e);
         } finally {
             try {
                 if (updateTableWriter != null)
                     updateTableWriter.close();
                 operationContext.getOperation().fireAfterStatementTriggers();
-                operationContext.getOperation().commitTransaction(txn.getTxnId());
+//                operationContext.getOperation().commitTransaction(txn.getTxnId());
             } catch (Exception e) {
-                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+//                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
                 throw StandardException.plainWrapException(e);
             }
         }
@@ -365,9 +369,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
         DeleteTableWriter deleteTableWriter = null;
-        TxnView txn = null;
+//        TxnView txn = null;
         try {
-            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
+//            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
             builder.txn(txn);
             operationContext.getOperation().fireBeforeStatementTriggers();
             deleteTableWriter = builder.build();
@@ -377,16 +381,16 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
-            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+//            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
             throw StandardException.plainWrapException(e);
         } finally {
             try {
                 if (deleteTableWriter != null)
                     deleteTableWriter.close();
                 operationContext.getOperation().fireAfterStatementTriggers();
-                operationContext.getOperation().commitTransaction(txn.getTxnId());
+//                operationContext.getOperation().commitTransaction(txn.getTxnId());
             } catch (Exception e) {
-                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
+//                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
                 throw StandardException.plainWrapException(e);
             }
         }

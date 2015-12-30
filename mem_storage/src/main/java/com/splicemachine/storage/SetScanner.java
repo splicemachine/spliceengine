@@ -160,7 +160,7 @@ class SetScanner implements DataScanner{
         if(ts<lowVersion) return DataFilter.ReturnCode.NEXT_COL;
         else if(ts>highVersion) return DataFilter.ReturnCode.SKIP;
         if(filter!=null){
-            return filter.filterKeyValue(n);
+            return filter.filterCell(n);
         }
         return DataFilter.ReturnCode.INCLUDE;
     }

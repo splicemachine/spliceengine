@@ -10,8 +10,10 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.BaseOperationFactory;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.storage.DataGet;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -116,23 +118,23 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
 
-    public static Scan createScan(Txn txn) {
+    public static DataScan createScan(Txn txn) {
         return createScan(txn,false);
     }
 
-    public static Scan createScan(TxnView txn,boolean countStar) {
+    public static DataScan createScan(TxnView txn,boolean countStar) {
         return operationFactory.newScan(txn,countStar);
     }
 
-    public static Get createGet(TxnView txn, byte[] row) throws IOException {
+    public static DataGet createGet(TxnView txn, byte[] row) throws IOException {
         return operationFactory.newGet(txn, row);
     }
 
-    public static Get createGet(RowLocation loc,
+    public static DataGet createGet(DataGet baseGet,
                                 DataValueDescriptor[] destRow,
-                                FormatableBitSet validColumns, TxnView txn) throws StandardException {
+                                FormatableBitSet validColumns) throws StandardException {
         try {
-            Get get = createGet(txn, loc.getBytes());
+//            Get get = createGet(txn, loc.getBytes());
             BitSet fieldsToReturn;
             if(validColumns!=null){
                 fieldsToReturn = new BitSet(validColumns.size());
@@ -144,8 +146,8 @@ public class SpliceUtils extends SpliceUtilities {
                 fieldsToReturn.set(0,destRow.length);
             }
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-            return get;
+            baseGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+            return baseGet;
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
             return null; //can't happen

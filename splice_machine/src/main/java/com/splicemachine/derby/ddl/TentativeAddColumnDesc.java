@@ -3,6 +3,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 
 import com.google.common.primitives.Ints;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -12,10 +13,9 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 
 /**
@@ -28,7 +28,8 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
     private int[] columnOrdering;
     private ColumnInfo[] columnInfos;
 
-    public TentativeAddColumnDesc(DDLMessage.TentativeAddColumn addColumn) {
+    public TentativeAddColumnDesc(DDLMessage.TentativeAddColumn addColumn,SqlExceptionFactory exceptionFactory) {
+        super(exceptionFactory);
         this.tableVersion = addColumn.getTableVersion();
         this.newConglomId = addColumn.getNewConglomId();
         this.oldConglomId = addColumn.getOldConglomId();
@@ -88,12 +89,12 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
+            throw exceptionFactory.asIOException(e);
         }
         return srcRow;
     }
 
-    private static RowTransformer create(String tableVersion,
+    private RowTransformer create(String tableVersion,
                                          int[] sourceKeyOrdering,
                                          ColumnInfo[] columnInfos,
                                          KeyEncoder keyEncoder) throws IOException {
@@ -119,7 +120,7 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
                                       newColDefaultValue :
                                       columnInfos[columnInfos.length - 1].dataType.getNull()));
         } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
+            throw exceptionFactory.asIOException(e);
         }
 
         // create the row transformer

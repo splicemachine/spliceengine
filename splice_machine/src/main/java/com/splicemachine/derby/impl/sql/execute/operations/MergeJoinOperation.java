@@ -140,7 +140,7 @@ public class MergeJoinOperation extends JoinOperation {
 */
     @SuppressWarnings("unchecked")
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<MergeJoinOperation> operationContext = dsp.createOperationContext(this);
         DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
         

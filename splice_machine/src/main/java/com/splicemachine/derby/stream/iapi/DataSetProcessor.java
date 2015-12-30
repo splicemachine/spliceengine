@@ -38,7 +38,7 @@ public interface DataSetProcessor {
      * @throws StandardException
      */
     <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException;
-    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException;
+    <V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException;
     /**
      * Get an empty dataset
      *

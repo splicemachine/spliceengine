@@ -14,7 +14,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -28,7 +27,6 @@ import java.util.List;
  */
 public class DistinctScanOperation extends ScanOperation {
     private static final long serialVersionUID = 3l;
-    private static Logger LOG = Logger.getLogger(DistinctScanOperation.class);
 	protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -122,7 +120,6 @@ public class DistinctScanOperation extends ScanOperation {
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
-				this.scan = context.getScan();
     }
 
     @Override

@@ -48,7 +48,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 								optimizerEstimatedCost,userSuppliedOptimizerOverrides);
 				this.isHash = false;
         try {
-            init(SpliceOperationContext.newContext(activation, null));
+            init(SpliceOperationContext.newContext(activation));
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

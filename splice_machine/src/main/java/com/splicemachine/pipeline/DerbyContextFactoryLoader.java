@@ -11,7 +11,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -291,10 +291,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         // PART 3: check tentative indexes
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         //TODO -sf- key this to the specific conglomerate
-        for(DDLMessage.DDLChange ddlChange : DDLCoordinationFactory.getWatcher().getTentativeDDLs()){
+        DDLDriver ddlDriver=DDLDriver.driver();
+        for(DDLMessage.DDLChange ddlChange : ddlDriver.ddlWatcher().getTentativeDDLs()){
             TxnView txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
             if(txn.getEffectiveState().isFinal()){
-                DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
+                ddlDriver.ddlController().finishMetadataChange(ddlChange.getChangeId());
             }else{
                 ddlChange(ddlChange);
             }

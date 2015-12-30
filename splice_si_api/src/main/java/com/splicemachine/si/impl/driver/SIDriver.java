@@ -10,9 +10,11 @@ import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
+import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.ClientTxnLifecycleManager;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -56,6 +58,10 @@ public class SIDriver {
                 INSTANCE.dataStore,
                 INSTANCE.operationStatusFactory,
                 INSTANCE.exceptionFactory);
+        ClientTxnLifecycleManager clientTxnLifecycleManager=new ClientTxnLifecycleManager(INSTANCE.timestampSource,INSTANCE.exceptionFactory);
+        clientTxnLifecycleManager.setTxnStore(INSTANCE.txnStore);
+        clientTxnLifecycleManager.setKeepAliveScheduler(env.keepAliveScheduler());
+        INSTANCE.lifecycleManager =clientTxnLifecycleManager;
     }
 
     private PartitionFactory tableFactory;
@@ -72,6 +78,7 @@ public class SIDriver {
     private TxnOperationFactory txnOpFactory;
     private RollForward rollForward;
     private ReadResolver readResolver;
+    private TxnLifecycleManager lifecycleManager;
 
     public PartitionFactory getTableFactory(){
         return tableFactory;
@@ -130,6 +137,10 @@ public class SIDriver {
 
     public ReadResolver getReadResolver(){
         return readResolver;
+    }
+
+    public TxnLifecycleManager lifecycleManager(){
+        return lifecycleManager;
     }
 
     public TransactionalRegion transactionalPartition(long conglomId,Partition basePartition){

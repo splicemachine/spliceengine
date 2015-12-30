@@ -15,17 +15,6 @@ public class SIConstants extends SpliceConstants {
     }
 
 
-    @Parameter public static final String TRANSACTION_KEEP_ALIVE_INTERVAL = "splice.txn.keepAliveIntervalMs";
-	@DefaultValue(TRANSACTION_KEEP_ALIVE_INTERVAL) public static final int DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=15000;
-    public static int transactionKeepAliveInterval;
-
-    @Parameter public static final String TRANSACTION_TIMEOUT = "splice.txn.timeout";
-		@DefaultValue(TRANSACTION_TIMEOUT) public static final int DEFAULT_TRANSACTION_TIMEOUT = 10 * DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; //100 minutes
-    public static int transactionTimeout;
-
-    @Parameter public static final String TRANSACTION_KEEP_ALIVE_THREADS = "splice.txn.keepAliveThreads";
-    @DefaultValue(TRANSACTION_KEEP_ALIVE_THREADS) public static final int DEFAULT_KEEP_ALIVE_THREADS =4;
-    public static int transactionKeepAliveThreads;
 
 
 
@@ -114,9 +103,6 @@ public class SIConstants extends SpliceConstants {
 
     public static void setParameters(Configuration config){
         committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);
-        transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
-        transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
-        transactionKeepAliveInterval = config.getInt(TRANSACTION_KEEP_ALIVE_INTERVAL,DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
         /*
          * The transaction timeout is the length of time (in milliseconds) after which a transaction is considered
          * unresponsive, and should be removed.
@@ -137,13 +123,12 @@ public class SIConstants extends SpliceConstants {
         int configuredTxnTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
         if(configuredTxnTimeout<zkTimeout)
             configuredTxnTimeout = (int)(1.5f*zkTimeout); //add some slop factor so that we are sure that zookeeper timed out first
-        transactionTimeout = configuredTxnTimeout;
+
         int ipcThreads = SpliceConstants.ipcThreads;
         transactionlockStripes = config.getInt(TRANSACTION_LOCK_STRIPES,ipcThreads);
         activeTransactionCacheSize = config.getInt(ACTIVE_TRANSACTION_CACHE_SIZE,DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
         completedTransactionCacheSize = config.getInt(COMPLETED_TRANSACTION_CACHE_SIZE,DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
         completedTransactionConcurrency = config.getInt(COMPLETED_TRANSACTION_CACHE_CONCURRENCY,DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
-        transactionKeepAliveThreads = config.getInt(TRANSACTION_KEEP_ALIVE_THREADS,DEFAULT_KEEP_ALIVE_THREADS);
         rollForwardRate = config.getInt(ROLL_FORWARD_READ_RATE,DEFAULT_ROLL_FORWARD_READ_RATE);
 
         readResolverThreads = config.getInt(READ_RESOLVER_THREADS,DEFAULT_READ_RESOLVER_THREADS);

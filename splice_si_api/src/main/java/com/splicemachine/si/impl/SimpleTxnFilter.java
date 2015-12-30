@@ -118,7 +118,7 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
     }
 
     @Override
-    public DataFilter.ReturnCode filterKeyValue(DataCell keyValue) throws IOException{
+    public DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException{
         CellType type=keyValue.dataType();
         if(type==CellType.COMMIT_TIMESTAMP){
             ensureTransactionIsCached(keyValue);
@@ -321,7 +321,7 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
 
 
     @Override
-    public RowAccumulator<Data> getAccumulator(){
+    public RowAccumulator getAccumulator(){
         throw new RuntimeException("not implemented");
     }
 }

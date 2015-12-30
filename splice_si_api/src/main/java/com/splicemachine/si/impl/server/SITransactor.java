@@ -296,7 +296,7 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         //we need to make sure that this row is visible to the current transaction
         List<DataCell> visibleColumns=Lists.newArrayListWithExpectedSize(row.size());
         for(DataCell data : row){
-            DataFilter.ReturnCode code=constraintStateFilter.filterKeyValue(data);
+            DataFilter.ReturnCode code=constraintStateFilter.filterCell(data);
             switch(code){
                 case NEXT_ROW:
                 case NEXT_COL:

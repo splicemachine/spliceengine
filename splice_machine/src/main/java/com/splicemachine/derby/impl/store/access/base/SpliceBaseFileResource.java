@@ -1,16 +1,12 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.SyncFailedException;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.db.io.StorageFile;
+
+import java.io.*;
 
 /**
  * A very simple FileResource implementation for writing and reading JAR files to and from a file system.
@@ -36,145 +32,130 @@ import com.splicemachine.db.io.StorageFile;
 // support and support for backup and recovery of the JAR files.
 //
 
-public abstract class SpliceBaseFileResource implements FileResource {
+public abstract class SpliceBaseFileResource implements FileResource{
 
-	private StorageFactory storageFactory;
+    private StorageFactory storageFactory;
 
-	public SpliceBaseFileResource(StorageFactory storageFactory) {
-		this.storageFactory = storageFactory;
-	}
+    public SpliceBaseFileResource(StorageFactory storageFactory){
+        this.storageFactory=storageFactory;
+    }
 
-	@Override
-	public long add(String name, InputStream source) throws StandardException {
-		OutputStream os = null;
-		long generationId = 0;  // Hard coded to 0 to avoid needing a DataFactory.
+    @Override
+    public long add(String name,InputStream source) throws StandardException{
+        OutputStream os=null;
+        long generationId=0;  // Hard coded to 0 to avoid needing a DataFactory.
 
-		try
-		{
-			StorageFile file = getAsFile(name, generationId);
-            if (file.exists())
-            {
-				throw StandardException.newException(
-                        SQLState.FILE_EXISTS, file);
+        try{
+            StorageFile file=getAsFile(name,generationId);
+            if(file.exists()){
+                throw StandardException.newException(
+                        SQLState.FILE_EXISTS,file);
             }
 
-			StorageFile directory = file.getParentDir();
-            StorageFile parentDir = directory.getParentDir();
-            boolean pdExisted = parentDir.exists();
+            StorageFile directory=file.getParentDir();
+            StorageFile parentDir=directory.getParentDir();
+            boolean pdExisted=parentDir.exists();
 
-            if (!directory.exists())
-			{
-                if (!directory.mkdirs())
-                {
-					throw StandardException.newException(
-                            SQLState.FILE_CANNOT_CREATE_SEGMENT, directory);
+            if(!directory.exists()){
+                if(!directory.mkdirs()){
+                    throw StandardException.newException(
+                            SQLState.FILE_CANNOT_CREATE_SEGMENT,directory);
                 }
 
                 directory.limitAccessToOwner();
 
-                if (!pdExisted) {
+                if(!pdExisted){
                     parentDir.limitAccessToOwner();
                 }
-			}
+            }
 
-            os = file.getOutputStream();
-			byte[] data = new byte[4096];
-			int len;
+            os=file.getOutputStream();
+            byte[] data=new byte[4096];
+            int len;
 
-			while ((len = source.read(data)) != -1) {
-				os.write(data, 0, len);
-			}
-			syncOutputStream(os);
-		}
-
-		catch (IOException ioe)
-		{
-			throw StandardException.newException(
-                    SQLState.FILE_UNEXPECTED_EXCEPTION, ioe);
-		}
-
-		finally
-		{
-			try {
-				if (os != null) {
-					os.close();
-				}
-			} catch (IOException ioe2) {/*RESOLVE: Why ignore this?*/}
-
-			try {
-				if (source != null)source.close();
-			} catch (IOException ioe2) {/* RESOLVE: Why ignore this?*/}
-		}
-
-		return generationId;
-	}
-
-	/**
-	 * Syncs the output stream with its durable data store.
-	 *
-	 * @param os  output stream
-	 *
-	 * @throws SyncFailedException
-	 * @throws IOException
-	 */
-	protected abstract void syncOutputStream(OutputStream os)
-			throws SyncFailedException, IOException;
-
-	@Override
-	public void remove(String name, long currentGenerationId)
-			throws StandardException {
-		StorageFile fileToGo = getAsFile(name, currentGenerationId);
-
-		if (fileToGo.exists()) {
-            if (fileToGo.isDirectory()) {
-                if (!fileToGo.deleteAll()) {
-                    throw StandardException.newException(
-                            SQLState.FILE_CANNOT_REMOVE_FILE, fileToGo);
+            while((len=source.read(data))!=-1){
+                os.write(data,0,len);
+            }
+            syncOutputStream(os);
+        }catch(IOException ioe){
+            throw StandardException.newException(
+                    SQLState.FILE_UNEXPECTED_EXCEPTION,ioe);
+        }finally{
+            try{
+                if(os!=null){
+                    os.close();
                 }
-            } else {
-                if (!fileToGo.delete()) {
+            }catch(IOException ioe2){/*RESOLVE: Why ignore this?*/}
+
+            try{
+                if(source!=null) source.close();
+            }catch(IOException ioe2){/* RESOLVE: Why ignore this?*/}
+        }
+
+        return generationId;
+    }
+
+    /**
+     * Syncs the output stream with its durable data store.
+     *
+     * @param os output stream
+     * @throws SyncFailedException
+     * @throws IOException
+     */
+    protected abstract void syncOutputStream(OutputStream os) throws IOException;
+
+    @Override
+    public void remove(String name,long currentGenerationId) throws StandardException{
+        StorageFile fileToGo=getAsFile(name,currentGenerationId);
+
+        if(fileToGo.exists()){
+            if(fileToGo.isDirectory()){
+                if(!fileToGo.deleteAll()){
                     throw StandardException.newException(
-                            SQLState.FILE_CANNOT_REMOVE_FILE, fileToGo);
+                            SQLState.FILE_CANNOT_REMOVE_FILE,fileToGo);
+                }
+            }else{
+                if(!fileToGo.delete()){
+                    throw StandardException.newException(
+                            SQLState.FILE_CANNOT_REMOVE_FILE,fileToGo);
                 }
             }
         }
-	}
+    }
 
-	@Override
-	public void removeJarDir(String f) throws StandardException {
-		//
-		// -----------------------------------------------
-		// PLEASE NOTE: Purposefully not implemented.
-		// -----------------------------------------------
-		// The only place where this method is invoked is by some upgrade code.
-		// It seems like a bad idea to blow away a customer's JAR files even during an upgrade.
-		// We can re-evaluate the need for this method when we tackle the upgrade procedure.
-		//
-	}
+    @Override
+    public void removeJarDir(String f) throws StandardException{
+        //
+        // -----------------------------------------------
+        // PLEASE NOTE: Purposefully not implemented.
+        // -----------------------------------------------
+        // The only place where this method is invoked is by some upgrade code.
+        // It seems like a bad idea to blow away a customer's JAR files even during an upgrade.
+        // We can re-evaluate the need for this method when we tackle the upgrade procedure.
+        //
+    }
 
-	@Override
-	public long replace(String name, long currentGenerationId,
-			InputStream source) throws StandardException {
-		remove(name, currentGenerationId);
-		long generationId = add(name, source);
-		return generationId;
-	}
+    @Override
+    public long replace(String name,long currentGenerationId,InputStream source) throws StandardException{
+        remove(name,currentGenerationId);
+        return add(name,source);
+    }
 
-	@Override
-	public StorageFile getAsFile(String name, long generationId) {
-		String versionedFileName = getVersionedName(name, generationId);
-		return storageFactory.newStorageFile(versionedFileName);
-	}
+    @Override
+    public StorageFile getAsFile(String name,long generationId){
+        String versionedFileName=getVersionedName(name,generationId);
+        return storageFactory.newStorageFile(versionedFileName);
+    }
 
-	@Override
-	public char getSeparatorChar() {
+    @Override
+    public char getSeparatorChar(){
         // JAR files are always java.io.File's and use its separator.
         return File.separatorChar;
-	}
+    }
 
-	// Moved from BaseDataFileFactory to avoid needing a DataFactory, which would then require a half dozen or more factories
-	// that aren't really needed for simple writing and reading of local JAR files.
-	private String getVersionedName(String name, long generationId) {
-		return name.concat(".G".concat(Long.toString(generationId)));
-	}
+    // Moved from BaseDataFileFactory to avoid needing a DataFactory, which would then require a half dozen or more factories
+    // that aren't really needed for simple writing and reading of local JAR files.
+    private String getVersionedName(String name,long generationId){
+        return name.concat(".G".concat(Long.toString(generationId)));
+    }
 }

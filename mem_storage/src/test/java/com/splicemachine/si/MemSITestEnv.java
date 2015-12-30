@@ -1,5 +1,6 @@
 package com.splicemachine.si;
 
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
@@ -43,7 +44,7 @@ public class MemSITestEnv implements SITestEnv{
     private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
 
     public MemSITestEnv() throws IOException{
-        this.tableFactory.createPartition().withName("person").create();
+        createTransactionalTable(Bytes.toBytes("person"));
         this.personPartition = tableFactory.getTable("person");
 
     }
@@ -83,7 +84,9 @@ public class MemSITestEnv implements SITestEnv{
 
     @Override
     public void createTransactionalTable(byte[] tableNameBytes) throws IOException{
-        tableFactory.createPartition().withName(Bytes.toString(tableNameBytes)).create();
+        try(PartitionAdmin pa = tableFactory.getAdmin()){
+            pa.newPartition().withName(Bytes.toString(tableNameBytes)).create();
+        }
     }
 
     @Override

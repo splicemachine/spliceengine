@@ -2,24 +2,12 @@ package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
-import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.mapreduce.TableSplit;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

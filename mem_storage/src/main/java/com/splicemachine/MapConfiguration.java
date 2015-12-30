@@ -36,6 +36,11 @@ public class MapConfiguration implements SConfiguration{
         return Integer.parseInt(s);
     }
 
+    @Override
+    public void addDefaults(Defaults defaults){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
     public void setDefault(String key, long value){
         this.defaults.put(key,Long.toString(value));
     }

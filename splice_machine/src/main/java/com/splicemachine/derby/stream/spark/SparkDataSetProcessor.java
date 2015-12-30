@@ -1,8 +1,5 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.clearspring.analytics.util.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -20,19 +17,9 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.Path;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-
-import scala.Tuple2;
 
 import com.splicemachine.db.iapi.sql.Activation;
 
@@ -74,7 +61,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         SpliceSpark.popScope();
         
         SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
-        TableScanTupleFunction<Op> f = new TableScanTupleFunction<Op>(createOperationContext(spliceOperation));
+        TableScanTupleFunction<Op> f =new TableScanTupleFunction<>(createOperationContext(spliceOperation));
         JavaRDD<LocatedRow> appliedRDD = rawRDD.map(f);
         appliedRDD.setName(spliceOperation.getPrettyExplainPlan());
         SpliceSpark.popScope();
@@ -95,7 +82,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
     
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+    public <V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
@@ -127,8 +114,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(conf, HTableInputFormat.class,
                 byte[].class, KVPair.class);
 
-        return new SparkDataSet(rawRDD.map(
-                new HTableScanTupleFunction()));
+        return new SparkDataSet(rawRDD.map(new HTableScanTupleFunction()));
     }
     
     @Override
@@ -157,7 +143,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
-        OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation);
+        OperationContext<Op> operationContext =new SparkOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive();
@@ -168,7 +154,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
-        return new SparkOperationContext<Op>(activation);
+        return new SparkOperationContext<>(activation);
     }
 
     @Override

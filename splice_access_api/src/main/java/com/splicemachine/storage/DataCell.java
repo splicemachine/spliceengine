@@ -56,5 +56,7 @@ public interface DataCell extends Comparable<DataCell>{
     byte[] qualifierArray();
 
     int qualifierOffset();
+
+    long familyLength();
 }
 

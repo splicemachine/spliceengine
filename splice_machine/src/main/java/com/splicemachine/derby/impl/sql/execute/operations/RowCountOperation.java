@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -84,7 +85,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     @Override
     public List<SpliceOperation> getSubOperations() {
-        return Arrays.asList(source);
+        return Collections.singletonList(source);
     }
 
     @Override
@@ -174,7 +175,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);

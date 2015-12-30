@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
@@ -45,7 +46,6 @@ import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -126,9 +126,7 @@ public class SpliceDriver {
     }
 
     private SpliceDriver() throws IOException {
-        this(WriteCoordinator.create(SpliceUtils.config),
-                DDLCoordinationFactory.getWatcher()
-        );
+        this(WriteCoordinator.create(SpliceUtils.config),DDLDriver.driver().ddlWatcher());
     }
 
     protected SpliceDriver(WriteCoordinator writeCoordinator, DDLWatcher ddlWatcher) {

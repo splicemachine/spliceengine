@@ -8,11 +8,11 @@ public interface DDLController {
     /**
      * Notify remote nodes that a DDL change is in progress (but not yet committed).
      */
-    public String notifyMetadataChange(DDLMessage.DDLChange change) throws StandardException;
+    String notifyMetadataChange(DDLMessage.DDLChange change) throws StandardException;
 
     /**
      * Notify remote nodes that the DDL change has been committed.
      */
-    public void finishMetadataChange(String changeId) throws StandardException;
+    void finishMetadataChange(String changeId) throws StandardException;
 
 }

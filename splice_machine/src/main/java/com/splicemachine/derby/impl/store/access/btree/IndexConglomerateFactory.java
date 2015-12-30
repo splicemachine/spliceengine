@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
-import com.splicemachine.derby.utils.SpliceUtils;
 
 public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	protected static Logger LOG = Logger.getLogger(IndexConglomerateFactory.class);
@@ -79,7 +78,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
             xact_mgr.getRawStoreXact(), segment, input_containerid, 
             template, columnOrder, collationIds, properties, 
             index.getTypeFormatId(), 
-            temporaryFlag);
+            temporaryFlag,operationFactory,partitionFactory);
 
 		return index;
 	}

@@ -1,5 +1,6 @@
 package com.splicemachine.si.testsetup;
 
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
@@ -113,10 +114,12 @@ public class HBaseSITestEnv implements SITestEnv{
 
     @Override
     public void createTransactionalTable(byte[] tableNameBytes) throws IOException{
-        PartitionCreator partitionCreator=getTableFactory().createPartition().withName(Bytes.toString(tableNameBytes))
-                .withCoprocessor(SIObserver.class.getName());
-        addCoprocessors(partitionCreator);
-        partitionCreator.create();
+        try(PartitionAdmin pa = getTableFactory().getAdmin()){
+            PartitionCreator partitionCreator=pa.newPartition().withName(Bytes.toString(tableNameBytes))
+                    .withCoprocessor(SIObserver.class.getName());
+            addCoprocessors(partitionCreator);
+            partitionCreator.create();
+        }
     }
 
     protected void addCoprocessors(PartitionCreator userTable) throws IOException{

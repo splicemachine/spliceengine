@@ -8,7 +8,7 @@ import java.io.IOException;
  * A Factory which can create Partitions
  * Created by jleach on 11/18/15.
  */
-public interface PartitionFactory<SpliceTableInfo> {
+public interface PartitionFactory<SpliceTableInfo>{
 
     Partition getTable(SpliceTableInfo tableName) throws IOException;
 
@@ -16,6 +16,5 @@ public interface PartitionFactory<SpliceTableInfo> {
 
     Partition getTable(byte[] name) throws IOException;
 
-    PartitionCreator createPartition() throws IOException;
-
+    PartitionAdmin getAdmin() throws IOException;
 }

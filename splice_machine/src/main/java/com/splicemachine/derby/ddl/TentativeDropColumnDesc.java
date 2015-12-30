@@ -3,6 +3,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 
 import com.google.common.primitives.Ints;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -11,10 +12,9 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.pipeline.api.RowTransformer;
-import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 
 /**
@@ -29,7 +29,8 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
 
-    public TentativeDropColumnDesc(DDLMessage.TentativeDropColumn tentativeDropColumn) {
+    public TentativeDropColumnDesc(DDLMessage.TentativeDropColumn tentativeDropColumn,SqlExceptionFactory exceptionFactory) {
+        super(exceptionFactory);
         this.conglomerateNumber = tentativeDropColumn.getNewConglomId();
         this.baseConglomerateNumber = tentativeDropColumn.getOldConglomId();
         this.tableVersion = tentativeDropColumn.getTableVersion();
@@ -91,12 +92,12 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
+            throw exceptionFactory.asIOException(e);
         }
         return srcRow;
     }
 
-    private static RowTransformer create(String tableVersion,
+    private RowTransformer create(String tableVersion,
                                          int[] sourceKeyOrdering,
                                          int[] targetKeyOrdering,
                                          ColumnInfo[] columnInfos,
@@ -119,7 +120,7 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
                 ++i;
             }
         } catch (StandardException e) {
-            throw Exceptions.getIOException(e);
+            throw exceptionFactory.asIOException(e);
         }
 
         // create the row transformer

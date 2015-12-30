@@ -40,4 +40,6 @@ public interface SConfiguration{
 
         int defaultIntFor(String key);
     }
+
+    void addDefaults(Defaults defaults);
 }

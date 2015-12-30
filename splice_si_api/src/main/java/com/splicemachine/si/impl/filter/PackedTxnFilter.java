@@ -10,9 +10,9 @@ import com.splicemachine.storage.DataFilter;
 
 import java.io.IOException;
 
-public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnCode>, SIFilter<Data, ReturnCode>{
+public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnCode>, SIFilter{
     protected final TxnFilter<Data, ReturnCode> simpleFilter;
-    public final RowAccumulator<Data> accumulator;
+    public final RowAccumulator accumulator;
     private DataCell lastValidCell;
     protected boolean excludeRow=false;
 
@@ -25,9 +25,8 @@ public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnC
         return accumulator;
     }
 
-    @Override
     public ReturnCode filterKeyValue(Data data) throws IOException{
-        throw new UnsupportedOperationException("OBSOLETE--use filterKeyValue(DataCell) instead");
+        throw new UnsupportedOperationException("OBSOLETE--use filterCell(DataCell) instead");
     }
 
     @Override
@@ -36,8 +35,8 @@ public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnC
     }
 
     @Override
-    public DataFilter.ReturnCode filterKeyValue(DataCell keyValue) throws IOException{
-        final DataFilter.ReturnCode returnCode=simpleFilter.filterKeyValue(keyValue);
+    public DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException{
+        final DataFilter.ReturnCode returnCode=simpleFilter.filterCell(keyValue);
         switch(keyValue.dataType()){
             case COMMIT_TIMESTAMP:
                 return returnCode; // These are always skip...

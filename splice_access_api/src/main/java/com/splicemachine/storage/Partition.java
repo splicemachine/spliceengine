@@ -30,11 +30,15 @@ public interface Partition extends AutoCloseable{
      */
     DataResult get(DataGet get,DataResult previous) throws IOException;
 
+    Iterator<DataResult> batchGet(Attributable attributes,List<byte[]>rowKeys) throws IOException;
+
     DataScanner openScanner(DataScan scan) throws IOException;
 
     DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException;
 
     void put(DataPut put) throws IOException;
+
+    boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException;
 
     void startOperation() throws IOException;
 
@@ -108,4 +112,5 @@ public interface Partition extends AutoCloseable{
     List<Partition> subPartitions();
 
     PartitionServer owningServer();
+
 }

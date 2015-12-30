@@ -5,6 +5,7 @@ import java.util.Arrays;
 
 import com.google.common.base.Throwables;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -24,8 +25,8 @@ import com.splicemachine.derby.utils.marshall.SaltedPrefix;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -37,7 +38,11 @@ import com.splicemachine.uuid.UUIDGenerator;
  *         Date: 4/28/15
  */
 public abstract class AlterTableDDLDescriptor implements TransformingDDLDescriptor {
+    protected final SqlExceptionFactory exceptionFactory;
 
+    public AlterTableDDLDescriptor(SqlExceptionFactory exceptionFactory){
+        this.exceptionFactory=exceptionFactory;
+    }
 
     /**
      * Create encoders and decoders for alter table row transformer, then create

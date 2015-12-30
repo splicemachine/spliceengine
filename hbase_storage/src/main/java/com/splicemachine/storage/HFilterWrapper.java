@@ -16,7 +16,7 @@ public class HFilterWrapper implements DataFilter{
     }
 
     @Override
-    public ReturnCode filterKeyValue(DataCell keyValue) throws IOException{
+    public ReturnCode filterCell(DataCell keyValue) throws IOException{
         /*
          * This is generally not used. The FilterWrapper class is mainly present to provide API
          * compatibility. Still, just in case it IS used, we implement it.

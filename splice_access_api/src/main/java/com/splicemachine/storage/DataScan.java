@@ -12,6 +12,17 @@ public interface DataScan extends Attributable{
 
     DataScan filter(DataFilter df);
 
+    /**
+     * Reverse the order in which this scan is operating.
+     *
+     * @return a scan which scans in reverse (i.e. descending order).
+     */
+    DataScan reverseOrder();
+
+    DataScan cacheRows(int rowsToCache);
+
+    DataScan batchCells(int cellsToBatch);
+
     byte[] getStartKey();
 
     byte[] getStopKey();
@@ -25,4 +36,6 @@ public interface DataScan extends Attributable{
     void setTimeRange(long lowVersion,long highVersion);
 
     void returnAllVersions();
+
+
 }

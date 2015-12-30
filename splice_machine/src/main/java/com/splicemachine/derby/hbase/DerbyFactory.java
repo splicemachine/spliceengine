@@ -52,35 +52,35 @@ import com.splicemachine.pipeline.api.BulkWriter;
 import com.splicemachine.storage.EntryPredicateFilter;
 
 public interface DerbyFactory<Transaction> {
-		Filter getAllocatedFilter(byte[] localAddress);
-		List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
-		void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
-		HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
-		void writeScanExternal(ObjectOutput output, Scan scan) throws IOException;
-		Scan readScanExternal(ObjectInput in) throws IOException;
-		void checkCallerDisconnect(HRegion region) throws IOException;
-		InternalScanner noOpInternalScanner();
-		void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir, FileSystem fs, Configuration conf) throws IOException;
-		Path getTableDir(HRegion region) throws IOException;
-        Path getRegionDir(HRegion region);
-		void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
-		BulkWriter.Factory getBulkWritesInvoker(byte[] tableName);
-		long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
-		void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
-		int getRegionsSizeMB(String tableName);
-		Filter getHBaseEntryPredicateFilter(EntryPredicateFilter epf);
-		Filter getSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates);
-		Table getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
-		int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
-		ConstantAction getDropIndexConstantAction(String fullIndexName, String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
-		void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
-		void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
-	    void SYSCS_GET_REGION_SERVER_STATS_INFO(final ResultSet[] resultSet, List<Pair<String, JMXConnector>> connections) throws SQLException;
-		ObjectName getRegionServerStatistics() throws MalformedObjectNameException;
-		ServerName getServerName(String serverName);
-		ExceptionTranslator getExceptionHandler();
-        SpliceRegionScanner getSplitRegionScanner(Scan scan, Table htable) throws IOException;
-        KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
-				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
-        SubregionSplitter getSubregionSplitter();
+	Filter getAllocatedFilter(byte[] localAddress);
+	List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
+	void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
+	HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
+	void writeScanExternal(ObjectOutput output, Scan scan) throws IOException;
+	Scan readScanExternal(ObjectInput in) throws IOException;
+	void checkCallerDisconnect(HRegion region) throws IOException;
+	InternalScanner noOpInternalScanner();
+	void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir, FileSystem fs, Configuration conf) throws IOException;
+	Path getTableDir(HRegion region) throws IOException;
+	Path getRegionDir(HRegion region);
+	void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
+	BulkWriter.Factory getBulkWritesInvoker(byte[] tableName);
+	long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
+	void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
+	int getRegionsSizeMB(String tableName);
+	Filter getHBaseEntryPredicateFilter(EntryPredicateFilter epf);
+
+	Table getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
+	int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
+	ConstantAction getDropIndexConstantAction(String fullIndexName, String indexName,String tableName,String schemaName,UUID tableId,long tableConglomerateId);
+	void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException;
+	void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
+	void SYSCS_GET_REGION_SERVER_STATS_INFO(final ResultSet[] resultSet, List<Pair<String, JMXConnector>> connections) throws SQLException;
+	ObjectName getRegionServerStatistics() throws MalformedObjectNameException;
+	ServerName getServerName(String serverName);
+	ExceptionTranslator getExceptionHandler();
+	SpliceRegionScanner getSplitRegionScanner(Scan scan, Table htable) throws IOException;
+	KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
+												 final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
+	SubregionSplitter getSubregionSplitter();
 }

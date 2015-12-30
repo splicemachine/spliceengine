@@ -7,6 +7,7 @@ import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -43,4 +44,6 @@ public interface SIEnvironment{
     SIDriver getSIDriver();
 
     PartitionInfoCache partitionInfoCache();
+
+    KeepAliveScheduler keepAliveScheduler();
 }

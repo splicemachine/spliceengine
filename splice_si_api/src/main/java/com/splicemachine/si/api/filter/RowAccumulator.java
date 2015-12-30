@@ -5,10 +5,9 @@ import com.splicemachine.storage.DataCell;
 import java.io.Closeable;
 import java.io.IOException;
 
-public interface RowAccumulator<Data> extends Closeable {
-    boolean isOfInterest(Data value);
+public interface RowAccumulator extends Closeable {
     boolean isInteresting(DataCell value);
-    boolean accumulate(Data value) throws IOException;
+
     boolean accumulateCell(DataCell value) throws IOException;
     boolean isFinished();
     byte[] result();

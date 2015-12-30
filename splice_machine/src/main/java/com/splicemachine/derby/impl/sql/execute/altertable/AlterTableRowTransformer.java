@@ -11,7 +11,7 @@ import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.api.RowTransformer;
+import com.splicemachine.pipeline.RowTransformer;
 
 /**
  * Used by alter table write interceptors to map rows written in src table to new
@@ -21,7 +21,7 @@ import com.splicemachine.pipeline.api.RowTransformer;
  * These are created for a specific alter table action in TransformingDDLDescriptors
  * specializations.
  */
-public class AlterTableRowTransformer implements RowTransformer {
+public class AlterTableRowTransformer implements RowTransformer{
     private final ExecRow srcRow;
     private final ExecRow templateRow;
     private final EntryDataDecoder rowDecoder;

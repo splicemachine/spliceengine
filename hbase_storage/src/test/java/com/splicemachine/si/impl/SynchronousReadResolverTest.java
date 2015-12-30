@@ -87,7 +87,7 @@ public class SynchronousReadResolverTest {
         Cell kv = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
         Assert.assertNotNull("No data column found!", kv);
 
-        DataFilter.ReturnCode returnCode = filter.filterKeyValue(new HCell(kv));
+        DataFilter.ReturnCode returnCode = filter.filterCell(new HCell(kv));
         Assert.assertEquals("Incorrect return code!", DataFilter.ReturnCode.SKIP, returnCode);
 
         //check to see if the resolver added the proper key value
@@ -135,7 +135,7 @@ public class SynchronousReadResolverTest {
         Cell kv = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
         Assert.assertNotNull("No data column found!", kv);
 
-        DataFilter.ReturnCode returnCode = filter.filterKeyValue(new HCell(kv));
+        DataFilter.ReturnCode returnCode = filter.filterCell(new HCell(kv));
         Assert.assertEquals("Incorrect return code!", DataFilter.ReturnCode.INCLUDE, returnCode);
 
         //check to see if the resolver added the proper key value
@@ -183,7 +183,7 @@ public class SynchronousReadResolverTest {
         Cell kv = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
         Assert.assertNotNull("No data column found!", kv);
 
-        DataFilter.ReturnCode returnCode = filter.filterKeyValue(new HCell(kv));
+        DataFilter.ReturnCode returnCode = filter.filterCell(new HCell(kv));
         Assert.assertEquals("Incorrect return code!", DataFilter.ReturnCode.SKIP, returnCode);
 
         //make sure the resolver has not added anything
@@ -200,7 +200,7 @@ public class SynchronousReadResolverTest {
         kv = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
         Assert.assertNotNull("No data column found!", kv);
 
-        returnCode = filter.filterKeyValue(new HCell(kv));
+        returnCode = filter.filterCell(new HCell(kv));
         Assert.assertEquals("Incorrect return code!", DataFilter.ReturnCode.SKIP, returnCode);
 
         //make sure that the read-resolver worked

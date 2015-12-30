@@ -10,7 +10,7 @@ import com.splicemachine.storage.index.BitIndex;
 import java.io.Closeable;
 import java.io.IOException;
 
-public class HRowAccumulator<Data> implements RowAccumulator<Data> {
+public class HRowAccumulator<Data> implements RowAccumulator{
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
@@ -28,17 +28,6 @@ public class HRowAccumulator<Data> implements RowAccumulator<Data> {
         this.decoder = decoder;
         this.countStar = countStar;
         this.dataLib = dataLib;
-    }
-
-    @Override
-    public boolean isOfInterest(Data data) {
-        if (countStar)
-            return false;
-        decoder.set(dataLib.getDataValueBuffer(data),
-                dataLib.getDataValueOffset(data),
-                dataLib.getDataValuelength(data));
-        final BitIndex currentIndex = decoder.getCurrentIndex();
-        return entryAccumulator.isInteresting(currentIndex);
     }
 
     @Override
@@ -63,15 +52,6 @@ public class HRowAccumulator<Data> implements RowAccumulator<Data> {
     public void close() throws IOException {
         if(entryAccumulator instanceof Closeable)
             ((Closeable) entryAccumulator).close();
-    }
-
-    @Override
-    public boolean accumulate(Data data) throws IOException {
-        bytesAccumulated+=dataLib.getLength(data);
-        boolean pass = predicateFilter.match(decoder, entryAccumulator);
-        if(!pass)
-            entryAccumulator.reset();
-        return pass;
     }
 
     @Override

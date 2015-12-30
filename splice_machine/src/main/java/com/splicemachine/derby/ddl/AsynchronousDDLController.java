@@ -2,7 +2,6 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LockFactory;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.ErrorState;
@@ -34,16 +33,6 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
     private final Clock clock;
     private final Lock notificationLock;
     private final Condition notificationSignal;
-
-    public AsynchronousDDLController(DDLCommunicator communicator,
-                                     LockFactory lockFactory,
-                                     Clock clock){
-        this(communicator,
-                lockFactory,
-                clock,
-                TimeUnit.SECONDS.toMillis(SpliceConstants.ddlRefreshInterval),
-                TimeUnit.SECONDS.toMillis(SpliceConstants.maxDdlWait));
-    }
 
     public AsynchronousDDLController(DDLCommunicator communicator,
                                      LockFactory lockFactory,

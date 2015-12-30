@@ -185,11 +185,4 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     ExecIndexRow getStartPosition() throws StandardException;
 
     String getVTIFileName();
-
-    TxnView createChildTransaction(byte[] table) throws StandardException;
-
-    void rollbackTransaction(long txnId) throws StandardException;
-
-    void commitTransaction(long txnId) throws StandardException;
-
 }
