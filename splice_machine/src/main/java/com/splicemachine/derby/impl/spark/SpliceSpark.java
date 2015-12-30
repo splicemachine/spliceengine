@@ -4,12 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.rdd.RDDOperationScope;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
