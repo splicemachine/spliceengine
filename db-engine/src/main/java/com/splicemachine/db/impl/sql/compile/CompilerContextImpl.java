@@ -1046,4 +1046,15 @@ public class CompilerContextImpl extends ContextImpl
 	private HashMap requiredUsagePrivileges;
 	private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
+    private boolean useSpark = false;
+
+    @Override
+    public void setUseSpark() {
+        useSpark = true;
+    }
+
+    @Override
+    public boolean useSpark() {
+        return useSpark;
+    }
 } // end of class CompilerContextImpl

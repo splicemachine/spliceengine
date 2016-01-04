@@ -161,6 +161,30 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 	}
 
 
+    /**
+     *
+     *
+     *
+     */
+    @Override
+    public void setUseSpark() {
+        boolean useSpark = myCompCtx.useSpark();
+
+        // If there are no subqueries then
+        // the field is set to the correctly
+        // value (0) by java.
+        if (useSpark)
+            return;
+
+		/* Generated code is:
+		 *		useSpark = true;
+		 */
+        constructor.pushThis();
+        constructor.push(true);
+        constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
+        constructor.endStatement();
+    }
+
 	///////////////////////////////////////////////////////////////////////
 	//
 	// EXECUTE METHODS

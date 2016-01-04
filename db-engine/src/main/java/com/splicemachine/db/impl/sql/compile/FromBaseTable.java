@@ -2260,6 +2260,8 @@ public class FromBaseTable extends FromTable {
         if(referencedCols!=null){
             colRefItem=acb.addItem(referencedCols);
         }
+        if (getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)
+            acb.setUseSpark();
 
         //
         int indexColItem=-1;

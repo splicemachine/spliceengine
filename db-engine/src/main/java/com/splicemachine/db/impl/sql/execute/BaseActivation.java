@@ -107,6 +107,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	private String cursorName;
 	
 	protected int numSubqueries;
+    protected boolean useSpark = false;
 
 	private boolean singleExecution;
 
@@ -512,6 +513,10 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public int getNumSubqueries() {
 		return numSubqueries;
 	}
+
+    public boolean useSpark() {
+        return useSpark;
+    }
 
 	/**
 	 * @see Activation#isCursorActivation

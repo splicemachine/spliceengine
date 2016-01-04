@@ -148,6 +148,9 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	abstract	void 	setNumSubqueries()
 		 throws StandardException;
 
+    abstract void setUseSpark()
+         throws StandardException;
+
 	///////////////////////////////////////////////////////////////////////
 	//
 	// ACCESSORS

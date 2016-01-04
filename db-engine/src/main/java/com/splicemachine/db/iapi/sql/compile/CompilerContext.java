@@ -603,4 +603,8 @@ public interface CompilerContext extends Context
 	 */
     public boolean isReferenced( SequenceDescriptor sd );
 
+    public void setUseSpark();
+
+    public boolean useSpark();
+
 }
