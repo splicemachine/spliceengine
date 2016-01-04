@@ -176,7 +176,6 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
 	 			     * acquired).
     				 */
                     serverControl.ensureNetworkOpen();
-//                    HBaseServerUtils.checkCallerDisconnect(region,regionNameAsString);
                 }catch(IOException ioe){
                     if(!shouldContinue) //the lock was acquired, so it needs to be unlocked
                         unlock(lock);

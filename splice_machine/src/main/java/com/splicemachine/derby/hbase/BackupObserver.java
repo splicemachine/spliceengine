@@ -5,14 +5,6 @@ import com.splicemachine.hbase.backup.BackupUtils;
 import com.splicemachine.hbase.backup.SnapshotUtils;
 import com.splicemachine.hbase.backup.SnapshotUtilsFactory;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.hbase.CompactionObserver;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.derby.hbase.SplitObserver;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.io.HFileLink;
-import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

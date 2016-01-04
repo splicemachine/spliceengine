@@ -51,24 +51,16 @@ import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 import com.splicemachine.pipeline.api.BulkWriter;
 import com.splicemachine.storage.EntryPredicateFilter;
 
-public interface DerbyFactory<Transaction> {
+public interface DerbyFactory{
 	Filter getAllocatedFilter(byte[] localAddress);
-	List<HRegion> getOnlineRegions(RegionServerServices services, byte[] tableName) throws IOException;
-	void removeTableFromDescriptors(MasterServices masterServices, String tableName) throws IOException;
+
 	HRegionInfo loadRegionInfoFileContent(FileSystem fileSystem, Path path) throws IOException;
-	void writeScanExternal(ObjectOutput output, Scan scan) throws IOException;
-	Scan readScanExternal(ObjectInput in) throws IOException;
-	void checkCallerDisconnect(HRegion region) throws IOException;
+
 	InternalScanner noOpInternalScanner();
 	void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir, FileSystem fs, Configuration conf) throws IOException;
 	Path getTableDir(HRegion region) throws IOException;
 	Path getRegionDir(HRegion region);
 	void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
-	BulkWriter.Factory getBulkWritesInvoker(byte[] tableName);
-	long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
-	void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
-	int getRegionsSizeMB(String tableName);
-	Filter getHBaseEntryPredicateFilter(EntryPredicateFilter epf);
 
 	Table getTable(RegionCoprocessorEnvironment rce, byte[] tableName) throws IOException;
 	int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException;
