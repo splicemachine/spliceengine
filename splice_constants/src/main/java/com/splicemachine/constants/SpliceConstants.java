@@ -300,24 +300,6 @@ public class SpliceConstants {
     @DefaultValue(INTERRUPT_LOOP_CHECK) private static final int DEFAULT_INTERRUPT_LOOP_CHECK = 1000;
     public static int interruptLoopCheck;
 
-
-    /**
-     * The maximum size of the read buffer for importing data. When data is imported, it is read off
-     * the filesystem(HDFS) and pushed into a fixed-size buffer, where it is read by many processing threads.
-     * When the processing threads (set by splice.import.maxProcessingThreads) are set very low, the reading
-     * can outpace the writing, which will fill the buffer and force disk reads to wait for processing. In
-     * this situation, increasing the buffer size will help reduce the amount of time the reader spends
-     * waiting for a processing thread to complete its tasks.
-     *
-     * However, if the setting is too high, and the processing threads are slow (e.g. because of slow
-     * network write speed), then excessive memory can be consumed. Turn this down to relieve memory-pressure
-     * related issues.
-     * Defaults to 1000
-     */
-    @Parameter private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
-    @DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1024;
-    public static int maxImportReadBufferSize;
-
 		/**
 		 * Interval of the number of imported rows to report the status of a running import task.
 		 * For example, a running import task will by default report to JMX every 10,000 rows that it has imported.
@@ -1134,16 +1116,13 @@ public class SpliceConstants {
 
         delayedForwardRingBufferSize = config.getInt(DELAYED_FORWARD_RING_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE);
         pushForwardRingBufferSize = config.getInt(PUSH_FORWARD_RING_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE);
-//        pushForwardWriteBufferSize = config.getInt(PUSH_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE);
-//        delayedForwardWriteBufferSize = config.getInt(DELAYED_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE);
+//      pushForwardWriteBufferSize = config.getInt(PUSH_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE);
+//      delayedForwardWriteBufferSize = config.getInt(DELAYED_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE);
         delayedForwardAsyncWriteDelay = config.getInt(DELAYED_FORWARD_ASYNCH_WRITE_DELAY, DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY);
         delayedForwardQueueLimit = config.getInt(DELAYED_FORWARD_QUEUE_LIMIT, DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT);
-
-				interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
-				maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
-
-				importTaskStatusReportingRowCount = config.getLong(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT, DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT);
-				importTaskStatusLoggingInterval = config.getLong(IMPORT_TASK_STATUS_LOGGING_INTERVAL, DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL);
+		interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
+		importTaskStatusReportingRowCount = config.getLong(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT, DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT);
+		importTaskStatusLoggingInterval = config.getLong(IMPORT_TASK_STATUS_LOGGING_INTERVAL, DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL);
         multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
         multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
         rmiPort = config.getInt(RMI_PORT,DEFAULT_RMI_PORT);
@@ -1155,14 +1134,10 @@ public class SpliceConstants {
         kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
-
         flushQueueSizeBlock = config.getInt(FLUSH_QUEUE_SIZE_BLOCK, DEFAULT_FLUSH_QUEUE_SIZE_BLOCK);
         compactionQueueSizeBlock = config.getInt(COMPACTION_QUEUE_SIZE_BLOCK, DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK);
-
         sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
         interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
-        maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
-
         maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
 
         long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
