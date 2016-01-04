@@ -44,20 +44,8 @@ public class SITransactionReadController<OperationWithAttributes,Data,
         this.ignoreTxnSuppler = ignoreTxnSuppler;
     }
 
-    @Override
-    public boolean isFilterNeededGet(Get get){
-        return isFlaggedForSITreatment(get)
-                && !dataStore.isSuppressIndexing(get);
-    }
-
     private boolean isFlaggedForSITreatment(OperationWithAttributes op){
         return dataStore.getSINeededAttribute(op)!=null;
-    }
-
-    @Override
-    public boolean isFilterNeededScan(Scan scan){
-        return isFlaggedForSITreatment(scan)
-                && !dataStore.isSuppressIndexing(scan);
     }
 
     @Override
@@ -94,11 +82,6 @@ public class SITransactionReadController<OperationWithAttributes,Data,
                                           EntryPredicateFilter predicateFilter,TxnView txn,boolean countStar) throws IOException{
         return new PackedTxnFilter(newFilterState(readResolver,txn),
                 new HRowAccumulator(dataLib,predicateFilter,new EntryDecoder(),countStar));
-    }
-
-    @Override
-    public ReturnCode filterKeyValue(TxnFilter<Data, ReturnCode> filterState,Data data) throws IOException{
-        return filterState.filterKeyValue(data);
     }
 
     @Override

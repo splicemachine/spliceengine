@@ -63,6 +63,11 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
         bwf.setWriteCoordinator(writeCoordinator);
     }
 
+    @Override
+    public void initialize() throws IOException{
+        createTransactionalTable(Bytes.toBytes(Long.toString(1292)));
+        personPartition = getTableFactory().getTable(Long.toString(1292));
+    }
 
     @Override
     @SuppressWarnings("unchecked")

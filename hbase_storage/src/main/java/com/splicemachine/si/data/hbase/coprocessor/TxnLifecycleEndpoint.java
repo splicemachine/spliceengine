@@ -4,12 +4,14 @@ import com.google.common.base.Supplier;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.CountedReference;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -55,18 +57,20 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     });
 
     @Override
-    public void start(CoprocessorEnvironment env){
+    public void start(CoprocessorEnvironment env) throws IOException{
         HRegion region=((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
-            HbaseSIEnvironment siEnv = HbaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
+            HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
+            SConfiguration configuration=driver.getConfiguration();
+            long txnKeepAliveInterval = configuration.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL);
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),
                     resolver,
                     driver.getDataLib(),
-                    SIConstants.transactionKeepAliveInterval,
+                    txnKeepAliveInterval,
                     new SystemClock());
             TimestampSource timestampSource=driver.getTimestampSource();
             lifecycleStore = new StripedTxnLifecycleStore(SIConstants.transactionlockStripes,regionStore,new RegionServerControl(region),timestampSource);

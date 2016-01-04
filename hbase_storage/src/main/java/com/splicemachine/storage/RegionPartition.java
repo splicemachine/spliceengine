@@ -15,9 +15,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -53,6 +51,33 @@ public class RegionPartition implements Partition{
         return region.getRegionNameAsString();
     }
 
+
+    @Override
+    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+        List<Result> results = new ArrayList<>(rowKeys.size());
+        for(byte[] rk:rowKeys){
+            Get g = new Get(rk);
+            if(attributes!=null){
+                for(Map.Entry<String, byte[]> attrEntry : attributes.allAttributes().entrySet()){
+                    g.setAttribute(attrEntry.getKey(),attrEntry.getValue());
+                }
+            }
+            results.add(region.get(g));
+        }
+        final HResult result = new HResult();
+        return Iterators.transform(results.iterator(),new Function<Result, DataResult>(){
+            @Override
+            public DataResult apply(Result input){
+                result.set(input);
+                return result;
+            }
+        });
+    }
+
+    @Override
+    public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
+        return false;
+    }
 
     /*Lifecycle management*/
     @Override public void startOperation() throws IOException{ region.startRegionOperation(); }

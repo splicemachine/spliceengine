@@ -95,33 +95,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
     }
 
     @Override
-    public TxnView fromReads(OperationWithAttributes op) throws IOException{
-        byte[] txnData=dataLib.getAttribute(op,SI_TRANSACTION_ID_KEY);
-        if(txnData==null) return null; //non-transactional
-        return decode(txnData,0,txnData.length);
-    }
-
-
-    @Override
-    public TxnView fromWrites(OperationWithAttributes op) throws IOException{
-        byte[] txnData=dataLib.getAttribute(op,SI_TRANSACTION_ID_KEY);
-        if(txnData==null) return null; //non-transactional
-        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(txnData);
-        long beginTs=decoder.decodeNextLong();
-        boolean additive=decoder.decodeNextBoolean();
-        Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
-        //throw away the allow reads bit, since we won't care anyway
-        decoder.decodeNextBoolean();
-
-        TxnView parent=Txn.ROOT_TRANSACTION;
-        while(decoder.available()){
-            long id=decoder.decodeNextLong();
-            parent=new ActiveWriteTxn(id,id,parent,additive,level);
-        }
-        return new ActiveWriteTxn(beginTs,beginTs,parent,additive,level);
-    }
-
-    @Override
     public TxnView fromReads(Attributable op) throws IOException{
         byte[] txnData = op.getAttribute(SI_TRANSACTION_ID_KEY);
         if(txnData==null) return null;
@@ -211,7 +184,9 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
     }
 
     @Override
-    public void encodeForWrites(Attributable op,TxnView txn){
+    public void encodeForWrites(Attributable op,TxnView txn) throws IOException{
+        if(!txn.allowsWrites())
+            throw exceptionLib.readOnlyModification("ReadOnly txn "+txn.getTxnId());
         byte[] data=encode(txn);
         op.addAttribute(SI_TRANSACTION_ID_KEY,data);
         op.addAttribute(SI_NEEDED,SI_NEEDED_VALUE_BYTES);

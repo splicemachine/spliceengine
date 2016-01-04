@@ -3,10 +3,13 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+
+import java.io.IOException;
 
 
 /**
@@ -48,16 +51,22 @@ public class HTxnOperationFactory extends BaseOperationFactory<OperationWithAttr
     }
 
     @Override
-    public DataPut newDataPut(TxnView txn,byte[] key){
+    public DataPut newDataPut(TxnView txn,byte[] key) throws IOException{
         DataPut put = new HPut(key);
-        encodeForWrites(put,txn);
+        if(txn!=null)
+            encodeForWrites(put,txn);
         return put;
     }
 
     @Override
-    public DataDelete newDataDelete(TxnView txn,byte[] key){
-        DataDelete delete = new HDelete(key);
-        encodeForWrites(delete,txn);
-        return delete;
+    public DataMutation newDataDelete(TxnView txn,byte[] key) throws IOException{
+        if(txn==null){
+            return new HDelete(key);
+        }
+        HPut put = new HPut(key);
+        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txn.getTxnId(),SIConstants.EMPTY_BYTE_ARRAY);
+        put.addAttribute(SIConstants.SI_DELETE_PUT,SIConstants.EMPTY_BYTE_ARRAY);
+        encodeForWrites(put,txn);
+        return put;
     }
 }

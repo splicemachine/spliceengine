@@ -1,9 +1,14 @@
 package com.splicemachine.si.data;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.WriteConflict;
+import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
+import com.splicemachine.si.api.txn.lifecycle.TransactionTimeoutException;
 import com.splicemachine.si.impl.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 
 import java.io.IOException;

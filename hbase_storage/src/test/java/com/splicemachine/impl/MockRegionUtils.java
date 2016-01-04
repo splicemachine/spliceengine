@@ -57,8 +57,9 @@ public class MockRegionUtils{
                     });
                     List<Cell> kvs=Lists.newArrayList(filtered);
                     return Result.create(kvs);
-                }else
+                }else if(keyValues!=null){
                     return Result.create(Lists.newArrayList(keyValues));
+                }else return null;
             }
         });
 

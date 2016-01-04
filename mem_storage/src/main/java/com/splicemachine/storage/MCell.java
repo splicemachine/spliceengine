@@ -76,6 +76,11 @@ public class MCell implements DataCell{
     }
 
     @Override
+    public long familyLength(){
+        return family.length;
+    }
+
+    @Override
     public byte[] qualifier(){
         return qualifier;
     }

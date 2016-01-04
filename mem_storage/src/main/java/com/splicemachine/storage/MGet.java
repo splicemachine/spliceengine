@@ -60,6 +60,11 @@ public class MGet implements DataGet{
     }
 
     @Override
+    public void addColumn(byte[] family,byte[] qualifier){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
     public void addAttribute(String key,byte[] value){
         attrs.put(key,value);
     }

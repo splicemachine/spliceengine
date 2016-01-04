@@ -14,7 +14,9 @@ import java.util.Map;
 public class HScan implements DataScan{
     private Scan scan;
 
-    public HScan(){ }
+    public HScan(){
+        this.scan = new Scan();
+    }
 
     public HScan(Scan scan){
         this.scan=scan;

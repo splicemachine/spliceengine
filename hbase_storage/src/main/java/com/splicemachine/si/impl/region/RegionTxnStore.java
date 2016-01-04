@@ -74,7 +74,7 @@ public class RegionTxnStore implements TxnPartition{
             SpliceLogUtils.trace(LOG,"getTransaction txnId=%d",txnId);
         Get get=new Get(TxnUtils.getRowKey(txnId));
         Result result=region.get(get);
-        if(result==null||result==Result.EMPTY_RESULT)
+        if(result==null||result.isEmpty())
             return null; //no transaction
         return decode(txnId,result);
     }
@@ -233,7 +233,9 @@ public class RegionTxnStore implements TxnPartition{
         Source<TxnMessage.Txn> activeTxn=getActiveTxns(afterTs,beforeTs,destinationTable);
         LongArrayList lal=LongArrayList.newInstance();
         while(activeTxn.hasNext()){
-            lal.add(activeTxn.next().getInfo().getTxnId());
+            TxnMessage.Txn next=activeTxn.next();
+            TxnMessage.TxnInfo info=next.getInfo();
+            lal.add(info.getTxnId());
         }
         return lal.toArray();
     }
@@ -257,9 +259,12 @@ public class RegionTxnStore implements TxnPartition{
 
         final RegionScanner scanner=region.getScanner(scan);
         return new ScanIterator(scanner){
+
             @Override
-            public TxnMessage.Txn next() throws IOException{
-                TxnMessage.Txn txn=super.next();
+            protected TxnMessage.Txn decode(List<Cell> data) throws IOException{
+                TxnMessage.Txn txn = super.decode(data);
+                if(txn==null) return null;
+
                 /*
                  * In normal circumstances, we would say that this transaction is active
                  * (since it passed the ActiveTxnFilter).
@@ -387,12 +392,17 @@ public class RegionTxnStore implements TxnPartition{
             boolean shouldContinue;
             do{
                 shouldContinue=regionScanner.next(currentResults);
-                if(currentResults.size()<0) return false;
+                if(currentResults.size()<=0) return false;
 
-                this.next=decode(currentResults);
+                this.next = decode(currentResults);
+                currentResults.clear();
             }while(next==null && shouldContinue);
 
-            return true;
+            return next!=null;
+        }
+
+        protected TxnMessage.Txn decode(List<Cell> data) throws IOException{
+            return RegionTxnStore.this.decode(data);
         }
 
         @Override

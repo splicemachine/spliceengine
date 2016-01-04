@@ -3,6 +3,8 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -42,6 +44,8 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 12/18/15
@@ -61,7 +65,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final KeepAliveScheduler keepAlive;
     private final SConfiguration config;
 
-    public static HBaseSIEnvironment loadEnvironment(RecoverableZooKeeper rzk){
+    public static HBaseSIEnvironment loadEnvironment(RecoverableZooKeeper rzk) throws IOException{
         HBaseSIEnvironment env = INSTANCE;
         if(env==null){
             synchronized(HBaseSIEnvironment.class){
@@ -79,10 +83,17 @@ public class HBaseSIEnvironment implements SIEnvironment{
         INSTANCE = siEnv;
     }
 
+    public HBaseSIEnvironment(TimestampSource timestampSource) throws IOException{
+        this(timestampSource,new SystemClock());
+    }
+
     @SuppressWarnings("unchecked")
-    public HBaseSIEnvironment(TimestampSource timestampSource){
+    public HBaseSIEnvironment(TimestampSource timestampSource,Clock clock) throws IOException{
         this.timestampSource =timestampSource;
-        this.tableFactory=TableFactoryService.loadTableFactory();
+        this.config=new HConfiguration(SIConstants.config,SIConfigurations.defaults);
+        this.config.addDefaults(StorageConfiguration.defaults);
+
+        this.tableFactory=TableFactoryService.loadTableFactory(clock,this.config);
         this.partitionCache = PartitionCacheService.loadPartitionCache();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer();
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
@@ -93,8 +104,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
         this.readResolver = initializeReadResolver();
 
-        this.config=new HConfiguration(SIConstants.config,SIConfigurations.defaults);
-        this.config.addDefaults(StorageConfiguration.defaults);
         this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
                 config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
                 config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),

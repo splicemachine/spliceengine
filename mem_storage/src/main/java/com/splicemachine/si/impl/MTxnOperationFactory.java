@@ -5,6 +5,8 @@ import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.*;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 12/16/15
@@ -22,14 +24,14 @@ public class MTxnOperationFactory extends BaseOperationFactory{
     }
 
     @Override
-    public DataPut newDataPut(TxnView txn,byte[] key){
+    public DataPut newDataPut(TxnView txn,byte[] key) throws IOException{
         DataPut dp = new MPut(key);
         encodeForWrites(dp,txn);
         return dp;
     }
 
     @Override
-    public DataDelete newDataDelete(TxnView txn,byte[] key){
+    public DataDelete newDataDelete(TxnView txn,byte[] key) throws IOException{
         DataDelete delete = new MDelete(key);
         encodeForWrites(delete,txn);
         return delete;
@@ -41,4 +43,5 @@ public class MTxnOperationFactory extends BaseOperationFactory{
         encodeForReads(scan,txn,false);
         return scan;
     }
+
 }

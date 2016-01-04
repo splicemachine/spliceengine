@@ -20,14 +20,6 @@ import java.io.IOException;
 public interface TransactionReadController<Data,Get,ReturnCode,Scan>{
 
     /**
-     * Look at the operation and report back whether it has been flagged for SI treatment.
-     */
-    boolean isFilterNeededGet(Get get);
-
-    boolean isFilterNeededScan(Scan scan);
-
-
-    /**
      * Perform server-side pre-processing of operations. This is before they are actually executed.
      */
     void preProcessGet(Get get) throws IOException;
@@ -43,11 +35,6 @@ public interface TransactionReadController<Data,Get,ReturnCode,Scan>{
     TxnFilter newFilterStatePacked(ReadResolver readResolver,
                                    EntryPredicateFilter predicateFilter,
                                    TxnView txn,boolean countStar) throws IOException;
-
-    /**
-     * Consider whether to use a key value in light of a given filterState.
-     */
-    ReturnCode filterKeyValue(TxnFilter<Data, ReturnCode> filterState,Data data) throws IOException;
 
     /**
      * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations

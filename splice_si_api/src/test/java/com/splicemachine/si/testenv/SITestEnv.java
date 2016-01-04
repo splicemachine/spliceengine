@@ -11,7 +11,7 @@ import java.io.IOException;
 
 public interface SITestEnv extends SITestDataEnv{
 
-    Object getStore();
+    void initialize() throws IOException;
 
     String getPersonTableName();
 
@@ -23,7 +23,7 @@ public interface SITestEnv extends SITestDataEnv{
 
     TimestampSource getTimestampSource();
 
-    Partition getPersonTable(TestTransactionSetup tts);
+    Partition getPersonTable(TestTransactionSetup tts) throws IOException;
 
     Partition getPartition(String name, TestTransactionSetup tts) throws IOException;
 

@@ -40,28 +40,36 @@ public class HResult implements DataResult{
     @Override
     public DataCell commitTimestamp(){
         if(result==null) return null;
-        wrapper.set(result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES));
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
         return wrapper;
     }
 
     @Override
     public DataCell tombstone(){
         if(result==null) return null;
-        wrapper.set(result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES));
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
         return wrapper;
     }
 
     @Override
     public DataCell userData(){
         if(result==null) return null;
-        wrapper.set(result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES));
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
         return wrapper;
     }
 
     @Override
     public DataCell fkCounter(){
         if(result==null) return null;
-        wrapper.set(result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES));
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
         return wrapper;
     }
 
@@ -74,7 +82,9 @@ public class HResult implements DataResult{
     @Override
     public DataCell latestCell(byte[] family,byte[] qualifier){
         if(result==null) return null;
-        wrapper.set(result.getColumnLatestCell(family,qualifier));
+        Cell columnLatestCell=result.getColumnLatestCell(family,qualifier);
+        if(columnLatestCell==null) return null;
+        wrapper.set(columnLatestCell);
         return wrapper;
     }
 
@@ -97,5 +107,10 @@ public class HResult implements DataResult{
     @Override
     public Map<byte[], byte[]> familyCellMap(byte[] userColumnFamily){
         return result.getFamilyMap(userColumnFamily);
+    }
+
+    @Override
+    public DataResult getClone(){
+        return new HResult(Result.create(result.rawCells(),result.getExists(),result.isStale()));
     }
 }

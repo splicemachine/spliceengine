@@ -30,8 +30,7 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
         Get extends OperationWithAttributes,
         Put extends OperationWithAttributes,RegionScanner,
         Result,
-        ReturnCode,
-        Scan extends OperationWithAttributes> implements TxnFilter<Data, ReturnCode>{
+        Scan extends OperationWithAttributes> implements TxnFilter{
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
     private final DataStore<OperationWithAttributes, Data, Delete, Filter,
@@ -74,11 +73,6 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
     }
 
     @Override
-    public CellType getType(Data element) throws IOException{
-        return dataStore.getKeyValueType(element);
-    }
-
-    @Override
     public boolean filterRow(){
         return getExcludeRow();
     }
@@ -86,35 +80,6 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
     @Override
     public void reset(){
         nextRow();
-    }
-
-    @Override
-    public ReturnCode filterKeyValue(Data element) throws IOException{
-        throw new UnsupportedOperationException("OBSELETE, used filterKeyValue(DataCell) instead");
-//        CellType type=dataStore.getKeyValueType(element);
-//        if(type==CellType.COMMIT_TIMESTAMP){
-//            ensureTransactionIsCached(element);
-//            return returnCodeLib.getSkipReturnCode();
-//        }
-//        if(type==CellType.FOREIGN_KEY_COUNTER){
-//                    /* Transactional reads always ignore this column, no exceptions. */
-//            return returnCodeLib.getSkipReturnCode();
-//        }
-//
-//        readResolve(element);
-//        switch(type){
-//            case TOMBSTONE:
-//                addToTombstoneCache(element);
-//                return returnCodeLib.getSkipReturnCode();
-//            case ANTI_TOMBSTONE:
-//                addToAntiTombstoneCache(element);
-//                return returnCodeLib.getSkipReturnCode();
-//            case USER_DATA:
-//                return checkVisibility(element);
-//            default:
-//                //TODO -sf- do better with this?
-//                throw new AssertionError("Unexpected Data type: "+type);
-//        }
     }
 
     @Override

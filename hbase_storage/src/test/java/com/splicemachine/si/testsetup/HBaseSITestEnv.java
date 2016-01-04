@@ -51,6 +51,7 @@ import java.util.Random;
  */
 public class HBaseSITestEnv implements SITestEnv{
     private static int nextBasePort = 12_000;
+    private final PartitionFactory<TableName> tableFactory;
     private MiniHBaseCluster testCluster;
     private Clock clock;
     private TxnStore txnStore;
@@ -59,31 +60,36 @@ public class HBaseSITestEnv implements SITestEnv{
     private HBaseTestingUtility testUtility;
 
     public HBaseSITestEnv(){
-        this(Level.ERROR,"person");
+        this(Level.ERROR);
     }
 
-    public HBaseSITestEnv(Level baseLoggingLevel,String...initialTables){
+    public HBaseSITestEnv(Level baseLoggingLevel){
         configureLogging(baseLoggingLevel);
         Configuration conf = SpliceConstants.config;
         try{
             startCluster(conf);
             SIEnvironment hEnv=loadSIEnvironment();
-            HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin();
-            hBaseAdmin.createNamespace(NamespaceDescriptor.create("splice").build());
-            addTxnTable(hBaseAdmin);
-            for(String initialTable:initialTables){
-                hBaseAdmin.createTable(generateDefaultSIGovernedTable(initialTable));
+            try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
+                hBaseAdmin.createNamespace(NamespaceDescriptor.create("splice").build());
+                addTxnTable(hBaseAdmin);
             }
 
             this.clock = new IncrementingClock();
             this.txnStore = hEnv.txnStore();
             this.ignoreTxnSupplier = hEnv.ignoreTxnSupplier();
             this.timestampSource = hEnv.timestampSource();
+            this.tableFactory = TableFactoryService.loadTableFactory(clock,hEnv.configuration());
         }catch(Exception e){
             throw new RuntimeException(e);
         }
     }
 
+    @Override
+    public void initialize() throws IOException{
+        try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
+            hBaseAdmin.createTable(generateDefaultSIGovernedTable("person"));
+        }
+    }
 
     @Override public SDataLib getDataLib(){ return HDataLib.instance(); }
     @Override public String getPersonTableName(){ return "person"; }
@@ -95,7 +101,7 @@ public class HBaseSITestEnv implements SITestEnv{
     @Override public IgnoreTxnCacheSupplier getIgnoreTxnStore(){ return ignoreTxnSupplier; }
     @Override public TimestampSource getTimestampSource(){ return timestampSource; }
     @Override public DataFilterFactory getFilterFactory(){ return HFilterFactory.INSTANCE; }
-    @Override public PartitionFactory getTableFactory(){ return TableFactoryService.loadTableFactory(); }
+    @Override public PartitionFactory getTableFactory(){ return tableFactory; }
 
     @Override
     public Partition getPersonTable(TestTransactionSetup tts) throws IOException{
@@ -204,8 +210,8 @@ public class HBaseSITestEnv implements SITestEnv{
         }
     }
 
-    private SIEnvironment loadSIEnvironment(){
-        HBaseSIEnvironment siEnv=new HBaseSIEnvironment(new ConcurrentTimestampSource());
+    private SIEnvironment loadSIEnvironment() throws IOException{
+        HBaseSIEnvironment siEnv=new HBaseSIEnvironment(new ConcurrentTimestampSource(),clock);
         HBaseSIEnvironment.setEnvironment(siEnv);
         SIDriver.loadDriver(siEnv);
         return siEnv;

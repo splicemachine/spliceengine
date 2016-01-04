@@ -33,10 +33,6 @@ public interface TxnOperationFactory<OperationWithAttributes,
 
     Mutation newDelete(TxnView txn,byte[] rowKey) throws IOException;
 
-    TxnView fromReads(OperationWithAttributes op) throws IOException;
-
-    TxnView fromWrites(OperationWithAttributes op) throws IOException;
-
     TxnView fromReads(Attributable op) throws IOException;
 
     TxnView fromWrites(Attributable op) throws IOException;
@@ -53,11 +49,11 @@ public interface TxnOperationFactory<OperationWithAttributes,
 
     void encodeForReads(Attributable attributable,TxnView txn, boolean isCountStar);
 
-    void encodeForWrites(Attributable attributable,TxnView txn);
+    void encodeForWrites(Attributable attributable,TxnView txn) throws IOException;
 
     TxnView decode(byte[] data,int offset,int length);
 
-    DataPut newDataPut(TxnView txn,byte[] key);
+    DataPut newDataPut(TxnView txn,byte[] key) throws IOException;
 
     DataMutation newDataDelete(TxnView txn,byte[] key) throws IOException;
 

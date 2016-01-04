@@ -30,6 +30,11 @@ public class HGet implements DataGet{
     }
 
     @Override
+    public void addColumn(byte[] family,byte[] qualifier){
+        get.addColumn(family,qualifier);
+    }
+
+    @Override
     public void returnAllVersions(){
         get.setMaxVersions();
     }

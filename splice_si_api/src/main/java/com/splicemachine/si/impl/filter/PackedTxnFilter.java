@@ -4,14 +4,13 @@ import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
 
 import java.io.IOException;
 
-public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnCode>, SIFilter{
-    protected final TxnFilter<Data, ReturnCode> simpleFilter;
+public class PackedTxnFilter implements TxnFilter, SIFilter{
+    protected final TxnFilter simpleFilter;
     public final RowAccumulator accumulator;
     private DataCell lastValidCell;
     protected boolean excludeRow=false;
@@ -23,10 +22,6 @@ public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnC
 
     public RowAccumulator getAccumulator(){
         return accumulator;
-    }
-
-    public ReturnCode filterKeyValue(Data data) throws IOException{
-        throw new UnsupportedOperationException("OBSOLETE--use filterCell(DataCell) instead");
     }
 
     @Override
@@ -97,11 +92,6 @@ public class PackedTxnFilter<Data,ReturnCode> implements TxnFilter<Data, ReturnC
             return DataFilter.ReturnCode.INCLUDE;
         }else
             return DataFilter.ReturnCode.SKIP;
-    }
-
-    @Override
-    public CellType getType(Data data) throws IOException{
-        return simpleFilter.getType(data);
     }
 
     @Override

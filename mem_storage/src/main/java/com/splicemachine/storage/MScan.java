@@ -49,6 +49,22 @@ public class MScan implements DataScan{
     }
 
     @Override
+    public DataScan reverseOrder(){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public DataScan cacheRows(int rowsToCache){
+        //there is no caching in the in-memory version
+        return this;
+    }
+
+    @Override
+    public DataScan batchCells(int cellsToBatch){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getStartKey(){
         return startKey;

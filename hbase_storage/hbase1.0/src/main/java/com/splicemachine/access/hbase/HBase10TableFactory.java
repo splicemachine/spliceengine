@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.client.Table;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  *
@@ -26,8 +27,16 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
     private Connection connection;
     private Clock timeKeeper;
     private long splitSleepIntervalMs;
+    private volatile AtomicBoolean initialized = new AtomicBoolean(false);
 
-    public HBase10TableFactory(Clock timeKeeper,SConfiguration configuration){
+    public HBase10TableFactory(){
+    }
+
+    @Override
+    public void initialize(Clock timeKeeper,SConfiguration configuration) throws IOException{
+        if(!initialized.compareAndSet(false,true))
+            return; //already initialized by someone else
+
         this.timeKeeper = timeKeeper;
         this.splitSleepIntervalMs = configuration.getLong(StorageConfiguration.TABLE_SPLIT_SLEEP_INTERVAL);
         try{
@@ -35,6 +44,7 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
+
     }
 
     @Override

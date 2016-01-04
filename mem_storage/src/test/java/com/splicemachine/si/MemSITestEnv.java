@@ -36,7 +36,7 @@ public class MemSITestEnv implements SITestEnv{
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
-    private final Partition personPartition;
+    protected Partition personPartition;
     private final PartitionFactory tableFactory = new MPartitionFactory();
     private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
@@ -44,13 +44,15 @@ public class MemSITestEnv implements SITestEnv{
     private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
 
     public MemSITestEnv() throws IOException{
+    }
+
+    public void initialize() throws IOException{
         createTransactionalTable(Bytes.toBytes("person"));
         this.personPartition = tableFactory.getTable("person");
-
     }
 
     @Override public SDataLib getDataLib(){ return dataLib; }
-    @Override public Object getStore(){ return personPartition; }
+
     @Override public String getPersonTableName(){ return "person"; }
     @Override public Clock getClock(){ return clock; }
     @Override public TxnStore getTxnStore(){ return txnStore; }

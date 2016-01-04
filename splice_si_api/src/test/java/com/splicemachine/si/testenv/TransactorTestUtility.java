@@ -133,7 +133,8 @@ public class TransactorTestUtility {
     }
 
     public void assertWriteConflict(IOException e){
-       Assert.assertTrue("Expected a WriteConflict exception, but got <"+e.getClass()+">",e instanceof WriteConflict);
+        e = testEnv.getExceptionFactory().processRemoteException(e);
+        Assert.assertTrue("Expected a WriteConflict exception, but got <"+e.getClass()+">",e instanceof WriteConflict);
     }
 
 

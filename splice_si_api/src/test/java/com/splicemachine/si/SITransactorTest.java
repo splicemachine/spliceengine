@@ -167,12 +167,11 @@ public class SITransactorTest {
         Txn c2 = control.beginChildTransaction(p2, DESTINATION_TABLE);
         Txn g2 = control.beginChildTransaction(c2, DESTINATION_TABLE);
 
-//        try {
-            error.expect(IsInstanceOf.instanceOf(WriteConflict.class));
+        try {
             testUtility.insertAge(g2, "tickle2", 22);
-//        } catch (RetriesExhaustedWithDetailsException re) {
-//            throw re.getCauses().get(0);
-//        }
+        } catch (IOException re) {
+            testUtility.assertWriteConflict(re);
+        }
     }
 
     @Test
@@ -212,9 +211,8 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe012", 30);
-            Assert.fail();
+            Assert.fail("was able to insert age");
         } catch (IOException e) {
-        // catch (RetriesExhaustedWithDetailsException e) {
             testUtility.assertWriteConflict(e);
         } finally {
             t2.rollback();
@@ -263,9 +261,13 @@ public class SITransactorTest {
     @Test
     public void testCannotInsertUsingReadOnlyTransaction() throws Throwable {
         Txn t1 = control.beginTransaction();
-        error.expect(IsInstanceOf.instanceOf(ReadOnlyModificationException.class));
-        testUtility.insertAge(t1, "joe5", 20);
-        Assert.fail("Was able to insert age!");
+        try{
+            testUtility.insertAge(t1,"scott2",20);
+            Assert.fail("Was able to insert age!");
+        }catch(IOException ioe){
+            ioe =testEnv.getExceptionFactory().processRemoteException(ioe);
+            Assert.assertTrue("Incorrect exception",ReadOnlyModificationException.class.isAssignableFrom(ioe.getClass()));
+        }
     }
 
     @Test
@@ -1908,7 +1910,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe116", 30);
-            Assert.fail();
+            Assert.fail("Allowed insertion");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {

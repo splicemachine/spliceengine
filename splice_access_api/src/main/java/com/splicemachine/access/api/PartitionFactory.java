@@ -1,5 +1,6 @@
 package com.splicemachine.access.api;
 
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
@@ -9,6 +10,8 @@ import java.io.IOException;
  * Created by jleach on 11/18/15.
  */
 public interface PartitionFactory<SpliceTableInfo>{
+
+    void initialize(Clock clock,SConfiguration configuration) throws IOException;
 
     Partition getTable(SpliceTableInfo tableName) throws IOException;
 

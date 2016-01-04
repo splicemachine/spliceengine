@@ -49,6 +49,11 @@ public class HPut implements HMutation,DataPut{
     }
 
     @Override
+    public void addCell(byte[] family,byte[] qualifier,byte[] value){
+        put.add(family,qualifier,value);
+    }
+
+    @Override
     public byte[] key(){
         return put.getRow();
     }

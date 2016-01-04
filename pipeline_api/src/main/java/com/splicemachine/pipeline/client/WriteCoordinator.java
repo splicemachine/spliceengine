@@ -4,6 +4,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.PipelineConfiguration;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.callbuffer.BufferConfiguration;
@@ -100,8 +101,7 @@ public class WriteCoordinator {
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, PreFlushHook preFlushHook) {
-        monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, asynchronousWriter, preFlushHook, defaultWriteConfiguration, monitor, false);
+        return writeBuffer(partition,txn,preFlushHook,Metrics.noOpMetricFactory());
     }
 
     public RecordingCallBuffer<KVPair> noIndexWriteBuffer(Partition partition, TxnView txn, final MetricFactory metricFactory) {
@@ -117,15 +117,16 @@ public class WriteCoordinator {
    }
 
 
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, final PreFlushHook metricFactory) {
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, final PreFlushHook preFlushHook,final MetricFactory metricFactory) {
         WriteConfiguration config = defaultWriteConfiguration;
+        monitor.outstandingBuffers.incrementAndGet();
         //if it isn't active, don't bother creating the extra object
         if (metricFactory.isActive()) {
             config = new ForwardingWriteConfiguration(defaultWriteConfiguration) {
                 @Override public MetricFactory getMetricFactory() { return metricFactory; }
             };
         }
-        return writeBuffer(partition, txn, config);
+        return writeBuffer(partition, txn, preFlushHook,config);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, WriteConfiguration writeConfiguration) {

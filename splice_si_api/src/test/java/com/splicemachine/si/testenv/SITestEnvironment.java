@@ -1,5 +1,6 @@
 package com.splicemachine.si.testenv;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
@@ -23,14 +24,14 @@ public class SITestEnvironment{
     }
 
 
-    public static SITestEnv loadTestEnvironment(){
+    public static SITestEnv loadTestEnvironment() throws IOException{
         if(testEnv==null)
             initializeFullEnvironment();
 
         return testEnv;
     }
 
-    private static void initializeFullEnvironment(){
+    private static void initializeFullEnvironment() throws IOException{
         synchronized(SITestEnvironment.class){
             if(testEnv==null){
                 ServiceLoader<SITestEnv> load=ServiceLoader.load(SITestEnv.class);
@@ -38,6 +39,7 @@ public class SITestEnvironment{
                 if(!iter.hasNext())
                     throw new IllegalStateException("No SITestEnv found!");
                 testDataEnv = testEnv = iter.next();
+                testEnv.initialize();
                 if(iter.hasNext())
                     throw new IllegalStateException("Only one SITestEnv is allowed!");
             }

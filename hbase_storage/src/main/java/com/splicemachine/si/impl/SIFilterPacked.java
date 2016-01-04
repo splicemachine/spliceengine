@@ -14,13 +14,13 @@ import java.util.List;
  * An HBase filter that applies SI logic when reading data values.
  */
 public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
-    public TxnFilter<Cell, ReturnCode> filterState=null;
+    public TxnFilter filterState=null;
 
     private transient HCell wrapper = new HCell();
 
     public SIFilterPacked(){ }
 
-    public SIFilterPacked(TxnFilter<Cell, ReturnCode> filterState){
+    public SIFilterPacked(TxnFilter filterState){
         this.filterState=filterState;
     }
 

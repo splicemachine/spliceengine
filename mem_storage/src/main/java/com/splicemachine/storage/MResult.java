@@ -104,4 +104,9 @@ public class MResult implements DataResult{
         }
         return familyCellMap;
     }
+
+    @Override
+    public DataResult getClone(){
+        return new MResult(new ArrayList<>(dataCells));
+    }
 }

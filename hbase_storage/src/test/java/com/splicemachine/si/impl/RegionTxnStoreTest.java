@@ -56,6 +56,14 @@ public class RegionTxnStoreTest{
         TxnTestUtils.assertTxnsMatch("Transactions do not match!",txn,store.getTransaction(info.getTxnId()));
     }
 
+    @Test
+    public void testNoTransactionReturnsNull() throws Exception{
+        HRegion region=MockRegionUtils.getMockRegion();
+        TransactionResolver resolver=getTransactionResolver();
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,resolver,dataLib,Long.MAX_VALUE,clock);
+        Assert.assertNull("Non-null txn came back!",store.getTransaction(1));
+    }
+
 
     @Test
     public void testCanCommitATransaction() throws Exception{

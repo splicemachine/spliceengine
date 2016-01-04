@@ -59,6 +59,11 @@ public class MPut implements DataPut{
     }
 
     @Override
+    public void addCell(byte[] family,byte[] qualifier,byte[] value){
+        addCell(family,qualifier,Long.MAX_VALUE,value);
+    }
+
+    @Override
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] key(){
         return key;

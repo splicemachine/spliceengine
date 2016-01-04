@@ -1,15 +1,14 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Represents an HBase Table as a single Partition.
@@ -67,6 +66,35 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     @Override
     protected void doIncrement(Increment incr) throws IOException{
         table.increment(incr);
+    }
+
+    @Override
+    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+        List<Get> gets = new ArrayList<>(rowKeys.size());
+        for(byte[] rowKey:rowKeys){
+            Get g = new Get(rowKey);
+            if(attributes!=null){
+                for(Map.Entry<String,byte[]> attr:attributes.allAttributes().entrySet()){
+                    g.setAttribute(attr.getKey(),attr.getValue());
+                }
+            }
+            gets.add(g);
+        }
+        Result[] results=table.get(gets);
+        if(results.length<=0) return Collections.emptyIterator();
+        final HResult retResult = new HResult();
+        return Iterators.transform(Iterators.forArray(results),new Function<Result, DataResult>(){
+            @Override
+            public DataResult apply(Result input){
+                retResult.set(input);
+                return retResult;
+            }
+        });
+    }
+
+    @Override
+    public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
+        return false;
     }
 
     @Override

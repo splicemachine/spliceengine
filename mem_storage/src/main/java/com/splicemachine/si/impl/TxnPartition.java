@@ -71,6 +71,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
     public DataScanner openScanner(DataScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
     }
@@ -89,6 +94,11 @@ public class TxnPartition implements Partition{
     @Override
     public void put(DataPut put) throws IOException{
         transactor.processPut(basePartition,rollForward,put);
+    }
+
+    @Override
+    public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override

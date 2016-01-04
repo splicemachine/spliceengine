@@ -22,6 +22,8 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
 
+import java.io.IOException;
+
 
 /**
  * A Setup class for use in testing code.
@@ -105,7 +107,7 @@ public class TestTransactionSetup {
         return filterFactory.singleColumnEqualsValueFilter(SIConstants.DEFAULT_FAMILY_BYTES,qualifier,value);
     }
 
-    public Partition getPersonTable(SITestEnv testEnv){
+    public Partition getPersonTable(SITestEnv testEnv) throws IOException{
         return testEnv.getPersonTable(this);
     }
 

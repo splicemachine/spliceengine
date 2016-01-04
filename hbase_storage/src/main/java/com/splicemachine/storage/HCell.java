@@ -99,6 +99,7 @@ public class HCell implements DataCell{
 
     @Override
     public long version(){
+        if(delegate==null) return -1;
         return delegate.getTimestamp();
     }
 
@@ -178,6 +179,12 @@ public class HCell implements DataCell{
         return delegate;
     }
 
+    @Override
+    public long familyLength(){
+        if(delegate==null) return 0;
+        return delegate.getFamilyLength();
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private CellType parseType(Cell cell){
@@ -189,7 +196,7 @@ public class HCell implements DataCell{
             if (CellUtils.matchingValue(cell, SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
                 return CellType.ANTI_TOMBSTONE;
             } else {
-                return CellType.ANTI_TOMBSTONE;
+                return CellType.TOMBSTONE;
             }
         } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
             return CellType.FOREIGN_KEY_COUNTER;

@@ -14,7 +14,7 @@ public class UpdatingTxnFilter<OperationWithAttributes,Data,Delete extends Opera
         Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>
         extends SimpleTxnFilter<OperationWithAttributes,Data,Delete,Filter,
                 Get,
-        Put,RegionScanner,Result,ReturnCode, Scan> {
+        Put,RegionScanner,Result, Scan> {
     private final RegionSegmentContext context;
 
     public UpdatingTxnFilter(String tableName,TxnView myTxn,ReadResolver readResolver,TxnSupplier baseSupplier,IgnoreTxnCacheSupplier ignoreTxnSupplier,DataStore dataStore,RegionSegmentContext context){

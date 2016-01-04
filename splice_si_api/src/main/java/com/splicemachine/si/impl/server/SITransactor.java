@@ -148,8 +148,14 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
     }
 
     @Override
-    public MutationStatus[] processKvBatch(Partition table,RollForward rollForward,byte[] defaultFamilyBytes,byte[] packedColumnBytes,Collection<KVPair> toProcess,TxnView txn,ConstraintChecker constraintChecker) throws IOException{
-        ensureTransactionAllowsWrites(txn.getTxnId(),txn);
+    public MutationStatus[] processKvBatch(Partition table,
+                                           RollForward rollForward,
+                                           byte[] defaultFamilyBytes,
+                                           byte[] packedColumnBytes,
+                                           Collection<KVPair> toProcess,
+                                           TxnView txn,
+                                           ConstraintChecker constraintChecker) throws IOException{
+        ensureTransactionAllowsWrites(txn);
         return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker);
     }
 
@@ -279,7 +285,7 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
     }
 
     private boolean applyConstraint(ConstraintChecker constraintChecker,
-                                    TxnFilter<Data, ReturnCode> constraintStateFilter,
+                                    TxnFilter constraintStateFilter,
                                     int rowPosition,
                                     KVPair mutation,
                                     DataResult row,
@@ -525,9 +531,9 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         return dataStore.getSINeededAttribute(operation)!=null;
     }
 
-    private void ensureTransactionAllowsWrites(long txnId,TxnView transaction) throws IOException{
+    private void ensureTransactionAllowsWrites(TxnView transaction) throws IOException{
         if(transaction==null || !transaction.allowsWrites()){
-            throw exceptionLib.readOnlyModification("transaction is read only: "+txnId);
+            throw exceptionLib.readOnlyModification("transaction is read only: "+transaction);
         }
     }
 

@@ -6,6 +6,7 @@ import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TransactionalFilter;
@@ -46,6 +47,7 @@ public class SIObserver extends BaseRegionObserver{
     private static Logger LOG=Logger.getLogger(SIObserver.class);
     private boolean tableEnvMatch=false;
     private TxnOperationFactory<OperationWithAttributes,Get,Mutation,Put,Scan> txnOperationFactory;
+    private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
     private TransactionReadController<Cell,Get,Filter.ReturnCode,Scan> txnReadController;
 
@@ -57,6 +59,7 @@ public class SIObserver extends BaseRegionObserver{
         if(tableEnvMatch){
             HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
             SIDriver driver = env.getSIDriver();
+            operationStatusFactory = driver.getOperationStatusLib();
             //noinspection unchecked
             txnOperationFactory=new HTxnOperationFactory(driver.getDataLib(),driver.getExceptionFactory());
             //noinspection unchecked
@@ -149,7 +152,11 @@ public class SIObserver extends BaseRegionObserver{
             super.prePut(e,put,edit,writeToWAL);
             return;
         }
-        TxnView txn=txnOperationFactory.fromWrites(put);
+        byte[] attribute=put.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction not specified!";
+
+
+        TxnView txn=txnOperationFactory.fromWrites(attribute,0,attribute.length);
         boolean isDelete=put.getAttribute(SIConstants.SI_DELETE_PUT)!=null;
         byte[] row=put.getRow();
         boolean isSIDataOnly=true;
@@ -187,7 +194,7 @@ public class SIObserver extends BaseRegionObserver{
             Map<byte[], KVPair> cols=family.getValue();
             for(Map.Entry<byte[], KVPair> column : cols.entrySet()){
                 @SuppressWarnings("unchecked") Iterable<MutationStatus> status=
-                        region.bulkWrite(txn,fam,column.getKey(),null,Collections.singleton(column.getValue()));
+                        region.bulkWrite(txn,fam,column.getKey(),operationStatusFactory.getNoOpConstraintChecker(),Collections.singleton(column.getValue()));
                 Iterator<MutationStatus> itr= status.iterator();
                 if(!itr.hasNext())
                     throw new IllegalStateException();
@@ -216,14 +223,19 @@ public class SIObserver extends BaseRegionObserver{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void addSIFilterToGet(Get get) throws IOException{
-        TxnView txn=txnOperationFactory.fromReads(get);
-        final Filter newFilter=makeSIFilter(txn,get.getFilter(),
-                getPredicateFilter(get),false);
+        byte[] attribute=get.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction information is missing";
+
+        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
+        final Filter newFilter=makeSIFilter(txn,get.getFilter(), getPredicateFilter(get),false);
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(Scan scan) throws IOException{
-        TxnView txn=txnOperationFactory.fromReads(scan);
+        byte[] attribute=scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        assert attribute!=null: "Transaction information is missing";
+
+        TxnView txn=txnOperationFactory.fromReads(attribute,0,attribute.length);
         final Filter newFilter=makeSIFilter(txn,scan.getFilter(),
                 getPredicateFilter(scan),scan.getAttribute(SIConstants.SI_COUNT_STAR)!=null);
         scan.setFilter(newFilter);
@@ -234,12 +246,10 @@ public class SIObserver extends BaseRegionObserver{
         return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
     }
 
-    private boolean shouldUseSI(Get get){
-        return txnReadController.isFilterNeededGet(get);
-    }
-
-    private boolean shouldUseSI(Scan scan){
-        return txnReadController.isFilterNeededScan(scan);
+    private boolean shouldUseSI(OperationWithAttributes op){
+        if(op.getAttribute(SIConstants.SI_NEEDED)==null) return false;
+        else if(op.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return false;
+        else return true;
     }
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity

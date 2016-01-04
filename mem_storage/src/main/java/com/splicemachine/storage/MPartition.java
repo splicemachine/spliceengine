@@ -70,6 +70,11 @@ public class MPartition implements Partition{
     }
 
     @Override
+    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
     public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
         DataCell start = new MCell(rowKey,family,new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
         DataCell end = new MCell(rowKey,family,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
@@ -113,7 +118,10 @@ public class MPartition implements Partition{
         put((MPut)put);
     }
 
-
+    @Override
+    public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 
     @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{

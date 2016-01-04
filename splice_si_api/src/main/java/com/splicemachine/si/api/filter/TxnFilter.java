@@ -7,13 +7,12 @@ import com.splicemachine.storage.DataFilter;
 
 import java.io.IOException;
 
-public interface TxnFilter<Data,ReturnCode> extends DataFilter{
-    ReturnCode filterKeyValue(Data keyValue) throws IOException;
+public interface TxnFilter extends DataFilter{
     void nextRow();
 
     DataCell produceAccumulatedResult();
     boolean getExcludeRow();
-	CellType getType(Data keyValue) throws IOException;
-	DataStore getDataStore();
+
+    DataStore getDataStore();
     RowAccumulator getAccumulator();
 }

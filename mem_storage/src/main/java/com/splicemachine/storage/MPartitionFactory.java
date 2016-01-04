@@ -3,6 +3,8 @@ package com.splicemachine.storage;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 
 import java.io.IOException;
@@ -15,6 +17,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MPartitionFactory implements PartitionFactory<Object>{
     private final Map<String,Partition> partitionMap = new ConcurrentHashMap<>();
+
+    @Override
+    public void initialize(Clock clock,SConfiguration configuration) throws IOException{
+        //no-op
+    }
 
     @Override
     public Partition getTable(Object tableName) throws IOException{

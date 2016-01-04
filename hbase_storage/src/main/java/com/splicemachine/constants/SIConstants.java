@@ -1,5 +1,6 @@
 package com.splicemachine.constants;
 
+import com.splicemachine.si.api.SIConfigurations;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -120,7 +121,7 @@ public class SIConstants extends SpliceConstants {
          *
          */
         int zkTimeout = config.getInt(HConstants.ZK_SESSION_TIMEOUT,HConstants.DEFAULT_ZK_SESSION_TIMEOUT);
-        int configuredTxnTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
+        long configuredTxnTimeout = config.getLong(SIConfigurations.TRANSACTION_TIMEOUT,SIConfigurations.DEFAULT_TRANSACTION_TIMEOUT);
         if(configuredTxnTimeout<zkTimeout)
             configuredTxnTimeout = (int)(1.5f*zkTimeout); //add some slop factor so that we are sure that zookeeper timed out first
 
