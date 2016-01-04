@@ -8,7 +8,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -31,13 +30,17 @@ public class DDLWatchRefresher{
     private AtomicReference<DDLFilter> ddlDemarcationPoint;
     private final DDLWatchChecker watchChecker;
     private final Clock clock;
+    private final TransactionReadController txController;
     private final long maxDdlWaitMs;
     private final AtomicInteger currChangeCount= new AtomicInteger(0);
 
 
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
-                             Clock clock,long maxDdlWaitMs){
+                             TransactionReadController txnController,
+                             Clock clock,
+                             long maxDdlWaitMs){
         this.clock=clock;
+        this.txController = txnController;
         this.maxDdlWaitMs=maxDdlWaitMs;
         this.seenDDLChanges=new HashSet<>();
         this.changeTimeouts=new HashMap<>();
@@ -76,7 +79,7 @@ public class DDLWatchRefresher{
                 } catch (Exception e) {
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.error(LOG,e);
-                    newChanges.add(new Pair<DDLChange, String>(change,e.getLocalizedMessage()));
+                    newChanges.add(new Pair<>(change,e.getLocalizedMessage()));
                 }
             }
         }
@@ -150,7 +153,6 @@ public class DDLWatchRefresher{
         try {
             TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
             assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
-            TransactionReadController txController = HTransactorFactory.getTransactionReadController();
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
                 ddlDemarcationPoint.set(ddlFilter);

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LockFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -37,14 +38,13 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
     public AsynchronousDDLController(DDLCommunicator communicator,
                                      LockFactory lockFactory,
                                      Clock clock,
-                                     long refreshIntervalMillis,
-                                     long maxDdlWaitMillis){
+                                     SConfiguration configuration){
         this.communicator=communicator;
         this.clock = clock;
         this.notificationLock = lockFactory.newLock();
         this.notificationSignal = notificationLock.newCondition();
-        this.refreshInterval= refreshIntervalMillis;
-        this.maximumWaitTime= maxDdlWaitMillis;
+        this.refreshInterval= configuration.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL);
+        this.maximumWaitTime= configuration.getLong(DDLConfiguration.MAX_DDL_WAIT);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
             }
 
             for (String finishedServer: finishedServers) {
-                if (finishedServer.startsWith(ZooKeeperDDLWatchChecker.ERROR_TAG)) {
+                if (finishedServer.startsWith(DDLConfiguration.ERROR_TAG)) {
                     String errorMessage = communicator.getErrorMessage(changeId,finishedServer);
                     throw StandardException.plainWrapException(new IOException(errorMessage));
                 }

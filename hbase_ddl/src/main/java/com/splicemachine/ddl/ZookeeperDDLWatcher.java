@@ -1,12 +1,14 @@
-package com.splicemachine.derby.ddl;
+package com.splicemachine.ddl;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.concurrent.SystemClock;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.filter.TransactionReadController;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Collection;
@@ -23,16 +25,10 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * An instance of this class in each region server listens for DDL notifications.
  */
-public class ZookeeperDDLWatcher implements DDLWatcher,CommunicationListener {
+public class ZookeeperDDLWatcher implements DDLWatcher,CommunicationListener{
 
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLWatcher.class);
 
-    private static final long REFRESH_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(20);
-    /*
-     * We wait longer than the max DDL wait to make sure that we don't time out until after the controller
-     * has
-     */
-    private static final long MAXIMUM_DDL_WAIT_MS = TimeUnit.SECONDS.toMillis(2*SpliceConstants.maxDdlWait);
 
     private Set<DDLListener> ddlListeners =new CopyOnWriteArraySet<>();
 
@@ -43,7 +39,14 @@ public class ZookeeperDDLWatcher implements DDLWatcher,CommunicationListener {
     private final Condition refreshNotifierCondition = refreshNotifierLock.newCondition();
     private final AtomicInteger requestCount = new AtomicInteger(0);
     private final DDLWatchChecker checker = new ZooKeeperDDLWatchChecker();
-    private final DDLWatchRefresher refresher = new DDLWatchRefresher(checker,new SystemClock(),MAXIMUM_DDL_WAIT_MS);
+    private final DDLWatchRefresher refresher; //= new DDLWatchRefresher(checker,new SystemClock(),MAXIMUM_DDL_WAIT_MS);
+    private final long refreshWaitMs;
+
+    public ZookeeperDDLWatcher(TransactionReadController txnController,Clock clock,SConfiguration config){
+        long maxDdlWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
+        this.refreshWaitMs = config.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL);
+        this.refresher = new DDLWatchRefresher(checker,txnController,clock,maxDdlWait);
+    }
 
     @Override
     public void start() throws StandardException {
@@ -89,7 +92,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher,CommunicationListener {
                          * Wait to be notified, but only up to the refresh interval. After that,
                          * we go ahead and refresh anyway.
                          */
-                        refreshNotifierCondition.await(REFRESH_TIMEOUT_MS,TimeUnit.MILLISECONDS);
+                        refreshNotifierCondition.await(refreshWaitMs,TimeUnit.MILLISECONDS);
                     }catch (InterruptedException e) {
                         LOG.error("Interrupted while forcibly refreshing, terminating thread");
                     } finally{

@@ -33,6 +33,7 @@
         <module>splice_machine</module>
         <module>hbase_storage</module>
         <module>hbase_pipeline</module>
+		<module>hbase_ddl</module>
 	</modules>
 	<properties>
 		<derby.version>2.0.0.1-SNAPSHOT</derby.version>

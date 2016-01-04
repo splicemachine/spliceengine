@@ -1,10 +1,17 @@
-package com.splicemachine.derby.ddl;
+package com.splicemachine.ddl;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.derby.ddl.CommunicationListener;
+import com.splicemachine.derby.ddl.DDLConfiguration;
+import com.splicemachine.derby.ddl.DDLWatchChecker;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.*;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -16,7 +23,6 @@ import java.util.List;
 public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     private static final String CHANGES_PATH = SpliceConstants.zkSpliceDDLOngoingTransactionsPath;
     private static final Logger LOG=Logger.getLogger(ZooKeeperDDLWatchChecker.class);
-    public static final String ERROR_TAG = "[ERROR]";
     private String id;
     private Watcher changeIdWatcher;
 
@@ -77,7 +83,7 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
             DDLChange change = pair.getFirst();
             String errorMessage = pair.getSecond();
             // Tag Errors for handling on the client, will allow us to understand what node failed and why...
-            String path=SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+change.getChangeId()+"/"+(errorMessage==null?"":ERROR_TAG)+id;
+            String path=SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+change.getChangeId()+"/"+(errorMessage==null?"":DDLConfiguration.ERROR_TAG)+id;
             Op op = Op.create(path, (errorMessage==null?new byte[]{}:(String.format("server [%s] failed with error [%s]",id,errorMessage).getBytes())),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
             ops.add(op);
             changeList.add(change);

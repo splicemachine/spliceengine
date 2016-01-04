@@ -80,16 +80,9 @@ public class SpliceConstants {
     @DefaultValue(ROLL_FORWARD_INTERVAL) public static final long DEFAULT_ROLL_FORWARD_INTERVAL=TimeUnit.MINUTES.toMillis(10); //every 10 minutes
     public static long rollForwardInterval;
 
-    @Parameter public static final String MAX_DDL_WAIT = "splice.ddl.maxWaitSeconds";
-    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_MAX_DDL_WAIT=240;
-    public static long maxDdlWait;
-
-    @Parameter public static final String DDL_REFRESH_INTERVAL = "splice.ddl.refreshIntervalSeconds";
-    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_DDL_REFRESH_INTERVAL=10;
-    public static long ddlRefreshInterval;
 
     @Parameter public static final String NUM_CLIENT_HCONNECTIONS = "splice.client.numConnections";
-    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_NUM_HCONNECTIONS=5;
+    @DefaultValue(NUM_CLIENT_HCONNECTIONS) public static final int DEFAULT_NUM_HCONNECTIONS=5;
     public static int numHConnections;
 
     public static long regionLoadUpdateInterval;
@@ -1170,8 +1163,6 @@ public class SpliceConstants {
         rollForwardRowThreshold = config.getInt(ROLL_FORWARD_ROW_THRESHOLD,DEFAULT_ROLLFOWARD_ROW_THRESHOLD);
         rollForwardTxnThreshold = config.getInt(ROLL_FORWARD_TXN_THRESHOLD,DEFAULT_ROLLFOWARD_TXN_THRESHOLD);
         rollForwardInterval = config.getLong(ROLL_FORWARD_INTERVAL,DEFAULT_ROLL_FORWARD_INTERVAL);
-        maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
-        ddlRefreshInterval  = config.getInt(DDL_REFRESH_INTERVAL,DEFAULT_DDL_REFRESH_INTERVAL);
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
         regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
         batchOnceBatchSize = config.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);

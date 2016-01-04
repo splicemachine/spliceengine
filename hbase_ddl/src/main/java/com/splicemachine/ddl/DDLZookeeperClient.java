@@ -1,10 +1,16 @@
-package com.splicemachine.derby.ddl;
+package com.splicemachine.ddl;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -26,7 +32,7 @@ class DDLZookeeperClient {
     static void createRequiredZooNodes() throws IOException {
         for (String path : new String[]{DDL_PATH, CHANGES_PATH, SERVERS_PATH}) {
             try {
-                ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZkUtils.create(path,new byte[0],ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
             } catch (KeeperException e) {
                 if (!e.code().equals(KeeperException.Code.NODEEXISTS)) {
                     throw new IOException(e);

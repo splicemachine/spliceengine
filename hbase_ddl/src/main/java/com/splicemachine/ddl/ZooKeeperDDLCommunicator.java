@@ -1,7 +1,7 @@
-package com.splicemachine.derby.ddl;
+package com.splicemachine.ddl;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLCommunicator;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import java.util.Collection;
