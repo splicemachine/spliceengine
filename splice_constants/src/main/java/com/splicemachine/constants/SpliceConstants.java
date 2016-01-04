@@ -646,7 +646,7 @@ public class SpliceConstants {
     public static double controlSideCostThreshold;
     
     @Parameter private static final String CONTROL_SIDE_ROWCOUNT_THRESHOLD = "splice.dataset.control.rowCountThreshold";
-    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 100000;
+    @DefaultValue(CONTROL_SIDE_ROWCOUNT_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 100000;
     public static double controlSideRowCountThreshold;
     
     /**
