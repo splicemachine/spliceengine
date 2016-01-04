@@ -43,7 +43,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
             if (childTxn == null)
                 throw new IOException("child transaction lookup failed");
             tableWriter.setTxn(outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID()));
-            return new SMRecordWriter(tableWriter);
+            return new SMRecordWriter(tableWriter, outputCommitter);
         } catch (Exception e) {
             throw new IOException(e);
         }

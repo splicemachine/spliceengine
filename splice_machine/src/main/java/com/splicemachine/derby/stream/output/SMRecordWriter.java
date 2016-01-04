@@ -1,10 +1,10 @@
 package com.splicemachine.derby.stream.output;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
@@ -17,9 +17,13 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
     private static Logger LOG = Logger.getLogger(SMRecordWriter.class);
     boolean initialized = false;
     TableWriter tableWriter;
-    public SMRecordWriter(TableWriter tableWriter) {
+    OutputCommitter outputCommitter;
+    private int numRows = 0;
+    private boolean failure = false;
+    public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) {
         SpliceLogUtils.trace(LOG,"init");
         this.tableWriter = tableWriter;
+        this.outputCommitter = outputCommitter;
     }
 
     @Override
@@ -29,9 +33,11 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
                 initialized = true;
                 tableWriter.open();
             }
+            numRows++;
             tableWriter.write(execRow);
-        } catch (StandardException se) {
+        } catch (Exception se) {
             SpliceLogUtils.error(LOG,"Error Writing",se);
+            failure = true;
             throw new IOException(se);
         }
     }
@@ -44,7 +50,11 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
                 tableWriter.close();
             }
         } catch (Exception e) {
+            failure = true;
             throw new IOException(e);
+        } finally {
+            if (failure || numRows==0)
+                outputCommitter.abortTask(taskAttemptContext);
         }
     }
 }
