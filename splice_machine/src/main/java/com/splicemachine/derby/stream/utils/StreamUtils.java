@@ -1,7 +1,6 @@
 package com.splicemachine.derby.stream.utils;
 
 import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -9,6 +8,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.control.HregionDataSetProcessor;
@@ -16,7 +16,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.si.api.TxnView;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -47,9 +46,7 @@ public class StreamUtils {
                LOG.trace("resultset estimated cost " + ((SpliceOperation) activation.getResultSet()).getEstimatedCost());
             }
         }
-        double estimatedCost = activation.getResultSet() == null ? op.getEstimatedCost() : ((SpliceOperation)activation.getResultSet()).getEstimatedCost();
-        double estimatedRowCount = activation.getResultSet() == null ? op.getEstimatedRowCount() : ((SpliceOperation)activation.getResultSet()).getEstimatedRowCount();
-        return (estimatedCost > CONTROL_SIDE_THRESHOLD || estimatedRowCount > CONTROL_SIDE_ROWCOUNT_THRESHOLD) ?sparkDataSetProcessor:controlDataSetProcessor;
+        return ((BaseActivation) activation).useSpark()?sparkDataSetProcessor:controlDataSetProcessor;
     }
 
     public static <Op extends SpliceOperation> DataSetProcessor getLocalDataSetProcessorFromActivation(Activation activation, SpliceOperation op) {
