@@ -991,7 +991,7 @@ public interface SQLState {
 	String LANG_INVALID_FROM_TABLE_PROPERTY                            = "42Y44";
 	String LANG_CANNOT_BIND_TRIGGER_V_T_I                              = "42Y45";
 	String LANG_INVALID_FORCED_INDEX1                                  = "42Y46";
-//	String LANG_INVALID_FORCED_INDEX2                                  = "42Y47";
+	String LANG_INVALID_FORCED_SPARK                                   = "42Y47";
 	String LANG_INVALID_FORCED_INDEX2                                  = "42Y48";
 	String LANG_DUPLICATE_PROPERTY                                     = "42Y49";
 	String LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED              = "42Y50";

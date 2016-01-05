@@ -2510,6 +2510,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y47</name>
+                <text>Invalid Properties list in FROM list.  The hint useSpark needs (true/false) and does not support '{0}'.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
                 <name>42Y48</name>
                 <text>Invalid Properties list in FROM list.  Either there is no named constraint '{0}' on table '{1}' or the constraint does not have a backing index.</text>
                 <arg>constraintName</arg>

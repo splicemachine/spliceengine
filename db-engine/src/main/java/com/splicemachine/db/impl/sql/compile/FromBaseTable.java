@@ -130,6 +130,7 @@ public class FromBaseTable extends FromTable {
     private FormatableBitSet referencedCols;
     private ResultColumnList templateColumns;
 
+    protected boolean useSpark;
     /* A 0-based array of column names for this table used
      * for optimizer trace.
      */
@@ -599,10 +600,18 @@ public class FromBaseTable extends FromTable {
                 }
             }else if(key.equals("joinStrategy")){
                 userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
-            } else{
+            }
+            else if (key.equals("useSpark")) {
+                try {
+                    useSpark = Boolean.getBoolean(StringUtil.SQLToUpperCase(value));
+                } catch (Exception sparkE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value);
+                }
+            }
+            else{
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy");
+                        "index, constraint, joinStrategy, useSpark");
             }
 
 		    /* If user specified a non-null constraint name(DERBY-1707), then
