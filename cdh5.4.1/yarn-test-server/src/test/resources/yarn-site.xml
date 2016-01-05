@@ -6,42 +6,46 @@
     <description>Don't let minicluster overwrite ports we set in here</description>
   </property>
   <property>
+    <name>yarn.minicluster.use-rpc</name>
+    <value>true</value>
+  </property>
+  <property>
     <name>yarn.resourcemanager.webapp.address</name>
-    <value>127.0.0.1:8042</value>
+    <value>localhost:8042</value>
     <description>Connect to resource manager web page.</description>
   </property>
 
   <property>
     <name>yarn.nodemanager.hostname</name>
-    <value>127.0.0.1</value>
+    <value>localhost</value>
   </property>
   <property>
     <name>yarn.nodemanager.scheduler.address</name>
-    <value>127.0.0.1:8050</value>
+    <value>localhost:8050</value>
   </property>
   <property>
     <name>yarn.nodemanager.address</name>
-    <value>127.0.0.1:8053</value>
+    <value>localhost:8053</value>
   </property>
   <property>
     <name>yarn.resourcemanager.hostname</name>
-    <value>127.0.0.1</value>
+    <value>localhost</value>
   </property>
   <property>
     <name>yarn.resourcemanager.scheduler.address</name>
-    <value>127.0.0.1:8030</value>
+    <value>localhost:8030</value>
   </property>
   <property>
     <name>yarn.resourcemanager.resource-tracker.address</name>
-    <value>127.0.0.1:8031</value>
+    <value>localhost:8031</value>
   </property>
   <property>
     <name>yarn.resourcemanager.address</name>
-    <value>127.0.0.1:8032</value>
+    <value>localhost:8032</value>
   </property>
   <property>
     <name>yarn.resourcemanager.admin.address</name>
-    <value>127.0.0.1:8033</value>
+    <value>localhost:8033</value>
   </property>
 
   <property>
@@ -80,7 +84,7 @@
   </property>
   <property>
     <name>yarn.nodemanager.resource.cpu-vcores</name>
-    <value>2</value>
+    <value>4</value>
     <description>Number of CPU cores that can be allocated for containers.</description>
   </property>
 </configuration>
