@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
@@ -133,9 +134,12 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
     GenericPreparedStatement() {
         /* Get the UUID for this prepared statement */
-        UUIDFactory uuidFactory = Monitor.getMonitor().getUUIDFactory();
-        UUIDValue = uuidFactory.createUUID();
-        UUIDString = UUIDValue.toString();
+        ModuleFactory moduleFactory = Monitor.getMonitor();
+        if (moduleFactory != null) {
+            UUIDFactory uuidFactory = moduleFactory.getUUIDFactory();
+            UUIDValue = uuidFactory.createUUID();
+            UUIDString = UUIDValue.toString();
+        }
         spsAction = false;
     }
 

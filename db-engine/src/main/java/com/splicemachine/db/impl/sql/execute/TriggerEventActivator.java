@@ -31,6 +31,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 
@@ -71,7 +72,10 @@ public class TriggerEventActivator {
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
         this.lcc = activation.getLanguageConnectionContext();
-        this.statementText = lcc.getStatementContext().getStatementText();
+        StatementContext context = lcc.getStatementContext();
+        if (context != null) {
+            this.statementText = context.getStatementText();
+        }
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
