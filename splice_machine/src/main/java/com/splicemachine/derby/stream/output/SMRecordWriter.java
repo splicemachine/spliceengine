@@ -18,7 +18,6 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
     boolean initialized = false;
     TableWriter tableWriter;
     OutputCommitter outputCommitter;
-    private int numRows = 0;
     private boolean failure = false;
     public SMRecordWriter(TableWriter tableWriter, OutputCommitter outputCommitter) {
         SpliceLogUtils.trace(LOG,"init");
@@ -33,7 +32,6 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
                 initialized = true;
                 tableWriter.open();
             }
-            numRows++;
             tableWriter.write(execRow);
         } catch (Exception se) {
             SpliceLogUtils.error(LOG,"Error Writing",se);
@@ -53,7 +51,7 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
             failure = true;
             throw new IOException(e);
         } finally {
-            if (failure || numRows==0)
+            if (failure)
                 outputCommitter.abortTask(taskAttemptContext);
         }
     }
