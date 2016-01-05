@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Base64;
 import java.io.Externalizable;
@@ -42,17 +43,16 @@ public class DeleteTableWriterBuilder implements Externalizable{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(heapConglom);
-        TransactionOperations.getOperationFactory().writeTxn(txn, out);
+        SIDriver.driver().getOperationFactory().writeTxn(txn, out);
         out.writeBoolean(operationContext!=null);
         if (operationContext!=null)
             out.writeObject(operationContext);
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         heapConglom = in.readLong();
-        txn = TransactionOperations.getOperationFactory().readTxn(in);
+        txn = SIDriver.driver().getOperationFactory().readTxn(in);
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
     }

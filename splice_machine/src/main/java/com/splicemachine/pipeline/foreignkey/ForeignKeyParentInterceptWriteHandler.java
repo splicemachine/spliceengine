@@ -1,16 +1,20 @@
 package com.splicemachine.pipeline.foreignkey;
 
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.pipeline.api.CallBuffer;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.api.WriteHandler;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -19,23 +23,28 @@ import java.util.Map;
  * Intercepts deletes from a parent table (primary key or unique index) and sends the rowKey over to the referencing
  * indexes to check for its existence.
  */
-public class ForeignKeyParentInterceptWriteHandler implements WriteHandler {
+@NotThreadSafe
+public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
 
     private final WriteCoordinator writeCoordinator;
     private final List<Long> referencingIndexConglomerateIds;
     private final Map<Long, RecordingCallBuffer<KVPair>> callBufferMap = Maps.newHashMap();
     private final ForeignKeyViolationProcessor violationProcessor;
+    private Partition destPartition;
 
-    public ForeignKeyParentInterceptWriteHandler(String parentTableName, List<Long> referencingIndexConglomerateIds) {
+    public ForeignKeyParentInterceptWriteHandler(String parentTableName,
+                                                 List<Long> referencingIndexConglomerateIds,
+                                                 PipelineExceptionFactory exceptionFactory) {
         this.referencingIndexConglomerateIds = referencingIndexConglomerateIds;
-        this.writeCoordinator = SpliceDriver.driver().getTableWriter();
-        this.violationProcessor = new ForeignKeyViolationProcessor(new ForeignKeyViolationProcessor.ParentFkConstraintContextProvider(parentTableName));
+        this.writeCoordinator = PipelineDriver.driver().writeCoordinator();
+        this.violationProcessor = new ForeignKeyViolationProcessor(
+                new ForeignKeyViolationProcessor.ParentFkConstraintContextProvider(parentTableName),exceptionFactory);
     }
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if (isForeignKeyInterceptNecessary(mutation.getType())) {
-            KVPair kvPair = new KVPair(mutation.getRowKey(), HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK);
+            KVPair kvPair = new KVPair(mutation.getRowKey(), SIConstants.EMPTY_BYTE_ARRAY, KVPair.Type.FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK);
             try {
                 for (long indexConglomerateId : this.referencingIndexConglomerateIds) {
                     getTargetCallBuffer(ctx, indexConglomerateId).add(kvPair);
@@ -54,10 +63,6 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler {
         return type == KVPair.Type.DELETE;
     }
 
-    @Override
-    public void next(List<KVPair> mutations, WriteContext ctx) {
-        throw new UnsupportedOperationException("never called");
-    }
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
@@ -78,14 +83,19 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler {
             }
         } catch (Exception e) {
             violationProcessor.failWrite(e, ctx);
+        }finally{
+            destPartition.close();
         }
     }
 
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
-    private RecordingCallBuffer<KVPair> getTargetCallBuffer(WriteContext ctx, long conglomerateId) {
+    private RecordingCallBuffer<KVPair> getTargetCallBuffer(WriteContext ctx, long conglomerateId) throws IOException{
         if (!callBufferMap.containsKey(conglomerateId)) {
-            byte[] tableName = Bytes.toBytes(String.valueOf(conglomerateId));
-            RecordingCallBuffer<KVPair> callBuffer = writeCoordinator.writeBuffer(tableName, ctx.getTxn());
+            if(destPartition==null){
+                PartitionFactory pf=SIDriver.driver().getTableFactory();
+                destPartition=pf.getTable(String.valueOf(conglomerateId));
+            }
+            RecordingCallBuffer<KVPair> callBuffer = writeCoordinator.writeBuffer(destPartition, ctx.getTxn());
             callBufferMap.put(conglomerateId, callBuffer);
         }
         return callBufferMap.get(conglomerateId);

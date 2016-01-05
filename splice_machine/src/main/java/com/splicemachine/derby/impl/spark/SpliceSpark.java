@@ -71,7 +71,7 @@ public class SpliceSpark {
                 new SpliceAccessManager();
                 SpliceDriver driver = SpliceDriver.driver();
                 if (!driver.isStarted()) {
-                    driver.start(null); // TODO might cause NPEs....
+                    driver.start(); // TODO might cause NPEs....
                 }
                 if (driver.getUUIDGenerator() == null) {
                     driver.loadUUIDGenerator(1); // Need to get Spark Port? TODO JL

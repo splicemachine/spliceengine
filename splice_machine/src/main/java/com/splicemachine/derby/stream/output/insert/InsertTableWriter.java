@@ -14,10 +14,12 @@ import com.splicemachine.derby.stream.output.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.pipeline.utils.PipelineConstants;
+import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.IntArrays;
 import java.util.Iterator;
 
@@ -35,6 +37,7 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
     protected InsertOperation insertOperation;
     protected OperationContext operationContext;
     protected boolean isUpsert;
+    private Partition table;
 
     public InsertTableWriter(int[] pkCols, String tableVersion, ExecRow execRowDefinition,
                              RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
@@ -62,10 +65,14 @@ public class InsertTableWriter extends AbstractTableWriter<ExecRow> {
         super.open(triggerHandler, operation);
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
-            writeBuffer = writeCoordinator.writeBuffer(destinationTable,txn, PipelineConstants.noOpFlushHook,insertOperation!=null&&
-                    insertOperation.failBadRecordCount!=0?
-                    new PermissiveInsertWriteConfiguration(writeCoordinator.defaultWriteConfiguration(),
-                            operationContext,encoder.getDecoder(execRowDefinition)):writeCoordinator.defaultWriteConfiguration());
+            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+            if(insertOperation!=null && insertOperation.failBadRecordCount!=0)
+                    writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
+                            operationContext,
+                            encoder.getDecoder(execRowDefinition));
+
+            this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
+            writeBuffer = writeCoordinator.writeBuffer(table,txn,writeConfiguration);
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
             flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);

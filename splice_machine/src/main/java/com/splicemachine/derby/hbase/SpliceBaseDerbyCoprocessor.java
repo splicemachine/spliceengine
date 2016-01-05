@@ -33,7 +33,7 @@ public class SpliceBaseDerbyCoprocessor {
 
         /* We used to only invoke start here if the table was not a hbase meta table, but this method only
          * has an effect once per JVM so it doesn't matter what table this particular coprocessor instance if for. */
-        SpliceDriver.driver().start(regionServerServices);
+        SpliceDriver.driver().start();
     }
 
 }

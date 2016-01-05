@@ -5,11 +5,6 @@ import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.hbase.*;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

@@ -6,6 +6,8 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -20,8 +22,8 @@ import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.server.PipelineDriver;
-import com.splicemachine.pipeline.server.PipelineEnvironment;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
@@ -34,7 +36,9 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
+import javax.management.MBeanServer;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -58,7 +62,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private PipelineExceptionFactory exceptionFactory;
     private SConfiguration config;
     private PartitionFactory tableFactory;
-    private ContextFactoryLoader factoryLoader;
+    private volatile ContextFactoryLoader factoryLoader;
 
     //TODO -sf- add relevant observers in
     private Set<CompactionObserver> compactionObservers = new CopyOnWriteArraySet<>();
@@ -67,7 +71,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private Set<StoreScannerObserver> storeScannerObservers = new CopyOnWriteArraySet<>();
 
     @Override
-    public void start(CoprocessorEnvironment e) throws IOException{
+    public void start(final CoprocessorEnvironment e) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)e);
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
@@ -80,7 +84,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case HBASE_TABLE:
                 return; //disregard table environments which are not user or system tables
         }
-        long conglomId;
+        final long conglomId;
         try{
             conglomId=Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
@@ -90,7 +94,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         }
         PipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(null); //TODO -sf- register a factory loader
         RegionPartition baseRegion=new RegionPartition(rce.getRegion());
-        PipelineDriver pipelineDriver=pipelineEnv.getPipelineDriver();
+        final PipelineDriver pipelineDriver=pipelineEnv.getPipelineDriver();
         SIDriver siDriver=pipelineEnv.getSIDriver();
 
         region=siDriver.transactionalPartition(conglomId,baseRegion);
@@ -98,7 +102,26 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         exceptionFactory = pipelineDriver.exceptionFactory();
         config = pipelineEnv.configuration();
         tableFactory = siDriver.getTableFactory();
-        factoryLoader = pipelineDriver.getContextFactoryLoader(conglomId);
+        try{
+            DatabaseLifecycleManager.manager().registerService(new DatabaseLifecycleService(){
+                @Override
+                public void start() throws Exception{
+                    factoryLoader = pipelineDriver.getContextFactoryLoader(conglomId);
+                }
+
+                @Override
+                public void registerJMX(MBeanServer mbs) throws Exception{
+                    pipelineDriver.registerJMX(mbs); //may already be registered, but why not?
+                }
+
+                @Override
+                public void shutdown() throws Exception{
+                    stop(e);
+                }
+            });
+        }catch(Exception e1){
+            throw new IOException(e1);
+        }
     }
 
     @Override
@@ -113,6 +136,13 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "prePut %s",put);
         if(conglomId>0){
+            if(factoryLoader==null){
+                try{
+                    DatabaseLifecycleManager.manager().awaitStartup();
+                }catch(InterruptedException e1){
+                    throw new InterruptedIOException();
+                }
+            }
             if(put.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
 
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something

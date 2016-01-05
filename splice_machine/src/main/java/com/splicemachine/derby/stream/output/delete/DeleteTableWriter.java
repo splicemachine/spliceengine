@@ -8,7 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;

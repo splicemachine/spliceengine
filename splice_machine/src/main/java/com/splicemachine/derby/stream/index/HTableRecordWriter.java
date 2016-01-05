@@ -2,7 +2,7 @@ package com.splicemachine.derby.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;

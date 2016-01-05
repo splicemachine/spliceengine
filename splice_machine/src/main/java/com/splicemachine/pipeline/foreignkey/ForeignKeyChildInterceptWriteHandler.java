@@ -2,32 +2,39 @@ package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.api.WriteHandler;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.primitives.Bytes;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Intercepts insert/updates to a FK constraint backing index and sends the rowKey over to the referenced primary-key or
  * unique-index region for existence checking.
  */
-public class ForeignKeyChildInterceptWriteHandler implements WriteHandler {
+public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     private final WriteCoordinator writeCoordinator;
     private final long referencedConglomerateNumber;
     private final ForeignKeyViolationProcessor violationProcessor;
 
     private RecordingCallBuffer<KVPair> referencedTableCallBuffer;
+    private Partition table;
 
-    public ForeignKeyChildInterceptWriteHandler(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo) {
+    public ForeignKeyChildInterceptWriteHandler(long referencedConglomerateNumber,
+                                                FKConstraintInfo fkConstraintInfo,
+                                                PipelineExceptionFactory exceptionFactory) {
         this.referencedConglomerateNumber = referencedConglomerateNumber;
-        this.writeCoordinator = SpliceDriver.driver().getTableWriter();
-        this.violationProcessor = new ForeignKeyViolationProcessor(new ForeignKeyViolationProcessor.ChildFkConstraintContextProvider(fkConstraintInfo));
+        this.writeCoordinator = PipelineDriver.driver().writeCoordinator();
+        this.violationProcessor = new ForeignKeyViolationProcessor(
+                new ForeignKeyViolationProcessor.ChildFkConstraintContextProvider(fkConstraintInfo),
+                exceptionFactory);
     }
 
     @Override
@@ -51,11 +58,6 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler {
     }
 
     @Override
-    public void next(List<KVPair> mutations, WriteContext ctx) {
-        throw new UnsupportedOperationException("never called");
-    }
-
-    @Override
     public void flush(WriteContext ctx) throws IOException {
         try {
             referencedTableCallBuffer.flushBuffer();
@@ -67,17 +69,22 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler {
     @Override
     public void close(WriteContext ctx) throws IOException {
         try {
-            referencedTableCallBuffer.close();
+            if(referencedTableCallBuffer!=null){
+                    referencedTableCallBuffer.close();
+            }
         } catch (Exception e) {
             violationProcessor.failWrite(e, ctx);
+        }finally{
+            if(table!=null)
+                table.close();
         }
     }
 
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
-    private void initTargetCallBuffer(WriteContext ctx) {
+    private void initTargetCallBuffer(WriteContext ctx) throws IOException{
         if (referencedTableCallBuffer == null) {
-            byte[] hbaseTableBytes = Bytes.toBytes(String.valueOf(referencedConglomerateNumber));
-            referencedTableCallBuffer = writeCoordinator.writeBuffer(hbaseTableBytes, ctx.getTxn());
+            table = SIDriver.driver().getTableFactory().getTable(Long.toString((referencedConglomerateNumber)));
+            referencedTableCallBuffer = writeCoordinator.writeBuffer(table,ctx.getTxn());
         }
     }
 

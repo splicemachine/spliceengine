@@ -18,4 +18,6 @@ public interface DataFilterFactory{
      * @return a DataFilter which performed the equality check.
      */
     DataFilter singleColumnEqualsValueFilter(byte[] family,byte[] qualifier,byte[] value);
+
+    DataFilter allocatedFilter(byte[] localAddress);
 }

@@ -1,17 +1,15 @@
 package com.splicemachine.pipeline.foreignkey;
 
-import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
 
@@ -22,7 +20,7 @@ import java.util.List;
  * Perform the FK existence check on a referencing child table's backing index.  Fails write if a referencing
  * row DOES exist--preventing an UPDATE or DELETE in the parent table.
  */
-public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
+public class ForeignKeyChildCheckWriteHandler implements WriteHandler{
 
     private final TransactionalRegion transactionalRegion;
     private final TxnOperationFactory txnOperationFactory;
@@ -83,11 +81,6 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
 //            regionScanner.close();
 //        }
 //        return result;
-    }
-
-    @Override
-    public void next(List<KVPair> mutations, WriteContext ctx) {
-        throw new UnsupportedOperationException("never called");
     }
 
     @Override

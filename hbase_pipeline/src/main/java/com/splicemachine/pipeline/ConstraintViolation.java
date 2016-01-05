@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline;
 
 import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
@@ -47,7 +48,7 @@ public class ConstraintViolation extends DoNotRetryIOException{
         }
     }
 
-    public static class FkViolation extends ConstraintViolation{
+    public static class FkViolation extends ConstraintViolation implements ForeignKeyViolation{
         public FkViolation(){ }
 
         public FkViolation(String message){

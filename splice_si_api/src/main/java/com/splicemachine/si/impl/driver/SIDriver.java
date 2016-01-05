@@ -2,6 +2,7 @@ package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -21,6 +22,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
 
@@ -41,6 +43,8 @@ public class SIDriver {
         INSTANCE.ignoreTxnSupplier = env.ignoreTxnSupplier();
         INSTANCE.txnOpFactory = env.operationFactory();
         INSTANCE.rollForward = env.rollForward();
+        INSTANCE.filterFactory = env.filterFactory();
+        INSTANCE.clock = env.systemClock();
 
         INSTANCE.dataStore = new DataStore(INSTANCE.dataLib,
                 SIConstants.SI_NEEDED,
@@ -79,6 +83,8 @@ public class SIDriver {
     private RollForward rollForward;
     private ReadResolver readResolver;
     private TxnLifecycleManager lifecycleManager;
+    private DataFilterFactory filterFactory;
+    private Clock clock;
 
     public PartitionFactory getTableFactory(){
         return tableFactory;
@@ -143,6 +149,10 @@ public class SIDriver {
         return lifecycleManager;
     }
 
+    public DataFilterFactory filterFactory(){
+        return filterFactory;
+    }
+
     public TransactionalRegion transactionalPartition(long conglomId,Partition basePartition){
         if(conglomId>=0){
             return new TxnRegion(basePartition,
@@ -163,5 +173,9 @@ public class SIDriver {
                     getTransactor(),
                     getOperationFactory());
         }
+    }
+
+    public Clock getClock(){
+        return clock;
     }
 }

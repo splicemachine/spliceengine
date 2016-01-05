@@ -1,10 +1,11 @@
-package com.splicemachine.pipeline.server;
+package com.splicemachine.pipeline;
 
+import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.impl.driver.SIEnvironment;
-import com.splicemachine.pipeline.client.RpcChannelFactory;
 
 /**
  * @author Scott Fines
@@ -19,5 +20,7 @@ public interface PipelineEnvironment extends SIEnvironment{
 
     PipelineCompressor pipelineCompressor();
 
-    RpcChannelFactory channelFactory();
+    BulkWriterFactory writerFactory();
+
+    PipelineMeter pipelineMeter();
 }

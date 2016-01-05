@@ -6,10 +6,10 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.List;
  * Perform the FK existence check on a referenced primary key column or unique index. Fails the write if a
  * referenced row does NOT exist.  Preventing INSERTS/UPDATES in child table that would create orphaned rows.
  */
-public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
+public class ForeignKeyParentCheckWriteHandler implements WriteHandler{
 
     private final TransactionalRegion transactionalRegion;
 
@@ -72,11 +72,6 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
         ConstraintContext context = new ConstraintContext(failedKvAsHex);
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
         ctx.failed(kvPair, foreignKeyConstraint);
-    }
-
-    @Override
-    public void next(List<KVPair> mutations, WriteContext ctx) {
-        throw new UnsupportedOperationException("never called");
     }
 
     @Override

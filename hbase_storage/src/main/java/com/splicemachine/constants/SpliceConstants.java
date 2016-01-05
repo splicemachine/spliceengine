@@ -935,7 +935,6 @@ public class SpliceConstants {
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
-    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String RESTORE_TABLE_NAME = "SPLICE_RESTORE";
     public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
     public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
@@ -944,7 +943,6 @@ public class SpliceConstants {
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
     public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
-    public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
     public static final byte[] RESTORE_TABLE_NAME_BYTES = Bytes.toBytes(RESTORE_TABLE_NAME);
 
     //TEMP Table task column--used for filtering out failed tasks from the temp

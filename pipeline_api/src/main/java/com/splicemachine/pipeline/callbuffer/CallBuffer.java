@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.Partition;
 
 /**
  * This is an interface to a data structure to buffer (or queue) HBase RPC calls.
@@ -71,4 +72,6 @@ public interface CallBuffer<E> extends AutoCloseable {
      *
      */
     TxnView getTxn();
+
+    Partition destinationPartition();
 }

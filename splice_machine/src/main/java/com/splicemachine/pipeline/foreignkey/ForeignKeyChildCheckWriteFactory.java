@@ -3,7 +3,6 @@ package com.splicemachine.pipeline.foreignkey;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
-import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyChildCheckWriteHandler;
 import java.io.IOException;
 
 /**
@@ -24,6 +23,16 @@ class ForeignKeyChildCheckWriteFactory implements LocalWriteFactory{
     @Override
     public long getConglomerateId() {
         throw new UnsupportedOperationException("not used");
+    }
+
+    @Override
+    public boolean canReplace(LocalWriteFactory newContext){
+        return false;
+    }
+
+    @Override
+    public void replace(LocalWriteFactory newFactory){
+        throw new UnsupportedOperationException();
     }
 
 }

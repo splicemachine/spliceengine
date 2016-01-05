@@ -6,6 +6,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
+import javax.security.auth.login.Configuration;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -21,27 +22,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.io.Closeables;
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.pipeline.PartitionWritePipeline;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.reporting.JmxReporter;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.concurrent.MoreExecutors;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -56,17 +41,13 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.backup.BackupHFileCleaner;
-import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
-import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
@@ -96,7 +77,6 @@ public class SpliceDriver {
     private final WriteCoordinator writeCoordinator;
     private final DDLWatcher ddlWatcher;
 
-    private RegionServerServices regionServerServices;
     private JmxReporter metricsReporter;
     private Connection connection;
 
@@ -166,10 +146,6 @@ public class SpliceDriver {
         return spliceVersion;
     }
 
-    public WriteCoordinator getTableWriter() {
-        return writeCoordinator;
-    }
-
     public Properties getProperties() {
         return props;
     }
@@ -188,34 +164,6 @@ public class SpliceDriver {
         this.services.remove(service);
     }
 
-    private HRegion getOnlineRegion(String encodedRegionName) {
-        return regionServerServices == null ? null : (HRegion) regionServerServices.getFromOnlineRegions(encodedRegionName);
-    }
-
-    private RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
-        HRegion region = getOnlineRegion(encodedRegionName);
-        return region == null ? null : region.getCoprocessorHost();
-    }
-
-    private CoprocessorEnvironment getSpliceIndexEndpointEnvironment(String encodedRegionName) {
-        RegionCoprocessorHost host = getCoprocessorHost(encodedRegionName);
-        return host == null ? null : host.findCoprocessorEnvironment(ENDPOINT_CLASS_NAME);
-    }
-
-    public SpliceBaseIndexEndpoint getIndexEndpoint(String encodedRegionName) {
-        CoprocessorEnvironment ce = getSpliceIndexEndpointEnvironment(encodedRegionName);
-        return ce == null ? null : ((IndexEndpoint) ce.getInstance()).getBaseIndexEndpoint();
-    }
-
-    public PartitionWritePipeline getWritePipeline(String encodedRegionName) {
-        SpliceBaseIndexEndpoint endpoint = getIndexEndpoint(encodedRegionName);
-        if (endpoint == null) {
-        	SpliceLogUtils.debug(LOG, "IndexEndpoint not found for encoded region %s", encodedRegionName);
-        	return null;
-        }
-        return endpoint.getWritePipeline();
-    }
-
     public boolean isStarted() {
         return stateHolder.get() == State.RUNNING;
     }
@@ -223,8 +171,7 @@ public class SpliceDriver {
     /**
      * Call this to execute splice application startup logic on the region/JVM.
      */
-    public void start(RegionServerServices regionServerServices) {
-        this.regionServerServices = regionServerServices;
+    public void start() {
 
         // Only execute once per JVM, regardless of how many times we are called.
         if (stateHolder.compareAndSet(State.NOT_STARTED, State.INITIALIZING)) {

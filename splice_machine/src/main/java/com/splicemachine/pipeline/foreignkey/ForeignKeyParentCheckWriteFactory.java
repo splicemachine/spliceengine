@@ -2,7 +2,6 @@ package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
-import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyParentCheckWriteHandler;
 
 import java.io.IOException;
 
@@ -31,4 +30,13 @@ class ForeignKeyParentCheckWriteFactory implements LocalWriteFactory{
         throw new UnsupportedOperationException("not used");
     }
 
+    @Override
+    public boolean canReplace(LocalWriteFactory newContext){
+        return false;
+    }
+
+    @Override
+    public void replace(LocalWriteFactory newFactory){
+        throw new UnsupportedOperationException();
+    }
 }

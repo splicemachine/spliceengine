@@ -2,12 +2,12 @@ package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.api.Code;
-import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
-import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.primitives.Bytes;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 /**
  * We intercept writes on either the parent or child table and check for the existence of referenced or referring
@@ -17,10 +17,13 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
  */
 class ForeignKeyViolationProcessor {
 
-    private FkConstraintContextProvider fkConstraintContextProvider;
+    private final FkConstraintContextProvider fkConstraintContextProvider;
+    private final PipelineExceptionFactory exceptionFactory;
 
-    ForeignKeyViolationProcessor(FkConstraintContextProvider fkConstraintContextProvider) {
+    ForeignKeyViolationProcessor(FkConstraintContextProvider fkConstraintContextProvider,
+                                 PipelineExceptionFactory exceptionFactory) {
         this.fkConstraintContextProvider = fkConstraintContextProvider;
+        this.exceptionFactory = exceptionFactory;
     }
 
     /**
@@ -28,22 +31,15 @@ class ForeignKeyViolationProcessor {
      * result in all FK ITs failing. Still, it would be nice if would could simplify this.  DB-2952 is for simplifying
      * how error details are passed between FK CheckWriteHandlers and FK InterceptWriteHandlers.
      */
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     public void failWrite(Exception originalException, WriteContext ctx) {
-        Throwable t = originalException;
-        while ((t = t.getCause()) != null) {
-            if (t instanceof RetriesExhaustedWithDetailsException) {
-                RetriesExhaustedWithDetailsException retriesException = (RetriesExhaustedWithDetailsException) t;
-                if (retriesException.getCauses() != null && !retriesException.getCauses().isEmpty()) {
-                    Throwable cause = retriesException.getCause(0);
-                    if (cause instanceof ConstraintViolation.ForeignKeyConstraintViolation) {
-                        doFail(ctx, (ConstraintViolation.ForeignKeyConstraintViolation) cause);
-                    }
-                }
-            }
+        Throwable t =exceptionFactory.processPipelineException(originalException);
+        if(t instanceof ForeignKeyViolation){
+            doFail(ctx,(ForeignKeyViolation)t);
         }
     }
 
-    private void doFail(WriteContext ctx, ConstraintViolation.ForeignKeyConstraintViolation cause) {
+    private void doFail(WriteContext ctx, ForeignKeyViolation cause) {
         String hexEncodedFailedRowKey = cause.getConstraintContext().getMessages()[0];
         byte[] failedRowKey = Bytes.fromHex(hexEncodedFailedRowKey);
         ConstraintContext constraintContext = fkConstraintContextProvider.get(cause);
@@ -58,7 +54,7 @@ class ForeignKeyViolationProcessor {
      * failure happened, etc. Thus the abstraction below.
      */
     interface FkConstraintContextProvider {
-        ConstraintContext get(ConstraintViolation.ForeignKeyConstraintViolation cause);
+        ConstraintContext get(ForeignKeyViolation cause);
     }
 
     static class ChildFkConstraintContextProvider implements FkConstraintContextProvider {
@@ -69,7 +65,7 @@ class ForeignKeyViolationProcessor {
         }
 
         @Override
-        public ConstraintContext get(ConstraintViolation.ForeignKeyConstraintViolation cause) {
+        public ConstraintContext get(ForeignKeyViolation cause) {
             // I'm on the child and thus have a local reference to the FK constraint descriptor.
             //
             // Error message looks like: INSERT on table 'C' caused a violation of foreign key constraint 'FK_1' for key (5).
@@ -87,7 +83,7 @@ class ForeignKeyViolationProcessor {
         }
 
         @Override
-        public ConstraintContext get(ConstraintViolation.ForeignKeyConstraintViolation cause) {
+        public ConstraintContext get(ForeignKeyViolation cause) {
             // I'm on the parent table. The correct error message in this case should have the
             // FK constraint name and keys from the child (only it knows which FK constraint actually failed)
             // but the PARENT table name.

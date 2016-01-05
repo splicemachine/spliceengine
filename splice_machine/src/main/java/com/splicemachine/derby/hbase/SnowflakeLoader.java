@@ -1,58 +1,59 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.*;
 import com.splicemachine.uuid.Snowflake;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * @author Scott Fines
  *         Created on: 7/3/13
  */
-public class SnowflakeLoader extends SIConstants {
-	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+public class SnowflakeLoader{
+    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
+    public static final String MACHINE_ID_COUNTER = "MACHINE_IDS";
+    public static final byte[] COUNTER_COL = Bytes.toBytes("c");
+    public static final long MAX_MACHINE_ID = 0xffff; //12 bits of 1s is the maximum machine id available
+
     private Snowflake snowflake;
 
-    public synchronized Snowflake load(Integer port) throws IOException {
+    public synchronized Snowflake load(Integer port) throws IOException{
         if(snowflake!=null)
             return snowflake;
+        SIDriver driver = SIDriver.driver();
 
         //get this machine's IP address
-        byte[] localAddress = Bytes.add(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port));
-        Table sequenceTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
-        byte[] counterNameRow = MACHINE_ID_COUNTER.getBytes();
-        try{
-            Scan scan = new Scan();
-            scan.setBatch(100);
-            scan.setStartRow(counterNameRow);
-            scan.setStopRow(counterNameRow);
-            scan.setFilter(derbyFactory.getAllocatedFilter(localAddress));
-            ResultScanner scanner = sequenceTable.getScanner(scan);
-            try{
-                Result result;
+        byte[] localAddress=Bytes.concat(Arrays.asList(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port)));
+        byte[] counterNameRow=MACHINE_ID_COUNTER.getBytes();
+        try(Partition sequenceTable = driver.getTableFactory().getTable(SEQUENCE_TABLE_NAME)){
+            DataScan scan = driver.getOperationFactory().newDataScan(null)
+                    .batchCells(100)
+                    .startKey(counterNameRow)
+                    .stopKey(counterNameRow)
+                    .filter(driver.filterFactory().allocatedFilter(localAddress));
+
+            try(DataResultScanner scanner = sequenceTable.openResultScanner(scan)){
+                DataResult result;
                 short machineId;
-                List<byte[]> availableIds = Lists.newArrayList();
-                while((result = scanner.next())!=null){
+                List<byte[]> availableIds=Lists.newArrayList();
+                while((result=scanner.next())!=null){
                     //we found an entry!
-                    KeyValue[] raw = result.raw();
-                    for(KeyValue kv:raw){
-                        if(Bytes.equals(localAddress, kv.getValue())){
+                    for(DataCell kv : result){
+                        if(Bytes.equals(localAddress,kv.value())){
                             //this is ours already! we're done!
-                            machineId = Encoding.decodeShort(kv.getQualifier());
-                            snowflake = new Snowflake(machineId);
+                            machineId=Encoding.decodeShort(kv.qualifier());
+                            snowflake=new Snowflake(machineId);
                             return snowflake;
                         }else{
-                            availableIds.add(kv.getQualifier());
+                            availableIds.add(kv.qualifier());
                         }
                     }
                 }
@@ -63,56 +64,43 @@ public class SnowflakeLoader extends SIConstants {
                      * Of course, other machines might get there first, so we'll have to loop through
                      * the get attempts
                      */
-                    for(byte[] next:availableIds){
-                        Put put = new Put(counterNameRow);
-                        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,next,localAddress);
-                        boolean success = sequenceTable.checkAndPut(counterNameRow,SpliceConstants.DEFAULT_FAMILY_BYTES,next, HConstants.EMPTY_START_ROW,put);
+                    for(byte[] next : availableIds){
+                        DataPut put=driver.getOperationFactory().newDataPut(null,counterNameRow);
+                        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,next,localAddress);
+                        boolean success=sequenceTable.checkAndPut(counterNameRow,SIConstants.DEFAULT_FAMILY_BYTES,next,SIConstants.EMPTY_BYTE_ARRAY,put);
                         if(success){
-                            machineId = Encoding.decodeShort(next);
-                            snowflake = new Snowflake(machineId);
+                            machineId=Encoding.decodeShort(next);
+                            snowflake=new Snowflake(machineId);
                             return snowflake;
                         }
                     }
                 }
                 //someone got to all the already allocated ones, so get a new counter value, and insert it
-                long next = sequenceTable.incrementColumnValue(counterNameRow,SpliceConstants.DEFAULT_FAMILY_BYTES,COUNTER_COL,1l);
-                if(next > MAX_MACHINE_ID){
+                long next = sequenceTable.increment(counterNameRow,SIConstants.DEFAULT_FAMILY_BYTES,COUNTER_COL,1l);
+                if(next>MAX_MACHINE_ID){
                     throw new IOException("Unable to allocate a machine id--too many taken already");
                 }else{
-                    machineId = (short)next;
+                    machineId=(short)next;
                     //list our position for everyone else
-                    Put put = new Put(counterNameRow);
-                    put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),localAddress);
+                    DataPut put=driver.getOperationFactory().newDataPut(null,counterNameRow);
+                    put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),localAddress);
                     sequenceTable.put(put);
 
-                    snowflake = new Snowflake(machineId);
+                    snowflake=new Snowflake(machineId);
                     return snowflake;
                 }
-            }finally{
-                scanner.close();
             }
-        }finally{
-            sequenceTable.close();
         }
     }
 
     public static void unload(short machineId) throws Exception{
-        byte[] counterNameRow = MACHINE_ID_COUNTER.getBytes();
-        Table table = SpliceAccessManager.getHTable(counterNameRow);
-        try{
-            Put put = new Put(counterNameRow);
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),HConstants.EMPTY_START_ROW);
+        byte[] counterNameRow=MACHINE_ID_COUNTER.getBytes();
+        SIDriver driver=SIDriver.driver();
+        try(Partition table = driver.getTableFactory().getTable(SEQUENCE_TABLE_NAME)){
+            DataPut put=driver.getOperationFactory().newDataPut(null,counterNameRow);
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),SIConstants.EMPTY_BYTE_ARRAY);
 
             table.put(put);
-        }finally{
-            table.close();
         }
-    }
-
-    public static void main(String... args) throws Exception{
-        new SpliceAccessManager();// initialize the table pool
-        SnowflakeLoader loader = new SnowflakeLoader();
-        Snowflake snowflake = loader.load(HBaseConfiguration.create().getInt(HConstants.REGIONSERVER_PORT, 6020));
-        System.out.println(snowflake.nextUUID());
     }
 }

@@ -4,7 +4,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -32,9 +31,7 @@ import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.PartitionInfoCache;
-import com.splicemachine.storage.StorageConfiguration;
+import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
 import com.splicemachine.utils.GreenLight;
@@ -64,14 +61,15 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final PartitionInfoCache partitionCache;
     private final KeepAliveScheduler keepAlive;
     private final SConfiguration config;
+    private Clock clock;
 
-    public static HBaseSIEnvironment loadEnvironment(RecoverableZooKeeper rzk) throws IOException{
+    public static HBaseSIEnvironment loadEnvironment(Clock clock,RecoverableZooKeeper rzk) throws IOException{
         HBaseSIEnvironment env = INSTANCE;
         if(env==null){
             synchronized(HBaseSIEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
-                    env = INSTANCE = new HBaseSIEnvironment(new ZkTimestampSource(rzk));
+                    env = INSTANCE = new HBaseSIEnvironment(clock,new ZkTimestampSource(rzk));
                     SIDriver.loadDriver(INSTANCE);
                 }
             }
@@ -83,8 +81,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
         INSTANCE = siEnv;
     }
 
-    public HBaseSIEnvironment(TimestampSource timestampSource) throws IOException{
-        this(timestampSource,new SystemClock());
+    public HBaseSIEnvironment(Clock clock,TimestampSource timestampSource) throws IOException{
+        this(timestampSource,clock);
     }
 
     @SuppressWarnings("unchecked")
@@ -101,6 +99,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnStore.setCache(txnSupplier);
         this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(dataLib(),tableFactory);
         this.txnOpFactory = new HTxnOperationFactory(dataLib(),exceptionFactory());
+        this.clock = clock;
 
         this.readResolver = initializeReadResolver();
 
@@ -178,6 +177,16 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public KeepAliveScheduler keepAliveScheduler(){
         return keepAlive;
+    }
+
+    @Override
+    public DataFilterFactory filterFactory(){
+        return HFilterFactory.INSTANCE;
+    }
+
+    @Override
+    public Clock systemClock(){
+        return clock;
     }
 
     private AsyncReadResolver initializeReadResolver(){

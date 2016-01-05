@@ -8,6 +8,7 @@ import com.splicemachine.pipeline.client.MergingWriteStats;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -123,6 +124,11 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
     @Override public PreFlushHook getPreFlushHook() { return null; }
     @Override public WriteConfiguration getWriteConfiguration() { return writeConfiguration; }
     @Override public TxnView getTxn() { return txn; }
+
+    @Override
+    public Partition destinationPartition(){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 
     public BulkWrites getBulkWrites() throws Exception {
         Set<Entry<byte[], PartitionBuffer>> entries = this.buffers.entrySet();

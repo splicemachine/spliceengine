@@ -2,9 +2,9 @@ package com.splicemachine.pipeline.foreignkey;
 
 import com.google.common.primitives.Longs;
 import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
-import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyChildInterceptWriteHandler;
 import java.io.IOException;
 
 /**
@@ -15,15 +15,18 @@ class ForeignKeyChildInterceptWriteFactory implements LocalWriteFactory{
     /* The base-table or unique-index conglomerate that this FK references. */
     private final long referencedConglomerateNumber;
     private final FKConstraintInfo fkConstraintInfo;
+    private final PipelineExceptionFactory exceptionFactory;
 
-    ForeignKeyChildInterceptWriteFactory(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo) {
+    ForeignKeyChildInterceptWriteFactory(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo,
+                                         PipelineExceptionFactory exceptionFactory) {
         this.referencedConglomerateNumber = referencedConglomerateNumber;
         this.fkConstraintInfo = fkConstraintInfo;
+        this.exceptionFactory = exceptionFactory;
     }
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        ctx.addLast(new ForeignKeyChildInterceptWriteHandler(referencedConglomerateNumber, fkConstraintInfo));
+        ctx.addLast(new ForeignKeyChildInterceptWriteHandler(referencedConglomerateNumber, fkConstraintInfo,exceptionFactory));
     }
 
     @Override
@@ -44,5 +47,15 @@ class ForeignKeyChildInterceptWriteFactory implements LocalWriteFactory{
     public boolean equals(Object o) {
         return o == this || (o instanceof ForeignKeyChildInterceptWriteFactory) &&
                 ((ForeignKeyChildInterceptWriteFactory)o).referencedConglomerateNumber == this.referencedConglomerateNumber;
+    }
+
+    @Override
+    public boolean canReplace(LocalWriteFactory newContext){
+        return false;
+    }
+
+    @Override
+    public void replace(LocalWriteFactory newFactory){
+        throw new UnsupportedOperationException();
     }
 }

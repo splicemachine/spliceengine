@@ -9,6 +9,8 @@ import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.client.BulkWrites;
@@ -21,14 +23,15 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.server.PipelineDriver;
-import com.splicemachine.pipeline.server.PipelineEnvironment;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
+import javax.management.MBeanServer;
 import java.io.IOException;
 
 /**
@@ -57,14 +60,13 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
     @Override
     @SuppressWarnings("unchecked")
-    public void start(CoprocessorEnvironment env){
+    public void start(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
-        ServerControl serverControl=new RegionServerControl(rce.getRegion());
+        final ServerControl serverControl=new RegionServerControl(rce.getRegion());
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
         SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.USER_TABLE) || table.equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
-            final WriteContextFactory<TransactionalRegion> factory;
             long conglomId;
             try{
                 conglomId=Long.parseLong(tableName);
@@ -73,51 +75,52 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
                         "index management for batch operations will be disabled",tableName);
                 conglomId=-1;
             }
-            PipelineEnvironment pipelineEnv = HBasePipelineEnvironment.loadEnvironment(null); //TODO -sf- register a factory loader
-            RegionPartition baseRegion=new RegionPartition(rce.getRegion());
-            PipelineDriver pipelineDriver = pipelineEnv.getPipelineDriver();
-            SIDriver siDriver = pipelineEnv.getSIDriver();
-
-            factory=WriteContextFactoryManager.getWriteContext(conglomId,pipelineEnv.configuration(),
-                    siDriver.getTableFactory(),
-                    pipelineDriver.exceptionFactory(),
-                    new Function<TableName, String>(){
-                        @Override public String apply(TableName input){ return input.getNameAsString(); }
-                    },
-                    pipelineDriver.getContextFactoryLoader(conglomId)
-            );
-            factory.prepare();
-            TransactionalRegion txnRegion = siDriver.transactionalPartition(conglomId,baseRegion);
-
-            writePipeline=new PartitionWritePipeline(serverControl,
-                    baseRegion,
-                    factory,
-                    txnRegion,
-                    pipelineDriver.meter(),pipelineDriver.exceptionFactory());
-            //TODO -sf- register ourselves as a service correctly
-            pipelineWriter = pipelineDriver.writer();
-            pipelineDriver.registerPipeline(baseRegion.getName(),writePipeline);
+            final long cId = conglomId;
+            final PipelineEnvironment pipelineEnv = HBasePipelineEnvironment.loadEnvironment(null); //TODO -sf- register a factory loader
+            final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
+            final PipelineDriver pipelineDriver = pipelineEnv.getPipelineDriver();
+            final SIDriver siDriver = pipelineEnv.getSIDriver();
             compressor = pipelineDriver.compressor();
-//            Service service = new Service() {
-//                @Override
-//                public boolean shutdown() {
-//                    return true;
-//                }
-//
-//                @Override
-//                public boolean start() {
-//                    factory.prepare();
-//                    if (conglomId >= 0) {
-//                        region = TransactionalRegions.get((HRegion) serverControl.getRegion());
-//                    } else {
-//                        region = TransactionalRegions.nonTransactionalRegion((HRegion) serverControl.getRegion());
-//                    }
-//                    partitionWritePipeline= new PartitionWritePipeline(serverControl, (HRegion) serverControl.getRegion(), factory, region, pipelineMeter);
-//                    SpliceDriver.driver().deregisterService(this);
-//                    return true;
-//                }
-//            };
-//            SpliceDriver.driver().registerService(service);
+            pipelineWriter = pipelineDriver.writer();
+
+            try{
+                DatabaseLifecycleManager.manager().registerService(new DatabaseLifecycleService(){
+                    @Override
+                    public void start() throws Exception{
+                        WriteContextFactory<TransactionalRegion> factory=
+                                WriteContextFactoryManager.getWriteContext(cId,pipelineEnv.configuration(),
+                                siDriver.getTableFactory(),
+                                pipelineDriver.exceptionFactory(),
+                                new Function<TableName, String>(){
+                                    @Override public String apply(TableName input){ return input.getNameAsString(); }
+                                },
+                                pipelineDriver.getContextFactoryLoader(cId)
+                        );
+                        factory.prepare();
+
+                        TransactionalRegion txnRegion = siDriver.transactionalPartition(cId,baseRegion);
+                        writePipeline=new PartitionWritePipeline(serverControl,
+                                baseRegion,
+                                factory,
+                                txnRegion,
+                                pipelineDriver.meter(),pipelineDriver.exceptionFactory());
+                        pipelineDriver.registerPipeline(baseRegion.getName(),writePipeline);
+
+                    }
+
+                    @Override
+                    public void registerJMX(MBeanServer mbs) throws Exception{
+                        pipelineDriver.registerJMX(mbs);
+                    }
+
+                    @Override
+                    public void shutdown() throws Exception{
+                        stop(env);
+                    }
+                });
+            }catch(Exception e){
+                throw new IOException(e);
+            }
         }
     }
 

@@ -4,11 +4,13 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.PipelineConfiguration;
+import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.client.RpcChannelFactory;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
-import com.splicemachine.pipeline.server.PipelineDriver;
-import com.splicemachine.pipeline.server.PipelineEnvironment;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.pipeline.utils.SimplePipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -23,6 +25,7 @@ import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -39,7 +42,8 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     private final ContextFactoryDriver contextFactoryLoader;
     private final SConfiguration pipelineConfiguration;
     private final PipelineCompressor compressor;
-    private final RpcChannelFactory channelFactory;
+    private final BulkWriterFactory writerFactory;
+    private final PipelineMeter meter = new YammerPipelineMeter();
 
     public static HBasePipelineEnvironment loadEnvironment(ContextFactoryDriver ctxFactoryLoader){
         HBasePipelineEnvironment env = INSTANCE;
@@ -63,13 +67,15 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
         this.pipelineExceptionFactory = pef;
         this.contextFactoryLoader = ctxFactoryLoader;
         this.pipelineConfiguration = env.configuration();
-        this.channelFactory = ChannelFactoryService.loadChannelFactory();
         pipelineConfiguration.addDefaults(PipelineConfiguration.defaults);
 
         KryoPool kryoPool=new KryoPool(pipelineConfiguration.getInt(PipelineConfiguration.PIPELINE_KRYO_POOL_SIZE));
         kryoPool.setKryoRegistry(new PipelineKryoRegistry());
         //TODO -sf- enable snappy compression here
         this.compressor = new SimplePipelineCompressor(kryoPool,env.getSIDriver().getOperationFactory());
+
+        RpcChannelFactory channelFactory = ChannelFactoryService.loadChannelFactory();
+        this.writerFactory = new CoprocessorWriterFactory(compressor,partitionInfoCache(),pipelineExceptionFactory,channelFactory);
     }
 
     @Override public PartitionFactory tableFactory(){ return delegate.tableFactory(); }
@@ -110,11 +116,6 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     }
 
     @Override
-    public RpcChannelFactory channelFactory(){
-        return channelFactory;
-    }
-
-    @Override
     public PartitionInfoCache partitionInfoCache(){
         return delegate.partitionInfoCache();
     }
@@ -122,5 +123,20 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public KeepAliveScheduler keepAliveScheduler(){
         return delegate.keepAliveScheduler();
+    }
+
+    @Override
+    public DataFilterFactory filterFactory(){
+        return delegate.filterFactory();
+    }
+
+    @Override
+    public BulkWriterFactory writerFactory(){
+        return writerFactory;
+    }
+
+    @Override
+    public PipelineMeter pipelineMeter(){
+        return meter;
     }
 }

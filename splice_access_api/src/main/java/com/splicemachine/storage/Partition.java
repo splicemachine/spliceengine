@@ -50,7 +50,7 @@ public interface Partition extends AutoCloseable{
 
     byte[] getEndKey();
 
-    void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException;
+    long increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount) throws IOException;
 
     boolean isClosed();
 

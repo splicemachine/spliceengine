@@ -8,13 +8,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import com.splicemachine.pipeline.contextfactory.WriteFactoryGroup;
-import com.splicemachine.pipeline.foreignkey.ForeignKeyChildCheckWriteFactory;
-import com.splicemachine.pipeline.foreignkey.ForeignKeyChildInterceptWriteFactory;
-import com.splicemachine.pipeline.foreignkey.ForeignKeyParentCheckWriteFactory;
-import com.splicemachine.pipeline.foreignkey.ForeignKeyParentInterceptWriteFactory;
 import com.splicemachine.protobuf.ProtoUtil;
 
 import java.io.IOException;
@@ -27,6 +24,7 @@ import java.util.Map;
  */
 public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
+    private final PipelineExceptionFactory exceptionFactory;
     /*
      * Foreign key WriteHandlers intercept writes to parent/child tables and send them to the corresponding parent/child
      * table for existence checks. Generally one WriteHandler handles all intercepts/checks for the conglomerate
@@ -38,6 +36,10 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
     private ForeignKeyParentInterceptWriteFactory parentInterceptWriteFactory;
     private ForeignKeyParentCheckWriteFactory parentCheckWriteFactory;
+
+    public FKWriteFactoryHolder(PipelineExceptionFactory exceptionFactory){
+        this.exceptionFactory=exceptionFactory;
+    }
 
     @Override
     public void addFactory(LocalWriteFactory writeFactory){
@@ -85,12 +87,12 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
     public void addParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
         /* One instance handles all FKs that reference this primary key or unique index */
         if (parentInterceptWriteFactory == null) {
-            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
+            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds,exceptionFactory);
         }
     }
 
     public void addChildIntercept(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo) {
-        childInterceptWriteFactories.put(referencedConglomerateNumber, new ForeignKeyChildInterceptWriteFactory(referencedConglomerateNumber, fkConstraintInfo));
+        childInterceptWriteFactories.put(referencedConglomerateNumber, new ForeignKeyChildInterceptWriteFactory(referencedConglomerateNumber, fkConstraintInfo,exceptionFactory));
     }
 
     public void addChildCheck(FKConstraintInfo fkConstraintInfo) {

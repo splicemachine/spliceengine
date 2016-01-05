@@ -22,6 +22,7 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.update.ResultSupplier;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
@@ -29,6 +30,7 @@ import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -156,13 +158,12 @@ public class UpdateOperation extends DMLWriteOperation{
         return modifiedPrimaryKeys;
     }
 
-
     @Override
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
         if(modifiedPrimaryKeys(getHeapList())){
             TxnView txn=bufferToTransform.getTxn();
-            WriteCoordinator writeCoordinator=SpliceDriver.driver().getTableWriter();
-            return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn,new PreFlushHook(){
+            WriteCoordinator writeCoordinator=PipelineDriver.driver().writeCoordinator();
+            return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(bufferToTransform.destinationPartition(),txn,new PreFlushHook(){
                 @Override
                 public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception{
                     bufferToTransform.flushBufferAndWait();
@@ -180,6 +181,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     }
                     delegate.add(element);
                 }
+
             };
         }else
             return bufferToTransform;

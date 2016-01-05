@@ -1,19 +1,19 @@
 package com.splicemachine.derby.management;
 
+import com.splicemachine.SqlExceptionFactory;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
-import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -25,8 +25,8 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -35,8 +35,6 @@ import java.sql.SQLException;
  *         Date: 9/11/14
  */
 public abstract class TransactionalSysTableWriter<T> {
-
-    private static Logger LOG = Logger.getLogger(TransactionalSysTableWriter.class);
 
     private final String tableName;
     protected volatile String conglomIdString;
@@ -48,10 +46,10 @@ public abstract class TransactionalSysTableWriter<T> {
     protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 
     private final ThreadLocal<Pair<DataHash<T>,DataHash<T>>> hashLocals;
-    private final ExceptionFactory exceptionFactory;
+    private final SqlExceptionFactory exceptionFactory;
 
     protected TransactionalSysTableWriter(final String tableName,
-                                          ExceptionFactory exceptionFactory) {
+                                          SqlExceptionFactory exceptionFactory) {
         this.tableName = tableName;
         this.exceptionFactory = exceptionFactory;
         this.hashLocals = new ThreadLocal<Pair<DataHash<T>, DataHash<T>>>(){
@@ -77,12 +75,22 @@ public abstract class TransactionalSysTableWriter<T> {
         pairHash.setRow(element);
 
         String conglom = getConglomIdString(txn);
-        WriteCoordinator tableWriter = SpliceDriver.driver().getTableWriter();
-        try(RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(), txn)){
-            callBuffer.add(new KVPair(keyHash.encode(),pairHash.encode()));
-            callBuffer.flushBufferAndWait();
-        } catch (Exception e) {
-            throw Exceptions.getIOException(e);
+        try{
+            KVPair toWrite=new KVPair(keyHash.encode(),pairHash.encode());
+            writeEntry(txn,conglom,toWrite);
+        }catch(Exception e){
+            throw exceptionFactory.processRemoteException(e);
+        }
+    }
+
+    protected void writeEntry(TxnView txn,String conglom,KVPair toWrite) throws Exception{
+        WriteCoordinator tableWriter=PipelineDriver.driver().writeCoordinator();
+        PartitionFactory pf=SIDriver.driver().getTableFactory();
+        try(Partition p=pf.getTable(conglom)){
+            try(RecordingCallBuffer<KVPair> callBuffer=tableWriter.synchronousWriteBuffer(p,txn)){
+                callBuffer.add(toWrite);
+                callBuffer.flushBufferAndWait();
+            }
         }
     }
 
@@ -97,12 +105,11 @@ public abstract class TransactionalSysTableWriter<T> {
         pairHash.setRow(element);
 
         String conglom = getConglomIdString(txn);
-        WriteCoordinator tableWriter = SpliceDriver.driver().getTableWriter();
-        try(RecordingCallBuffer<KVPair> callBuffer = tableWriter.synchronousWriteBuffer(conglom.getBytes(), txn)){
-            callBuffer.add(new KVPair(keyHash.encode(),new byte[0], KVPair.Type.DELETE));
-            callBuffer.flushBufferAndWait();
-        } catch (Exception e) {
-            throw Exceptions.getIOException(e);
+        try{
+            KVPair toWrite=new KVPair(keyHash.encode(),new byte[0],KVPair.Type.DELETE);
+            writeEntry(txn,conglom,toWrite);
+        }catch(Exception e){
+            throw exceptionFactory.processRemoteException(e);
         }
     }
 
@@ -114,10 +121,8 @@ public abstract class TransactionalSysTableWriter<T> {
                 if(conglom==null){
                     try{
                     conglom = conglomIdString = fetchConglomId(txn);
-                    }catch(SQLException se){
-                        throw Exceptions.getIOException(se);
-                    } catch (StandardException e) {
-                        throw Exceptions.getIOException(e);
+                    }catch(SQLException | StandardException se){
+                        throw exceptionFactory.processRemoteException(se);
                     }
                 }
             }

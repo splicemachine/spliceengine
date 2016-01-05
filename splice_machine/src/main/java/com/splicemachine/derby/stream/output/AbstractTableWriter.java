@@ -8,8 +8,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -25,7 +26,7 @@ public abstract class AbstractTableWriter<T> implements AutoCloseable, TableWrit
     protected  TriggerHandler triggerHandler;
     protected Callable<Void> flushCallback;
     protected RecordingCallBuffer<KVPair> writeBuffer;
-    protected WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
+    protected WriteCoordinator writeCoordinator;
     protected DMLWriteOperation operation;
 
     public AbstractTableWriter (TxnView txn, long heapConglom) {
@@ -36,7 +37,7 @@ public abstract class AbstractTableWriter<T> implements AutoCloseable, TableWrit
 
     @Override
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
-        writeCoordinator = SpliceDriver.driver().getTableWriter();
+        writeCoordinator = PipelineDriver.driver().writeCoordinator();
         this.triggerHandler = triggerHandler;
         this.operation = (DMLWriteOperation) operation;
     }

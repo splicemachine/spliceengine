@@ -1,11 +1,8 @@
-package com.splicemachine.pipeline.server;
+package com.splicemachine.pipeline;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.pipeline.MappedPipelineFactory;
-import com.splicemachine.pipeline.PartitionWritePipeline;
-import com.splicemachine.pipeline.PipelineConfiguration;
-import com.splicemachine.pipeline.PipelineWriter;
+import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.client.WriteCoordinator;
@@ -13,10 +10,6 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
-import com.splicemachine.storage.PartitionInfoCache;
-import com.splicemachine.derby.hbase.CoprocessorWriterFactory;
-import com.splicemachine.derby.hbase.YammerPipelineMeter;
-import com.splicemachine.pipeline.client.RpcChannelFactory;
 
 import javax.management.*;
 import java.io.IOException;
@@ -31,7 +24,7 @@ public class PipelineDriver{
 
     private final SpliceWriteControl writeControl;
     private final MappedPipelineFactory writePipelineFactory=new MappedPipelineFactory();
-    private final PipelineMeter pipelineMeter=new YammerPipelineMeter();
+    private final PipelineMeter pipelineMeter;
     private final PipelineWriter pipelineWriter;
     private final PipelineCompressor compressor;
     private final ActiveWriteHandlers handlerMeter = new ActiveWriteHandlers();
@@ -45,10 +38,10 @@ public class PipelineDriver{
         PartitionFactory partitionFactory = env.tableFactory();
         ContextFactoryDriver ctxFactoryDriver = env.contextFactoryDriver();
         PipelineCompressor compressor = env.pipelineCompressor();
-        RpcChannelFactory channelFactory = env.channelFactory();
-        PartitionInfoCache partitionInfoCache = env.partitionInfoCache();
+        BulkWriterFactory writerFactory = env.writerFactory();
+        PipelineMeter meter = env.pipelineMeter();
 
-        INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,channelFactory,partitionInfoCache);
+        INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,writerFactory,meter);
     }
 
     public static PipelineDriver driver(){ return INSTANCE; }
@@ -58,11 +51,12 @@ public class PipelineDriver{
                            PipelineExceptionFactory pef,
                            PartitionFactory partitionFactory,
                            PipelineCompressor compressor,
-                           RpcChannelFactory channelFactory,
-                           PartitionInfoCache partitionInfoCache){
+                           BulkWriterFactory channelFactory,
+                           PipelineMeter meter){
         this.ctxFactoryDriver = ctxFactoryDriver;
         this.pef = pef;
         this.compressor = compressor;
+        this.pipelineMeter= meter;
 
         int ipcThreads = config.getInt(PipelineConfiguration.IPC_THREADS);
         int maxIndependentWrites = config.getInt(PipelineConfiguration.MAX_INDEPENDENT_WRITES);
@@ -70,14 +64,16 @@ public class PipelineDriver{
 
         this.writeControl= new SpliceWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
         this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl);
-        CoprocessorWriterFactory writerFactory=new CoprocessorWriterFactory(pipelineWriter,
-                writePipelineFactory,
-                compressor,
-                partitionInfoCache,
-                pef,
-                channelFactory);
+        channelFactory.setWriter(pipelineWriter);
+        channelFactory.setPipeline(writePipelineFactory);
+//        CoprocessorWriterFactory writerFactory=new CoprocessorWriterFactory(pipelineWriter,
+//                writePipelineFactory,
+//                compressor,
+//                partitionInfoCache,
+//                pef,
+//                channelFactory);
         try{
-            this.writeCoordinator=WriteCoordinator.create(config,writerFactory,pef,partitionFactory);
+            this.writeCoordinator=WriteCoordinator.create(config,channelFactory,pef,partitionFactory);
             pipelineWriter.setWriteCoordinator(writeCoordinator);
         }catch(IOException e){
             throw new RuntimeException(e);

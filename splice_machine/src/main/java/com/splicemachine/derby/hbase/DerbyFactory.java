@@ -69,7 +69,7 @@ public interface DerbyFactory{
 	void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException;
 	void SYSCS_GET_REGION_SERVER_STATS_INFO(final ResultSet[] resultSet, List<Pair<String, JMXConnector>> connections) throws SQLException;
 	ObjectName getRegionServerStatistics() throws MalformedObjectNameException;
-	ServerName getServerName(String serverName);
+
 	ExceptionTranslator getExceptionHandler();
 	SpliceRegionScanner getSplitRegionScanner(Scan scan, Table htable) throws IOException;
 	KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,

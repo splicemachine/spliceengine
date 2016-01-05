@@ -25,10 +25,6 @@ public class SIConstants {
     public static final int TRANSACTION_ID_COLUMN = 14;
     public static final int TRANSACTION_COUNTER_COLUMN = 15;
     public static final int TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN = 16;
-    // Snowflake logic
-    public static final byte[] COUNTER_COL = Bytes.toBytes("c");
-    public static final String MACHINE_ID_COUNTER = "MACHINE_IDS";
-    public static final long MAX_MACHINE_ID = 0xffff; //12 bits of 1s is the maximum machine id available
 
     /**
      * Splice Columns

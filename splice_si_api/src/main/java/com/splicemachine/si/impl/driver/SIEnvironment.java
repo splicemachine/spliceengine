@@ -2,6 +2,7 @@ package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -11,6 +12,7 @@ import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 
@@ -46,4 +48,8 @@ public interface SIEnvironment{
     PartitionInfoCache partitionInfoCache();
 
     KeepAliveScheduler keepAliveScheduler();
+
+    DataFilterFactory filterFactory();
+
+    Clock systemClock();
 }

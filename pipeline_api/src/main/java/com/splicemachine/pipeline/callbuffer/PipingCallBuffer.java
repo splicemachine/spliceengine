@@ -355,4 +355,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     public TxnView getTxn() {
         return txn;
     }
+
+    @Override
+    public Partition destinationPartition(){
+        return table;
+    }
 }

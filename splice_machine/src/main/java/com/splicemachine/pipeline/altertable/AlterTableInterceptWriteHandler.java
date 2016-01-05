@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -28,7 +29,7 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
     private RecordingCallBuffer<KVPair> recordingCallBuffer;
 
     public AlterTableInterceptWriteHandler(RowTransformer rowTransformer, byte[] newTableName) {
-        this.writeCoordinator = SpliceDriver.driver().getTableWriter();
+        this.writeCoordinator = PipelineDriver.driver().writeCoordinator();
         this.rowTransformer = rowTransformer;
         this.newTableName = newTableName;
     }

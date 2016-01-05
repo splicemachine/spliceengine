@@ -18,21 +18,17 @@ import java.io.IOException;
  */
 public class CoprocessorWriterFactory implements BulkWriterFactory{
     private final PipelineExceptionFactory exceptionFactory;
-    private final PipelineWriter pipelineWriter;
-    private final WritePipelineFactory pipelineWriteFactory;
+    private PipelineWriter pipelineWriter;
+    private WritePipelineFactory pipelineWriteFactory;
     private final PipelineCompressor compressor;
     private final PartitionInfoCache partitionInfoCache;
     private final RpcChannelFactory channelFactory;
 
-    public CoprocessorWriterFactory(PipelineWriter pipelineWriter,
-                                    WritePipelineFactory pipelineWriteFactory,
-                                    PipelineCompressor compressor,
+    public CoprocessorWriterFactory(PipelineCompressor compressor,
                                     PartitionInfoCache partitionInfoCache,
                                     PipelineExceptionFactory exceptionFactory,
                                     RpcChannelFactory channelFactory){
         this.exceptionFactory=exceptionFactory;
-        this.pipelineWriter=pipelineWriter;
-        this.pipelineWriteFactory = pipelineWriteFactory;
         this.compressor = compressor;
         this.partitionInfoCache = partitionInfoCache;
         this.channelFactory=channelFactory;
@@ -48,5 +44,15 @@ public class CoprocessorWriterFactory implements BulkWriterFactory{
     @Override
     public void invalidateCache(byte[] tableName) throws IOException{
         partitionInfoCache.invalidate(tableName);
+    }
+
+    @Override
+    public void setPipeline(WritePipelineFactory writePipelineFactory){
+       this.pipelineWriteFactory = writePipelineFactory;
+    }
+
+    @Override
+    public void setWriter(PipelineWriter pipelineWriter){
+        this.pipelineWriter = pipelineWriter;
     }
 }

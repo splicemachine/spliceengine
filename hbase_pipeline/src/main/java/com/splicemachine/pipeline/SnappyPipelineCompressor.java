@@ -8,9 +8,7 @@ import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.Method;
 
 /**
@@ -25,7 +23,7 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
     static{
         snappy = new SnappyCodec();
         snappy.setConf(SpliceConstants.config);
-        boolean sN = false;
+        boolean sN;
         Method method;
         try{
             // Cloudera Path
@@ -56,17 +54,28 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
 
     @Override
     public InputStream compressedInput(InputStream input) throws IOException{
-        return snappy.createInputStream(input);
+        if(supportsNative)
+            return snappy.createInputStream(input);
+        else return input;
     }
 
     @Override
     public OutputStream compress(OutputStream output) throws IOException{
-        return snappy.createOutputStream(output);
+        if(supportsNative)
+            return snappy.createOutputStream(output);
+        else return output;
     }
 
     @Override
     public byte[] compress(Object o) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        byte[] d = delegate.compress(o);
+        if(!supportsNative) return d;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(d.length);
+        OutputStream os = snappy.createOutputStream(baos);
+        os.write(d);
+        os.flush();
+        os.close();
+        return baos.toByteArray();
     }
 
     @Override

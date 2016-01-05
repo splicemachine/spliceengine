@@ -4,17 +4,18 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
+import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
