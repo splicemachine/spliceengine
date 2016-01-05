@@ -1,35 +1,22 @@
 package com.splicemachine.mrio.api.core;
 
-import com.clearspring.analytics.util.Lists;
-import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  *
@@ -51,7 +38,7 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, TxnMess
         conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, "
-                    + "jdbcString=%s, rootDir=%s",tableName,conglomerate, rootDir);
+                    + "rootDir=%s",tableName,conglomerate, rootDir);
         try {
             setHTable(SpliceAccessManager.getHTable(conglomerate));
         } catch (Exception e) {
@@ -67,7 +54,7 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, TxnMess
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         rr = new SMTxnRecordReaderImpl(config);
         if(table == null)
-            table = new HTable(HBaseConfiguration.create(config), config.get(TableInputFormat.INPUT_TABLE));
+            table = new HTable(HBaseConfiguration.create(config), HBaseTableInfoFactory.getInstance().getTableInfo(SpliceConstants.TRANSACTION_TABLE));
         rr.setHTable(table);
         rr.init(config, split);
         if (LOG.isDebugEnabled())
