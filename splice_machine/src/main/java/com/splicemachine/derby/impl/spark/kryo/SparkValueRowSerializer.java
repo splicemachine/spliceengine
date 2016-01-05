@@ -29,10 +29,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.SQLDecimal;
 import org.apache.log4j.Logger;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -43,19 +41,15 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class SparkValueRowSerializer<T extends ExecRow> extends Serializer<T> {
     private static Logger LOG = Logger.getLogger(SparkValueRowSerializer.class);
-    private LoadingCache<DataValueDescriptor[], DescriptorSerializer[]> serializersCache = CacheBuilder.newBuilder().maximumSize(10).build(
-            new CacheLoader<DataValueDescriptor[], DescriptorSerializer[]>() {
+    private LoadingCache<IntArray, DescriptorSerializer[]> serializersCache = CacheBuilder.newBuilder().maximumSize(10).build(
+            new CacheLoader<IntArray, DescriptorSerializer[]>() {
                 @Override
-                public DescriptorSerializer[] load(DataValueDescriptor[] dvds) {
+                public DescriptorSerializer[] load(IntArray intArray) {
+                    DataValueDescriptor[] dvds = new DataValueDescriptor[intArray.array.length];
+                    for (int i =0;i<intArray.array.length;i++) {
+                        dvds[i] = getDVD(intArray.array[i]);
+                    }
                     return VersionedSerializers.latestVersion(false).getSerializers(dvds);
-                }
-            }
-    );
-    private LoadingCache<IntArray, DataValueDescriptor[]> templatesCache = CacheBuilder.newBuilder().maximumSize(10).build(
-            new CacheLoader<IntArray, DataValueDescriptor[]>() {
-                @Override
-                public DataValueDescriptor[] load(IntArray key) {
-                    return getRowTemplate(key.array);
                 }
             }
     );
@@ -103,21 +97,6 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         } catch (Exception e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Exception while serializing row " + object, e);
         }
-    }
-
-    private static DataValueDescriptor[] getRowTemplate(int[] formatIds) {
-        DataValueDescriptor[] row = new DataValueDescriptor[formatIds.length];
-        int i = 0;
-        for (int formatId : formatIds) {
-            // TODO Handle collation ids and DECIMAL
-            if (formatId == StoredFormatIds.SQL_DECIMAL_ID) {
-                row[i] = new SQLDecimal();
-            } else {
-                row[i] = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
-            }
-            ++i;
-        }
-        return row;
     }
 
     @Override
@@ -192,7 +171,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         int[] rowColumns = IntArrays.count(formatIds.length);
         DescriptorSerializer[] serializers;
         try {
-            serializers = serializersCache.get(dvds);
+            serializers = serializersCache.get(new IntArray(formatIds));
         } catch (ExecutionException e) {
             LOG.error("Error loading serializers from serializersCache", e);
             serializers = VersionedSerializers.latestVersion(false).getSerializers(dvds);
@@ -217,11 +196,8 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-
             IntArray intArray = (IntArray) o;
-
             if (!Arrays.equals(array, intArray.array)) return false;
-
             return true;
         }
     }
