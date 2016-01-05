@@ -36,4 +36,10 @@ class IncrementingClock implements TickingClock{
     public long nanoTime(){
         return currentTime;
     }
+
+    // TODO: Scott to fix this stub
+    @Override
+    public void sleep(long time,TimeUnit unit) throws InterruptedException {
+        throw new UnsupportedOperationException();
+    }
 }

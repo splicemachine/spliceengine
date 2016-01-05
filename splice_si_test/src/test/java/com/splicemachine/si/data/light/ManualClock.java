@@ -21,4 +21,10 @@ public class ManualClock implements Clock{
     public long nanoTime(){
         return TimeUnit.MILLISECONDS.toNanos(time);
     }
+
+    // TODO: Scott to fix this stub
+    @Override
+    public void sleep(long time,TimeUnit unit) throws InterruptedException {
+        throw new UnsupportedOperationException();
+    }
 }

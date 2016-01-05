@@ -31,4 +31,11 @@ public class IncrementingClock implements Clock{
     public void delay(long delay) {
         time = time + delay;
     }
+
+    // TODO: Scott to fix this stub
+    @Override
+    public void sleep(long time,TimeUnit unit) throws InterruptedException {
+        throw new UnsupportedOperationException();
+    }
+
 }
