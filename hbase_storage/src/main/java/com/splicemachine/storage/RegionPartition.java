@@ -206,11 +206,13 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public void increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
+    public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
         Increment incr = new Increment(rowKey);
         incr.addColumn(family,qualifier,amount);
-        region.increment(incr);
+        Result increment=region.increment(incr);
+        return Bytes.toLong(increment.value()); //TODO -sf- is this correct?
     }
+
     @Override
     public void delete(DataDelete delete) throws IOException{
         Delete d = ((HDelete)delete).unwrapDelegate();

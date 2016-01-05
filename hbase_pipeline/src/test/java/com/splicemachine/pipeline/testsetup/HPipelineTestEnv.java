@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.testsetup;
 
 import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.pipeline.ManualContextFactoryLoader;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteCoordinator;
@@ -24,9 +25,9 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
     private final ConcurrentMap<Long,ContextFactoryLoader> contextFactoryLoaderMap = new ConcurrentHashMap<>();
     private final HBasePipelineEnvironment env;
 
-    public HPipelineTestEnv(){
-        super(Level.WARN,new String[]{}); //don't create SI tables, we'll manually add them once the driver is setup
-        this.env = HBasePipelineEnvironment.loadEnvironment(new ContextFactoryDriver(){
+    public HPipelineTestEnv() throws IOException{
+        super(Level.WARN); //don't create SI tables, we'll manually add them once the driver is setup
+        this.env = HBasePipelineEnvironment.loadEnvironment(super.getClock(),new ContextFactoryDriver(){
             @Override
             public ContextFactoryLoader getLoader(long conglomerateId){
                 ContextFactoryLoader cfl = contextFactoryLoaderMap.get(conglomerateId);
@@ -39,6 +40,7 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
                 return cfl;
             }
         });
+        DatabaseLifecycleManager.manager().start(); //start the database
     }
 
     @Override
@@ -54,6 +56,11 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
     @Override
     public PipelineExceptionFactory pipelineExceptionFactory(){
         return env.pipelineExceptionFactory();
+    }
+
+    @Override
+    public void initialize() throws IOException{
+
     }
 
     @Override

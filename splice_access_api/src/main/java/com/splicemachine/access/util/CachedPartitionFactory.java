@@ -3,6 +3,8 @@ package com.splicemachine.access.util;
 import com.google.common.collect.Maps;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
 
@@ -34,6 +36,10 @@ public abstract class CachedPartitionFactory<TableInfo> implements PartitionFact
         return getTable(infoAsString(tableName));
     }
 
+    @Override
+    public void initialize(Clock clock,SConfiguration configuration) throws IOException{
+       delegate.initialize(clock,configuration);
+    }
 
     @Override
     public Partition getTable(String name) throws IOException{

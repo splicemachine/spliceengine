@@ -61,7 +61,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         HRegion region=((RegionCoprocessorEnvironment)env).getRegion();
         SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
         if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
-            HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
+            HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
             SConfiguration configuration=driver.getConfiguration();

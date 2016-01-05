@@ -19,4 +19,8 @@ public class HFilterFactory implements DataFilterFactory{
         return new HFilterWrapper(scvf);
     }
 
+    @Override
+    public DataFilter allocatedFilter(byte[] localAddress){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 }

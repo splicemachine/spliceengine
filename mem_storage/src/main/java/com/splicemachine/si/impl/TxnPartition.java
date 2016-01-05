@@ -127,8 +127,8 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public void increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
-        basePartition.increment(rowKey,family,qualifier,amount);
+    public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
+        return basePartition.increment(rowKey,family,qualifier,amount);
     }
 
     @Override

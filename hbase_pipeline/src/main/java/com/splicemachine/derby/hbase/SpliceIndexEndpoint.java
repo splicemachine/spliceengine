@@ -6,6 +6,7 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
@@ -76,17 +77,18 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
                 conglomId=-1;
             }
             final long cId = conglomId;
-            final PipelineEnvironment pipelineEnv = HBasePipelineEnvironment.loadEnvironment(null); //TODO -sf- register a factory loader
             final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
-            final PipelineDriver pipelineDriver = pipelineEnv.getPipelineDriver();
-            final SIDriver siDriver = pipelineEnv.getSIDriver();
-            compressor = pipelineDriver.compressor();
-            pipelineWriter = pipelineDriver.writer();
 
             try{
                 DatabaseLifecycleManager.manager().registerService(new DatabaseLifecycleService(){
+                    private PipelineEnvironment pipelineEnv;
                     @Override
                     public void start() throws Exception{
+                        pipelineEnv= HBasePipelineEnvironment.loadEnvironment(new SystemClock(),null); //TODO -sf- register a factory loader
+                        final PipelineDriver pipelineDriver = pipelineEnv.getPipelineDriver();
+                        compressor = pipelineDriver.compressor();
+                        pipelineWriter = pipelineDriver.writer();
+                        final SIDriver siDriver = pipelineEnv.getSIDriver();
                         WriteContextFactory<TransactionalRegion> factory=
                                 WriteContextFactoryManager.getWriteContext(cId,pipelineEnv.configuration(),
                                 siDriver.getTableFactory(),
@@ -110,7 +112,8 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
                     @Override
                     public void registerJMX(MBeanServer mbs) throws Exception{
-                        pipelineDriver.registerJMX(mbs);
+                        if(pipelineEnv!=null)
+                            pipelineEnv.getPipelineDriver().registerJMX(mbs);
                     }
 
                     @Override

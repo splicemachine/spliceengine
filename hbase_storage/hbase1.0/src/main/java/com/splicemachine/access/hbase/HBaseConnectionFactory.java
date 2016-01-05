@@ -194,10 +194,12 @@ public class HBaseConnectionFactory {
 			 * because we shouldn't manage sequential generators
 			 * transactionally.
 			 */
-            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,SpliceConstants.SEQUENCE_TABLE_NAME_BYTES))) {
-                HTableDescriptor td = generateNonSITable(SIConstants.SEQUENCE_TABLE_NAME);
+            if (!admin.tableExists(TableName.valueOf(SpliceConstants.spliceNamespaceBytes,
+                    com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME_BYTES))) {
+                HTableDescriptor td = generateNonSITable(com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG, SIConstants.SEQUENCE_TABLE_NAME + " created");
+                SpliceLogUtils.info(LOG,
+                        com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME + " created");
             }
 
             createRestoreTableIfNecessary();

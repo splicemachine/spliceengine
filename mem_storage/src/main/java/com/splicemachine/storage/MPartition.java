@@ -147,7 +147,7 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public void increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
+    public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 

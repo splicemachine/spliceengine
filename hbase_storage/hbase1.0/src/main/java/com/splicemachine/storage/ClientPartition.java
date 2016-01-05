@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
@@ -64,8 +65,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     }
 
     @Override
-    protected void doIncrement(Increment incr) throws IOException{
-        table.increment(incr);
+    protected long doIncrement(Increment incr) throws IOException{
+        return Bytes.toLong(table.increment(incr).value());
     }
 
     @Override

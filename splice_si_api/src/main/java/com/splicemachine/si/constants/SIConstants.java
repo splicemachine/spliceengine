@@ -8,6 +8,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings("MS_MUTABLE_ARRAY")
 public class SIConstants {
+
+    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
+    public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes("SPLICE_SEQUENCES");
+    //snowflake stuff
+    public static final String MACHINE_ID_COUNTER = "MACHINE_IDS";
+    public static final byte[] COUNTER_COL = Bytes.toBytes("c");
+
     public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16; //must be a power of 2
     public static final byte[] TRUE_BYTES = Bytes.toBytes(true);
     public static final byte[] FALSE_BYTES = Bytes.toBytes(false);

@@ -2,6 +2,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
@@ -57,7 +58,7 @@ public class SIObserver extends BaseRegionObserver{
         RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)e;
         tableEnvMatch=doesTableNeedSI(rce.getRegion().getTableDesc().getTableName());
         if(tableEnvMatch){
-            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
+            HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
             SIDriver driver = env.getSIDriver();
             operationStatusFactory = driver.getOperationStatusLib();
             //noinspection unchecked

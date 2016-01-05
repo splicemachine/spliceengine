@@ -13,6 +13,7 @@ import com.splicemachine.pipeline.utils.PipelineCompressor;
 
 import javax.management.*;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Scott Fines
@@ -31,6 +32,7 @@ public class PipelineDriver{
     private final WriteCoordinator writeCoordinator;
     private final PipelineExceptionFactory pef;
     private final ContextFactoryDriver ctxFactoryDriver;
+    private final AtomicBoolean jmxRegistered = new AtomicBoolean(false);
 
     public static void loadDriver(PipelineEnvironment env){
         SConfiguration config = env.configuration();
@@ -105,8 +107,10 @@ public class PipelineDriver{
     }
 
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException{
-        ObjectName coordinatorName=new ObjectName("com.splicemachine.derby.hbase:type=ActiveWriteHandlers");
-        mbs.registerMBean(handlerMeter,coordinatorName);
+        if(jmxRegistered.compareAndSet(false,true)){
+            ObjectName coordinatorName=new ObjectName("com.splicemachine.derby.hbase:type=ActiveWriteHandlers");
+            mbs.registerMBean(handlerMeter,coordinatorName);
+        }
     }
 
     public void registerPipeline(String name,PartitionWritePipeline writePipeline){

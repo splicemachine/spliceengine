@@ -37,4 +37,14 @@ public class DirectBulkWriterFactory implements BulkWriterFactory{
     public void invalidateCache(byte[] tableName){
         //no-op for in-memory
     }
+
+    @Override
+    public void setPipeline(WritePipelineFactory writePipelineFactory){
+        //no-op
+    }
+
+    @Override
+    public void setWriter(PipelineWriter pipelineWriter){
+        //no-op
+    }
 }

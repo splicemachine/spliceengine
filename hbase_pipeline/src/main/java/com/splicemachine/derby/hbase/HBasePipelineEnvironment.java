@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.PipelineConfiguration;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
@@ -30,6 +31,8 @@ import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.kryo.KryoPool;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 12/28/15
@@ -45,13 +48,13 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     private final BulkWriterFactory writerFactory;
     private final PipelineMeter meter = new YammerPipelineMeter();
 
-    public static HBasePipelineEnvironment loadEnvironment(ContextFactoryDriver ctxFactoryLoader){
+    public static HBasePipelineEnvironment loadEnvironment(Clock systemClock,ContextFactoryDriver ctxFactoryLoader) throws IOException{
         HBasePipelineEnvironment env = INSTANCE;
         if(env==null){
             synchronized(HBasePipelineEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
-                    SIEnvironment siEnv =HBaseSIEnvironment.loadEnvironment(ZkUtils.getRecoverableZooKeeper());
+                    SIEnvironment siEnv =HBaseSIEnvironment.loadEnvironment(systemClock,ZkUtils.getRecoverableZooKeeper());
                     env= INSTANCE = new HBasePipelineEnvironment(siEnv,ctxFactoryLoader,HPipelineExceptionFactory.INSTANCE);
                     PipelineDriver.loadDriver(env);
                 }
@@ -76,6 +79,11 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
         RpcChannelFactory channelFactory = ChannelFactoryService.loadChannelFactory();
         this.writerFactory = new CoprocessorWriterFactory(compressor,partitionInfoCache(),pipelineExceptionFactory,channelFactory);
+    }
+
+    @Override
+    public Clock systemClock(){
+        return delegate.systemClock();
     }
 
     @Override public PartitionFactory tableFactory(){ return delegate.tableFactory(); }

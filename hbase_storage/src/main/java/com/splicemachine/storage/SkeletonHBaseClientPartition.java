@@ -150,10 +150,10 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
 
 
     @Override
-    public void increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
+    public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
         Increment incr = new Increment(rowKey);
         incr.addColumn(family,qualifier,amount);
-        doIncrement(incr);
+        return doIncrement(incr);
     }
 
     @Override
@@ -196,5 +196,5 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
 
     protected abstract void doPut(List<Put> puts) throws IOException;
 
-    protected abstract void doIncrement(Increment incr) throws IOException;
+    protected abstract long doIncrement(Increment incr) throws IOException;
 }

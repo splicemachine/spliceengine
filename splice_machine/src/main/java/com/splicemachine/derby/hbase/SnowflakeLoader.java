@@ -18,9 +18,6 @@ import java.util.List;
  *         Created on: 7/3/13
  */
 public class SnowflakeLoader{
-    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
-    public static final String MACHINE_ID_COUNTER = "MACHINE_IDS";
-    public static final byte[] COUNTER_COL = Bytes.toBytes("c");
     public static final long MAX_MACHINE_ID = 0xffff; //12 bits of 1s is the maximum machine id available
 
     private Snowflake snowflake;
@@ -32,8 +29,8 @@ public class SnowflakeLoader{
 
         //get this machine's IP address
         byte[] localAddress=Bytes.concat(Arrays.asList(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port)));
-        byte[] counterNameRow=MACHINE_ID_COUNTER.getBytes();
-        try(Partition sequenceTable = driver.getTableFactory().getTable(SEQUENCE_TABLE_NAME)){
+        byte[] counterNameRow=SIConstants.MACHINE_ID_COUNTER.getBytes();
+        try(Partition sequenceTable = driver.getTableFactory().getTable(SIConstants.SEQUENCE_TABLE_NAME)){
             DataScan scan = driver.getOperationFactory().newDataScan(null)
                     .batchCells(100)
                     .startKey(counterNameRow)
@@ -76,7 +73,7 @@ public class SnowflakeLoader{
                     }
                 }
                 //someone got to all the already allocated ones, so get a new counter value, and insert it
-                long next = sequenceTable.increment(counterNameRow,SIConstants.DEFAULT_FAMILY_BYTES,COUNTER_COL,1l);
+                long next = sequenceTable.increment(counterNameRow,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COUNTER_COL,1l);
                 if(next>MAX_MACHINE_ID){
                     throw new IOException("Unable to allocate a machine id--too many taken already");
                 }else{
@@ -94,9 +91,9 @@ public class SnowflakeLoader{
     }
 
     public static void unload(short machineId) throws Exception{
-        byte[] counterNameRow=MACHINE_ID_COUNTER.getBytes();
+        byte[] counterNameRow=SIConstants.MACHINE_ID_COUNTER.getBytes();
         SIDriver driver=SIDriver.driver();
-        try(Partition table = driver.getTableFactory().getTable(SEQUENCE_TABLE_NAME)){
+        try(Partition table = driver.getTableFactory().getTable(SIConstants.SEQUENCE_TABLE_NAME)){
             DataPut put=driver.getOperationFactory().newDataPut(null,counterNameRow);
             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(machineId),SIConstants.EMPTY_BYTE_ARRAY);
 

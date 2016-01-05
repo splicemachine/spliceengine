@@ -13,4 +13,9 @@ public class MFilterFactory implements DataFilterFactory{
     public DataFilter singleColumnEqualsValueFilter(byte[] family,byte[] qualifier,byte[] value){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
+
+    @Override
+    public DataFilter allocatedFilter(byte[] localAddress){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 }

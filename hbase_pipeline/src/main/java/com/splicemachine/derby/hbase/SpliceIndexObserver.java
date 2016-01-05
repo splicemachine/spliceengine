@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.base.Function;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.kvpair.KVPair;
@@ -80,7 +81,6 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case TRANSACTION_TABLE:
             case ROOT_TABLE:
             case META_TABLE:
-            case USER_INDEX_TABLE:
             case HBASE_TABLE:
                 return; //disregard table environments which are not user or system tables
         }
@@ -92,7 +92,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                     "index management for batch operations will be disabled",tableName);
             return;
         }
-        PipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(null); //TODO -sf- register a factory loader
+        PipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(new SystemClock(),null); //TODO -sf- register a factory loader
         RegionPartition baseRegion=new RegionPartition(rce.getRegion());
         final PipelineDriver pipelineDriver=pipelineEnv.getPipelineDriver();
         SIDriver siDriver=pipelineEnv.getSIDriver();

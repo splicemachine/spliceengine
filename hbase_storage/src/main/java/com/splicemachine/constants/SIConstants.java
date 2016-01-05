@@ -1,5 +1,6 @@
 package com.splicemachine.constants;
 
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.SIConfigurations;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
