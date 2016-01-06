@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.stats.ColumnStatistics;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.RegionLoad;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionLoad;
+import com.splicemachine.storage.StorageConfiguration;
+
 import java.util.*;
 
 /**
@@ -11,39 +14,41 @@ import java.util.*;
  *         Date: 6/8/15
  */
 public class RegionLoadStatistics{
-    public static GlobalStatistics getParameterStatistics(String table, List<HRegionInfo> partitions){
-        long perRowRemoteLatency = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
+    public static GlobalStatistics getParameterStatistics(String table, List<Partition> partitions){
+        SConfiguration config =EngineDriver.driver().getConfiguration();
 
-
-        Collection<RegionLoad> cachedRegionLoadsForTable=HBaseRegionLoads.getCachedRegionLoadsForTable(table);
-        Map<String,RegionLoad> regionIdToLoadMap = new HashMap<>(cachedRegionLoadsForTable.size());
-        for(RegionLoad load:cachedRegionLoadsForTable){
-            String regionName=load.getNameAsString();
+        Collection<PartitionLoad> cachedRegionLoadsForTable=EngineDriver.driver().partitionLoadWatcher().tableLoad(table);
+        Map<String,PartitionLoad> regionIdToLoadMap = new HashMap<>(cachedRegionLoadsForTable.size());
+        for(PartitionLoad load:cachedRegionLoadsForTable){
+            String regionName=load.getPartitionName();
             regionName = regionName.substring(regionName.indexOf(".")+1,regionName.length()-1);
             regionIdToLoadMap.put(regionName,load);
         }
 
         List<OverheadManagedPartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
-        for(HRegionInfo partition:partitions){
+        for(Partition partition:partitions){
             double rowSizeRatio = 1.0d;
             long heapSize;
 
-            RegionLoad regionLoad=regionIdToLoadMap.get(partition.getEncodedName());
+            PartitionLoad regionLoad=regionIdToLoadMap.get(partition.getName());
+            long partitionMaxFileSize=config.getLong(StorageConfiguration.REGION_MAX_FILE_SIZE);
             if(regionLoad==null){
-                heapSize = StatsConstants.regionMaxFileSize;
+                heapSize =partitionMaxFileSize;
             }else {
                 heapSize = regionLoad.getStorefileSizeMB()+regionLoad.getMemStoreSizeMB();
-                rowSizeRatio = ((double)heapSize)/StatsConstants.regionMaxFileSize;
+                rowSizeRatio = ((double)heapSize)/partitionMaxFileSize;
             }
             long heapBytes = heapSize*1024*1024;
-            long numRows = (long)(StatsConstants.fallbackRegionRowCount*rowSizeRatio);
-            if(numRows<StatsConstants.fallbackMinimumRowCount)
-                numRows = StatsConstants.fallbackMinimumRowCount;
+            long fbRegionRowCount = config.getLong(StatsConfiguration.FALLBACK_REGION_ROW_COUNT);
+            long fbMinRowCount = config.getLong(StatsConfiguration.FALLBACK_MINIMUM_ROW_COUNT);
+            long numRows = (long)(fbRegionRowCount*rowSizeRatio);
+            if(numRows<fbMinRowCount)
+                numRows = fbMinRowCount;
             if(heapBytes==0){
-                heapBytes = numRows*StatsConstants.fallbackRowWidth;
+                heapBytes = numRows*config.getInt(StatsConfiguration.FALLBACK_ROW_WIDTH);
             }
 
-            partitionStats.add(new FakedPartitionStatistics(table,partition.getEncodedName(),
+            partitionStats.add(FakedPartitionStatistics.create(table,partition.getName(),
                     numRows,
                     heapBytes,
                     Collections.<ColumnStatistics>emptyList()));

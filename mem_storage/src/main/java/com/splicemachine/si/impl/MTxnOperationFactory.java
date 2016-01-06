@@ -6,6 +6,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.*;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -14,6 +16,16 @@ import java.io.IOException;
 public class MTxnOperationFactory extends BaseOperationFactory{
     public MTxnOperationFactory(SDataLib dataLib,ExceptionFactory exceptionFactory){
         super(dataLib,exceptionFactory);
+    }
+
+    @Override
+    public void writeScan(DataScan scan,ObjectOutput out) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public DataScan readScan(ObjectInput in) throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override

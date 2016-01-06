@@ -2,11 +2,10 @@ package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.hadoop.hbase.util.Base64;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -60,13 +59,13 @@ public class DeleteTableWriterBuilder implements Externalizable{
     public static DeleteTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {
         if (base64String == null)
             throw new IOException("tableScanner base64 String is null");
-        return (DeleteTableWriterBuilder) SerializationUtils.deserialize(Base64.decode(base64String));
+        return (DeleteTableWriterBuilder) SerializationUtils.deserialize(Base64.decodeBase64(base64String));
     }
     public String getDeleteTableWriterBuilderBase64String() throws IOException, StandardException {
-        return Base64.encodeBytes(SerializationUtils.serialize(this));
+        return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
-    public DeleteTableWriter build() throws StandardException {
-        return new DeleteTableWriter(txn,heapConglom,operationContext);
+    public DeletePipelineWriter build() throws StandardException {
+        return new DeletePipelineWriter(txn,heapConglom,operationContext);
     }
 }

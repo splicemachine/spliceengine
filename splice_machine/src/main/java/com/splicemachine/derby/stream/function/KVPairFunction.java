@@ -2,7 +2,7 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import scala.Tuple2;
 
 /**
@@ -20,7 +20,7 @@ public class KVPairFunction extends SplicePairFunction<SpliceOperation,KVPair,by
 
     @Override
     public Tuple2<byte[], KVPair> call(KVPair kvPair) throws Exception {
-        return new Tuple2<byte[], KVPair>(kvPair.getRowKey(),kvPair);
+        return new Tuple2<>(kvPair.getRowKey(),kvPair);
     }
 
     @Override

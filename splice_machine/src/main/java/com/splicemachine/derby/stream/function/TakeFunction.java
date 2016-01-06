@@ -1,8 +1,8 @@
 package com.splicemachine.derby.stream.function;
 
+import com.google.common.collect.Iterators;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.sparkproject.guava.collect.Iterators;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -34,12 +34,13 @@ public class TakeFunction<Op extends SpliceOperation,V> extends SpliceFlatMapFun
         super.readExternal(in);
         take = in.readInt();
     }
+
     @Override
     public Iterable<V> call(final Iterator<V> locatedRowIterator) throws Exception {
-        return new Iterable() {
+        return new Iterable<V>() {
             @Override
-            public Iterator iterator() {
-                return Iterators.limit(locatedRowIterator, take);
+            public Iterator<V> iterator() {
+                return Iterators.limit(locatedRowIterator,take);
             }
         };
     }

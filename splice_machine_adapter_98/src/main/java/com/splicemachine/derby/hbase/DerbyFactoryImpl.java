@@ -86,7 +86,6 @@ import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.HBaseServerUtils;
-import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;

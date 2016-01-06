@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import com.google.common.base.Preconditions;
-import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;
@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.store.raw.LockingPolicy;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.si.api.txn.TxnView;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -836,22 +835,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
     public HBaseStore getRawStore () {
         return this.rawstore;
-    }
-
-    public static Table getHTable(Long id) {
-        return getHTable(Long.toString(id));
-    }
-
-    public static Table getHTable(byte[] tableName) {
-        return getHTable(Bytes.toString(tableName));
-    }
-
-    public static Table getHTable(String tableName) {
-        try {
-            return HBaseTableFactory.getInstance().getTable(tableName);
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
     }
 
     public void setDatabase(SpliceDatabase database) {

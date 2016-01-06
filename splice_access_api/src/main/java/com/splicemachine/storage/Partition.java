@@ -113,4 +113,15 @@ public interface Partition extends AutoCloseable{
 
     PartitionServer owningServer();
 
+    List<Partition> subPartitions(byte[] startRow,byte[] stopRow);
+
+    PartitionLoad getLoad() throws IOException;
+
+    /**
+     * Optional Method: compact the data in storage.
+     *
+     * If the underlying architecture does not support compaction, then this method should do nothing, rather
+     * than throw an error
+     */
+    void compact() throws IOException;
 }

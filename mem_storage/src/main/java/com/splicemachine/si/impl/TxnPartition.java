@@ -246,6 +246,23 @@ public class TxnPartition implements Partition{
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
+    @Override
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
+        if(!containsRow(startRow)||!containsRow(stopRow))
+            throw new UnsupportedOperationException("Cannot get subpartitions of a range that it does not own!");
+        return Collections.<Partition>singletonList(this);
+    }
+
+    @Override
+    public PartitionLoad getLoad() throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public void compact() throws IOException{
+        //no-op--memory storage does not perform compactions yet
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private EntryPredicateFilter getEntryPredicateFilter(Attributable scan) throws IOException{

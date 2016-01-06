@@ -8,6 +8,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -84,5 +85,15 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override public void close() throws IOException{ } //no-op
+
+        @Override
+        public Collection<PartitionServer> allServers() throws IOException{
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public Iterable<? extends Partition> allPartitions(String tableName) throws IOException{
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
     }
 }

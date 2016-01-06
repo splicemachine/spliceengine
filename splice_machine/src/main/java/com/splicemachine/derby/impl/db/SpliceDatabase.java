@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.db;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -8,6 +10,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -21,19 +24,14 @@ import com.splicemachine.ddl.DDLMessage.DDLChangeType;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
-import com.splicemachine.utils.ZkUtils;
 import javax.security.auth.login.Configuration;
 import java.sql.SQLException;
 import java.util.*;
@@ -45,19 +43,21 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
+        SConfiguration config = SIDriver.driver().getConfiguration();
       //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        if(DatabaseConstants.logStatementContext)
+        if(config.getBoolean(SQLConfiguration.DEBUG_LOG_STATEMENT_CONTEXT))
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
-        if(DatabaseConstants.dumpClassFile)
+        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_CLASS_FILE))
             SanityManager.DEBUG_SET("DumpClassFile");
-        if(DatabaseConstants.dumpBindTree)
+        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_BIND_TREE))
             SanityManager.DEBUG_SET("DumpBindTree");
-        if(DatabaseConstants.dumpOptimizedTree)
+        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_OPTIMIZED_TREE))
             SanityManager.DEBUG_SET("DumpOptimizedTree");
 
         configureAuthentication();
+//        EngineDriver.driver().getInternalConnection()
         try{
-            create=!ZkUtils.isSpliceLoaded();
+            create=EngineDriver.driver()==null;
         }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"isSpliceLoadedOnBoot failure",Exceptions.parseException(e));
         }
@@ -68,15 +68,13 @@ public class SpliceDatabase extends BasicDatabase{
             SpliceLogUtils.info(LOG,"Booting the Splice Machine database");
         }
         super.boot(create,startParams);
-        // Start HBase Region Loads
-        HBaseRegionLoads.start();
     }
 
     @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname)
+    public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname,CompilerContext.DataSetProcessorType dspt)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname);
+        final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname,dspt);
 
         // If you add a visitor, be careful of ordering.
 
@@ -112,7 +110,7 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);
@@ -129,7 +127,7 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);
@@ -183,40 +181,75 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     protected void configureAuthentication(){
-        if(AuthenticationConstants.authenticationNativeCreateCredentialsDatabase){
+        SConfiguration configuration =EngineDriver.driver().getConfiguration();
+        if(configuration.getBoolean(AuthenticationConfiguration.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE)){
             System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
         }
-        if(SpliceConstants.AuthenticationType.NONE.toString().equals(AuthenticationConstants.authentication)){
-            SpliceLogUtils.warn(LOG,"using no auth for Splice Machine",AuthenticationConstants.authentication);
-            System.setProperty("derby.connection.requireAuthentication","false");
-            System.setProperty("derby.database.sqlAuthorization","false");
-        }else{
-            System.setProperty("derby.connection.requireAuthentication","true");
-            System.setProperty("derby.database.sqlAuthorization","true");
-            if(AuthenticationConstants.AuthenticationType.CUSTOM.toString().equals(AuthenticationConstants.authentication)){
-                if(AuthenticationConstants.authenticationCustomProvider.equals(AuthenticationConstants.DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER))
-                    SpliceLogUtils.warn(LOG,"using custom authentication for Splice Machine using class {%s}, this class allows all usernames to proceed",AuthenticationConstants.authenticationCustomProvider);
-                else
-                    SpliceLogUtils.info(LOG,"using custom authentication for Splice Machine using class %s",AuthenticationConstants.authenticationCustomProvider);
-                System.setProperty("derby.authentication.provider",AuthenticationConstants.DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER);
-            }else if(AuthenticationConstants.AuthenticationType.LDAP.toString().equals(AuthenticationConstants.authentication)){
-                SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with {ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s"
-                        +"}}",AuthenticationConstants.authenticationLDAPSearchAuthDN,AuthenticationConstants.authenticationLDAPSearchAuthPW,AuthenticationConstants.authenticationLDAPSearchBase,AuthenticationConstants.authenticationLDAPSearchFilter);
-                System.setProperty("derby.authentication.provider","LDAP");
-                System.setProperty("derby.authentication.ldap.searchAuthDN",AuthenticationConstants.authenticationLDAPSearchAuthDN);
-                System.setProperty("derby.authentication.ldap.searchAuthPW",AuthenticationConstants.authenticationLDAPSearchAuthPW);
-                System.setProperty("derby.authentication.ldap.searchBase",AuthenticationConstants.authenticationLDAPSearchBase);
-                System.setProperty("derby.authentication.ldap.searchFilter",AuthenticationConstants.authenticationLDAPSearchFilter);
-                System.setProperty("derby.authentication.server",AuthenticationConstants.authenticationLDAPServer);
-            }else if(AuthenticationConstants.AuthenticationType.NATIVE.toString().equals(AuthenticationConstants.authentication)){
-                System.setProperty("derby.authentication.provider","NATIVE:spliceDB:LOCAL");
-                System.setProperty("derby.authentication.builtin.algorithm",AuthenticationConstants.authenticationNativeAlgorithm);
-            }else{ // Default is Native with warning
-                SpliceLogUtils.warn(LOG,"authentication provider could not be determined from entry {%s},  using native",AuthenticationConstants.authentication);
-                System.setProperty("derby.authentication.provider","NATIVE:spliceDB:LOCAL");
-                System.setProperty("derby.authentication.builtin.algorithm",AuthenticationConstants.authenticationNativeAlgorithm);
-            }
+
+        String authTypeString=configuration.getString(AuthenticationConfiguration.AUTHENTICATION_NATIVE_ALGORITHM);
+        AuthenticationType authType= AuthenticationType.valueOf(authTypeString);
+        switch(authType){
+            case NONE:
+                SpliceLogUtils.warn(LOG,"using no auth for Splice Machine");
+                System.setProperty("derby.connection.requireAuthentication","false");
+                System.setProperty("derby.database.sqlAuthorization","false");
+                break;
+            case LDAP:
+                configureLDAPAuth(configuration);
+                break;
+            case NATIVE:
+                configureNative(configuration,false);
+                break;
+            case CUSTOM:
+                configureCustomAuth(configuration);
+                break;
+            default:// Default is Native with warning:
+                configureNative(configuration,true);
         }
+    }
+
+    private void configureLDAPAuth(SConfiguration config){
+        System.setProperty("derby.connection.requireAuthentication","true");
+        System.setProperty("derby.database.sqlAuthorization","true");
+        String authenticationLDAPSearchAuthDN = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHAUTHDN);
+        String authenticationLDAPSearchAuthPW = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHAUTHPW);
+        String authenticationLDAPSearchBase = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHBASE);
+        String authenticationLDAPSearchFilter = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHFILTER);
+        String authenticationLDAPServer = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SERVER);
+        SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with "+
+                        "{ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s}}",
+                authenticationLDAPSearchAuthDN,
+                authenticationLDAPSearchAuthPW,
+                authenticationLDAPSearchBase,
+                authenticationLDAPSearchFilter);
+        System.setProperty("derby.authentication.provider","LDAP");
+        System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
+        System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
+        System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);
+        System.setProperty("derby.authentication.ldap.searchFilter",authenticationLDAPSearchFilter);
+        System.setProperty("derby.authentication.server",authenticationLDAPServer);
+    }
+
+    private void configureCustomAuth(SConfiguration configuration){
+        System.setProperty("derby.connection.requireAuthentication","true");
+        System.setProperty("derby.database.sqlAuthorization","true");
+        String authenticationCustomProvider = configuration.getString(AuthenticationConfiguration.AUTHENTICATION_CUSTOM_PROVIDER);
+        Level logLevel = Level.INFO;
+        if(authenticationCustomProvider.equals(AuthenticationConfiguration.DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER)){
+            logLevel=Level.WARN;
+        }
+        LOG.log(logLevel,String.format("using custom authentication for SpliceMachine using class %s",authenticationCustomProvider));
+        System.setProperty("derby.authentication.provider",authenticationCustomProvider);
+    }
+
+    private void configureNative(SConfiguration config,boolean warn){
+        System.setProperty("derby.connection.requireAuthentication","true");
+        System.setProperty("derby.database.sqlAuthorization","true");
+        System.setProperty("derby.authentication.provider","NATIVE:spliceDB:LOCAL");
+        String authenticationNativeAlgorithm = config.getString(AuthenticationConfiguration.AUTHENTICATION_NATIVE_ALGORITHM);
+        System.setProperty("derby.authentication.builtin.algorithm",authenticationNativeAlgorithm);
+        if(warn)
+            SpliceLogUtils.warn(LOG,"authentication provider could not be determined from entry {%s},  using native",AuthenticationConfiguration.AUTHENTICATION);
     }
 
     @Override
@@ -277,28 +310,6 @@ public class SpliceDatabase extends BasicDatabase{
             public void changeFailed(String changeId){
             }
         });
-    }
-
-    private static void createSnapshots(String snapId) throws StandardException{
-
-        try{
-            HBaseAdmin admin=SpliceUtilities.getAdmin();
-            HTableDescriptor[] descriptorArray=admin.listTables();
-            LOG.info("Snapshot database id="+snapId+
-                    " starts for "+descriptorArray.length+" tables.");
-            long globalStart=System.currentTimeMillis();
-            for(HTableDescriptor descriptor : descriptorArray){
-                String tableName=descriptor.getNameAsString();
-                long start=System.currentTimeMillis();
-                String snapshotName=tableName+"_"+snapId;
-                admin.snapshot(snapshotName.getBytes(),tableName.getBytes());
-                LOG.info("Snapshot: "+tableName+" done in "+(System.currentTimeMillis()-start)+"ms");
-            }
-            LOG.info("Snapshot database finished in +"+(System.currentTimeMillis()-globalStart)/1000+" sec");
-        }catch(Exception e){
-            throw StandardException.newException(e.getMessage());
-        }
-
     }
 
 }

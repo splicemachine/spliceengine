@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
@@ -44,7 +45,7 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends SpliceJoin
         DataSet dataSet = null;
         try {
             leftRow = from;
-            op.getRightOperation().openCore(StreamUtils.controlDataSetProcessor);
+            op.getRightOperation().openCore(EngineDriver.driver().processorFactory().localProcessor(null,op));
             rightSideNLJIterator = op.getRightOperation().getLocatedRowIterator();
             if (!rightSideNLJIterator.hasNext()) {
                 // No Rows Right Side...

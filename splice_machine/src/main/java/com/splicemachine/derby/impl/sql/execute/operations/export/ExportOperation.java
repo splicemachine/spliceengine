@@ -157,10 +157,14 @@ public class ExportOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
-        return dataset.writeToDisk(exportParams.getDirectory(), new ExportFunction(operationContext));
+        return dataset.writeToDisk()
+                .directory(exportParams.getDirectory())
+                .exportFunction(new ExportFunction(operationContext))
+                .build().write();
+
     }
 
 }

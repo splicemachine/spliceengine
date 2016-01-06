@@ -7,6 +7,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -37,7 +38,7 @@ public class Scans extends SpliceUtils {
      *
      * This method does the following:
      *
-     * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
+     * 1. builds a basic scan and attaches transaction information to it.
      * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
      * according to the following rules:
      * A. if {@code startKeyValue ==null}, then set "" as the start of the scan
@@ -75,8 +76,9 @@ public class Scans extends SpliceUtils {
                                  String tableVersion,
                                  boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
-        DataScan scan = SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
-        scan.setCaching(DEFAULT_CACHE_SIZE);
+        DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
+//        scan.cacheRows()
+//        scan.setCaching(DEFAULT_CACHE_SIZE);
         try {
             if (rowIdKey) {
                 DataValueDescriptor[] dvd = null;

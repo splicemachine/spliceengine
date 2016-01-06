@@ -2,7 +2,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.spark.api.java.function.Function;
 import com.google.common.base.Predicate;
 
 /**
@@ -10,7 +9,7 @@ import com.google.common.base.Predicate;
  */
 public abstract class SplicePredicateFunction<Op extends SpliceOperation, From>
         extends AbstractSpliceFunction<Op>
-        implements Function<From, Boolean>, Predicate<From> {
+        implements ExternalizableFunction<From, Boolean>, Predicate<From> {
 
     public SplicePredicateFunction() {
         super();

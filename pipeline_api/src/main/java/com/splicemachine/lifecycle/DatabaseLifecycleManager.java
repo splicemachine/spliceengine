@@ -4,11 +4,22 @@ import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Responsible for constructing the correct startup/shutdown sequence of Splice.
+ *
+ * Startup has three phases:
+ *
+ * 1. Engine Boot
+ * 2. Generic Boot
+ * 3. Server Boot
+ *
+ * It is possible to register a service at any of the three phases.
  *
  * @author Scott Fines
  *         Date: 1/4/16
@@ -17,18 +28,22 @@ public class DatabaseLifecycleManager{
     private static final Logger LOG= Logger.getLogger(DatabaseLifecycleManager.class);
     public static final DatabaseLifecycleManager INSTANCE = new DatabaseLifecycleManager();
 
-    private enum State{
+    public enum State{
         NOT_STARTED,
-        STARTING,
+        BOOTING_ENGINE,
+        BOOTING_GENERAL_SERVICES,
+        BOOTING_SERVER,
         STARTUP_FAILED,
         RUNNING,
         SHUTTING_DOWN,
-        SERVICES_RUNNING,SHUTDOWN
+        SHUTDOWN
     }
 
     private final AtomicReference<State> state = new AtomicReference<>(State.NOT_STARTED);
     private final CountDownLatch startupLock = new CountDownLatch(1);
-    private final CopyOnWriteArrayList<DatabaseLifecycleService> services = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<DatabaseLifecycleService> engineServices= new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<DatabaseLifecycleService> generalServices= new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<DatabaseLifecycleService> networkServices= new CopyOnWriteArrayList<>();
 
     private final Executor lifecycleExecutor =Executors.newSingleThreadExecutor();
     private volatile MBeanServer jmxServer;
@@ -37,9 +52,8 @@ public class DatabaseLifecycleManager{
         return INSTANCE;
     }
 
-
     public void start(){
-        if(!state.compareAndSet(State.NOT_STARTED,State.STARTING)) return; //someone else is doing stuff
+        if(!state.compareAndSet(State.NOT_STARTED,State.BOOTING_ENGINE)) return; //someone else is doing stuff
 
         lifecycleExecutor.execute(new Startup());
     }
@@ -54,7 +68,9 @@ public class DatabaseLifecycleManager{
                 case NOT_STARTED:
                 case SHUTDOWN:
                     return; //nothing to shutdown
-                case STARTING:
+                case BOOTING_ENGINE:
+                case BOOTING_GENERAL_SERVICES:
+                case BOOTING_SERVER:
                     try{
                         startupLock.await();
                     }catch(InterruptedException ignored){
@@ -62,7 +78,6 @@ public class DatabaseLifecycleManager{
                     }
                     shutdown();
                     return;
-                case SERVICES_RUNNING:
                 case RUNNING:
                     shouldContinue = !state.compareAndSet(State.RUNNING,State.SHUTTING_DOWN);
                     break;
@@ -74,29 +89,94 @@ public class DatabaseLifecycleManager{
         lifecycleExecutor.execute(new Shutdown());
     }
 
-    public void registerService(DatabaseLifecycleService service) throws Exception{
+    public void registerNetworkService(DatabaseLifecycleService engineService) throws Exception{
         switch(state.get()){
             case NOT_STARTED:
                 break;
-            case STARTING:
+            case BOOTING_ENGINE:
+            case BOOTING_GENERAL_SERVICES:
+            case BOOTING_SERVER:
                 startupLock.await(); //wait for startup to complete or fail
-                registerService(service);
+                registerNetworkService(engineService);
                 break;
             case RUNNING:
-                service.start();
-                service.registerJMX(jmxServer);
-                break;
             case STARTUP_FAILED:
                 throw new IllegalStateException("Unable to register service, startup failed");
             case SHUTTING_DOWN:
+                break;
             case SHUTDOWN:
                 return; //nothing to do, we are shutting down
         }
-        services.add(service);
+        networkServices.add(engineService);
+    }
+
+    public void registerEngineService(DatabaseLifecycleService engineService) throws Exception{
+        switch(state.get()){
+            case NOT_STARTED:
+                break;
+            case BOOTING_ENGINE:
+                startupLock.await(); //wait for startup to complete or fail
+                registerEngineService(engineService);
+            case BOOTING_GENERAL_SERVICES:
+            case BOOTING_SERVER:
+                //we have booted the general services, so we can start this directly
+                engineService.start();
+                engineService.registerJMX(jmxServer);
+                break;
+            case RUNNING:
+            case STARTUP_FAILED:
+                throw new IllegalStateException("Unable to register service, startup failed");
+            case SHUTTING_DOWN:
+                break;
+            case SHUTDOWN:
+                return; //nothing to do, we are shutting down
+        }
+        engineServices.add(engineService);
+    }
+
+    public void registerGeneralService(DatabaseLifecycleService service) throws Exception{
+        switch(state.get()){
+            case NOT_STARTED:
+                break;
+            case BOOTING_ENGINE:
+            case BOOTING_GENERAL_SERVICES:
+                startupLock.await(); //wait for startup to complete or fail
+                registerGeneralService(service);
+                break;
+            case BOOTING_SERVER:
+                //we have booted the general services, so we can start this directly
+                service.start();
+                service.registerJMX(jmxServer);
+                break;
+            case RUNNING:
+            case STARTUP_FAILED:
+                throw new IllegalStateException("Unable to register service, startup failed");
+            case SHUTTING_DOWN:
+                break;
+            case SHUTDOWN:
+                return; //nothing to do, we are shutting down
+        }
+        generalServices.add(service);
+    }
+
+    public void deregisterGeneralService(DatabaseLifecycleService service){
+        generalServices.remove(service);
+    }
+
+    public void deregisterEngineService(DatabaseLifecycleService service){
+        engineServices.remove(service);
+    }
+
+    public void deregisterNetworkService(DatabaseLifecycleService service){
+        networkServices.remove(service);
     }
 
     public void awaitStartup() throws InterruptedException{
         startupLock.await();
+    }
+
+    public State getState(){
+        return state.get();
     }
 
     /* ****************************************************************************************************************/
@@ -104,6 +184,12 @@ public class DatabaseLifecycleManager{
     private class Startup implements Runnable{
         @Override
         public void run(){
+            if(!bootServices(State.BOOTING_GENERAL_SERVICES,engineServices)) return; //bail, we encountered an error
+            if(!bootServices(State.BOOTING_SERVER,generalServices)) return; //bail, we encountered an error
+            bootServices(State.RUNNING,networkServices);
+        }
+
+        private boolean bootServices(State nextState,List<DatabaseLifecycleService> services){
             try{
                 for(DatabaseLifecycleService service : services){
                     try{
@@ -112,26 +198,27 @@ public class DatabaseLifecycleManager{
                         LOG.error("Error during during startup of service "+ service+":",e);
                         state.set(State.STARTUP_FAILED);
                         new Shutdown().run();//cleanly shut down services
-                        return;
+                        return false;
                     }
                 }
                 //now register JMX
-                state.set(State.SERVICES_RUNNING);
+                state.set(nextState);
             }finally{
                 startupLock.countDown(); //release any waiting threads
             }
             //register JMX
             jmxServer= ManagementFactory.getPlatformMBeanServer();
-            for(DatabaseLifecycleService service:services){
+            for(DatabaseLifecycleService service: services){
                 try{
                     service.registerJMX(jmxServer);
                 }catch(Exception e){
                     LOG.error("Error during during JMX registration of service "+ service+":",e);
                     state.set(State.STARTUP_FAILED);
                     new Shutdown().run();//cleanly shut down services
+                    return false;
                 }
             }
-            state.set(State.RUNNING);
+            return true;
         }
     }
 
@@ -139,7 +226,32 @@ public class DatabaseLifecycleManager{
 
         @Override
         public void run(){
-            for(DatabaseLifecycleService service:services){
+            //shut down network services first
+            List<DatabaseLifecycleService> toShutdown = new ArrayList<>(networkServices);
+            Collections.reverse(toShutdown); //reverse the shutdown order from the startup order
+            for(DatabaseLifecycleService service:toShutdown){
+                try{
+                    service.shutdown();
+                } catch(Exception e){
+                    LOG.error("Error during shutdown of service "+ service+":",e);
+                }
+            }
+
+            toShutdown.clear();
+            toShutdown.addAll(generalServices);
+            Collections.reverse(generalServices);
+            for(DatabaseLifecycleService service:toShutdown){
+                try{
+                    service.shutdown();
+                } catch(Exception e){
+                    LOG.error("Error during shutdown of service "+ service+":",e);
+                }
+            }
+
+            toShutdown.clear();
+            toShutdown.addAll(engineServices);
+            Collections.reverse(engineServices);
+            for(DatabaseLifecycleService service:toShutdown){
                 try{
                     service.shutdown();
                 } catch(Exception e){

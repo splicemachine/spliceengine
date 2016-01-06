@@ -72,5 +72,15 @@ public class SIConfigurations{
                     return false;
             }
         }
+
+        @Override
+        public boolean hasStringDefault(String key){
+            return false;
+        }
+
+        @Override
+        public String defaultStringFor(String key){
+            throw new IllegalArgumentException("No SI default for key '"+key+"'");
+        }
     };
 }

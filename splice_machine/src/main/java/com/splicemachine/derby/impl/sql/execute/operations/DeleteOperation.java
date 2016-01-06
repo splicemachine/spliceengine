@@ -6,8 +6,7 @@ import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -70,13 +69,13 @@ public class DeleteOperation extends DMLWriteOperation {
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
-        DeleteTableWriterBuilder builder = new DeleteTableWriterBuilder()
-                .heapConglom(heapConglom)
-                .txn(txn)
-                .operationContext(operationContext);
         try {
             operationContext.pushScope();
-            return set.index(new InsertPairFunction(operationContext), true).deleteData(builder, operationContext);
+			DataSetWriterBuilder dataSetWriterBuilder=set.index(new InsertPairFunction(operationContext),true).deleteData(operationContext)
+					.destConglomerate(heapConglom)
+					.txn(txn)
+					.operationContext(operationContext);
+			return dataSetWriterBuilder.build().write();
         } finally {
             operationContext.popScope();
         }

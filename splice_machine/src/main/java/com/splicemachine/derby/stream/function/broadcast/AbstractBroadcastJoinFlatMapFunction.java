@@ -1,9 +1,11 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
-import org.sparkproject.guava.collect.FluentIterable;
+import com.google.common.collect.FluentIterable;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinCache;
 import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinOperation;
@@ -40,13 +42,14 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         Callable<Stream<ExecRow>> rhsLoader = new Callable<Stream<ExecRow>>() {
             @Override
             public Stream<ExecRow> call() throws Exception {
-                final DataSetProcessor dsp = StreamUtils.getLocalDataSetProcessorFromActivation(AbstractBroadcastJoinFlatMapFunction.this.getOperation().getActivation(), operation.getRightOperation());
-                return Streams.wrap(FluentIterable.from(new Iterable<LocatedRow>() {
+                DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
+                final DataSetProcessor dsp =dataSetProcessorFactory.localProcessor(getActivation(),operation.getRightOperation());
+                return Streams.wrap(FluentIterable.from(new Iterable<LocatedRow>(){
                     @Override
-                    public Iterator<LocatedRow> iterator() {
-                        try {
+                    public Iterator<LocatedRow> iterator(){
+                        try{
                             return operation.getRightOperation().getDataSet(dsp).toLocalIterator();
-                        } catch (StandardException e) {
+                        }catch(StandardException e){
                             throw new RuntimeException(e);
                         }
                     }

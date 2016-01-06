@@ -11,22 +11,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.timestamp.api.TimestampClientStatistics;
+import com.splicemachine.timestamp.api.TimestampOracleStatistics;
 import com.splicemachine.tools.version.SpliceMachineVersion;
-import com.splicemachine.derby.hbase.DerbyFactory;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.utils.DatabasePropertyManagement;
-import com.splicemachine.si.impl.timestamp.TimestampMasterManagement;
-import com.splicemachine.si.impl.timestamp.TimestampRegionManagement;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.logging.Logging;
 
 public class JMXUtils {
 
-	protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
 	public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
@@ -38,10 +35,10 @@ public class JMXUtils {
 	public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
-        List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
-        String regionServerJMXPort = SpliceConstants.config.get("hbase.regionserver.jmx.port",Integer.toString(SpliceConstants.DEFAULT_JMX_BIND_PORT));
+        List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
+        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getInt("hbase.regionserver.jmx.port");
         for (Pair<String,String> serverConn: serverConnections) {
-            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
+            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$d/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
             JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
             mbscArray.add(Pair.newPair(serverConn.getSecond(),jmxc));
         }
@@ -49,36 +46,37 @@ public class JMXUtils {
     }
 
     public static List<Logging> getLoggingManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<Logging> activeWrites = new ArrayList<Logging>();
+        List<Logging> activeWrites =new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             activeWrites.add(getNewMXBeanProxy(mbsc.getSecond(),LOGGING_MANAGEMENT,Logging.class));
         }
         return activeWrites;
     }
 
+    //TODO -sf- this won't work in MapR
+    protected static final String REGION_SERVER_STATISTICS = "Hadoop:service=HBase,name=RegionServer,sub=Server";
 	public static ObjectName getRegionServerStatistics() throws MalformedObjectNameException {
-		// Need to delegate even this part, because in HBase .98 the MBeans were changed
-		return derbyFactory.getRegionServerStatistics();
+        return JMXUtils.getDynamicMBean(REGION_SERVER_STATISTICS);
 	}
 	
 	public static List<ThreadPoolStatus> getMonitoredThreadPools(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-		List<ThreadPoolStatus> monitoredThreadPools = new ArrayList<ThreadPoolStatus>();
+		List<ThreadPoolStatus> monitoredThreadPools =new ArrayList<>();
 		for (Pair<String,JMXConnector> mbsc: mbscArray) {
 			monitoredThreadPools.add(getNewMBeanProxy(mbsc.getSecond(),MONITORED_THREAD_POOL,ThreadPoolStatus.class));
 		}
 		return monitoredThreadPools;
 	}
 
-    public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
+    public static List<PipelineDriver.ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<PipelineDriver.ActiveWriteHandlersIface> activeWrites =new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
+            activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,PipelineDriver.ActiveWriteHandlersIface.class));
         }
         return activeWrites;
     }
 
     public static List<SpliceMachineVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<SpliceMachineVersion> versions = new ArrayList<SpliceMachineVersion>();
+        List<SpliceMachineVersion> versions =new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, SpliceMachineVersion.class));
         }
@@ -93,24 +91,24 @@ public class JMXUtils {
 		return managers;
 	}
 
-    public static List<TimestampMasterManagement> getTimestampMasterManagement(List<Pair<String,JMXConnector>> connections) throws MalformedObjectNameException, IOException {
-        List<TimestampMasterManagement> managers = new ArrayList<TimestampMasterManagement>();
+    public static List<TimestampOracleStatistics> getTimestampOracleStatistics(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException {
+        List<TimestampOracleStatistics> managers = new ArrayList<>();
         for (Pair<String,JMXConnector> connection : connections) {
-            managers.add(getNewMXBeanProxy(connection.getSecond(), TIMESTAMP_MASTER_MANAGEMENT, TimestampMasterManagement.class));
+            managers.add(getNewMXBeanProxy(connection.getSecond(), TIMESTAMP_MASTER_MANAGEMENT, TimestampOracleStatistics.class));
         }
         return managers;
     }
 
-    public static List<Pair<String,TimestampRegionManagement>> getTimestampRegionManagement(List<Pair<String,JMXConnector>> connections) throws MalformedObjectNameException, IOException {
-        List<Pair<String, TimestampRegionManagement>> managers = Lists.newArrayListWithCapacity(connections.size());
+    public static List<Pair<String,TimestampClientStatistics>> getTimestampClientStatistics(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException {
+        List<Pair<String, TimestampClientStatistics>> managers = Lists.newArrayListWithCapacity(connections.size());
         for (Pair<String,JMXConnector> connectorPair : connections) {
-            managers.add(Pair.newPair(connectorPair.getFirst(), getNewMXBeanProxy(connectorPair.getSecond(), TIMESTAMP_REGION_MANAGEMENT, TimestampRegionManagement.class)));
+            managers.add(Pair.newPair(connectorPair.getFirst(), getNewMXBeanProxy(connectorPair.getSecond(), TIMESTAMP_REGION_MANAGEMENT, TimestampClientStatistics.class)));
         }
         return managers;
     }
 
     public static List<DatabasePropertyManagement> getDatabasePropertyManagement(List<Pair<String, JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<DatabasePropertyManagement> dbProps = new ArrayList<DatabasePropertyManagement>();
+        List<DatabasePropertyManagement> dbProps =new ArrayList<>();
         for (Pair<String, JMXConnector> mbsc : mbscArray) {
         	dbProps.add(getNewMXBeanProxy(mbsc.getSecond(), DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class));
         }

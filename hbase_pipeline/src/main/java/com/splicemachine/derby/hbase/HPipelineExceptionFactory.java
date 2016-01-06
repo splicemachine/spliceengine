@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
+import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineTooBusy;
@@ -15,10 +16,6 @@ import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HWriteConflict;
-import com.splicemachine.pipeline.ConstraintViolation;
-import com.splicemachine.pipeline.HNotServingRegion;
-import com.splicemachine.pipeline.HTooBusy;
-import com.splicemachine.pipeline.HWrongRegion;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -54,6 +51,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
     public IOException notNullViolation(ConstraintContext constraintContext){
         return new ConstraintViolation.NotNullViolation("",constraintContext);
     }
+
 
     @Override
     public Throwable processPipelineException(Throwable t){

@@ -1,6 +1,8 @@
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -91,20 +93,8 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             out.writeUTF(source);
     }
 
-    /*
-    String[] values = null;
-    try {
-        SpliceCsvReader spliceCsvReader = new SpliceCsvReader(reader, new CsvPreference.Builder(
-                characterDelimiter != null && characterDelimiter.length() > 0 ? characterDelimiter.charAt(0) : DEFAULT_STRIP_STRING,
-                columnDelimiter != null && columnDelimiter.length() > 0 ? columnDelimiter.charAt(0) : DEFAULT_COLUMN_DELIMITTER,
-                "\n",
-                SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
-        spliceCsvReader.
-                values = spliceCsvReader.readAsStringArray();
-    */
     public LocatedRow call(List<String> values) throws Exception {
         try {
-//            System.out.println("Parsed Row -> " + values);
             ExecRow returnRow = execRow.getClone();
             for (int i = 1; i <= returnRow.nColumns(); i++) {
                 DataValueDescriptor dvd = returnRow.getColumn(i);
@@ -131,7 +121,6 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                     dvd.setValue(value);
                 }
             }
-  //           System.out.println("Returned Row -> " + returnRow);
             return new LocatedRow(returnRow);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
@@ -143,12 +132,15 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     }
 
     protected void checkPreference() {
-        if (preference==null)
-            preference = new CsvPreference.Builder(
-                    characterDelimiter != null && characterDelimiter.length() > 0 ? characterDelimiter.charAt(0) : DEFAULT_STRIP_STRING,
-                    columnDelimiter != null && columnDelimiter.length() > 0 ? columnDelimiter.charAt(0) : DEFAULT_COLUMN_DELIMITTER,
+        if (preference==null){
+            SConfiguration config =EngineDriver.driver().getConfiguration();
+            int maxQuotedLines = config.getInt(SQLConfiguration.IMPORT_MAX_QUOTED_COLUMN_LINES);
+            preference=new CsvPreference.Builder(
+                    characterDelimiter!=null && characterDelimiter.length()>0?characterDelimiter.charAt(0):DEFAULT_STRIP_STRING,
+                    columnDelimiter!=null && columnDelimiter.length()>0?columnDelimiter.charAt(0):DEFAULT_COLUMN_DELIMITTER,
                     "\n",
-                    SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build();
+                    maxQuotedLines).useNullForEmptyColumns(false).build();
+        }
     }
 
 

@@ -1,72 +1,73 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.Pair;
+
 import java.util.Arrays;
-import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
- * Created on: 7/8/13
+ *         Created on: 7/8/13
  */
-public class ValuePredicate implements Predicate {
+public class ValuePredicate implements Predicate{
     private CompareOp compareOp;
     private int column;
     protected byte[] compareValue;
-		/*If set, the comparison value needs to be reversed*/
-		private boolean desc;
+    /*If set, the comparison value needs to be reversed*/
+    private boolean desc;
 
     private boolean removeNullEntries;
 
-		public ValuePredicate(CompareOp compareOp,
-													int column,
-													byte[] compareValue,
-													boolean removeNullEntries,
-													boolean desc) {
-        this.compareOp = compareOp;
-        this.column = column;
-        this.compareValue = compareValue;
-        this.removeNullEntries = removeNullEntries;
-				this.desc = desc;
+    public ValuePredicate(CompareOp compareOp,
+                          int column,
+                          byte[] compareValue,
+                          boolean removeNullEntries,
+                          boolean desc){
+        this.compareOp=compareOp;
+        this.column=column;
+        this.compareValue=compareValue;
+        this.removeNullEntries=removeNullEntries;
+        this.desc=desc;
     }
 
     @Override
-    public boolean applies(int column) {
+    public boolean applies(int column){
         return this.column==column;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ValuePredicate)) return false;
+    public boolean equals(Object o){
+        if(this==o) return true;
+        if(!(o instanceof ValuePredicate)) return false;
 
-        ValuePredicate that = (ValuePredicate) o;
+        ValuePredicate that=(ValuePredicate)o;
 
-        if (column != that.column) return false;
-        if (desc != that.desc) return false;
-        if (removeNullEntries != that.removeNullEntries) return false;
-        if (compareOp != that.compareOp) return false;
-        if (!Arrays.equals(compareValue, that.compareValue)) return false;
+        if(column!=that.column) return false;
+        if(desc!=that.desc) return false;
+        if(removeNullEntries!=that.removeNullEntries) return false;
+        if(compareOp!=that.compareOp) return false;
+        if(!Arrays.equals(compareValue,that.compareValue)) return false;
 
         return true;
     }
 
     @Override
-    public int hashCode() {
-        int result = compareOp.hashCode();
-        result = 31 * result + column;
-        result = 31 * result + Arrays.hashCode(compareValue);
-        result = 31 * result + (desc ? 1 : 0);
-        result = 31 * result + (removeNullEntries ? 1 : 0);
+    public int hashCode(){
+        int result=compareOp.hashCode();
+        result=31*result+column;
+        result=31*result+Arrays.hashCode(compareValue);
+        result=31*result+(desc?1:0);
+        result=31*result+(removeNullEntries?1:0);
         return result;
     }
 
     @Override
-    public boolean match(int column,byte[] data, int offset, int length){
+    public boolean match(int column,byte[] data,int offset,int length){
         if(this.column!=column) return true; //no need to perform anything, because it isn't the correct column
 
-        if(data==null||length==0){
-            if(compareValue==null||compareValue.length<=0)
+        if(data==null || length==0){
+            if(compareValue==null || compareValue.length<=0)
                 return true; //null matches null
             /*
              * The value passed in was null. Some comparisons can still be done, but numerical ones (for example)
@@ -77,16 +78,16 @@ public class ValuePredicate implements Predicate {
             if(removeNullEntries) return false;
 
             if(data==null){
-                data = new byte[]{}; //for the purposes of comparisons, make sure data is not null
+                data=new byte[]{}; //for the purposes of comparisons, make sure data is not null
                 length=0;
             }
         }
-				int compare = doComparison(data, offset, length);
-				switch (compareOp) {
+        int compare=doComparison(data,offset,length);
+        switch(compareOp){
             case LESS:
                 return compare>0;
             case LESS_OR_EQUAL:
-                return compare >=0;
+                return compare>=0;
             case EQUAL:
                 return compare==0;
             case NOT_EQUAL:
@@ -100,15 +101,15 @@ public class ValuePredicate implements Predicate {
         }
     }
 
-		protected int doComparison(byte[] data, int offset, int length) {
-				int baseCompare = Bytes.BASE_COMPARATOR.compare(compareValue, 0, compareValue.length, data, offset, length);
-				if(desc)
-						baseCompare*=-1; //swap the order for descending columns
-				return baseCompare;
-		}
+    protected int doComparison(byte[] data,int offset,int length){
+        int baseCompare=Bytes.BASE_COMPARATOR.compare(compareValue,0,compareValue.length,data,offset,length);
+        if(desc)
+            baseCompare*=-1; //swap the order for descending columns
+        return baseCompare;
+    }
 
-		@Override
-    public boolean checkAfter() {
+    @Override
+    public boolean checkAfter(){
         /*
          * Remove null entries is an implicit not-null check--we thus need to make sure that
          * we are checking nulls AFTER the row is completed as well as before.
@@ -117,16 +118,17 @@ public class ValuePredicate implements Predicate {
     }
 
     @Override
-    public void setCheckedColumns(BitSet checkedColumns) {
+    public void setCheckedColumns(BitSet checkedColumns){
         checkedColumns.set(column);
     }
 
     @Override
-    public void reset() { } //no-op
+    public void reset(){
+    } //no-op
 
-		@Override
-		public byte[] toBytes() {
-				/*
+    @Override
+    public byte[] toBytes(){
+                /*
          * Format is as follows:
          *
          * 1-byte type header (PredicateType.VALUE)
@@ -139,72 +141,74 @@ public class ValuePredicate implements Predicate {
          *
          * which results in an array of n+10 bytes
          */
-				byte[] data = new byte[compareValue.length + 15];
-				data[0] = getType().byteValue();
-				Bytes.intToBytes(column, data, 1);
+        byte[] data=new byte[compareValue.length+15];
+        data[0]=getType().byteValue();
+        Bytes.intToBytes(column,data,1);
 
-				data[5] = removeNullEntries ? (byte) 0x01 : 0x00;
-				data[6] = desc? (byte)0x01: 0x00;
-				Bytes.intToBytes(compareOp.ordinal(), data, 7);
-				Bytes.intToBytes(compareValue.length, data, 11);
-				System.arraycopy(compareValue, 0, data, 15, compareValue.length);
+        data[5]=removeNullEntries?(byte)0x01:0x00;
+        data[6]=desc?(byte)0x01:0x00;
+        Bytes.intToBytes(compareOp.ordinal(),data,7);
+        Bytes.intToBytes(compareValue.length,data,11);
+        System.arraycopy(compareValue,0,data,15,compareValue.length);
 
-				return data;
-		}
-
-    public static Pair<ValuePredicate,Integer> fromBytes(byte[] data, int offset){
-				//first byte is the type.
-				PredicateType pType = PredicateType.valueOf(data[offset]);
-				offset++;
-				int length =1;
-        //first bytes are the Column
-        int column = Bytes.bytesToInt(data, offset);
-				offset+=4;
-				length+=4;
-        boolean removeNullEntries = data[offset] ==0x01;
-				offset++;
-				length++;
-				boolean desc = data[offset] == 0x01;
-				offset++;
-				length++;
-        CompareOp compareOp = getCompareOp(Bytes.bytesToInt(data, offset));
-				offset+=4;
-				length+=4;
-
-        int compareValueSize = Bytes.bytesToInt(data, offset);
-				offset+=4;
-				length+=4;
-        byte[] compareValue = new byte[compareValueSize];
-        System.arraycopy(data,offset,compareValue,0,compareValue.length);
-				length+=compareValue.length;
-				ValuePredicate pred;
-				if(pType==PredicateType.CHAR_VALUE) {
-						pred = new CharValuePredicate(compareOp, column, compareValue, removeNullEntries,desc);
-				}else
-						pred = new ValuePredicate(compareOp, column, compareValue, removeNullEntries,desc);
-				return Pair.newPair(pred,length);
+        return data;
     }
 
-    private static CompareOp getCompareOp(int compareOrdinal) {
-        for(CompareOp op: CompareOp.values()){
+    public static Pair<ValuePredicate, Integer> fromBytes(byte[] data,int offset){
+        //first byte is the type.
+        PredicateType pType=PredicateType.valueOf(data[offset]);
+        offset++;
+        int length=1;
+        //first bytes are the Column
+        int column=Bytes.bytesToInt(data,offset);
+        offset+=4;
+        length+=4;
+        boolean removeNullEntries=data[offset]==0x01;
+        offset++;
+        length++;
+        boolean desc=data[offset]==0x01;
+        offset++;
+        length++;
+        CompareOp compareOp=getCompareOp(Bytes.bytesToInt(data,offset));
+        offset+=4;
+        length+=4;
+
+        int compareValueSize=Bytes.bytesToInt(data,offset);
+        offset+=4;
+        length+=4;
+        byte[] compareValue=new byte[compareValueSize];
+        System.arraycopy(data,offset,compareValue,0,compareValue.length);
+        length+=compareValue.length;
+        ValuePredicate pred;
+        if(pType==PredicateType.CHAR_VALUE){
+            pred=new CharValuePredicate(compareOp,column,compareValue,removeNullEntries,desc);
+        }else
+            pred=new ValuePredicate(compareOp,column,compareValue,removeNullEntries,desc);
+        return Pair.newPair(pred,length);
+    }
+
+    private static CompareOp getCompareOp(int compareOrdinal){
+        for(CompareOp op : CompareOp.values()){
             if(op.ordinal()==compareOrdinal){
                 return op;
             }
         }
-        throw new IllegalArgumentException("Unable to find Compare op for ordinal "+ compareOrdinal);
+        throw new IllegalArgumentException("Unable to find Compare op for ordinal "+compareOrdinal);
     }
 
-		protected PredicateType getType() { return PredicateType.VALUE; }
+    protected PredicateType getType(){
+        return PredicateType.VALUE;
+    }
 
 
     @Override
-    public String toString() {
-        return "ValuePredicate {" +
-                "compareOp=" + compareOp +
-                ", column=" + column +
-                ", compareValue=" + Arrays.toString(compareValue) +
-                ", desc=" + desc +
-                ", removeNullEntries=" + removeNullEntries +
+    public String toString(){
+        return "ValuePredicate {"+
+                "compareOp="+compareOp+
+                ", column="+column+
+                ", compareValue="+Arrays.toString(compareValue)+
+                ", desc="+desc+
+                ", removeNullEntries="+removeNullEntries+
                 '}';
     }
 }

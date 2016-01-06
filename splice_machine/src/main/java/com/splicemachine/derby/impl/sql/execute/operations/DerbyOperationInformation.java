@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
@@ -195,7 +195,7 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     @Override
     public UUIDGenerator getUUIDGenerator() {
         if(generator==null)
-            generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
+            generator = EngineDriver.driver().newUUIDGenerator(100);
 
         return generator;
     }

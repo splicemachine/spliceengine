@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.backup;
+package com.splicemachine.backup;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

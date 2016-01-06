@@ -2,7 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.primitives.Bytes;
 
 public class JoinSideExecRow {
 	protected ExecRow row;
@@ -70,7 +70,7 @@ public class JoinSideExecRow {
 	public boolean sameHash(byte[] hash) {
 		if (hash == null)
 			return false;
-		return Bytes.compareTo(this.hash, hash) == 0;
+		return Bytes.basicByteComparator().compare(this.hash,hash) == 0;
 	}
 
 }

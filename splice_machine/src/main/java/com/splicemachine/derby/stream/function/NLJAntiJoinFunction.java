@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
@@ -42,11 +43,11 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
         checkInit();
         DataSet dataSet = null;
         try {
-            op.getRightOperation().openCore(StreamUtils.controlDataSetProcessor);
+            op.getRightOperation().openCore(EngineDriver.driver().processorFactory().localProcessor(null,op));
             Iterator<LocatedRow> rightSideNLJ = op.getRightOperation().getLocatedRowIterator();
             if (rightSideNLJ.hasNext()) {
                 StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join filtered");
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             }
             ExecRow mergedRow = JoinUtils.getMergedRow(from.getRow(), op.getEmptyRow(),
                     op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));

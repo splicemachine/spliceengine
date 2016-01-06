@@ -4,6 +4,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -51,7 +52,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     private final TransactionReadController trc;
 
     private final Set<ConstraintFactory> constraintFactories=new CopyOnWriteArraySet<>();
-    private final FKWriteFactoryHolder fkGroup=new FKWriteFactoryHolder();
+    private final FKWriteFactoryHolder fkGroup;
     private final ListWriteFactoryGroup indexFactories=new ListWriteFactoryGroup();
     private final WriteFactoryGroup ddlFactories=new SetWriteFactoryGroup();
 
@@ -63,6 +64,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         this.osf=osf;
         this.pef=pef;
         this.trc=trc;
+        this.fkGroup = new FKWriteFactoryHolder(pef);
     }
 
 
@@ -138,7 +140,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             case ADD_PRIMARY_KEY:
             case ADD_UNIQUE_CONSTRAINT:
             case DROP_PRIMARY_KEY:
-                ddlFactories.addFactory(AlterTableWriteFactory.create(ddlChange,trc));
+                ddlFactories.addFactory(AlterTableWriteFactory.create(ddlChange,trc,pef));
                 break;
             case ADD_FOREIGN_KEY:
                 fkGroup.handleForeignKeyAdd(ddlChange,conglomId);

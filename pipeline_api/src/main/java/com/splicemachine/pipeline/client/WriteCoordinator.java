@@ -19,6 +19,7 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.writer.AsyncBucketingWriter;
 import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 
 import javax.management.*;
@@ -104,6 +105,12 @@ public class WriteCoordinator {
         return writeBuffer(partition,txn,preFlushHook,Metrics.noOpMetricFactory());
     }
 
+    public RecordingCallBuffer<KVPair> noIndexWriteBuffer(byte[] tableId, TxnView txn, final MetricFactory metricFactory) throws IOException{
+        PartitionFactory pf = SIDriver.driver().getTableFactory();
+        Partition p = pf.getTable(tableId);
+        return noIndexWriteBuffer(p,txn,metricFactory);
+    }
+
     public RecordingCallBuffer<KVPair> noIndexWriteBuffer(Partition partition, TxnView txn, final MetricFactory metricFactory) {
         WriteConfiguration config = defaultWriteConfiguration;
         //if it isn't active, don't bother creating the extra object
@@ -129,8 +136,18 @@ public class WriteCoordinator {
         return writeBuffer(partition, txn, preFlushHook,config);
     }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, WriteConfiguration writeConfiguration) {
-        return writeBuffer(partition, txn, PipelineUtils.noOpFlushHook, writeConfiguration);
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, PreFlushHook preFlushHook) throws IOException{
+        return writeBuffer(partition, txn, preFlushHook, defaultWriteConfiguration,Metrics.noOpMetricFactory());
+    }
+
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition, TxnView txn, MetricFactory metricsFactory) throws IOException{
+        return writeBuffer(partition, txn, PipelineUtils.noOpFlushHook, defaultWriteConfiguration,metricsFactory);
+    }
+
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] partition,TxnView txn,PreFlushHook noOpFlushHook,
+                                                   WriteConfiguration writeConfig,MetricFactory metricsFactory) throws IOException{
+        Partition p =SIDriver.driver().getTableFactory().getTable(partition);
+        return writeBuffer(p,txn,noOpFlushHook,writeConfig);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn,
@@ -173,6 +190,10 @@ public class WriteCoordinator {
     }
 
     public PartitionFactory getPartitionFactory(){ return partitionFactory; }
+
+    public RecordingCallBuffer<KVPair> writeBuffer(Partition table,TxnView txn,WriteConfiguration writeConfiguration){
+        return writeBuffer(table,txn,PipelineUtils.noOpFlushHook,writeConfiguration);
+    }
 
     private class MonitoredPipingCallBuffer extends PipingCallBuffer {
 

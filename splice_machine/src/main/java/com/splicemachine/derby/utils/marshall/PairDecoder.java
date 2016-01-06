@@ -1,69 +1,38 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.esotericsoftware.kryo.KryoException;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.Cell;
+import com.splicemachine.kvpair.KVPair;
 
 import java.io.IOException;
 
 /**
  * @author Scott Fines
- * Date: 11/15/13
+ *         Date: 11/15/13
  */
-public class PairDecoder<Data> {
-		private static final SDataLib dataLib = SIDriver.driver().getDataLib();
-		private final KeyDecoder keyDecoder;
-		private final KeyHashDecoder rowDecoder;
-		private final ExecRow templateRow;
+public class PairDecoder{
+    private final KeyDecoder keyDecoder;
+    private final KeyHashDecoder rowDecoder;
+    private final ExecRow templateRow;
 
-		public PairDecoder(KeyDecoder keyDecoder,
-											 KeyHashDecoder rowDecoder,
-											 ExecRow templateRow) {
-				this.keyDecoder = keyDecoder;
-				this.rowDecoder = rowDecoder;
-				this.templateRow = templateRow;
-		}
+    public PairDecoder(KeyDecoder keyDecoder,
+                       KeyHashDecoder rowDecoder,
+                       ExecRow templateRow){
+        this.keyDecoder=keyDecoder;
+        this.rowDecoder=rowDecoder;
+        this.templateRow=templateRow;
+    }
 
-    public ExecRow decode(Cell data) throws StandardException{
+    public ExecRow decode(KVPair kvPair) throws StandardException{
         templateRow.resetRowArray();
-        keyDecoder.decode(data.getRowArray(),data.getRowOffset(),data.getRowLength(),templateRow);
-        rowDecoder.set(data.getValueArray(),data.getValueOffset(),data.getValueLength());
+        keyDecoder.decode(kvPair.getRowKey(),0,kvPair.getRowKey().length,templateRow);
+        rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
         rowDecoder.decode(templateRow);
         return templateRow;
     }
 
-		public ExecRow decode(Data data) throws StandardException{
-			try {
-				templateRow.resetRowArray();				
-				keyDecoder.decode(data, templateRow);
-				rowDecoder.set(dataLib.getDataValueBuffer(data),
-						dataLib.getDataValueOffset(data),
-						dataLib.getDataValuelength(data));
-				rowDecoder.decode(templateRow);
-				return templateRow;
-			} catch (StandardException se) {
-				System.out.println("template Row " + templateRow);
-				throw se;
-			} catch (KryoException ke) {
-				System.out.println("template Row " + templateRow);
-				throw ke;
-			}
-		}
-
-		public ExecRow decode(KVPair kvPair) throws StandardException{
-				templateRow.resetRowArray();
-				keyDecoder.decode(kvPair.getRowKey(),0,kvPair.getRowKey().length,templateRow);
-				rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
-				rowDecoder.decode(templateRow);
-				return templateRow;
-		}
-
 		/*
-		 *
+         *
 		 *  < a | b |c >
 		 *    1 | 2 | 3
 		 *
@@ -76,27 +45,27 @@ public class PairDecoder<Data> {
 		 *  Row Data: aggregate(c)
 		 */
 
-		public int getKeyPrefixOffset(){
-				return keyDecoder.getPrefixOffset();
-		}
+    public int getKeyPrefixOffset(){
+        return keyDecoder.getPrefixOffset();
+    }
 
-		public ExecRow getTemplate() {
-				return templateRow;
-		}
+    public ExecRow getTemplate(){
+        return templateRow;
+    }
 
-		@Override
-		public String toString() {
-			return String.format("PairDecoder { keyDecoder=%s rowDecoder=%s, templateRow=%s}",keyDecoder,rowDecoder,templateRow);
-		}
+    @Override
+    public String toString(){
+        return String.format("PairDecoder { keyDecoder=%s rowDecoder=%s, templateRow=%s}",keyDecoder,rowDecoder,templateRow);
+    }
 
-        public void close() throws IOException {
-            try {
-                if (keyDecoder != null)
-                    keyDecoder.close();
-            } finally {
-                if (rowDecoder != null)
-                    rowDecoder.close();
-            }
+    public void close() throws IOException{
+        try{
+            if(keyDecoder!=null)
+                keyDecoder.close();
+        }finally{
+            if(rowDecoder!=null)
+                rowDecoder.close();
         }
+    }
 
 }

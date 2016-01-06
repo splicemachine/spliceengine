@@ -46,6 +46,22 @@ public class HExceptionFactory implements ExceptionFactory{
         return new HCannotCommitException(txnId,actualState);
     }
 
+
+    @Override
+    public IOException callerDisconnected(String message){
+        return new HCallerDisconnected(message);
+    }
+
+    @Override
+    public IOException failedServer(String message){
+        return new HFailedServer(message);
+    }
+
+    @Override
+    public IOException notServingPartition(String s){
+        return new HNotServingRegion(s);
+    }
+
     @Override
     public IOException additiveWriteConflict(){
         return new AdditiveWriteConflict();

@@ -114,16 +114,16 @@ public class WindowOperation extends SpliceBaseOperation {
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
         DataSet dataSet = source.getDataSet(dsp);
         
-        operationContext.pushScopeForOp("Prepare Keys");
+        operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
         KeyerFunction f = new KeyerFunction(operationContext, windowContext.getPartitionColumns());
         PairDataSet pair = dataSet.keyBy(f);
         operationContext.popScope();
         
-        operationContext.pushScopeForOp("Group By Key");
+        operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
         pair = pair.groupByKey("Group Values For Each Key");
         operationContext.popScope();
         
-        operationContext.pushScopeForOp("Execute");
+        operationContext.pushScopeForOp(OperationContext.Scope.EXECUTE);
         try {
             return pair.flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()), true);
         } finally {

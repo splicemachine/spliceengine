@@ -62,5 +62,18 @@ public class OperationConfiguration{
                     throw new IllegalArgumentException("No int default for key '"+key+"'");
             }
         }
+
+        @Override
+        public boolean hasStringDefault(String key){
+            return false;
+        }
+
+        @Override
+        public String defaultStringFor(String key){
+            switch(key){
+                default:
+                    throw new IllegalArgumentException("No String default for key '"+key+"'");
+            }
+        }
     }
 }

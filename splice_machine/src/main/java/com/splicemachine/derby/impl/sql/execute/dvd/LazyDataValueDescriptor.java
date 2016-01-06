@@ -11,8 +11,8 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TimeValuedSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
@@ -611,7 +611,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor{
                         off = 0;
                         len = d.length;
                     }
-                    return Bytes.compareTo(d,off,len,lOther.bytes,lOther.offset,lOther.length);
+                    return Bytes.basicByteComparator().compare(d,off,len,lOther.bytes,lOther.offset,lOther.length);
                 }else{
                     forceDeserialization();
                 }

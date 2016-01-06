@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.iapi;
 
-import com.splicemachine.derby.utils.StandardIterator;
 
 import java.util.Iterator;
 

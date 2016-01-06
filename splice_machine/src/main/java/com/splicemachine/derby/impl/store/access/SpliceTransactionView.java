@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.CannotCommitException;
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -44,7 +45,8 @@ public class SpliceTransactionView extends BaseSpliceTransaction {
 
     @Override
     public LogInstant commit() throws StandardException {
-        throw Exceptions.parseException(new CannotCommitException("Cannot commit from SpliceTransactionView"));
+        ExceptionFactory ef =SIDriver.driver().getExceptionFactory();
+        throw Exceptions.parseException(ef.cannotCommit("Cannot commit from SpliceTransactionView"));
     }
 
     @Override

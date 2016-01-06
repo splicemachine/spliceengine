@@ -103,10 +103,10 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         config = pipelineEnv.configuration();
         tableFactory = siDriver.getTableFactory();
         try{
-            DatabaseLifecycleManager.manager().registerService(new DatabaseLifecycleService(){
+            DatabaseLifecycleManager.manager().registerGeneralService(new DatabaseLifecycleService(){
                 @Override
                 public void start() throws Exception{
-                    factoryLoader = pipelineDriver.getContextFactoryLoader(conglomId);
+                    factoryLoader=pipelineDriver.getContextFactoryLoader(conglomId);
                 }
 
                 @Override

@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -65,7 +66,9 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
                 xact_mgr.getRawStoreXact(),segment,input_containerid,
                 template,columnOrder,collationIds,properties,
                 hbase.getTypeFormatId(),
-                temporaryFlag);
+                temporaryFlag,
+                SIDriver.driver().getOperationFactory(),
+                SIDriver.driver().getTableFactory());
 
         return hbase;
     }

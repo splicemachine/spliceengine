@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * @author Scott Fines
@@ -14,6 +15,7 @@ public class UUIDFunction {
     public static long NEXT_UUID(){
         //TODO -sf- find a way to do this without synchronizing on every call
         //maybe make a "RandomSequence" construct?
-        return SpliceDriver.driver().getUUIDGenerator().nextUUID();
+        byte[] bytes=EngineDriver.driver().newUUIDGenerator(1).nextBytes();
+        return Bytes.toLong(bytes,0,8); //take the first 8 bytes, in case it's longer
     }
 }

@@ -50,7 +50,7 @@ public class SIObserver extends BaseRegionObserver{
     private TxnOperationFactory<OperationWithAttributes,Get,Mutation,Put,Scan> txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
-    private TransactionReadController<Cell,Get,Filter.ReturnCode,Scan> txnReadController;
+    private TransactionReadController<Get, Scan> txnReadController;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{

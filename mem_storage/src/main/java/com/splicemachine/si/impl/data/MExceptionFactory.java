@@ -18,6 +18,16 @@ public class MExceptionFactory implements ExceptionFactory{
     protected MExceptionFactory(){}
 
     @Override
+    public IOException cannotCommit(String message){
+        return new MCannotCommitException(message);
+    }
+
+    @Override
+    public boolean allowsRetry(Throwable error){
+        return false;
+    }
+
+    @Override
     public IOException writeWriteConflict(long txn1,long txn2){
         return new MWriteConflict(txn1,txn2);
     }
@@ -40,6 +50,22 @@ public class MExceptionFactory implements ExceptionFactory{
     @Override
     public IOException cannotCommit(long txnId,Txn.State actualState){
         return new MCannotCommitException(txnId,actualState);
+    }
+
+    @Override
+    public IOException callerDisconnected(String message){
+        return new MCallerDisconnected(message);
+    }
+
+    @Override
+    public IOException failedServer(String message){
+        return new MFailedServer(message);
+    }
+
+
+    @Override
+    public IOException notServingPartition(String s){
+        return new MNotServingPartition(s);
     }
 
     @Override

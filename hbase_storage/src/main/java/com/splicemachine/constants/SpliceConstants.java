@@ -22,40 +22,15 @@ import java.util.concurrent.TimeUnit;
 public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
-    public static final String BATCH_SAVEPOINT = "BATCH_SAVEPOINT";
 
-    /**
-     * Flag to force the upgrade process to execute during database boot-up.
-     * This flag should only be true for the master server.  If the upgrade runs on the region server,
-     * it would probably be bad (at least if it ran concurrently with another upgrade).
-     * On region servers, this flag will be temporarily true until the SpliceDriver is started.
-     * The SpliceDriver will set the flag to false for all region servers.
-     * Default is false.
-     */
-    @Parameter public static final String UPGRADE_FORCED = "splice.upgrade.forced";
-    @DefaultValue(UPGRADE_FORCED) public static final boolean DEFAULT_UPGRADE_FORCED = false;
-    public static boolean upgradeForced;
 
 
     @Parameter public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
                    @DefaultValue(SPLIT_BLOCK_SIZE) public static final int DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
                    public static int splitBlockSize;
 
-    /**
-     * Ignore SavePts flag for experimental TPCC testing.
-     */
-    @Parameter public static final String IGNORE_SAVEPTS = "splice.ignore.savepts";
-    @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
-    public static boolean ignoreSavePts;
 
 
-    /**
-     * If the upgrade process is being forced, this tells which version to begin the upgrade process from.
-     * Default is "0.0.0", which means that all upgrades will be executed.
-     */
-    @Parameter public static final String UPGRADE_FORCED_FROM = "splice.upgrade.forced.from";
-    @DefaultValue(UPGRADE_FORCED_FROM) public static final String DEFAULT_UPGRADE_FORCED_FROM = "0.0.0";
-    public static String upgradeForcedFromVersion;
 
     @Parameter public static final String SPLICE_NAMESPACE = "splice.namespace";
     @DefaultValue(SPLICE_NAMESPACE) public static final String DEFAULT_SPLICE_NAMESPACE = "splice";
@@ -89,7 +64,6 @@ public class SpliceConstants {
     @Parameter public static final String REGION_LOAD_UPDATE_INTERVAL = "splice.statistics.regionLoadUpdateInterval";
     @DefaultValue(REGION_LOAD_UPDATE_INTERVAL) public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 5;
 
-    public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
     @Parameter public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
     @DefaultValue(IMPORT_MAX_QUOTED_COLUMN_LINES) public static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 50000;
@@ -227,21 +201,6 @@ public class SpliceConstants {
 
     /* Derby configuration settings */
 
-    /**
-     * The IP address to bind the Derby connection to.
-     * Defaults to 0.0.0.0
-     */
-    @Parameter public static final String DERBY_BIND_ADDRESS = "splice.server.address";
-    @DefaultValue(DERBY_BIND_ADDRESS) public static final String DEFAULT_DERBY_BIND_ADDRESS = "0.0.0.0";
-    public static String derbyBindAddress;
-
-    /**
-     * The Port to bind the Derby connection to.
-     * Defaults to 1527
-     */
-    @Parameter public static final String DERBY_BIND_PORT = "splice.server.port";
-    @DefaultValue(DERBY_BIND_PORT) public static final int DEFAULT_DERBY_BIND_PORT = 1527;
-    public static int derbyBindPort;
 
 		/**
 		 * The default port to bind the JMX connection to.
@@ -460,14 +419,6 @@ public class SpliceConstants {
 
     public static long regionMaxFileSize;
 
-    /**
-     *
-     * This metric is multiplied by number of rows and cost to determine an effect of 1..n extra qualifiers on the source result set.
-     *
-     */
-    @Parameter private static final String OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = "splice.optimizer.extraQualifierMultiplier";
-    @DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER = 0.9d;
-    public static double extraQualifierMultiplier;
 
 
 
@@ -482,7 +433,7 @@ public class SpliceConstants {
      *
      */
     @Parameter private static final String OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = "splice.optimizer.extraStartStopQualifierMultiplier";
-    @DefaultValue(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = 0.5d;
+    @DefaultValue(OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER) public static final double DEFAULT_OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER = 0.5d;
     public static double extraStartStopQualifierMultiplier;
 
     /**
@@ -519,21 +470,6 @@ public class SpliceConstants {
     @DefaultValue(HASHNLJ_RIGHTHASHTABLE_SIZE) public static final int DEFAULT_HASHNLJ_RIGHTHASHTABLE_SIZE = 1024;
     public static int hashNLJRightHashTableSize;
 
-    /**
-     * Threshold in megabytes for the broadcast join region size.
-     *
-     */
-    @Parameter private static final String BROADCAST_REGION_MB_THRESHOLD = "splice.optimizer.broadcastRegionMBThreshold";
-    @DefaultValue(BROADCAST_REGION_MB_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = (int) (Runtime.getRuntime().maxMemory() / (1024l * 1024l * 100l));
-    public static int broadcastRegionMBThreshold;
-
-    /**
-     * Threshold in rows for the broadcast join region size.  Default is 1 Million Rows
-     *
-     */
-    @Parameter private static final String BROADCAST_REGION_ROW_THRESHOLD = "splice.optimizer.broadcastRegionRowThreshold";
-    @DefaultValue(BROADCAST_REGION_ROW_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_ROW_THRESHOLD = 1000000;
-    public static int broadcastRegionRowThreshold;
 
     /**
      * Estimate of the number of rows in a region.
@@ -597,53 +533,12 @@ public class SpliceConstants {
     @DefaultValue(OPTIMIZER_TABLE_MINIMAL_ROWS) public static final long DEFAULT_OPTIMIZER_TABLE_MINIMAL_ROWS = 20;
     public static long optimizerTableMinimalRows;
 
-    /**
-     * Minimum fixed duration (in millisecomds) that should be allowed to lapse
-     * before the optimizer can determine that it should stop trying to find
-     * the best plan due to plan time taking longer than the expected
-     * query execution time. By default, this is zero, which means
-     * there is no fixed minimum, and the determination is made
-     * using cost estimates alone. Default value should generally
-     * be left alone, and would only need to be changed as a workaround
-     * for inaccurate cost estimates.
-     * 
-     * @return minimum plan timeout regardless of cost based time limit
-     */
-    @Parameter private static final String OPTIMIZER_PLAN_MINIMUM_TIMEOUT = "splice.optimizer.minPlanTimeout";
-    @DefaultValue(OPTIMIZER_PLAN_MINIMUM_TIMEOUT) public static final long DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT = 0L;
-    // Only used by the method OptimizerImpl.checkTimeout()
-    public static long optimizerPlanMinimumTimeout;
-    
-    /**
-     * Maximum fixed duration (in millisecomds) that should be allowed to lapse
-     * before the optimizer can determine that it should stop trying to find
-     * the best plan due to plan time taking longer than the expected
-     * query execution time. By default, this is Long.MaxValue, which means
-     * there is no fixed maximum, and the determination is made
-     * using cost estimates alone. Default value should generally
-     * be left alone, and would only need to be changed as a workaround
-     * for inaccurate cost estimates.
-     * 
-     * @return maximum plan timeout regardless of cost based time limit
-     */
-    @Parameter private static final String OPTIMIZER_PLAN_MAXIMUM_TIMEOUT = "splice.optimizer.maxPlanTimeout";
-    @DefaultValue(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT) public static final long DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT = Long.MAX_VALUE;
-    // Only used by the method OptimizerImpl.checkTimeout()
-    public static long optimizerPlanMaximumTimeout;
-    
-    
+
     //
     // Spark / Control Side configurations
     //
     
-    @Parameter private static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
-    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 10*1000*1000*1000; // based on a TPCC1000 run on an 8 node cluster
-    public static double controlSideCostThreshold;
-    
-    @Parameter private static final String CONTROL_SIDE_ROWCOUNT_THRESHOLD = "splice.dataset.control.rowCountThreshold";
-    @DefaultValue(CONTROL_SIDE_COST_THRESHOLD) public static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E10;
-    public static double controlSideRowCountThreshold;
-    
+
     /**
      * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
      * this up will result in more threads being available for writes after longer periods of inactivity,
@@ -749,48 +644,7 @@ public class SpliceConstants {
     @DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=1<<14; //~ 16K
     public static int ringBufferSize;
 
-    /**
-     * The number of index rows to bulk fetch at a single time.
-     *
-     * Index lookups are bundled together into a single network operation for many rows.
-     * This setting determines the maximum number of rows which are fetched in a single
-     * network operation.
-     *
-     * Defaults to 4000
-     */
-    @Parameter private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
-    @DefaultValue(INDEX_BATCH_SIZE) public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
-    public static int indexBatchSize;
 
-
-
-    /**
-     * The number of concurrent bulk fetches a single index operation can initiate
-     * at a time. If fewer than that number of fetches are currently in progress, the
-     * index operation will submit a new bulk fetch. Once this setting's number of bulk
-     * fetches has been reached, the index lookup must wait for one of the previously
-     * submitted fetches to succeed before continuing.
-     *
-     * Index lookups will only submit a new bulk fetch if existing data is not already
-     * available.
-     *
-     * Defaults to 5
-     */
-    @Parameter private static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
-    @DefaultValue(INDEX_LOOKUP_BLOCKS) private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
-    public static int indexLookupBlocks;
-
-    /**
-     * The maximum number of Kryo objects to pool for reuse. This setting is generally
-     * not necessary to adjust unless there are an extremely large number of concurrent
-     * operations allowed on the system. Adjusting this down may lengthen the amount of
-     * time required to perform an operation slightly.
-     *
-     * Defaults to 50.
-     */
-    @Parameter private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
-    @DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=16000;
-    public static int kryoPoolSize;
 
 
     /**
@@ -882,28 +736,6 @@ public class SpliceConstants {
     @DefaultValue(SEQUENCE_BLOCK_SIZE) private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
     public static long sequenceBlockSize;
 
-   /**
-     * The initial wait in milliseconds when a DDL operation waits for all concurrent transactions to finish before
-     * proceeding.
-     *
-     * The operation will wait progressively longer until the DDL_DRAINING_MAXIMUM_WAIT is reached, then it will
-     * block concurrent transactions from writing to the affected tables.
-     *
-     * Defaults to 1000 (1 second)
-     */
-    @Parameter private static final String DDL_DRAINING_INITIAL_WAIT = "splice.ddl.drainingWait.initial";
-    @DefaultValue(DDL_DRAINING_INITIAL_WAIT) private static final long DEFAULT_DDL_DRAINING_INITIAL_WAIT = 1000;
-    public static long ddlDrainingInitialWait;
-
-    /**
-     * The maximum wait in milliseconds a DDL operation will wait for concurrent transactions to finish before
-     * blocking them from writing to the affected tables.
-     *
-     * Defaults to 100000 (100 seconds)
-     */
-    @Parameter private static final String DDL_DRAINING_MAXIMUM_WAIT = "splice.ddl.drainingWait.maximum";
-    @DefaultValue(DDL_DRAINING_MAXIMUM_WAIT) private static final long DEFAULT_DDL_DRAINING_MAXIMUM_WAIT = 100000;
-    public static long ddlDrainingMaximumWait;
 
     /**
      * The lease duration for metadata caches in milliseconds.
@@ -934,7 +766,6 @@ public class SpliceConstants {
     public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
-    public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String RESTORE_TABLE_NAME = "SPLICE_RESTORE";
     public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
     public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
@@ -942,7 +773,6 @@ public class SpliceConstants {
 
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
     public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
-    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     public static final byte[] RESTORE_TABLE_NAME_BYTES = Bytes.toBytes(RESTORE_TABLE_NAME);
 
     //TEMP Table task column--used for filtering out failed tasks from the temp
@@ -1024,8 +854,6 @@ public class SpliceConstants {
         zkLeaderElection = config.get(LEADER_ELECTION, DEFAULT_LEADER_ELECTION);
         sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
         zkSpliceStartupPath = config.get(STARTUP_PATH, DEFAULT_STARTUP_PATH);
-        derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
-        derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
         timestampServerBindAddress = config.get(TIMESTAMP_SERVER_BIND_ADDRESS, DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS);
         timestampServerBindPort = config.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         timestampBlockSize = config.getInt(TIMESTAMP_BLOCK_SIZE, DEFAULT_TIMESTAMP_BLOCK_SIZE);
@@ -1045,7 +873,6 @@ public class SpliceConstants {
         siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
         ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 
-        ignoreSavePts = config.getBoolean(IGNORE_SAVEPTS,DEFAULT_IGNORE_SAVEPTS);
         // Optimizer Settings
 
         hashNLJLeftRowBufferSize = SpliceConstants.config.getInt(HASHNLJ_LEFTROWBUFFER_SIZE, DEFAULT_HASHNLJ_LEFTROWBUFFER_SIZE);
@@ -1056,7 +883,6 @@ public class SpliceConstants {
         broadcastRegionRowThreshold = SpliceConstants.config.getInt(BROADCAST_REGION_ROW_THRESHOLD,DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         indexPerRowCost = SpliceConstants.config.getFloat(INDEX_PER_ROW_COST, (float)DEFAULT_INDEX_PER_ROW_COST);
         optimizerHashCost = SpliceConstants.config.getFloat(OPTIMIZER_HASH_COST, (float)DEFAULT_OPTIMIZER_HASH_COST);
-        extraQualifierMultiplier = SpliceConstants.config.getFloat(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, (float) DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
         extraStartStopQualifierMultiplier = SpliceConstants.config.getFloat(OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER, (float) DEFAULT_OPTIMIZER_EXTRA_START_STOP_QUALIFIER_MULTIPLIER);
         optimizerNetworkCost = SpliceConstants.config.getFloat(OPTIMIZER_NETWORK_COST, (float)DEFAULT_OPTIMIZER_NETWORK_COST);
         optimizerWriteCost = SpliceConstants.config.getFloat(OPTIMIZER_WRITE_COST, (float)DEFAULT_OPTIMIZER_WRITE_COST);
@@ -1146,9 +972,6 @@ public class SpliceConstants {
         pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
 
         importMaxQuotedColumnLines = config.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES,DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
-
-        ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT,DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
-        ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT,DEFAULT_DDL_DRAINING_INITIAL_WAIT);
 
         maxInterRegionTaskSplits = config.getInt(MAX_INTER_REGION_TASK_SPLITS,DEFAULT_MAX_INTER_REGION_TASK_SPLITS);
 

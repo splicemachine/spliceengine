@@ -160,7 +160,7 @@ public class DistinctScanOperation extends ScanOperation {
             colMap = keyColumns;
         }
 
-        TableScannerBuilder tsb = new TableScannerBuilder()
+        return dsp.<DistinctScanOperation,LocatedRow>newScanSet(this,tableName)
                 .transaction(getCurrentTransaction())
                 .scan(getNonSIScan())
                 .template(currentRow)
@@ -173,8 +173,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .execRowTypeFormatIds(execRowTypeFormatIds)
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(colMap);
-        return dsp.<DistinctScanOperation, LocatedRow>getTableScanner(this,tsb,tableName).distinct();
+                .rowDecodingMap(colMap).buildDataSet().distinct();
     }
 
 }

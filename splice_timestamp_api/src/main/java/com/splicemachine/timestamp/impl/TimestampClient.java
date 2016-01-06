@@ -310,16 +310,6 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
     }
 
     @Override
-    protected void doTrace(String message, Object... args) {
-        SpliceLogUtils.trace(LOG, message, args);
-    }
-
-    @Override
-    protected void doDebug(String message, Object... args) {
-        SpliceLogUtils.debug(LOG, message, args);
-    }
-
-    @Override
     protected void doError(String message, Throwable t, Object... args) {
         SpliceLogUtils.error(LOG, message, t, args);
     }

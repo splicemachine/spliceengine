@@ -1,10 +1,10 @@
 package com.splicemachine.derby.stream.output.update;
 
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -55,7 +55,7 @@ public class NonPkRowHash extends EntryDataHash {
                 doubleFields.set(i-1);
             }
         }
-        return EntryEncoder.create(SpliceDriver.getKryoPool(),currentRow.nColumns(),
+        return EntryEncoder.create(SpliceKryoRegistry.getInstance(),currentRow.nColumns(),
                 notNullFields,scalarFields,floatFields,doubleFields);
     }
 

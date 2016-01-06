@@ -106,8 +106,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext operationContext = dsp.createOperationContext(this);
-        TableScannerBuilder tsb = new TableScannerBuilder()
+        DataSet<LocatedRow> scan = dsp.<LastIndexKeyOperation,LocatedRow>newScanSet(this,tableName)
                 .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
                 .template(currentTemplate)
@@ -120,9 +119,10 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(baseColumnMap);
-        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, tableName)
-                .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
+                .rowDecodingMap(baseColumnMap).buildDataSet();
+
+        OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
+        return scan.take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))
                 .coalesce(1,true)
                 .take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1));
     }

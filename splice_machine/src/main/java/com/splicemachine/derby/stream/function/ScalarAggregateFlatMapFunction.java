@@ -6,7 +6,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.spark.RDDUtils;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -50,19 +49,13 @@ public class ScalarAggregateFlatMapFunction extends SpliceFlatMapFunction<Scalar
     }
 
     private void accumulate(ExecRow next, ExecRow agg) throws StandardException {
-        ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-        if (RDDUtils.LOG.isDebugEnabled()) {
-            RDDUtils.LOG.debug(String.format("Accumulating %s to %s", next, agg));
-        }
+        ScalarAggregateOperation op =getOperation();
         for (SpliceGenericAggregator aggregate : op.aggregates)
             aggregate.accumulate(next, agg);
     }
 
     private void merge(ExecRow next, ExecRow agg) throws StandardException {
-        ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-        if (RDDUtils.LOG.isDebugEnabled()) {
-            RDDUtils.LOG.debug(String.format("Merging %s to %s", next, agg));
-        }
+        ScalarAggregateOperation op =getOperation();
         for (SpliceGenericAggregator aggregate : op.aggregates)
             aggregate.merge(next, agg);
     }

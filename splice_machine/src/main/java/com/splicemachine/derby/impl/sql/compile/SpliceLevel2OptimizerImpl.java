@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -124,6 +126,8 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
         }
     };
 
+    private final long minTimeout;
+    private final long maxTimeout;
     public SpliceLevel2OptimizerImpl(OptimizableList optimizableList,
                                      OptimizablePredicateList predicateList,
                                      DataDictionary dDictionary,
@@ -148,6 +152,9 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                 requiredRowOrdering,
                 numTablesInQuery,
                 lcc);
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        this.minTimeout=configuration.getLong(SQLConfiguration.OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
+        this.maxTimeout=configuration.getLong(SQLConfiguration.OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
     }
 
     @Override
@@ -193,13 +200,13 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
      * Overridden to check splice configuration.
      */
     protected long getMinTimeout() {
-    	return SpliceConstants.optimizerPlanMinimumTimeout; // milliseconds
+        return minTimeout;
     }
 
     /**
      * Overridden to check splice configuration.
      */
     protected long getMaxTimeout() {
-    	return SpliceConstants.optimizerPlanMaximumTimeout; // milliseconds
+        return maxTimeout;
     }
 }

@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -62,7 +65,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 
 /**
  * @author Scott Fines
@@ -1435,7 +1437,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
         try {
-            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
             tentativeTransaction =
                 lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
         } catch (IOException e) {

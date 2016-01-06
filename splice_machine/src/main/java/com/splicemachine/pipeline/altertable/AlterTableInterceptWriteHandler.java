@@ -2,7 +2,6 @@ package com.splicemachine.pipeline.altertable;
 
 import java.io.IOException;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.RowTransformer;

@@ -25,7 +25,7 @@ public class InsertPairFunction extends SplicePairFunction<SpliceOperation,Locat
 
     @Override
     public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
-        return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
+        return new Tuple2<>(locatedRow.getRowLocation(),locatedRow.getRow());
     }
     
     @Override

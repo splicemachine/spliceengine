@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;
 import org.apache.log4j.Logger;
 import java.util.ArrayList;
@@ -17,8 +19,9 @@ public class CachedPhysicalStatsStore implements PhysicalStatisticsStore {
     private final Cache<String,PhysicalStatsDescriptor> physicalStatisticsCache;
 
     public CachedPhysicalStatsStore() {
+        SConfiguration config =EngineDriver.driver().getConfiguration();
         this.physicalStatisticsCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(StatsConstants.DEFAULT_PARTITION_CACHE_EXPIRATION, TimeUnit.MILLISECONDS)
+                .expireAfterWrite(config.getLong(StatsConfiguration.PARTITION_CACHE_EXPIRATION), TimeUnit.MILLISECONDS)
                 .build();
     }
 

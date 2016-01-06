@@ -113,7 +113,7 @@ public class IndexController extends SpliceController{
             }else{
                 DataValueDescriptor[] oldValues=openSpliceConglomerate.cloneRowTemplate();
                 DataGet get=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
-                get = SpliceUtils.createGet(get,oldValues,null);
+                get = createGet(get,oldValues,null);
                 DataResult result=htable.get(get,null);
                 ExecRow execRow=new ValueRow(oldValues.length);
                 execRow.setRowArray(oldValues);
@@ -134,7 +134,7 @@ public class IndexController extends SpliceController{
                     byte[] rowKey=generateIndexKey(row,sortOrder);
                     put=opFactory.newDataPut(trans.getTxnInformation(),rowKey);
                 }finally{
-                    Closeables.closeQuietly(decoder);
+                    try{decoder.close();}catch(IOException ignored){}
                 }
             }
 

@@ -6,7 +6,7 @@ import com.google.common.collect.ImmutableList;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.*;
-import com.splicemachine.hbase.backup.BackupHFileCleaner;
+import com.splicemachine.backup.BackupHFileCleaner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;

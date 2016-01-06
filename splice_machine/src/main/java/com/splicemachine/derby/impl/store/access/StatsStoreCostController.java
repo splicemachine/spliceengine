@@ -1,19 +1,18 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
 import com.splicemachine.derby.impl.stats.PartitionStatsStore;
-import com.splicemachine.derby.impl.stats.StatsConstants;
+import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
@@ -32,18 +31,26 @@ public class StatsStoreCostController extends GenericController implements Store
     private static Logger LOG = Logger.getLogger(StatsStoreCostController.class);
     protected OverheadManagedTableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
+    private final double openLatency;
+    private final double closeLatency;
+    private final double fallbackNullFraction;
+    private final double extraQualifierMultiplier;
 
     public StatsStoreCostController(OpenSpliceConglomerate baseConglomerate) throws StandardException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"init baseConglomerate=%s",baseConglomerate.getContainerID());
         this.baseConglomerate = baseConglomerate;
 
-        BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
-        TxnView txn = bst.getActiveStateTxn();
         long conglomId = baseConglomerate.getConglomerate().getContainerid();
-        this.conglomerateStatistics = PartitionStatsStore.getStatistics(conglomId, (TransactionController) baseConglomerate.getTransactionManager());
+        this.conglomerateStatistics = PartitionStatsStore.getStatistics(conglomId,baseConglomerate.getTransactionManager());
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"init conglomerateStatistics=%s",conglomerateStatistics);
+
+        SConfiguration config =EngineDriver.driver().getConfiguration();
+        openLatency = config.getLong(StatsConfiguration.FALLBACK_OPENCLOSE_LATENCY);
+        closeLatency = config.getLong(StatsConfiguration.FALLBACK_OPENCLOSE_LATENCY);
+        fallbackNullFraction = config.getDouble(StatsConfiguration.FALLBACK_NULL_FRACTION);
+        extraQualifierMultiplier = config.getDouble(StatsConfiguration.OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
     }
 
     /**
@@ -74,12 +81,6 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override public void close() throws StandardException {  }
 
-    /**
-     * Returns the rowCount from the statistics as a long
-     *
-     * @return
-     * @throws StandardException
-     */
     @Override
     public long getEstimatedRowCount() throws StandardException {
         return conglomerateStatistics.rowCount();
@@ -168,11 +169,11 @@ public class StatsStoreCostController extends GenericController implements Store
         return null;
     }
 
-    protected static ColumnStatistics<DataValueDescriptor> getColumnStats(OverheadManagedTableStatistics stats,int columnNumber){
+    protected ColumnStatistics<DataValueDescriptor> getColumnStats(OverheadManagedTableStatistics stats,int columnNumber){
         return stats.columnStatistics(columnNumber);
     }
 
-    protected static double nullSelectivityFraction(TableStatistics stats,int columnNumber){
+    protected double nullSelectivityFraction(TableStatistics stats,int columnNumber){
         List<? extends PartitionStatistics> partStats = stats.partitionStatistics();
         long nullCount = 0l;
         int missingStatsCount = partStats.size();
@@ -189,7 +190,7 @@ public class StatsStoreCostController extends GenericController implements Store
              * We have no statistics for this column, so we fall back on an arbitrarily configured
              * selectivity criteria
              */
-            return StatsConstants.fallbackNullFraction;
+            return fallbackNullFraction;
         }else if(missingStatsCount>0){
             /*
              * We have a situation where statistics are missing from some, but not all
@@ -207,7 +208,7 @@ public class StatsStoreCostController extends GenericController implements Store
         return nc/stats.rowCount();
     }
 
-    protected static double selectivityFraction(TableStatistics stats,
+    protected double selectivityFraction(TableStatistics stats,
                                          int columnNumber,
                                          DataValueDescriptor start,boolean includeStart,
                                          DataValueDescriptor stop,boolean includeStop){
@@ -227,7 +228,7 @@ public class StatsStoreCostController extends GenericController implements Store
              * we have no statistics for this column, so fall back to an abitrarily configured
              * selectivity criteria
              */
-            return SpliceConstants.extraQualifierMultiplier;
+            return extraQualifierMultiplier;
         }else if(missingStatsCount>0){
             /*
              * We are missing some statistics, but not others. Fill in the missing
@@ -365,11 +366,11 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override
     public double getOpenLatency() {
-        return StatsConstants.fallbackOpenCloseLatency;
+        return openLatency;
     }
 
     @Override
     public double getCloseLatency() {
-        return StatsConstants.fallbackOpenCloseLatency;
+        return closeLatency;
     }
 }

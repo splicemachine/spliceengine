@@ -45,7 +45,7 @@ public class SpliceJDBCVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op,DataSetProcessor dsp,  ExecRow execRow) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceOperation op,DataSetProcessor dsp,  ExecRow execRow) throws StandardException {
         Connection connection = null;
         operationContext = dsp.createOperationContext(op);
         final PreparedStatement ps;

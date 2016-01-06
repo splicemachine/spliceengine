@@ -2,7 +2,6 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.spark.api.java.function.Function;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -12,7 +11,7 @@ import java.io.Serializable;
  */
 public abstract class SpliceFunction<Op extends SpliceOperation, From, To>
     extends AbstractSpliceFunction<Op>
-		implements Function<From, To>, com.google.common.base.Function<From,To>, Serializable {
+		implements ExternalizableFunction<From, To>, com.google.common.base.Function<From,To>, Serializable {
 
 	public SpliceFunction() {
         super();

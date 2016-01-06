@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -11,16 +11,12 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.*;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.hbase.DerbyFactory;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
@@ -54,7 +50,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
     protected static final SDataLib dataLib=SIDriver.driver().getDataLib();
-    protected static final DerbyFactory derbyFactory=DerbyFactoryDriver.derbyFactory;
     /* Run time statistics variables */
     public int numOpens;
     public long beginTime;
@@ -442,7 +437,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     public DataSet<LocatedRow> getDataSet() throws StandardException{
-        DataSetProcessor dsp=StreamUtils.getDataSetProcessorFromActivation(activation,this);
+        DataSetProcessor dsp=EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
         return getDataSet(dsp);
     }
 
@@ -465,7 +460,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void openCore() throws StandardException{
-        openCore(StreamUtils.getDataSetProcessorFromActivation(activation,this));
+        openCore(EngineDriver.driver().processorFactory().chooseProcessor(activation,this));
     }
 
     @Override

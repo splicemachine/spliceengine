@@ -17,7 +17,7 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 2/13/14
  */
-public interface TransactionReadController<Data,Get,ReturnCode,Scan>{
+public interface TransactionReadController<Get,Scan>{
 
     /**
      * Perform server-side pre-processing of operations. This is before they are actually executed.

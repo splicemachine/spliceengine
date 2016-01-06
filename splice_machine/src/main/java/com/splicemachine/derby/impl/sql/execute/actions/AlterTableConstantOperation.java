@@ -5,18 +5,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.function.RowTransformFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.index.HTableWriterBuilder;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.PipelineWriterBuilder;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
@@ -63,7 +70,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -435,7 +441,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
         try {
-            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
             tentativeTransaction =
                 lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
         } catch (IOException e) {
@@ -528,7 +534,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
         try {
-            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
             tentativeTransaction =
                 lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
         } catch (IOException e) {
@@ -652,7 +658,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
         try {
-            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
             tentativeTransaction =
                 lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
         } catch (IOException e) {
@@ -733,7 +739,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             TxnView parentTxn = ((SpliceTransactionManager) tc).getActiveStateTxn();
             Txn tentativeTransaction;
             try {
-                tentativeTransaction = TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,writeTable);
+                tentativeTransaction = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,writeTable);
             } catch (IOException e) {
                 LOG.error("Couldn't start transaction for tentative DDL operation");
                 throw Exceptions.parseException(e);
@@ -1018,7 +1024,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         Txn waitTxn;
         try{
             waitTxn =
-                TransactionLifecycle.getLifecycleManager().chainTransaction(wrapperTxn,
+                SIDriver.driver().lifecycleManager().chainTransaction(wrapperTxn,
                                                                             Txn.IsolationLevel.SNAPSHOT_ISOLATION,
                                                                             false,tableBytes,txnToWaitFor);
         }catch(IOException ioe){
@@ -1051,7 +1057,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
              * that the write pipeline is able to see the conglomerate descriptor. However,
              * this makes the SI logic more complex during the populate phase.
              */
-            populateTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
+            populateTxn = SIDriver.driver().lifecycleManager().chainTransaction(
                 wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
@@ -1069,23 +1075,35 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         Txn childTxn = beginChildTransaction(parentTxn, ddlChange.getTxnId());
         // create a scanner to scan old conglomerate
-        TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(childTxn, demarcationPoint, ddlChange);
         long baseConglomerateNumber = ddlChange.getTentativeIndex().getTable().getConglomerate();
-        DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
-        StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
-        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, new Long(baseConglomerateNumber).toString());
+
+        DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
+        dsp.setup(activation,this.toString(),"admin");
+//        StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
+
+        DataSet<KVPair> dataSet = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomerateNumber))
+                .activation(activation)
+                .scan(DDLUtils.createFullScan())
+                .transaction(childTxn)
+                .demarcationPoint(demarcationPoint)
+                .buildDataSet();
+
 
         //Create table writer for new conglomerate
-        HTableWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);
+        PipelineWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);
 
-        dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction()).writeKVPair(tableWriter);
+        PairDataSet<LocatedRow,KVPair> ds=dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction());
+        DataSet<LocatedRow> result = ds.directWriteData()
+                .txn(childTxn)
+                .destConglomerate(ddlChange.getTentativeIndex().getIndex().getConglomerate())
+                .skipIndex(true).build().write();
 
         childTxn.commit();
     }
 
     // Create a table writer to wrte KVPairs to new conglomerate, skipping index writing.
-    private HTableWriterBuilder createTableWriterBuilder(TxnView txn, DDLChange ddlChange) {
-        HTableWriterBuilder tableWriterBuilder = new HTableWriterBuilder()
+    private PipelineWriterBuilder createTableWriterBuilder(TxnView txn, DDLChange ddlChange) {
+        PipelineWriterBuilder tableWriterBuilder = new PipelineWriterBuilder()
                 .txn(txn)
                 .skipIndex(true)
                 .heapConglom(ddlChange.getTentativeIndex().getIndex().getConglomerate());
@@ -1094,14 +1112,4 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
     }
 
-    // Create a table scanner for old conglomerate. Make sure to pass in demarcation point to pick up writes before it.
-    private TableScannerBuilder createTableScannerBuilder(Txn txn, long demarcationPoint, DDLChange ddlChange) throws IOException{
-
-        TableScannerBuilder builder = new TableScannerBuilder()
-                        .scan(DDLUtils.createFullScan())
-                        .transaction(txn)
-                        .demarcationPoint(demarcationPoint);
-
-        return builder;
-    }
 }

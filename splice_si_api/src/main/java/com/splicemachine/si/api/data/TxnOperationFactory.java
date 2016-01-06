@@ -45,6 +45,10 @@ public interface TxnOperationFactory<OperationWithAttributes,
 
     void writeTxn(TxnView txn,ObjectOutput out) throws IOException;
 
+    void writeScan(DataScan scan, ObjectOutput out) throws IOException;
+//SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
+    DataScan readScan(ObjectInput in) throws IOException;
+
     byte[] encode(TxnView txn);
 
     void encodeForReads(Attributable attributable,TxnView txn, boolean isCountStar);

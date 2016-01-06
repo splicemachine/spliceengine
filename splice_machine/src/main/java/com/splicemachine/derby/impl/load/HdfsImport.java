@@ -3,16 +3,14 @@ package com.splicemachine.derby.impl.load;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
+import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.load.ColumnInfo;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -27,7 +25,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -58,7 +56,6 @@ import java.util.Arrays;
  */
 public class HdfsImport {
 		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
-		private HBaseAdmin admin;
 
 		private static final ResultColumnDescriptor[] IMPORT_RESULT_COLUMNS = new GenericColumnDescriptor[]{
                 new GenericColumnDescriptor("rowsImported",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
@@ -231,8 +228,8 @@ public class HdfsImport {
 
         Connection conn = null;
         try {
-            schemaName = SpliceUtils.validateSchema(schemaName);
-            tableName = SpliceUtils.validateTable(tableName);
+            schemaName = EngineUtils.validateSchema(schemaName);
+            tableName = EngineUtils.validateTable(tableName);
             conn = SpliceAdmin.getDefaultConn();
             // This needs to be found by the database locale, not hard coded.
             if (timestampFormat == null)
@@ -241,7 +238,7 @@ public class HdfsImport {
                 dateFormat = "yyyy-MM-dd";
             if (timeFormat == null)
                 timeFormat = "HH:mm:ss";
-            StringBuffer sb = new StringBuffer("new ");
+            StringBuilder sb = new StringBuilder("new ");
             sb.append("com.splicemachine.derby.vti.SpliceFileVTI");
             sb.append("(");
             sb.append(quoteStringArgument(fileName));
@@ -278,20 +275,20 @@ public class HdfsImport {
             PreparedStatement ips = conn.prepareStatement(insertSql);
             //execute the import operaton.
             try {
-                ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(fileName));
+                FileInfo contentSummary = ImportUtils.getImportDataSize(fileName);
                 int count = ips.executeUpdate();
                 ExecRow result=new ValueRow(5);
                 result.setRowArray(new DataValueDescriptor[]{
                         new SQLLongint(count),
                         new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
-                        new SQLLongint(contentSummary.getFileCount()),
-                        new SQLLongint(contentSummary.getSpaceConsumed()),
+                        new SQLLongint(contentSummary.fileCount()),
+                        new SQLLongint(contentSummary.spaceConsumed()),
                         new SQLVarchar("badFile"),
                         new SQLVarchar(((EmbedConnection) conn).getLanguageConnection().getBadFile())
                 });
                 Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();
                 IteratorNoPutResultSet rs =
-                        new IteratorNoPutResultSet(Arrays.asList(result),
+                        new IteratorNoPutResultSet(Collections.singletonList(result),
                                 (isCheckScan?CHECK_RESULT_COLUMNS:IMPORT_RESULT_COLUMNS),act);
                 rs.open();
                 results[0]=new EmbedResultSet40((EmbedConnection) conn,rs,false,null,true);

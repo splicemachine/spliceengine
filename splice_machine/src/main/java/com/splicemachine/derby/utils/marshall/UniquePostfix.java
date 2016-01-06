@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -18,7 +18,7 @@ public class UniquePostfix implements KeyPostfix{
 		private final UUIDGenerator generator;
 
 		public UniquePostfix(byte[] baseBytes) {
-				this(baseBytes,SpliceDriver.driver().getUUIDGenerator().newGenerator(100));
+				this(baseBytes,EngineDriver.driver().newUUIDGenerator(100));
 		}
 
 		public UniquePostfix(byte[] baseBytes, UUIDGenerator generator) {

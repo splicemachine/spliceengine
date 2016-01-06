@@ -7,14 +7,14 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.hadoop.hbase.util.Base64;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * Created by jleach on 5/6/15.
@@ -93,7 +93,7 @@ public class InsertTableWriterBuilder implements Externalizable {
             out.writeBoolean(operationContext!=null);
             if (operationContext!=null)
                 out.writeObject(operationContext);
-            TransactionOperations.getOperationFactory().writeTxn(txn, out);
+            SIDriver.driver().getOperationFactory().writeTxn(txn, out);
             ArrayUtil.writeIntArray(out, pkCols);
             out.writeUTF(tableVersion);
             ArrayUtil.writeIntArray(out,execRowTypeFormatIds);
@@ -116,7 +116,7 @@ public class InsertTableWriterBuilder implements Externalizable {
         isUpsert = in.readBoolean();
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
-        txn = TransactionOperations.getOperationFactory().readTxn(in);
+        txn = SIDriver.driver().getOperationFactory().readTxn(in);
         pkCols = ArrayUtil.readIntArray(in);
         tableVersion = in.readUTF();
         execRowTypeFormatIds = ArrayUtil.readIntArray(in);
@@ -133,15 +133,15 @@ public class InsertTableWriterBuilder implements Externalizable {
     public static InsertTableWriterBuilder getInsertTableWriterBuilderFromBase64String(String base64String) throws IOException {
         if (base64String == null)
             throw new IOException("tableScanner base64 String is null");
-        return (InsertTableWriterBuilder) SerializationUtils.deserialize(Base64.decode(base64String));
+        return (InsertTableWriterBuilder) SerializationUtils.deserialize(Base64.decodeBase64(base64String));
     }
     public String getInsertTableWriterBuilderBase64String() throws IOException, StandardException {
-        return Base64.encodeBytes(SerializationUtils.serialize(this));
+        return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
-    public InsertTableWriter build() throws StandardException {
+    public InsertPipelineWriter build() throws StandardException {
         assert txn!=null:"Txn is null";
-        return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
+        return new InsertPipelineWriter(pkCols, tableVersion, execRowDefinition,
                     autoIncrementRowLocationArray,spliceSequences,
                     heapConglom,txn,operationContext,isUpsert);
     }

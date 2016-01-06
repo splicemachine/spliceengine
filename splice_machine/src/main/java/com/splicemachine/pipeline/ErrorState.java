@@ -1,15 +1,14 @@
 package com.splicemachine.pipeline;
 
-import com.splicemachine.derby.hbase.ExceptionTranslator;
-import com.splicemachine.si.api.CannotCommitException;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.pipeline.constraint.ConstraintViolation;
-import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.WrongPartitionException;
+import com.splicemachine.pipeline.api.PipelineTooBusy;
+import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
+import com.splicemachine.si.api.server.FailedServerException;
+import com.splicemachine.si.api.txn.WriteConflict;
+import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -594,7 +593,8 @@ public enum ErrorState {
         public boolean accepts(Throwable t) {
             if(super.accepts(t)) return true;
 
-            return t instanceof Exceptions.LangFormatException;
+            throw new UnsupportedOperationException("IMPLEMENT");
+//            return t instanceof Exceptions.LangFormatException;
         }
     },
     LANG_INVALID_ESCAPE_CHARACTER( "22019"),
@@ -619,14 +619,13 @@ public enum ErrorState {
         @Override
         public boolean accepts(Throwable t) {
             return super.accepts(t) ||
-                    t instanceof ConstraintViolation.UniqueConstraintViolation ||
-                    t instanceof ConstraintViolation.PrimaryKeyViolation;
+                    t instanceof UniqueConstraintViolation;
         }
     },
     LANG_FK_VIOLATION("23503") {
         @Override
         public boolean accepts(Throwable t) {
-            return super.accepts(t) || t instanceof ConstraintViolation.ForeignKeyConstraintViolation;
+            return super.accepts(t) || t instanceof ForeignKeyViolation;
         }
     },
     LANG_CHECK_CONSTRAINT_VIOLATED( "23513"),
@@ -1808,22 +1807,22 @@ public enum ErrorState {
     SPLICE_WRITE_RETRIES_EXHAUSTED("SE003"){
         @Override
         public boolean accepts(Throwable t) {
-            return t instanceof RetriesExhaustedException || super.accepts(t);
+            throw new UnsupportedOperationException("UnSUPPORTED");
+//            return t instanceof RetriesExhaustedException || super.accepts(t);
         }
     },
     SPLICE_REGION_OFFLINE("SE004"){
         @Override
         public boolean accepts(Throwable t) {
-            ExceptionTranslator handler = DerbyFactoryDriver.derbyFactory.getExceptionHandler();
-            return handler.isNotServingRegionException(t)
-                    || handler.isWrongRegionException(t)
-                    || handler.isFailedServerException(t)
-                    || super.accepts(t);
+            return t instanceof NotServingPartitionException ||
+                    t instanceof WrongPartitionException ||
+                    t instanceof FailedServerException ||
+                    super.accepts(t);
         }
 
         @Override
         public StandardException newException(Throwable rootCause) {
-            if(!(rootCause instanceof NotServingRegionException))
+            if(!(rootCause instanceof NotServingPartitionException))
                 return super.newException(rootCause);
             String message = rootCause.getMessage();
 
@@ -1844,7 +1843,7 @@ public enum ErrorState {
     },SPLICE_REGION_TOO_BUSY("SE005"){
         @Override
         public boolean accepts(Throwable t) {
-            return super.accepts(t)|| t instanceof RegionTooBusyException;
+            return super.accepts(t)|| t instanceof PipelineTooBusy;
         }
 
         @Override
@@ -1923,7 +1922,7 @@ public enum ErrorState {
 
 		private final String sqlState;
 
-    private ErrorState(String sqlState) {
+    ErrorState(String sqlState) {
         this.sqlState = sqlState;
     }
 
@@ -1971,12 +1970,5 @@ public enum ErrorState {
 
         StandardException se = (StandardException)t;
         return se.getSqlState().equals(sqlState);
-    }
-
-    public static void main(String... args) throws Exception{
-        String test = "org.apache.hadoop.hbase.NotServingRegionException: SPLICE_TEMP,,1379966867836.cb48d617ab87498984680ee8e061e09c. is closing.";
-        Matcher matcher = Pattern.compile(" (.*),").matcher(test);
-        matcher.find();
-        System.out.println(matcher.group(1));
     }
 }

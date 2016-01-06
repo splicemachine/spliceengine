@@ -1,12 +1,11 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.sparkproject.guava.collect.FluentIterable;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -26,9 +25,9 @@ public class BroadcastJoinFlatMapFunction extends AbstractBroadcastJoinFlatMapFu
 
     @Override
     public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> result = FluentIterable.from(new Iterable<LocatedRow>() {
+        Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> result = FluentIterable.from(new Iterable<LocatedRow>(){
             @Override
-            public Iterator<LocatedRow> iterator() {
+            public Iterator<LocatedRow> iterator(){
                 return locatedRows;
             }
         }).transformAndConcat(

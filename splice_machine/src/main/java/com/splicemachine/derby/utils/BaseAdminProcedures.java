@@ -5,17 +5,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -25,12 +22,13 @@ import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.jdbc.InternalDriver;
 
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.util.Pair;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.PartitionServer;
+import com.splicemachine.utils.Pair;
 
 /**
  * Common static utility functions for subclasses which provide
@@ -51,9 +49,9 @@ public abstract class BaseAdminProcedures {
 	// related to system admin belongs here. We don't want this to be another
 	// dumping around for utility functions.
 
-    protected static List<Pair<String,String>> getServerNames(Collection<ServerName> serverInfo) {
-        List<Pair<String,String>> names = new ArrayList<Pair<String,String>>(serverInfo.size());
-        for (ServerName sname : serverInfo) {
+    protected static List<Pair<String,String>> getServerNames(Collection<PartitionServer> serverInfo) {
+        List<Pair<String,String>> names =new ArrayList<>(serverInfo.size());
+        for (PartitionServer sname : serverInfo) {
             names.add(Pair.newPair(sname.getHostname(),sname.getHostAndPort()));
         }
         return names;
@@ -74,7 +72,7 @@ public abstract class BaseAdminProcedures {
      * @return
      * @throws IOException
      */
-    protected static List<Pair<String, JMXConnector>> getConnections(List<ServerName> serverNames) throws IOException {
+    protected static List<Pair<String, JMXConnector>> getConnections(Collection<PartitionServer> serverNames) throws IOException {
     	return JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
     }
 
@@ -91,9 +89,7 @@ public abstract class BaseAdminProcedures {
     	if (connections == null) throwNullArgError("connections");
         try {
             operation.operate(connections);
-        } catch (MalformedObjectNameException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
+        } catch (MalformedObjectNameException | IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
@@ -107,17 +103,15 @@ public abstract class BaseAdminProcedures {
      *
      * @throws SQLException
      */
-    protected static void operate(JMXServerOperation operation, List<ServerName> serverNames) throws SQLException {
+    protected static void operate(JMXServerOperation operation, Collection<PartitionServer> serverNames) throws SQLException {
     	if (operation == null) throwNullArgError("operation");
         List<Pair<String, JMXConnector>> connections = null;
         try {
             connections = getConnections(serverNames);
             operation.operate(connections);
-        } catch (MalformedObjectNameException e) {
+        } catch (MalformedObjectNameException | IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } finally {
+        }finally {
             if (connections != null) {
             	close(connections);
             }
@@ -132,33 +126,38 @@ public abstract class BaseAdminProcedures {
     protected static void close(List<Pair<String, JMXConnector>> connections) {
         if (connections != null) {
             for (Pair<String, JMXConnector> connectorPair : connections) {
-                Closeables.closeQuietly(connectorPair.getSecond());
+                final JMXConnector second=connectorPair.getSecond();
+                try{ second.close(); }catch(IOException ignored){ }
             }
         }
     }
 
     protected static void operate(JMXServerOperation operation) throws SQLException {
     	if (operation == null) throwNullArgError("operation");
-        List<ServerName> regionServers = SpliceUtils.getServers();
-        operate(operation, regionServers);
+        try(PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin()){
+            operate(operation,admin.allServers());
+        }catch(IOException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+//        List<PartitionServer> regionServers = SpliceUtils.getServers();
+//        operate(operation, regionServers);
     }
 
     protected static void operateOnMaster(JMXServerOperation operation) throws SQLException {
         if (operation == null) throwNullArgError("operation");
 
-        ServerName masterServer = SpliceUtils.getMasterServer();
-
-        String serverName = masterServer.getHostname();
-        String port = SpliceConstants.config.get("hbase.master.jmx.port","10101");
-        try {
-            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverName,port));
-            JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
-            operation.operate(Arrays.asList(Pair.newPair(serverName,jmxc)));
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        } catch (MalformedObjectNameException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
+        throw new UnsupportedOperationException("IMPLEMENT");
+//        PartitionServer masterServer = SpliceUtils.getMasterServer();
+//
+//        String serverName = masterServer.getHostname();
+//        String port = SpliceConstants.config.get("hbase.master.jmx.port","10101");
+//        try {
+//            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverName,port));
+//            JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
+//            operation.operate(Arrays.asList(Pair.newPair(serverName,jmxc)));
+//        } catch (IOException | MalformedObjectNameException e) {
+//            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+//        }
     }
 
     public static Connection getDefaultConn() throws SQLException {

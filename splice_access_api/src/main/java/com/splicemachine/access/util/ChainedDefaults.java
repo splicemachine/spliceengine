@@ -49,4 +49,21 @@ public class ChainedDefaults implements SConfiguration.Defaults{
         }
         throw new IllegalStateException("No default int set for key '"+ key+"'");
     }
+
+    @Override
+    public boolean hasStringDefault(String key){
+        for(SConfiguration.Defaults def:defaults){
+            if(def.hasStringDefault(key)) return true;
+        }
+        return false;
+    }
+
+    @Override
+    public String defaultStringFor(String key){
+        for(SConfiguration.Defaults def:defaults){
+            if(def.hasStringDefault(key))
+                return def.defaultStringFor(key);
+        }
+        throw new IllegalStateException("No default string set for key '"+key+"'");
+    }
 }

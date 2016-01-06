@@ -6,6 +6,7 @@ import com.splicemachine.derby.stream.function.ScalarAggregateFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -93,7 +94,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				// Set the default values to 0 in case a ProjectRestrictOperation has set the default values to 1.
 				// That is done to avoid division by zero exceptions when executing a projection for defining the rows
 				// before execution.
-				SpliceUtils.populateDefaultValues(row.getRowArray(),0);
+				EngineUtils.populateDefaultValues(row.getRowArray(),0);
 				return row;
 		}
 

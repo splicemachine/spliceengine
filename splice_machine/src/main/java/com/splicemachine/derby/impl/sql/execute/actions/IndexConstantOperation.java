@@ -1,19 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.google.common.primitives.Ints;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.KVPairFunction;
-import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.index.HTableWriterBuilder;
+import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.catalog.UUID;
@@ -21,7 +23,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.primitives.Ints;
 import java.io.IOException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
@@ -86,34 +87,38 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-				/*
-				 * Backfill the index with any existing data.
-				 *
-				 * It's possible that the index will be created on the same node as some system tables are located.
-				 */
-        Txn childTxn = null;
+		/*
+		 * Backfill the index with any existing data.
+		 *
+		 * It's possible that the index will be created on the same node as some system tables are located.
+		 */
+        Txn childTxn;
         try {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
-            StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
+            DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
+            dsp.setup(activation,this.toString(),"admin");
+//            StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-            HTableScannerBuilder hTableScannerBuilder = new HTableScannerBuilder()
+            IndexScanSetBuilder<KVPair> indexBuilder=dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getIndex().getConglomerate()));
+            DataSet<KVPair> dataSet =indexBuilder
+                    .indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
                     .transaction(indexTransaction)
                     .demarcationPoint(demarcationPoint)
-                    .indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
-                    .scan(DDLUtils.createFullScan());
-            HTableWriterBuilder builder = new HTableWriterBuilder()
-                    .heapConglom(tentativeIndex.getIndex().getConglomerate())
-                    .txn(childTxn);
-            DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder, (new Long(tentativeIndex.getTable().getConglomerate())).toString());
-            DataSet<LocatedRow> result = dataset.map(new IndexTransformFunction(tentativeIndex))
-                    .index(new KVPairFunction()).writeKVPair(builder);
+                    .scan(DDLUtils.createFullScan()).buildDataSet();
+
+            PairDataSet dsToWrite=dataSet.map(new IndexTransformFunction(tentativeIndex)).index(new KVPairFunction());
+            DataSetWriter writer=dsToWrite.directWriteData()
+                    .destConglomerate(tentativeIndex.getIndex().getConglomerate())
+                    .txn(childTxn)
+                    .build();
+
+            DataSet<LocatedRow> result = writer.write();
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
     }
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
-        TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
+        TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
         return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());
     }
 

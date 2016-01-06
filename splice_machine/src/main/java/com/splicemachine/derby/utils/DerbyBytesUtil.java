@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.io.Closeables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -10,10 +9,10 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -34,23 +33,16 @@ public class DerbyBytesUtil {
 
     @SuppressWarnings("unchecked")
     public static <T> T fromBytesUnsafe(byte[] bytes) throws IOException, ClassNotFoundException {
-        ByteDataInput bdi = null;
-        try {
-            bdi = new ByteDataInput(bytes);
+        try(ByteDataInput bdi = new ByteDataInput(bytes)){
             return (T) bdi.readObject();
-        } finally {
-            Closeables.closeQuietly(bdi);
         }
     }
 
     public static byte[] toBytes(Object object) throws StandardException {
-        ByteDataOutput bdo = null;
-        try {
-            bdo = new ByteDataOutput();
+        try(ByteDataOutput bdo = new ByteDataOutput()){
             bdo.writeObject(object);
             return bdo.toByteArray();
         } catch (Exception e) {
-            Closeables.closeQuietly(bdo);
             SpliceLogUtils.logAndThrow(LOG, "fromBytes Exception", Exceptions.parseException(e));
             return null;
         }
@@ -82,7 +74,7 @@ public class DerbyBytesUtil {
             return encoder.build();
         } finally {
             for (DescriptorSerializer serializer : serializers) {
-                Closeables.closeQuietly(serializer);
+                serializer.close();
             }
         }
     }
@@ -115,7 +107,10 @@ public class DerbyBytesUtil {
                  *
                  * Here we append a 0x01 byte to the end of the key
                  */
-                return Bytes.add(indexKey, new byte[]{0x01});
+                byte[] b = new byte[indexKey.length+1];
+                System.arraycopy(indexKey,0,b,0,indexKey.length);
+                b[b.length-1] = 0x01;
+                return b;
             default:
                 throw new RuntimeException("Error with Key Generation");
         }

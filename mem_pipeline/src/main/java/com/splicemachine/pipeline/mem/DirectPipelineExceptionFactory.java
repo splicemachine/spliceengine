@@ -15,6 +15,7 @@ import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.impl.MWriteConflict;
 import com.splicemachine.si.impl.data.MExceptionFactory;
+import com.splicemachine.si.impl.data.MNotServingPartition;
 
 import java.io.IOException;
 import java.net.ConnectException;

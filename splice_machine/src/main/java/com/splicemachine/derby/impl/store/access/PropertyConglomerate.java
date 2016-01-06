@@ -1,15 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
-import java.io.Serializable;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Properties;
-
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
-
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
@@ -22,12 +13,7 @@ import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.db.iapi.store.access.AccessFactoryGlobals;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -35,12 +21,14 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.UserType;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.derby.iapi.sql.PropertyManager;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.ZkUtils;
+import java.io.Serializable;
+import java.util.*;
 
 public class PropertyConglomerate {
 	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
@@ -55,16 +43,17 @@ public class PropertyConglomerate {
 
 	public PropertyConglomerate(TransactionController tc, boolean create, Properties properties, PropertyFactory pf) throws StandardException {
 		serviceProperties = new Properties();
+		PropertyManager propertyManager=EngineDriver.driver().propertyManager();
 		this.pf = pf;
 		if (!create) {
-			
-			SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID);
-			String id = Bytes.toString(SpliceUtils.getProperty(Property.PROPERTIES_CONGLOM_ID));
+
+			propertyManager.getProperty(Property.PROPERTIES_CONGLOM_ID);
+			String id = propertyManager.getProperty(Property.PROPERTIES_CONGLOM_ID);
 			if (id == null) {
 				create = true;
 			} else {
 				try {
-					propertiesConglomId = Long.valueOf(id).longValue();
+					propertiesConglomId =Long.parseLong(id);
 				} catch (NumberFormatException nfe) {
 					throw Monitor.exceptionStartingModule(nfe) ;
 				}
@@ -84,8 +73,8 @@ public class PropertyConglomerate {
                 tc.createConglomerate(
                     AccessFactoryGlobals.HEAP,
                     template, 
-                    null, 
-                    (int[]) null, // use default collation for property conglom.
+                    null,
+						null, // use default collation for property conglom.
                     conglomProperties, 
                     TransactionController.IS_DEFAULT);
 
@@ -101,20 +90,19 @@ public class PropertyConglomerate {
 			serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
 			serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
 			for (Object key: serviceProperties.keySet()) {
-				SpliceUtils.addProperty((String)key, serviceProperties.getProperty((String)key));
+				propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
 			}
 		}
 
 		try {
-			List<String> children = ZkUtils.getChildren(SpliceConstants.zkSpliceDerbyPropertyPath, false);
-			for (String child: children) {
-				String value = Bytes.toString(ZkUtils.getData(SpliceConstants.zkSpliceDerbyPropertyPath + "/" + child));
+			Set<String> props = propertyManager.listProperties();
+			for (String child: props) {
+				String value = propertyManager.getProperty(child);
 				serviceProperties.put(child, value);
 			}
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
 		}
-		this.serviceProperties = serviceProperties;
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();
 		if (create)
 			setProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION,softwareVersion, true);

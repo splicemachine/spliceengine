@@ -21,13 +21,10 @@ public interface DatasetProvider {
      *
      * @param dsp
      * @param execRow
-     * @param <Op>
      * @return
      * @throws StandardException
      */
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op,
-                                                                       DataSetProcessor dsp, ExecRow execRow)
-            throws StandardException;
+     DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp,ExecRow execRow) throws StandardException;
 
     /**
      *
@@ -35,8 +32,8 @@ public interface DatasetProvider {
      *
      * @return
      */
-    public ResultSetMetaData getMetaData() throws SQLException;
+    ResultSetMetaData getMetaData() throws SQLException;
 
-    public OperationContext getOperationContext();
+    OperationContext getOperationContext();
 
 }

@@ -49,7 +49,7 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
 
     @Override
     public Partition getTable(TableName tableName) throws IOException{
-        return new ClientPartition(connection,tableName,connection.getTable(tableName));
+        return new ClientPartition(connection,tableName,connection.getTable(tableName),timeKeeper);
     }
 
     @Override

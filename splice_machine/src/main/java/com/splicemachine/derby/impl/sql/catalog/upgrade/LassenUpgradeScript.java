@@ -12,7 +12,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.utils.SpliceUtilities;
 
 import java.sql.Types;
 
@@ -32,7 +31,7 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
 
         sdd.createStatisticsTables(tc);
         sdd.createLassenTables(tc);
-        SpliceUtilities.createRestoreTableIfNecessary();
+//        SpliceUtilities.createRestoreTableIfNecessary();
     }
 
 

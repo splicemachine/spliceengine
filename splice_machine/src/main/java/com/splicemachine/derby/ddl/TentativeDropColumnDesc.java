@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 
@@ -29,7 +30,7 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
 
-    public TentativeDropColumnDesc(DDLMessage.TentativeDropColumn tentativeDropColumn,SqlExceptionFactory exceptionFactory) {
+    public TentativeDropColumnDesc(DDLMessage.TentativeDropColumn tentativeDropColumn,PipelineExceptionFactory exceptionFactory) {
         super(exceptionFactory);
         this.conglomerateNumber = tentativeDropColumn.getNewConglomId();
         this.baseConglomerateNumber = tentativeDropColumn.getOldConglomId();
@@ -92,7 +93,7 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
-            throw exceptionFactory.asIOException(e);
+            throw exceptionFactory.doNotRetry(e);
         }
         return srcRow;
     }
@@ -120,7 +121,7 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
                 ++i;
             }
         } catch (StandardException e) {
-            throw exceptionFactory.asIOException(e);
+            throw exceptionFactory.doNotRetry(e);
         }
 
         // create the row transformer

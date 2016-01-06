@@ -1,19 +1,10 @@
 package com.splicemachine.derby.stream.output.update;
 
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.*;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
 
@@ -24,12 +15,14 @@ import com.carrotsearch.hppc.BitSet;
  *
  */
 public class ResultSupplier{
-    private KeyValue result;
+    private DataCell result;
     private byte[] location;
     private byte[] filterBytes;
-    private Table htable;
+    private Partition htable;
     private TxnView txnView;
     private long heapConglom;
+    private transient DataGet remoteGet;
+    private transient DataResult dataResult;
 
     public ResultSupplier(BitSet interestedFields,TxnView txnView, long heapConglom) {
         //we need the index so that we can transform data without the information necessary to decode it
@@ -48,25 +41,19 @@ public class ResultSupplier{
         if(result==null) {
             //need to fetch the latest results
             if(htable==null){
-                htable = SpliceAccessManager.getHTable(Bytes.toBytes(Long.toString(heapConglom)));
+                htable =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
             }
-            Get remoteGet = SpliceUtils.createGet(txnView, location);
-            remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
-            remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
+            remoteGet = SIDriver.driver().getOperationFactory().newDataGet(txnView,location,remoteGet);
 
-            Result r = htable.get(remoteGet);
-            //we assume that r !=null, because otherwise, what are we updating?
-            KeyValue[] rawKvs = r.raw();
-            for(KeyValue kv:rawKvs){
-                if(CellUtils.singleMatchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
-                    result = kv;
-                    break;
-                }
-            }
+            remoteGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+            remoteGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,filterBytes);
+
+            dataResult = htable.get(remoteGet,dataResult);
+            result = dataResult.userData();
             //we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
 //								getTimer.tick(1);
         }
-        decoder.set(result.getValueArray(),result.getValueOffset(),result.getValueLength());
+        decoder.set(result.valueArray(),result.valueOffset(),result.valueLength());
     }
 
     public void close() throws IOException {

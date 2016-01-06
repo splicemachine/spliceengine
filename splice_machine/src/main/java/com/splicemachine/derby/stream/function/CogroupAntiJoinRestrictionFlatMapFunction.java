@@ -28,12 +28,9 @@ public class CogroupAntiJoinRestrictionFlatMapFunction<Op extends SpliceOperatio
     public Iterable<LocatedRow> call(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
         Set<LocatedRow> rightSide = Sets.newHashSet(tuple._2); // Memory Issue, HashSet ?
-        Iterable<LocatedRow> returnRows = new ArrayList();
-        Iterator<LocatedRow> it = tuple._1.iterator();
-        while (it.hasNext()) {
-            returnRows = Iterables.concat(returnRows,antiJoinRestrictionFlatMapFunction.call(
-                    new Tuple2(it.next(),
-                    rightSide)));
+        Iterable<LocatedRow> returnRows = new ArrayList<>();
+        for(LocatedRow a_1 : tuple._1){
+            returnRows=Iterables.concat(returnRows,antiJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,rightSide)));
         }
         return returnRows;
     }

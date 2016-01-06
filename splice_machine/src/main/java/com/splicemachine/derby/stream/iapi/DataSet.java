@@ -3,6 +3,8 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -151,9 +153,10 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction);
 
-    <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction);
+    ExportDataSetWriterBuilder writeToDisk();
 
-    void saveAsTextFile(String path);
+    ExportDataSetWriterBuilder<String> saveAsTextFile();
+
 
     void persist();
 

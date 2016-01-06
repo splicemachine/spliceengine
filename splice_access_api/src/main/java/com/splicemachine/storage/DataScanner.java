@@ -23,4 +23,6 @@ public interface DataScanner extends AutoCloseable{
     long getRowsVisited();
 
     @Override void close() throws IOException;
+
+    Partition getPartition();
 }

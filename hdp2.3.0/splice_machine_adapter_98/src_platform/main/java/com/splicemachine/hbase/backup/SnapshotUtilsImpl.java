@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.backup;
+package com.splicemachine.backup;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;

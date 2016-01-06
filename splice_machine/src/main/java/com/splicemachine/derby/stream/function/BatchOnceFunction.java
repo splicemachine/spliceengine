@@ -1,7 +1,8 @@
 package com.splicemachine.derby.stream.function;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -22,6 +23,7 @@ import com.google.common.collect.*;
 import java.util.*;
 
 /**
+ *
  * Created by jyuan on 10/7/15.
  */
 public class BatchOnceFunction<Op extends SpliceOperation>
@@ -37,17 +39,20 @@ public class BatchOnceFunction<Op extends SpliceOperation>
      * not yet returned to the operation above us. */
     private Queue<LocatedRow> rowQueue;
 
-    private static final int BATCH_SIZE = SpliceConstants.batchOnceBatchSize;
+    private final int batchSize;
 
     /* Constants for the ExecRow this operation emits. */
     private static final int OLD_COL = 1;
     private static final int NEW_COL = 2;
     private static final int ROW_LOC_COL = 3;
 
-    public BatchOnceFunction() {}
+    public BatchOnceFunction() {
+        batchSize = EngineDriver.driver().getConfiguration().getInt(SQLConfiguration.BATCH_ONCE_BATCH_SIZE);
+    }
 
     public BatchOnceFunction (OperationContext<Op> operationContext) {
         super(operationContext);
+        batchSize = EngineDriver.driver().getConfiguration().getInt(SQLConfiguration.BATCH_ONCE_BATCH_SIZE);
     }
 
     @Override
@@ -85,17 +90,17 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     private void loadNextBatch(Iterator<LocatedRow> locatedRows) throws StandardException{
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         //
-        // STEP 1: Read BATCH_SIZE rows from the source
+        // STEP 1: Read batchSize rows from the source
         //
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
         // for quickly finding source rows with a given key
-        Multimap<DataValueDescriptor, LocatedRow> sourceRowsMap = ArrayListMultimap.create(BATCH_SIZE, 1);
+        Multimap<DataValueDescriptor, LocatedRow> sourceRowsMap = ArrayListMultimap.create(batchSize, 1);
         DataValueDescriptor nullValue = op.getSource().getExecRowDefinition().cloneColumn(1).getNewNull();
 
         LocatedRow sourceRow;
         ExecRow newRow;
-        while (locatedRows.hasNext() && rowQueue.size() < BATCH_SIZE) {
+        while (locatedRows.hasNext() && rowQueue.size() <batchSize) {
             sourceRow = locatedRows.next();
             DataValueDescriptor sourceKey = sourceRow.getRow().getColumn(sourceCorrelatedColumnPosition);
             DataValueDescriptor sourceOldValue = sourceRow.getRow().getColumn(sourceCorrelatedColumnPosition == 1 ? 2 : 1);
@@ -135,7 +140,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
             subquerySource.openCore();
             Iterator<LocatedRow> subqueryIterator = subquerySource.getLocatedRowIterator();
             ExecRow nextRowCore;
-            Set<DataValueDescriptor> uniqueKeySet = Sets.newHashSetWithExpectedSize(BATCH_SIZE);
+            Set<DataValueDescriptor> uniqueKeySet = Sets.newHashSetWithExpectedSize(batchSize);
             while (subqueryIterator.hasNext()) {
                 nextRowCore = subqueryIterator.next().getRow();
                 DataValueDescriptor keyColumn = nextRowCore.getColumn(subqueryCorrelatedColumnPosition);

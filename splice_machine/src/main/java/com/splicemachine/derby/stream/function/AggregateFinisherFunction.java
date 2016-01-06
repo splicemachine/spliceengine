@@ -35,7 +35,7 @@ public class AggregateFinisherFunction extends SpliceFunction<GroupedAggregateOp
         @Override
         public LocatedRow call(LocatedRow locatedRow) throws Exception {
             if (!initialized) {
-                op = (GenericAggregateOperation) getOperation();
+                op =getOperation();
                 aggregates = op.aggregates;
                 initialized = true;
             }

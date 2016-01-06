@@ -1,8 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.access.api.DistributedFileOpenOption;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
+
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -11,18 +18,18 @@ import java.util.zip.GZIPOutputStream;
  */
 class ExportFile {
 
-    private final FileSystem fileSystem;
+    private final DistributedFileSystem fileSystem;
     private final ExportParams exportParams;
     private final byte[] taskId;
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
-        this(exportParams, taskId, SpliceConstants.config);
+        this(exportParams, taskId, SIDriver.driver().fileSystem());
     }
 
-    ExportFile(ExportParams exportParams, byte[] taskId, Configuration conf) throws IOException {
-    	this.fileSystem = FileSystem.get(conf);
+    ExportFile(ExportParams exportParams, byte[] taskId, DistributedFileSystem fileSystem) throws IOException {
         this.exportParams = exportParams;
         this.taskId = taskId;
+        this.fileSystem = fileSystem;
     }
     
     public OutputStream getOutputStream() throws IOException {
@@ -30,7 +37,8 @@ class ExportFile {
         Path fullyQualifiedExportFilePath = buildOutputFilePath();
 
         // OutputStream
-        FSDataOutputStream rawOutputStream = fileSystem.create(fullyQualifiedExportFilePath, exportParams.getReplicationCount());
+        OutputStream rawOutputStream =fileSystem.newOutputStream(fullyQualifiedExportFilePath,
+                new DistributedFileOpenOption(exportParams.getReplicationCount(),StandardOpenOption.CREATE_NEW));
 
         return exportParams.isCompression() ? new GZIPOutputStream(rawOutputStream) : rawOutputStream;
     }
@@ -38,25 +46,26 @@ class ExportFile {
     // Create the directory if it doesn't exist.
     public boolean createDirectory() {
         try {
-            Path directoryPath = new Path(exportParams.getDirectory());
-            return fileSystem.mkdirs(directoryPath);
+            Path directoryPath = fileSystem.getPath(URI.create(exportParams.getDirectory()));
+            fileSystem.createDirectory(directoryPath);
+            return true;
         } catch (IOException e) {
             return false;
         }
     }
 
     public boolean delete() throws IOException {
-        return fileSystem.delete(buildOutputFilePath(), false);
+        fileSystem.delete(buildOutputFilePath());
+        return true;
     }
 
     public boolean deleteDirectory() throws IOException {
-        return fileSystem.delete(new Path(exportParams.getDirectory()), true);
+        fileSystem.delete(fileSystem.getPath(URI.create(exportParams.getDirectory())),true);
+        return true;
     }
 
     protected Path buildOutputFilePath() {
-        Path directoryPath = new Path(exportParams.getDirectory());
-        String exportFile = buildFilenameFromTaskId(taskId);
-        return new Path(directoryPath, exportFile);
+        return fileSystem.getPath(exportParams.getDirectory(),buildFilenameFromTaskId(taskId));
     }
 
     protected String buildFilenameFromTaskId(byte[] taskId) {

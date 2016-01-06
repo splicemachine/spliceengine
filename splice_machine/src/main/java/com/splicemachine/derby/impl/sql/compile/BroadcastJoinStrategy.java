@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -94,8 +96,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         CostEstimate baseEstimate = innerTable.estimateCost(nonJoinPredicates,innerCd,optimizer.newCostEstimate(),optimizer,null);
         double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
         double estimatedRowCount = baseEstimate.getEstimatedRowCount();
-        long regionThreshold = SpliceConstants.broadcastRegionMBThreshold;
-        long rowCountThreshold = SpliceConstants.broadcastRegionRowThreshold;
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        long regionThreshold = configuration.getLong(SQLConfiguration.BROADCAST_REGION_MB_THRESHOLD);
+        long rowCountThreshold = configuration.getLong(SQLConfiguration.BROADCAST_REGION_ROW_THRESHOLD);
         return wasHinted || (estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold) ;
 	}
 

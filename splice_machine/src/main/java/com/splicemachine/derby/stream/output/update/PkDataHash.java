@@ -76,7 +76,7 @@ public class PkDataHash implements DataHash<ExecRow> {
     public void close() throws IOException {
         if(serializers!=null){
             for(DescriptorSerializer serializer:serializers){
-                Closeables.closeQuietly(serializer);
+                try{serializer.close();}catch(IOException ignored){}
             }
         }
     }

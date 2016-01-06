@@ -88,9 +88,9 @@ public class AlterTableRowTransformer implements RowTransformer{
     }
 
     @Override
-    public void close() {
-        Closeables.closeQuietly(keyDecoder);
-        Closeables.closeQuietly(rowDecoder);
-        Closeables.closeQuietly(entryEncoder);
+    public void close() throws IOException{
+        keyDecoder.close();
+        rowDecoder.close();
+        entryEncoder.close();
     }
 }

@@ -4,19 +4,21 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.stats.StatisticsScanner;
-import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
 
 import java.io.Externalizable;
@@ -31,7 +33,7 @@ import java.util.Arrays;
  * @author Scott Fines
  *         Date: 4/9/14
  */
-public class TableScannerBuilder implements Externalizable{
+public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetBuilder<V>{
     protected DataScanner scanner;
     protected ExecRow template;
     protected DataScan scan;
@@ -53,38 +55,51 @@ public class TableScannerBuilder implements Externalizable{
     protected int[] columnPositionMap;
     protected long baseTableConglomId=-1l;
     protected long demarcationPoint=-1;
+    protected Activation activation;
 
-    public TableScannerBuilder scanner(DataScanner scanner){
+    @Override
+    public ScanSetBuilder<V> activation(Activation activation){
+        this.activation = activation;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> scanner(DataScanner scanner){
         assert scanner!=null:"Null scanners are not allowed!";
         this.scanner=scanner;
         return this;
     }
 
-    public TableScannerBuilder template(ExecRow template){
+    @Override
+    public ScanSetBuilder<V> template(ExecRow template){
         assert template!=null:"Null template rows are not allowed!";
         this.template=template;
         return this;
     }
 
-    public TableScannerBuilder operationContext(OperationContext operationContext){
+    @Override
+    public ScanSetBuilder<V> operationContext(OperationContext operationContext){
         this.operationContext=operationContext;
         return this;
     }
 
 
-    public TableScannerBuilder scan(DataScan scan){
+    @Override
+    public ScanSetBuilder<V> scan(DataScan scan){
         assert scan!=null:"Null scans are not allowed!";
         this.scan=scan;
         return this;
     }
 
-    public TableScannerBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds){
+    @Override
+    public ScanSetBuilder<V> execRowTypeFormatIds(int[] execRowTypeFormatIds){
         assert execRowTypeFormatIds!=null:"Null ExecRow formatIDs are not allowed!";
         this.execRowTypeFormatIds=execRowTypeFormatIds;
         return this;
     }
 
-    public TableScannerBuilder transaction(TxnView txn){
+    @Override
+    public ScanSetBuilder<V> transaction(TxnView txn){
         assert txn!=null:"No Transaction specified";
         this.txn=txn;
         return this;
@@ -103,13 +118,15 @@ public class TableScannerBuilder implements Externalizable{
      * @param rowDecodingMap the map for decoding the row values.
      * @return a Builder with the rowDecodingMap set.
      */
-    public TableScannerBuilder rowDecodingMap(int[] rowDecodingMap){
+    @Override
+    public ScanSetBuilder<V> rowDecodingMap(int[] rowDecodingMap){
         assert rowDecodingMap!=null:"Null column maps are not allowed";
         this.rowColumnMap=rowDecodingMap;
         return this;
     }
 
-    public TableScannerBuilder reuseRowLocation(boolean reuseRowLocation){
+    @Override
+    public ScanSetBuilder<V> reuseRowLocation(boolean reuseRowLocation){
         this.reuseRowLocation=reuseRowLocation;
         return this;
     }
@@ -132,7 +149,8 @@ public class TableScannerBuilder implements Externalizable{
      *                               position in the ENTIRE ROW.
      * @return a Builder with the keyColumnEncodingOrder set
      */
-    public TableScannerBuilder keyColumnEncodingOrder(int[] keyColumnEncodingOrder){
+    @Override
+    public ScanSetBuilder<V> keyColumnEncodingOrder(int[] keyColumnEncodingOrder){
         this.keyColumnEncodingOrder=keyColumnEncodingOrder;
         return this;
     }
@@ -146,7 +164,8 @@ public class TableScannerBuilder implements Externalizable{
      * @param keyColumnSortOrder the sort order of each key, in the order in which keys are encoded.
      * @return a builder with keyColumnSortOrder set
      */
-    public TableScannerBuilder keyColumnSortOrder(boolean[] keyColumnSortOrder){
+    @Override
+    public ScanSetBuilder<V> keyColumnSortOrder(boolean[] keyColumnSortOrder){
         this.keyColumnSortOrder=keyColumnSortOrder;
         return this;
     }
@@ -159,7 +178,8 @@ public class TableScannerBuilder implements Externalizable{
      * @param keyColumnTypes the data types for ALL key columns, in the order the keys were encoded
      * @return a Builder with the key column types set
      */
-    public TableScannerBuilder keyColumnTypes(int[] keyColumnTypes){
+    @Override
+    public ScanSetBuilder<V> keyColumnTypes(int[] keyColumnTypes){
         this.keyColumnTypes=keyColumnTypes;
         return this;
     }
@@ -176,7 +196,8 @@ public class TableScannerBuilder implements Externalizable{
      *                       row.
      * @return a Builder with the key decoding map set.
      */
-    public TableScannerBuilder keyDecodingMap(int[] keyDecodingMap){
+    @Override
+    public ScanSetBuilder<V> keyDecodingMap(int[] keyDecodingMap){
         this.keyDecodingMap=keyDecodingMap;
         return this;
     }
@@ -202,47 +223,54 @@ public class TableScannerBuilder implements Externalizable{
      * @param accessedKeyColumns the keys which are to be decoded, IN THE KEY ENCODING ORDER.
      * @return a Builder with the accessedKeyColumns set.
      */
-    public TableScannerBuilder accessedKeyColumns(FormatableBitSet accessedKeyColumns){
+    @Override
+    public ScanSetBuilder<V> accessedKeyColumns(FormatableBitSet accessedKeyColumns){
         this.accessedKeys=accessedKeyColumns;
         return this;
     }
 
-    public TableScannerBuilder indexName(String indexName){
+    @Override
+    public ScanSetBuilder<V> indexName(String indexName){
         this.indexName=indexName;
         return this;
     }
 
-    public TableScannerBuilder tableVersion(String tableVersion){
+    @Override
+    public ScanSetBuilder<V> tableVersion(String tableVersion){
         this.tableVersion=tableVersion;
         return this;
     }
 
-    public TableScannerBuilder filterFactory(SIFilterFactory filterFactory){
+    public ScanSetBuilder<V> filterFactory(SIFilterFactory filterFactory){
         this.filterFactory=filterFactory;
         return this;
     }
 
-    public TableScannerBuilder region(TransactionalRegion region){
+    public ScanSetBuilder<V> region(TransactionalRegion region){
         this.region=region;
         return this;
     }
 
-    public TableScannerBuilder fieldLengths(int[] fieldLengths){
+    @Override
+    public ScanSetBuilder<V> fieldLengths(int[] fieldLengths){
         this.fieldLengths=fieldLengths;
         return this;
     }
 
-    public TableScannerBuilder columnPositionMap(int[] columnPositionMap){
+    @Override
+    public ScanSetBuilder<V> columnPositionMap(int[] columnPositionMap){
         this.columnPositionMap=columnPositionMap;
         return this;
     }
 
-    public TableScannerBuilder baseTableConglomId(long baseTableConglomId){
+    @Override
+    public ScanSetBuilder<V> baseTableConglomId(long baseTableConglomId){
         this.baseTableConglomId=baseTableConglomId;
         return this;
     }
 
-    public TableScannerBuilder demarcationPoint(long demarcationPoint){
+    @Override
+    public ScanSetBuilder<V> demarcationPoint(long demarcationPoint){
         this.demarcationPoint=demarcationPoint;
         return this;
     }
@@ -250,6 +278,7 @@ public class TableScannerBuilder implements Externalizable{
     public SITableScanner build(){
         if(fieldLengths!=null){
             return new StatisticsScanner(
+                    baseTableConglomId,
                     SIDriver.driver().getDataLib(),
                     scanner,
                     region,
@@ -314,15 +343,17 @@ public class TableScannerBuilder implements Externalizable{
                     }
                 }
             }
-            out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
+            SIDriver.driver().getOperationFactory().writeScan(scan,out);
+//            out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
             out.writeBoolean(rowColumnMap!=null);
             if(rowColumnMap!=null){
                 out.writeInt(rowColumnMap.length);
+                //noinspection ForLoopReplaceableByForEach
                 for(int i=0;i<rowColumnMap.length;++i){
                     out.writeInt(rowColumnMap[i]);
                 }
             }
-            TransactionOperations.getOperationFactory().writeTxn(txn,out);
+            SIDriver.driver().getOperationFactory().writeTxn(txn,out);
             ArrayUtil.writeIntArray(out,keyColumnEncodingOrder);
             out.writeBoolean(keyColumnSortOrder!=null);
             if(keyColumnSortOrder!=null){
@@ -347,10 +378,12 @@ public class TableScannerBuilder implements Externalizable{
             out.writeBoolean(fieldLengths!=null);
             if(fieldLengths!=null){
                 out.writeInt(fieldLengths.length);
+                //noinspection ForLoopReplaceableByForEach
                 for(int i=0;i<fieldLengths.length;++i){
                     out.writeInt(fieldLengths[i]);
                 }
                 out.writeInt(columnPositionMap.length);
+                //noinspection ForLoopReplaceableByForEach
                 for(int i=0;i<columnPositionMap.length;++i){
                     out.writeInt(columnPositionMap[i]);
                 }
@@ -383,14 +416,14 @@ public class TableScannerBuilder implements Externalizable{
                     }
                 }
             }
-            scan=SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
+            scan=SIDriver.driver().getOperationFactory().readScan(in);
             if(in.readBoolean()){
                 rowColumnMap=new int[in.readInt()];
                 for(int i=0;i<rowColumnMap.length;++i){
                     rowColumnMap[i]=in.readInt();
                 }
             }
-            txn=TransactionOperations.getOperationFactory().readTxn(in);
+            txn=SIDriver.driver().getOperationFactory().readTxn(in);
             keyColumnEncodingOrder=ArrayUtil.readIntArray(in);
             if(in.readBoolean()){
                 keyColumnSortOrder=ArrayUtil.readBooleanArray(in);
@@ -429,11 +462,11 @@ public class TableScannerBuilder implements Externalizable{
     public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException{
         if(base64String==null)
             throw new IOException("tableScanner base64 String is null");
-        return (TableScannerBuilder)SerializationUtils.deserialize(Base64.decode(base64String));
+        return (TableScannerBuilder)SerializationUtils.deserialize(Base64.decodeBase64(base64String));
     }
 
     public String getTableScannerBuilderBase64String() throws IOException, StandardException{
-        return Base64.encodeBytes(SerializationUtils.serialize(this));
+        return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
     public DataScan getScan(){

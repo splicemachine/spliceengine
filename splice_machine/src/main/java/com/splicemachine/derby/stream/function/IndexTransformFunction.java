@@ -3,7 +3,8 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

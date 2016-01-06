@@ -1,11 +1,11 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.sparkproject.guava.collect.FluentIterable;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -34,12 +34,12 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                     @Nullable
                     @Override
                     public Tuple2<LocatedRow, Iterable<LocatedRow>> apply(@Nullable final LocatedRow left) {
-                        FluentIterable<LocatedRow> inner = FluentIterable.from(new Iterable<ExecRow>() {
+                        FluentIterable<LocatedRow> inner = FluentIterable.from(new Iterable<ExecRow>(){
                             @Override
-                            public Iterator<ExecRow> iterator() {
-                                try {
+                            public Iterator<ExecRow> iterator(){
+                                try{
                                     return joinTable.fetchInner(left.getRow());
-                                } catch (Exception e) {
+                                }catch(Exception e){
                                     throw new RuntimeException(e);
                                 }
                             }
@@ -50,7 +50,7 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
                                 return new LocatedRow(execRow);
                             }
                         });
-                        return new Tuple2(left, inner);
+                        return new Tuple2<LocatedRow,Iterable<LocatedRow>>(left, inner);
                     }
                 });
         return result;

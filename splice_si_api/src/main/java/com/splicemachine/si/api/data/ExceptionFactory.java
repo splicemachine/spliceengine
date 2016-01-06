@@ -14,8 +14,19 @@ public interface ExceptionFactory{
     IOException noSuchFamily(String message);
     IOException transactionTimeout(long tnxId);
     IOException cannotCommit(long txnId,Txn.State actualState);
+    IOException cannotCommit(String message);
     IOException additiveWriteConflict();
     IOException doNotRetry(String message);
 
+    IOException doNotRetry(Throwable t);
+
     IOException processRemoteException(Throwable e);
+
+    IOException callerDisconnected(String message);
+
+    IOException failedServer(String message);
+
+    IOException notServingPartition(String s);
+
+    boolean allowsRetry(Throwable error);
 }

@@ -4,6 +4,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -85,6 +86,6 @@ public class DatabasePropertyManagementImpl implements DatabasePropertyManagemen
 	 */
 	private Connection getConnection() throws SQLException {
 		EmbedConnectionMaker connMaker = new EmbedConnectionMaker();
-		return connMaker.createNew();
+		return connMaker.createNew(new Properties());
 	}
 }

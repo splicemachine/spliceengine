@@ -289,6 +289,25 @@ public class RegionPartition implements Partition{
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 
+    @Override
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
+        if(!region.getRegionInfo().containsRange(startRow,stopRow))
+            throw new IllegalArgumentException("A RegionPartition cannot be broken into a range that it does not contain!");
+        //TODO -sf- convert to a list of subranges?
+        return Collections.<Partition>singletonList(this);
+    }
+
+    @Override
+    public PartitionLoad getLoad() throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public void compact() throws IOException{
+        //TODO -sf- is this correct?
+        region.compactStores();
+    }
+
     public HRegion unwrapDelegate(){
         return region;
     }

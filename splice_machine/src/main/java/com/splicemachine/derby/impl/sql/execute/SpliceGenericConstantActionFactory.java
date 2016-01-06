@@ -12,11 +12,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
-import com.splicemachine.derby.hbase.DerbyFactory;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -32,7 +29,6 @@ import java.util.Properties;
  */
 public class SpliceGenericConstantActionFactory extends GenericConstantActionFactory{
     private static Logger LOG=Logger.getLogger(SpliceGenericConstantActionFactory.class);
-    private static DerbyFactory derbyFactory=DerbyFactoryDriver.derbyFactory;
 
     @Override
     public ConstantAction getCreateConstraintConstantAction(String constraintName,
@@ -63,20 +59,23 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
     }
 
     @Override
-    public ConstantAction getCreateTableConstantAction(String schemaName,String tableName,
-                                                       int tableType,ColumnInfo[] columnInfo,
-                                                       ConstantAction[] constraintActions,
+    public ConstantAction getCreateTableConstantAction(String schemaName,
+                                                       String tableName,
+                                                       int tableType,
+                                                       ColumnInfo[] columnInfos,
+                                                       ConstantAction[] constantActions,
                                                        Properties properties,
                                                        char lockGranularity,
                                                        boolean onCommitDeleteRows,
                                                        boolean onRollbackDeleteRows,
-                                                       StatementNode insertStatement){
+                                                       String insertStatement){
         SpliceLogUtils.trace(LOG,"getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
-                schemaName,tableName,Arrays.toString(columnInfo),Arrays.toString(constraintActions));
-        return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfo,
-                constraintActions,properties,lockGranularity,
-                onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
+                schemaName,tableName,Arrays.toString(columnInfos),Arrays.toString(constantActions));
+        return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
+                constantActions,properties,lockGranularity,
+                onCommitDeleteRows,onRollbackDeleteRows,null); //TODO -sf- finish implementing
     }
+
 
     @Override
     public ConstantAction getCreateIndexConstantAction(boolean forCreateTable,
@@ -103,8 +102,9 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                      UUID tableId,
                                                      long tableConglomerateId){
         SpliceLogUtils.trace(LOG,"getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName,schemaName,tableName);
-        return derbyFactory.getDropIndexConstantAction(fullIndexName,indexName,
-                tableName,schemaName,tableId,tableConglomerateId);
+        throw new UnsupportedOperationException("IMPLEMENT");
+//        return derbyFactory.getDropIndexConstantAction(fullIndexName,indexName,
+//                tableName,schemaName,tableId,tableConglomerateId);
     }
 
     @Override

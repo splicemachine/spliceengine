@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -8,7 +9,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.shared.common.udt.UDTBase;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -130,7 +130,7 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
 
     private void initializeForRead() throws StandardException {
         if (cf == null) {
-            EmbedConnection dbConn = (EmbedConnection) SpliceDriver.driver().getInternalConnection();
+            EmbedConnection dbConn = (EmbedConnection) EngineDriver.driver().getInternalConnection();
             LanguageConnectionContext lcc = dbConn.getLanguageConnection();
             cf = lcc.getLanguageConnectionFactory().getClassFactory();
         }

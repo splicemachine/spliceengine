@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.backup;
+package com.splicemachine.backup;
 
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 

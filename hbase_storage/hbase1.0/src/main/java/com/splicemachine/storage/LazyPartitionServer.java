@@ -1,8 +1,15 @@
 package com.splicemachine.storage;
 
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.RegionLocator;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -20,7 +27,8 @@ public class LazyPartitionServer implements PartitionServer{
     }
 
     @Override
-    public int compareTo(PartitionServer o){
+    public int compareTo(@Nullable PartitionServer o){
+        //TODO -sf- implement
        return 0;
     }
 
@@ -30,9 +38,62 @@ public class LazyPartitionServer implements PartitionServer{
     }
 
     @Override
+    public String getHostname(){
+        try(RegionLocator rl = connection.getRegionLocator(tableName)){
+            HRegionLocation hrl =rl.getRegionLocation(regionInfo.getStartKey());
+            return hrl.getHostname();
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public String getHostAndPort(){
+        try(RegionLocator rl = connection.getRegionLocator(tableName)){
+            HRegionLocation hrl =rl.getRegionLocation(regionInfo.getStartKey());
+            return hrl.getHostnamePort();
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public int getPort(){
+        try(RegionLocator rl = connection.getRegionLocator(tableName)){
+            HRegionLocation hrl =rl.getRegionLocation(regionInfo.getStartKey());
+            return hrl.getPort();
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public PartitionServerLoad getLoad(){
+        try(RegionLocator rl = connection.getRegionLocator(tableName)){
+            HRegionLocation hrl =rl.getRegionLocation(regionInfo.getStartKey());
+            try(Admin admin = connection.getAdmin()){
+                ServerLoad load=admin.getClusterStatus().getLoad(hrl.getServerName());
+                return new HServerLoad(load);
+            }
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public long getStartupTimestamp(){
+        try(RegionLocator rl = connection.getRegionLocator(tableName)){
+            HRegionLocation hrl=rl.getRegionLocation(regionInfo.getStartKey());
+            return hrl.getServerName().getStartcode();
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public boolean equals(Object obj){
         if(obj==this) return true;
         else if(!(obj instanceof PartitionServer)) return false;
-        else return true;
+        return compareTo((PartitionServer)obj)==0;
     }
 }

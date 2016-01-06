@@ -5,11 +5,11 @@ import java.util.Arrays;
 
 import com.google.common.base.Throwables;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.altertable.AlterTableRowTransformer;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
@@ -27,6 +27,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.RowTransformer;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -38,9 +39,9 @@ import com.splicemachine.uuid.UUIDGenerator;
  *         Date: 4/28/15
  */
 public abstract class AlterTableDDLDescriptor implements TransformingDDLDescriptor {
-    protected final SqlExceptionFactory exceptionFactory;
+    protected final PipelineExceptionFactory exceptionFactory;
 
-    public AlterTableDDLDescriptor(SqlExceptionFactory exceptionFactory){
+    public AlterTableDDLDescriptor(PipelineExceptionFactory exceptionFactory){
         this.exceptionFactory=exceptionFactory;
     }
 
@@ -103,7 +104,7 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
             // Just use the no-op key decoder for new rows when no key in target table
             encoder = keyEncoder;
         } else {
-            UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
+            UUIDGenerator uuidGenerator = EngineDriver.driver().newUUIDGenerator(100);
             encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
         }
 

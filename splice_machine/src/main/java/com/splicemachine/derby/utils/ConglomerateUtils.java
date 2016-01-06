@@ -1,27 +1,22 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.Closeables;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,7 +26,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import com.carrotsearch.hppc.BitSet;
-import java.util.List;
 
 /**
  * Utilities related to managing DerbyConglomerates
@@ -39,7 +33,7 @@ import java.util.List;
  * @author Scott Fines
  * Created: 2/2/13 10:11 AM
  */
-public class ConglomerateUtils extends SpliceConstants {
+public class ConglomerateUtils  {
 //    public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
     private static Logger LOG = Logger.getLogger(ConglomerateUtils.class);
 
@@ -55,16 +49,15 @@ public class ConglomerateUtils extends SpliceConstants {
         SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);
-        Table table = null;
-        try {
-            table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-            Get get = SpliceUtils.createGet(txn, Bytes.toBytes(conglomId));
-            get.addColumn(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
+        SIDriver driver=SIDriver.driver();
+        try (Partition partition =driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+            DataGet get = driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
+            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
             EntryPredicateFilter predicateFilter  = EntryPredicateFilter.emptyPredicate();
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+            get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
-            Result result = table.get(get);
-            byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES);
+            DataResult result = partition.get(get,null);
+            byte[] data = result.userData().value();
 
             EntryDecoder entryDecoder = new EntryDecoder();
             try{
@@ -86,8 +79,6 @@ public class ConglomerateUtils extends SpliceConstants {
             }
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
-        } finally {
-            Closeables.closeQuietly(table);
         }
         return null;
     }
@@ -147,15 +138,9 @@ public class ConglomerateUtils extends SpliceConstants {
             setMethod = bin.getClass().getDeclaredMethod("setBlockDataMode",boolean.class);
             setMethod.setAccessible(true);
             setMethod.invoke(bin,false);
-        } catch (InvocationTargetException e) {
+        } catch (InvocationTargetException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException e) {
             throw new IOException(e); //shouldn't happen, because nothing goofy is going on
-        } catch (NoSuchMethodException e) {
-            throw new IOException(e); //shouldn't happen, since we are messing with java.io classes
-        } catch (IllegalAccessException e) {
-            throw new IOException(e); //shouldn't happen, since we are messing with java.io classes
-        } catch (NoSuchFieldException e) {
-            throw new IOException(e); //shouldn't happen, since we are messing with java.io classes
-        } finally{
+        }finally{
             if(binField!=null)
                 binField.setAccessible(false);
             if(setMethod!=null)
@@ -216,28 +201,25 @@ public class ConglomerateUtils extends SpliceConstants {
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
-        Admin admin = null;
-        Table table = null;
         EntryEncoder entryEncoder = null;
-        try{
-            admin = HBaseConnectionFactory.getInstance().getAdmin();
-            HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
-            admin.createTable(td);
-            table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-            Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), txn);
-            BitSet fields = new BitSet();
-            fields.set(0);
-            entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1, fields,null,null,null);
-            entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
-            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
-            table.put(put);
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try(PartitionAdmin admin = tableFactory.getAdmin()){
+            admin.newPartition().withName(tableName).create();
+            try(Partition table = tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+                DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
+                BitSet fields=new BitSet();
+                fields.set(0);
+                entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,fields,null,null,null);
+                entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
+                table.put(put);
+            }
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
         }finally{
             if(entryEncoder!=null)
                 entryEncoder.close();
-            Closeables.closeQuietly(table);
-            Closeables.closeQuietly(admin);
         }
     }
 
@@ -250,21 +232,19 @@ public class ConglomerateUtils extends SpliceConstants {
     public static void updateConglomerate(Conglomerate conglomerate, Txn txn) throws StandardException {
         String tableName = Long.toString(conglomerate.getContainerid());
         SpliceLogUtils.debug(LOG, "updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
-        Table table = null;
         EntryEncoder entryEncoder = null;
-        try{
-            table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
-            Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), txn);
+        SIDriver driver=SIDriver.driver();
+        try(Partition table =driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+            DataPut put = driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomerate.getContainerid()));
             BitSet setFields = new BitSet();
             setFields.set(0);
-            entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
+            entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
-            put.add(DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
             table.put(put);
         }catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));
         }finally{
-            Closeables.closeQuietly(table);
             if(entryEncoder!=null)
                 entryEncoder.close();
         }
@@ -278,78 +258,12 @@ public class ConglomerateUtils extends SpliceConstants {
      */
     public static long getNextConglomerateId() throws IOException{
         LOG.trace("getting next conglomerate id");
-        return ZkUtils.nextSequenceId(zkSpliceConglomerateSequencePath);
+        return EngineDriver.driver().getConglomerateSequencer().next();
     }
 
     public static void setNextConglomerateId(long conglomerateId) throws IOException {
         LOG.trace("setting next conglomerate id");
-        ZkUtils.setSequenceId(zkSpliceConglomerateSequencePath, conglomerateId);
-    }
-
-    /**
-     * Split a conglomerate. This is an asynchronous operation.
-     *
-     * @param conglomId the conglomerate to split.
-     * @throws IOException if something goes wrong and the split fails
-     * @throws InterruptedException if the split is interrupted.
-     */
-    public static void splitConglomerate(long conglomId) throws IOException, InterruptedException {
-        HBaseAdmin admin = SpliceUtils.getAdmin();
-        admin.split(Bytes.toBytes(Long.toString(conglomId)));
-    }
-
-    /**
-     * Synchronously split a conglomerate around a specific row position.
-     *
-     * This method will block until it detects that the split is completed. Unfortunately,
-     * it must block via polling. For a more responsive version, change the setting
-     * "splice.splitWaitInterval" in splice-site.xml.
-     *
-     * @param conglomId the id of the conglomerate to split
-     * @param position the row to split around
-     * @throws IOException if something goes wrong and the split fails
-     * @throws InterruptedException if the split operation is interrupted.
-     */
-    public static void splitConglomerate(long conglomId, byte[] position) throws IOException, InterruptedException {
-        splitConglomerate(Bytes.toBytes(Long.toString(conglomId)), position, sleepSplitInterval);
-    }
-
-    public static void splitConglomerate(byte[] name, byte[] position, long sleepInterval) throws IOException, InterruptedException {
-        HBaseAdmin admin = SpliceUtils.getAdmin();
-        safeSplit(name, position, admin);
-
-        boolean isSplitting=true;
-        while(isSplitting){
-            isSplitting=false;
-            List<HRegionInfo> regions = admin.getTableRegions(name);
-            if (regions != null) {
-                for(HRegionInfo region:regions){
-                    if(region.isSplit()){
-                        isSplitting=true;
-                        break;
-                    }
-                }
-            } else {
-                isSplitting = true;
-            }
-            Thread.sleep(sleepInterval);
-        }
-    }
-
-    private static void safeSplit(byte[] name, byte[] position, HBaseAdmin admin) throws IOException, InterruptedException {
-        int i =10;
-        while(i>=0){
-            try {
-                admin.split(name, position);
-                return;
-            } catch (NotServingRegionException nsre) {
-                if(i!=0) {
-                    //sleep for a second, then try it again
-                    Thread.sleep(1000l);
-                    i--;
-                }else throw nsre; //if it takes 10 seconds to find the split, something is wrong
-            }
-        }
+        EngineDriver.driver().getConglomerateSequencer().setPosition(conglomerateId);
     }
 
 }

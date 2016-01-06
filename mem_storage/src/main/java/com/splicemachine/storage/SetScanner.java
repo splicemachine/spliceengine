@@ -18,6 +18,7 @@ class SetScanner implements DataScanner{
     private final long lowVersion;
     private final long highVersion;
     private final DataFilter filter;
+    private final Partition partition;
 
     private byte[] currentKey = null;
     private int currentOffset = 0;
@@ -25,11 +26,21 @@ class SetScanner implements DataScanner{
     private List<DataCell> currentRow;
     private DataCell last;
 
-    public SetScanner(Iterator<DataCell> dataCells,long lowVersion,long highVersion,DataFilter filter){
+    public SetScanner(Iterator<DataCell> dataCells,
+                      long lowVersion,
+                      long highVersion,
+                      DataFilter filter,
+                      Partition partition){
         this.dataCells=dataCells;
         this.lowVersion=lowVersion;
         this.highVersion=highVersion;
         this.filter=filter;
+        this.partition = partition;
+    }
+
+    @Override
+    public Partition getPartition(){
+        return partition;
     }
 
     @Override

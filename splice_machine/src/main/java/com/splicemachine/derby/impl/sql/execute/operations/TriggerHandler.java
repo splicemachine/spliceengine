@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -94,7 +95,7 @@ public class TriggerHandler {
         ConnectionContext existingContext = (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
         if (existingContext == null) {
             try {
-                Connection connection = new EmbedConnectionMaker().createNew();
+                Connection connection = new EmbedConnectionMaker().createNew(new Properties());
                 Context newContext = ((EmbedConnection) connection).getContextManager().getContext(ConnectionContext.CONTEXT_ID);
                 lcc.getContextManager().pushContext(newContext);
             } catch (SQLException e) {

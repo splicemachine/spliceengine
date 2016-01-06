@@ -56,7 +56,7 @@ public class MPartition implements Partition{
         DataCell end = new MCell(get.key(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,get.lowTimestamp(),new byte[]{},CellType.USER_DATA);
 
         Set<DataCell> data = memstore.subSet(start,true,end,true);
-        try(SetScanner ss = new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter())){
+        try(SetScanner ss = new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this)){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn==null) return null;
 
@@ -109,7 +109,7 @@ public class MPartition implements Partition{
         DataCell start = new MCell(scan.getStartKey(),new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
         DataCell stop = new MCell(scan.getStopKey(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
         NavigableSet<DataCell> dataCells=memstore.subSet(start,true,stop,false);
-        return new SetScanner(dataCells.iterator(),scan.lowVersion(),scan.highVersion(),scan.getFilter());
+        return new SetScanner(dataCells.iterator(),scan.lowVersion(),scan.highVersion(),scan.getFilter(),this);
     }
 
     @Override
@@ -262,6 +262,21 @@ public class MPartition implements Partition{
     @Override
     public PartitionServer owningServer(){
         return owner;
+    }
+
+    @Override
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
+        return subPartitions(); //we own everything
+    }
+
+    @Override
+    public PartitionLoad getLoad() throws IOException{
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public void compact() throws IOException{
+        //no-op--memory does not perform compactions
     }
 
     /* ****************************************************************************************************************/

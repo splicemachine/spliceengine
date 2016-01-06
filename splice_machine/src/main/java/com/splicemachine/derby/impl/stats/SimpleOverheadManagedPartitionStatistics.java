@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.SimplePartitionStatistics;
@@ -16,15 +17,29 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
     private long numOpenEvents;
     private long numCloseEvents;
 
+    public static SimpleOverheadManagedPartitionStatistics create(String tableId, String partitionId,
+                                                                  long rowCount, long totalBytes,
+                                                                  List<ColumnStatistics> columnStatistics){
+        long fallbackLocalLatency =EngineDriver.driver().getConfiguration().getLong(StatsConfiguration.FALLBACK_LOCAL_LATENCY);
+        long fallbackRemoteLatencyRatio =EngineDriver.driver().getConfiguration().getLong(StatsConfiguration.FALLBACK_REMOTE_LATENCY_RATIO);
+
+        return new SimpleOverheadManagedPartitionStatistics(tableId,partitionId,
+                rowCount,totalBytes,
+                fallbackLocalLatency,fallbackRemoteLatencyRatio,
+                columnStatistics);
+    }
+
     public SimpleOverheadManagedPartitionStatistics(String tableId,
                                                     String partitionId,
                                                     long rowCount,
                                                     long totalBytes,
+                                                    long fallbackLocalLatency,
+                                                    long fallbackRemoteLatencyRatio,
                                                     List<ColumnStatistics> columnStatistics){
         super(tableId,partitionId,rowCount,totalBytes,1,
-                StatsConstants.fallbackLocalLatency*rowCount,StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency*rowCount,columnStatistics);
-        this.totalOpenScannerTime = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
-        this.totalCloseScannerTime = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
+                fallbackLocalLatency*rowCount,fallbackRemoteLatencyRatio*fallbackLocalLatency*rowCount,columnStatistics);
+        this.totalOpenScannerTime = fallbackRemoteLatencyRatio*fallbackLocalLatency;
+        this.totalCloseScannerTime = fallbackRemoteLatencyRatio*fallbackLocalLatency;
         this.numOpenEvents = 1l;
         this.numCloseEvents = 1l;
     }

@@ -125,6 +125,16 @@ public class PipelineConfiguration{
 
     public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
         @Override
+        public boolean hasStringDefault(String key){
+            return false;
+        }
+
+        @Override
+        public String defaultStringFor(String key){
+            throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+        }
+
+        @Override
         public boolean hasLongDefault(String key){
             switch(key){
                 case THREAD_KEEPALIVE_TIME:

@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
-import org.apache.hadoop.hbase.util.Bytes;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * @author Scott Fines
@@ -12,10 +12,6 @@ public class GenericSpliceFunctions {
     private GenericSpliceFunctions(){} //don't instantiate utility class
 
     public static long LONG_UUID(){
-        return SpliceDriver.driver().getUUIDGenerator().nextUUID();
-    }
-
-    public static void main(String...args) throws Exception{
-        System.out.println(Bytes.toStringBinary(Bytes.toBytes(37)));
+        return Bytes.toLong(EngineDriver.driver().newUUIDGenerator(1).nextBytes());
     }
 }

@@ -17,8 +17,8 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -264,14 +264,12 @@ public class SpliceScan implements ScanManager, LazyScan{
                 ExecRow row=new ValueRow(destRow.length);
                 row.setRowArray(destRow);
                 DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(destRow);
-                EntryDataDecoder decoder=new EntryDataDecoder(null,null,serializers);
-                try{
+
+                try(EntryDataDecoder decoder=new EntryDataDecoder(null,null,serializers)){
                     DataCell kv=currentResult.userData();//dataLib.matchDataColumn(currentResult);
                     decoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());//dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
                     decoder.decode(row);
                     this.currentRow=destRow;
-                }finally{
-                    Closeables.closeQuietly(decoder);
                 }
             }
             this.currentRowLocation=new HBaseRowLocation(currentResult.key());
@@ -307,15 +305,13 @@ public class SpliceScan implements ScanManager, LazyScan{
                         spliceConglomerate.getTransaction().getDataValueFactory(),
                         null,spliceConglomerate.getFormatIds(),spliceConglomerate.getCollationIds());
                 DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(fetchedRow);
-                EntryDataDecoder decoder=new EntryDataDecoder(null,null,serializers);
-                try{
+
+                try(EntryDataDecoder decoder=new EntryDataDecoder(null,null,serializers)){
                     ExecRow row=new ValueRow(fetchedRow.length);
                     row.setRowArray(fetchedRow);
                     DataCell kv=currentResult.userData();//dataLib.matchDataColumn(currentResult);
                     decoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());//edataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
                     decoder.decode(row);
-                }finally{
-                    Closeables.closeQuietly(decoder);
                 }
                 hashTable.putRow(false,fetchedRow);
                 this.currentRowLocation=new HBaseRowLocation(currentResult.key());
@@ -418,7 +414,7 @@ public class SpliceScan implements ScanManager, LazyScan{
     public boolean replace(DataValueDescriptor[] row,FormatableBitSet validColumns) throws StandardException{
         SpliceLogUtils.trace(LOG,"replace values for these valid Columns %s",validColumns);
         try{
-            int[] validCols=SpliceUtils.bitSetToMap(validColumns);
+            int[] validCols=EngineUtils.bitSetToMap(validColumns);
             DataPut put=opFactory.newDataPut(trans.getActiveStateTxn(),currentRowLocation.getBytes());//SpliceUtils.createPut(currentRowLocation.getBytes(),trans.getActiveStateTxn());
 
             DescriptorSerializer[] serializers=VersionedSerializers.forVersion("1.0",true).getSerializers(row);

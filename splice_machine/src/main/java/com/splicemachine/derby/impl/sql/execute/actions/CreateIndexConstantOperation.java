@@ -10,7 +10,7 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.catalog.UUID;
@@ -761,7 +761,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         Txn tentativeTransaction;
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
-            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
             tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomerate));
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");

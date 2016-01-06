@@ -5,6 +5,9 @@ import com.splicemachine.access.util.ChainedDefaults;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author Scott Fines
  *         Date: 12/18/15
@@ -23,6 +26,26 @@ public class HConfiguration implements SConfiguration{
                 this.defaults.addDefaults(defaults);
         }
         this.defaults.addDefaults(HBASE_DEFAULTS);
+    }
+
+    @Override
+    public String getString(String key){
+        String value=delegate.get(key);
+        if(value==null){
+            if(defaults.hasStringDefault(key))
+                return defaults.defaultStringFor(key);
+            else if(defaults.hasIntDefault(key))
+                return Integer.toString(defaults.defaultIntFor(key));
+            else if(defaults.hasLongDefault(key))
+                return Long.toString(defaults.defaultLongFor(key));
+        }
+        return null;
+    }
+
+    @Override
+    public Set<String> prefixMatch(String prefix){
+        Map<String, String> valByRegex=delegate.getValByRegex("^prefix.*");
+        return valByRegex.keySet();
     }
 
     @Override
@@ -66,6 +89,16 @@ public class HConfiguration implements SConfiguration{
                 default:
                     throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
             }
+        }
+
+        @Override
+        public boolean hasStringDefault(String key){
+            return false;
+        }
+
+        @Override
+        public String defaultStringFor(String key){
+            throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
         }
     };
 }

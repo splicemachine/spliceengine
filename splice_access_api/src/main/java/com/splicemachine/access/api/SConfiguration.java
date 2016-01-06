@@ -1,5 +1,8 @@
 package com.splicemachine.access.api;
 
+import java.util.List;
+import java.util.Set;
+
 /**
  * Generic interface for representing a Configuration.
  *
@@ -39,7 +42,25 @@ public interface SConfiguration{
         boolean hasIntDefault(String key);
 
         int defaultIntFor(String key);
+
+        boolean hasStringDefault(String key);
+
+        String defaultStringFor(String key);
     }
 
     void addDefaults(Defaults defaults);
+
+    String getString(String key);
+
+    /**
+     * List all keys in the configuration which are set (or have a default) and start with the specified prefix.
+     *
+     * @param prefix the prefix to search for. An empty String or {@code null} will return all keys.
+     * @return all keys which start with {@code prefix}
+     */
+    Set<String> prefixMatch(String prefix);
+
+    double getDouble(String key);
+
+    boolean getBoolean(String ignoreSavePoints);
 }

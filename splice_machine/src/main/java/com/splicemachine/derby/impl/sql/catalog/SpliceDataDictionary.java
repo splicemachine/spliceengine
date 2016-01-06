@@ -1,6 +1,10 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -19,16 +23,17 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
+import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequenceKey;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -409,8 +414,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             long start=sequenceDescriptor[0].getStartValue();
             long increment=sequenceDescriptor[0].getIncrement();
 
-            SpliceSequence sequence=SpliceDriver.driver().getSequencePool().
-            get(new SpliceSequenceKey(sequenceRowLocationBytes,start,increment,1l));
+            SIDriver siDriver =SIDriver.driver();
+            PartitionFactory partFactory = siDriver.getTableFactory();
+            TxnOperationFactory txnOpFactory = siDriver.getOperationFactory();
+            SpliceSequence sequence=EngineDriver.driver().sequencePool().
+            get(new SequenceKey(sequenceRowLocationBytes,start,increment,1l,partFactory,txnOpFactory));
 
             returnValue.setValue(sequence.getNext());
 
@@ -476,9 +484,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // Check if there is a manual override that is forcing an upgrade.
         // This flag should only be true for the master server.  If the upgrade runs on the region server,
         // it would probably be bad (at least if it ran concurrently with another upgrade).
-        if(SpliceConstants.upgradeForced){
-            LOG.info(String.format("Upgrade has been manually forced from version %s",SpliceConstants.upgradeForcedFromVersion));
-            return true;
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        if(configuration.getBoolean(SQLConfiguration.UPGRADE_FORCED)){
+            LOG.info(String.format("Upgrade has been manually forced from version %s",
+                    configuration.getString(SQLConfiguration.UPGRADE_FORCED_FROM)));
         }
 
         // Not sure about the current version, do not upgrade

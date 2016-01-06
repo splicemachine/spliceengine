@@ -4,7 +4,8 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
+import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,7 +33,7 @@ public class ErrorReporter implements ErrorReport{
 
     private final BlockingQueue<ErrorInfo> mostRecentErrors = new ArrayBlockingQueue<ErrorInfo>(100,true);
 
-    private ErrorReporter(){}
+    private ErrorReporter(){ }
 
     public static ErrorReporter get(){
         return INSTANCE;
@@ -123,11 +124,13 @@ public class ErrorReporter implements ErrorReport{
         private final Throwable error;
         private final Class<?> reportingClass;
         private final long timestamp;
+        private final ExceptionFactory exceptionFactory;
 
         private ErrorInfo(Throwable error, Class<?> reportingClass) {
             this.error = error;
             this.reportingClass = reportingClass;
             this.timestamp = System.currentTimeMillis();
+            this.exceptionFactory = SIDriver.driver().getExceptionFactory();
         }
 
         public boolean isStandardException(){
@@ -135,7 +138,7 @@ public class ErrorReporter implements ErrorReport{
         }
 
         public boolean isDoNotRetryIOException(){
-            return error instanceof DoNotRetryIOException;
+            return exceptionFactory.allowsRetry(error);
         }
 
         public boolean isIOException(){

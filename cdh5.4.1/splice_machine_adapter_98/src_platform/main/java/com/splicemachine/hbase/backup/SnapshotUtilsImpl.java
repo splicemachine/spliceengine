@@ -1,4 +1,4 @@
-package com.splicemachine.hbase.backup;
+package com.splicemachine.backup;
 
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;

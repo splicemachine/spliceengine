@@ -9,7 +9,7 @@ import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 /**
  * Creates WriteHandlers that intercept writes to base tables and send transformed writes to corresponding index tables.
@@ -39,8 +39,7 @@ class IndexFactory implements LocalWriteFactory{
         if (txn == null) {
             ctx.addLast(writeHandler);
         } else {
-            DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController()
-                    .newDDLFilter(txn);
+            DDLFilter ddlFilter = SIDriver.driver().readController().newDDLFilter(txn);
             ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
         }
     }
@@ -48,6 +47,16 @@ class IndexFactory implements LocalWriteFactory{
     @Override
     public long getConglomerateId() {
         return indexConglomerateId;
+    }
+
+    @Override
+    public boolean canReplace(LocalWriteFactory newContext){
+        return true;
+    }
+
+    @Override
+    public void replace(LocalWriteFactory newFactory){
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override

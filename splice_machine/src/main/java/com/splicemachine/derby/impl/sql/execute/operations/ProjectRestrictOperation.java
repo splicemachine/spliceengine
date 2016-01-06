@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 
+import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -205,7 +206,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						ExecRow clone = def !=null? def.getClone(): null;
 						// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
 						// division or modulus operators.  The delegate classes will need to reset the values to 0.
-                        if(clone!=null) SpliceUtils.populateDefaultValues(clone.getRowArray(),1);
+                        if(clone!=null) EngineUtils.populateDefaultValues(clone.getRowArray(),1);
                         // Keeps Sequences from incrementing when doing an execRowDefiniton evaluation: hack
                         ((BaseActivation) activation).setIgnoreSequence(true);
 						source.setCurrentRow(clone);
@@ -213,7 +214,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     ((BaseActivation) activation).setIgnoreSequence(false);
                 }
 				execRowDefinition = execRowDefinition.getClone();
-                SpliceUtils.resultValuesToNull(execRowDefinition.getRowArray());
+                EngineUtils.resultValuesToNull(execRowDefinition.getRowArray());
 				return execRowDefinition;
 		}
 

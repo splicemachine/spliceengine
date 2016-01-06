@@ -7,11 +7,13 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ByteEntryAccumulator;
 import com.splicemachine.storage.EntryPredicateFilter;
-import org.apache.hadoop.hbase.HConstants;
 
 import com.carrotsearch.hppc.BitSet;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -128,7 +130,7 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
     @Override
     public byte[] finish() {
         if(checkFilterAfter()) return null;
-        return HConstants.EMPTY_BYTE_ARRAY;
+        return SIConstants.EMPTY_BYTE_ARRAY;
     }
 
     @Override
@@ -151,7 +153,7 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 
     public void close() {
         for(DescriptorSerializer serializer:serializers){
-            Closeables.closeQuietly(serializer);
+            try{ serializer.close(); }catch(IOException ignored){ }
         }
     }
 

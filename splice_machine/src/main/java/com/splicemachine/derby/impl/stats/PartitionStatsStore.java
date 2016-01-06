@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -11,13 +11,13 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnStatsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HRegionLocation;
+import com.splicemachine.storage.Partition;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
@@ -31,8 +31,8 @@ import java.util.concurrent.ExecutionException;
  */
 public class PartitionStatsStore {
     private static final Logger LOG = Logger.getLogger(PartitionStatsStore.class);
-    private static final Function<? super HRegionInfo,? extends String> partitionNameTransform = new Function<HRegionInfo, String>(){
-        @Override public String apply(HRegionInfo hRegionInfo){ return hRegionInfo.getEncodedName(); }
+    private static final Function<? super Partition,? extends String> partitionNameTransform = new Function<Partition, String>(){
+        @Override public String apply(Partition hRegionInfo){ return hRegionInfo.getName(); }
     };
 
     private static final Function<PartitionStatisticsDescriptor,String> partitionStatisticsTransform = new Function<PartitionStatisticsDescriptor, String>(){
@@ -42,7 +42,7 @@ public class PartitionStatsStore {
 
     public static OverheadManagedTableStatistics getStatistics(long conglomerateId, TransactionController tc) throws StandardException {
         byte[] table = Long.toString(conglomerateId).getBytes();
-        List<HRegionInfo> partitions = new ArrayList<>();
+        List<Partition> partitions = new ArrayList<>();
         getPartitions(table, partitions);
         List<String> partitionNames =Lists.transform(partitions,partitionNameTransform);
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
@@ -64,7 +64,7 @@ public class PartitionStatsStore {
             for (ColumnStatsDescriptor column : tStats.getColumnStatsDescriptors()) {
                 copy.add((ColumnStatistics) column.getStats());
             }
-            OverheadManagedPartitionStatistics pStats = new SimpleOverheadManagedPartitionStatistics(tableId,
+            OverheadManagedPartitionStatistics pStats = SimpleOverheadManagedPartitionStatistics.create(tableId,
                     tStats.getPartitionId(),
                     tStats.getRowCount(),
                     tStats.getPartitionSize(),
@@ -115,28 +115,27 @@ public class PartitionStatsStore {
          * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
          */
 
-    public static GlobalStatistics emptyStats(String tableId,List<HRegionInfo> partitions){
+    public static GlobalStatistics emptyStats(String tableId,List<Partition> partitions){
         return RegionLoadStatistics.getParameterStatistics(tableId,partitions);
     }
 
     public static Txn getTxn(TxnView wrapperTxn) throws ExecutionException {
         try {
-            return TransactionLifecycle.getLifecycleManager().beginChildTransaction(wrapperTxn, Txn.IsolationLevel.READ_UNCOMMITTED,null);
+            return SIDriver.driver().lifecycleManager().beginChildTransaction(wrapperTxn, Txn.IsolationLevel.READ_UNCOMMITTED,null);
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
     }
 
-    private static int getPartitions(byte[] table, List<HRegionInfo> partitions) throws StandardException {
-        try {
-            Collection<HRegionLocation> regions = HBaseTableFactory.getInstance().getRegions(table);
-            for (HRegionLocation region: regions) {
-                partitions.add(region.getRegionInfo());
-            }
+    private static int getPartitions(byte[] table, List<Partition> partitions) throws StandardException {
+        try (PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin()){
+            Iterable<? extends Partition> partitions1=admin.allPartitions(Bytes.toString(table));
+            for(Partition p:partitions1)
+                partitions.add(p);
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
         }
-        return 0;
+        return partitions.size();
     }
 
     private static PartitionAverage averageKnown(String tableId,List<OverheadManagedPartitionStatistics> statistics) {

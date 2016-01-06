@@ -2,8 +2,8 @@ package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -16,7 +16,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.utils.Pair;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
@@ -48,11 +48,11 @@ public class PipelineAdmin extends BaseAdminProcedures{
         operate(new BaseAdminProcedures.JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<SpliceBaseIndexEndpoint.ActiveWriteHandlersIface> writeHandlers = JMXUtils.getActiveWriteHandlers(connections);
+                List<PipelineDriver.ActiveWriteHandlersIface> writeHandlers = JMXUtils.getActiveWriteHandlers(connections);
                 ExecRow template = buildExecRow(WRITE_INTAKE_COLUMNS);
                 List<ExecRow> rows = Lists.newArrayListWithExpectedSize(writeHandlers.size());
                 int i=0;
-                for (SpliceBaseIndexEndpoint.ActiveWriteHandlersIface writeHandler : writeHandlers) {
+                for (PipelineDriver.ActiveWriteHandlersIface writeHandler : writeHandlers) {
                     template.resetRowArray();
                     DataValueDescriptor[] dvds = template.getRowArray();
                     try{
@@ -126,9 +126,9 @@ public class PipelineAdmin extends BaseAdminProcedures{
         operate(new JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
-                List<SpliceBaseIndexEndpoint.ActiveWriteHandlersIface> activeWriteHandlers = JMXUtils.getActiveWriteHandlers(jmxConnector);
+                List<PipelineDriver.ActiveWriteHandlersIface> activeWriteHandlers = JMXUtils.getActiveWriteHandlers(jmxConnector);
                 int i=0;
-                for(SpliceBaseIndexEndpoint.ActiveWriteHandlersIface writeHandler:activeWriteHandlers){
+                for(PipelineDriver.ActiveWriteHandlersIface writeHandler:activeWriteHandlers){
                     String host = jmxConnector.get(i++).getFirst();
                     ExecRow row = hostRows.get(host);
                     if(row==null)

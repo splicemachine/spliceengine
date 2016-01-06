@@ -1,32 +1,30 @@
 package com.splicemachine.derby.impl;
 
 
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Properties;
-
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.monitor.PersistentService;
 import com.splicemachine.db.io.StorageFactory;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.ZkUtils;
+import org.apache.log4j.Logger;
 
-public class SpliceService extends SpliceConstants implements PersistentService {
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.Set;
+
+public class SpliceService implements PersistentService {
 	protected static final String TYPE = "splice";
 	private static Logger LOG = Logger.getLogger(SpliceService.class);
+
 	public SpliceService() {
 		SpliceLogUtils.trace(LOG,"instantiated");
-	    Thread.currentThread().setContextClassLoader(HBaseConfiguration.class.getClassLoader());
+//	    Thread.currentThread().setContextClassLoader(HBaseConfiguration.class.getClassLoader());
 	}
 	
 	public String getType() {
@@ -44,10 +42,12 @@ public class SpliceService extends SpliceConstants implements PersistentService 
 	public Properties getServiceProperties(String serviceName, Properties defaultProperties) throws StandardException {
 		Properties service = new Properties(defaultProperties);
 		try {
-			List<String> children = ZkUtils.getChildren(zkSpliceDerbyPropertyPath, false);
-			for (String child: children) {
-				String value = Bytes.toString(ZkUtils.getData(zkSpliceDerbyPropertyPath + "/" + child));
-				service.setProperty(child, value);
+			PropertyManager propertyManager=EngineDriver.driver().propertyManager();
+			Set<String> properties = propertyManager.listProperties();
+//			List<String> children = ZkUtils.getChildren(zkSpliceDerbyPropertyPath, false);
+			for (String property: properties) {
+				String value = propertyManager.getProperty(property);
+				service.setProperty(property, value);
 			}
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
@@ -68,18 +68,20 @@ public class SpliceService extends SpliceConstants implements PersistentService 
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties with storageFactory serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
+        PropertyManager pm = EngineDriver.driver().propertyManager();
 		for (Object key :properties.keySet()) {
-			if (!SpliceUtils.propertyExists((String)key)) {
-				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
+			if (!pm.propertyExists((String)key)) {
+				pm.addProperty((String)key,properties.getProperty((String)key));
 			}
 		}
 	}
 
     public void saveServiceProperties(String serviceName,Properties properties) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties serviceName: %s, properties %s",serviceName, properties);
+        PropertyManager pm = EngineDriver.driver().propertyManager();
 		for (Object key :properties.keySet()) {
-			if (!SpliceUtils.propertyExists((String)key)) {
-				SpliceUtils.addProperty((String)key, (String)properties.getProperty((String)key));
+			if (!pm.propertyExists((String)key)) {
+				pm.addProperty((String)key,properties.getProperty((String)key));
 			}
 		}
 	}

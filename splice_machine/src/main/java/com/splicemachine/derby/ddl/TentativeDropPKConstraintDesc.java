@@ -19,6 +19,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 
@@ -33,7 +34,8 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
     private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
 
-    public TentativeDropPKConstraintDesc(DDLMessage.TentativeDropPKConstraint tentativeDropPKConstraint,SqlExceptionFactory exceptionFactory) {
+    public TentativeDropPKConstraintDesc(DDLMessage.TentativeDropPKConstraint tentativeDropPKConstraint,
+                                         PipelineExceptionFactory exceptionFactory) {
         super(exceptionFactory);
         this.tableVersion = tentativeDropPKConstraint.getTableVersion();
         this.newConglomId = tentativeDropPKConstraint.getNewConglomId();
@@ -122,7 +124,7 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
-            throw exceptionFactory.asIOException(e);
+            throw exceptionFactory.doNotRetry(e);
         }
         return srcRow;
     }
@@ -146,7 +148,7 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
                 columnMapping[i] = columnPosition;
             }
         } catch (StandardException e) {
-            throw exceptionFactory.asIOException(e);
+            throw exceptionFactory.doNotRetry(e);
         }
 
         // create the row transformer

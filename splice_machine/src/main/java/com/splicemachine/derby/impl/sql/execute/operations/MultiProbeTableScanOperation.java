@@ -215,7 +215,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
         DataSet<LocatedRow> dataSet = dsp.getEmpty();
         for (DataScan scan: scans) {
-            TableScannerBuilder tsb = new TableScannerBuilder()
+            DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation,LocatedRow>newScanSet(this,tableName)
                     .transaction(txn)
                     .scan(scan)
                     .template(currentTemplate)
@@ -228,8 +228,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(baseColumnMap);
-            dataSet = dataSet.union(dsp.<MultiProbeTableScanOperation, LocatedRow>getTableScanner(this, tsb, tableName));
+                    .rowDecodingMap(baseColumnMap).buildDataSet();
+            dataSet = dataSet.union(ds);
         }
         return dataSet;
     }

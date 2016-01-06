@@ -7,7 +7,7 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import com.splicemachine.hbase.backup.BackupSystemProcedures;
+import com.splicemachine.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;

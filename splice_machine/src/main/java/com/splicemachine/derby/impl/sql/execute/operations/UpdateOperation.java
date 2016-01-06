@@ -7,7 +7,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
@@ -18,9 +17,9 @@ import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.stream.output.update.ResultSupplier;
-import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
@@ -30,7 +29,6 @@ import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -44,7 +42,6 @@ import java.util.Collection;
  */
 public class UpdateOperation extends DMLWriteOperation{
     private static final Logger LOG=Logger.getLogger(UpdateOperation.class);
-    private ResultSupplier resultSupplier;
     private DataValueDescriptor[] kdvds;
     public int[] colPositionMap;
     public FormatableBitSet heapList;
@@ -199,21 +196,24 @@ public class UpdateOperation extends DMLWriteOperation{
         TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
-        UpdateTableWriterBuilder builder=new UpdateTableWriterBuilder()
-                .heapConglom(heapConglom)
-                .operationContext(operationContext)
-                .execRowDefinition(execRow)
-                .execRowTypeFormatIds(execRowTypeFormatIds)
-                .pkCols(pkCols==null?new int[0]:pkCols)
-                .pkColumns(pkColumns)
-                .formatIds(format_ids)
-                .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
-                .heapList(getHeapList())
-                .tableVersion(tableVersion)
-                .txn(txn);
         try{
             operationContext.pushScope();
-            return set.index(new InsertPairFunction(operationContext),true).updateData(builder,operationContext);
+            PairDataSet toWrite=set.index(new InsertPairFunction(operationContext),true);
+            DataSetWriter writer=toWrite.updateData(operationContext)
+                    .execRowDefinition(execRow)
+                    .execRowTypeFormatIds(execRowTypeFormatIds)
+                    .pkCols(pkCols==null?new int[0]:pkCols)
+                    .pkColumns(pkColumns)
+                    .formatIds(format_ids)
+                    .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
+                    .heapList(getHeapList())
+                    .tableVersion(tableVersion)
+                    .destConglomerate(heapConglom)
+                    .operationContext(operationContext)
+                    .txn(txn)
+                    .build();
+
+            return writer.write();
         }finally{
             operationContext.popScope();
         }

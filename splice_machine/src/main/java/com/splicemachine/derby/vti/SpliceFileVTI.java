@@ -1,6 +1,5 @@
 package com.splicemachine.derby.vti;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
@@ -14,10 +13,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.spark.SparkConstants;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -98,22 +94,25 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         operationContext = dsp.createOperationContext(op);
         try {
-            ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
-            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
-                DataSet<String> textSet = dsp.readTextFile(fileName, op);
-                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
-            } else {
-                PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
-                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
-                return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
-            }
-        } catch (IOException ioe) {
-            throw StandardException.plainWrapException(ioe);
-        } finally {
+            throw new UnsupportedOperationException("IMPLEMENT");
+//            ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
+//            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
+//                DataSet<String> textSet = dsp.readTextFile(fileName, op);
+//                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
+//                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
+//            } else {
+//                PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
+//                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
+//                return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
+//            }
+        }
+//        catch (IOException ioe) {
+//            throw StandardException.plainWrapException(ioe);
+//        }
+        finally {
             operationContext.popScope();
         }
     }

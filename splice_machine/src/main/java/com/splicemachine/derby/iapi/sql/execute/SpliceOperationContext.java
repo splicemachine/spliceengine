@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -63,5 +64,9 @@ public class SpliceOperationContext{
     public SConfiguration getSystemConfiguration(){
         throw new UnsupportedOperationException("IMPLEMENT: config may not be set!");
 //        return config;
+    }
+
+    public LanguageConnectionContext getLanguageConnectionContext(){
+        return activation.getLanguageConnectionContext();
     }
 }

@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -16,8 +17,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.Timer;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -39,7 +38,7 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+
 /**
  * Maps between an Index Table and a data Table.
  */
@@ -80,8 +79,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         */
     private int[] adjustedBaseColumnMap;
 
-    private static final MetricName scanName = new MetricName("com.splicemachine.operations","indexLookup","totalTime");
-    private final Timer totalTimer = SpliceDriver.driver().getRegistry().newTimer(scanName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
+//    private static final MetricName scanName = new MetricName("com.splicemachine.operations","indexLookup","totalTime");
+//    private final Timer totalTimer = SpliceDriver.driver().getRegistry().newTimer(scanName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private IndexRowReaderBuilder readerBuilder;
     private String tableVersion;
 
@@ -272,8 +271,11 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if(readerBuilder==null){
+            SConfiguration configuration=EngineDriver.driver().getConfiguration();
+            int indexBatchSize = configuration.getInt(SQLConfiguration.INDEX_BATCH_SIZE);
+            int lookupBlocks = configuration.getInt(SQLConfiguration.INDEX_LOOKUP_BLOCKS);
             readerBuilder = new IndexRowReaderBuilder()
                     .mainTableConglomId(conglomId)
                     .outputTemplate(compactRow)
@@ -287,8 +289,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .mainTableVersion(tableVersion)
                     .mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
                     .mainTableAccessedRowColumns(getMainTableRowColumns())
-                    .numConcurrentLookups((getEstimatedRowCount() > 2*SpliceConstants.indexBatchSize?SpliceConstants.indexLookupBlocks:-1))
-                    .lookupBatchSize(SpliceConstants.indexBatchSize);
+                    .numConcurrentLookups((getEstimatedRowCount() > 2*indexBatchSize?lookupBlocks:-1))
+                    .lookupBatchSize(indexBatchSize);
         }
         OperationContext context = dsp.createOperationContext(this);
        return source.getDataSet(dsp).

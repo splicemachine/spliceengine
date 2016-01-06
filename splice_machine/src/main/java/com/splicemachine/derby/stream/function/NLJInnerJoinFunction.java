@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -46,7 +47,7 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
         leftRow = from;
         DataSet dataSet = null;
         try {
-            op.getRightOperation().openCore(StreamUtils.controlDataSetProcessor);
+            op.getRightOperation().openCore(EngineDriver.driver().processorFactory().localProcessor(null,op));
             rightSideNLJIterator = op.getRightOperation().getLocatedRowIterator();
             return new NestedLoopInnerIterator<>(this);
         } finally {

@@ -1,10 +1,10 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.sparkproject.guava.base.Predicate;
-import org.sparkproject.guava.collect.FluentIterable;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -22,9 +22,9 @@ public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFla
 
     @Override
     protected Iterable<LocatedRow> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        Iterable<LocatedRow> result = FluentIterable.from(new Iterable<LocatedRow>() {
+        Iterable<LocatedRow> result = FluentIterable.from(new Iterable<LocatedRow>(){
             @Override
-            public Iterator<LocatedRow> iterator() {
+            public Iterator<LocatedRow> iterator(){
                 return locatedRows;
             }
         }).filter(new Predicate<LocatedRow>() {

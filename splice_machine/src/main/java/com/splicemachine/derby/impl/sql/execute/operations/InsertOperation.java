@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -10,24 +11,25 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
+import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.derby.stream.output.insert.InsertTableWriter;
-import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
-import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 
@@ -51,7 +53,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     private RowLocation[] autoIncrementRowLocationArray;
     private SpliceSequence[] spliceSequences;
     protected static final String NAME=InsertOperation.class.getSimpleName().replaceAll("Operation","");
-    public InsertTableWriter tableWriter;
+    public InsertPipelineWriter tableWriter;
     public Pair<Long, Long>[] defaultAutoIncrementValues;
     public InsertNode.InsertMode insertMode;
     public String statusDirectory;
@@ -113,11 +115,14 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 }else{
                     byte[] rlBytes=rl.getBytes();
                     SConfiguration config=context.getSystemConfiguration();
-                    spliceSequences[i]=SpliceDriver.driver().getSequencePool().get(new SpliceIdentityColumnKey(
+                    SequenceKey key=new SequenceKey(
                             rlBytes,
                             (isSingleRowResultSet())?1l:config.getInt(OperationConfiguration.SEQUENCE_BLOCK_SIZE),
                             defaultAutoIncrementValues[i].getFirst(),
-                            defaultAutoIncrementValues[i].getSecond()));
+                            defaultAutoIncrementValues[i].getSecond(),
+                            SIDriver.driver().getTableFactory(),
+                            SIDriver.driver().getOperationFactory());
+                    spliceSequences[i]=EngineDriver.driver().sequencePool().get(key);
                 }
             }
         }catch(Exception e){
@@ -220,22 +225,25 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
         TxnView txn=getCurrentTransaction();
-        InsertTableWriterBuilder builder=new InsertTableWriterBuilder()
-                .heapConglom(heapConglom)
-                .operationContext(operationContext)
-                .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
-                .execRowDefinition(getExecRowDefinition())
-                .execRowTypeFormatIds(execRowTypeFormatIds)
-                .spliceSequences(spliceSequences)
-                .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
-                .pkCols(pkCols)
-                .tableVersion(tableVersion)
-                .txn(txn);
+
         try{
             operationContext.pushScope();
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
-            return set.index(new InsertPairFunction(operationContext),true).insertData(builder,operationContext);
+            PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);
+            DataSetWriter writer=dataSet.insertData(operationContext)
+                    .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
+                    .execRowDefinition(getExecRowDefinition())
+                    .execRowTypeFormatIds(execRowTypeFormatIds)
+                    .sequences(spliceSequences)
+                    .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
+                    .pkCols(pkCols)
+                    .tableVersion(tableVersion)
+                    .destConglomerate(heapConglom)
+                    .operationContext(operationContext)
+                    .txn(txn)
+                    .build();
+            return writer.write();
         }finally{
             operationContext.popScope();
         }
@@ -250,10 +258,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
     @Override
     public void openCore() throws StandardException{
-        if(statusDirectory!=null) // Always go to spark...
-            openCore(StreamUtils.sparkDataSetProcessor);
+        DataSetProcessorFactory dspf=EngineDriver.driver().processorFactory();
+        if(statusDirectory!=null) // Always go distributed...
+            openCore(dspf.distributedProcessor());
         else
-            openCore(StreamUtils.getDataSetProcessorFromActivation(activation,this));
+            openCore(dspf.chooseProcessor(activation,this));
     }
 
 }

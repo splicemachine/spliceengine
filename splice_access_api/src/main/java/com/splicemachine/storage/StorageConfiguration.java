@@ -19,6 +19,8 @@ public class StorageConfiguration{
     public static final String TABLE_SPLIT_SLEEP_INTERVAL= "splice.splitWaitInterval";
     public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 
+    public static final String REGION_MAX_FILE_SIZE = "hbase.hregion.max.filesize";
+
     public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
@@ -45,6 +47,16 @@ public class StorageConfiguration{
         @Override
         public boolean hasIntDefault(String key){
             return false;
+        }
+
+        @Override
+        public boolean hasStringDefault(String key){
+            return false;
+        }
+
+        @Override
+        public String defaultStringFor(String key){
+            throw new IllegalArgumentException("No String default for key '"+key+"'");
         }
     };
 }

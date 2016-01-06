@@ -1,30 +1,7 @@
 package com.splicemachine.derby.utils;
 
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSPARTITIONSTATISTICSRowFactory;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.stream.control.ControlDataSet;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.utils.StreamUtils;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.utils.Pair;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -33,20 +10,46 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSPARTITIONSTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.stream.control.ControlDataSet;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 
 /**
@@ -61,9 +64,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void DISABLE_COLUMN_STATISTICS(String schema,
                                                  String table,
                                                  String columnName) throws SQLException {
-        schema = SpliceUtils.validateSchema(schema);
-        table = SpliceUtils.validateTable(table);
-        columnName = SpliceUtils.validateColumnName(columnName);
+        schema = EngineUtils.validateSchema(schema);
+        table = EngineUtils.validateTable(table);
+        columnName = EngineUtils.validateColumnName(columnName);
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn, schema, table);
@@ -89,9 +92,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void ENABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException {
-        schema = SpliceUtils.validateSchema(schema);
-        table = SpliceUtils.validateTable(table);
-        columnName = SpliceUtils.validateColumnName(columnName);
+        schema = EngineUtils.validateSchema(schema);
+        table = EngineUtils.validateTable(table);
+        columnName = EngineUtils.validateColumnName(columnName);
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn, schema, table);
@@ -216,8 +219,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ResultSet[] outputResults) throws SQLException {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         try {
-            schema = SpliceUtils.validateSchema(schema);
-            table = SpliceUtils.validateTable(table);
+            schema = EngineUtils.validateSchema(schema);
+            table = EngineUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
             authorize(tds);
@@ -267,8 +270,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void DROP_TABLE_STATISTICS(String schema, String table) throws SQLException {
         EmbedConnection conn = (EmbedConnection) getDefaultConn();
         try {
-            schema = SpliceUtils.validateSchema(schema);
-            table = SpliceUtils.validateTable(table);
+            schema = EngineUtils.validateSchema(schema);
+            table = EngineUtils.validateTable(table);
             TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             tc.elevate("statistics");
@@ -303,20 +306,16 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                              EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
-        DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
-        StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
-        TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(conn, table, txn);
-        DataSet dataSet = (DataSet)dsp.getTableScanner(activation, tableScannerBuilder, (new Long(heapConglomerateId).toString()));
-        return dataSet;
+        DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();//StreamUtils.sparkDataSetProcessor;
+        dsp.setup(activation,"collection table statistics","admin");
+//        StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
+        ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
+        return  createTableScanner(ssb,conn,table,txn);
     }
 
-    private static Scan createScan (TxnView txn) {
-        Scan scan= SpliceUtils.createScan(txn, false);
-        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        scan.setStartRow(new byte[0]);
-        scan.setStopRow(new byte[0]);
-        scan.setCacheBlocks(false);
-        return scan;
+    private static DataScan createScan (TxnView txn) {
+        DataScan scan=SIDriver.driver().getOperationFactory().newDataScan(txn);
+        return scan.startKey(new byte[0]).stopKey(new byte[0]);
     }
 
     public static int[] getFormatIds(EmbedConnection conn, long columnStatsConglomId) throws StandardException{
@@ -326,9 +325,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return conglomerate.getFormat_ids();
     }
 
-    private static TableScannerBuilder createTableScannerBuilder(EmbedConnection conn,
-                                                              TableDescriptor table,
-                                                              TxnView txn) throws StandardException {
+    private static DataSet createTableScanner(ScanSetBuilder builder,
+                                              EmbedConnection conn,
+                                              TableDescriptor table,
+                                              TxnView txn) throws StandardException{
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
         ExecRow row = new ValueRow(colsToCollect.size());
@@ -380,9 +380,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 }
             }
         }
-        Scan scan = createScan(txn);
-        return new TableScannerBuilder()
-                .transaction(txn)
+        DataScan scan = createScan(txn);
+        return builder.transaction(txn)
                 .execRowTypeFormatIds(execRowFormatIds)
                 .scan(scan)
                 .rowDecodingMap(rowDecodingMap)
@@ -394,7 +393,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .accessedKeyColumns(collectedKeyColumns)
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
-                .columnPositionMap(columnPositionMap);
+                .columnPositionMap(columnPositionMap).buildDataSet();
     }
 
     private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows) throws

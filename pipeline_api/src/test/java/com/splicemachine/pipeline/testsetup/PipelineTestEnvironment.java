@@ -9,6 +9,7 @@ import java.util.ServiceLoader;
  */
 public class PipelineTestEnvironment{
     private static volatile PipelineTestEnv testEnv;
+    private static volatile PipelineTestDataEnv testDataEnv;
 
     public static PipelineTestEnv loadTestEnvironment(){
         PipelineTestEnv env = testEnv;
@@ -17,6 +18,18 @@ public class PipelineTestEnvironment{
         }
         return env;
     }
+
+    public static PipelineTestDataEnv loadTestDataEnvironment(){
+        PipelineTestDataEnv dataEnv = testDataEnv;
+        if(dataEnv==null){
+            dataEnv = testEnv;
+            if(dataEnv==null){
+                dataEnv = initializeDataEnvironment();
+            }
+        }
+        return dataEnv;
+    }
+
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -28,10 +41,31 @@ public class PipelineTestEnvironment{
                 if(!iter.hasNext())
                     throw new IllegalStateException("No PipelineTestEnv found!");
                 testEnv = iter.next();
+                testDataEnv = testEnv;
                 if(iter.hasNext())
                     throw new IllegalStateException("Only one PipelineTestEnv is allowed!");
             }
         }
         return testEnv;
+    }
+
+    private static PipelineTestDataEnv initializeDataEnvironment(){
+        synchronized(PipelineTestEnvironment.class){
+            if(testDataEnv==null){
+                if(testEnv==null){
+                    ServiceLoader<PipelineTestDataEnv> load=ServiceLoader.load(PipelineTestDataEnv.class);
+                    Iterator<PipelineTestDataEnv> iter=load.iterator();
+                    if(!iter.hasNext())
+                        throw new IllegalStateException("No PipelineTestDataEnv found!");
+                    testDataEnv = iter.next();
+                    if(iter.hasNext())
+                        throw new IllegalStateException("Only one PipelineTestDataEnv is allowed!");
+
+                }else{
+                    testDataEnv = testEnv;
+                }
+            }
+        }
+        return testDataEnv;
     }
 }

@@ -6,7 +6,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.spark.RDDUtils;
 
 /**
  * Created by jleach on 5/1/15.
@@ -31,8 +30,8 @@ public class ScalarAggregateFunction extends SpliceFunction2<ScalarAggregateOper
         operationContext.recordRead();
         if (t2 == null) return t1;
         if (t1 == null) return t2.getClone();
-        if (RDDUtils.LOG.isDebugEnabled())
-            RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
+//        if (RDDUtils.LOG.isDebugEnabled())
+//            RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
 
         ExecRow r1 = t1.getRow();
         ExecRow r2 = t2.getRow();
@@ -49,18 +48,18 @@ public class ScalarAggregateFunction extends SpliceFunction2<ScalarAggregateOper
 
     private void accumulate(ExecRow next, ExecRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-        if (RDDUtils.LOG.isDebugEnabled()) {
-            RDDUtils.LOG.debug(String.format("Accumulating %s to %s", next, agg));
-        }
+//        if (RDDUtils.LOG.isDebugEnabled()) {
+//            RDDUtils.LOG.debug(String.format("Accumulating %s to %s", next, agg));
+//        }
         for (SpliceGenericAggregator aggregate : op.aggregates)
             aggregate.accumulate(next, agg);
     }
 
     private void merge(ExecRow next, ExecRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-        if (RDDUtils.LOG.isDebugEnabled()) {
-            RDDUtils.LOG.debug(String.format("Merging %s to %s", next, agg));
-        }
+//        if (RDDUtils.LOG.isDebugEnabled()) {
+//            RDDUtils.LOG.debug(String.format("Merging %s to %s", next, agg));
+//        }
         for (SpliceGenericAggregator aggregate : op.aggregates)
             aggregate.merge(next, agg);
     }

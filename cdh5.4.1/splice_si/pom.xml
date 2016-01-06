@@ -186,7 +186,6 @@
 								<option>-keep public class com.splicemachine.si.data.light.LTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LTuple { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.txn.AbstractTxn { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.ActionFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.txn.ActiveWriteTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.AdditiveWriteConflict { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.BaseSIFilterPacked { public

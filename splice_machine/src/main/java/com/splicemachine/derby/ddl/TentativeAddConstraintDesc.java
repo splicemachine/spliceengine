@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 
@@ -29,7 +30,8 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
 
-    public TentativeAddConstraintDesc(DDLMessage.TentativeAddConstraint tentativeAddConstraint,SqlExceptionFactory exceptionFactory) {
+    public TentativeAddConstraintDesc(DDLMessage.TentativeAddConstraint tentativeAddConstraint,
+                                      PipelineExceptionFactory exceptionFactory) {
         super(exceptionFactory);
         this.tableVersion = tentativeAddConstraint.getTableVersion();
         this.newConglomId = tentativeAddConstraint.getNewConglomId();
@@ -97,7 +99,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
-            throw exceptionFactory.asIOException(e);
+            throw exceptionFactory.doNotRetry(e);
         }
         return srcRow;
     }
@@ -120,7 +122,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                 columnMapping[i] = columnPosition;
             }
         } catch (StandardException e) {
-            throw exceptionFactory.asIOException(e);
+            throw exceptionFactory.doNotRetry(e);
         }
 
         // create the row transformer

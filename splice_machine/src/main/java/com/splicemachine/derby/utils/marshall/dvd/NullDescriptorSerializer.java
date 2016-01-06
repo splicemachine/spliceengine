@@ -1,13 +1,12 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.HConstants;
+import com.splicemachine.si.constants.SIConstants;
 
 import java.io.IOException;
 
@@ -102,7 +101,7 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
 				if(dvd==null||dvd.isNull()){
 						if (!sparse) return empty();
-						else return HConstants.EMPTY_BYTE_ARRAY;
+						else return SIConstants.EMPTY_BYTE_ARRAY;
 				}
 				return delegate.encodeDirect(dvd,desc);
 		}
@@ -142,7 +141,7 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 		 * @return a representation of {@code null} for this type.
 		 */
 		protected byte[] empty() {
-				return HConstants.EMPTY_BYTE_ARRAY;
+				return SIConstants.EMPTY_BYTE_ARRAY;
 		}
 
 		/**

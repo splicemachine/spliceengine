@@ -1,9 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import org.apache.spark.api.java.function.Function;
 
-import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -11,7 +9,7 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 4/27/15.
  */
-public class FetchWithOffsetFunction implements Function<LocatedRow,Boolean>, Externalizable {
+public class FetchWithOffsetFunction implements ExternalizableFunction<LocatedRow,Boolean> {
     protected int fetch;
     protected int offset;
     public FetchWithOffsetFunction(int fetch, int offset) {

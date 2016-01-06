@@ -1,24 +1,24 @@
 package com.splicemachine.derby.stream.stats;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.stats.DvdStatsCollector;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.impl.stats.StatsConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
-import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.*;
+import com.splicemachine.storage.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,10 +58,10 @@ public class StatisticsCollector {
         this.columnPositionMap = columnPositionMap;
         this.lengths = lengths;
         this.scanner = scanner;
-        MeasuredRegionScanner regionScanner = scanner.getRegionScanner();
-        HRegionInfo region = regionScanner.getRegionInfo();
-        String conglomId = region.getTable().getQualifierAsString();
-        regionId = region.getEncodedName();
+        DataScanner regionScanner = scanner.getRegionScanner();
+        Partition region = regionScanner.getPartition();
+        String conglomId = region.getTableName();
+        regionId = region.getName();
         tableConglomerateId = new Long((conglomId));
         dvdCollectors = getCollectors();
         fieldLengths = new int[dvdCollectors.length];
@@ -87,7 +87,7 @@ public class StatisticsCollector {
         if (remoteReadTimeMicros > 0) {
             remoteReadTimeMicros /= 1000;
         }
-        return new SimpleOverheadManagedPartitionStatistics(
+        return SimpleOverheadManagedPartitionStatistics.create(
                 (new Long(tableConglomerateId)).toString(),
                 regionId,
                 rowCount,
@@ -134,26 +134,24 @@ public class StatisticsCollector {
          * and then use that to estimate how long it would take to read us remotely
          */
         //TODO -sf- randomize this a bit so we don't hotspot a region
-        int fetchSampleSize= StatsConstants.fetchSampleSize;
+        int fetchSampleSize=EngineDriver.driver().getConfiguration().getInt(StatsConfiguration.INDEX_FETCH_SAMPLE_SIZE);
         Timer remoteReadTimer = Metrics.newWallTimer();
-        Scan scan = TransactionOperations.getOperationFactory().newScan(txn);
-        scan.setStartRow(HConstants.EMPTY_START_ROW);
-        scan.setStopRow(HConstants.EMPTY_END_ROW);
+        DataScan scan = SIDriver.driver().getOperationFactory().newDataScan(txn);
+        scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY);
         int n =2;
         long totalOpenTime = 0;
         long totalCloseTime = 0;
         int iterations = 0;
-        try(Table table = SpliceAccessManager.getHTable(tableConglomerateId)){
+        try(Partition table = SIDriver.driver().getTableFactory().getTable(Long.toString(tableConglomerateId))){
             while(n<fetchSampleSize){
-                scan.setBatch(n);
-                scan.setCaching(n);
+                scan.batchCells(n).cacheRows(n);
                 long openTime=System.nanoTime();
                 long closeTime;
-                try(ResultScanner scanner=table.getScanner(scan)){
+                try(DataResultScanner scanner=table.openResultScanner(scan)){
                     totalOpenTime+=(System.nanoTime()-openTime);
                     int pos=0;
                     remoteReadTimer.startTiming();
-                    Result result;
+                    DataResult result;
                     while(pos<n && (result=scanner.next())!=null){
                         pos++;
                     }
@@ -164,6 +162,7 @@ public class StatisticsCollector {
                 iterations++;
                 n<<=1;
             }
+
         }catch(IOException e){
             throw new ExecutionException(e);
         }
@@ -182,9 +181,11 @@ public class StatisticsCollector {
         return columnStats;
     }
 
-    protected void populateCollectors(DataValueDescriptor[] dvds, ColumnStatsCollector<DataValueDescriptor>[] collectors) {
-        int cardinalityPrecision = StatsConstants.cardinalityPrecision;
-        int topKSize = StatsConstants.topKSize;
+    protected void populateCollectors(DataValueDescriptor[] dvds,
+                                      ColumnStatsCollector<DataValueDescriptor>[] collectors) {
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        int cardinalityPrecision = configuration.getInt(StatsConfiguration.CARDINALITY_PRECISION);
+        int topKSize = configuration.getInt(StatsConfiguration.TOPK_SIZE);
         for(int i=0;i<dvds.length;i++){
             DataValueDescriptor dvd = dvds[i];
             int columnId = columnPositionMap[i];

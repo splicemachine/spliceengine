@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -25,7 +26,6 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 public class SpliceTransactionManager implements XATransactionController,

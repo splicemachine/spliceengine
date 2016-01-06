@@ -7,4 +7,8 @@ package com.splicemachine.si.api.txn;
  *         Date: 12/16/15
  */
 public interface WriteConflict{
+
+    long getFirstTransaction();
+
+    long getSecondTransaction();
 }

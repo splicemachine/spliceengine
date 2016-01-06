@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import com.google.common.io.Closeables;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -15,8 +16,8 @@ import com.splicemachine.db.impl.store.raw.data.SpaceInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
@@ -70,7 +71,8 @@ public abstract class SpliceController implements ConglomerateController{
                 table.close();
             }catch(IOException ignored){ }
         }
-        Closeables.closeQuietly(entryEncoder);
+        if(entryEncoder!=null)
+            try{ entryEncoder.close();}catch(IOException ignored){}
         try{
             if((openSpliceConglomerate!=null) && (openSpliceConglomerate.getTransactionManager()!=null))
                 openSpliceConglomerate.getTransactionManager().closeMe(this);
@@ -140,27 +142,25 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
     public boolean fetch(RowLocation loc,DataValueDescriptor[] destRow,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
-        KeyHashDecoder rowDecoder=null;
         try(Partition htable = getTable()){
             DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
-            DataGet get=SpliceUtils.createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
+            DataGet get=createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
             DataResult result=htable.get(get,null);
             if(result==null || result.size()<=0) return false;
 
             int[] cols=FormatableBitSetUtils.toIntArray(validColumns);
             DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(destRow);
-            rowDecoder=new EntryDataDecoder(cols,null,serializers);
-            ExecRow row=new ValueRow(destRow.length);
-            row.setRowArray(destRow);
-            row.resetRowArray();
-            DataCell keyValue=result.userData();
-            rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
-            rowDecoder.decode(row);
+            try(KeyHashDecoder rowDecoder=new EntryDataDecoder(cols,null,serializers)){
+                ExecRow row=new ValueRow(destRow.length);
+                row.setRowArray(destRow);
+                row.resetRowArray();
+                DataCell keyValue=result.userData();
+                rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
+                rowDecoder.decode(row);
+            }
             return true;
         }catch(Exception e){
             throw Exceptions.parseException(e);
-        }finally{
-            Closeables.closeQuietly(rowDecoder);
         }
     }
 
@@ -183,7 +183,7 @@ public abstract class SpliceController implements ConglomerateController{
 
     protected void encodeRow(DataValueDescriptor[] row,DataPut put,int[] columns,FormatableBitSet validColumns) throws StandardException, IOException{
         if(entryEncoder==null){
-            int[] validCols=SpliceUtils.bitSetToMap(validColumns);
+            int[] validCols=EngineUtils.bitSetToMap(validColumns);
             DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(row);
             entryEncoder=new EntryDataHash(validCols,null,serializers);
         }
@@ -200,5 +200,29 @@ public abstract class SpliceController implements ConglomerateController{
 
     public SpliceConglomerate getConglomerate(){
         return (SpliceConglomerate)openSpliceConglomerate.getConglomerate();
+    }
+
+
+    protected static DataGet createGet(DataGet baseGet,
+                                    DataValueDescriptor[] destRow,
+                                    FormatableBitSet validColumns) throws StandardException {
+        try {
+//            Get get = createGet(txn, loc.getBytes());
+            BitSet fieldsToReturn;
+            if(validColumns!=null){
+                fieldsToReturn = new BitSet(validColumns.size());
+                for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
+                    fieldsToReturn.set(i);
+                }
+            }else{
+                fieldsToReturn = new BitSet(destRow.length);
+                fieldsToReturn.set(0,destRow.length);
+            }
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
+            baseGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+            return baseGet;
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 }

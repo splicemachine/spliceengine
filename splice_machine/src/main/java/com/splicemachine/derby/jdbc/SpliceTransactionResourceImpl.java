@@ -1,5 +1,6 @@
 package com.splicemachine.derby.jdbc;
 
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -32,7 +33,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected LanguageConnectionContext lcc;
 
     public SpliceTransactionResourceImpl() throws SQLException{
-        this("jdbc:splice:"+SpliceConstants.SPLICE_DB+";create=true",new Properties());
+        this("jdbc:splice:"+SQLConfiguration.SPLICE_DB+";create=true",new Properties());
     }
 
     public SpliceTransactionResourceImpl(String url,Properties info) throws SQLException{

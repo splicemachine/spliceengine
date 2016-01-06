@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.HConstants;
@@ -23,8 +24,9 @@ public class RangedClientPartition extends ClientPartition implements Comparable
                                  TableName tableName,
                                  Table table,
                                  HRegionInfo regionInfo,
-                                 PartitionServer owningServer){
-        super(connection,tableName,table);
+                                 PartitionServer owningServer,
+                                 Clock clock){
+        super(connection,tableName,table,clock);
         this.regionInfo=regionInfo;
         this.owningServer=owningServer;
     }

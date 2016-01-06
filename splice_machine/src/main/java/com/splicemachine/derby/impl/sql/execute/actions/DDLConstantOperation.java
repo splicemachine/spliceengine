@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.derby.ddl.DDLConfiguration;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.Stream;
@@ -877,8 +880,9 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-        long waitTime = SpliceConstants.ddlDrainingInitialWait; //the initial time to wait
-        long maxWait = SpliceConstants.ddlDrainingMaximumWait; // the maximum time to wait
+		SConfiguration config =EngineDriver.driver().getConfiguration();
+        long waitTime = config.getLong(DDLConfiguration.DDL_DRAINING_INITIAL_WAIT);
+        long maxWait = config.getLong(DDLConfiguration.DDL_DRAINING_MAXIMUM_WAIT);
         long scale = 2; //the scale factor for the exponential backoff
         long timeAvailable = maxWait;
         long activeTxnId = -1l;

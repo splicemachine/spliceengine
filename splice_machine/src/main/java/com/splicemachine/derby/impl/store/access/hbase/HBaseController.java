@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -69,7 +70,7 @@ public class HBaseController extends SpliceController{
 
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
-            encodeRow(row,put,SpliceUtils.bitSetToMap(validColumns),validColumns);
+            encodeRow(row,put,EngineUtils.bitSetToMap(validColumns),validColumns);
             htable.put(put);
             return true;
         }catch(Exception e){

@@ -75,14 +75,6 @@ public class TimestampServerHandler extends TimestampBaseHandler {
         super.messageReceived(ctx, e);
     }
 
-    protected void doTrace(String message, Object... args) {
-        SpliceLogUtils.trace(LOG, message, args);
-    }
-
-    protected void doDebug(String message, Object... args) {
-        SpliceLogUtils.debug(LOG, message, args);
-    }
-
     protected void doError(String message, Throwable t, Object... args) {
         SpliceLogUtils.error(LOG, message, t, args);
     }

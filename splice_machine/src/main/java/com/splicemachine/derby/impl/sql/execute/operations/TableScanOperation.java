@@ -6,11 +6,8 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.derby.hbase.DerbyFactory;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
@@ -28,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class TableScanOperation extends ScanOperation{
-    protected static final DerbyFactory derbyFactory=DerbyFactoryDriver.derbyFactory;
     private static final long serialVersionUID=3l;
     private static Logger LOG=Logger.getLogger(TableScanOperation.class);
     protected int indexColItem;
@@ -170,8 +166,7 @@ public class TableScanOperation extends ScanOperation{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         assert currentTemplate!=null:"Current Template Cannot Be Null";
         dsp.createOperationContext(this);
-        TableScannerBuilder tsb=getTableScannerBuilder(dsp);
-        return dsp.getTableScanner(this,tsb,tableName);
+        return getTableScannerBuilder(dsp);
     }
 
     @Override
@@ -183,9 +178,9 @@ public class TableScanOperation extends ScanOperation{
         }
     }
 
-    public TableScannerBuilder getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
+    public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
-        return new TableScannerBuilder()
+        return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
                 .transaction(txn)
                 .scan(getNonSIScan())
                 .template(currentTemplate)
@@ -198,7 +193,7 @@ public class TableScanOperation extends ScanOperation{
                 .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(baseColumnMap);
+                .rowDecodingMap(baseColumnMap).buildDataSet();
     }
 
 }

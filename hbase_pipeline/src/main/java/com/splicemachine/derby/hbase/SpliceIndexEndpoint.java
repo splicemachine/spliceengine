@@ -12,10 +12,10 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
-import com.splicemachine.pipeline.PartitionWritePipeline;
-import com.splicemachine.pipeline.PipelineWriter;
+import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.BulkWritesResult;
+import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
@@ -24,8 +24,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.PipelineEnvironment;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
@@ -80,27 +78,32 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
             final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
 
             try{
-                DatabaseLifecycleManager.manager().registerService(new DatabaseLifecycleService(){
+                DatabaseLifecycleManager.manager().registerGeneralService(new DatabaseLifecycleService(){
                     private PipelineEnvironment pipelineEnv;
+
                     @Override
                     public void start() throws Exception{
-                        pipelineEnv= HBasePipelineEnvironment.loadEnvironment(new SystemClock(),null); //TODO -sf- register a factory loader
-                        final PipelineDriver pipelineDriver = pipelineEnv.getPipelineDriver();
-                        compressor = pipelineDriver.compressor();
-                        pipelineWriter = pipelineDriver.writer();
-                        final SIDriver siDriver = pipelineEnv.getSIDriver();
+                        ContextFactoryDriver cfDriver = ContextFactoryDriverService.loadDriver();
+                        pipelineEnv=HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
+                        final PipelineDriver pipelineDriver=pipelineEnv.getPipelineDriver();
+                        compressor=pipelineDriver.compressor();
+                        pipelineWriter=pipelineDriver.writer();
+                        final SIDriver siDriver=pipelineEnv.getSIDriver();
                         WriteContextFactory<TransactionalRegion> factory=
                                 WriteContextFactoryManager.getWriteContext(cId,pipelineEnv.configuration(),
-                                siDriver.getTableFactory(),
-                                pipelineDriver.exceptionFactory(),
-                                new Function<TableName, String>(){
-                                    @Override public String apply(TableName input){ return input.getNameAsString(); }
-                                },
-                                pipelineDriver.getContextFactoryLoader(cId)
-                        );
+                                        siDriver.getTableFactory(),
+                                        pipelineDriver.exceptionFactory(),
+                                        new Function<TableName, String>(){
+                                            @Override
+                                            public String apply(TableName input){
+                                                return input.getNameAsString();
+                                            }
+                                        },
+                                        pipelineDriver.getContextFactoryLoader(cId)
+                                );
                         factory.prepare();
 
-                        TransactionalRegion txnRegion = siDriver.transactionalPartition(cId,baseRegion);
+                        TransactionalRegion txnRegion=siDriver.transactionalPartition(cId,baseRegion);
                         writePipeline=new PartitionWritePipeline(serverControl,
                                 baseRegion,
                                 factory,

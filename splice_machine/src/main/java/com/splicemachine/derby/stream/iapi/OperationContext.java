@@ -24,10 +24,7 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     long getRecordsRead();
     long getRecordsFiltered();
     long getRecordsWritten();
-    void pushScope(String display);
-    void pushScope();
-    void pushScopeForOp(String step);
-    void popScope();
+
     void recordBadRecord(String badRecord);
     boolean isPermissive();
     void setPermissive();
@@ -36,4 +33,34 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     List<String> getBadRecords();
     byte[] getOperationUUID();
 
+    enum Scope{
+        READ_TEXT_FILE("Read File From Disk"),
+        PARSE_FILE("Parse File"),
+        SORT_KEYER("Prepare Keys"),
+        GROUP_AGGREGATE_KEYER(SORT_KEYER.displayName()),
+        REDUCE("Reduce"),
+        READ("Read Values"),
+        READ_SORTED("Read Sorted Values"),
+        ROLLUP("Rollup"),
+        EXECUTE("Execute"),
+        FINALIZE("Finalize"),
+        DISTINCT("Find Distinct Values"),
+        SHUFFLE("Shuffle/Sort Data"),
+        LOCATE("Locate Rows");
+
+        private final String stringValue;
+
+        Scope(String stringValue){
+            this.stringValue=stringValue;
+        }
+
+        public String displayName(){
+           return stringValue;
+        }
+    }
+
+    void pushScope(String displayName);
+    void pushScope();
+    void pushScopeForOp(Scope scope);
+    void popScope();
 }

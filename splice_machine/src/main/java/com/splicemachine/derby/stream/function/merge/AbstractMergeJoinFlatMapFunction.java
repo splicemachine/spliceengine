@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.function.merge;
 
 import com.google.common.base.Function;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
@@ -9,7 +10,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
@@ -61,7 +61,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(getScanStartOverride(leftPeekingIterator));
         }
         final SpliceOperation rightSide = mergeJoinOperation.getRightOperation();
-        DataSetProcessor dsp = StreamUtils.getLocalDataSetProcessorFromActivation(getOperation().getActivation(), rightSide);
+        DataSetProcessor dsp =EngineDriver.driver().processorFactory().localProcessor(getOperation().getActivation(), rightSide);
         final Iterator<LocatedRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<LocatedRow, LocatedRow>() {
             @Override
             public LocatedRow apply(@Nullable LocatedRow locatedRow) {
