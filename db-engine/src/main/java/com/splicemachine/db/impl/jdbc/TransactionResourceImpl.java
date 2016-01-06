@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.jdbc;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -120,6 +122,7 @@ public final class TransactionResourceImpl
 	private InternalDriver driver;
 	private String url;
 	private String drdaID;
+    private CompilerContext.DataSetProcessorType useSpark;
 
 	// set these up after constructor, called by EmbedConnection
 	protected Database database;
@@ -145,6 +148,15 @@ public final class TransactionResourceImpl
 		username = IdUtil.getUserNameFromURLProps(info);
 
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
+        String useSparkString = info.getProperty("useSpark",null);
+        if (useSparkString != null) {
+            try {
+                useSpark = Boolean.getBoolean(StringUtil.SQLToUpperCase(useSparkString))?CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+            } catch (Exception sparkE) {
+                throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,useSparkString));
+            }
+        } else
+            useSpark = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
 
 		// make a new context manager for this TransactionResource
 
@@ -182,7 +194,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, drdaID, dbname);
+		lcc = database.setupConnection(cm, username, drdaID, dbname,useSpark);
 	}
 
 	/**

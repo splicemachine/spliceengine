@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import java.util.*;
@@ -94,6 +93,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected int nextSavepointId;
 
     private StringBuffer sb;
+    private CompilerContext.DataSetProcessorType type;
 
     private Database db;
 
@@ -273,11 +273,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String userName,
             int instanceNumber,
             String drdaID,
-            String dbname) throws StandardException{
+            String dbname,
+            CompilerContext.DataSetProcessorType type) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
-
+        this.type = type;
         dataFactory=lcf.getDataValueFactory();
         tcf=lcf.getTypeCompilerFactory();
         of=lcf.getOptimizerFactory();
@@ -3403,5 +3404,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getBadFile() {
         return badFile.get();
+    }
+
+    @Override
+    public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
+        return this.type;
     }
 }

@@ -148,7 +148,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	abstract	void 	setNumSubqueries()
 		 throws StandardException;
 
-    abstract void setUseSpark()
+    abstract void setDataSetProcessorType(CompilerContext.DataSetProcessorType type)
          throws StandardException;
 
 	///////////////////////////////////////////////////////////////////////

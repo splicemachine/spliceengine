@@ -23,6 +23,7 @@ package com.splicemachine.db.iapi.db;
 
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
@@ -73,7 +74,7 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 *
 	 * @exception StandardException thrown if unable to create the connection.
 	 */
-	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname) throws StandardException;
+	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname, CompilerContext.DataSetProcessorType dataSetProcessorType) throws StandardException;
 
 	/**
 	  Push a DbContext onto the provided context stack. This conext will

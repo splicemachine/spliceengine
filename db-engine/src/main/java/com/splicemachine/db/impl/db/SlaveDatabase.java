@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.store.replication.slave.SlaveFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -193,7 +194,7 @@ public class SlaveDatabase extends BasicDatabase {
             throw StandardException.newException(
                         SQLState.CANNOT_CONNECT_TO_DB_IN_SLAVE_MODE, dbname);
         }
-        return super.setupConnection(cm, user, drdaID, dbname);
+        return super.setupConnection(cm, user, drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
     }
 
     public AuthenticationService getAuthenticationService()

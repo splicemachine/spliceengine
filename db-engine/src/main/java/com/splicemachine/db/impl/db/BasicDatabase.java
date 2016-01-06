@@ -24,6 +24,7 @@ package com.splicemachine.db.impl.db;
 import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.reference.EngineType;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.util.DoubleProperties;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -268,7 +269,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		return af.isReadOnly();
 	}
 
-	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname)
+    @Override
+	public LanguageConnectionContext setupConnection(ContextManager cm, String user, String drdaID, String dbname, CompilerContext.DataSetProcessorType type)
 		throws StandardException {
 
 		TransactionController tc = getConnectionTransaction(cm);
@@ -278,7 +280,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 		// push a database shutdown context
 		// we also need to push a language connection context.
-		LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, drdaID, dbname);
+		LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, drdaID, dbname,type);
 
 		// push the context that defines our class factory
 		pushClassFactoryContext(cm, lcf.getClassFactory());

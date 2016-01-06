@@ -130,7 +130,7 @@ public class FromBaseTable extends FromTable {
     private FormatableBitSet referencedCols;
     private ResultColumnList templateColumns;
 
-    protected boolean useSpark;
+    protected CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
     /* A 0-based array of column names for this table used
      * for optimizer trace.
      */
@@ -603,7 +603,7 @@ public class FromBaseTable extends FromTable {
             }
             else if (key.equals("useSpark")) {
                 try {
-                    useSpark = Boolean.getBoolean(StringUtil.SQLToUpperCase(value));
+                    dataSetProcessorType = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))? CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
                 } catch (Exception sparkE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value);
                 }
@@ -2269,8 +2269,12 @@ public class FromBaseTable extends FromTable {
         if(referencedCols!=null){
             colRefItem=acb.addItem(referencedCols);
         }
-        if (getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)
-            acb.setUseSpark();
+        // Set Spark Baby...
+        if (dataSetProcessorType.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
+            getTrulyTheBestAccessPath().getCostEstimate().getEstimatedRowCount() > 20000)
+            acb.setDataSetProcessorType(CompilerContext.DataSetProcessorType.SPARK);
+        else
+            acb.setDataSetProcessorType(dataSetProcessorType);
 
         //
         int indexColItem=-1;

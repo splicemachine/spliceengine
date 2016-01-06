@@ -1046,15 +1046,15 @@ public class CompilerContextImpl extends ContextImpl
 	private HashMap requiredUsagePrivileges;
 	private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
-    private boolean useSpark = false;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
     @Override
-    public void setUseSpark() {
-        useSpark = true;
+    public void setDataSetProcessorType(DataSetProcessorType type) {
+        dataSetProcessorType = type;
     }
 
     @Override
-    public boolean useSpark() {
-        return useSpark;
+    public DataSetProcessorType getDataSetProcessorType() {
+        return dataSetProcessorType;
     }
 } // end of class CompilerContextImpl

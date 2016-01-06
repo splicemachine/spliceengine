@@ -93,11 +93,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	protected ContextManager			cm;
 	protected DataValueFactory dvf;
     public boolean ignoreSequence = false;
-    public enum DataSetProcessorType {
-        SPARK, CONTROL, LEGACY
-    }
-    protected DataSetProcessorType dataSetProcessorType;
-
 
 
 	protected ExecPreparedStatement preStmt;
@@ -1910,13 +1905,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 							 LanguageConnectionContext lcc)
 			throws StandardException {
 	}
-    public void setDataSetProcessorType(DataSetProcessorType dataSetProcessorType) {
-        this.dataSetProcessorType = dataSetProcessorType;
-    }
-
-    public DataSetProcessorType getDataSetProcessorType() {
-        return this.dataSetProcessorType;
-    }
 
     public void setScanStartOverride(ExecRow scanStartOverride) {
         this.scanStartOverride = scanStartOverride;

@@ -104,7 +104,8 @@ public interface LanguageConnectionFactory {
 								Database db,
 								String userName,
 								String drdaID,
-								String dbname)
+								String dbname,
+                                CompilerContext.DataSetProcessorType type)
 
 		throws StandardException;
 

@@ -167,22 +167,32 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
      *
      */
     @Override
-    public void setUseSpark() {
-        boolean useSpark = myCompCtx.useSpark();
-
-        // If there are no subqueries then
-        // the field is set to the correctly
-        // value (0) by java.
-        if (useSpark)
-            return;
-
-		/* Generated code is:
-		 *		useSpark = true;
-		 */
-        constructor.pushThis();
-        constructor.push(true);
-        constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
-        constructor.endStatement();
+    public void setDataSetProcessorType(CompilerContext.DataSetProcessorType type) {
+        CompilerContext.DataSetProcessorType currentType = myCompCtx.getDataSetProcessorType();
+        if (currentType.equals(CompilerContext.DataSetProcessorType.FORCED_CONTROL) ||
+                currentType.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK))
+            return; // Already Forced
+        myCompCtx.setDataSetProcessorType(type);
+        switch (type) {
+            case FORCED_CONTROL:
+                constructor.pushThis();
+                constructor.push(false);
+                constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
+                constructor.endStatement();
+                break;
+            case SPARK:
+                constructor.pushThis();
+                constructor.push(true);
+                constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
+                constructor.endStatement();
+                break;
+            case FORCED_SPARK:
+                constructor.pushThis();
+                constructor.push(true);
+                constructor.putField(ClassName.BaseActivation, "useSpark", "boolean");
+                constructor.endStatement();
+                break;
+        }
     }
 
 	///////////////////////////////////////////////////////////////////////

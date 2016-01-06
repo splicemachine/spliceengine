@@ -63,10 +63,21 @@ public interface CompilerContext extends Context
 	//
 	/////////////////////////////////////////////////////////////////////////////////////
 
+
+    public enum DataSetProcessorType {
+        DEFAULT_CONTROL, // Default Value
+        FORCED_CONTROL, // Hinted to use control
+        SPARK, // Scans Large enough for Spark
+        FORCED_SPARK // Hinted to use Spark
+    }
+
+
 	/**
 	 * this is the ID we expect compiler contexts
 	 * to be stored into a context manager under.
 	 */
+
+
 	String CONTEXT_ID = "CompilerContext";
 
 	// bit masks for query fragments which are potentially unreliable. these are used
@@ -603,8 +614,8 @@ public interface CompilerContext extends Context
 	 */
     public boolean isReferenced( SequenceDescriptor sd );
 
-    public void setUseSpark();
+    public void setDataSetProcessorType(DataSetProcessorType type);
 
-    public boolean useSpark();
+    public DataSetProcessorType getDataSetProcessorType();
 
 }

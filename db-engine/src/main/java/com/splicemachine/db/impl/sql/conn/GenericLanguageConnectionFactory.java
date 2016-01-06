@@ -131,7 +131,7 @@ public class GenericLanguageConnectionFactory
 		@return a language connection context for the context stack.
 		@exception StandardException the usual -- for the subclass
 	 */
-
+    @Override
 	public LanguageConnectionContext newLanguageConnectionContext(
 		ContextManager cm,
 		TransactionController tc,
@@ -139,7 +139,8 @@ public class GenericLanguageConnectionFactory
 		Database db,
 		String userName,
 		String drdaID,
-		String dbname) throws StandardException {
+		String dbname,
+        CompilerContext.DataSetProcessorType type) throws StandardException {
 		
 		return new GenericLanguageConnectionContext(cm,
 													tc,
@@ -149,7 +150,8 @@ public class GenericLanguageConnectionFactory
 													userName,
 													getNextLCCInstanceNumber(),
 													drdaID,
-													dbname);
+													dbname,
+                                                    type);
 	}
 
 	public Cacheable newCacheable(CacheManager cm) {

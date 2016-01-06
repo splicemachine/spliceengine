@@ -1281,4 +1281,6 @@ public interface LanguageConnectionContext extends Context {
 
     String getBadFile();
 
+    CompilerContext.DataSetProcessorType getDataSetProcessorType();
+
 }
