@@ -165,6 +165,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation> DataSet< V> filter(
+        SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
+        return filter(f);
+    }
+
+    @Override
     public DataSet< V> intersect(DataSet< V> dataSet) {
         return new ControlDataSet<>(Sets.intersection(Sets.newHashSet(iterable),Sets.newHashSet(((ControlDataSet) dataSet).iterable)));
     }
