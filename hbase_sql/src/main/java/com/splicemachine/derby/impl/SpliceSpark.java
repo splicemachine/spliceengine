@@ -18,6 +18,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import com.google.common.base.Splitter;
 import org.apache.spark.rdd.RDDOperationScope;
+import scala.Tuple2;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
@@ -101,64 +102,53 @@ public class SpliceSpark {
     }
 
     private static JavaSparkContext initializeSparkContext() {
-        System.setProperty("spark.driver.port", "0");
+
         String master = System.getProperty("splice.spark.master", "local[8]");
-        String home = System.getProperty("splice.spark.home", null);
-        String jars = System.getProperty("splice.spark.jars", "");
-        String environment = System.getProperty("splice.spark.env", "");
-        String cores = System.getProperty("splice.spark.cores", "8");
-        String memory = System.getProperty("splice.spark.memory", "2g");
-        String failures = System.getProperty("splice.spark.failures", "4");
-        String temp = System.getProperty("splice.spark.tmp", "/tmp");
-        String extraOpts = System.getProperty("splice.spark.extra", "");
-        String extraLibraryPath = System.getProperty("splice.spark.extraLibraryPath", "");
-        String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
-        String shuffleMemory = System.getProperty("splice.spark.shuffleMemory", "0.5");
-        String schedulerFile = System.getProperty("splice.spark.scheduler.allocation.file");
-        String historyServer = System.getProperty("splice.spark.yarn.historyServer.address");
+        String sparkHome = System.getProperty("splice.spark.home", null);
 
-
-        LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
-        Map<String, String> properties = Splitter.on(';').omitEmptyStrings().withKeyValueSeparator(Splitter.on('=')).split(environment);
-        String[] files = getJarFiles(jars);
+        LOG.warn("##############################################################################");
+        LOG.warn("    Initializing Spark with: master = " + master);
+        LOG.warn("##############################################################################");
 
         SparkConf conf = new SparkConf();
-        conf.setAppName("SpliceMachine");
-        conf.setMaster(master);
-        if (historyServer!=null)
-            conf.set("spark.yarn.historyServer.address",historyServer);
-//        conf.setJars(files);
-        conf.set("spark.yarn.am.waitTime","10");
 
-        if (schedulerFile !=null)
-            conf.set("spark.scheduler.allocation.file",schedulerFile);
-        conf.set("spark.scheduler.mode", "FAIR");
-        conf.set("spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
-        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("executor.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
-        conf.set("driver.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
-        conf.set("spark.kryo.registrator", "com.splicemachine.derby.impl.SpliceSparkKryoRegistrator");
-        // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
-        conf.set("spark.executor.memory", "8G");
-       // conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
+        String schedulerAllocationFile = System.getProperty("splice.spark.scheduler.allocation.file");
+        if (schedulerAllocationFile != null) {
+            conf.set("spark.scheduler.allocation.file", schedulerAllocationFile);
+        }
+        conf.set("executor.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
+        conf.set("driver.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
+
+        // set all spark props that start with "splice.".  overrides are set below.
+        for (Object sysPropertyKey : System.getProperties().keySet()) {
+            String spsPropertyName = (String) sysPropertyKey;
+            if (spsPropertyName.startsWith("splice.spark")) {
+                String sysPropertyValue = System.getProperty(spsPropertyName);
+                if (sysPropertyValue != null) {
+                    String sparkKey = spsPropertyName.replaceAll("^splice\\.", "");
+                    conf.set(sparkKey, sysPropertyValue);
+                }
+            }
+        }
+        //
+        // Our spark property defaults/overrides
+        //
+
+        // TODO can this be set/overridden fwith system property, why do we use SpliceConstants?
         conf.set("spark.io.compression.codec",HConfiguration.INSTANCE.unwrapDelegate().get("spark.io.compression.codec","lz4"));
-        conf.set("spark.io.compression.lz4.block.size","3276800");
-        conf.set("spark.shuffle.compress","false");
-        conf.set("spark.kryoserializer.buffer.mb", "4");
-        conf.set("spark.kryoserializer.buffer.max.mb", "512");
-        conf.set("spark.executor.extraJavaOptions", extraOpts);
-        conf.set("spark.shuffle.file.buffer.kb","128");
-        conf.set("spark.executor.extraLibraryPath", extraLibraryPath);
-        conf.set("spark.executor.extraClassPath", extraClassPath);
-        conf.set("spark.kryo.referenceTracking", "false");
-        conf.set("spark.storage.memoryFraction", "0.1"); // no caching at the moment
-        conf.set("spark.shuffle.memoryFraction", shuffleMemory);
-        conf.set("spark.locality.wait", "600000"); // wait up to 10 minutes for a local execution
-        conf.set("spark.logConf", "true");
-        conf.set("spark.executor.cores",cores);
-        conf.set("spark.dynamicAllocation.enabled","true");
-        conf.set("spark.shuffle.service.enabled","true");
 
+         /*
+            Application Properties
+         */
+        conf.set("spark.app.name", System.getProperty("splice.spark.app.name", "SpliceMachine"));
+        conf.set("spark.driver.cores",System.getProperty("splice.spark.driver.cores", "8"));
+        conf.set("spark.driver.maxResultSize", System.getProperty("splice.spark.driver.maxResultSize", "1g"));
+        conf.set("spark.driver.memory", System.getProperty("splice.spark.driver.memory", "1g"));
+        conf.set("spark.executor.memory", System.getProperty("splice.spark.executor.memory", "2g"));
+        conf.set("spark.extraListeners", System.getProperty("splice.spark.extraListeners", ""));
+        conf.set("spark.local.dir", System.getProperty("splice.spark.local.dir", System.getProperty("java.io.tmpdir")));
+        conf.set("spark.logConf", System.getProperty("splice.spark.logConf", "true"));
+        conf.set("spark.master", master);
 
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
@@ -166,20 +156,31 @@ public class SpliceSpark {
                 localContext = new JavaSparkContext(conf);
             }
             return localContext;
-        } else {
-            if (home != null) {
-                conf.setSparkHome(home);
-            }
-            // conf.setJars(files);
-            conf.set("spark.executor.memory", memory);
-            conf.set("spark.task.maxFailures", failures);
-            conf.set("spark.local.dir", temp);
-            StringBuilder env = new StringBuilder();
-            for (Map.Entry<String, String> entry : properties.entrySet()) {
-                env.append("-D").append(entry.getKey()).append('=').append(entry.getValue()).append(' ');
-            }
-            conf.setExecutorEnv("SPARK_JAVA_OPTS", env.toString());
-            return new JavaSparkContext(conf);
+        } else if (sparkHome != null) {
+            conf.setSparkHome(sparkHome);
+        }
+        /*
+            Spark Streaming
+        */
+        conf.set("spark.streaming.backpressure.enabled", System.getProperty("splice.spark.streaming.backpressure.enabled", "false"));
+        conf.set("spark.streaming.blockInterval", System.getProperty("splice.spark.streaming.blockInterval", "200ms"));
+        conf.set("spark.streaming.receiver.maxRate", System.getProperty("splice.spark.streaming.receiver.maxRate", ""));
+        conf.set("spark.streaming.receiver.writeAheadLog.enable", System.getProperty("splice.spark.streaming.receiver.writeAheadLog.enable", "false"));
+        conf.set("spark.streaming.unpersist", System.getProperty("splice.spark.streaming.unpersist", "true"));
+        conf.set("spark.streaming.kafka.maxRatePerPartition", System.getProperty("splice.spark.streaming.kafka.maxRatePerPartition", ""));
+        conf.set("spark.streaming.kafka.maxRetries", System.getProperty("splice.spark.streaming.kafka.maxRetries", "1"));
+        conf.set("spark.streaming.ui.retainedBatches", System.getProperty("splice.spark.streaming.ui.retainedBatches", "1000"));
+
+        if (LOG.isDebugEnabled()) {
+            printConfigProps(conf);
+        }
+
+        return new JavaSparkContext(conf);
+    }
+
+    private static void printConfigProps(SparkConf conf) {
+        for (Tuple2<String, String> configProp : conf.getAll()) {
+            LOG.debug("Spark Prop: "+configProp._1()+" "+configProp._2());
         }
     }
 

@@ -1,0 +1,170 @@
+#!/bin/bash
+
+##################################################################################
+# Start Zookeeper and the Splice HBase master server and region servers and yarn
+#
+# Currently, if compilation fails, it still tries to start Zoo and RSes.
+#   An enhancement would be to tee build output to a Named Pipe to monitor for
+#   "[INFO] BUILD SUCCESS" before starting, like this example:
+#   mkfifo -m 770 /tmp/myfifo
+#   iter=0 ; while true ; do echo $iter 2>&1 | tee /tmp/myfifo ; iter=$((${iter}+1)) ; sleep 1 ; done
+#   while true ; do sleep 1 ; grep -q 6 /tmp/myfifo && echo 'i found a 6!' ; done
+##################################################################################
+
+##################################################################################
+# Function to kill all splice test processes - zoo, SpliceTestPlatform, YARN, and
+# anything started from maven exec, i.e., mvn exec:exec
+##################################################################################
+_kill_em_all () {
+  SIG=$1
+   local P=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found Splice. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+
+   P=$(ps -ef | awk '/PspliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found Yarn. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+
+   P=$(ps -ef | awk '/zoo/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found Zoo. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+
+   P=$(ps -ef | awk '/exec:exec -Dsplice/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found something. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+}
+export -f _kill_em_all
+
+START_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DEFAULT_PROFILE="cdh5.4.1"  # default hbase platform profile
+PROFILE=$DEFAULT_PROFILE
+
+BUILD="1"
+CHAOS="false"
+
+MEMBERS=2
+DEBUG_PATH=""
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] -h[elp]"
+    echo "Where: "
+    echo "  -b is an optional argument specifying to NOT mvn clean install -DskipTest -Dspark-prepare first."
+    echo "    The default is to build first."
+    echo "  -s <n> is an optional number of additional cluster RegionServer members to start."
+    echo "    The default is 1 master and 2 region servers."
+    echo "  -c is an optional flag determining random task failures. Default is that the chaos"
+    echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
+    echo "        grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
+    echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
+    echo "    c41 (cdh5.4.1), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12)."
+    echo "    Default is ${DEFAULT_PROFILE}. CURRENTLY ONLY THE DEFAULT PROFILE WORKS WITH YARN!"
+    echo "  -h => print this message"
+}
+
+while getopts "chp:s:bd:" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        c)
+        # start server with the chaos monkey (random task failures)
+            CHAOS="true"
+        ;;
+        b)
+        # DO NOT clean build first
+            BUILD="0"
+        ;;
+        p)
+        # the hbase profile
+        #echo "-> [$OPTARG] "
+          if [[ "$OPTARG" ==  "c41" ]]; then
+            PROFILE="cdh5.4.1"
+          elif [[ "$OPTARG" == "c51" ]]; then
+            PROFILE="cdh5.5.1"
+          elif [[ "$OPTARG" == "h24" ]]; then
+            PROFILE="hdp2.2.4"
+          elif [[ "$OPTARG" == "h30" ]]; then
+            PROFILE="hdp2.3.0"
+          elif [[ "$OPTARG" == "m4" ]]; then
+            PROFILE="mapr0.98.4"
+          elif [[ "$OPTARG" == "m12" ]]; then
+            PROFILE="mapr0.98.12"
+          else
+            usage "Unknown profile: $OPTARG"
+            exit 1
+          fi
+        ;;
+        s)
+        # number of cluster members
+           MEMBERS=$(($MEMBERS + $OPTARG))
+        ;;
+        d)
+        # path to write debug file
+           DEBUG_PATH=$OPTARG
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
+
+SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
+
+# TODO: we can only run YARN in cdh5.4.1 currently
+if [[ ${PROFILE} != ${DEFAULT_PROFILE} ]]; then
+  usage "Can only run YARN with ${DEFAULT_PROFILE}"
+  exit 1;
+fi
+
+# Wrong profile specified or wrong location
+if [[ ! -e "${START_DIR}" || ${START_DIR} != *"${PROFILE}"* ]]; then
+  usage "Can't find the profile you expect to run. You asked for \"${PROFILE}\" but I got: \"${START_DIR}\""
+  exit 1;
+fi
+
+pushd ${START_DIR} > /dev/null
+
+#=============================================================================
+# Run...
+#=============================================================================
+_kill_em_all 9
+
+echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
+echo "   ${START_DIR}"
+
+if [[ "${BUILD}" == "1" ]]; then
+  echo "Building first..."
+  pushd "${START_DIR}/.." > /dev/null
+  (mvn clean install -DskipTests -Dspark-prepare)
+  popd > /dev/null
+  echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
+  echo "   ${START_DIR}"
+fi
+  
+ZOO_LOG="zoo.log"  
+echo "Starting Zoo. Log file is ${ZOO_LOG}"
+(mvn exec:exec -PspliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+sleep 30
+  
+YARN_LOG="yarn.log"
+echo "Starting YARN. Log file is ${YARN_LOG}"
+(mvn exec:java -PspliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+
+SPLICE_LOG="splice.log"
+echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
+## (master + region server on 1527)
+(mvn exec:exec -PspliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+sleep 30
+
+if [[ ${MEMBERS} -gt 0 ]]; then
+  for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
+    REGION_SVR_LOG="spliceRegionSvr$(($MEMBER +1)).log"
+    echo "Starting Region Server ${REGION_SVR_LOG}"
+    ## (region server, splice on 1528, 1529, ...)
+    (mvn exec:exec -PspliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+  done
+fi
+popd > /dev/null
+

@@ -9,11 +9,13 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.server.MiniYARNCluster;
+import org.apache.hadoop.yarn.server.MiniYARNClusterSplice;
 import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.ContainerManagerImpl;
+import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
 import org.apache.log4j.Logger;
@@ -28,7 +30,7 @@ public class SpliceTestYarnPlatform {
     private static final Logger LOG = Logger.getLogger(SpliceTestYarnPlatform.class);
 
     private URL yarnSiteConfigURL = null;
-    private MiniYARNCluster yarnCluster = null;
+    private CompositeService yarnCluster = null;
     private Configuration conf = null;
 
     public SpliceTestYarnPlatform() {
@@ -64,7 +66,7 @@ public class SpliceTestYarnPlatform {
         return conf;
     }
 
-    public MiniYARNCluster getYarnCluster() {
+    public CompositeService getYarnCluster() {
         return yarnCluster;
     }
 
@@ -78,11 +80,11 @@ public class SpliceTestYarnPlatform {
         if (yarnCluster == null) {
             LOG.info("Starting up YARN cluster with "+nodeCount+" nodes. Server yarn-site.xml is: "+yarnSiteConfigURL);
 
-            yarnCluster = new MiniYARNCluster(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
+            yarnCluster = new MiniYARNClusterSplice(SpliceTestYarnPlatform.class.getSimpleName(), nodeCount, 1, 1);
             yarnCluster.init(conf);
             yarnCluster.start();
 
-            NodeManager nm = yarnCluster.getNodeManager(0);
+            NodeManager nm = getNodeManager();
             waitForNMToRegister(nm);
 
             // save the server config to classpath so yarn clients can read it
@@ -137,5 +139,13 @@ public class SpliceTestYarnPlatform {
         while (cm.getBlockNewContainerRequestsStatus() && attempt-- > 0) {
             Thread.sleep(2000);
         }
+    }
+
+    public ResourceManager getResourceManager() {
+        return ((MiniYARNClusterSplice)yarnCluster).getResourceManager();
+    }
+
+    private NodeManager getNodeManager() {
+        return ((MiniYARNClusterSplice)yarnCluster).getNodeManager(0);
     }
 }

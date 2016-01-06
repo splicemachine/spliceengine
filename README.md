@@ -16,14 +16,27 @@ SpliceSQL Engine
 ##### Options are:
 * `cdh5.4.1`
 
-### Then you can build just that platform with:
+### Then you can build and start just that platform with:
 
-cd splice_machine_test
-src/test/bin/stop-splice-its
-cd ..
-mvn -DskipTests clean install -Dspark-prepare
-cd splice_machine_test
-src/test/bin/start-splice-its
+`./<dev_root>/spliceengine/cdh5.4.1/splice_machine_test/start-spark-cluster1`
+
+Run `./start-spark-cluster -h` for options:
+
+```{spliceengine (master_dataset)}-> ./cdh5.4.1/splice_machine_test/start-spark-cluster -h
+Usage: ./cdh5.4.1/splice_machine_test/start-spark-cluster -p [<hbase_profile>] [-s <n>] [-c] -h[elp]
+Where:
+  -b is an optional argument specifying to NOT mvn clean install -DskipTest -Dspark-prepare first.
+    The default is to build first.
+  -s <n> is an optional number of additional cluster RegionServer members to start.
+    The default is 1 master and 2 region servers.
+  -c is an optional flag determining random task failures. Default is that the chaos
+    monkey NOT run. To see if you have the chaos monkey running, execute:
+        grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log
+  -p <hbase_profile> is the optional splice hbase platform to run.  One of:
+    c41 (cdh5.4.1), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12).
+    Default is cdh5.4.1. CURRENTLY ONLY THE DEFAULT PROFILE WORKS WITH YARN!
+  -h => print this message
+```
 
 * Optional, start the splice machine command line (derby's ij)
 * `mvn exec:java -Dij` or if you have rlwrap installed `rlwrap mvn exec:java -Pij`
