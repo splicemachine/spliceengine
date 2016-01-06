@@ -1,6 +1,7 @@
 package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.Txn;
@@ -71,7 +72,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 		public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
 				if (LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s",txn);
-				lcc = database.generateLanguageConnectionContext(txn,cm, username, drdaID, dbname);
+				lcc = database.generateLanguageConnectionContext(txn,cm, username, drdaID, dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
 		}
 
 

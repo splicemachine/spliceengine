@@ -1,19 +1,16 @@
 package com.splicemachine.derby.impl.db;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.database.Database;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
-import com.splicemachine.db.iapi.error.ShutdownException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -27,8 +24,6 @@ import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.ddl.DDLMessage.DDLChangeType;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -81,10 +76,10 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname)
+    public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname, CompilerContext.DataSetProcessorType type)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname);
+        final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname,type);
 
         // If you add a visitor, be careful of ordering.
 
@@ -115,12 +110,13 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        String user,
                                                                        String drdaID,
                                                                        String dbname,
+                                                                       CompilerContext.DataSetProcessorType type,
                                                                        String sessionUserName,
                                                                        SchemaDescriptor defaultSchemaDescriptor) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,type);
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);
@@ -133,11 +129,11 @@ public class SpliceDatabase extends BasicDatabase{
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname) throws StandardException{
+    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname,CompilerContext.DataSetProcessorType type) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,type);
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);

@@ -46,6 +46,16 @@ public class StreamUtils {
                LOG.trace("resultset estimated cost " + ((SpliceOperation) activation.getResultSet()).getEstimatedCost());
             }
         }
+        // Connection URL with useSpark provided...
+        switch (activation.getLanguageConnectionContext().getDataSetProcessorType()) {
+            case DEFAULT_CONTROL:
+            case SPARK:
+                break;
+            case FORCED_CONTROL:
+                return controlDataSetProcessor;
+            case FORCED_SPARK:
+                return sparkDataSetProcessor;
+        }
         return ((BaseActivation) activation).useSpark()?sparkDataSetProcessor:controlDataSetProcessor;
     }
 
