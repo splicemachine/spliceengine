@@ -420,6 +420,7 @@
 								<!-- Spark Sys props -->
 								<argument>-Dsplice.spark.app.name=SpliceMachine</argument>
 <!--								<argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
+								<argument>-Dsplice.spark.driver.host=localhost</argument>
 								<argument>-Dsplice.spark.driver.cores=1</argument>
 								<argument>-Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
 								<argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
@@ -427,7 +428,7 @@
 								<argument>-Dsplice.spark.enabled=true</argument>
 								<!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
 								<!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
-								<argument>-Dsplice.spark.executor.cores=2</argument>
+								<argument>-Dsplice.spark.executor.cores=4</argument>
 								<argument>-Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
 								<argument>-Dsplice.spark.executor.instances=2</argument>
 								<argument>-Dsplice.spark.executor.memory=2g</argument>
@@ -444,7 +445,7 @@
 								<argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer</argument>
 								<argument>-Dsplice.spark.shuffle.compress=false</argument>
 
-                                <argument>-Dsplice.spark.executor.extraJavaOptions=-Dhbase.rootdir=${project.build.directory}/hbase -Dlog4j.configuration=${log4j.config.uri} -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020</argument>
+                <argument>-Dsplice.spark.executor.extraJavaOptions=-Dhbase.rootdir=${project.build.directory}/hbase -Dlog4j.configuration=${log4j.config.uri} -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020</argument>
 								<argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
 								<argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
 								<argument>-Dsplice.spark.shuffle.service.enabled=true</argument>

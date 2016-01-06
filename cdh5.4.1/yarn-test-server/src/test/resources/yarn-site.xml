@@ -6,12 +6,8 @@
     <description>Don't let minicluster overwrite ports we set in here</description>
   </property>
   <property>
-    <name>yarn.minicluster.use-rpc</name>
-    <value>true</value>
-  </property>
-  <property>
     <name>yarn.resourcemanager.webapp.address</name>
-    <value>localhost:8042</value>
+    <value>localhost:8080</value>
     <description>Connect to resource manager web page.</description>
   </property>
 
@@ -72,14 +68,14 @@
   </property>
   <property>
     <name>yarn.scheduler.maximum-allocation-vcores</name>
-    <value>2</value>
+    <value>4</value>
     <description>The maximum allocation for every container request at the RM, in terms of virtual CPU cores. Requests
       higher than this won't take effect, and will get capped to this value.
     </description>
   </property>
   <property>
     <name>yarn.nodemanager.resource.memory-mb</name>
-    <value>1024</value>
+    <value>4096</value>
     <description>Physical memory, in MB, to be made available to running containers</description>
   </property>
   <property>
