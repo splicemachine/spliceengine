@@ -419,7 +419,7 @@
 								<argument>-Xms1g</argument>
 								<!-- Spark Sys props -->
 								<argument>-Dsplice.spark.app.name=SpliceMachine</argument>
-								<argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument>
+<!--								<argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
 								<argument>-Dsplice.spark.driver.cores=1</argument>
 								<argument>-Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*</argument>
 								<argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
