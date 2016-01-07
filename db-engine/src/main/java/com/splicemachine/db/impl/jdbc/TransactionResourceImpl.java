@@ -151,7 +151,7 @@ public final class TransactionResourceImpl
         String useSparkString = info.getProperty("useSpark",null);
         if (useSparkString != null) {
             try {
-                useSpark = Boolean.getBoolean(StringUtil.SQLToUpperCase(useSparkString))?CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+                useSpark = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString))?CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
             } catch (Exception sparkE) {
                 throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,useSparkString));
             }
