@@ -265,7 +265,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     }
     
     public String getSparkStageName() {
-        return "Produce Result Set (Insensitive Scroll)";
+        return "Produce Result Set";
     }
     
 
