@@ -32,6 +32,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.Path;
@@ -221,7 +222,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
-                "size=" + contentSummary.getSpaceConsumed() + ", " +
+                "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
                 "files=" + contentSummary.getFileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config));
@@ -245,7 +246,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
-                "size=" + contentSummary.getSpaceConsumed() + ", " +
+                "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
                 "files=" + contentSummary.getFileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             return new SparkDataSet<String>(rdd, SparkConstants.RDD_NAME_READ_TEXT_FILE);
