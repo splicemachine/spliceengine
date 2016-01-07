@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.*;
@@ -323,6 +324,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         scan.setStartRow(new byte[0]);
         scan.setStopRow(new byte[0]);
         scan.setCacheBlocks(false);
+        scan.setAttribute(SIConstants.SI_NEEDED, null);
+        scan.setMaxVersions();
         return scan;
     }
 
