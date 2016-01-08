@@ -158,9 +158,7 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("TOTAL_SIZE"               ,6,longType,null,null,view,viewId,0,0,5),
                 new ColumnDescriptor("NUM_PARTITIONS"           ,7,longType,null,null,view,viewId,0,0,6),
                 new ColumnDescriptor("AVG_PARTITION_SIZE"       ,8,longType,null,null,view,viewId,0,0,7),
-                new ColumnDescriptor("ROW_WIDTH"                ,9,longType,null,null,view,viewId,0,0,8),
-                new ColumnDescriptor("TOTAL_QUERY_COUNT"        ,10,longType,null,null,view,viewId,0,0,9),
-                new ColumnDescriptor("AVG_QUERY_COUNT"          ,11,longType,null,null,view,viewId,0,0,10)
+                new ColumnDescriptor("ROW_WIDTH"                ,9,longType,null,null,view,viewId,0,0,8)
         };
     }
 
@@ -174,18 +172,15 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
             ",count(ts.rowCount) as NUM_PARTITIONS" + //6
             ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //7
             ",max(ts.meanrowWidth) as ROW_WIDTH" + //8
-            ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //9
-            ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //10
             " from " +
             "sys.systables t" +
             ",sys.sysschemas s" +
             ",sys.sysconglomerates c" +
-            ",sys.systablestats ts" +
+            ",sys.syspartitionstats ts" +
             " where " +
             "t.tableid = c.tableid " +
             "and c.conglomeratenumber = ts.conglomerateid " +
             "and t.schemaid = s.schemaid " +
-            "and PARTITION_EXISTS(ts.conglomerateId,ts.partitionid)" +
             " group by " +
             "s.schemaname" +
             ",t.tablename"+
