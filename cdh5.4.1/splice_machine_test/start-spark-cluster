@@ -48,7 +48,7 @@ usage() {
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
     fi
-    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] -h[elp]"
+    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] [-k] -h[elp]"
     echo "Where: "
     echo "  -b is an optional argument specifying to NOT ${MVN} clean install -DskipTest -Dspark-prepare first."
     echo "    The default is to build first."
@@ -60,10 +60,11 @@ usage() {
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
     echo "    c41 (cdh5.4.1), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12)."
     echo "    Default is ${DEFAULT_PROFILE}. CURRENTLY ONLY THE DEFAULT PROFILE WORKS WITH YARN!"
+    echo "  -k just KILL any and all splice processes currently running."
     echo "  -h => print this message"
 }
 
-while getopts "chp:s:bd:" flag ; do
+while getopts "chkp:s:bd:" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -104,6 +105,11 @@ while getopts "chp:s:bd:" flag ; do
         d)
         # path to write debug file
            DEBUG_PATH=$OPTARG
+        ;;
+        k)
+        # KILL current processes
+           _kill_em_all 9
+           exit 0
         ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
