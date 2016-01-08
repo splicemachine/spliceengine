@@ -98,7 +98,7 @@ public class StatisticsAdminIT {
          * values.
          */
         long conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, TABLE_EMPTY)[0];
-        PreparedStatement check = conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?");
+        PreparedStatement check = conn.prepareStatement("select * from sys.syspartitionstats where conglomerateId = ?");
         check.setLong(1, conglomId);
         ResultSet resultSet = check.executeQuery();
         Assert.assertTrue("Unable to find statistics for table!", resultSet.next());
@@ -129,7 +129,7 @@ public class StatisticsAdminIT {
          * values.
          */
         long conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, TABLE_OCCUPIED)[0];
-        PreparedStatement check = conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?");
+        PreparedStatement check = conn.prepareStatement("select * from sys.syspartitionstats where conglomerateId = ?");
         check.setLong(1, conglomId);
         ResultSet resultSet = check.executeQuery();
         Assert.assertTrue("Unable to find statistics for table!", resultSet.next());

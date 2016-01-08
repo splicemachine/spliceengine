@@ -159,7 +159,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         };
         addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder);
 
-//        createSysTableStatsView(tc);
+        createSysTableStatsView(tc);
 
         //sys_column_statistics
         ColumnOrdering[] columnPkOrder=new ColumnOrdering[]{
@@ -170,7 +170,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         TabInfoImpl columnStatsInfo=getColumnStatisticsTable();
         addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
 
-//        createSysColumnStatsView(tc);
+        createSysColumnStatsView(tc);
 
         //sys_physical_statistics
         ColumnOrdering[] physicalPkOrder=new ColumnOrdering[]{
