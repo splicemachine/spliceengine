@@ -314,6 +314,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             activation,
             tableScannerBuilder,
             Long.toString(heapConglomerateId),
+            table.getName(),
             "Collect Table Statistics");
         return dataSet;
     }

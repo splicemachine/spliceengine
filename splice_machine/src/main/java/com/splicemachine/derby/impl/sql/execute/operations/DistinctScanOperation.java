@@ -85,6 +85,7 @@ public class DistinctScanOperation extends ScanOperation {
                 tableVersion);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
+        this.tableDisplayName = tableName;
         this.indexName = indexName;
 				try {
 						init(SpliceOperationContext.newContext(activation));

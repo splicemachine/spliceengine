@@ -34,6 +34,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected boolean oneRowScan;
 		protected ScanInformation scanInformation;
 		protected String tableName;
+        protected String tableDisplayName;
 		protected String indexName;
 		public boolean isConstraint;
 		public boolean forUpdate;
@@ -237,22 +238,36 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		@Override
 		public int[] getRootAccessedCols(long tableNumber) {
-				return operationInformation.getBaseColumnMap();
+            return operationInformation.getBaseColumnMap();
 		}
 
 		@Override
 		public boolean isReferencingTable(long tableNumber){
-				return tableName.equals(String.valueOf(tableNumber));
+            return tableName.equals(String.valueOf(tableNumber));
 		}
 
-		public String getTableName(){
-				return this.tableName;
+		public String getTableName() {
+			return this.tableName;
 		}
+
+        public String getTableDisplayName() {
+            return this.tableDisplayName;
+        }
 
 		public String getIndexName() {
-				return this.indexName;
+			return this.indexName;
 		}
 
+        public String getIndexDisplayName() {
+            // for now returns indexName (which is a readable string) 
+            // but this hook leaves flexibility for later
+            return this.indexName;
+        }
+
+		public boolean isIndexScan() {
+		    return this.indexName != null;
+		}
+		
 		@Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);

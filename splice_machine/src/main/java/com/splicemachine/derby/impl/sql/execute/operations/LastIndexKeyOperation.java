@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -57,6 +56,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 
                 colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
             this.tableName = Long.toString(scanInformation.getConglomerateId());
+            this.tableDisplayName = tableName;
             this.indexName = indexName;
 				try {
 						init(SpliceOperationContext.newContext(activation));
