@@ -95,4 +95,12 @@
     <value>4</value>
     <description>Number of CPU cores that can be allocated for containers.</description>
   </property>
+  <property>
+    <name>yarn.nodemanager.disk-health-checker.enable</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.dist-health-checker.max-disk-utilization-per-disk-percentage</name>
+    <value>100</value>
+  </property>
 </configuration>
