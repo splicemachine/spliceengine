@@ -1069,13 +1069,23 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                                       DDLChange ddlChange,
                                                       long demarcationPoint) throws IOException, StandardException {
 
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, tableId);
+        String tableDisplayName = td.getName();
+        
         Txn childTxn = beginChildTransaction(parentTxn, ddlChange.getTxnId());
+        
         // create a scanner to scan old conglomerate
         TableScannerBuilder tableScannerBuilder = createTableScannerBuilder(childTxn, demarcationPoint, ddlChange);
         long baseConglomerateNumber = ddlChange.getTentativeIndex().getTable().getConglomerate();
         DataSetProcessor dsp = StreamUtils.sparkDataSetProcessor;
         StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
-        DataSet dataSet = dsp.getTableScanner(activation, tableScannerBuilder, Long.toString(baseConglomerateNumber), Long.toString(baseConglomerateNumber));
+        DataSet dataSet = dsp.getTableScanner(
+            activation,
+            tableScannerBuilder,
+            Long.toString(baseConglomerateNumber),
+            tableDisplayName,
+            "Alter Table");
 
         //Create table writer for new conglomerate
         HTableWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);

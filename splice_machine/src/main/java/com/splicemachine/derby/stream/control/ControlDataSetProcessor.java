@@ -51,6 +51,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     private boolean permissive;
 
     private static final Logger LOG = Logger.getLogger(ControlDataSetProcessor.class);
+
     @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
@@ -90,7 +91,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String callerName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String tableDisplayName, String callerName) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -55,8 +54,10 @@ public class TableScanOperation extends ScanOperation {
                                    Activation activation,
                                    GeneratedMethod resultRowAllocator,
                                    int resultSetNumber,
-                                   GeneratedMethod startKeyGetter, int startSearchOperator,
-                                   GeneratedMethod stopKeyGetter, int stopSearchOperator,
+                                   GeneratedMethod startKeyGetter,
+                                   int startSearchOperator,
+                                   GeneratedMethod stopKeyGetter,
+                                   int stopSearchOperator,
                                    boolean sameStartStopPosition,
                                    boolean rowIdKey,
                                    String qualifiersField,
@@ -73,18 +74,18 @@ public class TableScanOperation extends ScanOperation {
                                    int rowsPerRead,
                                    boolean oneRowScan,
                                    double optimizerEstimatedRowCount,
-                                   double optimizerEstimatedCost, String tableVersion) throws StandardException {
+                                   double optimizerEstimatedCost,
+                                   String tableVersion) throws StandardException {
 				super(conglomId, activation, resultSetNumber, startKeyGetter, startSearchOperator, stopKeyGetter, stopSearchOperator,
                         sameStartStopPosition, rowIdKey, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
                         colRefItem, indexColItem, oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);
 				this.forUpdate = forUpdate;
-                // JL TODO Will need to get the isolation on the transaction
-                //System.out.println("Current Isolation Level" + activation.getLanguageConnectionContext().getCurrentIsolationLevel());
 				this.isConstraint = isConstraint;
 				this.rowsPerRead = rowsPerRead;
 				this.tableName = Long.toString(scanInformation.getConglomerateId());
+		        this.tableDisplayName = tableName;
                 this.tableNameBytes = Bytes.toBytes(this.tableName);
 				this.indexColItem = indexColItem;
 				this.indexName = indexName;

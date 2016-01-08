@@ -10,7 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
@@ -63,7 +63,9 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
+        final Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
+        
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerateId);
@@ -74,15 +76,14 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
         
-        // TODO (wjk): this shows table name like 'splice:1428' - we want readable name like 'LINEITEM'.
-        // This worked on my dev branch but the APIs were removed by data dictionary refactoring.
-        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Scan " + conglomerateId);
+        String scope = getScopeName(spliceOperation, siTableBuilder, conglomerateId); 
+        SpliceSpark.pushScope(scope);
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
-        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, conglomerateId));
+        rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
         
-        SpliceSpark.pushScope(spliceOperation.getSparkStageName() + ": Deserialize");
+        SpliceSpark.pushScope(scope + ": Deserialize");
         TableScanTupleFunction<Op> f = new TableScanTupleFunction<Op>(createOperationContext(spliceOperation));
         try {
             return new SparkDataSet(rawRDD.map(f), spliceOperation.getPrettyExplainPlan());
@@ -91,15 +92,35 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         }
     }
 
-    @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
-        final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
-        return getTableScanner(activation, siTableBuilder, conglomerateId, null);
+    private String getScopeName(
+        final SpliceOperation spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) {
+
+        StringBuffer sb = new StringBuffer();
+        if (spliceOperation instanceof ScanOperation) {
+            ScanOperation scanOp = ((ScanOperation)spliceOperation);
+            if (scanOp.isIndexScan()) {
+                sb.append("Scan Index ").append(scanOp.getIndexDisplayName());
+                sb.append(" (Table ").append(scanOp.getTableDisplayName()).append(")");
+            } else {
+                sb.append("Scan Table ").append(scanOp.getTableDisplayName());
+            }
+        } else {
+            sb.append(spliceOperation.getSparkStageName());
+            sb.append(conglomerateId);
+        }
+        
+        return sb.toString();
     }
     
     @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
-        final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String callerName) throws StandardException {
+        final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
+        return getTableScanner(activation, siTableBuilder, conglomerateId, null, null);
+    }
+    
+    @Override
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
+        final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String tableDisplayName, String callerName) throws StandardException {
         
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
@@ -112,10 +133,11 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
 
-        SpliceSpark.pushScope((callerName != null ? callerName + ": " : "") + "Scan " + conglomerateId);
+        String finalDisplayName = tableDisplayName != null ? tableDisplayName : conglomerateId;
+        SpliceSpark.pushScope((callerName != null ? callerName + ": " : "") + "Scan table " + finalDisplayName);
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
-        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, conglomerateId));
+        rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, finalDisplayName));
         SpliceSpark.popScope();
 
         SpliceSpark.pushScope((callerName != null ? callerName + ": " : "") + "Deserialize");
@@ -129,6 +151,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId) throws StandardException {
+        // TODO (wjk): push/pop scope and/or set rdd name here too
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerateId);
@@ -147,6 +170,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public DataSet<TxnView> getTxnTableScanner(long beforeTS, long afterTS, byte[] destinationTable) {
+        // TODO (wjk): push/pop scope and/or set rdd name here too
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, HBaseTableInfoFactory.getInstance().getTableInfo(SIConstants.TRANSACTION_TABLE).getNameAsString());
