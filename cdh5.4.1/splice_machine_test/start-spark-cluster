@@ -41,6 +41,8 @@ CHAOS="false"
 MEMBERS=2
 DEBUG_PATH=""
 
+MVN='mvn -B'
+
 usage() {
     # $1 is an error, if any
     if [[ -n "${1}" ]]; then
@@ -48,7 +50,7 @@ usage() {
     fi
     echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] -h[elp]"
     echo "Where: "
-    echo "  -b is an optional argument specifying to NOT mvn clean install -DskipTest -Dspark-prepare first."
+    echo "  -b is an optional argument specifying to NOT ${MVN} clean install -DskipTest -Dspark-prepare first."
     echo "    The default is to build first."
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start."
     echo "    The default is 1 master and 2 region servers."
@@ -137,7 +139,7 @@ echo "   ${START_DIR}"
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
   pushd "${START_DIR}/.." > /dev/null
-  (mvn clean install -DskipTests -Dspark-prepare)
+  (${MVN} clean install -DskipTests -Dspark-prepare)
   popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
   echo "   ${START_DIR}"
@@ -145,17 +147,17 @@ fi
   
 ZOO_LOG="zoo.log"  
 echo "Starting Zoo. Log file is ${ZOO_LOG}"
-(mvn exec:exec -PspliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+(${MVN} exec:exec -PspliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
 sleep 30
   
 YARN_LOG="yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(mvn exec:java -PspliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} exec:java -PspliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
 
 SPLICE_LOG="splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
-(mvn exec:exec -PspliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+(${MVN} exec:exec -PspliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 sleep 30
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -163,7 +165,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     REGION_SVR_LOG="spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (mvn exec:exec -PspliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    (${MVN} exec:exec -PspliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
   done
 fi
 popd > /dev/null
