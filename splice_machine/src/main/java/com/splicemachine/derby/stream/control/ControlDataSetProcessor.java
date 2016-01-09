@@ -118,7 +118,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
+    public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
         return singleRowDataSet(value);
     }
 
