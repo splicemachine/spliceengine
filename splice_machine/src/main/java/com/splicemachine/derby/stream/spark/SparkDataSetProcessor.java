@@ -196,6 +196,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         SpliceSpark.pushScope("Deserialize");
         HTableScanTupleFunction f1 = new HTableScanTupleFunction();
         JavaRDD rdd2 = rawRDD.map(f1);
+        rdd2.setName(f1.getPrettyFunctionName());
         
         try {
             return new ControlDataSet<TxnMessage.Txn>(rdd2.collect()).map(new TxnViewDecoderFunction());
