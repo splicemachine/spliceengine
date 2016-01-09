@@ -95,6 +95,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				 */
         Txn childTxn = null;
         try {
+            // TODO (wjk): this returns ControlDataSetProcessor. Is that what we want here?
             DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
             StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());

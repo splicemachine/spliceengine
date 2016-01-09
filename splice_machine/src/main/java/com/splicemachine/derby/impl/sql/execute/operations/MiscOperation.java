@@ -2,12 +2,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.actions.DDLConstantOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -95,7 +98,18 @@ public class MiscOperation extends NoRowsOperation {
 
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) activation.getRowsSeen()));
-            return dsp.singleRowDataSet(new LocatedRow(valueRow));
+            
+            // For DDL statements, use ControlDataSetProcessor even if
+            // SparkDataSetProcessor was passed in as the 'dsp' argument
+            // for the main operation logic. For DDL operation, this is
+            // the end point and the value (typically a zero representing
+            // number of rows) doesn't need to pass up the chain as
+            // distributed data. Otherwise, you end up with an unnecessary
+            // spark job which also appears in the UI.
+            
+            if (activation.getConstantAction() instanceof DDLConstantOperation)
+                return StreamUtils.getControlDataSetProcessor().singleRowDataSet(new LocatedRow(valueRow));
+            else
+                return dsp.singleRowDataSet(new LocatedRow(valueRow));
         }
-
 }
