@@ -237,7 +237,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         } finally {
             SpliceSpark.popScope();
         }
-    }`
+    }
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
