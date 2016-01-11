@@ -197,12 +197,6 @@ public class SpliceUnitTest {
         ps.executeQuery();
     }
 
-    protected static void importData(SpliceWatcher methodWatcher, String schema,String tableName, String fileName, String columnDelimiter, String characterDelimiter) throws Exception {
-        String file = SpliceUnitTest.getResourceDirectory()+ fileName;
-        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s','%s','%s',null,null,null,1,null,true,'utf-8')", schema, tableName, null, file,columnDelimiter,characterDelimiter));
-        ps.executeQuery();
-    }
-
     protected static void validateImportResults(ResultSet resultSet, int good,int bad) throws SQLException {
         Assert.assertTrue("No rows returned!",resultSet.next());
         Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(3));

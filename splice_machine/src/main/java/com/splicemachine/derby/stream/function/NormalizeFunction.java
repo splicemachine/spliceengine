@@ -35,7 +35,7 @@ public class NormalizeFunction extends SpliceFunction<NormalizeOperation, Locate
     public LocatedRow call(LocatedRow sourceRow) throws Exception {
 
         NormalizeOperation normalize = operationContext.getOperation();
-        normalize.source.setCurrentRow(sourceRow.getRow());
+        normalize.source.setCurrentLocatedRow(sourceRow);
         ExecRow normalized = null;
         if (sourceRow != null) {
             normalized = normalize.normalizeRow(sourceRow.getRow(), true);
