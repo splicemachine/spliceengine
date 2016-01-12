@@ -42,7 +42,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     public void setOperationContext(OperationContext operationContext);
 
-    public String getSparkStageName();
+    public String getScopeName();
     
     public String getPrettyExplainPlan();
     

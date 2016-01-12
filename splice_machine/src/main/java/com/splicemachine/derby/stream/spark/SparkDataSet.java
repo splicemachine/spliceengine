@@ -71,11 +71,11 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkDataSet<U>(rdd.mapPartitions(f), planIfLast(f, isLast));
         } finally {
-            if (pushScope) f.operationContext.popScope();
+            if (pushScope) SpliceSpark.popScope();
         }
     }
 
@@ -90,7 +90,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name) {
         JavaRDD rdd1 = rdd.distinct();
         rdd1.setName(name /* MapPartitionsRDD */);
-        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */});
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */}, null);
         return new SparkDataSet(rdd1);
     }
 
@@ -106,12 +106,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     
     @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) {
-            if (function.operationContext != null)
-                function.operationContext.pushScopeForOp(scopeDetail);
-            else
-                SpliceSpark.pushScope(scopeDetail);
-        }
+        pushScopeIfNeeded(function, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet(rdd.mapToPair(function), planIfLast(function, isLast));
         } finally {
@@ -131,12 +126,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) {
-            if (function.operationContext != null)
-                function.operationContext.pushScopeForOp(scopeDetail);
-            else
-                SpliceSpark.pushScope(scopeDetail);
-        }
+        pushScopeIfNeeded(function, pushScope, scopeDetail);
         try {
             return new SparkDataSet<>(rdd.map(function), (name != null ? name : planIfLast(function, isLast)));
         } finally {
@@ -149,16 +139,9 @@ public class SparkDataSet<V> implements DataSet<V> {
         return rdd.collect().iterator();
     }
 
-    @SuppressWarnings("rawtypes")
-    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
-        if (!isLast) return f.getSparkName();
-        String plan = f.getOperation().getPrettyExplainPlan();
-        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
-    }
-    
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
-        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName()); // wjk query 3
+        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName());
     }
 
     @Override
@@ -170,11 +153,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(
         SpliceFunction<Op, V, K> f, String name, boolean pushScope, String scopeDetail) {
         
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet(rdd.keyBy(f), name != null ? name : f.getSparkName());
         } finally {
-            if (pushScope) f.operationContext.popScope();
+            if (pushScope) SpliceSpark.popScope();
         }
     }
     
@@ -185,14 +168,19 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        return union(dataSet, SparkConstants.RDD_NAME_UNION);
+        return union(dataSet, SparkConstants.RDD_NAME_UNION, false, null);
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name) {
-        JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
-        rdd1.setName(name);
-        return new SparkDataSet<>(rdd1);
+    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(null, pushScope, scopeDetail);
+        try {
+            JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
+            rdd1.setName(name != null ? name : SparkConstants.RDD_NAME_UNION);
+            return new SparkDataSet<>(rdd1);
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
     }
     
     @Override
@@ -204,11 +192,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation> DataSet< V> filter(
         SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
 
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkDataSet(rdd.filter(f), planIfLast(f, isLast));
         } finally {
-            if (pushScope) f.operationContext.popScope();
+            if (pushScope) SpliceSpark.popScope();
         }
     }
 
@@ -262,7 +250,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         
         JavaRDD<V> rdd2 = rdd1.coalesce(1, true);
         rdd2.setName("Coalesce 1 partition");
-        RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+        RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
         
         JavaRDD<V> rdd3 = rdd2.mapPartitions(takeFunction);
         rdd3.setName(takeFunction.getSparkName());
@@ -273,7 +261,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction) {
         Configuration conf = new Configuration();
-        ByteDataOutput bdo = new ByteDataOutput();
+        ByteDataOutput bdo = new ByteDataOutput(); // TODO (wjk): close this
         Job job;
         String encoded;
 
@@ -314,7 +302,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         public RecordWriter<Void, LocatedRow> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
             Configuration conf = taskAttemptContext.getConfiguration();
             String encoded = conf.get("exportFunction");
-            ByteDataInput bdi = new ByteDataInput(
+            ByteDataInput bdi = new ByteDataInput(  // TODO (wjk): close this
             Base64.decodeBase64(encoded));
             SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Void> exportFunction;
             try {
@@ -369,7 +357,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
         JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
         rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
-        RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+        RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
         return new SparkDataSet<V>(rdd1);
     }
 
@@ -380,7 +368,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
             rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
-            RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+            RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
             return new SparkDataSet<V>(rdd1);
         } finally {
             if (pushScope) context.popScope();
@@ -406,8 +394,25 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public String getAttribute(String name) {
-        if (attributes ==null)
+        if (attributes == null)
             return null;
         return attributes.get(name);
     }
+
+    private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function != null && function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
+        if (!isLast) return f.getSparkName();
+        String plan = f.getOperation().getPrettyExplainPlan();
+        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
+    }
+    
 }

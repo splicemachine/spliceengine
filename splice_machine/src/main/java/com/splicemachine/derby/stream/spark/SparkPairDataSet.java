@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -42,8 +41,6 @@ import scala.Tuple2;
 import java.util.*;
 
 /**
- *
- *
  * @see org.apache.spark.api.java.JavaPairRDD
  */
 public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
@@ -61,7 +58,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @SuppressWarnings("rawtypes")
     private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
         if (!isLast) return f.getSparkName();
-        String plan = f.getOperation().getPrettyExplainPlan();
+        String plan = (f.getOperation() != null ? f.getOperation().getPrettyExplainPlan() : null);
         return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
     }
     
@@ -103,7 +100,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(
         SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) function2.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(function2, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet<>(rdd.reduceByKey(function2), planIfLast(function2, isLast));
         } finally {
@@ -118,11 +115,14 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public PairDataSet< K, V> sortByKey(Comparator<K> comparator) {
-        return new SparkPairDataSet<>(rdd.sortByKey(comparator));
+        return sortByKey(comparator, "Sort By Key");
     }
 
     public PairDataSet< K, V> sortByKey(Comparator<K> comparator, String name) {
-        return new SparkPairDataSet<>(rdd.sortByKey(comparator), name);
+        JavaPairRDD rdd2 = rdd.sortByKey(comparator);
+        rdd2.setName(name);
+        // RDDUtils.setAncestorRDDNames(rdd2, 2, new String[]{"tbd", "tbd"}, new String[] {"MapPartitionsRDD", "MapPartitionsRDD"});
+        return new SparkPairDataSet<>(rdd2);
     }
 
     @Override
@@ -134,7 +134,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     public PairDataSet<K, Iterable<V>> groupByKey(String name) {
         JavaPairRDD rdd1 = rdd.groupByKey();
         rdd1.setName(name);
-        RDDUtils.setAncestorRDDNames(rdd1, 1, new String[]{"Shuffle Data"});
+        RDDUtils.setAncestorRDDNames(rdd1, 1, new String[]{"Shuffle Data"}, null);
         return new SparkPairDataSet<>(rdd1);
     }
     
@@ -157,7 +157,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet, String name) {
         JavaPairRDD rdd1 = rdd.join(((SparkPairDataSet) rightDataSet).rdd);
         rdd1.setName(name);
-        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Map Left to Right", "Coalesce"});
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Map Left to Right", "Coalesce"}, null);
         return new SparkPairDataSet(rdd1);
     }
 
@@ -239,7 +239,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
-                    // System.out.println("badRecords -> " + badRecords);
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
@@ -312,4 +311,14 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             throw new RuntimeException(Throwables.getRootCause(e));
         }
     }
+    
+    private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function != null && function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+    }
+
 }

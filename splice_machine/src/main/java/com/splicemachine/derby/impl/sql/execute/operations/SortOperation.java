@@ -214,8 +214,9 @@ public class SortOperation extends SpliceBaseOperation {
             operationContext.popScope();
         }
     }
-    
-    public String getSparkStageName() {
+
+    @Override
+    public String getScopeName() {
         return (distinct ? "Sort Distinct" : "Sort");
     }
 }

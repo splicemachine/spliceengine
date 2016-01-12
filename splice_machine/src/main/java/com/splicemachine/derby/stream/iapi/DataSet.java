@@ -89,7 +89,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      */
     DataSet<V> union(DataSet<V> dataSet);
 
-    DataSet<V> union(DataSet<V> dataSet, String name);
+    DataSet<V> union(DataSet<V> dataSet, String name, boolean pushScope, String scopeDetail);
 
     /**
      * Applies a filter to the results, possible removing a row.

@@ -140,11 +140,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
-                    /* Invalidate dependencies remotely. */
+            
+            /* Invalidate dependencies remotely. */
 
             TransactionController tc = lcc.getTransactionExecute();
-
-
             SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
@@ -161,20 +160,21 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
+            
             boolean first = true;
             DataSet<ExecRow> dataSet = null;
-
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
                 if (first) {
                     dataSet = collectTableStatistics(td, txn, conn);
                     first = false;
-                } else
-                    dataSet = dataSet.union(collectTableStatistics(td, txn, conn));
+                } else {
+                    dataSet = dataSet.union(collectTableStatistics(td, txn, conn), null, true, "Union");
+                }
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(dataSet,dd,transactionExecute,display));
+                displayTableStatistics(dataSet,dd,transactionExecute,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);

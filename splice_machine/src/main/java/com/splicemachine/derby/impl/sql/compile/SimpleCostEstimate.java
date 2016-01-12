@@ -91,8 +91,13 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public String prettyProcessingString(){
-        return prettyStringOutput(localCost, getEstimatedRowCount());
+    public String prettyProcessingString() {
+        return prettyProcessingString(",");
+    }
+
+    @Override
+    public String prettyProcessingString(String attrDelim) {
+        return prettyStringOutput(localCost, getEstimatedRowCount(), attrDelim);
     }
 
     @Override
@@ -101,11 +106,25 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public String prettyIndexLookupString() {
-        return prettyStringOutput(getIndexLookupCost(), (long) Math.round(getIndexLookupRows()));
+    public String prettyFromBaseTableString(String attrDelim) {
+        return prettyStringOutput(getFromBaseTableCost(), (long) Math.round(getFromBaseTableRows()), attrDelim);
     }
 
-    private String prettyStringOutput(double cost,long rows) {
+    @Override
+    public String prettyIndexLookupString() {
+        return prettyIndexLookupString(",");
+    }
+
+    @Override
+    public String prettyIndexLookupString(String attrDelim) {
+        return prettyStringOutput(getIndexLookupCost(), (long) Math.round(getIndexLookupRows()), attrDelim);
+    }
+
+    private String prettyStringOutput(double cost, long rows) {
+        return prettyStringOutput(cost, rows, ",");
+    }
+
+    private String prettyStringOutput(double cost, long rows, String attrDelim) {
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(3);
         df.setGroupingUsed(false);
@@ -119,20 +138,33 @@ public class SimpleCostEstimate implements CostEstimate{
         }
         String unit = displayHeapUnits[pos];
 
-        return "totalCost="+df.format(cost/1000)
-                +",outputRows="+rows
-                +",outputHeapSize="+df.format(eHeap)+unit
-                +",partitions="+partitionCount();
+        StringBuffer sb = new StringBuffer();
+        sb.append("totalCost=").append(df.format(cost/1000));
+        sb.append(attrDelim).append("outputRows=").append(rows);
+        sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
+        sb.append(attrDelim).append("partitions=").append(partitionCount());
+        
+        return sb.toString();
     }
 
     @Override
     public String prettyProjectionString() {
-        return prettyStringOutput(getProjectionCost(), (long) Math.round(getProjectionRows()));
+        return prettyProjectionString(",");
     }
 
     @Override
-    public String prettyScrollInsensitiveString(){
-        return prettyStringOutput(getEstimatedCost(), getEstimatedRowCount());
+    public String prettyProjectionString(String attrDelim) {
+        return prettyStringOutput(getProjectionCost(), (long) Math.round(getProjectionRows()), attrDelim);
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString() {
+        return prettyScrollInsensitiveString(",");
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString(String attrDelim) {
+        return prettyStringOutput(getEstimatedCost(), getEstimatedRowCount(), attrDelim);
     }
 
     @Override

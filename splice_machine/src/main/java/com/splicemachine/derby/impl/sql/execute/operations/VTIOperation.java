@@ -418,7 +418,7 @@ public class VTIOperation extends SpliceBaseOperation {
     }
     
     @Override
-    public String getSparkStageName() {
+    public String getScopeName() {
         return "VTIOperation" + (userVTI != null ? " (" + userVTI.getClass().getSimpleName() + ")" : "");
     }
 }

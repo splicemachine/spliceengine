@@ -181,7 +181,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         DataSet<LocatedRow> sourceSet = source.getDataSet(dsp);
         
         if (fetchLimit == 0) { // No Fetch, just offset
-            operationContext.pushScope(String.format(this.getSparkStageName() + ": Offset %d", offset));
+            operationContext.pushScopeForOp(String.format("Offset %d", offset));
             try {
                 return sourceSet.coalesce(1, true)
                         .offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
@@ -190,7 +190,7 @@ public class RowCountOperation extends SpliceBaseOperation {
             }
         } else {
             fetchLimit = fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE;
-            operationContext.pushScope(String.format(this.getSparkStageName() + ": Fetch Limit %d", (int)(offset + fetchLimit)));
+            operationContext.pushScopeForOp(String.format("Fetch Limit %d", (int)(offset + fetchLimit)));
             try {
                 DataSet takeData = sourceSet.take(
                     new TakeFunction<SpliceOperation, LocatedRow>(
@@ -199,13 +199,13 @@ public class RowCountOperation extends SpliceBaseOperation {
                 DataSet coalesce = takeData.coalesce(1, true);
                 return coalesce.offset(new OffsetFunction<SpliceOperation, LocatedRow>(operationContext, (int) offset), true);
             } finally {
-                operationContext.popScope();
+                operationContext.popScope();    
             }
         }
     }
     
     @Override
-    public String getSparkStageName() {
+    public String getScopeName() {
         return "Row Limit";
     }
 
