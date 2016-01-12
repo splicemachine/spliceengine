@@ -508,13 +508,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         public String getInfo() {return info;}
 
-    private String sparkStageName = null;
-    public String getSparkStageName() {
-        if (sparkStageName == null) {
+    private String scopeName = null;
+    public String getScopeName() {
+        if (scopeName == null) {
             String[] words = this.getClass().getSimpleName().replace("Operation", "").split("(?=[A-Z])");
-            sparkStageName = StringUtils.join(words, " ");
+            scopeName = StringUtils.join(words, " ");
         }
-        return sparkStageName;
+        return scopeName;
     }
     
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {

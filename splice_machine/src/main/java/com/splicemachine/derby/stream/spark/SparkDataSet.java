@@ -71,7 +71,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkDataSet<U>(rdd.mapPartitions(f), planIfLast(f, isLast));
         } finally {
@@ -106,12 +106,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     
     @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) {
-            if (function.operationContext != null)
-                function.operationContext.pushScopeForOp(scopeDetail);
-            else
-                SpliceSpark.pushScope(scopeDetail);
-        }
+        pushScopeIfNeeded(function, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet(rdd.mapToPair(function), planIfLast(function, isLast));
         } finally {
@@ -131,12 +126,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) {
-            if (function.operationContext != null)
-                function.operationContext.pushScopeForOp(scopeDetail);
-            else
-                SpliceSpark.pushScope(scopeDetail);
-        }
+        pushScopeIfNeeded(function, pushScope, scopeDetail);
         try {
             return new SparkDataSet<>(rdd.map(function), (name != null ? name : planIfLast(function, isLast)));
         } finally {
@@ -149,16 +139,9 @@ public class SparkDataSet<V> implements DataSet<V> {
         return rdd.collect().iterator();
     }
 
-    @SuppressWarnings("rawtypes")
-    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
-        if (!isLast) return f.getSparkName();
-        String plan = f.getOperation().getPrettyExplainPlan();
-        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
-    }
-    
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
-        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName()); // wjk query 3
+        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName());
     }
 
     @Override
@@ -170,7 +153,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(
         SpliceFunction<Op, V, K> f, String name, boolean pushScope, String scopeDetail) {
         
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet(rdd.keyBy(f), name != null ? name : f.getSparkName());
         } finally {
@@ -204,7 +187,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation> DataSet< V> filter(
         SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
 
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkDataSet(rdd.filter(f), planIfLast(f, isLast));
         } finally {
@@ -273,7 +256,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction) {
         Configuration conf = new Configuration();
-        ByteDataOutput bdo = new ByteDataOutput();
+        ByteDataOutput bdo = new ByteDataOutput(); // TODO (wjk): close this
         Job job;
         String encoded;
 
@@ -314,7 +297,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         public RecordWriter<Void, LocatedRow> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
             Configuration conf = taskAttemptContext.getConfiguration();
             String encoded = conf.get("exportFunction");
-            ByteDataInput bdi = new ByteDataInput(
+            ByteDataInput bdi = new ByteDataInput(  // TODO (wjk): close this
             Base64.decodeBase64(encoded));
             SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Void> exportFunction;
             try {
@@ -410,4 +393,21 @@ public class SparkDataSet<V> implements DataSet<V> {
             return null;
         return attributes.get(name);
     }
+
+    private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
+        if (!isLast) return f.getSparkName();
+        String plan = f.getOperation().getPrettyExplainPlan();
+        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
+    }
+    
 }

@@ -176,9 +176,9 @@ public class MergeSortJoinOperation extends JoinOperation {
         
         DataSet<LocatedRow> leftDataSet1 = leftResultSet.getDataSet(dsp);
 
-        operationContext.pushScope(this.getSparkStageName() + ": Prepare Left Side");
+        operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<LocatedRow> leftDataSet2 =
-            leftDataSet1.map(new CountJoinedLeftFunction(operationContext)); // don't show explain plan here
+            leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
         PairDataSet<ExecRow,LocatedRow> leftDataSet =
             leftDataSet2.keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
         operationContext.popScope();
@@ -187,9 +187,9 @@ public class MergeSortJoinOperation extends JoinOperation {
         
         DataSet<LocatedRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
 
-        operationContext.pushScope(this.getSparkStageName() + ": Prepare Right Side");
+        operationContext.pushScopeForOp("Prepare Right Side");
         DataSet<LocatedRow> rightDataSet2 =
-            rightDataSet1.map(new CountJoinedRightFunction(operationContext)); // don't show explain plan here
+            rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         PairDataSet<ExecRow,LocatedRow> rightDataSet =
             rightDataSet2.keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         operationContext.popScope();
@@ -199,7 +199,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
         
         try {
-            operationContext.pushScope(this.getSparkStageName() + ": Perform Join");
+            operationContext.pushScopeForOp("Perform Join");
             DataSet<LocatedRow> joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
             return joined.map(new CountProducedFunction(operationContext), true);
         } finally {

@@ -52,7 +52,6 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 
-
 /**
  * Created by jleach on 4/13/15.
  */
@@ -107,7 +106,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
                 sb.append("Scan Table ").append(scanOp.getTableDisplayName());
             }
         } else {
-            sb.append(spliceOperation.getSparkStageName());
+            sb.append(spliceOperation.getScopeName());
             sb.append(conglomerateId);
         }
         
@@ -174,7 +173,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         else if (caller instanceof IndexConstantOperation)
             scope = ((IndexConstantOperation)caller).getScopeName();
         else if (caller instanceof SpliceOperation) 
-            scope = ((SpliceOperation)caller).getSparkStageName();
+            scope = ((SpliceOperation)caller).getScopeName();
         else if (caller instanceof ConstantAction)
             scope = "Scan Table";
 
@@ -244,7 +243,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         if (caller instanceof String)
             scope = (String)caller;
         else if (caller instanceof SpliceOperation) 
-            scope = ((SpliceOperation)caller).getSparkStageName();
+            scope = ((SpliceOperation)caller).getScopeName();
         else
             scope = "Finalize Result";
         
@@ -292,7 +291,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+            SpliceSpark.pushScope((op != null ? op.getScopeName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
                 "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
@@ -316,7 +315,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
-            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+            SpliceSpark.pushScope((op != null ? op.getScopeName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
                 "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +

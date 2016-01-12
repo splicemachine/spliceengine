@@ -103,7 +103,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(
         SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) function2.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(function2, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet<>(rdd.reduceByKey(function2), planIfLast(function2, isLast));
         } finally {
@@ -239,7 +239,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
-                    // System.out.println("badRecords -> " + badRecords);
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
@@ -312,4 +311,14 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             throw new RuntimeException(Throwables.getRootCause(e));
         }
     }
+    
+    private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+    }
+
 }

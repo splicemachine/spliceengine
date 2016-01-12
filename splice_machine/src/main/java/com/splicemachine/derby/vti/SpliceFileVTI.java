@@ -104,11 +104,11 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             ImportUtils.validateReadable(new Path(fileName), FileSystem.get(SpliceConstants.config), false);
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
-                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
+                operationContext.pushScopeForOp(SparkConstants.SCOPE_NAME_PARSE_FILE);
                 return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
-                operationContext.pushScope(op.getSparkStageName() + ": " + SparkConstants.SCOPE_NAME_PARSE_FILE);
+                operationContext.pushScopeForOp(SparkConstants.SCOPE_NAME_PARSE_FILE);
                 return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
             }
         } catch (IOException ioe) {

@@ -179,7 +179,8 @@ public class WindowOperation extends SpliceBaseOperation {
         return windowContext;
     }
    
-    public String getSparkStageName() {
+    @Override
+    public String getScopeName() {
         return "Window Function";
     }
 }
