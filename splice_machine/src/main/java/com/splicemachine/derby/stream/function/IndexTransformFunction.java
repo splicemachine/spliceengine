@@ -4,6 +4,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.hbase.KVPair;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -15,6 +16,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     private boolean initialized;
     private IndexTransformer transformer;
     private DDLMessage.TentativeIndex tentativeIndex;
+    
     public IndexTransformFunction() {
         super();
     }
@@ -46,5 +48,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         byte[] message = new byte[in.readInt()];
         in.readFully(message);
+        this.tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
     }
 }
