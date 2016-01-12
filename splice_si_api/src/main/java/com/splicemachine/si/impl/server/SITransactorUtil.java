@@ -22,7 +22,7 @@ import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
  * @author Scott Fines
  *         Date: 12/16/15
  */
-public class SITransactorUtil{
+class SITransactorUtil{
 
     public static Map<Long,Map<byte[],Map<byte[],List<KVPair>>>> putToKvPairMap(DataPut[] mutations,
                                                                                 TxnOperationFactory txnOperationFactory,

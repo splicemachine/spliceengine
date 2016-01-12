@@ -21,31 +21,21 @@ import java.io.IOException;
  *         Date: 2/13/14
  */
 public class SITransactionReadController<OperationWithAttributes,Data,
-        Delete extends OperationWithAttributes,
-        Filter,
         Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,
-        RegionScanner,
-        Result,
-        ReturnCode,
         Scan extends OperationWithAttributes>
         implements TransactionReadController<Get, Scan>{
-    private final DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore;
-    private final SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
+    private final DataStore<OperationWithAttributes, Data, Get, Scan> dataStore;
+    private final SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSuppler;
 
-    public SITransactionReadController(DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore,
+    public SITransactionReadController(DataStore<OperationWithAttributes, Data, Get, Scan> dataStore,
                                        TxnSupplier txnSupplier,
                                        IgnoreTxnCacheSupplier ignoreTxnSuppler){
         this.dataStore = dataStore;
         this.dataLib = dataStore.getDataLib();
         this.txnSupplier = txnSupplier;
         this.ignoreTxnSuppler = ignoreTxnSuppler;
-    }
-
-    private boolean isFlaggedForSITreatment(OperationWithAttributes op){
-        return dataStore.getSINeededAttribute(op)!=null;
     }
 
     @Override
@@ -81,7 +71,7 @@ public class SITransactionReadController<OperationWithAttributes,Data,
     public TxnFilter newFilterStatePacked(ReadResolver readResolver,
                                           EntryPredicateFilter predicateFilter,TxnView txn,boolean countStar) throws IOException{
         return new PackedTxnFilter(newFilterState(readResolver,txn),
-                new HRowAccumulator(dataLib,predicateFilter,new EntryDecoder(),countStar));
+                new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
     }
 
     @Override

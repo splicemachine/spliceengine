@@ -12,10 +12,10 @@ public class ActiveIgnoreTxnCacheSupplier {
 
     private final Map<String, List<Pair<Long,Long>>> cache;
 
-    IgnoreTxnCacheSupplier delegate;
+    private IgnoreTxnCacheSupplier delegate;
 
     public ActiveIgnoreTxnCacheSupplier (IgnoreTxnCacheSupplier delegate) {
-        cache = new HashMap();
+        cache = new HashMap<>();
         this.delegate = delegate;
     }
 

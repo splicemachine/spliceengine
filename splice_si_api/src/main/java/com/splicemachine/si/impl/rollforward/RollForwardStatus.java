@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Date: 9/4/14
  */
 public class RollForwardStatus implements RollForwardManagement{
-    public final AtomicLong numUpdates = new AtomicLong(0l);
-    public final AtomicLong rowsToResolve = new AtomicLong(0l);
+    private final AtomicLong numUpdates = new AtomicLong(0l);
+    private final AtomicLong rowsToResolve = new AtomicLong(0l);
 
     @Override public long getTotalUpdates() { return numUpdates.get(); }
     @Override public long getTotalRowsToResolve() { return  rowsToResolve.get(); }

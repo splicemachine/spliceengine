@@ -7,7 +7,6 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
 
@@ -20,13 +19,10 @@ public class HTxnOperationFactory extends BaseOperationFactory<OperationWithAttr
         Cell,
         Delete,
         Get,
-        Mutation,
         Put,
-        RegionScanner,
-        Result,
         Scan>{
 
-    public HTxnOperationFactory(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,
+    public HTxnOperationFactory(SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
                                 ExceptionFactory exceptionFactory){
         super(dataLib,exceptionFactory);
     }

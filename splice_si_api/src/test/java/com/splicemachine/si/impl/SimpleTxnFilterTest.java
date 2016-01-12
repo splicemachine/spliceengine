@@ -370,7 +370,7 @@ public class SimpleTxnFilterTest{
         return userCell;
     }
 
-    protected TxnView getMockCommittedTxn(long begin,long commit,TxnView parent){
+    private TxnView getMockCommittedTxn(long begin,long commit,TxnView parent){
         if(parent==null)
             parent=Txn.ROOT_TRANSACTION;
         return new InheritingTxnView(parent,begin,begin,
@@ -381,7 +381,7 @@ public class SimpleTxnFilterTest{
                 Txn.State.COMMITTED);
     }
 
-    protected TxnView getMockRolledBackTxn(long begin,TxnView parent){
+    private TxnView getMockRolledBackTxn(long begin,TxnView parent){
         if(parent==null)
             parent=Txn.ROOT_TRANSACTION;
         return new InheritingTxnView(parent,

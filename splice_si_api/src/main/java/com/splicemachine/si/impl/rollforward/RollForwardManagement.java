@@ -6,6 +6,7 @@ import javax.management.MXBean;
  * @author Scott Fines
  *         Date: 9/4/14
  */
+@SuppressWarnings("unused")
 @MXBean(true)
 public interface RollForwardManagement {
 

@@ -38,26 +38,23 @@ import java.util.List;
  */
 public class TransactionInteractionTest {
     @Rule public ExpectedException error = ExpectedException.none();
-    public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
+    private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
 
-    boolean useSimple = true;
-    static SITestEnv testEnv;
-    static TestTransactionSetup transactorSetup;
-    Transactor transactor;
-    TxnLifecycleManager control;
-    TransactorTestUtility testUtility;
-    final List<Txn> createdParentTxns = Lists.newArrayList();
+    private static SITestEnv testEnv;
+    private static TestTransactionSetup transactorSetup;
+    private TxnLifecycleManager control;
+    private TransactorTestUtility testUtility;
+    private final List<Txn> createdParentTxns = Lists.newArrayList();
 
     @SuppressWarnings("unchecked")
-    void baseSetUp() {
-        transactor = transactorSetup.transactor;
+    private void baseSetUp() {
         control = new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager){
             @Override
             protected void afterStart(Txn txn) {
                 createdParentTxns.add(txn);
             }
         };
-        testUtility = new TransactorTestUtility(useSimple,testEnv,transactorSetup);
+        testUtility = new TransactorTestUtility(true,testEnv,transactorSetup);
     }
 
     @Before

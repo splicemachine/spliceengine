@@ -10,10 +10,10 @@ import com.splicemachine.storage.DataFilter;
 import java.io.IOException;
 
 public class PackedTxnFilter implements TxnFilter, SIFilter{
-    protected final TxnFilter simpleFilter;
+    private final TxnFilter simpleFilter;
     public final RowAccumulator accumulator;
     private DataCell lastValidCell;
-    protected boolean excludeRow=false;
+    private boolean excludeRow=false;
 
     public PackedTxnFilter(TxnFilter simpleFilter,RowAccumulator accumulator){
         this.simpleFilter=simpleFilter;

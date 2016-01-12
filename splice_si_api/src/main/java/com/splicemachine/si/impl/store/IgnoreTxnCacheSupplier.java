@@ -18,20 +18,17 @@ import java.util.List;
  *
  * Created by jyuan on 4/17/15.
  */
-public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,Delete extends OperationWithAttributes,
+public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,
         Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,
-        RegionScanner,
-        Result,
         Scan extends OperationWithAttributes,
         TableInfo> {
     private final ConcurrentLinkedHashMap<String,List<Pair<Long, Long>>> cache;
-    private final SDataLib<OperationWithAttributes,Data,Delete, Get, Put,RegionScanner,Result,Scan>  dataLib;
+    private final SDataLib<OperationWithAttributes,Data, Get, Scan>  dataLib;
     private final PartitionFactory<TableInfo> tableFactory;
 
     private EntryDecoder entryDecoder;
 
-    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,PartitionFactory<TableInfo> tableFactory) {
+    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib,PartitionFactory<TableInfo> tableFactory) {
         this.dataLib = dataLib;
         this.tableFactory=tableFactory;
         cache = new ConcurrentLinkedHashMap.Builder<String, List<Pair<Long, Long>>>()

@@ -39,7 +39,6 @@ import com.splicemachine.utils.GreenLight;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
@@ -55,8 +54,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final PartitionFactory<TableName> tableFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier<OperationWithAttributes,Cell,Delete,
-            Get,Put,RegionScanner,Result,Scan,TableName> ignoreTxnSupplier;
+    private final IgnoreTxnCacheSupplier<OperationWithAttributes,Cell,
+            Get, Scan,TableName> ignoreTxnSupplier;
     private final HTxnOperationFactory txnOpFactory;
     private final AsyncReadResolver readResolver;
     private final PartitionInfoCache partitionCache;

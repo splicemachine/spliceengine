@@ -47,7 +47,7 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 public class SIObserver extends BaseRegionObserver{
     private static Logger LOG=Logger.getLogger(SIObserver.class);
     private boolean tableEnvMatch=false;
-    private TxnOperationFactory<OperationWithAttributes,Get,Mutation,Put,Scan> txnOperationFactory;
+    private TxnOperationFactory<OperationWithAttributes,Get, Scan> txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
     private TransactionReadController<Get, Scan> txnReadController;

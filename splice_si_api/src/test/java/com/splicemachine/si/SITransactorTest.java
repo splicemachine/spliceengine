@@ -26,19 +26,17 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unchecked")
 public class SITransactorTest {
     @Rule public ExpectedException error = ExpectedException.none();
-    public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
-    boolean useSimple = true;
-    static SITestEnv testEnv;
-    static TestTransactionSetup transactorSetup;
-    Transactor transactor;
-    TxnLifecycleManager control;
-    TransactorTestUtility testUtility;
-    final List<Txn> createdParentTxns = Lists.newArrayList();
+    private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
+    private boolean useSimple = true;
+    private static SITestEnv testEnv;
+    private static TestTransactionSetup transactorSetup;
+    private TxnLifecycleManager control;
+    private TransactorTestUtility testUtility;
+    private final List<Txn> createdParentTxns = Lists.newArrayList();
     private TxnStore txnStore;
 
     @SuppressWarnings("unchecked")
-    void baseSetUp() {
-        transactor = transactorSetup.transactor;
+    private void baseSetUp() {
         control = new ForwardingLifecycleManager(transactorSetup.txnLifecycleManager) {
             @Override
             protected void afterStart(Txn txn) {

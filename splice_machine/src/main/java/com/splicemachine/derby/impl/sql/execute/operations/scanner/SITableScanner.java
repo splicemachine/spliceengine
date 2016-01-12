@@ -270,7 +270,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                                                 EntryAccumulator accumulator,
                                                 boolean isCountStar) throws IOException {
 
-                    HRowAccumulator hRowAccumulator =new HRowAccumulator(dataLib,predicateFilter,
+                    HRowAccumulator hRowAccumulator =new HRowAccumulator(predicateFilter,
                             rowEntryDecoder,accumulator,
                             isCountStar);
                     //noinspection unchecked

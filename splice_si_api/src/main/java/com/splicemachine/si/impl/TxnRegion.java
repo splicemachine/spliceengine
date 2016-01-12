@@ -71,7 +71,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
     @Override
     public TxnFilter packedFilter(TxnView txn,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
-        return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(dataStore.getDataLib(),predicateFilter,new EntryDecoder(),countStar));
+        return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
     }
 
     @Override

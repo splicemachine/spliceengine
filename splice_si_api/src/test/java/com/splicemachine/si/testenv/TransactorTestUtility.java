@@ -39,15 +39,15 @@ public class TransactorTestUtility {
     }
 
     public void insertAge(Txn txn, String name, Integer age) throws IOException {
-        insertAgeDirect(useSimple, transactorSetup,testEnv, txn, name, age);
+        insertAgeDirect(transactorSetup,testEnv, txn, name, age);
     }
 
     public void insertAgeBatch(Object[]... args) throws IOException {
-        insertAgeDirectBatch(useSimple, transactorSetup,testEnv, args);
+        insertAgeDirectBatch(transactorSetup,testEnv, args);
     }
 
     public void insertJob(Txn txn, String name, String job) throws IOException {
-        insertJobDirect(useSimple, transactorSetup,testEnv, txn, name, job);
+        insertJobDirect(transactorSetup,testEnv, txn, name, job);
     }
 
     public void deleteRow(Txn txn, String name) throws IOException {
@@ -58,18 +58,18 @@ public class TransactorTestUtility {
         return readAgeDirect(transactorSetup,testEnv, txn, name);
     }
 
-    public static void insertAgeDirect(boolean useSimple, TestTransactionSetup transactorSetup, SITestEnv testEnv,
-                                       Txn txn, String name, Integer age) throws IOException {
+    private static void insertAgeDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
+                                        Txn txn,String name,Integer age) throws IOException {
         insertField(transactorSetup,testEnv, txn, name, transactorSetup.agePosition, age);
     }
 
-    public static void insertAgeDirectBatch(boolean useSimple, TestTransactionSetup transactorSetup, SITestEnv SITestEnv,
-                                            Object[] args) throws IOException {
+    private static void insertAgeDirectBatch(TestTransactionSetup transactorSetup,SITestEnv SITestEnv,
+                                             Object[] args) throws IOException {
         insertFieldBatch(transactorSetup,SITestEnv, args, transactorSetup.agePosition);
     }
 
-    public static void insertJobDirect(boolean useSimple, TestTransactionSetup transactorSetup, SITestEnv SITestEnv,
-                                       Txn txn, String name, String job) throws IOException {
+    private static void insertJobDirect(TestTransactionSetup transactorSetup,SITestEnv SITestEnv,
+                                        Txn txn,String name,String job) throws IOException {
         insertField(transactorSetup,SITestEnv, txn, name, transactorSetup.jobPosition, job);
     }
 
@@ -184,8 +184,8 @@ public class TransactorTestUtility {
         processPutDirectBatch(transactorSetup,SITestEnv, puts);
     }
 
-    static void deleteRowDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                Txn txn,String name) throws IOException {
+    private static void deleteRowDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
+                                        Txn txn,String name) throws IOException {
         final SDataLib dataLib = testEnv.getDataLib();
 
         byte[] key = dataLib.newRowKey(new Object[]{name});
@@ -234,8 +234,8 @@ public class TransactorTestUtility {
         }
     }
 
-    static String readAgeDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                Txn txn,String name) throws IOException {
+    private static String readAgeDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
+                                        Txn txn,String name) throws IOException {
         final SDataLib dataLib = testEnv.getDataLib();
 
         byte[] key = dataLib.newRowKey(new Object[]{name});
@@ -247,8 +247,8 @@ public class TransactorTestUtility {
         }
     }
 
-    static String scanNoColumnsDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                      Txn txn,String name,boolean deleted) throws IOException {
+    private static String scanNoColumnsDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
+                                              Txn txn,String name,boolean deleted) throws IOException {
         final SDataLib dataLib = testEnv.getDataLib();
 
         byte[] endKey = dataLib.newRowKey(new Object[]{name});

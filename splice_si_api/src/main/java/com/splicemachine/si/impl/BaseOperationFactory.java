@@ -27,27 +27,15 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
         Data,
         Delete extends OperationWithAttributes,
         Get extends OperationWithAttributes,
-        Mutation extends OperationWithAttributes,
         Put extends OperationWithAttributes,
-        RegionScanner,
-        Result,
-        Scan extends OperationWithAttributes> implements TxnOperationFactory<OperationWithAttributes, Get, Mutation, Put, Scan>{
-    private SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
+        Scan extends OperationWithAttributes> implements TxnOperationFactory<OperationWithAttributes, Get, Scan>{
+    private SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib;
     private ExceptionFactory exceptionLib;
 
-    public BaseOperationFactory(SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,
+    public BaseOperationFactory(SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib,
                                 ExceptionFactory exceptionFactory){
         this.dataLib = dataLib;
         this.exceptionLib = exceptionFactory;
-    }
-
-    @Override
-    public Put newPut(TxnView txn,byte[] rowKey) throws IOException{
-        Put put=dataLib.newPut(rowKey);
-        if(!txn.allowsWrites())
-            throw exceptionLib.readOnlyModification("transaction is read only: "+txn.getTxnId());
-        encodeForWrites(put,txn);
-        return put;
     }
 
 
@@ -76,22 +64,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
         }
         encodeForReads(get,txn,false);
         return get;
-    }
-
-    @Override
-    public Mutation newDelete(TxnView txn,byte[] rowKey) throws IOException{
-        if(txn==null){
-            Delete delete=dataLib.newDelete(rowKey);
-            makeNonTransactional(delete);
-            return (Mutation)delete;
-        }
-        Put delete=dataLib.newPut(rowKey);
-        dataLib.setAttribute(delete,SI_DELETE_PUT,TRUE_BYTES);
-        dataLib.addKeyValueToPut(delete,DEFAULT_FAMILY_BYTES,SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txn.getTxnId(),EMPTY_BYTE_ARRAY);
-        if(!txn.allowsWrites())
-            throw exceptionLib.readOnlyModification("transaction is read only: "+txn.getTxnId());
-        encodeForWrites(delete,txn);
-        return (Mutation)delete;
     }
 
     @Override
@@ -207,11 +179,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
 
     /******************************************************************************************************************/
         /*private helper functions*/
-    private void encodeForWrites(OperationWithAttributes op,TxnView txn){
-        byte[] data=encode(txn);
-        dataLib.setAttribute(op,SI_TRANSACTION_ID_KEY,data);
-        dataLib.setAttribute(op,SI_NEEDED,SI_NEEDED_VALUE_BYTES);
-    }
 
     private void encodeForReads(OperationWithAttributes op,TxnView txn,boolean isCountStar){
         if(isCountStar)

@@ -9,6 +9,7 @@ import javax.management.MXBean;
  * Created on: 6/3/13
  */
 @MXBean
+@SuppressWarnings("unused")
 public interface TransactorStatus {
 
     /**

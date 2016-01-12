@@ -10,7 +10,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.io.Writable;
 
 import java.io.DataInput;
@@ -22,7 +21,7 @@ import java.io.IOException;
  *         Date: 8/18/14
  */
 public class ActiveTxnFilter extends FilterBase implements Writable{
-    private final SDataLib<OperationWithAttributes,Cell,Delete, Get, Put,RegionScanner,Result,Scan> datalib;
+    private final SDataLib<OperationWithAttributes,Cell, Get, Scan> datalib;
     private final RegionTxnStore txnStore;
     protected final long beforeTs;
     protected final long afterTs;
@@ -38,7 +37,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private MultiFieldDecoder fieldDecoder;
     
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> datalib,
+    public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Get, Scan> datalib,
                            RegionTxnStore txnStore,
                            long beforeTs,
                            long afterTs,

@@ -42,7 +42,7 @@ public class RegionTxnStore implements TxnPartition{
     private static final Logger LOG=Logger.getLogger(RegionTxnStore.class);
 
     private final TxnDecoder newTransactionDecoder=V2TxnDecoder.INSTANCE;
-    private final SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
+    private final SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib;
     private final TransactionResolver resolver;
     private final TxnSupplier txnSupplier;
     private final HRegion region;
@@ -52,7 +52,7 @@ public class RegionTxnStore implements TxnPartition{
     public RegionTxnStore(HRegion region,
                           TxnSupplier txnSupplier,
                           TransactionResolver resolver,
-                          SDataLib<OperationWithAttributes, Cell, Delete, Get, Put,RegionScanner,Result,Scan> dataLib,
+                          SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
                           long keepAliveTimeoutMs,
                           Clock keepAliveClock){
         this.txnSupplier=txnSupplier;

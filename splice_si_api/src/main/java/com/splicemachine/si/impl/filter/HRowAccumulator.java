@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.filter;
 
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.EntryAccumulator;
@@ -10,24 +9,22 @@ import com.splicemachine.storage.index.BitIndex;
 import java.io.Closeable;
 import java.io.IOException;
 
-public class HRowAccumulator<Data> implements RowAccumulator{
+public class HRowAccumulator implements RowAccumulator{
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
-    private final SDataLib dataLib;
     private boolean countStar;
     private long bytesAccumulated = 0l;
 
-    public HRowAccumulator(SDataLib dataLib, EntryPredicateFilter predicateFilter, EntryDecoder decoder, boolean countStar) {
-        this(dataLib, predicateFilter, decoder, predicateFilter.newAccumulator(),countStar);
+    public HRowAccumulator(EntryPredicateFilter predicateFilter,EntryDecoder decoder,boolean countStar) {
+        this(predicateFilter, decoder, predicateFilter.newAccumulator(),countStar);
     }
 
-    public HRowAccumulator(SDataLib dataLib, EntryPredicateFilter predicateFilter, EntryDecoder decoder,EntryAccumulator accumulator, boolean countStar) {
+    public HRowAccumulator(EntryPredicateFilter predicateFilter,EntryDecoder decoder,EntryAccumulator accumulator,boolean countStar) {
         this.predicateFilter = predicateFilter;
         this.entryAccumulator = accumulator;
         this.decoder = decoder;
         this.countStar = countStar;
-        this.dataLib = dataLib;
     }
 
     @Override
@@ -55,10 +52,8 @@ public class HRowAccumulator<Data> implements RowAccumulator{
     }
 
     @Override
-    public boolean isFinished() {
-        if (countStar)
-            return true;
-        return entryAccumulator.isFinished();
+    public boolean isFinished(){
+        return countStar || entryAccumulator.isFinished();
     }
 
     @Override

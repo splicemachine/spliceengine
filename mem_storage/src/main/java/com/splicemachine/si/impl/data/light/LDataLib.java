@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.data.light;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.SDataLib;
@@ -9,17 +8,12 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.ComparableComparator;
 
-import java.io.IOException;
 import java.util.*;
 
 public class LDataLib implements SDataLib<
         LOperationWithAttributes,
         DataCell,
-        LTuple,
         LGet,
-        LTuple,
-        LScan,
-        MResult,
         LGet>{
 
 
@@ -34,23 +28,8 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public LGet newScan(byte[] startRowKey,byte[] endRowKey){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public DataScan newDataScan(){
         return new MScan();
-    }
-
-    @Override
-    public boolean regionScannerNext(LScan lScan,List<DataCell> data) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public boolean regionScannerNextRaw(LScan lScan,List<DataCell> data) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     @Override
@@ -161,20 +140,10 @@ public class LDataLib implements SDataLib<
             throw new RuntimeException("types don't match "+value.getClass().getName()+" "+type.getName()+" "+Arrays.toString(value));
     }
 
-    @Override
-    public void addKeyValueToPut(LTuple put,byte[] family,byte[] qualifier,long timestamp,byte[] value){
-        addKeyValueToTuple(put,family,qualifier,timestamp,value);
-    }
-
     private void addKeyValueToTuple(LTuple tuple,Object family,Object qualifier,long timestamp,byte[] value){
         //TODO -sf- set the correct cell type
         DataCell newCell=new MCell(tuple.key,(byte[])family,(byte[])qualifier,timestamp,value,CellType.USER_DATA);
         tuple.values.add(newCell);
-    }
-
-    @Override
-    public LTuple newPut(byte[] key){
-        return newPut(key,null);
     }
 
     private LTuple newPut(byte[] key,Integer lock){
@@ -215,28 +184,11 @@ public class LDataLib implements SDataLib<
         return ((LTuple)result).key;
     }
 
-    @Override
-    public List<DataCell> listResult(MResult result){
-        List<DataCell> values=Lists.newArrayList(result);
-        Collections.sort(values);
-        return values;
-    }
-
-
-    @Override
-    public LTuple newDelete(byte[] rowKey){
-        return newPut(rowKey,null);
-    }
 
     @Override
     public boolean singleMatchingColumn(DataCell element,byte[] family,
                                         byte[] qualifier){
         return element.matchesQualifier(family,qualifier);
-    }
-
-    @Override
-    public boolean singleMatchingFamily(DataCell element,byte[] family){
-        return element.matchesFamily(family);
     }
 
     @Override
@@ -247,12 +199,6 @@ public class LDataLib implements SDataLib<
     @Override
     public boolean matchingValue(DataCell element,byte[] value){
         return Bytes.equals(element.valueArray(),element.valueOffset(),element.valueLength(),value,0,value.length);
-    }
-
-    @Override
-    public boolean matchingRowKeyValue(DataCell element,DataCell other){
-        return Bytes.equals(element.valueArray(),element.valueOffset(),element.valueLength(),
-                other.valueArray(),other.valueOffset(),other.valueLength());
     }
 
     @Override
@@ -305,30 +251,8 @@ public class LDataLib implements SDataLib<
     }
 
     @Override
-    public byte[] getDataValue(DataCell element){
-        return element.value();
-    }
-
-    @Override
     public MResult newResult(List<DataCell> values){
         return new MResult(values);
-    }
-
-    @Override
-    public DataCell[] getDataFromResult(MResult result){
-        if(result.size()==0) return new DataCell[]{};
-        DataCell[] dc = new DataCell[result.size()];
-        Iterator<DataCell> dcIter = result.iterator();
-        for(int i=0;i<dc.length;i++){
-            if(!dcIter.hasNext()) throw new IllegalStateException("Programmer error: result.size() does not match iterator!");
-            dc[i] = dcIter.next();
-        }
-        return dc;
-    }
-
-    @Override
-    public byte[] getDataRow(DataCell element){
-        return element.key();
     }
 
     @Override

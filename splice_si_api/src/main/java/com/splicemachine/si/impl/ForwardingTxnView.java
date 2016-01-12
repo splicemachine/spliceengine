@@ -13,7 +13,7 @@ import java.util.Iterator;
  *         Date: 8/20/14
  */
 public abstract class ForwardingTxnView extends AbstractTxn {
-    protected final Txn delegate;
+    private final Txn delegate;
 
     protected ForwardingTxnView(Txn delegate) {
         super(delegate.getTxnId(),delegate.getBeginTimestamp(),delegate.getIsolationLevel());

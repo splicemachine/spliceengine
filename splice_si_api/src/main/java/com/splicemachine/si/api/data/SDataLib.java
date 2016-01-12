@@ -4,7 +4,6 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 
@@ -14,11 +13,7 @@ import java.util.List;
  */
 public interface SDataLib<OperationWithAttributes,
         Data,
-        Delete extends OperationWithAttributes,
         Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,
-        RegionScanner,
-        Result,
         Scan extends OperationWithAttributes>{
     byte[] newRowKey(Object[] args);
 
@@ -28,13 +23,7 @@ public interface SDataLib<OperationWithAttributes,
 
     <T> T decode(byte[] value,int offset,int length,Class<T> type);
 
-    List<DataCell> listResult(Result result);
-
-    Put newPut(byte[] key);
-
     DataPut newDataPut(ByteSlice key);
-
-    void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,long timestamp,byte[] value);
 
     Get newGet(byte[] key);
 
@@ -44,27 +33,19 @@ public interface SDataLib<OperationWithAttributes,
 
     Scan newScan();
 
-    Scan newScan(byte[] startRowKey,byte[] endRowKey);
-
     DataScan newDataScan();
 
     void setScanTimeRange(Scan get,long minTimestamp,long maxTimestamp);
 
     void setScanMaxVersions(Scan get);
 
-    Delete newDelete(byte[] rowKey);
-
     DataPut toDataPut(KVPair kvPair,byte[] family,byte[] column,long timestamp);
 
     boolean singleMatchingColumn(Data element,byte[] family,byte[] qualifier);
 
-    boolean singleMatchingFamily(Data element,byte[] family);
-
     boolean singleMatchingQualifier(Data element,byte[] qualifier);
 
     boolean matchingValue(Data element,byte[] value);
-
-    boolean matchingRowKeyValue(Data element,Data other);
 
     Comparator getComparator();
 
@@ -84,10 +65,6 @@ public interface SDataLib<OperationWithAttributes,
 
     long getValueToLong(Data element);
 
-    byte[] getDataValue(Data element);
-
-    byte[] getDataRow(Data element);
-
     byte[] getDataValueBuffer(Data element);
 
     byte[] getDataRowBuffer(Data element);
@@ -101,12 +78,6 @@ public interface SDataLib<OperationWithAttributes,
     int getDataValuelength(Data element);
 
     int getLength(Data element);
-
-    Data[] getDataFromResult(Result result);
-
-    boolean regionScannerNext(RegionScanner regionScanner,List<Data> data) throws IOException;
-
-    boolean regionScannerNextRaw(RegionScanner regionScanner,List<Data> data) throws IOException;
 
     void setAttribute(OperationWithAttributes operation,String name,byte[] value);
 

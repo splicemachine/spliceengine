@@ -5,7 +5,6 @@ import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -192,21 +191,6 @@ public class LazyTxnView implements TxnView {
         return delegate;
     }
 
-    protected void lookup(boolean force)  {
-        if(lookedUp&&!force) return; //no need to perform lookup
-        synchronized (this){
-            if(lookedUp&&!force) return; //double checked locking to avoid race conditions on committed transactions
-            try {
-                delegate = store.getTransaction(txnId);
-                if(delegate==null)
-                    throw exceptionFactory.readOnlyModification("Txn "+txnId+" is read only");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            lookedUp = true;
-            inFinalState = delegate.getCommitTimestamp()>=0;
-        }
-    }
 
     public void setSupplier(TxnSupplier supplier) { this.store = supplier; }
 
@@ -226,4 +210,22 @@ public class LazyTxnView implements TxnView {
         throw new UnsupportedOperationException();
 	}
 
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private void lookup(boolean force)  {
+        if(lookedUp&&!force) return; //no need to perform lookup
+        synchronized (this){
+            if(lookedUp&&!force) return; //double checked locking to avoid race conditions on committed transactions
+            try {
+                delegate = store.getTransaction(txnId);
+                if(delegate==null)
+                    throw exceptionFactory.readOnlyModification("Txn "+txnId+" is read only");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            lookedUp = true;
+            inFinalState = delegate.getCommitTimestamp()>=0;
+        }
+    }
 }

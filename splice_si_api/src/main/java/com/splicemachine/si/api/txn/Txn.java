@@ -1,14 +1,13 @@
 package com.splicemachine.si.api.txn;
 
-import com.google.common.collect.Iterators;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collections;
 import java.util.Iterator;
 
 /**
@@ -17,7 +16,6 @@ import java.util.Iterator;
  */
 @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
 public interface Txn extends TxnView{
-    Logger TXN_LOGGER=Logger.getLogger(Txn.class);
 
     Txn ROOT_TRANSACTION=new Txn(){
         @Override
@@ -27,7 +25,7 @@ public interface Txn extends TxnView{
 
         @Override
         public Iterator<ByteSlice> getDestinationTables(){
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
 
         @Override
@@ -287,7 +285,7 @@ public interface Txn extends TxnView{
                 return "SNAPSHOT ISOLATION";
             }
         };
-        protected final int level;
+        private final int level;
 
         IsolationLevel(int level){
             this.level=level;

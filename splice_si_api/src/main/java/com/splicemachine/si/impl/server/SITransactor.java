@@ -52,19 +52,19 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>
         implements Transactor{
     private static final Logger LOG=Logger.getLogger(SITransactor.class);
-    private final SDataLib<OperationWithAttributes, Data, Delete, Get, Put, RegionScanner, Result, Scan> dataLib;
-    private final DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore;
+    private final SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib;
+    private final DataStore<OperationWithAttributes, Data, Get, Scan> dataStore;
     private final OperationStatusFactory operationStatusLib;
     private final ExceptionFactory exceptionLib;
 
-    private final TxnOperationFactory<OperationWithAttributes, Get, Mutation, Put, Scan> txnOperationFactory;
+    private final TxnOperationFactory<OperationWithAttributes, Get, Scan> txnOperationFactory;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
 
     public SITransactor(TxnSupplier txnSupplier,
                         IgnoreTxnCacheSupplier ignoreTxnSupplier,
-                        TxnOperationFactory<OperationWithAttributes, Get, Mutation, Put, Scan> txnOperationFactory,
-                        DataStore<OperationWithAttributes, Data, Delete, Filter, Get, Put, RegionScanner, Result, Scan> dataStore,
+                        TxnOperationFactory<OperationWithAttributes, Get, Scan> txnOperationFactory,
+                        DataStore<OperationWithAttributes, Data, Get, Scan> dataStore,
                         OperationStatusFactory operationStatusLib,
                         ExceptionFactory exceptionFactory){
         this.txnSupplier=txnSupplier;
@@ -163,12 +163,12 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         return operationStatusLib.getCorrectStatus(status,oldStatus);
     }
 
-    protected MutationStatus[] processInternal(Partition table,
-                                                RollForward rollForwardQueue,
-                                                TxnView txn,
-                                                byte[] family,byte[] qualifier,
-                                                Collection<KVPair> mutations,
-                                                ConstraintChecker constraintChecker) throws IOException{
+    private MutationStatus[] processInternal(Partition table,
+                                             RollForward rollForwardQueue,
+                                             TxnView txn,
+                                             byte[] family,byte[] qualifier,
+                                             Collection<KVPair> mutations,
+                                             ConstraintChecker constraintChecker) throws IOException{
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
         MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];

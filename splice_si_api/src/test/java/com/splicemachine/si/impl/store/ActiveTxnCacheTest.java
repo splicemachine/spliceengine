@@ -90,7 +90,7 @@ public class ActiveTxnCacheTest{
 
     /*****************************************************************************************************************/
     /*private helper methods*/
-    protected TxnLifecycleManager getLifecycleManager() throws IOException{
+    private TxnLifecycleManager getLifecycleManager() throws IOException{
         final AtomicLong al=new AtomicLong(0l);
         TxnLifecycleManager tc=mock(TxnLifecycleManager.class);
         when(tc.commit(anyLong())).thenAnswer(new Answer<Long>(){

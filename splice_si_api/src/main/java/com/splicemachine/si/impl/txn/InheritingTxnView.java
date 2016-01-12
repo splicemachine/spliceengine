@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.txn;
 
-import com.google.common.collect.Iterators;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
@@ -9,6 +8,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collections;
 import java.util.Iterator;
 
 /**
@@ -69,7 +69,7 @@ public class InheritingTxnView extends AbstractTxnView{
                 hasAdditive,isAdditive,
                 hasAllowWrites,allowWrites,
                 commitTimestamp,globalCommitTimestamp,
-                state,Iterators.<ByteSlice>emptyIterator());
+                state,Collections.<ByteSlice>emptyIterator());
     }
 
     public InheritingTxnView(TxnView parentTxn,

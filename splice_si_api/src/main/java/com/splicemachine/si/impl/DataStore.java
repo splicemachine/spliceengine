@@ -8,7 +8,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.Map;
 
-import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
 /**
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
@@ -16,12 +15,10 @@ import static com.splicemachine.si.constants.SIConstants.SUPPRESS_INDEXING_ATTRI
  */
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class DataStore<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,
-        Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,RegionScanner,Result,Scan extends OperationWithAttributes> {
+public class DataStore<OperationWithAttributes,Data, Get extends OperationWithAttributes, Scan extends OperationWithAttributes> {
 
-    public final SDataLib<OperationWithAttributes,Data,Delete, Get,
-            Put,RegionScanner,Result,Scan> dataLib;
+    public final SDataLib<OperationWithAttributes,Data, Get,
+            Scan> dataLib;
     private final String siNeededAttribute;
     private final String deletePutAttribute;
     private final byte[] commitTimestampQualifier;
@@ -57,12 +54,6 @@ public class DataStore<OperationWithAttributes,Data,Delete extends OperationWith
     }
 
 
-    public Boolean getDeletePutAttribute(OperationWithAttributes operation) {
-        byte[] neededValue = dataLib.getAttribute(operation,deletePutAttribute);
-        if (neededValue == null) return false;
-        return dataLib.decode(neededValue, Boolean.class);
-    }
-
     public boolean getDeletePutAttribute(Attributable operation) {
         byte[] neededValue = operation.getAttribute(deletePutAttribute);
         if (neededValue == null) return false;
@@ -84,10 +75,6 @@ public class DataStore<OperationWithAttributes,Data,Delete extends OperationWith
             return CellType.FOREIGN_KEY_COUNTER;
         }
         return CellType.OTHER;
-    }
-
-    public boolean isSuppressIndexing(OperationWithAttributes operation) {
-        return dataLib.getAttribute(operation,SUPPRESS_INDEXING_ATTRIBUTE_NAME) != null;
     }
 
     public void setTombstonesOnColumns(Partition table, long timestamp, DataPut put) throws IOException {
@@ -112,8 +99,8 @@ public class DataStore<OperationWithAttributes,Data,Delete extends OperationWith
         return table.getName();
     }
 
-    public SDataLib<OperationWithAttributes,Data,Delete, Get,
-            Put,RegionScanner,Result,Scan> getDataLib() {
+    public SDataLib<OperationWithAttributes,Data, Get,
+            Scan> getDataLib() {
         return this.dataLib;
     }
 }

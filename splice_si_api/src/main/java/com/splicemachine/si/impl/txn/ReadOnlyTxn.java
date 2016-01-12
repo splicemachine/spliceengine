@@ -4,7 +4,6 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -165,7 +164,7 @@ public class ReadOnlyTxn extends AbstractTxn{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"Before elevateToWritable: txn=%s,writeTable=%s",this,writeTable);
         assert state.get()==State.ACTIVE:"Cannot elevate an inactive transaction!";
-        Txn newTxn=null;
+        Txn newTxn;
         if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
                         /*
 						 * We are a read-only child transaction of a parent. This means that we didn't actually

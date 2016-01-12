@@ -33,8 +33,8 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
         Scan extends OperationWithAttributes> implements TxnFilter{
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
-    private final DataStore<OperationWithAttributes, Data, Delete, Filter,
-            Get, Put, RegionScanner, Result, Scan> dataStore;
+    private final DataStore<OperationWithAttributes, Data,
+            Get, Scan> dataStore;
     private final ReadResolver readResolver;
     //per row fields
     private final LongOpenHashSet visitedTxnIds=new LongOpenHashSet();

@@ -18,7 +18,7 @@ public enum TransactionStatus {
         this.id = id;
     }
 
-    public boolean isActive() {
+    private boolean isActive() {
         // COMITTING is considered ACTIVE, since we still don't know what will happen with the transaction
         return this.equals(ACTIVE) || this.equals(COMMITTING);
     }

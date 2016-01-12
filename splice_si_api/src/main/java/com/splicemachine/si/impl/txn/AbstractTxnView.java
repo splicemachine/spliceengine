@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.txn;
 
-import com.google.common.collect.Iterators;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
@@ -9,6 +8,7 @@ import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Collections;
 import java.util.Iterator;
 import org.apache.log4j.Logger;
 
@@ -19,7 +19,7 @@ import org.apache.log4j.Logger;
 public abstract class AbstractTxnView implements TxnView {
 	private static final Logger LOG = Logger.getLogger(AbstractTxnView.class);
     protected long txnId;
-    protected long beginTimestamp;
+    private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
 
     public AbstractTxnView() {
@@ -260,7 +260,7 @@ public abstract class AbstractTxnView implements TxnView {
         }else return ConflictType.SIBLING;
     }
 
-    @Override public Iterator<ByteSlice> getDestinationTables() { return Iterators.emptyIterator(); }
+    @Override public Iterator<ByteSlice> getDestinationTables() { return Collections.emptyIterator(); }
 
     @Override
     public boolean descendsFrom(TxnView potentialParent) {

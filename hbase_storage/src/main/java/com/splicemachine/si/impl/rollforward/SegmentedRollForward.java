@@ -139,7 +139,7 @@ public class SegmentedRollForward implements RollForward {
                     if(LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG,"Submitting task on segment %s as it has the largest size of %d",maxSegment,maxSize);
                     maxSegment.markInProgress();
-                    action.submitAction(region,maxSegment.getRangeStart(),maxSegment.getRangeEnd(),new RegionSegmentContext(maxSegment,status));
+                    action.submitAction(region,maxSegment.getRangeStart(),maxSegment.getRangeEnd(),new RegionSegmentContext(maxSegment));
                 }finally{
                     //reschedule us for future execution
                     rollForwardScheduler.schedule(this,rollForwardIntervalMs,TimeUnit.MILLISECONDS);
@@ -366,7 +366,7 @@ public class SegmentedRollForward implements RollForward {
                     SpliceLogUtils.trace(LOG,"segment %s has %d transactions, exceeding the threshold. Rolling forward",regionSegment,uniqueTxns);
                 //we've exceeded our thresholds, a RollForward action is a good option now
                 regionSegment.markInProgress();
-                action.submitAction(region,regionSegment.getRangeStart(),regionSegment.getRangeEnd(),new RegionSegmentContext(regionSegment,status));
+                action.submitAction(region,regionSegment.getRangeStart(),regionSegment.getRangeEnd(),new RegionSegmentContext(regionSegment));
             }
         }
     }

@@ -19,7 +19,6 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.TxnUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,7 +36,7 @@ public class V2TxnDecoder implements TxnDecoder{
     private V2TxnDecoder(){ } //singleton instance
 
     @Override
-    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,
+    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
                                  RegionTxnStore txnStore,
                                  List<Cell> keyValues) throws IOException{
         if(keyValues.size()<=0) return null;
@@ -69,7 +68,7 @@ public class V2TxnDecoder implements TxnDecoder{
     }
 
     @Override
-    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Delete, Get, Put, RegionScanner, Result, Scan> dataLib,
+    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
                                  RegionTxnStore txnStore,
                                  long txnId,Result result) throws IOException{
         Cell dataKv=result.getColumnLatestCell(FAMILY,DATA_QUALIFIER_BYTES);
@@ -83,13 +82,13 @@ public class V2TxnDecoder implements TxnDecoder{
         return decodeInternal(dataLib,txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
     }
 
-    protected long toLong(SDataLib<OperationWithAttributes, Cell, Delete, Get,
-            Put, RegionScanner, Result, Scan> dataLib,Cell data){
+    protected long toLong(SDataLib<OperationWithAttributes, Cell, Get,
+            Scan> dataLib,Cell data){
         return Encoding.decodeLong(dataLib.getDataValueBuffer(data),dataLib.getDataValueOffset(data),false);
     }
 
-    protected TxnMessage.Txn decodeInternal(SDataLib<OperationWithAttributes, Cell, Delete, Get,
-            Put, RegionScanner, Result, Scan> dataLib,
+    protected TxnMessage.Txn decodeInternal(SDataLib<OperationWithAttributes, Cell, Get,
+            Scan> dataLib,
                                             RegionTxnStore txnStore,
                                             Cell dataKv,Cell keepAliveKv,Cell commitKv,Cell globalCommitKv,
                                             Cell stateKv,Cell destinationTables,long txnId){

@@ -1,7 +1,5 @@
 package com.splicemachine.si.data.hbase;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
@@ -12,7 +10,6 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,11 +23,7 @@ import static com.splicemachine.si.constants.SIConstants.*;
  */
 public class HDataLib implements SDataLib<OperationWithAttributes,
         Cell,
-        Delete,
         Get,
-        Put,
-        RegionScanner,
-        Result,
         Scan>{
     private static final HDataLib INSTANCE= new HDataLib();
 
@@ -41,18 +34,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
             bytes.add(convertToBytes(a,a.getClass()));
         }
         return Bytes.concat(bytes);
-    }
-
-    @Override
-    public List<DataCell> listResult(Result result){
-        final HCell newCellWrapper=new HCell();
-        return Lists.transform(result.listCells(),new Function<Cell, DataCell>(){
-            @Override
-            public DataCell apply(Cell input){
-                newCellWrapper.set(input);
-                return newCellWrapper;
-            }
-        });
     }
 
     @Override
@@ -114,20 +95,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         throw new RuntimeException("unsupported type conversion: "+type.getName());
     }
 
-    @Override
-    public void addKeyValueToPut(Put put,byte[] family,byte[] qualifier,long timestamp,byte[] value){
-        if(timestamp<0){
-            put.add(family,qualifier,value);
-        }else{
-            put.add(family,qualifier,timestamp,value);
-        }
-    }
-
-    @Override
-    public Put newPut(byte[] key){
-        return new Put(key);
-    }
-
     public static HDataLib instance(){
        return INSTANCE;
     }
@@ -164,11 +131,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         scan.setMaxVersions();
     }
 
-    @Override
-    public Delete newDelete(byte[] rowKey){
-        return new Delete(rowKey);
-    }
-
     static byte[] convertToBytes(Object value,Class clazz){
         if(clazz==String.class){
             return Bytes.toBytes((String)value);
@@ -195,11 +157,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public boolean singleMatchingFamily(Cell element,byte[] family){
-        return CellUtils.singleMatchingFamily(element,family);
-    }
-
-    @Override
     public boolean singleMatchingQualifier(Cell element,byte[] qualifier){
         return CellUtils.singleMatchingQualifier(element,qualifier);
     }
@@ -207,11 +164,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public boolean matchingValue(Cell element,byte[] value){
         return CellUtils.matchingValue(element,value);
-    }
-
-    @Override
-    public boolean matchingRowKeyValue(Cell element,Cell other){
-        return CellUtils.matchingRowKeyValue(element,other);
     }
 
     @Override
@@ -260,21 +212,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public byte[] getDataValue(Cell element){
-        return CellUtil.cloneValue(element);
-    }
-
-    @Override
-    public Cell[] getDataFromResult(Result result){
-        return result.rawCells();
-    }
-
-    @Override
-    public byte[] getDataRow(Cell element){
-        return CellUtil.cloneRow(element);
-    }
-
-    @Override
     public byte[] getDataValueBuffer(Cell element){
         return element.getValueArray();
     }
@@ -307,18 +244,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     @Override
     public int getDataRowlength(Cell element){
         return element.getRowLength();
-    }
-
-    @Override
-    public boolean regionScannerNext(RegionScanner regionScanner,
-                                     List<Cell> data) throws IOException{
-        return regionScanner.next(data);
-    }
-
-    @Override
-    public boolean regionScannerNextRaw(RegionScanner regionScanner,
-                                        List<Cell> data) throws IOException{
-        return regionScanner.nextRaw(data);
     }
 
     @Override
@@ -356,11 +281,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
 
     @Override
     public Scan newScan(){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public Scan newScan(byte[] startRowKey,byte[] endRowKey){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 

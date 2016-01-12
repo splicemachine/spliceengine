@@ -28,7 +28,7 @@ public class ActiveTransactionTest{
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1216");
 
     private static SITestEnv testEnv;
-    protected static TestTransactionSetup transactorSetup;
+    private static TestTransactionSetup transactorSetup;
 
     private TxnLifecycleManager control;
     private final List<Txn> createdParentTxns = Lists.newArrayList();

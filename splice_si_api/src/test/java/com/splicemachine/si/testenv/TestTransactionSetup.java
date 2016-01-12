@@ -33,21 +33,19 @@ public class TestTransactionSetup {
 
     byte[] family;
     byte[] ageQualifier;
-    byte[] jobQualifier;
     int agePosition = 0;
     int jobPosition = 1;
 
     TxnOperationFactory txnOperationFactory;
     public Transactor transactor;
-    public ManagedTransactor hTransactor;
-    public DataStore dataStore;
+    private DataStore dataStore;
     public TimestampSource timestampSource;
     public TransactionReadController readController;
 
-    public KeepAliveScheduler keepAliveScheduler;
+    private KeepAliveScheduler keepAliveScheduler;
     public final TxnStore txnStore;
-    public final TxnSupplier txnSupplier;
-    public final IgnoreTxnCacheSupplier ignoreTxnSupplier;
+    private final TxnSupplier txnSupplier;
+    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     public TxnLifecycleManager txnLifecycleManager;
     private DataFilterFactory filterFactory;
 
@@ -56,7 +54,6 @@ public class TestTransactionSetup {
 
         family = dataLib.encode(SIConstants.DEFAULT_FAMILY_BYTES);
         ageQualifier = dataLib.encode(Bytes.toBytes("age"));
-        jobQualifier = dataLib.encode(Bytes.toBytes("job"));
 
         final ManagedTransactor listener = new ManagedTransactor();
 
@@ -99,7 +96,6 @@ public class TestTransactionSetup {
 
         if (!simple) {
             listener.setTransactor(transactor);
-            hTransactor = listener;
         }
     }
 

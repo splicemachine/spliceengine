@@ -47,7 +47,7 @@ public class TestingTxnStore implements TxnStore{
         if(txn==null) return null;
 
         if(isTimedOut(txn))
-            return getRolledbackTxn(txnId,txn.txn);
+            return getRolledbackTxn(txn.txn);
         else return txn.txn;
     }
 
@@ -92,10 +92,10 @@ public class TestingTxnStore implements TxnStore{
 
         Txn.State state=txn.getState();
         if(state!=Txn.State.ACTIVE) return; //nothing to do if we aren't active
-        txnHolder.txn=getRolledbackTxn(txnId,txn);
+        txnHolder.txn=getRolledbackTxn(txn);
     }
 
-    protected Txn getRolledbackTxn(long txnId,final Txn txn){
+    private Txn getRolledbackTxn(final Txn txn){
         return new ForwardingTxnView(txn){
             @Override
             public void commit() throws IOException{
@@ -282,7 +282,7 @@ public class TestingTxnStore implements TxnStore{
         return true;
     }
 
-    protected boolean isTimedOut(TxnHolder txn){
+    private boolean isTimedOut(TxnHolder txn){
         return txn.txn.getEffectiveState()==Txn.State.ACTIVE &&
                 (clock.currentTimeMillis()-txn.keepAliveTs)>txnTimeOutIntervalMs;
     }

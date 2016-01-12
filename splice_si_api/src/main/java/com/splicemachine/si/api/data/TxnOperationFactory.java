@@ -15,11 +15,7 @@ import java.io.ObjectOutput;
  */
 public interface TxnOperationFactory<OperationWithAttributes,
         Get extends OperationWithAttributes,
-        Mutation extends OperationWithAttributes,
-        Put extends OperationWithAttributes,
         Scan extends OperationWithAttributes>{
-
-    Put newPut(TxnView txn,byte[] rowKey) throws IOException;
 
     Scan newScan(TxnView txn);
 
@@ -30,8 +26,6 @@ public interface TxnOperationFactory<OperationWithAttributes,
     Get newGet(TxnView txn,byte[] rowKey);
 
     DataGet newDataGet(TxnView txn,byte[] rowKey,DataGet previous);
-
-    Mutation newDelete(TxnView txn,byte[] rowKey) throws IOException;
 
     TxnView fromReads(Attributable op) throws IOException;
 
@@ -46,7 +40,7 @@ public interface TxnOperationFactory<OperationWithAttributes,
     void writeTxn(TxnView txn,ObjectOutput out) throws IOException;
 
     void writeScan(DataScan scan, ObjectOutput out) throws IOException;
-//SpliceTableMapReduceUtil.convertStringToScan(in.readUTF());
+
     DataScan readScan(ObjectInput in) throws IOException;
 
     byte[] encode(TxnView txn);

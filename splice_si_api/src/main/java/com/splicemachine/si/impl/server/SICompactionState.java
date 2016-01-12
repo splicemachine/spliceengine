@@ -24,15 +24,15 @@ import java.util.TreeSet;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<OperationWithAttributes,Data,Delete extends OperationWithAttributes,
-    Put extends OperationWithAttributes, Filter, Get extends OperationWithAttributes,
-        OperationStatus,RegionScanner,Result,Scan extends OperationWithAttributes> {
+public class SICompactionState<OperationWithAttributes,Data,
+        Get extends OperationWithAttributes,
+        Scan extends OperationWithAttributes> {
     private static final Logger LOG = Logger.getLogger(SICompactionState.class);
-    private final DataStore<OperationWithAttributes,Data,Delete,Filter,
-                Get,
-            Put,RegionScanner,Result, Scan> dataStore;
+    private final DataStore<OperationWithAttributes,Data,
+            Get,
+            Scan> dataStore;
     private final TxnSupplier transactionStore;
-    public SortedSet<Data> dataToReturn;
+    private SortedSet<Data> dataToReturn;
     private final RollForward rollForward;
     private ByteSlice rowSlice = new ByteSlice();
 
@@ -40,7 +40,7 @@ public class SICompactionState<OperationWithAttributes,Data,Delete extends Opera
         this.dataStore = dataStore;
         this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
-        this.dataToReturn  = new TreeSet<Data>(dataStore.dataLib.getComparator());
+        this.dataToReturn  =new TreeSet<>(dataStore.dataLib.getComparator());
     }
 
     /**
