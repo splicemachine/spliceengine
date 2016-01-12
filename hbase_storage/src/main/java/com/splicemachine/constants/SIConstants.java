@@ -95,13 +95,6 @@ public class SIConstants extends SpliceConstants {
     @DefaultValue(ROLL_FORWARD_READ_RATE) public static final int DEFAULT_ROLL_FORWARD_READ_RATE=10000; //default is 10,000 rows/sec
     public static int rollForwardRate;
 
-    @Parameter public static final String READ_RESOLVER_THREADS = "splice.txn.readresolver.threads";
-    @DefaultValue(READ_RESOLVER_THREADS) public static final int DEFAULT_READ_RESOLVER_THREADS = 4;
-    public static int readResolverThreads;
-
-    @Parameter public static final String READ_RESOLVER_QUEUE_SIZE = "splice.txn.readresolver.queueSize";
-    @DefaultValue(READ_RESOLVER_QUEUE_SIZE)public static final int DEFAULT_READ_RESOLVER_QUEUE_SIZE=1<<16;
-    public static int readResolverQueueSize;
 
     public static void setParameters(Configuration config){
         committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);

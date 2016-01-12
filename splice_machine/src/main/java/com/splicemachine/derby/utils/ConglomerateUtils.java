@@ -25,7 +25,11 @@ import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Iterator;
+import java.util.ServiceLoader;
+
 import com.carrotsearch.hppc.BitSet;
+import scala.collection.Seq;
 
 /**
  * Utilities related to managing DerbyConglomerates
@@ -52,6 +56,7 @@ public class ConglomerateUtils  {
         SIDriver driver=SIDriver.driver();
         try (Partition partition =driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
             DataGet get = driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
+            get.returnAllVersions();
             get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
             EntryPredicateFilter predicateFilter  = EntryPredicateFilter.emptyPredicate();
             get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
@@ -258,12 +263,34 @@ public class ConglomerateUtils  {
      */
     public static long getNextConglomerateId() throws IOException{
         LOG.trace("getting next conglomerate id");
-        return EngineDriver.driver().getConglomerateSequencer().next();
+        return conglomSequencer().next();
     }
 
     public static void setNextConglomerateId(long conglomerateId) throws IOException {
         LOG.trace("setting next conglomerate id");
-        EngineDriver.driver().getConglomerateSequencer().setPosition(conglomerateId);
+        conglomSequencer().setPosition(conglomerateId);
+    }
+
+    private static volatile Sequencer CONGLOM_SEQUENCE;
+
+    private static Sequencer conglomSequencer(){
+        Sequencer s = CONGLOM_SEQUENCE;
+        if(s==null){
+            s = loadConglomSequencer();
+        }
+        return s;
+    }
+
+    private static synchronized Sequencer loadConglomSequencer(){
+        Sequencer s= CONGLOM_SEQUENCE;
+        if(s==null){
+            ServiceLoader<Sequencer> loader = ServiceLoader.load(Sequencer.class);
+            Iterator<Sequencer> iter = loader.iterator();
+            if(!iter.hasNext())
+                throw new IllegalStateException("No Sequencers found!");
+            s = CONGLOM_SEQUENCE = iter.next();
+        }
+        return s;
     }
 
 }

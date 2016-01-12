@@ -112,8 +112,7 @@ public class StatsConfiguration{
     public static final String FALLBACK_ROW_WIDTH="splice.statistics.fallbackMinimumRowWidth";
     public static final int DEFAULT_FALLBACK_ROW_WIDTH=170;
 
-    public static class Defaults implements SConfiguration.Defaults{
-
+    public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
 
         @Override
         public boolean hasLongDefault(String key){
@@ -182,5 +181,40 @@ public class StatsConfiguration{
         public String defaultStringFor(String key){
             return null;
         }
-    }
+
+        @Override
+        public boolean defaultBooleanFor(String key){
+            throw new IllegalStateException("No Stats default found for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasBooleanDefault(String key){
+            return false;
+        }
+
+        @Override
+        public double defaultDoubleFor(String key){
+            switch(key){
+                case FALLBACK_NULL_FRACTION: return DEFAULT_FALLBACK_NULL_FRACTION;
+                case FALLBACK_CARDINALITY_FRACTION: return DEFAULT_FALLBACK_CARDINALITY_FRACTION;
+                case FALLBACK_INDEX_SELECTIVITY_FRACTION: return DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION;
+                case OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER: return DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER;
+                default:
+                    throw new IllegalStateException("No Stats default found for key '"+key+"'");
+            }
+        }
+
+        @Override
+        public boolean hasDoubleDefault(String key){
+            switch(key){
+                case FALLBACK_NULL_FRACTION:
+                case FALLBACK_CARDINALITY_FRACTION:
+                case FALLBACK_INDEX_SELECTIVITY_FRACTION:
+                case OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER:
+                    return true;
+                default:
+                    throw new IllegalStateException("No Stats default found for key '"+key+"'");
+            }
+        }
+    };
 }

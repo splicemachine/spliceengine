@@ -31,9 +31,10 @@ public class MDelete implements DataDelete{
     }
 
     @Override
-    public void deleteColumn(byte[] family,byte[] qualifier,long version){
+    public DataDelete deleteColumn(byte[] family,byte[] qualifier,long version){
         DataCell dc = new MCell(key,family,qualifier,version,new byte[]{},CellType.USER_DATA);
         exactColsToDelete.add(dc);
+        return this;
     }
 
     @Override

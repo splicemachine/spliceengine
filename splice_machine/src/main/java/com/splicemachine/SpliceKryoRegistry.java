@@ -92,6 +92,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                         int kpSize = driver.getConfiguration().getInt(SQLConfiguration.KRYO_POOL_SIZE);
                         kp = spliceKryoPool = new KryoPool(kpSize);
                     }
+                    kp.setKryoRegistry(new SpliceKryoRegistry());
                 }
             }
         }

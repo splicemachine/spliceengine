@@ -31,9 +31,6 @@ public class EngineDriver{
     private final ResourcePool<SpliceSequence, SequenceKey> sequencePool;
     private final SpliceMachineVersion version;
     private final SConfiguration config;
-    private final Sequencer conglomerateSequencer;
-    private final StorageFactory storageFactory;
-    private final FileResourceFactory fileResourceFactory;
     private final BackupManager backupManager;
     private final PartitionLoadWatcher loadWatcher;
     private final DataSetProcessorFactory processorFactory;
@@ -52,9 +49,6 @@ public class EngineDriver{
         this.internalConnection=environment.getInternalConnection();
         this.version=environment.getVersion();
         this.config=environment.getConfiguration();
-        this.conglomerateSequencer = environment.getConglomerateSequencer();
-        this.fileResourceFactory = environment.getFileResourceFactory();
-        this.storageFactory = environment.getStorageFactory();
         this.backupManager = environment.getBackupManager();
         this.loadWatcher = environment.getLoadWatcher();
         this.processorFactory = environment.getProcessorFactory();
@@ -93,18 +87,6 @@ public class EngineDriver{
 
     public SConfiguration getConfiguration(){
         return config;
-    }
-
-    public StorageFactory getStorageFactory(){
-        return storageFactory;
-    }
-
-    public FileResourceFactory fileResourceFactory(){
-        return fileResourceFactory;
-    }
-
-    public Sequencer getConglomerateSequencer(){
-        return conglomerateSequencer;
     }
 
     public PropertyManager propertyManager(){

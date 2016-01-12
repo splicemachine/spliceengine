@@ -21,6 +21,7 @@ public class StorageConfiguration{
 
     public static final String REGION_MAX_FILE_SIZE = "hbase.hregion.max.filesize";
 
+
     public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
@@ -57,6 +58,26 @@ public class StorageConfiguration{
         @Override
         public String defaultStringFor(String key){
             throw new IllegalArgumentException("No String default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean defaultBooleanFor(String key){
+            throw new IllegalArgumentException("No Boolean default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasBooleanDefault(String key){
+            return false;
+        }
+
+        @Override
+        public double defaultDoubleFor(String key){
+            throw new IllegalArgumentException("No Double default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasDoubleDefault(String key){
+            return false;
         }
     };
 }

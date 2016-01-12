@@ -1,9 +1,9 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -16,6 +16,8 @@ public class MGet implements DataGet{
     private DataFilter filter;
     private long highTs;
     private long lowTs;
+
+    private Map<byte[],Set<byte[]>> familyQualifierMap = new TreeMap<>(Bytes.basicByteComparator());
 
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public MGet(byte[] key){
@@ -30,7 +32,8 @@ public class MGet implements DataGet{
 
     @Override
     public void returnAllVersions(){
-
+        this.highTs = Long.MAX_VALUE;
+        this.lowTs = 0l;
     }
 
     @Override
@@ -61,7 +64,12 @@ public class MGet implements DataGet{
 
     @Override
     public void addColumn(byte[] family,byte[] qualifier){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        Set<byte[]> bytes=familyQualifierMap.get(family);
+        if(bytes==null){
+            bytes = new TreeSet<>(Bytes.basicByteComparator());
+            familyQualifierMap.put(family,bytes);
+        }
+        bytes.add(qualifier);
     }
 
     @Override

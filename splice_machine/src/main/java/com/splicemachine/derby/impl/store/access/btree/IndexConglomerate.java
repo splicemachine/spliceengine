@@ -29,6 +29,7 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -557,6 +558,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
+        partitionFactory =SIDriver.driver().getTableFactory();
+        opFactory = SIDriver.driver().getOperationFactory();
     }
 
     /**

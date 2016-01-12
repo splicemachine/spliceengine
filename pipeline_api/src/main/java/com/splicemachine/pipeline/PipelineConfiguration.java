@@ -135,6 +135,26 @@ public class PipelineConfiguration{
         }
 
         @Override
+        public boolean defaultBooleanFor(String key){
+            throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasBooleanDefault(String key){
+            return false;
+        }
+
+        @Override
+        public double defaultDoubleFor(String key){
+            throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasDoubleDefault(String key){
+            return false;
+        }
+
+        @Override
         public boolean hasLongDefault(String key){
             switch(key){
                 case THREAD_KEEPALIVE_TIME:
@@ -143,7 +163,7 @@ public class PipelineConfiguration{
                 case STARTUP_LOCK_WAIT_PERIOD:
                     return true;
                 default:
-                    throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
+                    return false;
             }
         }
 

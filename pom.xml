@@ -35,6 +35,7 @@
         <module>hbase_pipeline</module>
 		<module>hbase_ddl</module>
 		<module>hbase_sql</module>
+		<module>mem_engine</module>
 	</modules>
 	<properties>
 		<derby.version>2.0.0.1-SNAPSHOT</derby.version>

@@ -181,12 +181,12 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     protected void configureAuthentication(){
-        SConfiguration configuration =EngineDriver.driver().getConfiguration();
+        SConfiguration configuration =SIDriver.driver().getConfiguration();
         if(configuration.getBoolean(AuthenticationConfiguration.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE)){
             System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
         }
 
-        String authTypeString=configuration.getString(AuthenticationConfiguration.AUTHENTICATION_NATIVE_ALGORITHM);
+        String authTypeString=configuration.getString(AuthenticationConfiguration.AUTHENTICATION);
         AuthenticationType authType= AuthenticationType.valueOf(authTypeString);
         switch(authType){
             case NONE:

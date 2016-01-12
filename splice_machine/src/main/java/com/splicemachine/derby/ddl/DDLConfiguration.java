@@ -89,5 +89,25 @@ public class DDLConfiguration{
         public String defaultStringFor(String key){
             throw new IllegalArgumentException("No DDL default for key '"+key+"'");
         }
+
+        @Override
+        public boolean defaultBooleanFor(String key){
+            throw new IllegalArgumentException("No DDL default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasBooleanDefault(String key){
+            return false;
+        }
+
+        @Override
+        public double defaultDoubleFor(String key){
+            throw new IllegalArgumentException("No DDL default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasDoubleDefault(String key){
+            return false;
+        }
     };
 }

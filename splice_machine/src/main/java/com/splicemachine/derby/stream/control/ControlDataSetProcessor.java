@@ -44,7 +44,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     private final DataStore dataStore;
     private final TxnOperationFactory txnOperationFactory;
 
-    public ControlDataSetProcessor(TxnSupplier txnSupplier,IgnoreTxnCacheSupplier ignoreSupplier,Transactor transactory,DataStore dataStore,TxnOperationFactory txnOperationFactory){
+    public ControlDataSetProcessor(TxnSupplier txnSupplier,
+                                   IgnoreTxnCacheSupplier ignoreSupplier,
+                                   Transactor transactory,
+                                   DataStore dataStore,
+                                   TxnOperationFactory txnOperationFactory){
         this.txnSupplier=txnSupplier;
         this.ignoreSupplier=ignoreSupplier;
         this.transactory=transactory;

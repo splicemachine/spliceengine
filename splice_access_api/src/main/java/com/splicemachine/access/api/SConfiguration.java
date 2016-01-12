@@ -46,6 +46,14 @@ public interface SConfiguration{
         boolean hasStringDefault(String key);
 
         String defaultStringFor(String key);
+
+        boolean defaultBooleanFor(String key);
+
+        boolean hasBooleanDefault(String key);
+
+        double defaultDoubleFor(String key);
+
+        boolean hasDoubleDefault(String key);
     }
 
     void addDefaults(Defaults defaults);

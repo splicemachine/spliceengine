@@ -28,6 +28,12 @@ public class SIConfigurations{
     public static final String TRANSACTION_KEEP_ALIVE_THREADS="splice.txn.keepAliveThreads";
     public static final int DEFAULT_KEEP_ALIVE_THREADS=4;
 
+    public static final String READ_RESOLVER_THREADS = "splice.txn.readresolver.threads";
+    private static final int DEFAULT_READ_RESOLVER_THREADS = 4;
+
+    public static final String READ_RESOLVER_QUEUE_SIZE = "splice.txn.readresolver.queueSize";
+    private static final int DEFAULT_READ_RESOLVER_QUEUE_SIZE=1<<16;
+
     public static final SConfiguration.Defaults defaults=new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
@@ -45,6 +51,8 @@ public class SIConfigurations{
                 case completedTxnConcurrency: return DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY;
                 case completedTxnCacheSize: return DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE;
                 case TRANSACTION_KEEP_ALIVE_THREADS: return DEFAULT_KEEP_ALIVE_THREADS;
+                case READ_RESOLVER_THREADS: return DEFAULT_READ_RESOLVER_THREADS;
+                case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
                 default:
                     throw new IllegalArgumentException("No SI default for key '"+key+"'");
             }
@@ -67,6 +75,8 @@ public class SIConfigurations{
                 case completedTxnConcurrency:
                 case completedTxnCacheSize:
                 case TRANSACTION_KEEP_ALIVE_THREADS:
+                case READ_RESOLVER_THREADS:
+                    case READ_RESOLVER_QUEUE_SIZE:
                     return true;
                 default:
                     return false;
@@ -81,6 +91,26 @@ public class SIConfigurations{
         @Override
         public String defaultStringFor(String key){
             throw new IllegalArgumentException("No SI default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean defaultBooleanFor(String key){
+            throw new IllegalArgumentException("No SI default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasBooleanDefault(String key){
+            return false;
+        }
+
+        @Override
+        public double defaultDoubleFor(String key){
+            throw new IllegalArgumentException("No SI default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasDoubleDefault(String key){
+            return false;
         }
     };
 }

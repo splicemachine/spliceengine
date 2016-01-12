@@ -66,4 +66,40 @@ public class ChainedDefaults implements SConfiguration.Defaults{
         }
         throw new IllegalStateException("No default string set for key '"+key+"'");
     }
+
+    @Override
+    public boolean defaultBooleanFor(String key){
+        for(SConfiguration.Defaults def:defaults){
+            if(def.hasBooleanDefault(key))
+                return def.defaultBooleanFor(key);
+        }
+        throw new IllegalStateException("No default boolean set for key '"+key+"'");
+    }
+
+    @Override
+    public boolean hasBooleanDefault(String key){
+        for(SConfiguration.Defaults def:defaults){
+            if(def.hasBooleanDefault(key))
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    public double defaultDoubleFor(String key){
+        for(SConfiguration.Defaults def:defaults){
+            if(def.hasDoubleDefault(key))
+                return def.defaultDoubleFor(key);
+        }
+        throw new IllegalStateException("No default boolean set for key '"+key+"'");
+    }
+
+    @Override
+    public boolean hasDoubleDefault(String key){
+        for(SConfiguration.Defaults def:defaults){
+            if(def.hasDoubleDefault(key))
+                return true;
+        }
+        return false;
+    }
 }

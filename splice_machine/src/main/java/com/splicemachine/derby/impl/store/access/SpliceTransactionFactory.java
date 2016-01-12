@@ -221,13 +221,14 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         contextFactory=ContextService.getFactory();
         lockFactory=new SpliceLockFactory();
         lockFactory.boot(create,properties);
-        storageFactory=EngineDriver.driver().getStorageFactory();//new HdfsDirStorageFactory();
+        storageFactory = StorageFactoryService.newStorageFactory();
         try{
             storageFactory.init(null,SQLConfiguration.SPLICE_DB,null,null);
         }catch(IOException ioe){
             throw StandardException.newException(SQLState.FILE_UNEXPECTED_EXCEPTION,ioe);
         }
-        fileHandler = EngineDriver.driver().fileResourceFactory().newFileResource();
+        FileResourceFactory frf = FileResourceFactoryService.loadFileResourceFactory();
+        fileHandler = frf.newFileResource();
     }
 
     public void stop(){

@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 12/16/15
@@ -16,6 +18,22 @@ public class MFilterFactory implements DataFilterFactory{
 
     @Override
     public DataFilter allocatedFilter(byte[] localAddress){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        //TODO -sf- implement?
+        return new DataFilter(){
+            @Override
+            public ReturnCode filterCell(DataCell keyValue) throws IOException{
+                return ReturnCode.INCLUDE;
+            }
+
+            @Override
+            public boolean filterRow() throws IOException{
+                return false;
+            }
+
+            @Override
+            public void reset() throws IOException{
+
+            }
+        };
     }
 }

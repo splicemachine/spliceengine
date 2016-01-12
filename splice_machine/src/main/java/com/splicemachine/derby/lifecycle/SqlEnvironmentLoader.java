@@ -1,6 +1,7 @@
 package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.SqlEnvironment;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.uuid.Snowflake;
 
@@ -16,17 +17,19 @@ public class SqlEnvironmentLoader{
     private static volatile SqlEnvironment sqlEnv;
 
 
-    public static SqlEnvironment loadEnvironment(Snowflake snowflake,
+    public static SqlEnvironment loadEnvironment(SConfiguration config,
+                                                 Snowflake snowflake,
                                                  Connection internalConnection,
                                                  SpliceMachineVersion spliceVersion){
         SqlEnvironment env = sqlEnv;
         if(env==null){
-            env = initializeEnvironment(snowflake,internalConnection,spliceVersion);
+            env = initializeEnvironment(config,snowflake,internalConnection,spliceVersion);
         }
         return env;
     }
 
-    private static synchronized SqlEnvironment initializeEnvironment(Snowflake snowflake,
+    private static synchronized SqlEnvironment initializeEnvironment(SConfiguration config,
+                                                                     Snowflake snowflake,
                                                                      Connection internalConnection,
                                                                      SpliceMachineVersion spliceVersion){
         SqlEnvironment env = sqlEnv;
@@ -36,7 +39,7 @@ public class SqlEnvironmentLoader{
             if(!iter.hasNext())
                 throw new IllegalStateException("No SITestEnv found!");
             env = sqlEnv = iter.next();
-            sqlEnv.initialize(snowflake,internalConnection,spliceVersion);
+            sqlEnv.initialize(config,snowflake,internalConnection,spliceVersion);
             if(iter.hasNext())
                 throw new IllegalStateException("Only one SITestEnv is allowed!");
         }

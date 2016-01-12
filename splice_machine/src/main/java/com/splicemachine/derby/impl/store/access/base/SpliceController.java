@@ -144,6 +144,7 @@ public abstract class SpliceController implements ConglomerateController{
     public boolean fetch(RowLocation loc,DataValueDescriptor[] destRow,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
         try(Partition htable = getTable()){
             DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
+            baseGet.returnAllVersions();
             DataGet get=createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
             DataResult result=htable.get(get,null);
             if(result==null || result.size()<=0) return false;

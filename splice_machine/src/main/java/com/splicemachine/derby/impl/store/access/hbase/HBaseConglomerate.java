@@ -28,6 +28,7 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -394,6 +395,9 @@ public class HBaseConglomerate extends SpliceConglomerate{
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
+
+        partitionFactory =SIDriver.driver().getTableFactory();
+        opFactory = SIDriver.driver().getOperationFactory();
     }
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{

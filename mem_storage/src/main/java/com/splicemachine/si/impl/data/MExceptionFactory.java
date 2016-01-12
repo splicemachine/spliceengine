@@ -83,4 +83,9 @@ public class MExceptionFactory implements ExceptionFactory{
         if(t instanceof IOException) return (IOException)t;
         else return new IOException(t);
     }
+
+    @Override
+    public IOException doNotRetry(Throwable t){
+        return new IOException(t);
+    }
 }

@@ -7,7 +7,7 @@ package com.splicemachine.storage;
 public interface DataDelete extends DataMutation{
     void deleteColumn(DataCell dc);
 
-    void deleteColumn(byte[] family,byte[] qualifier,long version);
+    DataDelete deleteColumn(byte[] family,byte[] qualifier,long version);
 
     byte[] key();
 

@@ -16,6 +16,7 @@ public class SQLConfiguration{
 
     //TODO -sf- move this to HBase-specific configuration
     public static final String PARTITIONSERVER_PORT="hbase.regionserver.port";
+    private static final String DEFAULT_PARTITIONSERVER_PORT="16020";
     /**
      * The IP address to bind the Derby connection to.
      * Defaults to 0.0.0.0
@@ -176,30 +177,40 @@ public class SQLConfiguration{
         @Override
         public long defaultLongFor(String key){
             switch(key){
+                case OPTIMIZER_PLAN_MAXIMUM_TIMEOUT: return DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT;
+                case OPTIMIZER_PLAN_MINIMUM_TIMEOUT: return DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT;
                 default:
                     throw new IllegalArgumentException("No long default for key '"+key+"'");
             }
         }
 
         @Override
-        public int defaultIntFor(String key){
-            switch(key){
-                default:
-                    throw new IllegalArgumentException("No SQL default for key '"+key+"'");
-            }
-        }
-
-        @Override
         public boolean hasLongDefault(String key){
             switch(key){
+                case OPTIMIZER_PLAN_MAXIMUM_TIMEOUT:
+                case OPTIMIZER_PLAN_MINIMUM_TIMEOUT:
+                    return true;
                 default:
                     return false;
             }
         }
 
         @Override
+        public int defaultIntFor(String key){
+            switch(key){
+                case NETWORK_BIND_PORT: return DEFAULT_NETWORK_BIND_PORT;
+                case KRYO_POOL_SIZE: return DEFAULT_KRYO_POOL_SIZE;
+                default:
+                    throw new IllegalArgumentException("No SQL default for key '"+key+"'");
+            }
+        }
+
+        @Override
         public boolean hasIntDefault(String key){
             switch(key){
+                case NETWORK_BIND_PORT:
+                case KRYO_POOL_SIZE:
+                    return true;
                 default:
                     return false;
             }
@@ -207,15 +218,62 @@ public class SQLConfiguration{
 
         @Override
         public boolean hasStringDefault(String key){
-            return false;
+            switch(key){
+                case PARTITIONSERVER_PORT:
+                case DEBUG_LOG_STATEMENT_CONTEXT:
+                case NETWORK_BIND_ADDRESS:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         @Override
         public String defaultStringFor(String key){
             switch(key){
+                case PARTITIONSERVER_PORT: return DEFAULT_PARTITIONSERVER_PORT;
+                case NETWORK_BIND_ADDRESS: return DEFAULT_NETWORK_BIND_ADDRESS;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
             }
+        }
+
+        @Override
+        public boolean defaultBooleanFor(String key){
+            switch(key){
+                case DEBUG_LOG_STATEMENT_CONTEXT:
+                case DEBUG_DUMP_BIND_TREE:
+                case DEBUG_DUMP_CLASS_FILE:
+                case DEBUG_DUMP_OPTIMIZED_TREE:
+                    return false; //always disable debug statements by default
+                case IGNORE_SAVE_POINTS: return DEFAULT_IGNORE_SAVEPTS;
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public boolean hasBooleanDefault(String key){
+            switch(key){
+                case DEBUG_LOG_STATEMENT_CONTEXT:
+                case DEBUG_DUMP_BIND_TREE:
+                case DEBUG_DUMP_CLASS_FILE:
+                case DEBUG_DUMP_OPTIMIZED_TREE:
+                case IGNORE_SAVE_POINTS:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public double defaultDoubleFor(String key){
+            throw new IllegalArgumentException("No SQL default for key '"+key+"'");
+        }
+
+        @Override
+        public boolean hasDoubleDefault(String key){
+            return false;
         }
     };
 }

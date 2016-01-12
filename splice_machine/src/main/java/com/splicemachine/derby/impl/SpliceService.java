@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.monitor.PersistentService;
 import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
+import com.splicemachine.derby.iapi.sql.PropertyManagerService;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -21,9 +22,11 @@ import java.util.Set;
 public class SpliceService implements PersistentService {
 	protected static final String TYPE = "splice";
 	private static Logger LOG = Logger.getLogger(SpliceService.class);
+	private PropertyManager propertyManager;
 
 	public SpliceService() {
 		SpliceLogUtils.trace(LOG,"instantiated");
+		propertyManager = PropertyManagerService.loadPropertyManager();
 //	    Thread.currentThread().setContextClassLoader(HBaseConfiguration.class.getClassLoader());
 	}
 	
@@ -42,7 +45,6 @@ public class SpliceService implements PersistentService {
 	public Properties getServiceProperties(String serviceName, Properties defaultProperties) throws StandardException {
 		Properties service = new Properties(defaultProperties);
 		try {
-			PropertyManager propertyManager=EngineDriver.driver().propertyManager();
 			Set<String> properties = propertyManager.listProperties();
 //			List<String> children = ZkUtils.getChildren(zkSpliceDerbyPropertyPath, false);
 			for (String property: properties) {
@@ -68,10 +70,9 @@ public class SpliceService implements PersistentService {
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties with storageFactory serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
-        PropertyManager pm = EngineDriver.driver().propertyManager();
 		for (Object key :properties.keySet()) {
-			if (!pm.propertyExists((String)key)) {
-				pm.addProperty((String)key,properties.getProperty((String)key));
+			if (!propertyManager.propertyExists((String)key)) {
+				propertyManager.addProperty((String)key,properties.getProperty((String)key));
 			}
 		}
 	}

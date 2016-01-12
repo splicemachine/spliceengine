@@ -13,6 +13,7 @@ public class MScan implements DataScan{
     private byte[] startKey;
     private byte[] stopKey;
     private DataFilter filter;
+    private int batchSize;
 
     private Map<String,byte[]> attrs = new HashMap<>();
     private long highTs = Long.MAX_VALUE;
@@ -61,7 +62,8 @@ public class MScan implements DataScan{
 
     @Override
     public DataScan batchCells(int cellsToBatch){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        this.batchSize = cellsToBatch;
+        return this;
     }
 
     @Override

@@ -19,6 +19,7 @@ import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.SnowflakeLoader;
+import com.splicemachine.uuid.UUIDService;
 import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
@@ -82,7 +83,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         ContextFactoryDriverService.setDriver(cfDriver); //set the Context service for the pipeline
 
         //initialize the engine driver
-        SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(snowflake,internalConnection,spliceVersion);
+        SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(configuration,snowflake,internalConnection,spliceVersion);
         EngineDriver.loadDriver(ese);
     }
 
@@ -122,6 +123,11 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         assert driver!=null: "Must boot SI before the database!";
         snowflakeLoader= new SnowflakeLoader(driver.getTableFactory(),driver.getOperationFactory(),driver.filterFactory());
         snowflake = snowflakeLoader.load(port);
+        /*
+         * In order to make snowflake available for derby classes during the boot sequence, we have to set snowflake
+         * first.
+         */
+        UUIDService.setSnowflake(snowflake);
     }
 
     private void loadManifest(){

@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.types.UserType;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
+import com.splicemachine.derby.iapi.sql.PropertyManagerService;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -43,7 +44,7 @@ public class PropertyConglomerate {
 
 	public PropertyConglomerate(TransactionController tc, boolean create, Properties properties, PropertyFactory pf) throws StandardException {
 		serviceProperties = new Properties();
-		PropertyManager propertyManager=EngineDriver.driver().propertyManager();
+		PropertyManager propertyManager=PropertyManagerService.loadPropertyManager();
 		this.pf = pf;
 		if (!create) {
 

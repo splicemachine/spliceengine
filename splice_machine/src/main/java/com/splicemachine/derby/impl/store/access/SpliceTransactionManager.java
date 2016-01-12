@@ -8,6 +8,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -54,17 +55,17 @@ public class SpliceTransactionManager implements XATransactionController,
 
     // XXX (nat) management of the controllers is still embryonic.
     // XXX (nat) would be nice if sort controllers were like conglom controllers
-    private ArrayList<ScanController> scanControllers;
-    private ArrayList<ConglomerateController> conglomerateControllers;
-    private ArrayList<Sort> sorts;
-    private ArrayList<SortController> sortControllers;
+    private List<ScanController> scanControllers;
+    private List<ConglomerateController> conglomerateControllers;
+    private List<Sort> sorts;
+    private List<SortController> sortControllers;
 
     /**
      * List of sort identifiers (represented as <code>Integer</code> objects)
      * which can be reused. Since sort identifiers are used as array indexes, we
      * need to reuse them to avoid leaking memory (DERBY-912).
      */
-    private ArrayList<Integer> freeSortIds;
+    private List<Integer> freeSortIds;
 
     /**
      * Where to look for temporary conglomerates.
@@ -98,8 +99,8 @@ public class SpliceTransactionManager implements XATransactionController,
         this.rawtran = theRawTran;
         this.parent_tran = parent_tran;
         accessmanager = myaccessmanager;
-        scanControllers = new ArrayList<ScanController>();
-        conglomerateControllers = new ArrayList<ConglomerateController>();
+        scanControllers =new CopyOnWriteArrayList<>();
+        conglomerateControllers =new CopyOnWriteArrayList<>();
 
         sorts = null; // allocated on demand.
         freeSortIds = null; // allocated on demand.

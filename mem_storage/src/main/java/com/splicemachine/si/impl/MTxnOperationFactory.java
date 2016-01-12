@@ -38,7 +38,10 @@ public class MTxnOperationFactory extends BaseOperationFactory{
     @Override
     public DataPut newDataPut(TxnView txn,byte[] key) throws IOException{
         DataPut dp = new MPut(key);
-        encodeForWrites(dp,txn);
+        if(txn==null){
+            makeNonTransactional(dp);
+        }else
+            encodeForWrites(dp,txn);
         return dp;
     }
 
@@ -52,7 +55,10 @@ public class MTxnOperationFactory extends BaseOperationFactory{
     @Override
     public DataScan newDataScan(TxnView txn){
         MScan scan = new MScan();
-        encodeForReads(scan,txn,false);
+        if(txn!=null)
+            encodeForReads(scan,txn,false);
+        else
+            makeNonTransactional(scan);
         return scan;
     }
 

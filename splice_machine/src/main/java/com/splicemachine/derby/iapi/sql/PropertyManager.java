@@ -2,12 +2,14 @@ package com.splicemachine.derby.iapi.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Set;
 
 /**
  * @author Scott Fines
  *         Date: 1/8/16
  */
+@ThreadSafe
 public interface PropertyManager{
 
     boolean propertyExists(String propertyName) throws StandardException;

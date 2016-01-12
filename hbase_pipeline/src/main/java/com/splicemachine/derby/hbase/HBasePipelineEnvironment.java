@@ -18,6 +18,7 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -84,6 +85,11 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public Clock systemClock(){
         return delegate.systemClock();
+    }
+
+    @Override
+    public KeyedReadResolver keyedReadResolver(){
+        return delegate.keyedReadResolver();
     }
 
     @Override public PartitionFactory tableFactory(){ return delegate.tableFactory(); }

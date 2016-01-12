@@ -31,10 +31,10 @@ public class DDLEnvironmentLoader{
         ServiceLoader<DDLEnvironment> load=ServiceLoader.load(DDLEnvironment.class);
         Iterator<DDLEnvironment> iter=load.iterator();
         if(!iter.hasNext())
-            throw new IllegalStateException("No SITestEnv found!");
+            throw new IllegalStateException("No DDL Environment found!");
         DDLEnvironment env = iter.next();
         if(iter.hasNext())
-            throw new IllegalStateException("Only one SITestEnv is allowed!");
+            throw new IllegalStateException("Only one DDL Environment is allowed!");
         return env;
     }
 }

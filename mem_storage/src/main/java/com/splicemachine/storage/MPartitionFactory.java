@@ -93,7 +93,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public Iterable<? extends Partition> allPartitions(String tableName) throws IOException{
-            throw new UnsupportedOperationException("IMPLEMENT");
+            return partitionMap.values();
         }
     }
 }

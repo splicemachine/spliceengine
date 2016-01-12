@@ -28,12 +28,6 @@ public interface SqlEnvironment{
 
     SConfiguration getConfiguration();
 
-    Sequencer getConglomerateSequencer();
-
-    FileResourceFactory getFileResourceFactory();
-
-    StorageFactory getStorageFactory();
-
     BackupManager getBackupManager();
 
     PartitionLoadWatcher getLoadWatcher();
@@ -42,5 +36,5 @@ public interface SqlEnvironment{
 
     PropertyManager getPropertyManager();
 
-    void initialize(Snowflake snowflake,Connection internalConnection,SpliceMachineVersion spliceVersion);
+    void initialize(SConfiguration config,Snowflake snowflake,Connection internalConnection,SpliceMachineVersion spliceVersion);
 }

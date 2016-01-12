@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MappedDataResultScanner;
 
@@ -29,15 +30,15 @@ public class MPartition implements Partition{
     private final String tableName;
     private final PartitionServer owner;
 
-    private final ConcurrentSkipListSet<DataCell> memstore = new ConcurrentSkipListSet<>();
-    private final BiMap<ByteBuffer,Lock> lockMap =HashBiMap.create();
-    private AtomicLong writes = new AtomicLong(0l);
-    private AtomicLong reads = new AtomicLong(0l);
+    private final ConcurrentSkipListSet<DataCell> memstore=new ConcurrentSkipListSet<>();
+    private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
+    private AtomicLong writes=new AtomicLong(0l);
+    private AtomicLong reads=new AtomicLong(0l);
 
     public MPartition(String tableName,String partitionName){
         this.partitionName=partitionName;
-        this.tableName = tableName;
-        this.owner = new MPartitionServer();
+        this.tableName=tableName;
+        this.owner=new MPartitionServer();
     }
 
     @Override
@@ -45,23 +46,35 @@ public class MPartition implements Partition{
         return tableName;
     }
 
-    @Override public String getName(){ return partitionName; }
-    @Override public void close() throws IOException{ }
-    @Override public void startOperation() throws IOException{ }
-    @Override public void closeOperation() throws IOException{ }
+    @Override
+    public String getName(){
+        return partitionName;
+    }
+
+    @Override
+    public void close() throws IOException{
+    }
+
+    @Override
+    public void startOperation() throws IOException{
+    }
+
+    @Override
+    public void closeOperation() throws IOException{
+    }
 
     @Override
     public DataResult get(DataGet get,DataResult previous) throws IOException{
-        DataCell start = new MCell(get.key(),new byte[]{},new byte[]{},get.highTimestamp(),new byte[]{},CellType.USER_DATA);
-        DataCell end = new MCell(get.key(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,get.lowTimestamp(),new byte[]{},CellType.USER_DATA);
+        DataCell start=new MCell(get.key(),new byte[]{},new byte[]{},get.highTimestamp(),new byte[]{},CellType.USER_DATA);
+        DataCell end=new MCell(get.key(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,get.lowTimestamp(),new byte[]{},CellType.USER_DATA);
 
-        Set<DataCell> data = memstore.subSet(start,true,end,true);
-        try(SetScanner ss = new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this)){
+        Set<DataCell> data=memstore.subSet(start,true,end,true);
+        try(SetScanner ss=new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this)){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn==null) return null;
 
             if(previous==null)
-                previous = new MResult();
+                previous=new MResult();
             assert previous instanceof MResult:"Incorrect result type!";
             ((MResult)previous).set(toReturn);
 
@@ -76,13 +89,13 @@ public class MPartition implements Partition{
 
     @Override
     public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
-        DataCell start = new MCell(rowKey,family,new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-        DataCell end = new MCell(rowKey,family,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
+        DataCell start=new MCell(rowKey,family,new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
+        DataCell end=new MCell(rowKey,family,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
-        Set<DataCell> data = memstore.subSet(start,true,end,true);
-        List<DataCell> toReturn = new ArrayList<>(data.size());
-        DataCell last = null;
-        for(DataCell d:data){
+        Set<DataCell> data=memstore.subSet(start,true,end,true);
+        List<DataCell> toReturn=new ArrayList<>(data.size());
+        DataCell last=null;
+        for(DataCell d : data){
             if(last==null){
                 toReturn.add(d);
             }else if(d.dataType()!=last.dataType()){
@@ -92,7 +105,7 @@ public class MPartition implements Partition{
         }
 
         if(previous==null)
-            previous = new MResult();
+            previous=new MResult();
         assert previous instanceof MResult:"Incorrect result type!";
         ((MResult)previous).set(toReturn);
 
@@ -106,15 +119,44 @@ public class MPartition implements Partition{
 
     @Override
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        DataCell start = new MCell(scan.getStartKey(),new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
-        DataCell stop = new MCell(scan.getStopKey(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
-        NavigableSet<DataCell> dataCells=memstore.subSet(start,true,stop,false);
+        Set<DataCell> dataCells=getScanSubSet(scan);
         return new SetScanner(dataCells.iterator(),scan.lowVersion(),scan.highVersion(),scan.getFilter(),this);
+    }
+
+    private Set<DataCell> getScanSubSet(DataScan scan){
+        Set<DataCell> dataCells;
+        if(memstore.size()<=0)
+            dataCells = Collections.emptySet();
+         else{
+            byte[] startKey=scan.getStartKey();
+            byte[] stopKey=scan.getStopKey();
+            DataCell start;
+            DataCell stop;
+            if(startKey==null) {
+                if(stopKey==null){
+                    return memstore;
+                }else{
+                    start = memstore.first();
+                }
+            }else
+                start=new MCell(startKey,new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
+
+            if(stopKey==null){
+                if(memstore.size()==1){
+                    return memstore.tailSet(start,true);
+                }else{
+                    stop = memstore.last();
+                }
+            }else
+                stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+            dataCells=memstore.subSet(start,true,stop,false);
+        }
+        return dataCells;
     }
 
     @Override
     public void put(DataPut put) throws IOException{
-        assert put instanceof MPut: "Programmer error: was not a memory put!";
+        assert put instanceof MPut:"Programmer error: was not a memory put!";
         put((MPut)put);
     }
 
@@ -125,11 +167,11 @@ public class MPartition implements Partition{
 
     @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
-        List<MutationStatus> status = new ArrayList<>(toWrite.length);
+        List<MutationStatus> status=new ArrayList<>(toWrite.length);
         //noinspection ForLoopReplaceableByForEach
         for(int i=0;i<toWrite.length;i++){
-            DataPut dp = toWrite[i];
-            assert dp instanceof MPut: "Incorrect put type";
+            DataPut dp=toWrite[i];
+            assert dp instanceof MPut:"Incorrect put type";
             put((MPut)dp);
             status.add(MOperationStatus.success());
         }
@@ -148,11 +190,35 @@ public class MPartition implements Partition{
 
     @Override
     public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        Lock lock=getRowLock(rowKey,0,rowKey.length);
+        lock.lock();
+        try{
+            DataResult r=getLatest(rowKey,family,null);
+            long v = amount;
+            if(r!=null && r.size()>0){
+                final DataCell dataCell=r.latestCell(family,qualifier);
+                if(dataCell!=null)
+                    v += Bytes.toLong(dataCell.value());
+            }
+            byte[] toWrite=Bytes.toBytes(v);
+            MPut p=new MPut(rowKey);
+            p.addCell(family,qualifier,toWrite);
+            put(p);
+            return v;
+        }finally{
+            lock.unlock();
+        }
     }
 
-    @Override public boolean isClosed(){ return false; }
-    @Override public boolean isClosing(){ return false; }
+    @Override
+    public boolean isClosed(){
+        return false;
+    }
+
+    @Override
+    public boolean isClosing(){
+        return false;
+    }
 
     @Override
     public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
@@ -161,20 +227,20 @@ public class MPartition implements Partition{
 
     @Override
     public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
-        DataCell s = new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-        DataCell e = new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
+        DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
+        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
         NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
-        List<DataCell> results = new ArrayList<>(dataCells.size());
-        DataCell lastResult = null;
-        for(DataCell dc:dataCells){
-           if(lastResult==null){
-               results.add(dc);
-               lastResult=dc;
-           }else if(!dc.matchesQualifier(lastResult.family(),lastResult.qualifier())){
-               results.add(dc);
-               lastResult = dc;
-           }
+        List<DataCell> results=new ArrayList<>(dataCells.size());
+        DataCell lastResult=null;
+        for(DataCell dc : dataCells){
+            if(lastResult==null){
+                results.add(dc);
+                lastResult=dc;
+            }else if(!dc.matchesQualifier(lastResult.family(),lastResult.qualifier())){
+                results.add(dc);
+                lastResult=dc;
+            }
         }
         return new MResult(results);
     }
@@ -184,9 +250,9 @@ public class MPartition implements Partition{
         final ByteBuffer wrap=ByteBuffer.wrap(key,keyOff,keyLen);
         Lock lock;
         synchronized(lockMap){
-            lock = lockMap.get(wrap);
+            lock=lockMap.get(wrap);
             if(lock==null){
-                lock = new MemLock(wrap);
+                lock=new MemLock(wrap);
                 lockMap.put(wrap,lock);
             }
         }
@@ -196,7 +262,10 @@ public class MPartition implements Partition{
     @Override
     public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         return new MappedDataResultScanner(openScanner(scan,metricFactory)){
-            @Override protected DataResult newResult(){ return new MResult(); }
+            @Override
+            protected DataResult newResult(){
+                return new MResult();
+            }
 
             @Override
             protected void setResultRow(List<DataCell> nextRow,DataResult resultWrapper){
@@ -213,7 +282,7 @@ public class MPartition implements Partition{
 
     @Override
     public void delete(DataDelete delete) throws IOException{
-        assert delete instanceof MDelete: "Programmer error: incorrect delete type for memory access!";
+        assert delete instanceof MDelete:"Programmer error: incorrect delete type for memory access!";
         delete((MDelete)delete,getRowLock(delete.key(),0,delete.key().length));
     }
 
@@ -251,7 +320,7 @@ public class MPartition implements Partition{
 
     @Override
     public void readsRequested(long readRequests){
-       reads.addAndGet(readRequests);
+        reads.addAndGet(readRequests);
     }
 
     @Override
@@ -284,14 +353,15 @@ public class MPartition implements Partition{
     private class MemLock implements Lock{
         private ByteBuffer key;
         private final Lock lock;
-        private int lockCount = 0;
+        private int lockCount=0;
 
         public MemLock(ByteBuffer key){
             this.key=key;
-            this.lock = new ReentrantLock();
+            this.lock=new ReentrantLock();
         }
 
-        @Override public void lock(){
+        @Override
+        public void lock(){
             lock.lock();
             lockCount++;
         }
@@ -321,8 +391,11 @@ public class MPartition implements Partition{
         @Override
         public void unlock(){
             lockCount--;
-            if(lockCount==0)
-                lockMap.remove(key);
+            if(lockCount==0){
+                synchronized(lockMap){
+                    lockMap.remove(key);
+                }
+            }
             lock.unlock();
         }
 
@@ -348,12 +421,13 @@ public class MPartition implements Partition{
             lock.unlock();
         }
     }
+
     private void delete(MDelete mDelete,Lock rowLock) throws IOException{
         //remove elements from the row
         rowLock.lock();
         try{
             Iterable<DataCell> exactCellsToDelete=mDelete.cells();
-            for(DataCell dc:exactCellsToDelete){
+            for(DataCell dc : exactCellsToDelete){
                 memstore.remove(dc);
             }
             //TODO -sf- make this also remove entire families and columns

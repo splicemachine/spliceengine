@@ -39,7 +39,7 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         this.dataValueFactory=dataValueFactory;
         this.transName=transName;
         this.state=IDLE;
-        this.ignoreSavePoints=EngineDriver.driver().getConfiguration().getBoolean(SQLConfiguration.IGNORE_SAVE_POINTS);
+        this.ignoreSavePoints=SIDriver.driver().getConfiguration().getBoolean(SQLConfiguration.IGNORE_SAVE_POINTS);
     }
 
     public SpliceTransaction(CompatibilitySpace compatibilitySpace,

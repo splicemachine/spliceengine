@@ -11,6 +11,7 @@ import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.AsyncReadResolver;
+import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
@@ -187,6 +188,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public Clock systemClock(){
         return clock;
+    }
+
+    @Override
+    public KeyedReadResolver keyedReadResolver(){
+        return SynchronousReadResolver.INSTANCE;
     }
 
     private AsyncReadResolver initializeReadResolver(){

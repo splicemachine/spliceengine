@@ -20,18 +20,19 @@ import java.sql.Connection;
  */
 public abstract class EngineSqlEnvironment implements SqlEnvironment{
 
-    private final SConfiguration config;
-    private final Snowflake snowflake;
-    private final Connection connection;
-    private final SpliceMachineVersion version;
+    private SConfiguration config;
+    private Snowflake snowflake;
+    private Connection connection;
+    private SpliceMachineVersion version;
 
-    public EngineSqlEnvironment(Snowflake snowflake,
-                                Connection connection,
-                                SpliceMachineVersion version,
-                                SConfiguration config){
-        this.snowflake=snowflake;
-        this.connection=connection;
-        this.version=version;
+    public EngineSqlEnvironment(){
+    }
+
+    @Override
+    public void initialize(SConfiguration config,Snowflake snowflake,Connection internalConnection,SpliceMachineVersion spliceVersion){
+        this.snowflake = snowflake;
+        this.connection = internalConnection;
+        this.version = spliceVersion;
         this.config = config;
     }
 

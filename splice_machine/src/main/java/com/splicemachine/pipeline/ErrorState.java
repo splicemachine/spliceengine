@@ -591,9 +591,7 @@ public enum ErrorState {
     LANG_FORMAT_EXCEPTION( "22018"){
         @Override
         public boolean accepts(Throwable t) {
-            if(super.accepts(t)) return true;
-
-            throw new UnsupportedOperationException("IMPLEMENT");
+            return super.accepts(t);
 //            return t instanceof Exceptions.LangFormatException;
         }
     },
@@ -1807,7 +1805,8 @@ public enum ErrorState {
     SPLICE_WRITE_RETRIES_EXHAUSTED("SE003"){
         @Override
         public boolean accepts(Throwable t) {
-            throw new UnsupportedOperationException("UnSUPPORTED");
+            return super.accepts(t);
+//            throw new UnsupportedOperationException("UnSUPPORTED");
 //            return t instanceof RetriesExhaustedException || super.accepts(t);
         }
     },
