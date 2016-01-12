@@ -393,7 +393,7 @@ public class IndexToBaseRowNode extends FromTable{
         sb.append(spaceToLevel())
                 .append("IndexLookup").append("(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyIndexLookupString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyIndexLookupString(attrDelim));
         sb.append(")");
         return sb.toString();
     }

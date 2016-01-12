@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.*;
 
+import org.apache.commons.lang3.text.WordUtils;
+
 /**
  * A ResultSetNode represents a result set, that is, a set of rows.  It is
  * analogous to a ResultSet in the LanguageModuleExternalInterface.  In fact,
@@ -1704,7 +1706,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     }
     
     public String printExplainInformationForActivation() throws StandardException {
-        return printExplainInformation("\n", getResultSetNumber());
+        return WordUtils.wrap(printExplainInformation(", ", getResultSetNumber()), 40, null, false);
     }
 
 

@@ -391,7 +391,17 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
-    public String prettyScrollInsensitiveString(){
+    public String prettyProcessingString(String attrDelim){
+        return toString();
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString() {
+        return toString();
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString(String attrDelim) {
         return toString();
     }
 
@@ -401,12 +411,27 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
+    public String prettyFromBaseTableString(String attrDelim) {
+        return toString();
+    }
+
+    @Override
     public String prettyIndexLookupString() {
         return toString();
     }
 
     @Override
+    public String prettyIndexLookupString(String attrDelim) {
+        return toString();
+    }
+
+    @Override
     public String prettyProjectionString() {
+        return toString();
+    }
+
+    @Override
+    public String prettyProjectionString(String attrDelim) {
         return toString();
     }
 

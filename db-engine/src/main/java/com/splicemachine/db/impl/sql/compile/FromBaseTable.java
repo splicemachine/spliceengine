@@ -51,8 +51,11 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
+
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import org.apache.commons.lang3.text.WordUtils;
 
 // Temporary until user override for disposable stats has been removed.
 
@@ -3337,14 +3340,14 @@ public class FromBaseTable extends FromTable {
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
-        sb.append(spaceToLevel())
-                .append(getClassName(indexName)).append("(");
+        sb.append(spaceToLevel());
+        sb.append(getClassName(indexName)).append("(");
         sb.append("n=").append(order).append(attrDelim);
-        sb.append(getFinalCostEstimate().prettyFromBaseTableString());
+        sb.append(getFinalCostEstimate().prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if(qualifiers!=null && qualifiers.size()>0) //add
+        if (qualifiers != null && qualifiers.size() > 0)
             sb.append(attrDelim).append("preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
         sb.append(")");
         return sb.toString();

@@ -2417,7 +2417,7 @@ public class SubqueryNode extends ValueNode{
                 .append("Subquery(")
                 .append("n=").append(order);
                 if (resultSet!=null) {
-                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString());
+                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString(attrDelim));
                 }
                 sb.append(attrDelim).append(String.format("correlated=%b%sexpression=%b%sinvariant=%b",
                         hasCorrelatedCRs(),attrDelim,getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,attrDelim,isInvariant()))

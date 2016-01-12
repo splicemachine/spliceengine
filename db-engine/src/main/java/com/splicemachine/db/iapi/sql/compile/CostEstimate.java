@@ -205,16 +205,26 @@ public interface CostEstimate extends StoreCostResult {
      */
     String prettyProcessingString();
 
+    String prettyProcessingString(String attrDelim);
+
     /**
      * @return a well-formatted display string
      */
     String prettyScrollInsensitiveString();
 
+    String prettyScrollInsensitiveString(String attrDelim);
+
     String prettyFromBaseTableString();
+
+    String prettyFromBaseTableString(String attrDelim);
 
     String prettyIndexLookupString();
 
+    String prettyIndexLookupString(String attrDelim);
+
     String prettyProjectionString();
+
+    String prettyProjectionString(String attrDelim);
 
     public double getProjectionRows();
 

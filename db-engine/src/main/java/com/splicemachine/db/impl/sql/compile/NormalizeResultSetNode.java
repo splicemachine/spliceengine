@@ -699,7 +699,7 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
         sb = sb.append(spaceToLevel())
                 .append("NormalizeResult").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyScrollInsensitiveString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyScrollInsensitiveString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

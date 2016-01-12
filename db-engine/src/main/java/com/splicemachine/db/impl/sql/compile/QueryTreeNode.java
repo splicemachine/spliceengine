@@ -58,6 +58,8 @@ import java.sql.Types;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.commons.lang3.text.WordUtils;
+
 /**
  * QueryTreeNode is the root class for all query tree nodes. All
  * query tree nodes inherit from QueryTreeNode except for those that extend
@@ -1630,7 +1632,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public String printExplainInformationForActivation() throws StandardException {
-        return printExplainInformation("\n", -1);
+        return WordUtils.wrap(printExplainInformation(", ", -1), 40, null, false);
     }
 
     public String toHTMLString() {

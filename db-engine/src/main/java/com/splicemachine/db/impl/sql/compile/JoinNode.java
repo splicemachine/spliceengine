@@ -1875,10 +1875,10 @@ public class JoinNode extends TableOperatorNode{
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
-        if (joinPredicates !=null) {
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+        if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
-            if (joinPreds != null && joinPreds.size() > 0) //add
+            if (joinPreds != null && joinPreds.size() > 0)
                 sb.append(attrDelim).append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
         }
         sb.append(")");
