@@ -196,7 +196,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         // Right now this is only used by Spark UI, so don't change it
         // unless you want to change that UI.
         explainPlan=(plan==null?"":plan.replace("n=","RS=").replace("->","").trim());
-        ;
     }
 
     @Override
