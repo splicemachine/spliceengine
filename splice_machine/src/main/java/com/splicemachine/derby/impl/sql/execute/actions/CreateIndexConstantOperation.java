@@ -771,7 +771,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(), td.getHeapConglomerateId(), indexConglomerate, td, indexDescriptor);
         ddlChange = DDLUtils.performMetadataChange(ddlChange);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, heapConglomerateId,indexName);
-        populateIndex(activation, indexTransaction,tentativeTransaction.getCommitTimestamp(),ddlChange.getTentativeIndex());
+        populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex(), td);
         indexTransaction.commit();
     }
 

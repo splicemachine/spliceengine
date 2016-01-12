@@ -1,12 +1,9 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.access.hbase.HBaseTableFactory;
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.index.HTableScannerIterator;
@@ -18,21 +15,20 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnDataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.util.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
+
 import scala.Tuple2;
 
 import java.io.IOException;
@@ -41,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Scanner;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Created by jleach on 4/13/15.
@@ -68,6 +63,11 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     @Override
     public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId) throws StandardException {
+        return getHTableScanner(hTableBuilder, conglomerateId, null, null);
+    }
+    
+    @Override
+    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId, String tableDisplayName, Object caller) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(),
                 TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
@@ -228,6 +228,10 @@ public class ControlDataSetProcessor implements DataSetProcessor {
         return new ControlDataSet<>(value);
     }
 
+    @Override
+    public <V> DataSet<V> createDataSet(Iterable<V> value, String name) {
+        return new ControlDataSet<>(value);
+    }
     @Override
     public void setSchedulerPool(String pool) {
         // no op

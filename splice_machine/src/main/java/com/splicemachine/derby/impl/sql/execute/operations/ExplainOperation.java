@@ -138,7 +138,8 @@ public class ExplainOperation extends SpliceBaseOperation {
                                                                  }
                                                              }
                                                          }
-                    )
+                    ),
+                    "Prepare Explain Plan"
             );
         } finally {
             operationContext.popScope();

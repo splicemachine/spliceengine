@@ -52,14 +52,16 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast);
 
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail);
+    
     /**
      * Applies map function.
      */
     <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function);
 
-    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name);
-
     <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast);
+
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail);
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
 

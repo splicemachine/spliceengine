@@ -201,7 +201,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         try {
             operationContext.pushScope(this.getSparkStageName() + ": Perform Join");
             DataSet<LocatedRow> joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
-            return joined.map(new CountProducedFunction(operationContext), this.getPrettyExplainPlan());
+            return joined.map(new CountProducedFunction(operationContext), true);
         } finally {
             operationContext.popScope();
         }

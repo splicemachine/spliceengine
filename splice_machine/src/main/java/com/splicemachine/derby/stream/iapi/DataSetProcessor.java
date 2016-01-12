@@ -6,7 +6,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.index.HTableScannerBuilder;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.si.api.TxnView;
-import org.apache.hadoop.hbase.TableName;
 
 import java.io.InputStream;
 
@@ -50,6 +49,8 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId) throws StandardException;
     
+    <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId, String tableDisplayName, Object caller) throws StandardException;
+    
     /**
      * Get an empty dataset
      *
@@ -79,6 +80,8 @@ public interface DataSetProcessor {
      * @return
      */
     <V> DataSet<V> createDataSet(Iterable<V> value);
+
+    <V> DataSet<V> createDataSet(Iterable<V> value, String name);
 
     /**
      *

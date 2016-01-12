@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -22,8 +21,12 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.primitives.Ints;
+
 import java.io.IOException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
@@ -86,7 +89,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
     protected void populateIndex(Activation activation,
                                  Txn indexTransaction,
                                  long demarcationPoint,
-                                 DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
+                                 DDLMessage.TentativeIndex tentativeIndex,
+                                 TableDescriptor td) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 				/*
 				 * Backfill the index with any existing data.
@@ -95,9 +99,9 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				 */
         Txn childTxn = null;
         try {
-            // TODO (wjk): this returns ControlDataSetProcessor. Is that what we want here?
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
+            DataSetProcessor dsp = StreamUtils.getSparkDataSetProcessor();
             StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
+
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             HTableScannerBuilder hTableScannerBuilder = new HTableScannerBuilder()
                     .transaction(indexTransaction)
@@ -107,10 +111,16 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             HTableWriterBuilder builder = new HTableWriterBuilder()
                     .heapConglom(tentativeIndex.getIndex().getConglomerate())
                     .txn(childTxn);
-            DataSet<KVPair> dataset = dsp.getHTableScanner(hTableScannerBuilder,
-					Long.toString(tentativeIndex.getTable().getConglomerate()));
-            DataSet<LocatedRow> result = dataset.map(new IndexTransformFunction(tentativeIndex))
-                    .index(new KVPairFunction()).writeKVPair(builder);
+            DataSet<KVPair> dataset = dsp.getHTableScanner(
+                    hTableScannerBuilder,
+					Long.toString(tentativeIndex.getTable().getConglomerate()),
+					td.getName(),
+					this);
+            String scope = this.getScopeName();
+            DataSet<LocatedRow> result = dataset
+                    .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
+                    .index(new KVPairFunction(), false, true, scope + ": Populate Index")
+                    .writeKVPair(builder);
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -119,6 +129,16 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
         return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());
+    }
+    
+    public String getScopeName() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(StringUtils.join(
+            StringUtils.splitByCharacterTypeCamelCase(
+                this.getClass().getSimpleName().
+                replace("Operation", "").replace("Constant", "")), " "));
+        sb.append(" ").append(indexName);
+        return sb.toString();
     }
 
 }

@@ -11,6 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.control.ControlDataSet;
@@ -152,6 +153,11 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId) throws StandardException {
+        return getHTableScanner(hTableBuilder, conglomerateId, null, null);
+    }
+    
+    @Override
+    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String conglomerateId, String tableDisplayName, Object caller) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerateId);
@@ -162,12 +168,23 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
             throw StandardException.unexpectedUserException(ioe);
         }
 
-        SpliceSpark.pushScope("Scan table");
-        JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(conf, HTableInputFormat.class,
-            byte[].class, KVPair.class);
+        String scope = null;
+        if (caller instanceof String)
+            scope = (String)caller;
+        else if (caller instanceof IndexConstantOperation)
+            scope = ((IndexConstantOperation)caller).getScopeName();
+        else if (caller instanceof SpliceOperation) 
+            scope = ((SpliceOperation)caller).getSparkStageName();
+        else if (caller instanceof ConstantAction)
+            scope = "Scan Table";
+
+        SpliceSpark.pushScope(scope + ": Scan");
+        JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(
+            conf, HTableInputFormat.class, byte[].class, KVPair.class);
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
 
+        SpliceSpark.pushScope(scope + ": Deserialize");
         HTableScanTupleFunction f = new HTableScanTupleFunction();
         try {
             return new SparkDataSet(rawRDD.map(f), f.getPrettyFunctionName());
@@ -187,16 +204,17 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         conf.setLong(MRConstants.SPLICE_TXN_MAX_TIMESTAMP, beforeTS);
         conf.set(MRConstants.SPLICE_TXN_DEST_TABLE, Bytes.toString(destinationTable));
         
-        SpliceSpark.pushScope("Scan table");
+        SpliceSpark.pushScope("Scan transactions: Table " + SIConstants.TRANSACTION_TABLE);
         JavaPairRDD<RowLocation, TxnMessage.Txn> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMTxnInputFormat.class, RowLocation.class, TxnMessage.Txn.class);
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
 
-        SpliceSpark.pushScope("Deserialize");
+        SpliceSpark.pushScope("Scan transactions: Deserialize");
         HTableScanTupleFunction f1 = new HTableScanTupleFunction();
         JavaRDD rdd2 = rawRDD.map(f1);
         rdd2.setName(f1.getPrettyFunctionName());
+        SpliceSpark.popScope();
         
         try {
             return new ControlDataSet<TxnMessage.Txn>(rdd2.collect()).map(new TxnViewDecoderFunction());
@@ -320,6 +338,13 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public <V> DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
+    }
+
+    @Override
+    public <V> DataSet< V> createDataSet(Iterable<V> value, String name) {
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Lists.newArrayList(value));
+        rdd1.setName(name);
+        return new SparkDataSet(rdd1);
     }
 
     @Override

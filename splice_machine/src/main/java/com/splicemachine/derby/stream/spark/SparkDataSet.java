@@ -105,16 +105,43 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
     
     @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+        try {
+            return new SparkPairDataSet(rdd.mapToPair(function), planIfLast(function, isLast));
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
+    }
+    
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new SparkDataSet<>(rdd.map(function), function.getSparkName());
+        return map(function, null, false, false, null);
     }
 
-    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
-        return new SparkDataSet<>(rdd.map(function), name);
-    }
-
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
-        return new SparkDataSet<>(rdd.map(function), planIfLast(function, isLast));
+        return map(function, null, isLast, false, null);
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+        try {
+            return new SparkDataSet<>(rdd.map(function), (name != null ? name : planIfLast(function, isLast)));
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
     }
 
     @Override
@@ -131,7 +158,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
-        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName());
+        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName()); // wjk query 3
     }
 
     @Override

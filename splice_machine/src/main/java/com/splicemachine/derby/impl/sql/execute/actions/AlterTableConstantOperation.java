@@ -745,11 +745,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                     newIndexCongloms[index], newHeapConglom, td, indexDescriptor);
             DDLUtils.notifyMetadataChangeAndWait(ddlChange);
             Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, newHeapConglom,indexName);
-             populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex());
-                //only commit the index transaction if the job actually completed
-                indexTransaction.commit();
+            populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex(), td);
+            //only commit the index transaction if the job actually completed
+            indexTransaction.commit();
         } catch (Throwable t) {
-         throw Exceptions.parseException(t);
+            throw Exceptions.parseException(t);
         }
 
 		/* Update the DataDictionary
