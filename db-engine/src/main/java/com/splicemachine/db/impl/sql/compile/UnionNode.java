@@ -652,7 +652,7 @@ public class UnionNode extends SetOperatorNode{
         sb = sb.append(spaceToLevel())
                 .append("Union").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(costEstimate.prettyProcessingString());
+        sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

@@ -345,7 +345,7 @@ public class DistinctNode extends SingleChildResultSetNode
         sb = sb.append(spaceToLevel())
                 .append("Distinct").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

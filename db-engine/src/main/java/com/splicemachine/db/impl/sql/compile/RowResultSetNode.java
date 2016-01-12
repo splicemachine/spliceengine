@@ -868,7 +868,7 @@ public class RowResultSetNode extends FromTable {
         sb.append(spaceToLevel())
                 .append("Values").append("(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         sb.append(")");
         return sb.toString();
     }

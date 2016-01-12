@@ -468,7 +468,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
         sb = sb.append(spaceToLevel())
                 .append(getExplainDisplay()).append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

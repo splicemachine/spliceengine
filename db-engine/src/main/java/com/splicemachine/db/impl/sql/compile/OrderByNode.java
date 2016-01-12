@@ -143,7 +143,7 @@ public class OrderByNode extends SingleChildResultSetNode {
         sb = sb.append(spaceToLevel())
                 .append("OrderBy").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(costEstimate.prettyProcessingString());
+        sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

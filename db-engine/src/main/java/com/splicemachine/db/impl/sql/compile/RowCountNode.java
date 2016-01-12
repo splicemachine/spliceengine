@@ -248,7 +248,7 @@ public final class RowCountNode extends SingleChildResultSetNode{
         sb.append(spaceToLevel())
                 .append("Limit(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
                 if (offset != null && offset instanceof NumericConstantNode) {
                     sb.append(attrDelim).append("offset=").append( ((NumericConstantNode)offset).getValue());
                 }

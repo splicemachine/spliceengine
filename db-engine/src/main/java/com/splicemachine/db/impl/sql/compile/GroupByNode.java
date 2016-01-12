@@ -1244,7 +1244,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         sb = sb.append(spaceToLevel())
                 .append("GroupBy").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

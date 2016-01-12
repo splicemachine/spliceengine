@@ -1760,7 +1760,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         sb.append(spaceToLevel())
                 .append("VTI:").append(getName()).append("(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         sb.append(")");
         return sb.toString();
     }

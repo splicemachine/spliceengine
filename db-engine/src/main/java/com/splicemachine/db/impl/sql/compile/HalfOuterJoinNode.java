@@ -794,7 +794,7 @@ public class HalfOuterJoinNode extends JoinNode{
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(isRightOuterJoin()?"RightOuter":"LeftOuter").append("Join(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (!joinPreds.isEmpty()) {

@@ -106,7 +106,7 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         sb.append(spaceToLevel())
                 .append("BatchOnce").append("(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString());
+                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
         sb.append(")");
         return sb.toString();
     }
