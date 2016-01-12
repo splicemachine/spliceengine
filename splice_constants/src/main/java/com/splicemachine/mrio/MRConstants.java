@@ -21,7 +21,8 @@ public class MRConstants {
     final public static String SPLICE_OUTPUT_CONGLOMERATE = "splice.output.conglomerate";
 	final public static String SPLICE_WRITE_BUFFER_SIZE = "splice.write.buffer.size";
 	final public static String SPLICE_JDBC_STR = "splice.jdbc";
-	final public static String ONE_SPLIT_PER_REGION = "one.split.per.region";
+    final public static String DEFAULT_SPLICE_JDBC_STR_VALUE = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
+    final public static String ONE_SPLIT_PER_REGION = "one.split.per.region";
 	final public static String SPLICE_SCAN_INFO = "splice.scan.info";
 	final public static String SPLICE_TXN_MIN_TIMESTAMP = "splice.txn.timestamp.min";
 	final public static String SPLICE_TXN_MAX_TIMESTAMP = "splice.txn.timestamp.max";

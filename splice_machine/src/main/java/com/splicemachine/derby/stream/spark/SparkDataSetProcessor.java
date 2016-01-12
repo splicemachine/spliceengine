@@ -70,7 +70,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerateId);
-        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, com.splicemachine.mrio.MRConstants.DEFAULT_SPLICE_JDBC_STR_VALUE);
         try {
             conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, siTableBuilder.getTableScannerBuilderBase64String());
         } catch (IOException ioe) {
@@ -126,7 +126,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerateId);
-        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, com.splicemachine.mrio.MRConstants.DEFAULT_SPLICE_JDBC_STR_VALUE);
         conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         try {
             conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, siTableBuilder.getTableScannerBuilderBase64String());
@@ -155,7 +155,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerateId);
-        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, com.splicemachine.mrio.MRConstants.DEFAULT_SPLICE_JDBC_STR_VALUE);
         try {
             conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, hTableBuilder.getTableScannerBuilderBase64String());
         } catch (IOException ioe) {
@@ -181,7 +181,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, HBaseTableInfoFactory.getInstance().getTableInfo(SIConstants.TRANSACTION_TABLE).getNameAsString());
-        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
+        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, com.splicemachine.mrio.MRConstants.DEFAULT_SPLICE_JDBC_STR_VALUE);
         conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         conf.setLong(MRConstants.SPLICE_TXN_MIN_TIMESTAMP, afterTS);
         conf.setLong(MRConstants.SPLICE_TXN_MAX_TIMESTAMP, beforeTS);

@@ -612,6 +612,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     		.ownerClass(SpliceAdmin.class.getCanonicalName())
                     		.sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                     		.build());
+
+                    procedures.add(Procedure.newBuilder().name("GET_ACTIVATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .returnType(null).isDeterministic(false)
+                            .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build());
                 }
 
             } // End iteration through map keys (schema UUIDs)
@@ -869,15 +877,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .arg("SOURCE", SystemColumnImpl
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
                                     .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("PARTITION_EXISTS")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("CONGLOMERATE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT).getCatalogType())
-                            .arg("PARTITION_ID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR).getCatalogType())
                             .build()
             ));
 

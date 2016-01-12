@@ -2,6 +2,8 @@ package com.splicemachine.access.hbase;
 
 import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Predicate;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 import com.splicemachine.access.iapi.SpliceTableFactory;
 import org.apache.hadoop.hbase.*;
@@ -9,8 +11,6 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
-import org.sparkproject.guava.collect.FluentIterable;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
@@ -23,6 +23,8 @@ public class HBaseTableFactory implements SpliceTableFactory<Connection,Table,Ta
     protected Connection connection;
     protected HBaseTableInfoFactory hbaseTableInfoFactory;
     private static HBaseTableFactory INSTANCE = new HBaseTableFactory();
+
+    private Cache<TableName, List<HRegionLocation>> regionCache = CacheBuilder.newBuilder().maximumSize(100).build();
 
     protected HBaseTableFactory() {
         try {
@@ -51,10 +53,26 @@ public class HBaseTableFactory implements SpliceTableFactory<Connection,Table,Ta
         return getRegions(hbaseTableInfoFactory.getTableInfo(tableName),false);
     }
 
+    public List<HRegionLocation> getRegions(byte[] tableName, boolean refresh) throws IOException, ExecutionException, InterruptedException {
+        return getRegions(hbaseTableInfoFactory.getTableInfo(tableName),refresh);
+    }
+
+
     public List<HRegionLocation> getRegions(TableName tableName, boolean refresh) throws IOException {
-        if (refresh)
-            clearRegionCache(tableName);
-        return connection.getRegionLocator(tableName).getAllRegionLocations();
+        List<HRegionLocation> regionLocations;
+        if (!refresh) {
+            regionLocations = regionCache.getIfPresent(tableName);
+            if (regionLocations==null) {
+                regionLocations = connection.getRegionLocator(tableName).getAllRegionLocations();
+                regionCache.put(tableName,regionLocations);
+            }
+            return regionLocations;
+        }
+        clearRegionCache(tableName);
+        regionCache.invalidate(tableName);
+        regionLocations = connection.getRegionLocator(tableName).getAllRegionLocations();
+        regionCache.put(tableName,regionLocations);
+        return regionLocations;
     }
 
     public List<HRegionLocation> getRegions(String tableName, boolean refresh) throws IOException, ExecutionException, InterruptedException {

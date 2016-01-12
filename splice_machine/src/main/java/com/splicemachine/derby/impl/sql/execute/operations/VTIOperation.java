@@ -182,11 +182,13 @@ public class VTIOperation extends SpliceBaseOperation {
         this.activation = context.getActivation();
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
         this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);
+        this.userVTI = constructor.invoke();
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
+        javaClassName = in.readUTF();
         rowMethodName = in.readUTF();
         constructorMethodName = in.readUTF();
     }
@@ -194,6 +196,7 @@ public class VTIOperation extends SpliceBaseOperation {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
+        out.writeUTF(javaClassName);
         out.writeUTF(rowMethodName);
         out.writeUTF(constructorMethodName);
     }
@@ -309,9 +312,7 @@ public class VTIOperation extends SpliceBaseOperation {
      *
      * @exception StandardException thrown on failure.
      */
-    private DatasetProvider getDataSetProvider() throws StandardException {
-        if (userVTI == null)
-            userVTI = constructor.invoke();
+    public DatasetProvider getDataSetProvider() throws StandardException {
         return userVTI;
     }
 

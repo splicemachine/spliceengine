@@ -129,7 +129,7 @@ public class PartitionStatsStore {
 
     private static int getPartitions(byte[] table, List<HRegionInfo> partitions) throws StandardException {
         try {
-            Collection<HRegionLocation> regions = HBaseTableFactory.getInstance().getRegions(table);
+            Collection<HRegionLocation> regions = HBaseTableFactory.getInstance().getRegions(table,false);
             for (HRegionLocation region: regions) {
                 partitions.add(region.getRegionInfo());
             }
