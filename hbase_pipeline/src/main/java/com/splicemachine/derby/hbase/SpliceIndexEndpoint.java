@@ -12,6 +12,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
+import com.splicemachine.lifecycle.PipelineLoadService;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.BulkWritesResult;
@@ -30,6 +31,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import javax.management.MBeanServer;
 import java.io.IOException;
 
@@ -78,52 +80,38 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
             final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
 
             try{
-                DatabaseLifecycleManager.manager().registerGeneralService(new DatabaseLifecycleService(){
-                    private PipelineEnvironment pipelineEnv;
+                final PipelineLoadService<TableName> service=new PipelineLoadService<TableName>(serverControl,baseRegion,cId){
 
                     @Override
                     public void start() throws Exception{
-                        ContextFactoryDriver cfDriver = ContextFactoryDriverService.loadDriver();
-                        pipelineEnv=HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
-                        final PipelineDriver pipelineDriver=pipelineEnv.getPipelineDriver();
-                        compressor=pipelineDriver.compressor();
-                        pipelineWriter=pipelineDriver.writer();
-                        final SIDriver siDriver=pipelineEnv.getSIDriver();
-                        WriteContextFactory<TransactionalRegion> factory=
-                                WriteContextFactoryManager.getWriteContext(cId,pipelineEnv.configuration(),
-                                        siDriver.getTableFactory(),
-                                        pipelineDriver.exceptionFactory(),
-                                        new Function<TableName, String>(){
-                                            @Override
-                                            public String apply(TableName input){
-                                                return input.getNameAsString();
-                                            }
-                                        },
-                                        pipelineDriver.getContextFactoryLoader(cId)
-                                );
-                        factory.prepare();
-
-                        TransactionalRegion txnRegion=siDriver.transactionalPartition(cId,baseRegion);
-                        writePipeline=new PartitionWritePipeline(serverControl,
-                                baseRegion,
-                                factory,
-                                txnRegion,
-                                pipelineDriver.meter(),pipelineDriver.exceptionFactory());
-                        pipelineDriver.registerPipeline(baseRegion.getName(),writePipeline);
-
-                    }
-
-                    @Override
-                    public void registerJMX(MBeanServer mbs) throws Exception{
-                        if(pipelineEnv!=null)
-                            pipelineEnv.getPipelineDriver().registerJMX(mbs);
+                        super.start();
+                        compressor=getCompressor();
+                        pipelineWriter=getPipelineWriter();
+                        writePipeline=getWritePipeline();
                     }
 
                     @Override
                     public void shutdown() throws Exception{
                         stop(env);
                     }
-                });
+
+                    @Override
+                    protected Function<TableName, String> getStringParsingFunction(){
+                        return new Function<TableName, String>(){
+                            @Nullable
+                            @Override
+                            public String apply(TableName tableName){
+                                return tableName.getNameAsString();
+                            }
+                        };
+                    }
+
+                    @Override
+                    protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException{
+                        return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
+                    }
+                };
+                DatabaseLifecycleManager.manager().registerGeneralService(service);
             }catch(Exception e){
                 throw new IOException(e);
             }

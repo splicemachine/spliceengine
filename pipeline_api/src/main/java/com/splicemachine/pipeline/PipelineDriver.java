@@ -44,6 +44,7 @@ public class PipelineDriver{
         PipelineMeter meter = env.pipelineMeter();
 
         INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,writerFactory,meter);
+        writerFactory.setWriter(INSTANCE.pipelineWriter);
     }
 
     public static PipelineDriver driver(){ return INSTANCE; }

@@ -113,17 +113,17 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
     @Override
     public WriteFactoryGroup getForeignKeyFactories(){
-        return null;
+        return fkGroup;
     }
 
     @Override
     public WriteFactoryGroup getIndexFactories(){
-        return null;
+        return indexFactories;
     }
 
     @Override
     public WriteFactoryGroup getDDLFactories(){
-        return null;
+        return ddlFactories;
     }
 
     @Override

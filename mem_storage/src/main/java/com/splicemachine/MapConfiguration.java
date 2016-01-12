@@ -77,7 +77,4 @@ public class MapConfiguration implements SConfiguration{
         this.defaults.addDefaults(defaults);
     }
 
-    public void setDefault(String key, long value){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
 }

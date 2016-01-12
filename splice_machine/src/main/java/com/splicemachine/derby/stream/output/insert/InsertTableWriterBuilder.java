@@ -6,6 +6,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -19,7 +22,7 @@ import org.apache.commons.codec.binary.Base64;
 /**
  * Created by jleach on 5/6/15.
  */
-public class InsertTableWriterBuilder implements Externalizable {
+public abstract class InsertTableWriterBuilder implements Externalizable,InsertDataSetWriterBuilder{
     protected int[] pkCols;
     protected String tableVersion;
     protected int[] execRowTypeFormatIds;
@@ -31,6 +34,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     protected OperationContext operationContext;
     protected boolean isUpsert;
 
+    @Override
     public InsertTableWriterBuilder pkCols(int[] pkCols) {
         this.pkCols = pkCols;
         return this;
@@ -40,48 +44,61 @@ public class InsertTableWriterBuilder implements Externalizable {
         return heapConglom;
     }
 
-
-    public InsertTableWriterBuilder operationContext(OperationContext operationContext) {
+    @Override
+    public InsertDataSetWriterBuilder operationContext(OperationContext operationContext) {
         this.operationContext = operationContext;
         return this;
     }
 
-    public InsertTableWriterBuilder spliceSequences(SpliceSequence[] spliceSequences) {
+    @Override
+    public InsertTableWriterBuilder sequences(SpliceSequence[] spliceSequences) {
         this.spliceSequences = spliceSequences;
         return this;
     }
 
-    public InsertTableWriterBuilder isUpsert(boolean isUpsert) {
+    @Override
+    public InsertDataSetWriterBuilder isUpsert(boolean isUpsert) {
         this.isUpsert = isUpsert;
         return this;
     }
 
-    public InsertTableWriterBuilder txn(TxnView txn) {
+    @Override
+    public InsertDataSetWriterBuilder txn(TxnView txn) {
         this.txn = txn;
         return this;
     }
 
-    public InsertTableWriterBuilder tableVersion(String tableVersion) {
+    @Override
+    public InsertDataSetWriterBuilder tableVersion(String tableVersion) {
         this.tableVersion = tableVersion;
         return this;
     }
 
-    public InsertTableWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
+    @Override
+    public InsertDataSetWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
         this.execRowTypeFormatIds = execRowTypeFormatIds;
         return this;
     }
 
-    public InsertTableWriterBuilder autoIncrementRowLocationArray(RowLocation[] autoIncrementRowLocationArray) {
+    @Override
+    public InsertDataSetWriterBuilder autoIncrementRowLocationArray(RowLocation[] autoIncrementRowLocationArray) {
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         return this;
     }
 
-    public InsertTableWriterBuilder heapConglom(long heapConglom) {
+    @Override
+    public DataSetWriterBuilder destConglomerate(long heapConglom){
         this.heapConglom = heapConglom;
         return this;
     }
 
-    public InsertTableWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
+    @Override
+    public DataSetWriterBuilder skipIndex(boolean skipIndex){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public InsertDataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
         this.execRowDefinition = execRowDefinition;
         return this;
     }
@@ -130,20 +147,18 @@ public class InsertTableWriterBuilder implements Externalizable {
         execRowDefinition = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
     }
 
+    @Override
+    public abstract DataSetWriter build() throws StandardException;
+
     public static InsertTableWriterBuilder getInsertTableWriterBuilderFromBase64String(String base64String) throws IOException {
         if (base64String == null)
             throw new IOException("tableScanner base64 String is null");
         return (InsertTableWriterBuilder) SerializationUtils.deserialize(Base64.decodeBase64(base64String));
     }
+
     public String getInsertTableWriterBuilderBase64String() throws IOException, StandardException {
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
-    public InsertPipelineWriter build() throws StandardException {
-        assert txn!=null:"Txn is null";
-        return new InsertPipelineWriter(pkCols, tableVersion, execRowDefinition,
-                    autoIncrementRowLocationArray,spliceSequences,
-                    heapConglom,txn,operationContext,isUpsert);
-    }
 
 }

@@ -62,9 +62,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
-        public void create() throws IOException{
+        public Partition create() throws IOException{
             assert name!=null: "No name specified!";
-            partitionMap.put(name,new MPartition(name,name));
+            final MPartition p=new MPartition(name,name);
+            partitionMap.put(name,p);
+            return p;
         }
     }
 

@@ -1,5 +1,7 @@
 package com.splicemachine.access.api;
 
+import com.splicemachine.storage.Partition;
+
 import java.io.IOException;
 
 /**
@@ -12,5 +14,5 @@ public interface PartitionCreator{
 
     PartitionCreator withCoprocessor(String coprocessor) throws IOException;
 
-    void create() throws IOException;
+    Partition create() throws IOException;
 }

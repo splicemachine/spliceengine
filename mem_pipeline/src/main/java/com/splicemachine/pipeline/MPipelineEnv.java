@@ -6,6 +6,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
+import com.splicemachine.pipeline.context.NoOpPipelineMeter;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.mem.DirectBulkWriterFactory;
 import com.splicemachine.pipeline.mem.DirectPipelineExceptionFactory;
@@ -35,9 +36,9 @@ import java.io.IOException;
  *         Date: 1/11/16
  */
 public class MPipelineEnv  implements PipelineEnvironment{
-    private PipelineDriver pipelineDriver;
     private SIEnvironment siEnv;
     private BulkWriterFactory writerFactory;
+    private ContextFactoryDriver ctxFactoryDriver;
 
     public MPipelineEnv(SIEnvironment siEnv) throws IOException{
         super();
@@ -45,8 +46,8 @@ public class MPipelineEnv  implements PipelineEnvironment{
         this.writerFactory = new DirectBulkWriterFactory(new MappedPipelineFactory(),
                 new SpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 pipelineExceptionFactory());
+        this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
     }
-
 
     @Override
     public PartitionFactory tableFactory(){
@@ -140,16 +141,12 @@ public class MPipelineEnv  implements PipelineEnvironment{
 
     @Override
     public PipelineDriver getPipelineDriver(){
-        if(pipelineDriver==null){
-            PipelineDriver.loadDriver(this);
-            pipelineDriver = PipelineDriver.driver();
-        }
-        return pipelineDriver;
+        return PipelineDriver.driver();
     }
 
     @Override
     public ContextFactoryDriver contextFactoryDriver(){
-        return null;
+        return ctxFactoryDriver;
     }
 
     @Override
@@ -164,6 +161,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
 
     @Override
     public PipelineMeter pipelineMeter(){
-        return null;
+        return NoOpPipelineMeter.INSTANCE;
     }
 }

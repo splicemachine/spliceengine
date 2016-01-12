@@ -90,16 +90,18 @@ public class DatabaseLifecycleManager{
     }
 
     public void registerNetworkService(DatabaseLifecycleService engineService) throws Exception{
-        switch(state.get()){
+        final State state=this.state.get();
+        switch(state){
             case NOT_STARTED:
                 break;
             case BOOTING_ENGINE:
             case BOOTING_GENERAL_SERVICES:
+                networkServices.add(engineService);
+                return;
             case BOOTING_SERVER:
-                startupLock.await(); //wait for startup to complete or fail
-                registerNetworkService(engineService);
-                break;
             case RUNNING:
+                engineService.start();
+                break;
             case STARTUP_FAILED:
                 throw new IllegalStateException("Unable to register service, startup failed");
             case SHUTTING_DOWN:
@@ -115,15 +117,13 @@ public class DatabaseLifecycleManager{
             case NOT_STARTED:
                 break;
             case BOOTING_ENGINE:
-                startupLock.await(); //wait for startup to complete or fail
-                registerEngineService(engineService);
             case BOOTING_GENERAL_SERVICES:
             case BOOTING_SERVER:
+            case RUNNING:
                 //we have booted the general services, so we can start this directly
                 engineService.start();
                 engineService.registerJMX(jmxServer);
                 break;
-            case RUNNING:
             case STARTUP_FAILED:
                 throw new IllegalStateException("Unable to register service, startup failed");
             case SHUTTING_DOWN:
@@ -139,16 +139,15 @@ public class DatabaseLifecycleManager{
             case NOT_STARTED:
                 break;
             case BOOTING_ENGINE:
+                generalServices.add(service);
+                return;
             case BOOTING_GENERAL_SERVICES:
-                startupLock.await(); //wait for startup to complete or fail
-                registerGeneralService(service);
-                break;
             case BOOTING_SERVER:
+            case RUNNING:
                 //we have booted the general services, so we can start this directly
                 service.start();
                 service.registerJMX(jmxServer);
                 break;
-            case RUNNING:
             case STARTUP_FAILED:
                 throw new IllegalStateException("Unable to register service, startup failed");
             case SHUTTING_DOWN:

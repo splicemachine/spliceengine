@@ -7,6 +7,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -38,7 +39,7 @@ public class MemDDLEnvironment implements DDLEnvironment{
 
             @Override
             public Collection<DDLMessage.DDLChange> getTentativeDDLs(){
-                return null;
+                return Collections.emptyList();
             }
 
             @Override

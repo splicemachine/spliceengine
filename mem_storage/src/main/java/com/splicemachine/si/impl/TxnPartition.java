@@ -243,7 +243,7 @@ public class TxnPartition implements Partition{
 
     @Override
     public PartitionServer owningServer(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return basePartition.owningServer();
     }
 
     @Override

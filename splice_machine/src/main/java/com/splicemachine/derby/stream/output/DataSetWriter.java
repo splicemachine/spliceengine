@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.output;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 
 /**
  * @author Scott Fines

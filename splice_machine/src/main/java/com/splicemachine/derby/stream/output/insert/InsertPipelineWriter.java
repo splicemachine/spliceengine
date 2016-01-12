@@ -42,9 +42,15 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected boolean isUpsert;
     private Partition table;
 
-    public InsertPipelineWriter(int[] pkCols,String tableVersion,ExecRow execRowDefinition,
-                                RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
-                                long heapConglom,TxnView txn,OperationContext operationContext,boolean isUpsert) {
+    public InsertPipelineWriter(int[] pkCols,
+                                String tableVersion,
+                                ExecRow execRowDefinition,
+                                RowLocation[] autoIncrementRowLocationArray,
+                                SpliceSequence[] spliceSequences,
+                                long heapConglom,
+                                TxnView txn,
+                                OperationContext operationContext,
+                                boolean isUpsert) {
         super(txn,heapConglom);
         assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;

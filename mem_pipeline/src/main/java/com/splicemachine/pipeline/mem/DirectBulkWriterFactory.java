@@ -17,7 +17,7 @@ import java.io.IOException;
  */
 @ThreadSafe
 public class DirectBulkWriterFactory implements BulkWriterFactory{
-    private final PipelineWriter pipelineWriter;
+    private volatile PipelineWriter pipelineWriter;
 
     public DirectBulkWriterFactory(WritePipelineFactory wpf,
                                    SpliceWriteControl writeControl,
@@ -28,6 +28,7 @@ public class DirectBulkWriterFactory implements BulkWriterFactory{
     public void setWriteCoordinator(WriteCoordinator writeCoordinator){
         this.pipelineWriter.setWriteCoordinator(writeCoordinator);
     }
+
     @Override
     public BulkWriter newWriter(byte[] tableName){
         return new DirectBulkWriter(pipelineWriter);
@@ -45,6 +46,6 @@ public class DirectBulkWriterFactory implements BulkWriterFactory{
 
     @Override
     public void setWriter(PipelineWriter pipelineWriter){
-        //no-op
+        this.pipelineWriter = pipelineWriter;
     }
 }

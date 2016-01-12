@@ -69,6 +69,7 @@ public class PackedTxnFilter implements TxnFilter, SIFilter{
 
     @Override
     public DataCell produceAccumulatedResult(){
+        if(excludeRow) return null;
         if(accumulator.isCountStar())
             return lastValidCell;
         if(lastValidCell==null)

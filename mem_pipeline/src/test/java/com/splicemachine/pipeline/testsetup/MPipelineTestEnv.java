@@ -3,6 +3,7 @@ package com.splicemachine.pipeline.testsetup;
 import com.google.common.base.Function;
 import com.splicemachine.MapConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.util.SkeletonDefaults;
 import com.splicemachine.pipeline.MappedPipelineFactory;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineConfiguration;
@@ -48,7 +49,20 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
     @SuppressWarnings("unchecked")
     public MPipelineTestEnv() throws IOException{
         this.config = new MapConfiguration();
-        config.setDefault(PipelineConfiguration.STARTUP_LOCK_WAIT_PERIOD,Long.MAX_VALUE);
+        config.addDefaults(new SkeletonDefaults(){
+            @Override
+            public long defaultLongFor(String key){
+                switch(key){
+                    case PipelineConfiguration.STARTUP_LOCK_WAIT_PERIOD: return Long.MAX_VALUE;
+                }
+                return super.defaultLongFor(key);
+            }
+
+            @Override
+            public boolean hasLongDefault(String key){
+                return PipelineConfiguration.STARTUP_LOCK_WAIT_PERIOD.equals(key);
+            }
+        });
 
          trf = buildTransactionalRegionFactory();
         pipelineFactory = new MappedPipelineFactory();

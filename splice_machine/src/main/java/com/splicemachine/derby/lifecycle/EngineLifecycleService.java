@@ -6,6 +6,8 @@ import com.splicemachine.SqlEnvironment;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.ddl.DDLEnvironmentLoader;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
@@ -85,6 +87,9 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         //initialize the engine driver
         SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(configuration,snowflake,internalConnection,spliceVersion);
         EngineDriver.loadDriver(ese);
+
+        //initialize the DDLDriver
+        DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment());
     }
 
     @Override

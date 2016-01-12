@@ -179,6 +179,8 @@ public class SQLConfiguration{
             switch(key){
                 case OPTIMIZER_PLAN_MAXIMUM_TIMEOUT: return DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT;
                 case OPTIMIZER_PLAN_MINIMUM_TIMEOUT: return DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT;
+                case BROADCAST_REGION_MB_THRESHOLD: return DEFAULT_BROADCAST_REGION_MB_THRESHOLD;
+                case BROADCAST_REGION_ROW_THRESHOLD: return DEFAULT_BROADCAST_REGION_ROW_THRESHOLD;
                 default:
                     throw new IllegalArgumentException("No long default for key '"+key+"'");
             }
@@ -189,6 +191,8 @@ public class SQLConfiguration{
             switch(key){
                 case OPTIMIZER_PLAN_MAXIMUM_TIMEOUT:
                 case OPTIMIZER_PLAN_MINIMUM_TIMEOUT:
+                case BROADCAST_REGION_MB_THRESHOLD:
+                case BROADCAST_REGION_ROW_THRESHOLD:
                     return true;
                 default:
                     return false;

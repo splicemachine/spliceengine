@@ -30,13 +30,14 @@ import com.splicemachine.timestamp.api.TimestampSource;
  *         Date: 1/11/16
  */
 public class MemSIEnvironment implements SIEnvironment{
+    public static volatile MemSIEnvironment INSTANCE;
     private final SDataLib dataLib = new LDataLib();
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
-    private final PartitionFactory tableFactory = new MPartitionFactory();
-    private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
+    private final PartitionFactory tableFactory;
+    private final IgnoreTxnCacheSupplier ignoreSupplier;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
@@ -46,13 +47,19 @@ public class MemSIEnvironment implements SIEnvironment{
     private transient SIDriver siDriver;
 
     public MemSIEnvironment(){
+        this(new MTxnPartitionFactory(new MPartitionFactory()));
+    }
+
+    public MemSIEnvironment(PartitionFactory tableFactory){
+        this.tableFactory = tableFactory;
         this.config=new MapConfiguration();
         config.addDefaults(SIConfigurations.defaults);
+        this.ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
     }
 
     @Override
     public PartitionFactory tableFactory(){
-        return new MTxnPartitionFactory(tableFactory);
+        return tableFactory;
     }
 
     @Override

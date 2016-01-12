@@ -29,7 +29,6 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     private TransactionReadController txnReadController;
     private ReadResolver readResolver;
 
-
     public MTxnPartitionFactory(PartitionFactory baseFactory){
         this.baseFactory=baseFactory;
     }
@@ -64,19 +63,26 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     public Partition getTable(String name) throws IOException{
         final Partition delegate=baseFactory.getTable(name);
         if(!initializeIfNeeded(delegate)) return delegate;
-        return new TxnPartition(delegate,transactor,rollForward,txnOpFactory,txnReadController,readResolver);
+        return wrapPartition(delegate);
     }
+
 
     @Override
     public Partition getTable(byte[] name) throws IOException{
         final Partition delegate=baseFactory.getTable(name);
         if(!initializeIfNeeded(delegate)) return delegate;
-        return new TxnPartition(delegate,transactor,rollForward,txnOpFactory,txnReadController,readResolver);
+        return wrapPartition(delegate);
     }
 
     @Override
     public PartitionAdmin getAdmin() throws IOException{
         return baseFactory.getAdmin();
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private Partition wrapPartition(Partition delegate){
+        return new TxnPartition(delegate,transactor,rollForward,txnOpFactory,txnReadController,readResolver);
     }
 
     private boolean initializeIfNeeded(Partition basePartition){

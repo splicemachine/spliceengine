@@ -43,9 +43,12 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         this.url=url; // Static
         username=IdUtil.getUserNameFromURLProps(info); // Static
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
-        cm=csf.newContextManager(); // Needed
-        if(csf.getCurrentContextManager()==null)
+        ContextManager ctxM = csf.getCurrentContextManager();
+        if(ctxM==null){
+            cm=csf.newContextManager(); // Needed
             csf.setCurrentContextManager(cm);
+        }
+
         database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
         if(database==null){
             SpliceLogUtils.debug(LOG,"database has not yet been created, creating now");
@@ -69,7 +72,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     public void marshallTransaction(TxnView txn) throws StandardException, SQLException{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
-        lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname);
+        if(cm!=null){
+            lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname);
+        }else{
+            lcc = database.generateLanguageConnectionContext(txn,csf.getCurrentContextManager(),username,drdaID,dbname);
+        }
     }
 
 
@@ -175,15 +182,18 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     }
 
     public void resetContextManager(){
-        csf.forceRemoveContext(cm);
+        if(cm!=null)
+            csf.forceRemoveContext(cm);
     }
 
     public void prepareContextManager(){
+        if(cm==null) return;
         cm.setActiveThread();
         csf.setCurrentContextManager(cm);
     }
 
     public void popContextManager(){
+        if(cm!=null)
         csf.resetCurrentContextManager(cm);
     }
 }

@@ -5,6 +5,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
@@ -12,9 +13,12 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
+import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -295,7 +299,22 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new InsertTableWriterBuilder(){
+            @Override
+            public DataSetWriter build() throws StandardException{
+                assert txn!=null:"Txn is null";
+                InsertPipelineWriter ipw = new InsertPipelineWriter(pkCols,
+                        tableVersion,
+                        execRowDefinition,
+                        autoIncrementRowLocationArray,
+                        spliceSequences,
+                        heapConglom,
+                        txn,
+                        operationContext,
+                        isUpsert);
+                return new ControlDataSetWriter<>((ControlPairDataSet<K,ExecRow>)ControlPairDataSet.this,ipw,operationContext);
+            }
+        }.operationContext(operationContext);
     }
 
     @Override
@@ -313,37 +332,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
      */
 //    @Override
 //    public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) throws StandardException {
-//        InsertPipelineWriter insertTableWriter = null;
-//        /*
-//         * -sf- we shouldn't need to do transactional management here, because Derby manages internal
-//         * savepoints around insertion.
-//         */
-////        TxnView txn = null;
-//        try {
-////            txn = operationContext.getOperation().createChildTransaction(Long.toString(builder.getHeapConglom()).getBytes());
-////            builder.txn(txn);
-//            operationContext.getOperation().fireBeforeStatementTriggers();
-//            insertTableWriter = builder.build();
-//            insertTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
-//            insertTableWriter.write((Iterator < ExecRow >) values().toLocalIterator());
-//            ValueRow valueRow = new ValueRow(1);
-//            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
-//            return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
-//        } catch (Exception e) {
-////            operationContext.getOperation().rollbackTransaction(txn.getTxnId());
-//            throw StandardException.plainWrapException(e);
-//        } finally {
-//            try {
-//                if (insertTableWriter != null)
-//                        insertTableWriter.close();
-//                operationContext.getOperation().fireAfterStatementTriggers();
-////                operationContext.getOperation().commitTransaction(txn.getTxnId());
-//            } catch (Exception e) {
-////                operationContext.getOperation().rollbackTransaction(txn.getTxnId());
-//                throw StandardException.plainWrapException(e);
-//            }
-//
-//        }
 //    }
 
 //    @Override
