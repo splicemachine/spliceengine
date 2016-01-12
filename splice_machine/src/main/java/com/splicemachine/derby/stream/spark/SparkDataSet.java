@@ -75,7 +75,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             return new SparkDataSet<U>(rdd.mapPartitions(f), planIfLast(f, isLast));
         } finally {
-            if (pushScope) f.operationContext.popScope();
+            if (pushScope) SpliceSpark.popScope();
         }
     }
 
@@ -90,7 +90,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> distinct(String name) {
         JavaRDD rdd1 = rdd.distinct();
         rdd1.setName(name /* MapPartitionsRDD */);
-        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */});
+        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */}, null);
         return new SparkDataSet(rdd1);
     }
 
@@ -157,7 +157,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             return new SparkPairDataSet(rdd.keyBy(f), name != null ? name : f.getSparkName());
         } finally {
-            if (pushScope) f.operationContext.popScope();
+            if (pushScope) SpliceSpark.popScope();
         }
     }
     
@@ -168,14 +168,19 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        return union(dataSet, SparkConstants.RDD_NAME_UNION);
+        return union(dataSet, SparkConstants.RDD_NAME_UNION, false, null);
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name) {
-        JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
-        rdd1.setName(name);
-        return new SparkDataSet<>(rdd1);
+    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(null, pushScope, scopeDetail);
+        try {
+            JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
+            rdd1.setName(name != null ? name : SparkConstants.RDD_NAME_UNION);
+            return new SparkDataSet<>(rdd1);
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
     }
     
     @Override
@@ -191,7 +196,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             return new SparkDataSet(rdd.filter(f), planIfLast(f, isLast));
         } finally {
-            if (pushScope) f.operationContext.popScope();
+            if (pushScope) SpliceSpark.popScope();
         }
     }
 
@@ -245,7 +250,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         
         JavaRDD<V> rdd2 = rdd1.coalesce(1, true);
         rdd2.setName("Coalesce 1 partition");
-        RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+        RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
         
         JavaRDD<V> rdd3 = rdd2.mapPartitions(takeFunction);
         rdd3.setName(takeFunction.getSparkName());
@@ -352,7 +357,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> coalesce(int numPartitions, boolean shuffle) {
         JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
         rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
-        RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+        RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
         return new SparkDataSet<V>(rdd1);
     }
 
@@ -363,7 +368,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
             rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
-            RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
+            RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"}, null);
             return new SparkDataSet<V>(rdd1);
         } finally {
             if (pushScope) context.popScope();
@@ -389,14 +394,14 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public String getAttribute(String name) {
-        if (attributes ==null)
+        if (attributes == null)
             return null;
         return attributes.get(name);
     }
 
     private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
         if (pushScope) {
-            if (function.operationContext != null)
+            if (function != null && function.operationContext != null)
                 function.operationContext.pushScopeForOp(scopeDetail);
             else
                 SpliceSpark.pushScope(scopeDetail);

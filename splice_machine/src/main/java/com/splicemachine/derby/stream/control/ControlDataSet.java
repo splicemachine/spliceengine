@@ -161,7 +161,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name) {
+    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
         return union(dataSet);
     }
 
