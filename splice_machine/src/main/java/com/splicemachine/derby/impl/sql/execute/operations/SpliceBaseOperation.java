@@ -41,7 +41,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
 
-import org.apache.commons.lang.WordUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -200,7 +199,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		    // No difference. We can change that later if needed.
 		    // Right now this is only used by Spark UI, so don't change it
 		    // unless you want to change that UI.
-		    explainPlan = (plan == null ? "" : plan.replace("n=", "RS=").replace("->", "").trim());;
+		    explainPlan = (plan == null ? "" : plan.replace("n=", "RS=").replace("->", "").trim());
 		}
 		
     @Override
@@ -209,7 +208,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             int resultSetNumber = operationInformation.getResultSetNumber();
             if(resultSetNumber!=-1)
                 activation.clearCurrentRow(resultSetNumber);
-		    }
+		}
         currentRow = null;
     }
 
