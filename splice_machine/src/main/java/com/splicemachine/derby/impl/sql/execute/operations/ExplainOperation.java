@@ -15,9 +15,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.exception.Exceptions;
+
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -112,6 +116,9 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        OperationContext operationContext = dsp.createOperationContext(this);
+        operationContext.pushScope();
+        try {
             return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
                                                              @Override
                                                              public Iterator<String> iterator() {
@@ -133,7 +140,8 @@ public class ExplainOperation extends SpliceBaseOperation {
                                                          }
                     )
             );
+        } finally {
+            operationContext.popScope();
+        }
     }
-
-
 }
