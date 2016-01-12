@@ -47,6 +47,7 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
             executionFactory = op.getExecutionFactory();
         }
         op.source.setCurrentRow(from.getRow());
+        op.source.setCurrentRowLocation(from.getRowLocation());
         if (!op.getRestriction().apply(from.getRow())) {
             operationContext.recordFilter();
             StreamLogUtils.logOperationRecordWithMessage(from,operationContext,"filtered");

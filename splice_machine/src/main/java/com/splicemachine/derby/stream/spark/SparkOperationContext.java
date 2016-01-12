@@ -1,7 +1,12 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.google.common.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ParameterValueSet;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -9,6 +14,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.accumulator.BadRecordsAccumulator;
@@ -22,8 +28,10 @@ import org.apache.spark.Accumulator;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by jleach on 4/17/15.
@@ -148,6 +156,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 impl.marshallTransaction(txn);
                 if (isOp) {
                     activation = soi.getActivation(impl.getLcc());
+                    fixOperationReferences();
                     context = SpliceOperationContext.newContext(activation);
                     op.init(context);
                 }
@@ -165,6 +174,44 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 in.readFully(operationUUID);
             }
         }
+
+    private void fixOperationReferences() {
+        Map<Integer, SpliceOperation> operationsMap = Maps.newHashMap();
+        addOperations(operationsMap, (SpliceOperation) activation.getResultSet());
+        for (Field field : activation.getClass().getDeclaredFields()) {
+            if(!field.getType().isAssignableFrom(SpliceOperation.class)) continue; //ignore qualifiers
+
+            boolean isAccessible = field.isAccessible();
+            if(!isAccessible)
+                field.setAccessible(true);
+
+            try {
+                SpliceOperation so = (SpliceOperation) field.get(activation);
+                SpliceOperation substitute = operationsMap.get(so.resultSetNumber());
+                if (substitute != null) {
+                    field.set(activation, substitute);
+                } else {
+                    operationsMap.put(so.resultSetNumber(), so);
+                }
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        Op substitute = (Op) operationsMap.get(op.resultSetNumber());
+        if (substitute != null) {
+            this.op = substitute;
+        }
+    }
+
+    private void addOperations(Map<Integer, SpliceOperation> operationsMap, SpliceOperation operation) {
+        if (operation == null)
+            return;
+
+        operationsMap.put(operation.resultSetNumber(), operation);
+        for (SpliceOperation subOp : operation.getSubOperations()) {
+            addOperations(operationsMap, subOp);
+        }
+    }
 
     @Override
     public void prepare() {
