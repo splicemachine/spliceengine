@@ -48,4 +48,9 @@ public class ManualContextFactoryLoader implements ContextFactoryLoader{
     public void ddlChange(DDLMessage.DDLChange ddlChange){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
+
+    @Override
+    public void unload(){
+        //no-op
+    }
 }

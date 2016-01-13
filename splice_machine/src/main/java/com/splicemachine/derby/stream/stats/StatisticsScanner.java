@@ -49,7 +49,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data>{
                              SIFilterFactory filterFactory,
                              int[] fieldLengths,
                              int[] columnPositionMap){
-        super(dataLib,scanner,region,template,scan,rowDecodingMap,txn,keyColumnEncodingOrder,
+        super(scanner,region,template,scan,rowDecodingMap,txn,keyColumnEncodingOrder,
                 keyColumnSortOrder,keyColumnTypes,keyDecodingMap,accessedPks,reuseRowLocation,indexName,
                 tableVersion,filterFactory);
         this.columnPositionMap=columnPositionMap;

@@ -1,8 +1,9 @@
-package com.splicemachine.stream.index;
+package com.splicemachine.derby.stream.iterator;
 
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,13 +13,13 @@ import java.util.Iterator;
  * Created by jyuan on 10/16/15.
  */
 @NotThreadSafe
-public class HTableScannerIterator implements Iterable<KVPair>, Iterator<KVPair>, Closeable {
-    private HTableScannerBuilder hTableBuilder;
-    private HTableScanner hTableScanner;
+public class DirectScannerIterator implements Iterable<KVPair>, Iterator<KVPair>, Closeable {
+    private DirectScanner directScanner;
     private KVPair value;
 
-    public HTableScannerIterator(HTableScannerBuilder hTableBuilder) {
-        this.hTableBuilder = hTableBuilder;
+    public DirectScannerIterator(DirectScanner hTableBuilder) throws IOException, StandardException{
+        this.directScanner= hTableBuilder;
+        directScanner.open();
     }
 
     @Override
@@ -28,14 +29,9 @@ public class HTableScannerIterator implements Iterable<KVPair>, Iterator<KVPair>
 
     @Override
     public boolean hasNext() {
-
         boolean hasNext = true;
         try {
-            if (hTableScanner == null) {
-                hTableScanner = hTableBuilder.build();
-                hTableScanner.open();
-            }
-            value = hTableScanner.next();
+            value = directScanner.next();
             if (value == null) {
                 close();
                 hasNext = false;
@@ -58,9 +54,9 @@ public class HTableScannerIterator implements Iterable<KVPair>, Iterator<KVPair>
 
     @Override
     public void close() throws IOException {
-        if (hTableScanner != null) {
+        if (directScanner!= null) {
             try {
-                hTableScanner.close();
+                directScanner.close();
             } catch (StandardException se) {
                 throw new IOException(se);
             }

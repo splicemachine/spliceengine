@@ -373,9 +373,20 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     public TransactionController marshallTransaction( ContextManager cm , TxnView txn) throws StandardException {
         SpliceLogUtils.debug(LOG, "marshallTransaction called for transaction {%s} for context manager {%s}",txn, cm);
         Preconditions.checkNotNull(cm, "ContextManager is null");
-        Transaction transaction = rawstore.marshallTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME, txn);
-        SpliceTransactionManager transactionManager = new SpliceTransactionManager(this, transaction, null);
-        SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(cm, AccessFactoryGlobals.RAMXACT_CONTEXT_ID, transactionManager, false /* abortAll */);
+        /*
+         * First check to see if the transaction is already assigned to this context. If so, there is no need
+         * to do anything.
+         */
+        SpliceTransactionManagerContext rtc = (SpliceTransactionManagerContext)cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
+        if(rtc==null){
+            /*
+             * We don't have a transaction for this context, so push our known transaction down
+             */
+            Transaction transaction=rawstore.marshallTransaction(cm,AccessFactoryGlobals.USER_TRANS_NAME,txn);
+            SpliceTransactionManager transactionManager=new SpliceTransactionManager(this,transaction,null);
+            rtc=new SpliceTransactionManagerContext(cm,AccessFactoryGlobals.RAMXACT_CONTEXT_ID,transactionManager,false /* abortAll */);
+        }
+
         return rtc.getTransactionManager();
     }
 

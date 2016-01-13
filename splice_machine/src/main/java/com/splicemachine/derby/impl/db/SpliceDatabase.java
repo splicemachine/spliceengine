@@ -23,6 +23,7 @@ import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.ddl.DDLMessage.DDLChangeType;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -300,9 +301,11 @@ public class SpliceDatabase extends BasicDatabase{
 
             @Override
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
-                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
-                    System.out.println("Drop Table changeSuccessful -> changeId="+changeId+" change="+change);
-                    getDataDictionary().clearCaches();
+                switch(change.getDdlChangeType()){
+                    case DROP_TABLE:
+                        System.out.println("Drop Table changeSuccessful -> changeId="+changeId+" change="+change);
+                    case CREATE_INDEX:
+                        getDataDictionary().clearCaches();
                 }
             }
 

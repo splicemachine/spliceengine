@@ -204,6 +204,8 @@ public class SQLConfiguration{
             switch(key){
                 case NETWORK_BIND_PORT: return DEFAULT_NETWORK_BIND_PORT;
                 case KRYO_POOL_SIZE: return DEFAULT_KRYO_POOL_SIZE;
+                case INDEX_BATCH_SIZE: return DEFAULT_INDEX_BATCH_SIZE;
+                case INDEX_LOOKUP_BLOCKS: return DEFAULT_INDEX_LOOKUP_BLOCKS;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
             }
@@ -214,6 +216,8 @@ public class SQLConfiguration{
             switch(key){
                 case NETWORK_BIND_PORT:
                 case KRYO_POOL_SIZE:
+                case INDEX_BATCH_SIZE:
+                case INDEX_LOOKUP_BLOCKS:
                     return true;
                 default:
                     return false;

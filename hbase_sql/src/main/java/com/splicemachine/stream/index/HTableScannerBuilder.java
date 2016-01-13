@@ -1,6 +1,7 @@
 package com.splicemachine.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
@@ -73,8 +74,8 @@ public class HTableScannerBuilder implements Externalizable {
         return this;
     }
 
-    public HTableScanner build(){
-        return new HTableScanner(
+    public DirectScanner build(){
+        return new DirectScanner(
                 scanner,
                 region,
                 txn,

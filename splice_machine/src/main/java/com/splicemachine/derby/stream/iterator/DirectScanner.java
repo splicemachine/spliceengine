@@ -1,4 +1,4 @@
-package com.splicemachine.stream.index;
+package com.splicemachine.derby.stream.iterator;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -22,7 +22,7 @@ import java.util.List;
  *
  * Created by jyuan on 10/16/15.
  */
-public class HTableScanner implements StandardIterator<KVPair>, AutoCloseable{
+public class DirectScanner implements StandardIterator<KVPair>, AutoCloseable{
     private DataScanner regionScanner;
     private final TransactionalRegion region;
     private final Counter filterCounter;
@@ -31,7 +31,7 @@ public class HTableScanner implements StandardIterator<KVPair>, AutoCloseable{
     private TxnView txn;
     private long demarcationPoint;
 
-    protected HTableScanner(DataScanner scanner,
+    public DirectScanner(DataScanner scanner,
                             final TransactionalRegion region,
                             final TxnView txn,
                             final long demarcationPoint,
@@ -41,10 +41,6 @@ public class HTableScanner implements StandardIterator<KVPair>, AutoCloseable{
         this.txn=txn;
         this.demarcationPoint=demarcationPoint;
         this.filterCounter=metricFactory.newCounter();
-//        BitSet indexedColumns=new BitSet();
-//        for(int indexCol:indexColToMainColPosMap){
-//            indexedColumns.set(indexCol-1);
-//        }
     }
 
     @Override

@@ -14,6 +14,8 @@ public interface ContextFactoryLoader{
 
     void load(TxnView txn) throws IOException, InterruptedException;
 
+    void unload();
+
     WriteFactoryGroup getForeignKeyFactories();
 
     WriteFactoryGroup getIndexFactories();

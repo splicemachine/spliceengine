@@ -1,6 +1,7 @@
 package com.splicemachine.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
@@ -27,7 +28,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
     protected HRegion hregion;
     protected Configuration config;
     protected MeasuredRegionScanner mrs;
-    protected HTableScanner hTableScanner;
+    protected DirectScanner directScanner;
     protected long txnId;
     protected Scan scan;
     protected SMSQLUtil sqlUtil = null;
@@ -71,7 +72,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
         try {
-            KVPair nextRow = hTableScanner.next();
+            KVPair nextRow = directScanner.next();
             if (nextRow != null) {
                 currentRow = nextRow;
                 rowKey = nextRow.getRowKey();
@@ -104,7 +105,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "close");
         try {
-            hTableScanner.close();
+            directScanner.close();
 
         } catch (StandardException e) {
             throw new IOException(e);
@@ -141,7 +142,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
 //                    .metricFactory(Metrics.noOpMetricFactory());
 //            if (LOG.isTraceEnabled())
 //                SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-//            hTableScanner = builder.build();
+//            directScanner = builder.build();
         } else {
             throw new IOException("htable not set");
         }

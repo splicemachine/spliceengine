@@ -48,6 +48,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     private PartitionWritePipeline writePipeline;
     private PipelineWriter pipelineWriter;
     private PipelineCompressor compressor;
+    private PipelineLoadService<TableName> service;
 
 
 //    private static MetricName receptionName = new MetricName("com.splicemachine", "receiverStats", "time");
@@ -80,7 +81,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
             final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
 
             try{
-                final PipelineLoadService<TableName> service=new PipelineLoadService<TableName>(serverControl,baseRegion,cId){
+                service=new PipelineLoadService<TableName>(serverControl,baseRegion,cId){
 
                     @Override
                     public void start() throws Exception{
@@ -92,7 +93,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
                     @Override
                     public void shutdown() throws Exception{
-                        stop(env);
+                        super.shutdown();
                     }
 
                     @Override
@@ -143,11 +144,17 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     }
 
     @Override
-    public void stop(CoprocessorEnvironment env){
+    public void stop(CoprocessorEnvironment env) throws IOException{
         if(writePipeline!=null){
             writePipeline.close();
             PipelineDriver.driver().deregisterPipeline(((RegionCoprocessorEnvironment)env).getRegion().getRegionNameAsString());
         }
+        if(service!=null)
+            try{
+                service.shutdown();
+            }catch(Exception e){
+                throw new IOException(e);
+            }
     }
 
     @Override

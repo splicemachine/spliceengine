@@ -299,7 +299,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     columnPositionMap);
         }else{
             return new SITableScanner(
-                    SIDriver.driver().getDataLib(),
                     scanner,
                     region,
                     template,

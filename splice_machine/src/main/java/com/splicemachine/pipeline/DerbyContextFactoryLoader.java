@@ -4,16 +4,17 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
@@ -55,6 +56,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     private final FKWriteFactoryHolder fkGroup;
     private final ListWriteFactoryGroup indexFactories=new ListWriteFactoryGroup();
     private final WriteFactoryGroup ddlFactories=new SetWriteFactoryGroup();
+    private final DDLWatcher.DDLListener ddlListener;
 
     public DerbyContextFactoryLoader(long conglomId,
                                      OperationStatusFactory osf,
@@ -65,8 +67,18 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         this.pef=pef;
         this.trc=trc;
         this.fkGroup = new FKWriteFactoryHolder(pef);
+        //TODO -sf- memory leak
+        this.ddlListener=new DDLWatcher.DDLListener(){
+            @Override public void startGlobalChange(){ }
+            @Override public void finishGlobalChange(){ }
+            @Override public void changeSuccessful(String changeId,DDLMessage.DDLChange change) throws StandardException{ }
+            @Override public void changeFailed(String changeId){ }
+            @Override
+            public void startChange(DDLMessage.DDLChange change) throws StandardException{
+                ddlChange(change);
+            }
+        };
     }
-
 
     @Override
     public void load(TxnView txn) throws IOException, InterruptedException{
@@ -87,9 +99,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
                     if(td!=null){
-                        startDirect(conglomId,dataDictionary,td,conglomerateDescriptor);
+                        startDirect(conglomId,dataDictionary,td,conglomerateDescriptor,transactionResource.getLcc());
                     }
                 }
+                //register listener
+                DDLDriver.driver().ddlWatcher().registerDDLListener(ddlListener);
             }catch(SQLException e){
                 SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing"+
                         "off so that other writes can try again",e);
@@ -97,7 +111,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             }catch(StandardException|IOException e){
                 SpliceLogUtils.error(LOG,"Unable to set up index management for table "+conglomId+", aborting",e);
             }finally{
-
                 transactionResource.resetContextManager();
             }
         }catch(SQLException e){
@@ -109,6 +122,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                 ContextService.getFactory().setCurrentContextManager(currentCm);
         }
 
+    }
+
+    @Override
+    public void unload(){
+        DDLDriver.driver().ddlWatcher().unregisterDDLListener(ddlListener);
     }
 
     @Override
@@ -193,11 +211,12 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
      * Called once as part of context initialization.
      *
      * @param td The table descriptor for the base table associated with the physical table this context writes to.
+     * @param lcc
      */
     private boolean startDirect(long conglomId,
                                 DataDictionary dataDictionary,
                                 TableDescriptor td,
-                                ConglomerateDescriptor cd) throws StandardException, IOException{
+                                ConglomerateDescriptor cd,LanguageConnectionContext lcc) throws StandardException, IOException{
         boolean isSysConglomerate=td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
             SpliceLogUtils.trace(LOG,"Index management for SYS tables disabled, relying on external index management");
@@ -281,7 +300,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     ConglomerateDescriptor srcConglomDesc=uniqueIndexConglom.isPresent()?uniqueIndexConglom.get():currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor=srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
 
-                    DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(null,srcConglomDesc.getConglomerateNumber(),
+                    DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,srcConglomDesc.getConglomerateNumber(),
                             indexConglom.get().getConglomerateNumber(),td,indexDescriptor);
                     IndexFactory indexFactory=IndexFactory.create(ti);
                     indexFactories.replace(indexFactory);

@@ -5,9 +5,13 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.IndexTableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.iterator.DirectScanner;
+import com.splicemachine.derby.stream.iterator.DirectScannerIterator;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
@@ -82,8 +86,30 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(final Op spliceOperation,final String tableName) throws StandardException{
+       return new IndexTableScannerBuilder<V>(){
+           @Override
+           public DataSet<V> buildDataSet() throws StandardException{
+               rowDecodingMap(indexColToMainColPosMap);
+               Partition p;
+               try{
+                   p =SIDriver.driver().getTableFactory().getTable(tableName);
+                   TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
+                           txnSupplier,ignoreSupplier,dataStore,transactory,txnOperationFactory);
+
+                   this.region(localRegion).scanner(p.openScanner(getScan())); //set the scanner
+                   DirectScanner ds = new DirectScanner(scanner,region,txn,demarcationPoint,Metrics.noOpMetricFactory());
+                   DirectScannerIterator iter = new DirectScannerIterator(ds);
+                   if(spliceOperation!=null){
+                       spliceOperation.registerCloseable(iter);
+                       spliceOperation.registerCloseable(p);
+                   }
+                   return new ControlDataSet(iter);
+               }catch(IOException e){
+                   throw Exceptions.parseException(e);
+               }
+           }
+       };
     }
 
     //    @Override
@@ -96,7 +122,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 //                .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),hTableBuilder.getScan()))
 //                .region(localRegion)
 //                .metricFactory(Metrics.noOpMetricFactory());
-//        HTableScannerIterator tableScannerIterator = new HTableScannerIterator(hTableBuilder);
+//        DirectScannerIterator tableScannerIterator = new DirectScannerIterator(hTableBuilder);
 //        return new ControlDataSet<>(tableScannerIterator);
 //    }
 

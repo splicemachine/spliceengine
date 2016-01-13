@@ -19,7 +19,6 @@ import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.txn.DDLTxnView;
@@ -42,7 +41,6 @@ import java.util.List;
  */
 public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
-    private final Timer timer;
     private final Counter filterCounter;
     private DataScanner regionScanner;
     private final TransactionalRegion region;
@@ -68,13 +66,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private FormatableBitSet accessedKeys;
     private SIFilterFactory filterFactory;
     private ExecRowAccumulator accumulator;
-    private final SDataLib dataLib;
     private EntryDecoder entryDecoder;
     private final Counter outputBytesCounter;
     private long demarcationPoint;
 
-    protected SITableScanner(final SDataLib dataLib,
-                             DataScanner scanner,
+    protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
                              DataScan scan,
@@ -90,7 +86,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              final String tableVersion,
                              SIFilterFactory filterFactory) {
         assert template!=null:"Template cannot be null into a scanner";
-        this.dataLib = dataLib;
         this.region = region;
         this.scan = scan;
         this.template = template;
@@ -99,7 +94,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.indexName = indexName;
         this.reuseRowLocation = reuseRowLocation;
         MetricFactory metricFactory = Metrics.basicMetricFactory();
-        this.timer = metricFactory.newTimer();
         this.filterCounter = metricFactory.newCounter();
         this.outputBytesCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
@@ -115,7 +109,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             this.filterFactory = filterFactory;
     }
 
-    protected SITableScanner(final SDataLib dataLib, DataScanner scanner,
+    protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,
                              DataScan scan,
@@ -131,7 +125,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              final String tableVersion,
                              SIFilterFactory filterFactory,
                              final long demarcationPoint) {
-        this(dataLib, scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
+        this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
                 tableVersion, filterFactory);
         this.demarcationPoint = demarcationPoint;
@@ -188,8 +182,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private void measureOutputSize(){
         if(outputBytesCounter.isActive()){
             for(DataCell cell:keyValues){
-                DataCell c =cell;
-                outputBytesCounter.add(c.encodedLength());
+                outputBytesCounter.add(cell.encodedLength());
             }
         }
 

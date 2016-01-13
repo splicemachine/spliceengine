@@ -55,8 +55,6 @@ public class PipelinePartitionCreator implements PartitionCreator{
         //register the pipeline
         try{
             final PipelineLoadService<Object> service=new PipelineLoadService<Object>(MServerControl.INSTANCE,p,cId){
-                @Override public void shutdown() throws Exception{ }
-
                 @Override
                 protected Function<Object, String> getStringParsingFunction(){
                     return new Function<Object, String>(){

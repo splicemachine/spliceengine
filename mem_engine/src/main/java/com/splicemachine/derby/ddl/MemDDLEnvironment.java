@@ -14,49 +14,15 @@ import java.util.Collections;
  *         Date: 1/11/16
  */
 public class MemDDLEnvironment implements DDLEnvironment{
+    private final DirectDDL ddl = new DirectDDL();
     @Override
     public DDLController getController(){
-        return new DDLController(){
-            @Override
-            public String notifyMetadataChange(DDLMessage.DDLChange change) throws StandardException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-
-            @Override
-            public void finishMetadataChange(String changeId) throws StandardException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-        };
+        return ddl;
     }
 
     @Override
     public DDLWatcher getWatcher(){
-        return new DDLWatcher(){
-            @Override
-            public void start() throws StandardException{
-
-            }
-
-            @Override
-            public Collection<DDLMessage.DDLChange> getTentativeDDLs(){
-                return Collections.emptyList();
-            }
-
-            @Override
-            public void registerDDLListener(DDLListener listener){
-
-            }
-
-            @Override
-            public void unregisterDDLListener(DDLListener listener){
-
-            }
-
-            @Override
-            public boolean canUseCache(TransactionManager xact_mgr){
-                return false;
-            }
-        };
+        return ddl;
     }
 
     @Override

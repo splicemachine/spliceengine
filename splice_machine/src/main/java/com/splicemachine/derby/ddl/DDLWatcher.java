@@ -55,6 +55,6 @@ public interface DDLWatcher {
 
     void unregisterDDLListener(DDLListener listener);
 
-    public boolean canUseCache(TransactionManager xact_mgr);
+    boolean canUseCache(TransactionManager xact_mgr);
 
 }

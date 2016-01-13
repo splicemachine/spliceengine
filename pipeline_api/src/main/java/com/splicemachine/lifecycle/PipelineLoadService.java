@@ -5,6 +5,7 @@ import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
+import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
@@ -28,6 +29,7 @@ public abstract class PipelineLoadService<TableNameInfo> implements DatabaseLife
     private PipelineCompressor compressor;
     private PipelineWriter pipelineWriter;
     private PartitionWritePipeline writePipeline;
+    private ContextFactoryLoader ctxLoader;
 
     public PipelineLoadService(ServerControl serverControl,Partition basePartition,long conglomId){
         this.serverControl=serverControl;
@@ -43,12 +45,13 @@ public abstract class PipelineLoadService<TableNameInfo> implements DatabaseLife
         compressor=pipelineDriver.compressor();
         pipelineWriter=pipelineDriver.writer();
         final SIDriver siDriver=pipelineEnv.getSIDriver();
+        ctxLoader=pipelineDriver.getContextFactoryLoader(conglomId);
         WriteContextFactory factory=
                 WriteContextFactoryManager.getWriteContext(conglomId,pipelineEnv.configuration(),
                         siDriver.getTableFactory(),
                         pipelineDriver.exceptionFactory(),
                         getStringParsingFunction(),
-                        pipelineDriver.getContextFactoryLoader(conglomId)
+                       ctxLoader
                 );
         factory.prepare();
 
@@ -59,6 +62,12 @@ public abstract class PipelineLoadService<TableNameInfo> implements DatabaseLife
                 txnRegion,
                 pipelineDriver.meter(),pipelineDriver.exceptionFactory());
         pipelineDriver.registerPipeline(basePartition.getName(),writePipeline);
+    }
+
+    @Override
+    public void shutdown() throws Exception{
+        if(ctxLoader!=null)
+            ctxLoader.unload();
     }
 
     public PipelineCompressor getCompressor(){
