@@ -14,6 +14,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -72,7 +73,20 @@ public class TxnPartition implements Partition{
 
     @Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        MGet get = new MGet();
+        get.setAllAttributes(attributes.allAttributes());
+        txnReadController.preProcessGet(get);
+        TxnView txnView = txnOpFactory.fromReads(attributes);
+        if(txnView!=null){
+            get.setFilter(new MTxnFilterWrapper(getFilter(attributes,txnView)));
+        }
+
+        List<DataResult> results = new ArrayList<>(rowKeys.size());
+        for(byte[] key:rowKeys){
+            get.setKey(key);
+            results.add(basePartition.get(get,null));
+        }
+        return results.iterator();
     }
 
     @Override

@@ -48,6 +48,7 @@ public class ListWriteFactoryGroup implements WriteFactoryGroup{
                     return;
                 }
             }
+            factories.add(newFactory);
         }
     }
 

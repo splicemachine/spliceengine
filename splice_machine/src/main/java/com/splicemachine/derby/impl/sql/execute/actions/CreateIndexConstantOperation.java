@@ -543,8 +543,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             // Create a conglomerate descriptor with the conglomId filled
             // in and add it--if we don't have one already.
             //
-            createConglomerateDescriptor(dd, userTransaction, sd, td, indexRowGenerator, alreadyHaveConglomDescriptor, ddg);
-            createAndPopulateIndex(activation, userTransaction, td, heapConglomerateId, indexRowGenerator);
+            if(!alreadyHaveConglomDescriptor){
+                long indexCId=createConglomerateDescriptor(dd,userTransaction,sd,td,indexRowGenerator,ddg);
+                createAndPopulateIndex(activation,userTransaction,td,indexCId,indexRowGenerator);
+            }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
         }
@@ -676,14 +678,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         return order;
     }
 
-    private void createConglomerateDescriptor(DataDictionary dd,
+    private long createConglomerateDescriptor(DataDictionary dd,
                                                 TransactionController tc,
                                                 SchemaDescriptor sd,
                                                 TableDescriptor td,
                                                 IndexRowGenerator indexRowGenerator,
-                                                boolean alreadyHaveConglomDescriptor,
                                                 DataDescriptorGenerator ddg) throws StandardException {
-        if (!alreadyHaveConglomDescriptor) {
             SpliceLogUtils.trace(LOG, "! Conglom Descriptor");
 
             ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId,
@@ -703,7 +703,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
              * below.
              */
             conglomerateUUID = cgd.getUUID();
-        }
+            return cgd.getConglomerateNumber();
     }
 
     private Properties getIndexProperties(int[] baseColumnPositions, long heapConglomerateId) throws StandardException {

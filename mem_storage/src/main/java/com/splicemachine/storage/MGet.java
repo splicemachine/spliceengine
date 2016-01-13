@@ -3,12 +3,14 @@ package com.splicemachine.storage;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.*;
 
 /**
  * @author Scott Fines
  *         Date: 12/16/15
  */
+@NotThreadSafe
 public class MGet implements DataGet{
     private byte[] key;
 
@@ -18,6 +20,12 @@ public class MGet implements DataGet{
     private long lowTs;
 
     private Map<byte[],Set<byte[]>> familyQualifierMap = new TreeMap<>(Bytes.basicByteComparator());
+
+    public MGet(){ }
+
+    public void setKey(byte[] key){
+        this.key = key;
+    }
 
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public MGet(byte[] key){

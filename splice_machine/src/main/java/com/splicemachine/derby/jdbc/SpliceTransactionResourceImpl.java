@@ -59,7 +59,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                 database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
             }catch(StandardException e){
                 SpliceLogUtils.error(LOG,e);
-                e.printStackTrace();
                 throw PublicAPI.wrapStandardException(e);
             }
         }

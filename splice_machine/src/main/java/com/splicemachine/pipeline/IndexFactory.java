@@ -51,12 +51,17 @@ class IndexFactory implements LocalWriteFactory{
 
     @Override
     public boolean canReplace(LocalWriteFactory newContext){
-        return true;
+        return newContext instanceof IndexFactory;
     }
 
     @Override
     public void replace(LocalWriteFactory newFactory){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        synchronized(this){
+            IndexFactory other=(IndexFactory)newFactory;
+            this.indexConglomerateId=other.indexConglomerateId;
+            this.tentativeIndex=other.tentativeIndex;
+            this.txn=other.txn;
+        }
     }
 
     @Override

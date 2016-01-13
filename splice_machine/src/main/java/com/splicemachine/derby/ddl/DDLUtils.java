@@ -232,12 +232,6 @@ public class DDLUtils {
     public static DataScan createFullScan() {
         DataScan scan = SIDriver.driver().getOperationFactory().newDataScan(null);
         scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY).returnAllVersions();
-//        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-//        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-//        scan.setStartRow(new byte[0]);
-//        scan.setStopRow(new byte[0]);
-//        scan.setCacheBlocks(false);
-//        scan.setMaxVersions();
         return scan;
     }
 

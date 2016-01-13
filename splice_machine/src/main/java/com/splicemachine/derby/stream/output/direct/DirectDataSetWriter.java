@@ -35,6 +35,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
             pipelineWriter.open();
             CountingIterator rows=new CountingIterator(dataSet.values().toLocalIterator());
             pipelineWriter.write(rows);
+            pipelineWriter.close(); //make sure everything gets written
 
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger(rows.count));

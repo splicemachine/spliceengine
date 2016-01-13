@@ -27,7 +27,7 @@ import java.util.Properties;
  * @author Scott Fines
  *         Created on: 3/1/13
  */
-public class SpliceGenericConstantActionFactory extends GenericConstantActionFactory{
+public abstract class SpliceGenericConstantActionFactory extends GenericConstantActionFactory{
     private static Logger LOG=Logger.getLogger(SpliceGenericConstantActionFactory.class);
 
     @Override
@@ -92,19 +92,6 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                         schemaName,indexName,tableName,tableId,
                         columnNames,isAscending,isConstraint,
                         conglomerateUUID,properties);
-    }
-
-    @Override
-    public ConstantAction getDropIndexConstantAction(String fullIndexName,
-                                                     String indexName,
-                                                     String tableName,
-                                                     String schemaName,
-                                                     UUID tableId,
-                                                     long tableConglomerateId){
-        SpliceLogUtils.trace(LOG,"getDropIndexConstantAction for index {%s} on {%s.%s}",fullIndexName,schemaName,tableName);
-        throw new UnsupportedOperationException("IMPLEMENT");
-//        return derbyFactory.getDropIndexConstantAction(fullIndexName,indexName,
-//                tableName,schemaName,tableId,tableConglomerateId);
     }
 
     @Override

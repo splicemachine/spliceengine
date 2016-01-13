@@ -98,7 +98,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             dsp.setup(activation,this.toString(),"admin");
 //            StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-            IndexScanSetBuilder<KVPair> indexBuilder=dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getIndex().getConglomerate()));
+            IndexScanSetBuilder<KVPair> indexBuilder=dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
             DataSet<KVPair> dataSet =indexBuilder
                     .indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
                     .transaction(indexTransaction)

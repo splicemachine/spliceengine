@@ -132,8 +132,8 @@ public class MPartition implements Partition{
             byte[] stopKey=scan.getStopKey();
             DataCell start;
             DataCell stop;
-            if(startKey==null) {
-                if(stopKey==null){
+            if(startKey==null|| startKey.length==0) {
+                if(stopKey==null||stopKey.length==0){
                     return memstore;
                 }else{
                     start = memstore.first();
@@ -141,7 +141,7 @@ public class MPartition implements Partition{
             }else
                 start=new MCell(startKey,new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
 
-            if(stopKey==null){
+            if(stopKey==null||stopKey.length==0){
                 if(memstore.size()==1){
                     return memstore.tailSet(start,true);
                 }else{

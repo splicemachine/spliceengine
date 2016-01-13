@@ -6,7 +6,7 @@ import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class SpliceExecutionFactory extends GenericExecutionFactory {
+public abstract class SpliceExecutionFactory extends GenericExecutionFactory {
 
     private static Logger LOG = Logger.getLogger(SpliceExecutionFactory.class);
 
@@ -29,8 +29,10 @@ public class SpliceExecutionFactory extends GenericExecutionFactory {
     @Override
     public GenericConstantActionFactory getConstantActionFactory() {
         if (genericConstantActionFactory == null) {
-            genericConstantActionFactory = new SpliceGenericConstantActionFactory();
+            genericConstantActionFactory = newConstantActionFactory();
         }
         return genericConstantActionFactory;
     }
+
+    protected abstract SpliceGenericConstantActionFactory newConstantActionFactory();
 }
