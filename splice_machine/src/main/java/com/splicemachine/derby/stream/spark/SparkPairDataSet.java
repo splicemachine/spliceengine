@@ -1,7 +1,23 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import scala.Tuple2;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -13,7 +29,10 @@ import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
-import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -25,20 +44,6 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.MRJobConfig;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-
-import scala.Tuple2;
-
-import java.util.*;
 
 /**
  * @see org.apache.spark.api.java.JavaPairRDD
@@ -239,6 +244,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
+                    appendToEach(badRecords, System.lineSeparator());
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
@@ -249,7 +255,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
                     }
                     if (insertOperation.failBadRecordCount==0)
                         throw new RuntimeException(badRecords.get(0));
-                    if (badRecords.size()>= insertOperation.failBadRecordCount)
+                    if (badRecords.size()> insertOperation.failBadRecordCount)
                         throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
                 }
             }
@@ -258,6 +264,17 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void appendToEach(List<String> strings, String appendString) {
+        if (strings != null && ! strings.isEmpty()) {
+            for (int i=0; i<strings.size(); i++) {
+                String ith = strings.get(i);
+                if (ith != null && ith.length() > 0) {
+                    strings.set(i, ith + appendString);
+                }
+            }
         }
     }
 
