@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Scan;
@@ -94,6 +95,7 @@ public class HStoreSetup implements StoreSetup {
         String familyString = Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES);
         TestHBaseTableFactory tableSource1 = new TestHBaseTableFactory(testCluster, new String[]{familyString});
         HBaseAdmin admin = testCluster.getHBaseAdmin();
+        admin.createNamespace(NamespaceDescriptor.create(SIConstants.DEFAULT_SPLICE_NAMESPACE).build());
         HTableDescriptor td = SpliceUtilities.generateTransactionTable();
         admin.createTable(td, SpliceUtilities.generateTransactionSplits());
 
