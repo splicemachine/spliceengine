@@ -4,10 +4,12 @@ import com.splicemachine.si.testsetup.SharedStoreHolder;
 import com.splicemachine.si.testsetup.TestTransactionSetup;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 
+@Ignore
 public class SITransactorHBasePackedTest extends SITransactorTest {
 
     public SITransactorHBasePackedTest() {

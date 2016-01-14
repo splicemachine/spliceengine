@@ -105,4 +105,6 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
         return writes.get();
     }
 
+
+
 }

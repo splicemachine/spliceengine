@@ -50,8 +50,15 @@ public class HTransactorFactory extends SIConstants {
 
         synchronized (HTransactorFactory.class) {
             if(initialized) return;
-            if(managedTransactor!=null){
+            if(managedTransactor!=null) {
                 //it was externally created
+                if (readController == null) {
+                    readController = new SITransactionReadController<KeyValue,
+                            Get, Scan, Delete, Put>(managedTransactor.getTransactor().getDataStore(),
+                            managedTransactor.getTransactor().getDataLib(), SIFactoryDriver.siFactory.getTxnSupplier(),
+                            SIFactoryDriver.siFactory.getIgnoreTxnSupplier());
+                }
+
                 initialized = true;
                 return;
             }

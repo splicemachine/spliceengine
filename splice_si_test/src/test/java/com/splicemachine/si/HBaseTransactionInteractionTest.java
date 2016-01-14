@@ -5,6 +5,7 @@ import com.splicemachine.si.testsetup.TestTransactionSetup;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.io.IOException;
 
@@ -12,6 +13,7 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 8/21/14
  */
+@Ignore
 public class HBaseTransactionInteractionTest extends TransactionInteractionTest {
 
     @Override
