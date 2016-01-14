@@ -648,8 +648,8 @@ public final class InsertNode extends DMLModStatementNode {
             badRecordsAllowed = getIntProperty(failBadRecordCountString, "bulkFetch");
 
         if (statusDirectoryString != null) {
+            // validated for writing in ImportUtils.generateFileSystemPathForWrite()
             statusDirectory = statusDirectoryString;
-            // TODO JL Need to Validate Directory is valid, I think I will have to do this on execution side unfortunately.
         }
 
 
