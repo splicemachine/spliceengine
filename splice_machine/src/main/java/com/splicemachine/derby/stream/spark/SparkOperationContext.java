@@ -187,6 +187,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
             try {
                 SpliceOperation so = (SpliceOperation) field.get(activation);
+                if (so == null) {
+                    continue;
+                }
                 SpliceOperation substitute = operationsMap.get(so.resultSetNumber());
                 if (substitute != null) {
                     field.set(activation, substitute);
