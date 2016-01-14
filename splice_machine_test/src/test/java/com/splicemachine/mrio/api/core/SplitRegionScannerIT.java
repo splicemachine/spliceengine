@@ -1,10 +1,22 @@
 package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.test_tools.TableCreator;
+import com.splicemachine.utils.SpliceUtilities;
+import junit.framework.Assert;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -22,66 +34,89 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 
-@Ignore("Breaks stuff")
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+
 public class SplitRegionScannerIT extends BaseMRIOTest {
-    private static final Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SplitRegionScannerIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-	protected static DerbyFactoryImpl derbyFactory = new DerbyFactoryImpl();
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcherA)
-		.around(spliceTableWatcherB)
-		.around(new SpliceDataWatcher(){
-			@Override
-			protected void starting(Description description) {
-				try {
-					PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ SplitRegionScannerIT.class.getSimpleName() + ".A (col1,col2) values (?,?)");
-					PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ SplitRegionScannerIT.class.getSimpleName() + ".B (col1,col2) values (?,?)");
+    private static Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
+    public static final String CLASS_NAME = SplitRegionScannerIT.class.getSimpleName().toUpperCase();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static DerbyFactoryImpl derbyFactory = new DerbyFactoryImpl();
 
-					for (int i = 0; i< 10000; i++) {
-						psA.setInt(1,i);
-						psA.setString(2, "dataset"+i);
-						psA.executeUpdate();
-						if (i==5000) {
-							flushTable(spliceTableWatcherA.toString());
-							splitTable(spliceTableWatcherA.toString());
-						}
-					}
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher);
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-					for (int i = 0; i< 1000; i++) {
-						psB.setInt(1,i);
-						psB.setString(2, "dataset"+i);
-						psB.executeUpdate();
-						if (i==500)
-							flushTable(spliceTableWatcherB.toString());
-					}
+    @Test
+    public void testSplitTable() throws Exception {
+        try {
+            for (int i = 0; i < 10; ++i) {
+                splitTableAndCreateScanner();
+            }
+        } catch(Exception e) {
+            Assert.fail("Exception not expected");
+        }
+    }
 
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-				finally {
-					spliceClassWatcher.closeAll();
-				}
-			}
-		});
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	@Test
-	@Ignore
-	public void validateAccurateRecordsWithStoreFileAndMemstore() throws SQLException, IOException, InterruptedException {
-		String tableName = sqlUtil.getConglomID(spliceTableWatcherA.toString());
-		HTable table = new HTable(config,tableName);
-		Scan scan = new Scan();
-		SpliceRegionScanner splitRegionScanner = derbyFactory.getSplitRegionScanner(scan, table);
-		List data = new ArrayList();		
-	//	for (splitRegionScanner.next(data)) {
-			
-		//}
-		
-	}
+    private void splitTableAndCreateScanner() throws Exception {
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+        setUp(conn);
+        long conglomId = getConglomerateId(conn, CLASS_NAME, "A");
+        String tableName = "splice:" + conglomId;
+        HBaseAdmin admin = SpliceUtilities.getAdmin();
+        admin.split(tableName.getBytes());
+        HTable table = new HTable(config, tableName);
+
+        Scan scan= SpliceUtils.createScan(null, false);
+        SplitRegionScanner splitRegionScanner = (SplitRegionScanner)derbyFactory.getSplitRegionScanner(scan, table);
+        Assert.assertTrue(splitRegionScanner!=null);
+        cleanup();
+    }
+    private void setUp(Connection conn) throws Exception {
+        new TableCreator(conn)
+                .withCreate("create table a (c1 double, c2 double, c3 char(100))")
+                .withInsert("insert into a values(?,?,?)")
+                .withRows(rows(
+                        row(10000, 10000, "1000000  ")))
+                .create();
+
+        for (int i = 0; i < 10; i++) {
+            spliceClassWatcher.executeUpdate("insert into a select * from a");
+        }
+    }
+
+    private void cleanup() throws Exception {
+        spliceClassWatcher.executeUpdate("drop table a");
+    }
+
+    private long getConglomerateId(Connection conn, String schemaName, String tableName) throws SQLException {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try{
+            ps = conn.prepareStatement("select " +
+                    "conglomeratenumber " +
+                    "from " +
+                    "sys.sysconglomerates c," +
+                    "sys.systables t," +
+                    "sys.sysschemas s " +
+                    "where " +
+                    "t.tableid = c.tableid " +
+                    "and t.schemaid = s.schemaid " +
+                    "and s.schemaname = ?" +
+                    "and t.tablename = ?");
+            ps.setString(1,schemaName.toUpperCase());
+            ps.setString(2,tableName);
+            rs = ps.executeQuery();
+            if(rs.next()){
+                return rs.getLong(1);
+            }else
+                throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
+        }finally{
+            if(rs!=null) rs.close();
+            if(ps!=null)ps.close();
+        }
+    }
 }

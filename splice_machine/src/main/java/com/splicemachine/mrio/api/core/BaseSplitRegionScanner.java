@@ -3,12 +3,15 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.common.base.Throwables;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -69,16 +72,38 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 				    }
 				 }
 				 hasAdditionalScanners = false;
-			} catch (DoNotRetryIOException ioe) {
-				if (LOG.isDebugEnabled())
-					SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s",StringUtils.stringifyException(ioe));
-				hasAdditionalScanners = true;
-				try {Thread.sleep(200);} catch (Exception e) {}; // Pause for 200 ms...
-				locations = getRegionsInRange(scan);
-				close();
-			}
+			} catch (IOException ioe) {
+                // recreate region scanners if the exception was throw due to a region split. In that case, the
+                // root cause could be an DoNotRetryException or an RemoteWithExtrasException with class name of
+                // DoNotRetryException
+                Throwable rootCause = Throwables.getRootCause(ioe);
+                boolean rethrow = true;
+                if (rootCause instanceof DoNotRetryIOException)
+                    rethrow = false;
+                else if (rootCause instanceof RemoteWithExtrasException) {
+                    String className = ((RemoteWithExtrasException) rootCause).getClassName();
+                    if (className.compareTo(DoNotRetryIOException.class.getName()) == 0) {
+                        rethrow = false;
+                    }
+                }
+                if (!rethrow) {
+                    if (LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s", StringUtils.stringifyException(ioe));
+                    hasAdditionalScanners = true;
+                    try {
+                        Thread.sleep(200);
+                    } catch (Exception e) {
+                    }
+                    ; // Pause for 200 ms...
+
+                    regionScanners.clear();
+                    locations = getRegionsInRange(scan);
+                    close();
+                }
+                else
+                    throw ioe;
+            }
 		}
-			
 	}
 	
 	abstract List<HRegionLocation> getRegionsInRange(Scan scan) throws IOException;
