@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  * Created on: 9/25/13
  */
+@Ignore
 public class RegionWriteHandlerTest {
 
     @Test
