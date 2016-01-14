@@ -12,6 +12,7 @@ import com.splicemachine.si.impl.WritableTxn;
 import com.splicemachine.util.concurrent.TestCondition;
 import com.splicemachine.util.concurrent.TestLock;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.concurrent.locks.Condition;
  * @author Scott Fines
  *         Date: 9/8/15
  */
+@Ignore
 public class DDLCoordinationTest{
     private static final WritableTxn txn=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true);
 

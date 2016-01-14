@@ -12,6 +12,7 @@ import com.splicemachine.si.impl.WritableTxn;
 import com.splicemachine.util.concurrent.TestCondition;
 import com.splicemachine.util.concurrent.TestLock;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.locks.Condition;
@@ -20,6 +21,7 @@ import java.util.concurrent.locks.Condition;
  * @author Scott Fines
  *         Date: 9/4/15
  */
+@Ignore
 public class AsynchronousDDLControllerTest{
 
     @Test(expected=StandardException.class)

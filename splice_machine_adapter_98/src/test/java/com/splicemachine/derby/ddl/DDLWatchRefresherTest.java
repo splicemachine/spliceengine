@@ -7,6 +7,7 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.WritableTxn;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import java.io.IOException;
 import java.util.Collection;
@@ -18,6 +19,7 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  *         Date: 9/7/15
  */
+@Ignore
 public class DDLWatchRefresherTest{
 
     private static final WritableTxn txn=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true);
