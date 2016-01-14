@@ -15,6 +15,7 @@ import java.util.List;
  * Created by jleach on 4/15/15.
  */
 
+@Ignore("DB-4354")
 public class SparkPairDataSetTest extends AbstractPairDataSetTest {
 
     @Override
