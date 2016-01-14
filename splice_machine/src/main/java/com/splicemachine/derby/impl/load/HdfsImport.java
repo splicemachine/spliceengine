@@ -392,14 +392,14 @@ public class HdfsImport {
             try (PreparedStatement ips = conn.prepareStatement(insertSql)) {
                 ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(fileName));
                 int count = ips.executeUpdate();
-                ExecRow result = new ValueRow(5);
+                String badFileName = ((EmbedConnection) conn).getLanguageConnection().getBadFile();
+                ExecRow result = new ValueRow(4);
                 result.setRowArray(new DataValueDescriptor[]{
                     new SQLLongint(count),
                     new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                     new SQLLongint(contentSummary.getFileCount()),
                     new SQLLongint(contentSummary.getSpaceConsumed()),
-                    new SQLVarchar("badFile"),
-                    new SQLVarchar(((EmbedConnection) conn).getLanguageConnection().getBadFile())
+                    new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
                 });
                 Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();
                 IteratorNoPutResultSet rs =

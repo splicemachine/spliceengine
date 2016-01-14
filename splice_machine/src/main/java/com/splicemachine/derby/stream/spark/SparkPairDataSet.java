@@ -43,7 +43,6 @@ import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
-import com.splicemachine.pipeline.exception.ErrorState;
 
 /**
  * @see org.apache.spark.api.java.JavaPairRDD
@@ -239,11 +238,13 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
             if (operationContext.getOperation() != null) {
                 operationContext.getOperation().fireAfterStatementTriggers();
             }
-            ValueRow valueRow = new ValueRow(1);
             InsertOperation insertOperation = ((InsertOperation)operationContext.getOperation());
+            ValueRow valueRow = new ValueRow(3);
+            valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
             if (insertOperation!=null && insertOperation.isImport()) {
                 List<String> badRecords = operationContext.getBadRecords();
                 if (badRecords.size()>0) {
+                    operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
                     appendToEach(badRecords, System.lineSeparator());
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
@@ -252,15 +253,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
                         path = ImportUtils.generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
                         dataSet.saveAsTextFile(path.toString());
                         fileSystem.close();
+                        operationContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
                     }
-                    if (insertOperation.failBadRecordCount==0)
-                        throw new RuntimeException(badRecords.get(0));
-                    if (badRecords.size()> insertOperation.failBadRecordCount)
-                        throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
                 }
             }
 
-            valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);
