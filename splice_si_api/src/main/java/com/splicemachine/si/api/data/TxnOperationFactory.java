@@ -55,4 +55,5 @@ public interface TxnOperationFactory<OperationWithAttributes,
 
     DataMutation newDataDelete(TxnView txn,byte[] key) throws IOException;
 
+    DataCell newDataCell(byte[] key,byte[] family,byte[] qualifier,byte[] value);
 }

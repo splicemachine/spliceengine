@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -20,6 +21,8 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.*;
 import org.apache.log4j.Logger;
 
@@ -66,10 +69,11 @@ public class IndexController extends SpliceController{
 						 *		 Unfortunately, this information is not available here and would need to be passed down from
 						 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
 						 */
-            DataGet get=opFactory.newDataGet(trans.getTxnInformation(),rowKey,null);
+            TxnView txn=((SpliceTransaction)trans).getTxn();
+            DataGet get=opFactory.newDataGet(txn,rowKey,null);
             DataResult result=htable.get(get,null);
             if(result==null||result.size()<=0){
-                DataPut put=opFactory.newDataPut(trans.getTxnInformation(),rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
+                DataPut put=opFactory.newDataPut(txn,rowKey);//SpliceUtils.createPut(rowKey,((SpliceTransaction)trans).getTxn());
                 encodeRow(row,put,null,null);
                 htable.put(put);
                 return 0;

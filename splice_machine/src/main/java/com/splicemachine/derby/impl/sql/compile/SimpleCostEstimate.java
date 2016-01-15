@@ -4,7 +4,6 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
-import com.splicemachine.db.iapi.error.StandardException;
 import java.text.DecimalFormat;
 
 /**
@@ -33,7 +32,6 @@ public class SimpleCostEstimate implements CostEstimate{
     protected double indexLookupRows =-1.0d;
     protected double projectionCost =-1.0d;
     protected double projectionRows =-1.0d;
-
 
     public SimpleCostEstimate(){ }
 
@@ -97,12 +95,12 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public String prettyFromBaseTableString() {
-        return prettyStringOutput(getFromBaseTableCost(), (long) Math.round(getFromBaseTableRows()));
+        return prettyStringOutput(getFromBaseTableCost(),Math.round(getFromBaseTableRows()));
     }
 
     @Override
     public String prettyIndexLookupString() {
-        return prettyStringOutput(getIndexLookupCost(), (long) Math.round(getIndexLookupRows()));
+        return prettyStringOutput(getIndexLookupCost(),Math.round(getIndexLookupRows()));
     }
 
     private String prettyStringOutput(double cost,long rows) {
@@ -380,6 +378,51 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public double getRemoteCost() {
         return remoteCost;
+    }
+
+//    @Override
+    public String prettyProcessingString(String attrDelim){
+        return prettyStringOutput(localCost,getEstimatedRowCount(),attrDelim);
+    }
+
+//    @Override
+    public String prettyScrollInsensitiveString(String attrDelim) {
+        return prettyStringOutput(getEstimatedCost(), getEstimatedRowCount(), attrDelim);
+    }
+
+//    @Override
+    public String prettyFromBaseTableString(String attrDelim) {
+        return prettyStringOutput(getFromBaseTableCost(),Math.round(getFromBaseTableRows()), attrDelim);
+    }
+
+//    @Override
+    public String prettyIndexLookupString(String attrDelim) {
+        return prettyStringOutput(getIndexLookupCost(),Math.round(getIndexLookupRows()), attrDelim);
+    }
+
+//    @Override
+    public String prettyProjectionString(String attrDelim) {
+        return prettyStringOutput(getProjectionCost(),Math.round(getProjectionRows()), attrDelim);
+    }
+
+    private String prettyStringOutput(double cost, long rows, String attrDelim) {
+        DecimalFormat df = new DecimalFormat();
+        df.setMaximumFractionDigits(3);
+        df.setGroupingUsed(false);
+        long estHeap = getEstimatedHeapSize();
+        double eHeap = estHeap;
+        int pos = 0;
+        while(pos<displayHeapUnits.length-1 && estHeap>1024){
+            eHeap/=1024;
+            estHeap = (long)eHeap;
+            pos++;
+        }
+        String unit = displayHeapUnits[pos];
+
+        return "totalCost="+df.format(cost/1000)
+                +attrDelim+"outputRows="+rows
+                +attrDelim+"outputHeapSize="+df.format(eHeap)+unit
+                +attrDelim+"partitions="+partitionCount();
     }
 
     private SimpleCostEstimate getBaseCostInternal() {

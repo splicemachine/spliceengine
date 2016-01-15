@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.TxnView;
@@ -14,8 +15,11 @@ import java.io.ObjectOutput;
  *         Date: 12/16/15
  */
 public class MTxnOperationFactory extends BaseOperationFactory{
-    public MTxnOperationFactory(SDataLib dataLib,ExceptionFactory exceptionFactory){
+    private Clock clock;
+
+    public MTxnOperationFactory(SDataLib dataLib,Clock clock,ExceptionFactory exceptionFactory){
         super(dataLib,exceptionFactory);
+        this.clock = clock;
     }
 
     @Override
@@ -50,6 +54,11 @@ public class MTxnOperationFactory extends BaseOperationFactory{
         DataDelete delete = new MDelete(key);
         encodeForWrites(delete,txn);
         return delete;
+    }
+
+    @Override
+    public DataCell newDataCell(byte[] key,byte[] family,byte[] qualifier,byte[] value){
+        return new MCell(key,family,qualifier,clock.currentTimeMillis(),value,CellType.USER_DATA);
     }
 
     @Override

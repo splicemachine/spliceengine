@@ -25,7 +25,7 @@ public class HBaseDDLEnvironment implements DDLEnvironment{
         ZooKeeperDDLCommunicator communicator=new ZooKeeperDDLCommunicator();
         LockFactory lf = new ReentrantLockFactory(false);
         this.ddlController = new AsynchronousDDLController(communicator,lf,clock,configuration);
-        this.watcher = new ZookeeperDDLWatcher(txnController,clock,configuration);
+        this.watcher = new AsynchronousDDLWatcher(txnController,clock,configuration,new ZooKeeperDDLWatchChecker());
         this.config = configuration;
     }
 

@@ -27,7 +27,7 @@ public class DDLWatchRefresher{
     private final Map<String, Long> changeTimeouts;
     private final Map<String, DDLChange> currentDDLChanges;
     private final Map<String, DDLChange> tentativeDDLS;
-    private AtomicReference<DDLFilter> ddlDemarcationPoint;
+    private final AtomicReference<DDLFilter> ddlDemarcationPoint;
     private final DDLWatchChecker watchChecker;
     private final Clock clock;
     private final TransactionReadController txController;
@@ -59,7 +59,7 @@ public class DDLWatchRefresher{
     }
 
     public boolean refreshDDL(Set<DDLWatcher.DDLListener> callbacks) throws IOException, StandardException{
-        List<String> ongoingDDLChangeIds=watchChecker.getCurrentChangeIds();
+        Collection<String> ongoingDDLChangeIds=watchChecker.getCurrentChangeIds();
         if(ongoingDDLChangeIds==null) return false;
 
         Set<Pair<DDLChange,String>> newChanges=new HashSet<>();
@@ -124,7 +124,7 @@ public class DDLWatchRefresher{
         }
     }
 
-    private void clearFinishedChanges(List<String> children,Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
+    private void clearFinishedChanges(Collection<String> children,Collection<DDLWatcher.DDLListener> ddlListeners) throws StandardException {
         /*
          * Remove DDL changes which are known to be finished.
          *

@@ -10,6 +10,10 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLController;
+import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -121,5 +125,26 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
          * here, but in fact we are fully transactional and within a savepoint context.
          */
         dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, lcc.getTransactionExecute());
+
+        /*
+         * Notify the DDL mechanism that a table is being created.
+         *
+         * In previous versions of Splice we would not use this mechanism: after all, the other servers
+         *  don't really need to know that a table has been created, right?
+         *
+         *  The problem is that we rely on this mechanism to tell us when our data dictionary caches are to be
+         *  invalidated; If we don't invalidate the caches on commit or rollback, we can get bleed-over
+         *  where the table appears to exist even though it was rolled back (see CreateTableTransactionIT for some
+         *  Integration tests around this).
+         *
+         *  To keep things simple we piggy-back on the existing DDL mechanism to ensure that our caches
+         *  get cleared on commit/rollback. If this proves too expensive, then a custom local-memory-only trigger
+         *  mechanism can be written for this and CREATE_SCHEMA
+         */
+        long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
+        DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_SCHEMA).setTxnId(txnId).build();
+        DDLController ddlController=DDLDriver.driver().ddlController();
+        String currentDDLChangeId=ddlController.notifyMetadataChange(change);
+        tc.prepareDataDictionaryChange(currentDDLChangeId);
     }
 }

@@ -40,7 +40,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final IgnoreTxnCacheSupplier ignoreSupplier;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
-    private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
+    private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,clock,exceptionFactory);
     private final KeepAliveScheduler kaScheduler = new ManualKeepAliveScheduler(txnStore);
     private final SConfiguration config;
 

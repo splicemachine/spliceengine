@@ -1,5 +1,6 @@
 package com.splicemachine.si;
 
+import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -21,7 +22,7 @@ public class MemSIDataEnv implements SITestDataEnv{
     private TxnOperationFactory txnOpFactory;
 
     public MemSIDataEnv(){
-        this.txnOpFactory = new MTxnOperationFactory(dataLib,MExceptionFactory.INSTANCE);
+        this.txnOpFactory = new MTxnOperationFactory(dataLib,new IncrementingClock(),MExceptionFactory.INSTANCE);
     }
 
     @Override

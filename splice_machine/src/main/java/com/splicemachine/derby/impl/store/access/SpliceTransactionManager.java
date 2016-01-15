@@ -5,6 +5,7 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.Serializable;
 import java.util.*;
@@ -1987,8 +1988,11 @@ public class SpliceTransactionManager implements XATransactionController,
         String txnName;
         Txn txn = ((SpliceTransaction)rawtran).getActiveStateTxn();
         if(!readOnly){
+            if(parent_tran!=null)
+                parent_tran.elevate(txn,"unknown");
             txnName = AccessFactoryGlobals.NESTED_UPDATE_USER_TRANS;
-            ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
+            elevate("unknown");
+//            ((SpliceTransaction) rawtran).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with a known destination table
             txn = ((SpliceTransaction)rawtran).getTxn();
         }else
             txnName = AccessFactoryGlobals.NESTED_READONLY_USER_TRANS;
@@ -2008,6 +2012,15 @@ public class SpliceTransactionManager implements XATransactionController,
 	    	SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", childTxn, rt.getNestedTransactionStackString());
 
         return (rt);
+    }
+
+    private void elevate(Txn knownChild,String tableName) throws StandardException{
+        /*
+         * Elevate this transaction, then set the active state transaction as the parent on the known child
+         */
+        elevate(tableName);
+        if(knownChild instanceof ReadOnlyTxn)
+            ((ReadOnlyTxn)knownChild).parentWritable(getActiveStateTxn());
     }
 
     /**

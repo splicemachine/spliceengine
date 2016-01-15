@@ -145,6 +145,8 @@ enum DDLChangeType {
     ALTER_STATS = 15;
     ENTER_RESTORE_MODE = 16;
     DICTIONARY_UPDATE = 17;
+    CREATE_TABLE = 18;
+    CREATE_SCHEMA = 19;
 }
 
 message DDLChange {

@@ -14,7 +14,7 @@ public interface DDLWatchChecker{
 
     boolean initialize(CommunicationListener listener) throws IOException;
 
-    List<String> getCurrentChangeIds() throws IOException;
+    Collection<String> getCurrentChangeIds() throws IOException;
 
     DDLChange getChange(String changeId) throws IOException;
 

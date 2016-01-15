@@ -31,6 +31,16 @@ public class PairDecoder{
         return templateRow;
     }
 
+    public ExecRow decode(byte[] key, byte[] value) throws StandardException{
+        templateRow.resetRowArray();
+        keyDecoder.decode(key,0,key.length,templateRow);
+        rowDecoder.set(value,0,value.length);
+        rowDecoder.decode(templateRow);
+        return templateRow;
+
+    }
+
+
 		/*
          *
 		 *  < a | b |c >

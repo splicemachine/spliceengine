@@ -32,10 +32,8 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -154,10 +152,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
             authorize(tds);
             ddlNotification(tc,tds);
-            dropTableStatistics(tds,dd,tc);
-            ExecRow templateOutputRow = buildOutputTemplateRow();
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
+            dropTableStatistics(tds,dd,tc);
+            ExecRow templateOutputRow = buildOutputTemplateRow();
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
@@ -181,20 +179,27 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         } catch (ExecutionException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e.getCause()));
         }
-
     }
 
     private static void authorize(List<TableDescriptor> tableDescriptorList) throws SQLException, StandardException {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation activation = conn.getLanguageConnection().getLastActivation();
+        Authorizer authorizer=lcc.getAuthorizer();
+        Activation activation = lcc.getActivationCount()>0?lcc.getLastActivation():null;
+        if(activation==null){
+            //TODO -sf- this can happen sometimes for some reason
+            for(TableDescriptor td : tableDescriptorList){
+                authorizer.authorize(Authorizer.INSERT_PRIV);
+            }
+            return;
+        }
         List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
         for (TableDescriptor tableDescriptor : tableDescriptorList) {
             StatementTablePermission key = null;
             try {
                 key = new StatementTablePermission(tableDescriptor.getUUID(), Authorizer.INSERT_PRIV);
                 requiredPermissionsList.add(key);
-                activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
+                lcc.getAuthorizer().authorize(activation, 1);
             } catch (StandardException e) {
                 if (e.getSqlState().compareTo(SQLState.AUTH_NO_TABLE_PERMISSION) == 0) {
                     throw StandardException.newException(
@@ -381,8 +386,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
         }
         DataScan scan = createScan(txn);
+        ExecRow rowTemplate = new ValueRow(execRowFormatIds.length);
+        DataValueDescriptor[] dvds = rowTemplate.getRowArray();
+        DataValueFactory dataValueFactory=conn.getLanguageConnection().getDataValueFactory();
+        for(int i=0;i<execRowFormatIds.length;i++){
+            dvds[i] = dataValueFactory.getNull(execRowFormatIds[i],-1);
+        }
         return builder.transaction(txn)
                 .execRowTypeFormatIds(execRowFormatIds)
+                .template(rowTemplate)
                 .scan(scan)
                 .rowDecodingMap(rowDecodingMap)
                 .keyColumnEncodingOrder(keyColumnEncodingOrder)

@@ -23,8 +23,8 @@ public class Exceptions {
         }
         PipelineExceptionFactory ef=PipelineDriver.driver().exceptionFactory();
 
-        e = ef.processPipelineException(e);
-        ErrorState state = ErrorState.stateFor(e);
+        e = ef.processPipelineException(rootCause);
+        ErrorState state = ErrorState.stateFor(rootCause);
 
 //        if (rootCause instanceof RetriesExhaustedWithDetailsException) {
 //            return parseException((RetriesExhaustedWithDetailsException) rootCause);

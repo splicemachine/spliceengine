@@ -123,6 +123,10 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         return txnStack.size();
     }
 
+    public String getActiveStateTxnName(){
+        return txnStack.peek().getFirst();
+    }
+
     private void doCommit(Pair<String, Txn> savePoint) throws StandardException{
         try{
             savePoint.getSecond().commit();
@@ -263,6 +267,7 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         if(state==IDLE){
             try{
                 synchronized(this){
+                    SpliceLogUtils.trace(LOG,"setActiveState: parent "+parentTxn);
                     TxnLifecycleManager lifecycleManager=SIDriver.driver().lifecycleManager();
                     Txn txn;
                     if(nested)

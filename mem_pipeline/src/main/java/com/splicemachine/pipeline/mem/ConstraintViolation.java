@@ -32,7 +32,7 @@ public class ConstraintViolation extends IOException{
         return cc;
     }
 
-    public static class PkViolation extends ConstraintViolation{
+    public static class PkViolation extends ConstraintViolation implements UniqueConstraintViolation{
         public PkViolation(){ }
 
         public PkViolation(String message){

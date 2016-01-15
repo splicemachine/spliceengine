@@ -50,7 +50,7 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     }
 
     @Override
-    public List<String> getCurrentChangeIds() throws IOException{
+    public Collection<String> getCurrentChangeIds() throws IOException{
         try{
             return ZkUtils.getRecoverableZooKeeper().getChildren(CHANGES_PATH,changeIdWatcher);
         }catch(KeeperException ke){

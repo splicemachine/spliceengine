@@ -67,9 +67,7 @@ public abstract class SpliceController implements ConglomerateController{
 
     public void close() throws StandardException{
         if(table!=null){
-            try{
-                table.close();
-            }catch(IOException ignored){ }
+            try{ table.close(); }catch(IOException ignored){ }
         }
         if(entryEncoder!=null)
             try{ entryEncoder.close();}catch(IOException ignored){}
@@ -142,7 +140,8 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
     public boolean fetch(RowLocation loc,DataValueDescriptor[] destRow,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
-        try(Partition htable = getTable()){
+        Partition htable = getTable();
+        try{
             DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),loc.getBytes(),null);
             baseGet.returnAllVersions();
             DataGet get=createGet(baseGet,destRow,validColumns);//loc,destRow,validColumns,trans.getTxnInformation());

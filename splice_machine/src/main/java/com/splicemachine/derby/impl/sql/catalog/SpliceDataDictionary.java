@@ -90,6 +90,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return super.getSubKeyConstraint(constraintId,type);
     }
 
+
     @Override
     protected void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
                                        TransactionController tc) throws StandardException{

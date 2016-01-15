@@ -22,6 +22,7 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.ddl.DDLMessage.DDLChangeType;
 import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -285,7 +286,6 @@ public class SpliceDatabase extends BasicDatabase{
 
             @Override
             public void startChange(DDLChange change) throws StandardException{
-
                 if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
                     DDLUtils.preDropTable(change,getDataDictionary(),getDataDictionary().getDependencyManager());
                 }else if(change.getDdlChangeType()==DDLChangeType.ALTER_STATS){
@@ -302,15 +302,24 @@ public class SpliceDatabase extends BasicDatabase{
             @Override
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
                 switch(change.getDdlChangeType()){
+                    case CREATE_INDEX:
+                        break;
                     case DROP_TABLE:
                         System.out.println("Drop Table changeSuccessful -> changeId="+changeId+" change="+change);
-                    case CREATE_INDEX:
-                        getDataDictionary().clearCaches();
+                    case CREATE_TABLE:
+                        getDataDictionary().getDataDictionaryCache().clearTableCache();
+                        break;
+                    case CREATE_SCHEMA:
+                    case DROP_SCHEMA:
+                        getDataDictionary().getDataDictionaryCache().clearSchemaCache();
+                        break;
+
                 }
             }
 
             @Override
             public void changeFailed(String changeId){
+                System.out.println("Change failed "+ changeId);
             }
         });
     }

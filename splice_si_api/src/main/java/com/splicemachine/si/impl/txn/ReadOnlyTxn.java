@@ -166,11 +166,11 @@ public class ReadOnlyTxn extends AbstractTxn{
         assert state.get()==State.ACTIVE:"Cannot elevate an inactive transaction!";
         Txn newTxn;
         if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
-                        /*
-						 * We are a read-only child transaction of a parent. This means that we didn't actually
-						 * create a child transaction id or a begin timestamp of our own. Instead of elevating,
-						 * we actually create a writable child transaction.
-						 */
+           /*
+		    * We are a read-only child transaction of a parent. This means that we didn't actually
+			* create a child transaction id or a begin timestamp of our own. Instead of elevating,
+			* we actually create a writable child transaction.
+			*/
             newTxn=tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
         }else{
             newTxn=tc.elevateTransaction(this,writeTable); //requires at least one network call

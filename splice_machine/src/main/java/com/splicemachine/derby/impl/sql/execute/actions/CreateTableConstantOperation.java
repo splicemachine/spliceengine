@@ -1,5 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -185,7 +190,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          * -sf- We don't need to set the ddl write mode in the lcc, because
          * we don't need to do two phase commit for create table statements.
          */
-        dd.startWriting(lcc,false);
+        dd.startWriting(lcc);
 
 		/* create the conglomerate to hold the table's rows
 		 * RESOLVE - If we ever have a conglomerate creator
@@ -345,6 +350,25 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          * dependency until now. (DERBY-4479)
          */
         dd.getDependencyManager().addDependency(activation.getPreparedStatement(), td, lcc.getContextManager());
+
+        /*
+         * Notify the DDL mechanism that a table is being created.
+         *
+         * In previous versions of Splice we would not use this mechanism: after all, the other servers
+         *  don't really need to know that a table has been created, right?
+         *
+         *  The problem is that we rely on this mechanism to tell us when our data dictionary caches are to be
+         *  invalidated; If we don't invalidate the caches on commit or rollback, we can get bleed-over
+         *  where the table appears to exist even though it was rolled back (see CreateTableTransactionIT for some
+         *  Integration tests around this).
+         *
+         *  To keep things simple we piggy-back on the existing DDL mechanism to ensure that our caches
+         *  get cleared on commit/rollback. If this proves too expensive, then a custom local-memory-only trigger
+         *  mechanism can be written for this and CREATE_SCHEMA
+         */
+        long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
+        DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
+        tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
     }
 
     protected ConglomerateDescriptor getTableConglomerateDescriptor(TableDescriptor td,

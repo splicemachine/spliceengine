@@ -38,7 +38,7 @@ public class MemSITestEnv implements SITestEnv{
     private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
-    private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,exceptionFactory);
+    private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,clock,exceptionFactory);
 
     public MemSITestEnv() throws IOException{
     }

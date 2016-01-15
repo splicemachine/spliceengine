@@ -47,10 +47,13 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 	}
 
 	@Override
-	public void clearDependencies(LanguageConnectionContext lcc, Dependent d,TransactionController tc) throws StandardException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "clearDependencies lcc=%s,dependent=%s,transactionController=%s",lcc,d,tc);
-		super.clearDependencies(lcc, d, tc);
+	public void clearDependencies(LanguageConnectionContext lcc,Dependent d,TransactionController tc) throws StandardException{
+		TransactionController tCont = tc;
+		if(tCont==null)
+			tCont = lcc.getTransactionExecute();
+		if(tCont!=null)
+			tCont.elevate("dictionary");
+		super.clearDependencies(lcc,d,tc);
 	}
 
 	@Override

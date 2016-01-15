@@ -63,7 +63,7 @@ class TestChecker implements DDLWatchChecker{
     }
 
     @Override
-    public List<String> getCurrentChangeIds() throws IOException{
+    public Collection<String> getCurrentChangeIds() throws IOException{
         return Lists.transform(changes,new Function<DDLChange, String>(){
             @Nullable
             @Override
