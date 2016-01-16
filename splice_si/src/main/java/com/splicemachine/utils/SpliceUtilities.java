@@ -160,21 +160,20 @@ public class SpliceUtilities extends SIConstants {
 			admin = getAdmin();
             admin.createNamespace(NamespaceDescriptor.create("splice").build());
 
-			if (!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)) {
+			if (!admin.tableExists(Bytes.toBytes(SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+SpliceConstants.TRANSACTION_TABLE))) {
 				HTableDescriptor td = generateTransactionTable();
 				admin.createTable(td, generateTransactionSplits());
 				SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE
 						+ " created");
 			}
-			if (!admin.tableExists(SpliceConstants.TENTATIVE_TABLE_BYTES)) {
+			if (!admin.tableExists(Bytes.toBytes(SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+SpliceConstants.TENTATIVE_TABLE))) {
 				HTableDescriptor td = generateDefaultSIGovernedTable(SpliceConstants.TENTATIVE_TABLE);
 				admin.createTable(td);
 				SpliceLogUtils.info(LOG, SpliceConstants.TENTATIVE_TABLE
 						+ " created");
 			}
 
-			if (!admin
-					.tableExists(SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES)) {
+			if (!admin.tableExists(Bytes.toBytes(SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+SpliceConstants.CONGLOMERATE_TABLE_NAME))) {
 				HTableDescriptor td = generateDefaultSIGovernedTable(CONGLOMERATE_TABLE_NAME);
 				admin.createTable(td);
 				SpliceLogUtils.info(LOG,
@@ -186,7 +185,7 @@ public class SpliceUtilities extends SIConstants {
 			 * because we shouldn't manage sequential generators
 			 * transactionally.
 			 */
-			if (!admin.tableExists(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES)) {
+			if (!admin.tableExists(Bytes.toBytes(SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+SpliceConstants.SEQUENCE_TABLE_NAME))) {
 				HTableDescriptor td = generateNonSITable(SEQUENCE_TABLE_NAME);
 				admin.createTable(td);
 				SpliceLogUtils.info(LOG, SpliceConstants.SEQUENCE_TABLE_NAME
@@ -207,7 +206,7 @@ public class SpliceUtilities extends SIConstants {
         HBaseAdmin admin = null;
         try {
             admin = getAdmin();
-            if (!admin.tableExists(SpliceConstants.RESTORE_TABLE_NAME_BYTES)) {
+            if (!admin.tableExists(Bytes.toBytes(SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+SpliceConstants.RESTORE_TABLE_NAME))) {
                 HTableDescriptor td = generateNonSITable(RESTORE_TABLE_NAME);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG, SpliceConstants.RESTORE_TABLE_NAME

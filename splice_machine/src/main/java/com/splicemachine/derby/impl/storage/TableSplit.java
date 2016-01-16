@@ -105,7 +105,7 @@ public class TableSplit{
         while(isSplitting){
             isSplitting=false;
             try {
-                List<HRegionInfo> regions = admin.getTableRegions(Long.toString(conglomId).getBytes());
+                List<HRegionInfo> regions = admin.getTableRegions((SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+Long.toString(conglomId)).getBytes());
                 if(regions!=null){
                     for(HRegionInfo region:regions){
                         if(region.isSplit()){
@@ -127,7 +127,7 @@ public class TableSplit{
     }
 
     private static void doSplit(HBaseAdmin admin,String splitPoints, long conglomId) throws SQLException {
-        byte[] tableName = Long.toString(conglomId).getBytes();
+        byte[] tableName = (SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+Long.toString(conglomId)).getBytes();
         for(String splitPosition: Splitter.on(',').trimResults().omitEmptyStrings().split(splitPoints)){
             /*
              * If the table has no primary keys, then an easy and convenient way of splitting the

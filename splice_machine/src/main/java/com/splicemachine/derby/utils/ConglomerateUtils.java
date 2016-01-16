@@ -311,7 +311,7 @@ public class ConglomerateUtils extends SpliceConstants {
      * @throws InterruptedException if the split operation is interrupted.
      */
     public static void splitConglomerate(long conglomId, byte[] position) throws IOException, InterruptedException {
-        splitConglomerate(Bytes.toBytes(Long.toString(conglomId)), position, sleepSplitInterval);
+        splitConglomerate(Bytes.toBytes(SpliceConstants.DEFAULT_SPLICE_NAMESPACE+":"+Long.toString(conglomId)), position, sleepSplitInterval);
     }
 
     public static void splitConglomerate(byte[] name, byte[] position, long sleepInterval) throws IOException, InterruptedException {

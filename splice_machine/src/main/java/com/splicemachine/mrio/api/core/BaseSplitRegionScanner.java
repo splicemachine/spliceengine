@@ -73,29 +73,9 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 				 }
 				 hasAdditionalScanners = false;
 			} catch (IOException ioe) {
-                // recreate region scanners if the exception was throw due to a region split. In that case, the
-                // root cause could be an DoNotRetryException or an RemoteWithExtrasException with class name of
-                // DoNotRetryException
-                Throwable rootCause = Throwables.getRootCause(ioe);
-                boolean rethrow = true;
-                if (rootCause instanceof DoNotRetryIOException)
-                    rethrow = false;
-                else if (rootCause instanceof RemoteWithExtrasException) {
-                    String className = ((RemoteWithExtrasException) rootCause).getClassName();
-                    if (className.compareTo(DoNotRetryIOException.class.getName()) == 0) {
-                        rethrow = false;
-                    }
-                }
+                boolean rethrow = shouldRethrowException(ioe);
                 if (!rethrow) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s", StringUtils.stringifyException(ioe));
                     hasAdditionalScanners = true;
-                    try {
-                        Thread.sleep(200);
-                    } catch (Exception e) {
-                    }
-                    ; // Pause for 200 ms...
-
                     regionScanners.clear();
                     locations = getRegionsInRange(scan);
                     close();
@@ -172,5 +152,34 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 	public HRegion getRegion() {
 		return region;
 	}
-	
+
+
+    private boolean shouldRethrowException(Exception e) {
+
+        // recreate region scanners if the exception was throw due to a region split. In that case, the
+        // root cause could be an DoNotRetryException or an RemoteWithExtrasException with class name of
+        // DoNotRetryException
+
+        Throwable rootCause = Throwables.getRootCause(e);
+        boolean rethrow = true;
+        if (rootCause instanceof DoNotRetryIOException)
+            rethrow = false;
+        else if (rootCause instanceof RemoteWithExtrasException) {
+            String className = ((RemoteWithExtrasException) rootCause).getClassName();
+            if (className.compareTo(DoNotRetryIOException.class.getName()) == 0) {
+                rethrow = false;
+            }
+        }
+
+        if (!rethrow) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s", StringUtils.stringifyException(e));
+            try {
+                Thread.sleep(200);
+            } catch (Exception ex) {
+            }
+        }
+
+        return rethrow;
+    }
 }
