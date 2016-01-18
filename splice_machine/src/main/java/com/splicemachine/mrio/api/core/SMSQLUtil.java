@@ -1,21 +1,13 @@
 package com.splicemachine.mrio.api.core;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.impl.load.ColumnInfo;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.derby.stream.spark.ActivationHolder;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.ActiveWriteTxn;
 import org.apache.commons.lang.SerializationUtils;
-import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions.ActivationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
@@ -32,10 +24,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.utils.kryo.KryoObjectInput;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Base64;
 import org.apache.log4j.Logger;
 
 public class SMSQLUtil extends SIConstants {
@@ -449,24 +438,14 @@ public class SMSQLUtil extends SIConstants {
         ps.setString(1, sql);
         ResultSet rs = ps.executeQuery();
         rs.next();
-        byte[] soiBytes = rs.getBytes(1);
+        byte[] activationHolderBytes = rs.getBytes(1);
         try {
             SpliceSpark.setupSpliceStaticComponents();
         } catch (IOException ioe) {
             StandardException.plainWrapException(ioe);
         }
-        SpliceTransactionResourceImpl impl = null;
-        try {
-            impl = new SpliceTransactionResourceImpl();
-            impl.prepareContextManager();
-            SpliceObserverInstructions soi = (SpliceObserverInstructions)SerializationUtils.deserialize(soiBytes);
-            impl.marshallTransaction(txnView);
-            return soi.getActivation(impl.getLcc());
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        } finally {
-            impl.popContextManager();
-        }
+        ActivationHolder ah = (ActivationHolder) SerializationUtils.deserialize(activationHolderBytes);
+        return ah.getActivation();
     }
 
 }

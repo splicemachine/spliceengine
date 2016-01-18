@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.derby.stream.spark.ActivationHolder;
 import com.splicemachine.derby.utils.marshall.dvd.UDTInputStream;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -35,9 +36,9 @@ public class ActivationSerializer {
 
     private static final Logger LOG = Logger.getLogger(ActivationSerializer.class);
 
-    public static void write(Activation source,ObjectOutput out) throws IOException {
+    public static void write(ActivationHolder source, ObjectOutput out) throws IOException {
         if (classFactory == null) {
-            LanguageConnectionContext lcc = source.getLanguageConnectionContext();
+            LanguageConnectionContext lcc = source.getActivation().getLanguageConnectionContext();
             classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
         }
         Visitor visitor = new Visitor(source);
@@ -49,10 +50,10 @@ public class ActivationSerializer {
         visitor.write(out);
     }
 
-    public static Activation readInto(ObjectInput in, Activation destination) throws IOException, StandardException {
+    public static Activation readInto(ObjectInput in, ActivationHolder destination) throws IOException, StandardException {
         try {
             if (classFactory == null) {
-                LanguageConnectionContext lcc = destination.getLanguageConnectionContext();
+                LanguageConnectionContext lcc = destination.getActivation().getLanguageConnectionContext();
                 classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
             }
             return new Visitor(destination).read(in);
@@ -76,7 +77,6 @@ public class ActivationSerializer {
         factories.add(new CachedOpFieldFactory());
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
-        factories.add(new CachedOpFieldFactory());
         factories.add(new BooleanFactory());
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
@@ -84,20 +84,24 @@ public class ActivationSerializer {
     }
 
     private static class Visitor{
+        private final Map<Integer, SpliceOperation> operationsMap;
         private Map<String,FieldStorage> fields;
         private Map<String,FieldStorage> baseFields;
         private Activation activation;
+        private ActivationHolder activationHolder;
 
-        private Visitor(Activation activation) {
-            this.activation = activation;
+        private Visitor(ActivationHolder activationHolder) {
+            this.activationHolder = activationHolder;
+            this.activation = activationHolder.getActivation();
+            this.operationsMap = activationHolder.getOperationsMap();
             this.fields = Maps.newHashMap();
             this.baseFields = Maps.newHashMap();
         }
 
         void visitAll() throws IllegalAccessException, IOException {
-            visitSelfFields();
-
+            // first visit base fields, so we can reference ops from "resultSet" later on
             visitBaseActivationFields();
+            visitSelfFields();
 
         }
 
@@ -186,10 +190,10 @@ public class ActivationSerializer {
             Field declaredField = clazz.getDeclaredField(fieldName);
             if(!declaredField.isAccessible()){
                 declaredField.setAccessible(true);
-                declaredField.set(activation,storage.getValue(activation));
+                declaredField.set(activation,storage.getValue(activationHolder));
                 declaredField.setAccessible(false);
             }else
-                declaredField.set(activation,storage.getValue(activation));
+                declaredField.set(activation,storage.getValue(activationHolder));
         }
 
     }
@@ -219,7 +223,7 @@ public class ActivationSerializer {
 
     private static interface FieldStorage extends Externalizable{
 
-        Object getValue(Activation context) throws StandardException;
+        Object getValue(ActivationHolder context) throws StandardException;
     }
 
     private static interface FieldStorageFactory<F extends FieldStorage> {
@@ -227,7 +231,7 @@ public class ActivationSerializer {
         boolean isType(Object instance, Class type);
     }
 
-    public static class BooleanFieldStorage implements FieldStorage{
+    public static class BooleanFieldStorage implements FieldStorage {
         private Boolean data;
 
         public BooleanFieldStorage() { }
@@ -247,7 +251,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public Object getValue(Activation context) throws StandardException {
+        public Object getValue(ActivationHolder context) throws StandardException {
             return data;
         }
     }
@@ -300,7 +304,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public Object getValue(Activation context) throws StandardException {
+        public Object getValue(ActivationHolder context) throws StandardException {
             Object[] objects = (Object[]) Array.newInstance(arrayType, data.length);
 
             for(int i=0;i<objects.length;i++){
@@ -365,9 +369,9 @@ public class ActivationSerializer {
         }
 
         @Override
-        public Object getValue(Activation context) throws StandardException {
+        public Object getValue(ActivationHolder context) throws StandardException {
             if(dvd==null)
-                dvd= context.getDataValueFactory().getNull(type,0);
+                dvd= context.getActivation().getDataValueFactory().getNull(type,0);
             return dvd;
         }
 
@@ -449,15 +453,15 @@ public class ActivationSerializer {
         }
 
         @Override
-        public Object getValue(Activation context) throws StandardException {
+        public Object getValue(ActivationHolder context) throws StandardException {
 
             ExecRow valueRow;
 
             DataValueDescriptor[] dvds = (DataValueDescriptor[])data.getValue(context);
             if(isIndexType){
-                valueRow = context.getExecutionFactory().getIndexableRow(dvds.length);
+                valueRow = context.getActivation().getExecutionFactory().getIndexableRow(dvds.length);
             }else
-                valueRow = context.getExecutionFactory().getValueRow(dvds.length);
+                valueRow = context.getActivation().getExecutionFactory().getValueRow(dvds.length);
 
             valueRow.setRowArray((DataValueDescriptor[])data.getValue(context));
 
@@ -496,6 +500,7 @@ public class ActivationSerializer {
         private static final long serialVersionUID = 1l;
 
         private SpliceOperation operation;
+        private int resultSetNumber;
 
         @Deprecated
         public CachedOpFieldStorage() {
@@ -503,22 +508,22 @@ public class ActivationSerializer {
 
         public CachedOpFieldStorage(SpliceOperation operation) {
             this.operation = operation;
+            this.resultSetNumber = operation.resultSetNumber();
         }
 
         @Override
-        public Object getValue(Activation context) throws StandardException {
-            operation.setActivation(context);
-            return operation;
+        public Object getValue(ActivationHolder context) throws StandardException {
+            return context.getOperationsMap().get(resultSetNumber);
         }
 
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeObject(operation);
+            out.writeInt(operation.resultSetNumber());
         }
 
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            this.operation = (SpliceOperation) in.readObject();
+            resultSetNumber = in.readInt();
         }
     }
 
@@ -547,7 +552,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public Object getValue(Activation context) throws StandardException {
+        public Object getValue(ActivationHolder context) throws StandardException {
             return data;
         }
 

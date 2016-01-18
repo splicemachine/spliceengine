@@ -259,7 +259,8 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
-        OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation);
+        setupActivationHolder(spliceOperation.getActivation());
+        OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation, context.get());
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive();
@@ -268,8 +269,15 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         return operationContext;
     }
 
+    private void setupActivationHolder(Activation activation) {
+        if (context.get() == null) {
+            context.set(new BroadcastedActivation(activation));
+        }
+    }
+
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
+        setupActivationHolder(activation);
         return new SparkOperationContext<Op>(activation);
     }
 
@@ -359,5 +367,12 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public void setFailBadRecordCount(int failBadRecordCount) {
         this.failBadRecordCount = failBadRecordCount;
+    }
+
+    private ThreadLocal<BroadcastedActivation> context = new ThreadLocal<>();
+
+    @Override
+    public void clearOperationContext() {
+        context.remove();
     }
 }

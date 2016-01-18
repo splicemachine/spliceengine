@@ -3,10 +3,6 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ParameterValueSet;
-import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -14,7 +10,6 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.accumulator.BadRecordsAccumulator;
@@ -25,6 +20,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
+import org.apache.spark.broadcast.Broadcast;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -38,13 +35,12 @@ import java.util.Map;
  */
 public class SparkOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
         protected static Logger LOG = Logger.getLogger(SparkOperationContext.class);
+        private BroadcastedActivation broadcastedActivation;
 
-    public SpliceObserverInstructions soi;
         public SpliceTransactionResourceImpl impl;
         public Activation activation;
         public SpliceOperationContext context;
         public Op op;
-        public TxnView txn;
         public Accumulator<Integer> rowsRead;
         public Accumulator<Integer> rowsJoinedLeft;
         public Accumulator<Integer> rowsJoinedRight;
@@ -62,14 +58,10 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
         }
 
-        protected SparkOperationContext(Op spliceOperation)  {
+        protected SparkOperationContext(Op spliceOperation, BroadcastedActivation broadcastedActivation)  {
+            this.broadcastedActivation = broadcastedActivation;
             this.op = spliceOperation;
             this.activation = op.getActivation();
-            try {
-                this.txn = spliceOperation.getCurrentTransaction();
-            } catch (StandardException se) {
-                throw new RuntimeException(se);
-            }
             String baseName = "(" + op.resultSetNumber() + ") " + op.getName();
             this.rowsRead = SpliceSpark.getContext().accumulator(0, baseName + " rows read");
             this.rowsFiltered = SpliceSpark.getContext().accumulator(0, baseName + " rows filtered");
@@ -87,7 +79,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             try {
                 TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
                 Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-                this.txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
             } catch (StandardException se) {
                 throw new RuntimeException(se);
             }
@@ -108,12 +99,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             out.writeBoolean(permissive);
             out.writeBoolean(op!=null);
             if (op!=null) {
-                if (soi == null)
-                    soi = SpliceObserverInstructions.create(op.getActivation(), op);
-                out.writeObject(soi);
-                out.writeObject(op);
+                out.writeObject(broadcastedActivation);
+                out.writeInt(op.resultSetNumber());
             }
-            TransactionOperations.getOperationFactory().writeTxn(txn, out);
             out.writeObject(rowsRead);
             out.writeObject(rowsFiltered);
             out.writeObject(rowsWritten);
@@ -137,10 +125,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             SpliceSpark.setupSpliceStaticComponents();
             boolean isOp = in.readBoolean();
             if (isOp) {
-                soi = (SpliceObserverInstructions) in.readObject();
-                op = (Op) in.readObject();
+                broadcastedActivation = (BroadcastedActivation) in.readObject();
+                op = (Op) broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
             }
-            txn = TransactionOperations.getOperationFactory().readTxn(in);
             rowsRead = (Accumulator) in.readObject();
             rowsFiltered = (Accumulator) in.readObject();
             rowsWritten = (Accumulator) in.readObject();
@@ -153,10 +140,9 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 impl = new SpliceTransactionResourceImpl();
                 impl.prepareContextManager();
                 prepared = true;
-                impl.marshallTransaction(txn);
+                impl.marshallTransaction(broadcastedActivation.getActivationHolder().getTxn());
                 if (isOp) {
-                    activation = soi.getActivation(impl.getLcc());
-                    fixOperationReferences();
+                    activation = broadcastedActivation.getActivationHolder().getActivation();
                     context = SpliceOperationContext.newContext(activation);
                     op.init(context);
                 }
@@ -234,11 +220,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public Activation getActivation() {
         return activation;
-    }
-
-    @Override
-    public TxnView getTxn() {
-        return txn;
     }
 
     @Override

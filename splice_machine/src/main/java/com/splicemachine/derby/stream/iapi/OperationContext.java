@@ -15,7 +15,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void reset();
     Op getOperation();
     Activation getActivation();
-    TxnView getTxn();
     void recordRead();
     void recordFilter();
     void recordWrite();
