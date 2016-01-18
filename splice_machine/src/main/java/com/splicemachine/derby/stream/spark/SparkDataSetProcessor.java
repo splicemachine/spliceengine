@@ -112,13 +112,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         
         return sb.toString();
     }
-    
-    @Override
-    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
-        final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException {
-        return getTableScanner(activation, siTableBuilder, conglomerateId, null, null);
-    }
-    
+
     @Override
     public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(
         final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String tableDisplayName, String callerName) throws StandardException {

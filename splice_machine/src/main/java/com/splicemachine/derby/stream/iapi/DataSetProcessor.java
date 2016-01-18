@@ -29,8 +29,6 @@ public interface DataSetProcessor {
      */
     <Op extends SpliceOperation, V> DataSet<V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException;
     
-    <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId) throws StandardException;
-
     <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String conglomerateId, String tableDisplayName, String callerName) throws StandardException;
 
     /**

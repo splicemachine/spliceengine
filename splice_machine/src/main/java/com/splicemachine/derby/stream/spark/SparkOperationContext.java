@@ -90,9 +90,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             this.rowsProduced= SpliceSpark.getContext().accumulator(0, "rows produced");
         }
 
-        public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
-        {}
-
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeInt(failBadRecordCount);
@@ -127,6 +124,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             if (isOp) {
                 broadcastedActivation = (BroadcastedActivation) in.readObject();
                 op = (Op) broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
+                activation = broadcastedActivation.getActivationHolder().getActivation();
             }
             rowsRead = (Accumulator) in.readObject();
             rowsFiltered = (Accumulator) in.readObject();
@@ -135,72 +133,12 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             rowsJoinedRight = (Accumulator<Integer>) in .readObject();
             rowsProduced = (Accumulator<Integer>) in.readObject();
             badRecordsAccumulable = (Accumulable<List<String>,String>) in.readObject();
-            boolean prepared = false;
-            try {
-                impl = new SpliceTransactionResourceImpl();
-                impl.prepareContextManager();
-                prepared = true;
-                impl.marshallTransaction(broadcastedActivation.getActivationHolder().getTxn());
-                if (isOp) {
-                    activation = broadcastedActivation.getActivationHolder().getActivation();
-                    context = SpliceOperationContext.newContext(activation);
-                    op.init(context);
-                }
-                readExternalInContext(in);
-            } catch (Exception e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            } finally {
-                if (prepared) {
-                    impl.popContextManager();
-                }
-            }
             int len = in.readInt();
             if (len > 0) {
                 operationUUID = new byte[len];
                 in.readFully(operationUUID);
             }
         }
-
-    private void fixOperationReferences() {
-        Map<Integer, SpliceOperation> operationsMap = Maps.newHashMap();
-        addOperations(operationsMap, (SpliceOperation) activation.getResultSet());
-        for (Field field : activation.getClass().getDeclaredFields()) {
-            if(!field.getType().isAssignableFrom(SpliceOperation.class)) continue; //ignore qualifiers
-
-            boolean isAccessible = field.isAccessible();
-            if(!isAccessible)
-                field.setAccessible(true);
-
-            try {
-                SpliceOperation so = (SpliceOperation) field.get(activation);
-                if (so == null) {
-                    continue;
-                }
-                SpliceOperation substitute = operationsMap.get(so.resultSetNumber());
-                if (substitute != null) {
-                    field.set(activation, substitute);
-                } else {
-                    operationsMap.put(so.resultSetNumber(), so);
-                }
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        Op substitute = (Op) operationsMap.get(op.resultSetNumber());
-        if (substitute != null) {
-            this.op = substitute;
-        }
-    }
-
-    private void addOperations(Map<Integer, SpliceOperation> operationsMap, SpliceOperation operation) {
-        if (operation == null)
-            return;
-
-        operationsMap.put(operation.resultSetNumber(), operation);
-        for (SpliceOperation subOp : operation.getSubOperations()) {
-            addOperations(operationsMap, subOp);
-        }
-    }
 
     @Override
     public void prepare() {
