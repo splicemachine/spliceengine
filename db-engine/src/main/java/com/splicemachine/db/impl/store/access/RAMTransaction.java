@@ -2467,4 +2467,8 @@ public class RAMTransaction
     public TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException {
         throw new RuntimeException("not implemented");
     }
+
+    public boolean isElevated() {
+        return false;
+    }
 }

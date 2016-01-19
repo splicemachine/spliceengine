@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.depend;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -220,8 +221,12 @@ public class BasicDependencyManager implements DependencyManager {
         // tc == null means do it in the user transaction
         TransactionController tcToUse =
                 (tc == null) ? lcc.getTransactionExecute() : tc;
-
         // Call the DataDictionary to store the dependency.
+
+        if (!tcToUse.isElevated()) {
+            StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+        }
+
         dd.addDescriptor(new DependencyDescriptor(d, p), null,
                          DataDictionary.SYSDEPENDS_CATALOG_NUM, true,
                          tcToUse);
@@ -480,7 +485,7 @@ public class BasicDependencyManager implements DependencyManager {
 	 */
 	public void clearDependencies(LanguageConnectionContext lcc,
 									Dependent d, TransactionController tc) throws StandardException {
-
+//        dd.startWriting(lcc);
         UUID id = d.getObjectID();
         // Remove all the stored dependencies.
         if (d.isPersistent()) {

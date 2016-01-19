@@ -38,7 +38,6 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
-import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -51,7 +50,6 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
-
 import java.lang.reflect.Modifier;
 import java.util.*;
 
@@ -149,7 +147,6 @@ public class FromBaseTable extends FromTable {
     /**
      * Information for dependent table scan for Referential Actions
      */
-    private boolean raDependentScan;
     private String raParentResultSetId;
     private long fkIndexConglomId;
     private int[] fkColArray;
@@ -748,60 +745,23 @@ public class FromBaseTable extends FromTable {
         }else{
             scanColumnList = new BitSet();
         }
+        DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
+        ScanCostFunction scf = new ScanCostFunction(scanColumnList,
+                indexLookupList,
+                this,
+                scc,
+                costEstimate,
+                rowTemplate,
+                baseColumnPositions,
+                forUpdate(),
+                resultColumns);
 
         if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
-             /*
-              * The conglomerate matches at most one row (i.e. lookup on primary key or index key). In
-              * this case the cost is just the cost to scan a single row + the cost to fetch the record (if
-              * we are a non-covering index).
-              */
-
             singleScanRowCount=1.0;
-
-			/* Yes, the cost is to fetch exactly one row */
-            //TODO -sf- add in the specific columns
-            scc.getFetchFromFullKeyCost(null,0,costEstimate);
-        }else{
-			/* Conglomerate might match more than one row */
-
-            /*
-	         ** Get a row template for this conglomerate.  For now, just tell
-	         ** it we are using all the columns in the row.
-			 */
-            DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-
-            int startOperator;
-            int stopOperator;
-
-            if(baseTableRestrictionList!=null){
-                startOperator=baseTableRestrictionList.startOperator(this);
-                stopOperator=baseTableRestrictionList.stopOperator(this);
-            }else{
-		        /*
-		         ** If we're doing a full scan, it doesn't matter what the
-		         ** start and stop operators are.
-		         */
-                startOperator=ScanController.NA;
-                stopOperator=ScanController.NA;
-            }
-
-            ScanCostFunction scf = new ScanCostFunction(scanColumnList,
-                    indexLookupList,
-                    this,
-                    scc,
-                    costEstimate,
-                    rowTemplate,
-                    baseColumnPositions,
-                    forUpdate(),
-                    resultColumns);
-
-            int predListSize;
-
-            if(predList!=null)
-                predListSize=baseTableRestrictionList.size();
-            else
-                predListSize=0;
-
+            scf.generateOneRowCost();
+        }
+        else {
+            int predListSize = predList!=null?baseTableRestrictionList.size():0;
             for(int i=0;i<predListSize;i++){
                 Predicate p = (Predicate)baseTableRestrictionList.getOptPredicate(i);
                 if(!p.isStartKey()&&!p.isStopKey()){
@@ -816,8 +776,6 @@ public class FromBaseTable extends FromTable {
         }
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0d,costEstimate);
-
-
 
         costEstimate.setSingleScanRowCount(singleScanRowCount);
 
@@ -1701,9 +1659,8 @@ public class FromBaseTable extends FromTable {
 			 */
 
             templateColumns=resultColumns;
-            referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false);
+            referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false,false);
             resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
-
             return this;
         }
 		
@@ -1736,8 +1693,8 @@ public class FromBaseTable extends FromTable {
 			 * because we don't want the RID in the partial row returned
 			 * by the store.)
 			 */
-            referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false);
-            resultColumns=resultColumns.compactColumns(cursorTargetTable,true);
+            referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,true);
+                        resultColumns=resultColumns.compactColumns(cursorTargetTable,true);
 
             resultColumns.setIndexRow(
                     baseConglomerateDescriptor.getConglomerateNumber(),
@@ -1783,19 +1740,21 @@ public class FromBaseTable extends FromTable {
 		 */
         // Get the BitSet for all of the referenced columns
         FormatableBitSet indexReferencedCols=null;
+        FormatableBitSet indexReferencedStorageCols=null;
+
         //FormatableBitSet heapReferencedCols;
         if((bulkFetch==UNSET) && (requalificationRestrictionList==null || requalificationRestrictionList.size()==0)){
 			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
 			 * to get the columns coming from the index.
 			 */
-            indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false);
-            heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,true);
+            indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,true);
+            heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,true,false);
             if(heapReferencedCols!=null){
                 indexReferencedCols.xor(heapReferencedCols);
             }
         }else{
             // BULK FETCH or requalification - re-get all referenced columns from the heap
-            heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false);
+            heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,false);
         }
         ResultColumnList heapRCL=resultColumns.compactColumns(cursorTargetTable,false);
         retval=(ResultSetNode)getNodeFactory().getNode(
@@ -1838,7 +1797,7 @@ public class FromBaseTable extends FromTable {
         templateColumns.addRCForRID();
 
         // Compact the RCL for the index scan down to the partial row.
-        referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,false,false);
+        referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,false,false,true);
         resultColumns=resultColumns.compactColumns(cursorTargetTable,false);
         resultColumns.setIndexRow(
                 baseConglomerateDescriptor.getConglomerateNumber(),
@@ -2009,18 +1968,6 @@ public class FromBaseTable extends FromTable {
         if(distinctScan){
             generateDistinctScan(acb,mb);
             return;
-        }
-		
-		/*
-		 * Referential action dependent table scan, generate it
-		 * seperately.
-		 */
-
-        if(raDependentScan){
-            throw new RuntimeException("not implemented");
-//            generateRefActionDependentTableScan(acb,mb);
-//            return;
-
         }
 
         JoinStrategy trulyTheBestJoinStrategy=
@@ -2226,42 +2173,6 @@ public class FromBaseTable extends FromTable {
                 ClassName.NoPutResultSet,17);
     }
 
-
-    /**
-     * Generation on a FromBaseTable for a referential action dependent table.
-     *
-     * @param acb The ExpressionClassBuilder for the class being built
-     * @param mb  The execute() method to be built
-     * @throws StandardException Thrown on error
-     */
-
-    private void generateRefActionDependentTableScan(ExpressionClassBuilder acb,MethodBuilder mb)
-            throws StandardException{
-
-        acb.pushGetResultSetFactoryExpression(mb);
-
-        //get the parameters required to do a table scan
-        int nargs=getScanArguments(acb,mb);
-
-        //extra parameters required to create an dependent table result set.
-        mb.push(raParentResultSetId);  //id for the parent result set.
-        mb.push(fkIndexConglomId);
-        mb.push(acb.addItem(fkColArray));
-        mb.push(acb.addItem(getDataDictionary().getRowLocationTemplate(
-                getLanguageConnectionContext(),tableDescriptor)));
-
-        int argCount=nargs+4;
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getRaDependentTableScanResultSet", ClassName.NoPutResultSet,argCount);
-
-        if((updateOrDelete==UPDATE) || (updateOrDelete==DELETE)){
-            mb.cast(ClassName.CursorResultSet);
-            mb.putField(acb.getRowLocationScanResultSetName(),ClassName.CursorResultSet);
-            mb.cast(ClassName.NoPutResultSet);
-        }
-
-    }
-
-
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
         // get a function to allocate scan rows of the right shape and size
         MethodBuilder resultRowAllocator= resultColumns.generateHolderMethod(acb, referencedCols, null);
@@ -2283,12 +2194,14 @@ public class FromBaseTable extends FromTable {
         int indexColItem=-1;
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
         if(cd.isIndex()){
-            FormatableIntHolder[] fihArrayIndex= FormatableIntHolder.getFormatableIntHolders(
-                    cd.getIndexDescriptor().baseColumnPositions());
+            int [] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+            FormatableIntHolder[] fihArrayIndex = new FormatableIntHolder[baseColumnPositions.length];
+            for (int index = 0; index < baseColumnPositions.length; index++) {
+                fihArrayIndex[index] = new FormatableIntHolder(tableDescriptor.getColumnDescriptor(baseColumnPositions[index]).getStoragePosition());
+            }
             FormatableArrayHolder hashKeyHolder=new FormatableArrayHolder(fihArrayIndex);
             indexColItem=acb.addItem(hashKeyHolder);
         }
-
 		/*
 		// beetle entry 3865: updateable cursor using index
 		int indexColItem = -1;
@@ -3269,7 +3182,8 @@ public class FromBaseTable extends FromTable {
         this.fkIndexConglomId=fkIndexConglomId;
         this.fkColArray=fkColArray;
         this.raParentResultSetId=parentResultSetId;
-        this.raDependentScan=dependentScan;
+        if (dependentScan)
+            throw new RuntimeException("Not implemented");
     }
 
     /**

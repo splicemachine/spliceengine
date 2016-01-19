@@ -223,11 +223,9 @@ public final class InsertNode extends DMLModStatementNode {
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void bindStatement() throws StandardException
-	{
+	public void bindStatement() throws StandardException {
 		// We just need select privilege on the expressions
 		getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
-
 		FromList	fromList = (FromList) getNodeFactory().getNode(
 									C_NodeTypes.FROM_LIST,
 									getNodeFactory().doJoinOrderOptimization(),
@@ -247,9 +245,7 @@ public final class InsertNode extends DMLModStatementNode {
 
 		// Check the validity of the targetProperties, if they exist
 		if (targetProperties != null)
-		{
 			verifyTargetProperties(dataDictionary);
-		}
 
 		/*
 		** Get the resultColumnList representing the columns in the base
@@ -260,25 +256,21 @@ public final class InsertNode extends DMLModStatementNode {
 		/* If we have a target column list, then it must have the same # of
 		 * entries as the result set's RCL.
 		 */
-		if (targetColumnList != null)
-		{
+		if (targetColumnList != null) {
 			/*
 			 * Normalize synonym qualifers for column references.
 			 */
-			if (synonymTableName != null)
-			{
+			if (synonymTableName != null) {
 				normalizeSynonymColumns ( targetColumnList, targetTableName );
 			}
 			
 			/* Bind the target column list */
 			getCompilerContext().pushCurrentPrivType( getPrivType());
-			if (targetTableDescriptor != null)
-			{
+			if (targetTableDescriptor != null) {
 				targetColumnList.bindResultColumnsByName(targetTableDescriptor,
 														(DMLStatementNode) this);
 			}
-			else
-			{
+			else {
 				targetColumnList.bindResultColumnsByName(targetVTI.getResultColumns(), targetVTI,
 														this);
 			}
@@ -286,8 +278,7 @@ public final class InsertNode extends DMLModStatementNode {
 		}
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
-		if (SanityManager.DEBUG)
-		{
+		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(fromList.size() == 0,
 				"fromList.size() is expected to be 0, not " + 
 				fromList.size() +
@@ -327,15 +318,13 @@ public final class InsertNode extends DMLModStatementNode {
 		** columns for the whole table, since the columns in the result set
 		** correspond to the target column list.
 		*/
-		if (targetColumnList != null)
-		{
+		if (targetColumnList != null) {
 			if (resultSet.getResultColumns().visibleSize() > targetColumnList.size())
 				throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED); 
 			resultSet.bindUntypedNullsToResultColumns(targetColumnList);
 			resultSet.setTableConstructorTypes(targetColumnList);
 		}
-		else
-		{
+		else {
 			if (resultSet.getResultColumns().visibleSize() > resultColumnList.size())
 				throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED); 
 			resultSet.bindUntypedNullsToResultColumns(resultColumnList);
@@ -347,8 +336,7 @@ public final class InsertNode extends DMLModStatementNode {
 
 		int resCols = resultSet.getResultColumns().visibleSize();
 		DataDictionary dd = getDataDictionary();
-		if (targetColumnList != null)
-		{
+		if (targetColumnList != null) {
 			if (targetColumnList.size() != resCols)
 				throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED); 
 		}
@@ -375,14 +363,12 @@ public final class InsertNode extends DMLModStatementNode {
 		int[] colMap = new int[numTableColumns];
 
 		// set the fields to an unused value
-		for (int i = 0; i < colMap.length; i++) 
-		{
+		for (int i = 0; i < colMap.length; i++)  {
 			colMap[i] = -1;
 		}
 
 		/* Create the source/target list mapping */
-		if (targetColumnList != null)
-		{
+		if (targetColumnList != null) {
 			/*
 			** There is a target column list, so the result columns might
 			** need to be ordered.  Step through the target column list
@@ -390,14 +376,12 @@ public final class InsertNode extends DMLModStatementNode {
 			** Remember if any of the columns are out of order.
 			*/
 			int targetSize = targetColumnList.size();
-			for (int index = 0; index < targetSize; index++)
-			{
+			for (int index = 0; index < targetSize; index++) {
 				int position =
 					((ResultColumn) (targetColumnList.elementAt(index))).
 												columnDescriptor.getPosition();
 
-				if (index != position-1)
-				{
+				if (index != position-1) {
 					inOrder = false;
 				}
 
@@ -405,8 +389,7 @@ public final class InsertNode extends DMLModStatementNode {
 				colMap[position-1] = index;
 			}
 		}
-		else
-		{
+		else {
 			/*
 			** There is no target column list, so the result columns in the
 			** source are presumed to be in the same order as the target
@@ -414,15 +397,13 @@ public final class InsertNode extends DMLModStatementNode {
 			*/
 			for (int position = 0;
 				position < resultSet.getResultColumns().visibleSize();
-				position++)
-			{
+				position++) {
 				colMap[position] = position;
 			}
 		}
 
 		// Bind the ORDER BY columns
-		if (orderByList != null)
-		{
+		if (orderByList != null) {
 			orderByList.pullUpOrderByColumns(resultSet);
 
 			// The select list may have new columns now, make sure to bind
@@ -441,8 +422,7 @@ public final class InsertNode extends DMLModStatementNode {
 		 * and target column types and lengths do not match.
  		 */
 		if (! resultColumnList.columnTypesAndLengthsMatch(
-												resultSet.getResultColumns()))
-		{
+												resultSet.getResultColumns())) {
             
 			resultSet = 
 			(ResultSetNode) getNodeFactory().getNode(
@@ -451,8 +431,7 @@ public final class InsertNode extends DMLModStatementNode {
 			getContextManager());
 		}
 
-		if (targetTableDescriptor != null)
-		{
+		if (targetTableDescriptor != null) {
 			ResultColumnList sourceRCL = resultSet.getResultColumns();
 			sourceRCL.copyResultColumnNames(resultColumnList);
 

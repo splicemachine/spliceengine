@@ -290,6 +290,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
 
         if (!dd.isReadOnlyUpgrade()) {
 
+            dd.startWriting(lcc);
+
             DependencyManager dm = dd.getDependencyManager();
 
             /* Clear out all the dependencies that exist before we recreate them so we don't grow SYS.SYSDEPENDS forever.*/

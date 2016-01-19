@@ -59,6 +59,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     private TableDescriptor		table;
     private String			columnName;
     private int			columnPosition;
+    private int         storagePosition;
     private DataTypeDescriptor	columnType;
     private DataValueDescriptor	columnDefault;
     private UUID				uuid;
@@ -82,7 +83,9 @@ public final class ColumnDescriptor extends TupleDescriptor
      * increment value or to change the start value
      *
      * @param columnName		The name of the column
-     * @param columnPosition	The ordinal position of the column
+     * @param columnPosition	The ordinal position of the column in the table
+     * @param storagePosition	The ordinal position of the column on disk (Accounts for alter table)
+     *
      * @param columnType		A DataTypeDescriptor for the type of
      *				the column
      * @param columnDefault		A DataValueDescriptor representing the
@@ -99,14 +102,14 @@ public final class ColumnDescriptor extends TupleDescriptor
      *						the autoincrement column.
      */
 
-    public ColumnDescriptor(String columnName, int columnPosition,
+    public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
                             UUID defaultUUID, long autoincStart, long autoincInc,
                             long userChangedWhat)
     {
-        this(columnName, columnPosition, columnType, columnDefault,
+        this(columnName, columnPosition, storagePosition, columnType, columnDefault,
                 columnDefaultInfo, table, defaultUUID, autoincStart,
                 autoincInc);
         autoinc_create_or_modify_Start_Increment = userChangedWhat;
@@ -117,6 +120,7 @@ public final class ColumnDescriptor extends TupleDescriptor
      *
      * @param columnName		The name of the column
      * @param columnPosition	The ordinal position of the column
+     * @param storagePosition	The ordinal position of the column on disk (Accounts for alter table)
      * @param columnType		A DataTypeDescriptor for the type of
      *				the column
      * @param columnDefault		A DataValueDescriptor representing the
@@ -130,7 +134,7 @@ public final class ColumnDescriptor extends TupleDescriptor
      * @param autoincInc	Increment for autoincrement column
      */
 
-    public ColumnDescriptor(String columnName, int columnPosition,
+    public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
@@ -138,6 +142,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     {
         this.columnName = columnName;
         this.columnPosition = columnPosition;
+        this.storagePosition = storagePosition;
         this.columnType = columnType;
         this.columnDefault = columnDefault;
         this.columnDefaultInfo = columnDefaultInfo;
@@ -165,6 +170,7 @@ public final class ColumnDescriptor extends TupleDescriptor
      *
      * @param columnName		The name of the column
      * @param columnPosition	The ordinal position of the column
+     * @param storagePosition	The ordinal position of the column on disk (Accounts for alter table)
      * @param columnType		A DataTypeDescriptor for the type of
      *				the column
      * @param columnDefault		A DataValueDescriptor representing the
@@ -178,7 +184,7 @@ public final class ColumnDescriptor extends TupleDescriptor
      * @param autoincInc	Increment for autoincrement column
      * @param autoincValue	Current value of the autoincrement column
      */
-    public ColumnDescriptor(String columnName, int columnPosition,
+    public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             UUID uuid,
@@ -186,6 +192,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                             long autoincStart, long autoincInc, long autoincValue, int columnSequence){
             this(columnName,
                     columnPosition,
+                    storagePosition,
                     columnType,
                     columnDefault,
                     columnDefaultInfo,
@@ -199,6 +206,7 @@ public final class ColumnDescriptor extends TupleDescriptor
 
     public ColumnDescriptor(String columnName,
                             int columnPosition,
+                            int storagePosition,
                             DataTypeDescriptor columnType,
                             DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
@@ -210,6 +218,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                             boolean collectStats){
         this.columnName = columnName;
         this.columnPosition = columnPosition;
+        this.storagePosition = storagePosition;
         this.columnType = columnType;
         this.columnDefault = columnDefault;
         this.columnDefaultInfo = columnDefaultInfo;
@@ -281,7 +290,13 @@ public final class ColumnDescriptor extends TupleDescriptor
     }
 
     /**
-     * Get the ordinal position of the column (1 based)
+     *
+     * For example, if you had a 3 column table where you add and drop a column 1K times and then add it again, that columns position will
+     * still be 4.
+     *
+     * Get the ordinal position of the column (1 based).  This is the position of the column on storage.
+     *
+     *
      *
      * @return	The ordinal position of the column.
      */
@@ -289,6 +304,17 @@ public final class ColumnDescriptor extends TupleDescriptor
     {
         return columnPosition;
     }
+
+    /**
+     * For example, if you had a 3 column table where you add and drop a column 1K times and then add it again, that columns position will
+     * still be 1,004.
+     *
+     * @return	The ordinal position of the column.
+     */
+    public int	getStoragePosition() {
+        return storagePosition;
+    }
+
 
     /**
      * Get the TypeDescriptor of the column's datatype.

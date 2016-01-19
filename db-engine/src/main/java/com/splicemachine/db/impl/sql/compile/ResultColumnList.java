@@ -836,7 +836,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 			/* We have a match.  We need to create a dummy ColumnDescriptor
 			 * since calling code expects one to get column info.
 			 */
-            ColumnDescriptor cd=new ColumnDescriptor(rc.getName(),matchRC.getVirtualColumnId(),matchRC.getType(),null,null,null,null,0,0,-1);
+            ColumnDescriptor cd=new ColumnDescriptor(rc.getName(),matchRC.getVirtualColumnId(),matchRC.getVirtualColumnId(),matchRC.getType(),null,null,null,null,0,0,-1);
             rc.setColumnDescriptor(null,cd);
             rc.setVirtualColumnId(index+1);
         }
@@ -3142,13 +3142,22 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
-    private int getMaxSize() {
+    private int getMaxColumnPosition() {
         int i = 0;
         for (ResultColumn rc: this) {
             i= Math.max(rc.getColumnPosition(),i);
         }
         return i;
     }
+
+    private int getMaxStoragePosition() {
+        int i = 0;
+        for (ResultColumn rc: this) {
+            i= Math.max(rc.getStoragePosition(),i);
+        }
+        return i;
+    }
+
 
     /**
      * Generate a FormatableBitSet representing the columns that are referenced in this RCL.
@@ -3163,12 +3172,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @return The FormatableBitSet representing the referenced RCs.
      */
 
-    FormatableBitSet getReferencedFormatableBitSet(boolean positionedUpdate,boolean always,boolean onlyBCNs){
+    FormatableBitSet getReferencedFormatableBitSet(boolean positionedUpdate,boolean always,boolean onlyBCNs, boolean isIndex){
         int index;
         int colsAdded=0;
         int size=size();
-
-        FormatableBitSet newReferencedCols=new FormatableBitSet(size);
+        FormatableBitSet newReferencedCols=new FormatableBitSet(getMaxStoragePosition());
 
 		/*
 		** For an updatable cursor, we need
@@ -3178,7 +3186,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             if(always){
 				/* Set all bits in the bit map */
                 for(index=0;index<size;index++){
-                    newReferencedCols.set(index);
+                    if (isIndex)
+                        newReferencedCols.set(index);
+                    else
+                        newReferencedCols.set(this.getResultColumn(index).getStoragePosition()-1);
                 }
 
                 return newReferencedCols;
@@ -3196,19 +3207,20 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 if(onlyBCNs && !(oldCol.getExpression() instanceof BaseColumnNode)){
                     continue;
                 }
-                newReferencedCols.set(index);
-                colsAdded++;
+                if (isIndex) {
+                    newReferencedCols.set(index);
+                    colsAdded++;
+                }
+                else {
+                    newReferencedCols.set(oldCol.getStoragePosition()-1);
+                }
             }
         }
 
 		/* Return the FormatableBitSet if not all RCs are referenced or if
 		 * the caller always wants the FormatableBitSet returned.
 		 */
-        if(colsAdded!=index || always){
-            return newReferencedCols;
-        }else{
-            return null;
-        }
+        return newReferencedCols;
     }
 
     /**

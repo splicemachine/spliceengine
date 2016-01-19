@@ -449,16 +449,22 @@ public class ResultColumn extends ValueNode
 		return getTypeServices();
 	}
 
-	public int getColumnPosition()
-	{
+	public int getColumnPosition() {
 		if (columnDescriptor!=null)
 			return columnDescriptor.getPosition();
 		else
 			return virtualColumnId;
-
 	}
 
-	/**
+    public int getStoragePosition() {
+        if (columnDescriptor!=null)
+            return columnDescriptor.getStoragePosition();
+        else
+            return virtualColumnId;
+    }
+
+
+    /**
 	 * Set the expression in this ResultColumn.  This is useful in those
 	 * cases where you don't know the expression in advance, like for
 	 * INSERT statements with column lists, where the column list and

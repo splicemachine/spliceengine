@@ -21,8 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -32,11 +30,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.impl.ast.PredicateUtils;
-import com.splicemachine.db.impl.ast.RSUtils;
-
 import java.util.Collection;
-import java.util.List;
 import java.util.Vector;
 
 /**
@@ -75,7 +69,6 @@ public class IndexToBaseRowNode extends FromTable{
         this.forUpdate=(Boolean)forUpdate;
         this.heapReferencedCols=(FormatableBitSet)heapReferencedCols;
         this.indexReferencedCols=(FormatableBitSet)indexReferencedCols;
-
         if(this.indexReferencedCols==null){
             this.allReferencedCols=this.heapReferencedCols;
             heapOnlyReferencedCols=this.heapReferencedCols;

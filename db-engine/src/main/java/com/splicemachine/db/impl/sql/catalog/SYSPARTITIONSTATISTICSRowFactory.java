@@ -150,15 +150,15 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         return new ColumnDescriptor[]{
-                new ColumnDescriptor("SCHEMANAME"               ,1,varcharType,null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("TABLENAME"                ,2,varcharType,null,null,view,viewId,0,0,1),
-                new ColumnDescriptor("CONGLOMERATENAME"         ,3,varcharType,null,null,view,viewId,0,0,2),
-                new ColumnDescriptor("TOTAL_ROW_COUNT"          ,4,longType,null,null,view,viewId,0,0,3),
-                new ColumnDescriptor("AVG_ROW_COUNT"            ,5,longType,null,null,view,viewId,0,0,4),
-                new ColumnDescriptor("TOTAL_SIZE"               ,6,longType,null,null,view,viewId,0,0,5),
-                new ColumnDescriptor("NUM_PARTITIONS"           ,7,longType,null,null,view,viewId,0,0,6),
-                new ColumnDescriptor("AVG_PARTITION_SIZE"       ,8,longType,null,null,view,viewId,0,0,7),
-                new ColumnDescriptor("ROW_WIDTH"                ,9,longType,null,null,view,viewId,0,0,8)
+                new ColumnDescriptor("SCHEMANAME"               ,1,1,varcharType,null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("TABLENAME"                ,2,2,varcharType,null,null,view,viewId,0,0,1),
+                new ColumnDescriptor("CONGLOMERATENAME"         ,3,3,varcharType,null,null,view,viewId,0,0,2),
+                new ColumnDescriptor("TOTAL_ROW_COUNT"          ,4,4,longType,null,null,view,viewId,0,0,3),
+                new ColumnDescriptor("AVG_ROW_COUNT"            ,5,5,longType,null,null,view,viewId,0,0,4),
+                new ColumnDescriptor("TOTAL_SIZE"               ,6,6,longType,null,null,view,viewId,0,0,5),
+                new ColumnDescriptor("NUM_PARTITIONS"           ,7,7,longType,null,null,view,viewId,0,0,6),
+                new ColumnDescriptor("AVG_PARTITION_SIZE"       ,8,8,longType,null,null,view,viewId,0,0,7),
+                new ColumnDescriptor("ROW_WIDTH"                ,9,9,longType,null,null,view,viewId,0,0,8)
         };
     }
 

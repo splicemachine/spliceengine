@@ -53,7 +53,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     static final String		TABLENAME_STRING = "SYSCOLUMNS";
 
-    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 10;
+    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 11;
 	/* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use
@@ -62,13 +62,14 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     protected static final int		SYSCOLUMNS_REFERENCEID = 1;
     protected static final int		SYSCOLUMNS_COLUMNNAME = 2;
     protected static final int		SYSCOLUMNS_COLUMNNUMBER = 3;
-    protected static final int		SYSCOLUMNS_COLUMNDATATYPE = 4;
-    protected static final int		SYSCOLUMNS_COLUMNDEFAULT = 5;
-    protected static final int		SYSCOLUMNS_COLUMNDEFAULTID = 6;
-    protected static final int 		SYSCOLUMNS_AUTOINCREMENTVALUE = 7;
-    protected static final int 		SYSCOLUMNS_AUTOINCREMENTSTART = 8;
-    protected static final int		SYSCOLUMNS_AUTOINCREMENTINC = 9;
-    protected static final int		SYSCOLUMNS_COLLECTSTATS = 10;
+    protected static final int		SYSCOLUMNS_STORAGECOLUMNNUMBER = 4;
+    protected static final int		SYSCOLUMNS_COLUMNDATATYPE = 5;
+    protected static final int		SYSCOLUMNS_COLUMNDEFAULT = 6;
+    protected static final int		SYSCOLUMNS_COLUMNDEFAULTID = 7;
+    protected static final int 		SYSCOLUMNS_AUTOINCREMENTVALUE = 8;
+    protected static final int 		SYSCOLUMNS_AUTOINCREMENTSTART = 9;
+    protected static final int		SYSCOLUMNS_AUTOINCREMENTINC = 10;
+    protected static final int		SYSCOLUMNS_COLLECTSTATS = 11;
 
     protected static final int		SYSCOLUMNS_INDEX1_ID = 0;
     protected static final int		SYSCOLUMNS_INDEX2_ID = 1;
@@ -137,6 +138,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         String					defaultID = null;
         String					tabID = null;
         Integer					colID = null;
+        Integer                 storageNumber = null;
         TypeDescriptor 		    typeDesc = null;
         Object					defaultSerializable = null;
         long					autoincStart = 0;
@@ -160,6 +162,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             tabID = column.getReferencingUUID().toString();
             colName = column.getColumnName();
             colID = column.getPosition();
+            storageNumber = column.getStoragePosition();
             autoincStart = column.getAutoincStart();
             autoincInc   = column.getAutoincInc();
             autoincValue   = column.getAutoincValue();
@@ -194,6 +197,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
 		    /* 3rd column is COLUMNNUMBER (int) */
         row.setColumn(SYSCOLUMNS_COLUMNNUMBER, new SQLInteger(colID));
+
+        row.setColumn(SYSCOLUMNS_STORAGECOLUMNNUMBER, new SQLInteger(storageNumber));
 
 		    /* 4th column is COLUMNDATATYPE */
         row.setColumn(SYSCOLUMNS_COLUMNDATATYPE,
@@ -297,6 +302,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         }
 
         int columnNumber;
+        int storageNumber;
         String columnName;
         String defaultID;
         DefaultInfoImpl		defaultInfo = null;
@@ -352,6 +358,10 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 		    /* 3rd column is COLUMNNUMBER (int) */
         columnNumber = row.getColumn(SYSCOLUMNS_COLUMNNUMBER).getInt();
 
+        storageNumber= row.getColumn(SYSCOLUMNS_STORAGECOLUMNNUMBER).getInt();
+
+
+
 		    /* 4th column is COLUMNDATATYPE */
 
 		    /*
@@ -397,7 +407,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
 
 
-        colDesc = new ColumnDescriptor(columnName, columnNumber,
+        colDesc = new ColumnDescriptor(columnName, columnNumber,storageNumber,
                 dataTypeServices, defaultValue, defaultInfo, uuid,
                 defaultUUID, autoincStart, autoincInc,
                 autoincValue,collectStats);
@@ -426,6 +436,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getUUIDColumn("REFERENCEID", false),
                 SystemColumnImpl.getIdentifierColumn("COLUMNNAME", false),
                 SystemColumnImpl.getColumn("COLUMNNUMBER", Types.INTEGER, false),
+                SystemColumnImpl.getColumn("STORAGENUMBER", Types.INTEGER, false),
                 SystemColumnImpl.getJavaColumn("COLUMNDATATYPE",
                         "com.splicemachine.db.catalog.TypeDescriptor", false),
                 SystemColumnImpl.getJavaColumn("COLUMNDEFAULT",

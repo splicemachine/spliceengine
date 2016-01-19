@@ -607,39 +607,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
-    private double getPerRowUsage() throws StandardException{
-        if(perRowUsage<0){
-            // Do not use getRefCols() because the cached refCols may no longer be valid.
-            FormatableBitSet refCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable(),true,false);
-            perRowUsage=0.0;
-
-            /* Add up the memory usage for each referenced column */
-            for(int i=0;i<refCols.size();i++){
-                if(refCols.isSet(i)){
-                    ResultColumn rc=resultColumns.elementAt(i);
-                    DataTypeDescriptor expressionType=rc.getExpression().getTypeServices();
-                    if(expressionType!=null)
-                        perRowUsage+=expressionType.estimatedMemoryUsage();
-                }
-            }
-
-            /*
-            ** If the proposed conglomerate is a non-covering index, add the 
-            ** size of the RowLocation column to the total.
-            **
-            ** NOTE: We don't have a DataTypeDescriptor representing a
-            ** REF column here, so just add a constant here.
-            */
-            ConglomerateDescriptor cd= getCurrentAccessPath().getConglomerateDescriptor();
-            if(cd!=null){
-                if(cd.isIndex() && (!isCoveringIndex(cd))){
-                    perRowUsage+=12.0;
-                }
-            }
-        }
-        return perRowUsage;
-    } // end of getPerRowUsage
-
     @Override
     public int[] hashKeyColumns(){
         if(SanityManager.DEBUG){

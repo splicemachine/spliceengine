@@ -265,6 +265,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return columnSequence;
     }
 
+    public void setColumnSequence(int columnSequence) {
+        this.columnSequence = columnSequence;
+    }
+
     /**
      * Gets the SchemaDescriptor for this TableDescriptor.
      *
@@ -425,9 +429,28 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
             ColumnDescriptor cd=columnDescriptorList.elementAt(index);
             maxColumnID=Math.max(maxColumnID,cd.getPosition());
         }
-
         return maxColumnID;
     }
+
+
+    /**
+     * Gets the highest column id in the table. For now this is the same as
+     * the number of columns. However, in the future, after we implement
+     * ALTER TABLE DROP COLUMN, this correspondence won't hold any longer.
+     *
+     * @return the highest column ID in the table
+     * @throws StandardException Thrown on error
+     */
+    public int getMaxStorageColumnID() {
+        int maxColumnID=1;
+        int cdlSize=getColumnDescriptorList().size();
+        for(int index=0;index<cdlSize;index++){
+            ColumnDescriptor cd=columnDescriptorList.elementAt(index);
+            maxColumnID=Math.max(maxColumnID,cd.getStoragePosition());
+        }
+        return maxColumnID;
+    }
+
 
     /**
      * Sets the UUID of the table

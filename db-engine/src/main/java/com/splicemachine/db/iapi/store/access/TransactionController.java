@@ -1988,4 +1988,6 @@ public interface TransactionController
     byte[]                  branch_id)
 		throws StandardException;
 
+
+    public boolean isElevated ();
 }

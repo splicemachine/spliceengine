@@ -3069,6 +3069,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     new ColumnDescriptor(
                             "PARAM"+parameterId,
                             parameterId,    // position
+                            parameterId,    // storagePosition
                             params[index],
                             ((parameterDefaults==null) || (index>=parameterDefaults.length))?
                                     null:
@@ -3225,6 +3226,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 //RESOLVEAUTOINCREMENT
                 ColumnDescriptor cd=new ColumnDescriptor("PARAM"+parameterId,
                         parameterId,    // position
+                        parameterId,    // storage position
                         params[index],
                         ((parameterDefaults==null) || // default
                                 (index>=parameterDefaults.length))?
@@ -5588,6 +5590,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     public void dropStoredDependency(DependencyDescriptor dd,TransactionController tc) throws StandardException{
+        if (!tc.isElevated()) {
+            StandardException.plainWrapException(new IOException("dropStoredDependency: not writeable"));
+        }
         ExecIndexRow keyRow1;
         UUID dependentID=dd.getUUID();
         UUID providerID=dd.getProviderID();
@@ -5625,6 +5630,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public void dropDependentsStoredDependencies(UUID dependentsUUID,TransactionController tc) throws StandardException{
+        if (!tc.isElevated()) {
+            StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+        }
+
         dropDependentsStoredDependencies(dependentsUUID,tc,true);
     }
 
@@ -6670,7 +6679,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                     TableDescriptor td) throws StandardException{
         //RESOLVEAUTOINCREMENT
         // No defaults yet for system columns
-        return new ColumnDescriptor(column.getName(),columnPosition,column.getType(),null,null,td,null,0,0,columnPosition);
+        return new ColumnDescriptor(column.getName(),columnPosition,columnPosition,column.getType(),null,null,td,null,0,0,columnPosition);
     }
 
 
