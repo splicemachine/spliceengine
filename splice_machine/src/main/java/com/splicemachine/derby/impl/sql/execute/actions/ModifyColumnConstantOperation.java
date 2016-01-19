@@ -1,18 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.log4j.Logger;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -29,21 +16,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
@@ -53,18 +26,31 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
+import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -255,6 +241,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         ColumnInfo colInfo = columnInfo[infoIndex];
         ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
 
+        // Drop the table
+        dd.dropTableDescriptor(tableDescriptor,sd,tc);
+        // Change the table name of the table descriptor
+        tableDescriptor.setColumnSequence(tableDescriptor.getColumnSequence()+1);
+        // add the table descriptor with new name
+        dd.addDescriptor(tableDescriptor,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
          /* We need to verify that the table does not have an existing
          * column with the same name before we try to add the new
          * one as addColumnDescriptor() is a void method.
@@ -264,7 +257,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     colInfo.name,tableDescriptor.getDescriptorType(),tableDescriptor.getQualifiedName());
         }
         DataValueDescriptor storableDV = colInfo.defaultValue != null?colInfo.defaultValue:colInfo.dataType.getNull();
-        int colNumber = tableDescriptor.getMaxColumnID()+1;
+        int colNumber = tableDescriptor.getNumberOfColumns()+1;
         // Add the column to the conglomerate.(Column ids in store are 0-based)
         tc.addColumnToConglomerate(tableDescriptor.getHeapConglomerateId(), colNumber, storableDV, colInfo.dataType.getCollationType());
 
@@ -276,10 +269,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
 
         LOG.warn("Still need to update td");
+        int storageNumber = tableDescriptor.getColumnSequence();
         // Add the column to syscolumns.
         // Column ids in system tables are 1-based
         columnDescriptor =  new ColumnDescriptor(colInfo.name,
                 colNumber,
+                storageNumber,
                 colInfo.dataType,
                 colInfo.defaultValue,
                 colInfo.defaultInfo,
@@ -440,6 +435,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         columnDescriptor = new ColumnDescriptor(
                 colInfo.name,
                 columnPosition,
+                ix,
                 colInfo.dataType,
                 colInfo.defaultValue,
                 colInfo.defaultInfo,
@@ -477,6 +473,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         newColumnDescriptor =
                 new ColumnDescriptor(columnInfo[ix].name,
                         columnDescriptor.getPosition(),
+                        columnDescriptor.getStoragePosition(),
                         columnInfo[ix].dataType,
                         columnDescriptor.getDefaultValue(),
                         columnDescriptor.getDefaultInfo(),
@@ -593,6 +590,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         LOG.warn("Something not right here");
         newColumnDescriptor = new ColumnDescriptor(colName,
                         columnDescriptor.getPosition(),
+                columnDescriptor.getStoragePosition(),
                         dataType,
                         columnDescriptor.getDefaultValue(),
                         columnDescriptor.getDefaultInfo(),
@@ -799,6 +797,24 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         dd.dropColumnDescriptor(tableDescriptor.getUUID(), columnName, tc);
         ColumnDescriptor[] cdlArray =
                 new ColumnDescriptor[size - columnDescriptor.getPosition()];
+
+
+        // For each column in this table with a higher column position,
+        // drop the entry from SYSCOLUMNS, but hold on to the column
+        // descriptor and reset its position to adjust for the dropped
+        // column. Then, re-add all those adjusted column descriptors
+        // back to SYSCOLUMNS
+        //
+        for(int i=columnDescriptor.getPosition(), j=0;i<size;i++,j++){
+            ColumnDescriptor cd=tab_cdl.elementAt(i);
+            dd.dropColumnDescriptor(tableDescriptor.getUUID(),cd.getColumnName(),tc);
+            cd.setPosition(i);
+            if(cd.isAutoincrement()){
+                cd.setAutoinc_create_or_modify_Start_Increment(ColumnDefinitionNode.CREATE_AUTOINCREMENT);
+            }
+            cdlArray[j]=cd;
+        }
+        dd.addDescriptorArray(cdlArray,tableDescriptor,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         List depsOnAlterTableList = dd.getProvidersDescriptorList(tableDescriptor.getObjectID().toString());
         for (Object aDepsOnAlterTableList : depsOnAlterTableList) {

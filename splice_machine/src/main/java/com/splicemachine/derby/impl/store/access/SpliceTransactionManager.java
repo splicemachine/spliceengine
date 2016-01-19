@@ -1,16 +1,5 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
-import com.splicemachine.utils.SpliceLogUtils;
-import java.io.Serializable;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -19,6 +8,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.ContainerHandle;
@@ -28,7 +18,16 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ReadOnlyTxn;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SpliceTransactionManager implements XATransactionController,
         TransactionManager {
@@ -1682,6 +1681,15 @@ public class SpliceTransactionManager implements XATransactionController,
         if (LOG.isTraceEnabled())
             LOG.trace("anyoneBlocked ");
         return rawtran.anyoneBlocked();
+    }
+
+    @Override
+    public boolean isElevated(){
+        BaseSpliceTransaction rawTransaction=getRawTransaction();
+        assert rawTransaction instanceof SpliceTransaction:
+                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
+        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
+        return txn.allowsWrites();
     }
 
     /**************************************************************************

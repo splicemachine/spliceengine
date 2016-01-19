@@ -338,13 +338,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
         ExecRow row = new ValueRow(colsToCollect.size());
         int[] execRowFormatIds = new int[colsToCollect.size()];
-        BitSet accessedColumns = new BitSet(table.getNumberOfColumns());
+        BitSet accessedColumns = new BitSet(table.getMaxStorageColumnID());
         int outputCol = 0;
         int[] columnPositionMap = new int[table.getNumberOfColumns()];
         Arrays.fill(columnPositionMap, -1);
-        int[] allColumnLengths = new int[table.getNumberOfColumns()];
+        int[] allColumnLengths = new int[table.getMaxStorageColumnID()];
         for (ColumnDescriptor descriptor : colsToCollect) {
-            accessedColumns.set(descriptor.getPosition() - 1);
+            accessedColumns.set(descriptor.getStoragePosition() - 1);
             row.setColumn(outputCol + 1, descriptor.getType().getNull());
             columnPositionMap[outputCol] = descriptor.getPosition();
             execRowFormatIds[outputCol] = descriptor.getType().getNull().getFormat().getStoredFormatId();
