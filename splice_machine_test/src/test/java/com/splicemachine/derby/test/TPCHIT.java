@@ -6,10 +6,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -19,6 +17,7 @@ import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.apache.hadoop.util.StringUtils.format;
 import static org.junit.Assert.assertEquals;
 
+@Ignore("DB-4272")
 public class TPCHIT {
 
     private static final String SCHEMA_NAME = "TPCH1X";
