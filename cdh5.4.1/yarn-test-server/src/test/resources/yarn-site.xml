@@ -16,6 +16,10 @@
     <value>localhost</value>
   </property>
   <property>
+    <name>yarn.resourcemanager.bind-host</name>
+    <value>0.0.0.0</value>
+  </property>
+  <property>
     <name>yarn.nodemanager.scheduler.address</name>
     <value>localhost:8050</value>
   </property>
