@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -306,7 +307,7 @@ public class SpliceWatcher extends TestWatcher {
         HTable table = null;
         ResultScanner scanner = null;
         try {
-            table = new HTable(SpliceConstants.config, conglomId + "");
+            table = new HTable(SpliceConstants.config, HBaseTableInfoFactory.getInstance().getTableInfo(conglomId + ""));
             scanner = table.getScanner(scan);
             int count = 0;
             Result result = null;
