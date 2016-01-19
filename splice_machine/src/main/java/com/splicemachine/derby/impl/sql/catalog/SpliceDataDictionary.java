@@ -551,6 +551,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private void elevateTxnForDictionaryOperations(LanguageConnectionContext lcc) throws StandardException{
         BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)lcc.getTransactionExecute()).getRawTransaction();
+        if (rawTransaction instanceof SpliceTransactionView) // Already serde
+            return;
         assert rawTransaction instanceof SpliceTransaction:
                 "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction -> " + rawTransaction.getClass();
         SpliceTransaction txn=(SpliceTransaction)rawTransaction;
