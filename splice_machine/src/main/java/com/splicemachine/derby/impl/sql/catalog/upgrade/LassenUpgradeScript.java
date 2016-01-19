@@ -66,7 +66,7 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
             }
         }
 
-        ColumnDescriptor cd = new ColumnDescriptor("COLLECTSTATS",10,
+        ColumnDescriptor cd = new ColumnDescriptor("COLLECTSTATS",10,10,
                 dtd,
                 template_column,
                 new DefaultInfoImpl(false,null,null),

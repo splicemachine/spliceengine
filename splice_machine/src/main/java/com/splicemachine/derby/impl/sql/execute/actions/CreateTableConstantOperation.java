@@ -246,6 +246,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 columnDescriptor = new ColumnDescriptor(
                         columnInfo[ix].name,
                         index,
+                        index,
                         columnInfo[ix].dataType,
                         columnInfo[ix].defaultValue,
                         columnInfo[ix].defaultInfo,
@@ -258,6 +259,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             else {
                 columnDescriptor = new ColumnDescriptor(
                         columnInfo[ix].name,
+                        index,
                         index,
                         columnInfo[ix].dataType,
                         columnInfo[ix].defaultValue,

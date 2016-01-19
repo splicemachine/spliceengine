@@ -140,6 +140,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 			columnDescriptor = new ColumnDescriptor(
 				                   columnInfo[ix].name,
 								   index,
+                                    index,
 								   columnInfo[ix].dataType,
 								   columnInfo[ix].defaultValue,
 								   columnInfo[ix].defaultInfo,

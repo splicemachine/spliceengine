@@ -19,9 +19,11 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceDependencyManager extends BasicDependencyManager {
     private static final Logger LOG = Logger.getLogger(SpliceDependencyManager.class);
-    
+    DataDictionary actualDD;
+
 	public SpliceDependencyManager(DataDictionary dd) {
 		super(dd);
+        this.actualDD = dd;
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG, "initialize dependencyManager");
 	}
@@ -42,7 +44,6 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 
 	@Override
 	public void clearDependencies(LanguageConnectionContext lcc, Dependent d) throws StandardException {
-        // Passed on to next method...
 		super.clearDependencies(lcc, d);
 	}
 

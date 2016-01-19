@@ -34,6 +34,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 
 public class SpliceTransactionManager implements XATransactionController,
         TransactionManager {
+
     private static Logger LOG = Logger
             .getLogger(SpliceTransactionManager.class);
     /**
@@ -1678,6 +1679,15 @@ public class SpliceTransactionManager implements XATransactionController,
         ((SpliceTransaction)rawtran).elevate(tableName.getBytes());
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
+    }
+
+    @Override
+    public boolean isElevated() {
+        BaseSpliceTransaction rawTransaction=getRawTransaction();
+        assert rawTransaction instanceof SpliceTransaction:
+                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
+        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
+        return txn.allowsWrites();
     }
 
     public boolean anyoneBlocked() {

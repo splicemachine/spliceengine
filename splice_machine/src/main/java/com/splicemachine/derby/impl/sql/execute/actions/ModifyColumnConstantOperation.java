@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -246,6 +247,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
         ColumnInfo colInfo = columnInfo[infoIndex];
+
+        // Drop the table
+        dd.dropTableDescriptor(tableDescriptor, sd, tc);
+        // Change the table name of the table descriptor
+        tableDescriptor.setColumnSequence(tableDescriptor.getColumnSequence()+1);
+        // add the table descriptor with new name
+        dd.addDescriptor(tableDescriptor, sd, DataDictionary.SYSTABLES_CATALOG_NUM,
+                false, tc);
+
         ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
 
          /* We need to verify that the table does not have an existing
@@ -257,12 +267,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     colInfo.name,tableDescriptor.getDescriptorType(),tableDescriptor.getQualifiedName());
         }
         DataValueDescriptor storableDV = colInfo.defaultValue != null?colInfo.defaultValue:colInfo.dataType.getNull();
-        int colNumber = tableDescriptor.getMaxColumnID()+1;
+        int storageNumber = tableDescriptor.getColumnSequence();
+        int colNumber = tableDescriptor.getNumberOfColumns()+1;
         // Add the column to the conglomerate.(Column ids in store are 0-based)
         tc.addColumnToConglomerate(tableDescriptor.getHeapConglomerateId(), colNumber, storableDV, colInfo.dataType.getCollationType());
-
-
-
 
         // Generate a UUID for the default, if one exists and there is no default id yet.
         UUID defaultUUID = colInfo.newDefaultUUID;
@@ -275,6 +283,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Column ids in system tables are 1-based
         columnDescriptor =  new ColumnDescriptor(colInfo.name,
                 colNumber,
+                storageNumber,
                 colInfo.dataType,
                 colInfo.defaultValue,
                 colInfo.defaultInfo,
@@ -434,6 +443,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         /* Get a ColumnDescriptor reflecting the new default */
         columnDescriptor = new ColumnDescriptor(
                 colInfo.name,
+                ix,
                 columnPosition,
                 colInfo.dataType,
                 colInfo.defaultValue,
@@ -472,6 +482,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         newColumnDescriptor =
                 new ColumnDescriptor(columnInfo[ix].name,
                         columnDescriptor.getPosition(),
+                        columnDescriptor.getStoragePosition(),
                         columnInfo[ix].dataType,
                         columnDescriptor.getDefaultValue(),
                         columnDescriptor.getDefaultInfo(),
@@ -588,6 +599,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         LOG.warn("Something not right here");
         newColumnDescriptor = new ColumnDescriptor(colName,
                         columnDescriptor.getPosition(),
+                        columnDescriptor.getStoragePosition(),
                         dataType,
                         columnDescriptor.getDefaultValue(),
                         columnDescriptor.getDefaultInfo(),
@@ -794,6 +806,27 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         dd.dropColumnDescriptor(tableDescriptor.getUUID(), columnName, tc);
         ColumnDescriptor[] cdlArray =
                 new ColumnDescriptor[size - columnDescriptor.getPosition()];
+
+        // For each column in this table with a higher column position,
+        // drop the entry from SYSCOLUMNS, but hold on to the column
+        // descriptor and reset its position to adjust for the dropped
+        // column. Then, re-add all those adjusted column descriptors
+        // back to SYSCOLUMNS
+        //
+        for (int i = columnDescriptor.getPosition(), j = 0; i < size; i++, j++) {
+            ColumnDescriptor cd = tab_cdl.elementAt(i);
+            dd.dropColumnDescriptor(tableDescriptor.getUUID(), cd.getColumnName(), tc);
+            cd.setPosition(i);
+            if (cd.isAutoincrement()) {
+                cd.setAutoinc_create_or_modify_Start_Increment( ColumnDefinitionNode.CREATE_AUTOINCREMENT);
+            }
+            cdlArray[j] = cd;
+        }
+        dd.addDescriptorArray(cdlArray, tableDescriptor, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+
+
+
+
 
         List depsOnAlterTableList = dd.getProvidersDescriptorList(tableDescriptor.getObjectID().toString());
         for (Object aDepsOnAlterTableList : depsOnAlterTableList) {
