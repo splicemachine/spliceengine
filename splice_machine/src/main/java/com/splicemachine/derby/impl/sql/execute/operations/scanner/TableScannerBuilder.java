@@ -13,6 +13,8 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.stats.StatisticsScanner;
+import com.splicemachine.metrics.MetricFactory;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -56,6 +58,13 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected long baseTableConglomId=-1l;
     protected long demarcationPoint=-1;
     protected Activation activation;
+    protected MetricFactory metricFactory =Metrics.noOpMetricFactory();
+
+    @Override
+    public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
+        this.metricFactory = metricFactory;
+        return this;
+    }
 
     @Override
     public ScanSetBuilder<V> activation(Activation activation){

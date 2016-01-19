@@ -66,9 +66,10 @@ public class HBaseController extends SpliceController{
     public boolean replace(RowLocation loc,DataValueDescriptor[] row,FormatableBitSet validColumns) throws StandardException{
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("replace rowLocation %s, destRow %s, validColumns %s",loc,(row==null?null:Arrays.toString(row)),validColumns));
-        try(Partition htable=getTable()){
+        Partition htable=getTable();
+        try{
 
-            DataPut put=opFactory.newDataPut(trans.getTxnInformation(),SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
+            DataPut put=opFactory.newDataPut(trans.getTxnInformation(),loc.getBytes());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
             encodeRow(row,put,EngineUtils.bitSetToMap(validColumns),validColumns);
             htable.put(put);

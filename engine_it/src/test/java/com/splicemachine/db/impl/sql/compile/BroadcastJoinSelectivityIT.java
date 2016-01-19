@@ -29,7 +29,7 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     @Test
     public void innerJoin() throws Exception {
         rowContainsQuery(
-                new int[] {1,3},
+                new int[] {0,3},
                 "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk, ts_5_npk --splice-properties joinStrategy=BROADCAST\n where ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
                 "rows=10","BroadcastJoin");
     }

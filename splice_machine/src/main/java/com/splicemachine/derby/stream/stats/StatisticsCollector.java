@@ -82,11 +82,11 @@ public class StatisticsCollector {
         TimeView readTime = scanner.getTime();
         long byteCount = scanner.getBytesOutput();
         long rowCount = scanner.getRowsVisited() - scanner.getRowsFiltered();
-        long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
-        long remoteReadTimeMicros = getRemoteReadTime(rowCount);
-        if (remoteReadTimeMicros > 0) {
-            remoteReadTimeMicros /= 1000;
-        }
+//        long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
+//        long remoteReadTimeMicros = getRemoteReadTime(rowCount);
+//        if (remoteReadTimeMicros > 0) {
+//            remoteReadTimeMicros /= 1000;
+//        }
         return SimpleOverheadManagedPartitionStatistics.create(
                 (new Long(tableConglomerateId)).toString(),
                 regionId,

@@ -6,6 +6,7 @@ import com.splicemachine.stream.Accumulator;
 import com.splicemachine.stream.StreamException;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -256,26 +257,29 @@ public class TestConnection implements Connection{
         return rowCount.get();
     }
 
-    public long getCount(PreparedStatement countPs) throws Exception{
-        countPs.clearWarnings();
-        ResultSet rs = countPs.executeQuery();
-        SQLWarning warnings = countPs.getWarnings();
-        if(rs.next()) return rs.getLong(1);
-        else return -1l;
-    }
-
-    public long getCount(String countQuery) throws Exception{
-        assert countQuery.contains("count"): "query is not a count query!";
-        Statement s = createStatement();
-        ResultSet rs = s.executeQuery(countQuery);
-        SQLWarning warnings = s.getWarnings();
-        if(rs.next())
-            return rs.getLong(1);
-        else return -1;
-    }
-
-    public long[] getConglomNumbers(String className,String table_name){
-        throw new UnsupportedOperationException("IMPLEMENT");
+    public long[] getConglomNumbers(String schema,String table) throws SQLException{
+        List<Long> congloms = new ArrayList<>();
+        try(Statement s = createStatement()){
+            String sql="select c.conglomeratenumber from "+
+                    "sys.sysschemas s"+
+                    ", sys.systables t"+
+                    ", sys.sysconglomerates c "+
+                    "where s.schemaid = t.schemaid "+
+                    "and t.tableid = c.tableid "+
+                    "and s.schemaname = '"+schema.toUpperCase()+"' and t.tablename = '"+table.toUpperCase()+"'";
+            try(ResultSet rs = s.executeQuery(sql)){
+               while(rs.next()){
+                   congloms.add(rs.getLong(1));
+               }
+            }
+        }
+        long[] c = new long[congloms.size()];
+        int i=0;
+        for(Long l:congloms){
+            c[i] = (l);
+            i++;
+        }
+        return c;
     }
 
     /***********************************************************************************/

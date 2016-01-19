@@ -18,7 +18,7 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSPARTITIONSTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -34,6 +34,7 @@ import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -75,7 +76,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     //need to make sure it's not a pk or indexed column
                     ensureNotKeyed(descriptor, td);
                     descriptor.setCollectStatistics(false);
-                    conn.getLanguageConnection().getDataDictionary().setCollectStats(conn.getLanguageConnection().getTransactionCompile(), td.getUUID(), columnName, false);
+                    LanguageConnectionContext languageConnection=conn.getLanguageConnection();
+                    TransactionController transactionCompile=languageConnection.getTransactionCompile();
+                    transactionCompile.elevate("dictionary");
+                    languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, false);
                     return;
                 }
             }
@@ -102,10 +106,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 if (descriptor.getColumnName().equalsIgnoreCase(columnName)) {
                     DataTypeDescriptor type = descriptor.getType();
                     if (!ColumnDescriptor.allowsStatistics(type))
-                        throw ErrorState.LANG_COLUMN_STATISTICS_NOT_POSSIBLE.newException(columnName, type
-                            .getTypeName());
+                        throw ErrorState.LANG_COLUMN_STATISTICS_NOT_POSSIBLE.newException(columnName, type.getTypeName());
                     descriptor.setCollectStatistics(true);
-                    conn.getLanguageConnection().getDataDictionary().setCollectStats(conn.getLanguageConnection().getTransactionCompile(), td.getUUID(), columnName, true);
+                    LanguageConnectionContext languageConnection=conn.getLanguageConnection();
+                    TransactionController transactionCompile=languageConnection.getTransactionCompile();
+                    transactionCompile.elevate("dictionary");
+                    languageConnection.getDataDictionary().setCollectStats(transactionCompile, td.getUUID(), columnName, true);
                     return;
                 }
             }
@@ -393,6 +399,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             dvds[i] = dataValueFactory.getNull(execRowFormatIds[i],-1);
         }
         return builder.transaction(txn)
+                .metricFactory(Metrics.basicMetricFactory())
                 .execRowTypeFormatIds(execRowFormatIds)
                 .template(rowTemplate)
                 .scan(scan)
@@ -545,15 +552,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
     public static ExecRow generateRowFromStats(long conglomId, String partitionId,SimpleOverheadManagedPartitionStatistics statistics) throws StandardException {
-        ExecRow row = new ValueRow(SYSPARTITIONSTATISTICSRowFactory.SYSPARTITIONSTATISTICS_COLUMN_COUNT);
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.TIMESTAMP,new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.STALENESS,new SQLBoolean(false));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.INPROGRESS,new SQLBoolean(false));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.ROWCOUNT,new SQLLongint(statistics.rowCount()));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(statistics.totalSize()));
-        row.setColumn(SYSPARTITIONSTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(statistics.avgRowWidth()));
+        ExecRow row = new ValueRow(SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_COLUMN_COUNT);
+        row.setColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.TIMESTAMP,new SQLTimestamp(new Timestamp(System.currentTimeMillis())));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.STALENESS,new SQLBoolean(false));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.INPROGRESS,new SQLBoolean(false));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT,new SQLLongint(statistics.rowCount()));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(statistics.totalSize()));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(statistics.avgRowWidth()));
         return row;
     }
 
@@ -570,9 +577,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         ExecRow row = new ValueRow(5);
         row.setColumn(1,new SQLVarchar(schemaName));
         row.setColumn(2,new SQLVarchar(tableName));
-        row.setColumn(3,partitionRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITIONID));
-        row.setColumn(4,partitionRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.ROWCOUNT));
-        row.setColumn(5,partitionRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.PARTITION_SIZE));
+        row.setColumn(3,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID));
+        row.setColumn(4,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT));
+        row.setColumn(5,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE));
         return row;
     }
 
@@ -584,10 +591,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 ExecRow execRow = locatedRow.getRow();
                 if (locatedRow.getRow().nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
                     dataDictionary.addColumnStatistics(execRow,tc);
-                    return Collections.EMPTY_LIST;
+                    return Collections.emptyList();
                 } else {
                     dataDictionary.addTableStatistics(execRow, tc);
-                    Pair<String,String> pair = displayPair.get(execRow.getColumn(SYSPARTITIONSTATISTICSRowFactory.CONGLOMID).getLong());
+                    Pair<String,String> pair = displayPair.get(execRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
                     return Collections.singletonList(generateOutputRow(pair.getFirst(),pair.getSecond(),execRow));
                 }
 

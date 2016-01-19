@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
@@ -15,6 +16,8 @@ import com.splicemachine.storage.DataScanner;
  *         Date: 1/7/16
  */
 public interface ScanSetBuilder<V>{
+    ScanSetBuilder<V> metricFactory(MetricFactory metricFactory);
+
     ScanSetBuilder<V> scanner(DataScanner scanner);
 
     ScanSetBuilder<V> template(ExecRow template);

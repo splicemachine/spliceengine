@@ -70,7 +70,7 @@ public class MPartition implements Partition{
         DataCell end=new MCell(get.key(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,get.lowTimestamp(),new byte[]{},CellType.USER_DATA);
 
         Set<DataCell> data=memstore.subSet(start,true,end,true);
-        try(SetScanner ss=new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this)){
+        try(SetScanner ss=new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn==null) return null;
 
@@ -122,7 +122,7 @@ public class MPartition implements Partition{
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
         Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
-        return new SetScanner(iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this);
+        return new SetScanner(iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this,metricFactory);
     }
 
 

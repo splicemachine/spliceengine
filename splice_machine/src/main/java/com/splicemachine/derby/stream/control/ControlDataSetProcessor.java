@@ -66,7 +66,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                     TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
                             txnSupplier,ignoreSupplier,transactory,txnOperationFactory);
 
-                    this.region(localRegion).scanner(p.openScanner(getScan())); //set the scanner
+                    this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
                     if(spliceOperation!=null){
                         spliceOperation.registerCloseable(tableScannerIterator);

@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.metrics.Counter;
+import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.primitives.Bytes;
@@ -19,6 +21,8 @@ class SetScanner implements DataScanner{
     private final long highVersion;
     private final DataFilter filter;
     private final Partition partition;
+    private final Counter rowCounter;
+    private final Counter filterCounter;
 
     private byte[] currentKey = null;
     private int currentOffset = 0;
@@ -30,12 +34,16 @@ class SetScanner implements DataScanner{
                       long lowVersion,
                       long highVersion,
                       DataFilter filter,
-                      Partition partition){
+                      Partition partition,
+                      MetricFactory metricFactory){
         this.dataCells=dataCells;
         this.lowVersion=lowVersion;
         this.highVersion=highVersion;
         this.filter=filter;
         this.partition = partition;
+
+        this.rowCounter = metricFactory.newCounter();
+        this.filterCounter = metricFactory.newCounter();
     }
 
     @Override
@@ -58,6 +66,8 @@ class SetScanner implements DataScanner{
             }
         }while(shouldContinue && currentRow.size()<=0);
 
+        if(currentRow.size()>0)
+            rowCounter.increment();
         return currentRow;
     }
 
@@ -93,6 +103,7 @@ class SetScanner implements DataScanner{
             }
             switch(accept(n)){
                 case NEXT_ROW:
+                    filterCounter.increment();
                     n=advanceRow();
                     continue;
                 case NEXT_COL:
@@ -151,12 +162,12 @@ class SetScanner implements DataScanner{
 
     @Override
     public long getRowsFiltered(){
-        return 0;
+        return filterCounter.getTotal();
     }
 
     @Override
     public long getRowsVisited(){
-        return 0;
+        return rowCounter.getTotal();
     }
 
     @Override

@@ -165,7 +165,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         };
         addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder);
 
-//        createSysTableStatsView(tc);
+        createSysTableStatsView(tc);
 
         //sys_column_statistics
         ColumnOrdering[] columnPkOrder=new ColumnOrdering[]{
@@ -176,7 +176,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         TabInfoImpl columnStatsInfo=getColumnStatisticsTable();
         addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
 
-//        createSysColumnStatsView(tc);
+        createSysColumnStatsView(tc);
 
         //sys_physical_statistics
         ColumnOrdering[] physicalPkOrder=new ColumnOrdering[]{
@@ -453,7 +453,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getTableStatisticsTable() throws StandardException{
         if(tableStatsTable==null){
-            tableStatsTable=new TabInfoImpl(new SYSPARTITIONSTATISTICSRowFactory(uuidFactory,exFactory,dvf));
+            tableStatsTable=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(tableStatsTable);
         return tableStatsTable;
@@ -530,7 +530,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
         UUID viewId=view.getUUID();
-        ColumnDescriptor[] tableViewCds=SYSPARTITIONSTATISTICSRowFactory.getViewColumns(view,viewId);
+        ColumnDescriptor[] tableViewCds=SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -538,7 +538,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSTABLESTATISTICS",
-                SYSPARTITIONSTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
+                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sysSchema.getUUID());
         addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
     }
 

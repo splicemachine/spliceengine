@@ -114,16 +114,17 @@ public class SpliceUnitTest {
     }
 
     protected void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String... contains) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        int i = 0;
-        int k = 0;
-        while (resultSet.next()) {
-            System.out.println(resultSet.getString(1));
-            i++;
-            for (int level : levels) {
-                if (level == i) {
-                    Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(contains[k]));
-                    k++;
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                System.out.println(resultSet.getString(1));
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        Assert.assertTrue("failed query: "+query+" -> "+resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
+                        k++;
+                    }
                 }
             }
         }
