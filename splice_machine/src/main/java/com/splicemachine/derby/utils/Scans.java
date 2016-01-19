@@ -77,6 +77,7 @@ public class Scans extends SpliceUtils {
                                  boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
         DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
+        scan.returnAllVersions();
 //        scan.cacheRows()
 //        scan.setCaching(DEFAULT_CACHE_SIZE);
         try {

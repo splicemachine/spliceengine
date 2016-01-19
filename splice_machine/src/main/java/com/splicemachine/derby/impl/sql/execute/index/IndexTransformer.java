@@ -139,11 +139,14 @@ public class IndexTransformer {
         /*
          * Handle index columns from the source table's primary key.
          */
-        if (table.getColumnOrderingList() != null) {
+        if (table.getColumnOrderingCount()>0) {
             //we have key columns to check
             MultiFieldDecoder keyDecoder = getSrcKeyDecoder();
             keyDecoder.set(mutation.getRowKey());
-            for (int sourceKeyColumnPos : table.getColumnOrderingList()) {
+            for(int i=0;i<table.getColumnOrderingCount();i++){
+                int sourceKeyColumnPos = table.getColumnOrdering(i);
+                if(!indexedCols.get(sourceKeyColumnPos)) continue;
+
                 int indexKeyPos = sourceKeyColumnPos < mainColToIndexPosMap.length ?
                         mainColToIndexPosMap[sourceKeyColumnPos] : -1;
                 int offset = keyDecoder.offset();
@@ -195,7 +198,7 @@ public class IndexTransformer {
                     accumulate(keyAccumulator,
                             keyColumnPos,
                             table.getFormatIds(i),
-                            !index.getDescColumns(keyColumnPos),
+                            index.getDescColumns(keyColumnPos),
                             rowFieldDecoder.array(), offset, length);
                 } else{
                     /*

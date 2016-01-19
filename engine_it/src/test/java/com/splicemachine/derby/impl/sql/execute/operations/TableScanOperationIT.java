@@ -323,7 +323,7 @@ public class TableScanOperationIT{
         try(Statement s=conn.createStatement()){
             s.executeUpdate("create table char_table(a char(9), b char(9), c char(9), primary key(a))");
             s.executeUpdate("create unique index char_table_index on char_table(c)");
-            s.executeUpdate("insert into char_table values('aaa', 'aaa', 'aaa'),('aa', 'aa', 'aa'),('a', 'a', 'a'),('', '', '')");
+            s.executeUpdate("insert into char_table values('aaa', 'aaa', 'aaa')");//,('aa', 'aa', 'aa'),('a', 'a', 'a'),('', '', '')");
         }
 
         // where char column IS primary key
@@ -339,10 +339,10 @@ public class TableScanOperationIT{
         assertCountEquals(conn,1L,"select * from char_table where 'aaa' = b");
 
         // where char column is unique index
-        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa'");
-        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa   '");
-        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa      '");
-        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where 'aaa' = c");
+        assertCountEquals(conn,1L,"select * from char_table --SPLICE-PROPERTIES index=CHAR_TABLE_INDEX\n where c = 'aaa'");
+        assertCountEquals(conn,1L,"select * from char_table --SPLICE-PROPERTIES index=CHAR_TABLE_INDEX\n where c = 'aaa   '");
+        assertCountEquals(conn,1L,"select * from char_table --SPLICE-PROPERTIES index=CHAR_TABLE_INDEX\n where c = 'aaa      '");
+        assertCountEquals(conn,1L,"select * from char_table --SPLICE-PROPERTIES index=CHAR_TABLE_INDEX\n where 'aaa' = c");
     }
 
 
