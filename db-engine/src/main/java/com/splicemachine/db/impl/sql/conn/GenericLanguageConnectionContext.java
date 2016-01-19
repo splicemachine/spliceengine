@@ -330,7 +330,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         " reasonably");
             }
         }
-        setDefaultSchema(initDefaultSchemaDescriptor());
+        SchemaDescriptor sd=initDefaultSchemaDescriptor();
+        /*
+         * It is possible for Splice's startup sequence to end up in this code on the same thread
+         * as a connection. When this happens, we need to ensure that we do not destroy the schema
+         * set by the user by default (if such a schema is set already).
+         */
+        if(getDefaultSchema()==null)
+            setDefaultSchema(sd);
         referencedColumnMap=new WeakHashMap<>();
     }
 

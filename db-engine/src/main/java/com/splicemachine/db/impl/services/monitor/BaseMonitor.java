@@ -346,7 +346,7 @@ abstract class BaseMonitor
 				SanityManager.SET_DEBUG_STREAM(systemStreams.stream().getPrintWriter());
 			}
 
-			contextService = new ContextService();
+			contextService = ContextService.getService();
 
 			uuidFactory = (UUIDFactory) Monitor.startSystemModule("com.splicemachine.db.iapi.services.uuid.UUIDFactory");
 

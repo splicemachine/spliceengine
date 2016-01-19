@@ -181,4 +181,9 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 		 */
 		startWriting(lcc);
 	}
+
+	@Override
+	public boolean canUseSPSCache() throws StandardException{
+		return canUseCache();
+	}
 }

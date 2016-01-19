@@ -2055,4 +2055,6 @@ public interface DataDictionary{
     public DataDictionaryCache getDataDictionaryCache();
 
     public boolean canUseCache() throws StandardException;
+
+    boolean canUseSPSCache() throws StandardException;
 }

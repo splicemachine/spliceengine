@@ -1206,7 +1206,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TabInfoImpl ti=getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1, new SQLLongint(conglomerate));
-        ti.deleteRow(tc,keyRow, SYSPARTITIONSTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID);
+        ti.deleteRow(tc,keyRow, SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID);
         deleteColumnStatistics(conglomerate,tc);
     }
 
@@ -1231,7 +1231,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1, startStop);
         PartitionStatisticsDescriptor td=(PartitionStatisticsDescriptor)getDescriptorViaIndex(
-                SYSPARTITIONSTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID,
+                SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_INDEX3_ID,
                 keyRow,
                 null,
                 ti,
@@ -7274,7 +7274,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSTABLESTATS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSPARTITIONSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
 
             }
@@ -7607,7 +7607,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
         int[] colsToUpdate=new int[1];
         colsToUpdate[0]=SYSCOLUMNSRowFactory.SYSCOLUMNS_COLLECTSTATS;
-        row.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_AUTOINCREMENTVALUE,new SQLBoolean(collectStats));
+        row.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
         ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
     }
 

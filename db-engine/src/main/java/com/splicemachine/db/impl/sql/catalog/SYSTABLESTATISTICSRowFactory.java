@@ -16,9 +16,9 @@ import java.util.Properties;
  * @author Scott Fines
  *         Date: 2/25/15
  */
-public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
-    public static final String TABLENAME_STRING = "SYSPARTITIONSTATS";
-    public static final int SYSPARTITIONSTATISTICS_COLUMN_COUNT = 8;
+public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
+    public static final String TABLENAME_STRING = "SYSTABLESTATS";
+    public static final int SYSTABLESTATISTICS_COLUMN_COUNT= 8;
     public static final int CONGLOMID = 1;
     public static final int PARTITIONID = 2;
     public static final int TIMESTAMP = 3;
@@ -53,9 +53,9 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
                     {CONGLOMID},
             };
 
-    public SYSPARTITIONSTATISTICSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
+    public SYSTABLESTATISTICSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf) {
         super(uuidf, ef, dvf);
-        initInfo(SYSPARTITIONSTATISTICS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
+        initInfo(SYSTABLESTATISTICS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override
@@ -81,7 +81,7 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
             meanRowWidth = tsd.getMeanRowWidth();
         }
 
-        ExecRow row = getExecutionFactory().getValueRow(SYSPARTITIONSTATISTICS_COLUMN_COUNT);
+        ExecRow row = getExecutionFactory().getValueRow(SYSTABLESTATISTICS_COLUMN_COUNT);
         row.setColumn(CONGLOMID,new SQLLongint(conglomId));
         row.setColumn(PARTITIONID,new SQLVarchar(partitionId));
         row.setColumn(TIMESTAMP,new SQLTimestamp(new Timestamp(timestamp)));
@@ -96,7 +96,7 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
     @Override
     public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary) throws StandardException {
         if (SanityManager.DEBUG) {
-            SanityManager.ASSERT( row.nColumns() == SYSPARTITIONSTATISTICS_COLUMN_COUNT,
+            SanityManager.ASSERT( row.nColumns() ==SYSTABLESTATISTICS_COLUMN_COUNT,
                     "Wrong number of columns for a STATEMENTHISTORY row");
         }
 
@@ -176,7 +176,7 @@ public class SYSPARTITIONSTATISTICSRowFactory extends CatalogRowFactory {
             "sys.systables t" +
             ",sys.sysschemas s" +
             ",sys.sysconglomerates c" +
-            ",sys.syspartitionstats ts" +
+            ",sys.systablestats ts" +
             " where " +
             "t.tableid = c.tableid " +
             "and c.conglomeratenumber = ts.conglomerateid " +

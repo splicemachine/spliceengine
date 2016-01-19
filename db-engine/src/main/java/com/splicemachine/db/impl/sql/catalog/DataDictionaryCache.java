@@ -160,7 +160,7 @@ public class DataDictionaryCache {
     public SPSDescriptor spsNameCacheFind(TableKey tableKey) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("spsNameCacheFind " + tableKey);
-        if (!dd.canUseCache())
+        if (!dd.canUseSPSCache())
             return null;
         return spsNameCache.getIfPresent(tableKey);
     }
@@ -168,7 +168,7 @@ public class DataDictionaryCache {
     public void spsNameCacheAdd(TableKey tableKey, SPSDescriptor sps) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("spsNameCacheAdd tableKey=" + tableKey + " descriptor="+sps);
-        if (!dd.canUseCache())
+        if (!dd.canUseSPSCache())
             return;
         spsNameCache.put(tableKey,sps);
     }
@@ -273,6 +273,21 @@ public class DataDictionaryCache {
         schemaCache.invalidateAll();
         statementCache.invalidateAll();
         roleCache.invalidateAll();
+    }
+
+    public void clearTableCache(){
+        oidTdCache.invalidateAll();
+        nameTdCache.invalidateAll();
+        partitionStatisticsCache.invalidateAll();
+        schemaCache.invalidateAll();
+        sequenceGeneratorCache.invalidateAll();
+        permissionsCache.invalidateAll();
+        statementCache.invalidateAll();
+        roleCache.invalidateAll();
+    }
+
+    public void clearSchemaCache(){
+        schemaCache.invalidateAll();
     }
 
     public void removeStatement(GenericStatement gs) throws StandardException {
