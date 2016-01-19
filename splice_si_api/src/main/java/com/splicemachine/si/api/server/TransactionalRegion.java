@@ -83,7 +83,5 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
 
     InternalScanner compactionScanner(InternalScanner scanner);
 
-    DataResult get(byte[] rowKey, TxnView txn, BitSet interestingColumns) throws IOException;
-
     Partition unwrap();
 }

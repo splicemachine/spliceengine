@@ -206,6 +206,7 @@ public class SQLConfiguration{
                 case KRYO_POOL_SIZE: return DEFAULT_KRYO_POOL_SIZE;
                 case INDEX_BATCH_SIZE: return DEFAULT_INDEX_BATCH_SIZE;
                 case INDEX_LOOKUP_BLOCKS: return DEFAULT_INDEX_LOOKUP_BLOCKS;
+                case IMPORT_MAX_QUOTED_COLUMN_LINES: return DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
             }
@@ -218,6 +219,7 @@ public class SQLConfiguration{
                 case KRYO_POOL_SIZE:
                 case INDEX_BATCH_SIZE:
                 case INDEX_LOOKUP_BLOCKS:
+                case IMPORT_MAX_QUOTED_COLUMN_LINES:
                     return true;
                 default:
                     return false;

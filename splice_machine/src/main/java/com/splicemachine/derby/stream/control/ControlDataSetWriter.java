@@ -7,6 +7,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 
@@ -19,9 +20,9 @@ import java.util.Collections;
 public class ControlDataSetWriter<K> implements DataSetWriter{
     private final ControlPairDataSet<K, ExecRow> dataSet;
     private final OperationContext operationContext;
-    private final InsertPipelineWriter pipelineWriter;
+    private final AbstractPipelineWriter<ExecRow> pipelineWriter;
 
-    public ControlDataSetWriter(ControlPairDataSet<K, ExecRow> dataSet,InsertPipelineWriter pipelineWriter,OperationContext opContext){
+    public ControlDataSetWriter(ControlPairDataSet<K, ExecRow> dataSet,AbstractPipelineWriter<ExecRow> pipelineWriter,OperationContext opContext){
         this.dataSet=dataSet;
         this.operationContext=opContext;
         this.pipelineWriter=pipelineWriter;

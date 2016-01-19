@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.driver;
 
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
@@ -55,4 +56,6 @@ public interface SIEnvironment{
     Clock systemClock();
 
     KeyedReadResolver keyedReadResolver();
+
+    DistributedFileSystem fileSystem();
 }

@@ -1,6 +1,7 @@
 package com.splicemachine.si;
 
 import com.splicemachine.MapConfiguration;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
@@ -25,6 +26,8 @@ import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 
+import java.nio.file.FileSystems;
+
 /**
  * @author Scott Fines
  *         Date: 1/11/16
@@ -45,6 +48,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final SConfiguration config;
 
     private transient SIDriver siDriver;
+    private final DistributedFileSystem fileSystem = new MemFileSystem(FileSystems.getDefault().provider());
 
     public MemSIEnvironment(){
         this(new MTxnPartitionFactory(new MPartitionFactory()));
@@ -142,5 +146,10 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public KeyedReadResolver keyedReadResolver(){
         return MSynchronousReadResolver.INSTANCE;
+    }
+
+    @Override
+    public DistributedFileSystem fileSystem(){
+        return fileSystem;
     }
 }

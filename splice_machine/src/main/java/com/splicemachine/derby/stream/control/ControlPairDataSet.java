@@ -22,6 +22,8 @@ import com.splicemachine.derby.stream.output.direct.DirectPipelineWriter;
 import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
+import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
 import scala.Tuple2;
 
@@ -323,7 +325,17 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new UpdateTableWriterBuilder(){
+            @Override
+            public DataSetWriter build() throws StandardException{
+                assert txn!=null: "Txn is null";
+                UpdatePipelineWriter upw =new UpdatePipelineWriter(heapConglom,
+                        formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
+                        txn,execRowDefinition,heapList,operationContext);
+
+                return new ControlDataSetWriter<>((ControlPairDataSet<K,ExecRow>)ControlPairDataSet.this,upw,operationContext);
+            }
+        };
     }
 
     @Override

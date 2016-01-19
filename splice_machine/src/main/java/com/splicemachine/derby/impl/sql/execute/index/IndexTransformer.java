@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
@@ -13,9 +14,11 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -43,6 +46,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  * @author Scott Fines
  *         Date: 4/17/14
  */
+@NotThreadSafe
 public class IndexTransformer {
     private TypeProvider typeProvider;
     private MultiFieldDecoder srcKeyDecoder;
@@ -54,6 +58,10 @@ public class IndexTransformer {
     private int [] mainColToIndexPosMap;
     private BitSet indexedCols;
     private byte[] indexConglomBytes;
+
+    private transient DataGet baseGet = null;
+    private transient DataResult baseResult = null;
+
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
@@ -93,7 +101,7 @@ public class IndexTransformer {
      */
     public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
         // do a Get() on all the indexed columns of the base table
-        DataResult result = ctx.txnRegion().get(mutation.getRowKey(),ctx.getTxn(),indexedColumns);
+        DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
 //        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
 //        get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 //        DataResult result = ctx.getRegion().get(get);
@@ -115,6 +123,7 @@ public class IndexTransformer {
                 resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
         return translate(toTransform);
     }
+
 
     /**
      * Translate the given base table record mutation into its associated, referencing index record.<br/>
@@ -388,5 +397,18 @@ public class IndexTransformer {
         if (srcValueDecoder == null)
             srcValueDecoder = new EntryDecoder();
         return srcValueDecoder;
+    }
+
+    private DataResult fetchBaseRow(KVPair mutation,WriteContext ctx,BitSet indexedColumns) throws IOException{
+        baseGet =SIDriver.driver().getOperationFactory().newDataGet(ctx.getTxn(),mutation.getRowKey(),baseGet);
+
+        EntryPredicateFilter epf;
+        if(indexedColumns!=null && indexedColumns.size()>0){
+            epf = new EntryPredicateFilter(indexedColumns,new ObjectArrayList<Predicate>(0));
+        }else epf = EntryPredicateFilter.emptyPredicate();
+
+        baseGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
+        baseResult =ctx.getRegion().get(baseGet,baseResult);
+        return baseResult;
     }
 }

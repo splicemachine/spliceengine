@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline;
 
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
@@ -161,5 +162,10 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public PipelineMeter pipelineMeter(){
         return NoOpPipelineMeter.INSTANCE;
+    }
+
+    @Override
+    public DistributedFileSystem fileSystem(){
+        return siEnv.fileSystem();
     }
 }

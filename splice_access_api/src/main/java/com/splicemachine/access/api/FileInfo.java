@@ -18,4 +18,10 @@ public interface FileInfo{
     long fileCount();
 
     long spaceConsumed();
+
+    boolean isReadable();
+
+    String getUser();
+
+    String getGroup();
 }

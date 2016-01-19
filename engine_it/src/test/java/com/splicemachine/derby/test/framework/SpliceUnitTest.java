@@ -69,8 +69,8 @@ public class SpliceUnitTest {
 	}
 	public static String getBaseDirectory() {
 		String userDir = System.getProperty("user.dir");
-	    if(!userDir.endsWith("splice_machine_test"))
-	    	userDir = userDir+"/splice_machine_test";
+	    if(!userDir.endsWith("engine_it"))
+	    	userDir = userDir+"/engine_it";
 	    return userDir;
 	}
 

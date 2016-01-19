@@ -44,23 +44,24 @@ public class SIDriver {
     }
 
     private final SITransactionReadController readController;
-    private PartitionFactory tableFactory;
-    private ExceptionFactory exceptionFactory;
-    private SConfiguration config;
-    private SDataLib dataLib;
-    private TxnStore txnStore;
-    private OperationStatusFactory operationStatusFactory;
-    private TimestampSource timestampSource;
-    private TxnSupplier txnSupplier;
-    private IgnoreTxnCacheSupplier ignoreTxnSupplier;
-    private DataStore dataStore;
-    private Transactor transactor;
-    private TxnOperationFactory txnOpFactory;
-    private RollForward rollForward;
-    private TxnLifecycleManager lifecycleManager;
-    private DataFilterFactory filterFactory;
-    private Clock clock;
-    private AsyncReadResolver readResolver;
+    private final PartitionFactory tableFactory;
+    private final ExceptionFactory exceptionFactory;
+    private final SConfiguration config;
+    private final SDataLib dataLib;
+    private final TxnStore txnStore;
+    private final OperationStatusFactory operationStatusFactory;
+    private final TimestampSource timestampSource;
+    private final TxnSupplier txnSupplier;
+    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
+    private final DataStore dataStore;
+    private final Transactor transactor;
+    private final TxnOperationFactory txnOpFactory;
+    private final RollForward rollForward;
+    private final TxnLifecycleManager lifecycleManager;
+    private final DataFilterFactory filterFactory;
+    private final Clock clock;
+    private final AsyncReadResolver readResolver;
+    private final DistributedFileSystem fileSystem;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -99,6 +100,7 @@ public class SIDriver {
         this.lifecycleManager =clientTxnLifecycleManager;
         readController = new SITransactionReadController(dataStore,txnSupplier,ignoreTxnSupplier);
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
+        this.fileSystem = env.fileSystem();
     }
 
 
@@ -200,7 +202,7 @@ public class SIDriver {
     }
 
     public DistributedFileSystem fileSystem(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return fileSystem;
     }
 
     private AsyncReadResolver initializedReadResolver(SConfiguration config,KeyedReadResolver keyedResolver){
