@@ -5,7 +5,7 @@ package com.splicemachine.storage;
  *         Date: 12/16/15
  */
 public interface DataGet extends Attributable{
-    void setTimeRange(int low,long high);
+    void setTimeRange(long low,long high);
 
     void returnAllVersions();
 

@@ -6,4 +6,6 @@ package com.splicemachine.pipeline.constraint;
  *         Date: 12/23/15
  */
 public interface UniqueConstraintViolation{
+
+    ConstraintContext getContext();
 }

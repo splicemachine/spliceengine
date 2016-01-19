@@ -303,9 +303,8 @@ public class SpliceDatabase extends BasicDatabase{
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
                 switch(change.getDdlChangeType()){
                     case CREATE_INDEX:
-                        break;
+                    case DROP_INDEX:
                     case DROP_TABLE:
-                        System.out.println("Drop Table changeSuccessful -> changeId="+changeId+" change="+change);
                     case CREATE_TABLE:
                         getDataDictionary().getDataDictionaryCache().clearTableCache();
                         break;

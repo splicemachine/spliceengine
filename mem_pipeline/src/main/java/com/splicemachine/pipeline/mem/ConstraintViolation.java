@@ -28,7 +28,7 @@ public class ConstraintViolation extends IOException{
         this.cc = context;
     }
 
-    public ConstraintContext getConstraintContext(){
+    public ConstraintContext getContext(){
         return cc;
     }
 

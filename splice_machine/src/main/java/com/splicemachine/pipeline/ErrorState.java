@@ -3,6 +3,7 @@ package com.splicemachine.pipeline;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.pipeline.api.PipelineTooBusy;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.si.api.server.FailedServerException;
@@ -618,6 +619,17 @@ public enum ErrorState {
         public boolean accepts(Throwable t) {
             return super.accepts(t) ||
                     t instanceof UniqueConstraintViolation;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof UniqueConstraintViolation))
+                return super.newException(rootCause);
+            else{
+                UniqueConstraintViolation ucv = (UniqueConstraintViolation)rootCause;
+                ConstraintContext context=ucv.getContext();
+                return StandardException.newException(getSqlState(),context.getMessages());
+            }
         }
     },
     LANG_FK_VIOLATION("23503") {

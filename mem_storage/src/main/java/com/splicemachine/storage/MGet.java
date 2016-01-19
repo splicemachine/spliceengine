@@ -33,7 +33,7 @@ public class MGet implements DataGet{
     }
 
     @Override
-    public void setTimeRange(int low,long high){
+    public void setTimeRange(long low,long high){
         this.highTs = high;
         this.lowTs = low;
     }

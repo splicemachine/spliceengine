@@ -13,7 +13,10 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
@@ -154,12 +157,12 @@ public class IndexTransformer {
             keyDecoder.set(mutation.getRowKey());
             for(int i=0;i<table.getColumnOrderingCount();i++){
                 int sourceKeyColumnPos = table.getColumnOrdering(i);
-                if(!indexedCols.get(sourceKeyColumnPos)) continue;
 
                 int indexKeyPos = sourceKeyColumnPos < mainColToIndexPosMap.length ?
                         mainColToIndexPosMap[sourceKeyColumnPos] : -1;
                 int offset = keyDecoder.offset();
                 boolean isNull = skip(keyDecoder, table.getFormatIds(sourceKeyColumnPos));
+                if(!indexedCols.get(sourceKeyColumnPos)) continue;
                 if(indexKeyPos>=0){
                     /*
                      * since primary keys have an implicit NOT NULL constraint here, we don't need to check for it,
@@ -176,7 +179,7 @@ public class IndexTransformer {
                      */
                     accumulate(keyAccumulator, indexKeyPos,
                             table.getFormatIds(sourceKeyColumnPos),
-                            !index.getDescColumns(indexKeyPos),
+                            index.getDescColumns(indexKeyPos),
                             keyDecoder.array(), offset, length);
                 }
             }
@@ -193,6 +196,11 @@ public class IndexTransformer {
         BitIndex bitIndex = rowDecoder.getCurrentIndex();
         MultiFieldDecoder rowFieldDecoder = rowDecoder.getEntryDecoder();
         for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
+            if(!indexedCols.get(i)) {
+                //skip non-indexed columns
+                rowDecoder.seekForward(rowFieldDecoder,i);
+                continue;
+            }
             int keyColumnPos = i < mainColToIndexPosMap.length ?
                     mainColToIndexPosMap[i] : -1;
             if (keyColumnPos < 0) {
@@ -281,11 +289,10 @@ public class IndexTransformer {
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
-        if (table.getColumnOrderingList() != null) {
-            for (int srcPrimaryKeyIndex : table.getColumnOrderingList()) {
-                if (srcPrimaryKeyIndex == sourceColumnIndex) {
-                    return true;
-                }
+        if (table.getColumnOrderingCount()>0) {
+            for(int s = 0;s<table.getColumnOrderingCount();s++){
+                int srcPrimaryKeyIndex = table.getColumnOrdering(s);
+                if(srcPrimaryKeyIndex==sourceColumnIndex) return true;
             }
         }
         return false;
@@ -407,7 +414,9 @@ public class IndexTransformer {
             epf = new EntryPredicateFilter(indexedColumns,new ObjectArrayList<Predicate>(0));
         }else epf = EntryPredicateFilter.emptyPredicate();
 
-        baseGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
+        TransactionalRegion region=ctx.txnRegion();
+        TxnFilter txnFilter=region.packedFilter(ctx.getTxn(),epf,false);
+        baseGet.setFilter(txnFilter);
         baseResult =ctx.getRegion().get(baseGet,baseResult);
         return baseResult;
     }

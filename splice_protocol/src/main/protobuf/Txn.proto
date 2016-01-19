@@ -36,7 +36,7 @@ message TxnInfo{
 }
 
 message Txn {
-    //the txn information for this transaction
+    //the dropTxn information for this transaction
     required TxnInfo info = 1;
     /*
      * use a varint to represent the state. This state

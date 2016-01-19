@@ -7,12 +7,12 @@ import com.splicemachine.si.api.txn.TxnView;
 import java.io.IOException;
 
 class DropIndexFactory implements LocalWriteFactory{
-    private TxnView txn;
+    private TxnView dropTxn;
     private volatile LocalWriteFactory delegate;
     private long indexConglomId;
 
-    DropIndexFactory(TxnView txn, LocalWriteFactory delegate, long indexConglomId) {
-        this.txn = txn;
+    DropIndexFactory(TxnView dropTxn, LocalWriteFactory delegate, long indexConglomId) {
+        this.dropTxn=dropTxn;
         this.delegate = delegate;
         this.indexConglomId = indexConglomId;
     }
@@ -21,15 +21,45 @@ class DropIndexFactory implements LocalWriteFactory{
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
         if (delegate == null) return; //no delegate, so nothing to do just yet
         /*
-         * We only want to add an entry if one of the following holds:
+         * We need to maintain the index just in case the dropping transaction is rolled back, BUT
+         * simultaneously, if we perform future writes within the same transaction as the drop index,
+         * we can NOT update the index itself. This boils into two categories:
          *
-         * 1. txn is not yet committed
-         * 2. ctx.txn.beginTimestamp < txn.commitTimestamp
+         * 1. T1 drops index, then performs subsequent write
+         * 2. T1 drop index, then T2 performs subsequent write
+         *
+         * Category 1:
+         *
+         * There are two main possible timelines:
+         *
+         * T1.begin -> T1.dropIndex->T1.write->T1.rollback
+         * T1.begin -> T1.dropIndex ->T1.write->T1.commit
+         *
+         * In the first case, when we rollback, we rollback BOTH the write AND the dropIndex, so it doesn't matter
+         * if we updated the index or not.
+         *
+         * In the second case, the drop index is successfully applied, and therefore it is irrelevant whether we
+         * updated the index or not.
+         *
+         * However, if we update the index, we run into a situation where we might cause a UniqueIndex violation.
+         * Then we would have to do some kind of way of supressing the violation (since it's not a unique violation
+         * in our transaction). In that situation, we can lead ourselves to overwriting other data, resulting in
+         * a corrupted index. Therefore, we cannot write data to the index itself.
+         *
+         * Category 2:
+         * In this scenario, any write which occurs AFTER the drop is committed does not need to write data
+         * to the index, but any write which occurs BEFORE the drop is committed will have to, in case the drop
+         * has been rolled back.
+         *
+         * Thus, the logic is something as follows:
+         *
+         * 1. Determine if DropTxn has been committed. If so, then discard any write at all
+         * 2. If dropTxn has been rolled back, then proceed with the write
+         * 3. If dropTxn is still active, find the youngest common ancestor(YCA) of dropTxn and ctx.getTxn().
+         * 4. If YCA !=ROOT, then do not perform the write, otherwise, perform the write
          */
-        long commitTs = txn.getEffectiveCommitTimestamp();
-        boolean shouldAdd = commitTs < 0 || ctx.getTxn().getBeginTimestamp() < commitTs;
 
-        if (shouldAdd) delegate.addTo(ctx, keepState, expectedWrites);
+        if (!ctx.getTxn().canSee(dropTxn)) delegate.addTo(ctx, keepState, expectedWrites);
     }
 
     public void setDelegate(LocalWriteFactory delegate) {
