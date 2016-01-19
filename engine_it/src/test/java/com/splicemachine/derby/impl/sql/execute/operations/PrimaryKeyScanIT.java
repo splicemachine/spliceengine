@@ -23,7 +23,6 @@ import java.util.Map;
  *         Created on: 3/6/13
  */
 public class PrimaryKeyScanIT extends SpliceUnitTest{
-    private static Logger LOG=Logger.getLogger(PrimaryKeyScanIT.class);
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
     public static final String CLASS_NAME=PrimaryKeyScanIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME="A";

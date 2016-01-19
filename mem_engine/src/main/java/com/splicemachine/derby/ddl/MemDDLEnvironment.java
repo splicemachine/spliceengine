@@ -179,7 +179,6 @@ public class MemDDLEnvironment implements DDLEnvironment{
 
         @Override
         public void deleteChangeNode(String changeId){
-            System.out.println("Deleting change node");
             changeStore.remove(changeId);
         }
     }

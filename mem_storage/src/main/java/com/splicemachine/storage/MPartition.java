@@ -142,11 +142,11 @@ public class MPartition implements Partition{
                 start=new MCell(startKey,new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
 
             if(stopKey==null||stopKey.length==0){
-                if(memstore.size()==1){
+//                if(memstore.size()==1){
                     return memstore.tailSet(start,true);
-                }else{
-                    stop = memstore.last();
-                }
+//                }else{
+//                    stop = memstore.last();
+//                }
             }else
                 stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
             dataCells=memstore.subSet(start,true,stop,false);
