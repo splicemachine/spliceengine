@@ -22,6 +22,7 @@ import java.sql.ResultSet;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class StatisticsAdminIT {
 	private static final String SCHEMA = StatisticsAdminIT.class.getSimpleName().toUpperCase();
 	private static final String SCHEMA2 = SCHEMA + "2";
@@ -150,6 +151,7 @@ public class StatisticsAdminIT {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testCanEnableColumnStatistics() throws Exception {
         TestConnection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
@@ -201,6 +203,7 @@ public class StatisticsAdminIT {
     }
     
     @Test
+    @Ignore("DB-4272")
     public void testDropSchemaStatistics() throws Exception {
         TestConnection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
@@ -262,6 +265,7 @@ public class StatisticsAdminIT {
     }
     
     @Test
+    @Ignore("DB-4272")
     public void testDropTableStatistics() throws Exception {
         TestConnection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);

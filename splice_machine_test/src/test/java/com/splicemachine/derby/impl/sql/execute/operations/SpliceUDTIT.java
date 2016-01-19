@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
+@Ignore("DB-4272")
 public class SpliceUDTIT extends SpliceUnitTest {
 
     private static Logger LOG = Logger.getLogger(SpliceUDTIT.class);

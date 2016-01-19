@@ -26,6 +26,7 @@ import com.splicemachine.test_dao.TriggerDAO;
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
 
+@Ignore("DB-4272")
 public class Trigger_Exec_Stored_Proc_IT {
 
     private static final String SCHEMA = Trigger_Exec_Stored_Proc_IT.class.getSimpleName();

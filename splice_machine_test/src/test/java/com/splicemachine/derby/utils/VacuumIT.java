@@ -21,6 +21,7 @@ import java.util.Arrays;
  */
 //@Ignore("-sf- This can take forever, and it doesn't really test anything. Until it does, leave it ignored")
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class VacuumIT {
 		private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		@ClassRule

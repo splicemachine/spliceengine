@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
  * ON UPDATE NO ACTION
  */
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class ForeignKey_Action_IT {
 
     private static final String SCHEMA = ForeignKey_Action_IT.class.getSimpleName();

@@ -9,6 +9,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -28,6 +29,7 @@ import com.splicemachine.test_dao.TableDAO;
  * @author Walt Koetke
  */
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class CheckConstraintIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CheckConstraintIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);

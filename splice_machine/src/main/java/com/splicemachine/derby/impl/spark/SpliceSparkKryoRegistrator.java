@@ -25,6 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
@@ -358,6 +359,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(CachedOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CallStatementOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ExplainOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ExportOperation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);

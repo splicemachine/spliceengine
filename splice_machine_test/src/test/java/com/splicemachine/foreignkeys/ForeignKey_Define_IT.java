@@ -8,10 +8,7 @@ import com.splicemachine.test_dao.Constraint;
 import com.splicemachine.test_dao.ConstraintDAO;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
@@ -28,6 +25,7 @@ import static org.junit.Assert.*;
  * Foreign Key tests for *defining* FK constraints.
  */
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class ForeignKey_Define_IT {
 
     private static final String SCHEMA = ForeignKey_Define_IT.class.getSimpleName();

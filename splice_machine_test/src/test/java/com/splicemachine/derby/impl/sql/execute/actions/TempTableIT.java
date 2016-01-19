@@ -33,6 +33,8 @@ import com.splicemachine.utils.SpliceUtilities;
  * @author Jeff Cunningham
  *         Date: 1/25/15
  */
+
+@Ignore("DB-4272")
 public class TempTableIT {
     public static final String CLASS_NAME = TempTableIT.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
