@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
@@ -14,7 +15,7 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 5/6/15.
  */
-public class DeleteTableWriterBuilder implements Externalizable{
+public abstract class DeleteTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long heapConglom;
     protected TxnView txn;
     protected OperationContext operationContext;
@@ -28,13 +29,26 @@ public class DeleteTableWriterBuilder implements Externalizable{
         return heapConglom;
     }
 
-    public DeleteTableWriterBuilder txn(TxnView txn) {
+    @Override
+    public DataSetWriterBuilder destConglomerate(long heapConglom){
+        this.heapConglom = heapConglom;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder skipIndex(boolean skipIndex){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public DataSetWriterBuilder txn(TxnView txn) {
         assert txn!=null: "Transaction cannot be null";
         this.txn = txn;
         return this;
     }
 
-    public DeleteTableWriterBuilder operationContext(OperationContext operationContext) {
+    @Override
+    public DataSetWriterBuilder operationContext(OperationContext operationContext) {
         this.operationContext = operationContext;
         return this;
     }
@@ -65,7 +79,7 @@ public class DeleteTableWriterBuilder implements Externalizable{
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
 
-    public DeletePipelineWriter build() throws StandardException {
-        return new DeletePipelineWriter(txn,heapConglom,operationContext);
-    }
+//    public DataSetWriter build() throws StandardException {
+//        return new DeletePipelineWriter(txn,heapConglom,operationContext);
+//    }
 }

@@ -18,6 +18,7 @@ public class MScan implements DataScan{
     private Map<String,byte[]> attrs = new HashMap<>();
     private long highTs = Long.MAX_VALUE;
     private long lowTs = 0l;
+    private boolean descending = false;
 
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -51,7 +52,13 @@ public class MScan implements DataScan{
 
     @Override
     public DataScan reverseOrder(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        this.descending= !descending; //swap the order
+        return this;
+    }
+
+    @Override
+    public boolean isDescendingScan(){
+        return descending;
     }
 
     @Override

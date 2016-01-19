@@ -1,5 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -47,10 +48,10 @@ public class SpliceOperationContext{
     }
 
     public static SpliceOperationContext newContext(Activation a){
-        return newContext(a,null,null); //TODO -sf- make this return a configuration
+        return newContext(a,null); //TODO -sf- make this return a configuration
     }
 
-    public static SpliceOperationContext newContext(Activation a,TxnView txn,SConfiguration config){
+    public static SpliceOperationContext newContext(Activation a,TxnView txn){
         if(txn==null){
             TransactionController te=a.getLanguageConnectionContext().getTransactionExecute();
             txn=((SpliceTransactionManager)te).getRawTransaction().getActiveStateTxn();
@@ -58,12 +59,11 @@ public class SpliceOperationContext{
         return new SpliceOperationContext(a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
                 txn,
-                config);
+                EngineDriver.driver().getConfiguration());
     }
 
     public SConfiguration getSystemConfiguration(){
-        throw new UnsupportedOperationException("IMPLEMENT: config may not be set!");
-//        return config;
+        return config;
     }
 
     public LanguageConnectionContext getLanguageConnectionContext(){

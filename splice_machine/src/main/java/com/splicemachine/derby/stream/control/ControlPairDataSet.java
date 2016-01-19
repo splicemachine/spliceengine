@@ -17,6 +17,8 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
+import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.direct.DirectDataSetWriter;
 import com.splicemachine.derby.stream.output.direct.DirectPipelineWriter;
 import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
@@ -300,7 +302,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new DeleteTableWriterBuilder(){
+            @Override
+            public DataSetWriter build() throws StandardException{
+                assert txn!=null:"Txn is null";
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,heapConglom,operationContext);
+                return new ControlDataSetWriter<>((ControlPairDataSet<K,ExecRow>)ControlPairDataSet.this,dpw,operationContext);
+            }
+        };
     }
 
     @Override

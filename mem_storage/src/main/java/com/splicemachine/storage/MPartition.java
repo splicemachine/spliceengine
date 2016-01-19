@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.primitives.Bytes;
@@ -119,40 +120,11 @@ public class MPartition implements Partition{
 
     @Override
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        Set<DataCell> dataCells=getScanSubSet(scan);
-        return new SetScanner(dataCells.iterator(),scan.lowVersion(),scan.highVersion(),scan.getFilter(),this);
+        NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
+        Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
+        return new SetScanner(iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this);
     }
 
-    private Set<DataCell> getScanSubSet(DataScan scan){
-        Set<DataCell> dataCells;
-        if(memstore.size()<=0)
-            dataCells = Collections.emptySet();
-         else{
-            byte[] startKey=scan.getStartKey();
-            byte[] stopKey=scan.getStopKey();
-            DataCell start;
-            DataCell stop;
-            if(startKey==null|| startKey.length==0) {
-                if(stopKey==null||stopKey.length==0){
-                    return memstore;
-                }else{
-                    start = memstore.first();
-                }
-            }else
-                start=new MCell(startKey,new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
-
-            if(stopKey==null||stopKey.length==0){
-//                if(memstore.size()==1){
-                    return memstore.tailSet(start,true);
-//                }else{
-//                    stop = memstore.last();
-//                }
-            }else
-                stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
-            dataCells=memstore.subSet(start,true,stop,false);
-        }
-        return dataCells;
-    }
 
     @Override
     public void put(DataPut put) throws IOException{
@@ -434,6 +406,33 @@ public class MPartition implements Partition{
         }finally{
             rowLock.unlock();
         }
+    }
+
+    private NavigableSet<DataCell> getAscendingScanSet(DataScan scan){
+        NavigableSet<DataCell> dataCells;
+        if(memstore.size()<=0)
+            dataCells = EmptyNavigableSet.instance();
+        else{
+            byte[] startKey=scan.getStartKey();
+            byte[] stopKey=scan.getStopKey();
+            DataCell start;
+            DataCell stop;
+            if(startKey==null|| startKey.length==0) {
+                if(stopKey==null||stopKey.length==0){
+                    return memstore;
+                }else{
+                    start = memstore.first();
+                }
+            }else
+                start=new MCell(startKey,new byte[]{},new byte[]{},scan.highVersion(),new byte[]{},CellType.COMMIT_TIMESTAMP);
+
+            if(stopKey==null||stopKey.length==0){
+                return memstore.tailSet(start,true);
+            }else
+                stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+            dataCells=memstore.subSet(start,true,stop,false);
+        }
+        return dataCells;
     }
 
 }

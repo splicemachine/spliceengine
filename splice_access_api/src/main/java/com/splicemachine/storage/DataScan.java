@@ -19,6 +19,8 @@ public interface DataScan extends Attributable{
      */
     DataScan reverseOrder();
 
+    boolean isDescendingScan();
+
     DataScan cacheRows(int rowsToCache);
 
     DataScan batchCells(int cellsToBatch);
