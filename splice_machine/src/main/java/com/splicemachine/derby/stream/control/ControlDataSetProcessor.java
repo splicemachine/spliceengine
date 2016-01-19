@@ -265,7 +265,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public void clearOperationContext() {
+    public void clearBroadcastedActivation() {
         // do nothing
     }
 }
