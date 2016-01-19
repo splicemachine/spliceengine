@@ -81,13 +81,10 @@ public class SIDriver {
         this.dataStore = new DataStore(env.dataLib(),
                 SIConstants.SI_NEEDED,
                 SIConstants.SI_DELETE_PUT,
-                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
                 SIConstants.EMPTY_BYTE_ARRAY,
-                SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
                 SIConstants.DEFAULT_FAMILY_BYTES);
         //noinspection unchecked
-        this.transactor = new SITransactor<>(
+        this.transactor = new SITransactor(
                 this.txnSupplier,
                 this.ignoreTxnSupplier,
                 this.txnOpFactory,
@@ -182,7 +179,6 @@ public class SIDriver {
                     getReadResolver(basePartition),
                     getTxnSupplier(),
                     getIgnoreTxnSupplier(),
-                    getDataStore(),
                     getTransactor(),
                     getOperationFactory());
         }else{
@@ -191,7 +187,6 @@ public class SIDriver {
                     NoOpReadResolver.INSTANCE,
                     getTxnSupplier(),
                     getIgnoreTxnSupplier(),
-                    getDataStore(),
                     getTransactor(),
                     getOperationFactory());
         }

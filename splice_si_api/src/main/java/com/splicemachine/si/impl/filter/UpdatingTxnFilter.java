@@ -12,13 +12,11 @@ import com.splicemachine.storage.DataCell;
 public class UpdatingTxnFilter<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,
         Get extends OperationWithAttributes,OperationStatus,
         Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>
-        extends SimpleTxnFilter<OperationWithAttributes,Data,Delete,Filter,
-                Get,
-        Put,RegionScanner,Result, Scan> {
+        extends SimpleTxnFilter{
     private final RegionSegmentContext context;
 
     public UpdatingTxnFilter(String tableName,TxnView myTxn,ReadResolver readResolver,TxnSupplier baseSupplier,IgnoreTxnCacheSupplier ignoreTxnSupplier,DataStore dataStore,RegionSegmentContext context){
-        super(tableName,myTxn,readResolver,baseSupplier,ignoreTxnSupplier,dataStore);
+        super(tableName,myTxn,readResolver,baseSupplier,ignoreTxnSupplier);
         this.context=context;
     }
 

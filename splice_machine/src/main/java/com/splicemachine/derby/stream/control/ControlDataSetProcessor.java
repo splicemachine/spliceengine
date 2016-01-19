@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.control;
 
-import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -69,7 +68,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                 try{
                     p =SIDriver.driver().getTableFactory().getTable(tableName);
                     TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                            txnSupplier,ignoreSupplier,dataStore,transactory,txnOperationFactory);
+                            txnSupplier,ignoreSupplier,transactory,txnOperationFactory);
 
                     this.region(localRegion).scanner(p.openScanner(getScan())); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
@@ -95,7 +94,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                try{
                    p =SIDriver.driver().getTableFactory().getTable(tableName);
                    TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                           txnSupplier,ignoreSupplier,dataStore,transactory,txnOperationFactory);
+                           txnSupplier,ignoreSupplier,transactory,txnOperationFactory);
 
                    this.region(localRegion).scanner(p.openScanner(getScan())); //set the scanner
                    DirectScanner ds = new DirectScanner(scanner,region,txn,demarcationPoint,Metrics.noOpMetricFactory());

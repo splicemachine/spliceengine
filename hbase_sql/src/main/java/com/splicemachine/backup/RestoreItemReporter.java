@@ -11,8 +11,10 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
@@ -113,9 +115,8 @@ public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem
         try {
             Result r = resultScanner.next();
             if (r != null) {
-                restoreItem = decode(dataLib.getDataValueBuffer(dataLib.matchDataColumn(r)),
-                        dataLib.getDataValueOffset(dataLib.matchDataColumn(r)),
-                        dataLib.getDataValuelength(dataLib.matchDataColumn(r)));
+                Cell c = r.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+                restoreItem = decode(c.getValueArray(),c.getValueOffset(),c.getValueLength());
             }
         }
         catch (Exception e) {

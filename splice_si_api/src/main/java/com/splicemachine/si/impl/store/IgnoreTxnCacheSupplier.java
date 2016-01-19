@@ -23,12 +23,12 @@ public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,
         Scan extends OperationWithAttributes,
         TableInfo> {
     private final ConcurrentLinkedHashMap<String,List<Pair<Long, Long>>> cache;
-    private final SDataLib<OperationWithAttributes,Data, Get, Scan>  dataLib;
+    private final SDataLib dataLib;
     private final PartitionFactory<TableInfo> tableFactory;
 
     private EntryDecoder entryDecoder;
 
-    public IgnoreTxnCacheSupplier(SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib,PartitionFactory<TableInfo> tableFactory) {
+    public IgnoreTxnCacheSupplier(SDataLib dataLib,PartitionFactory<TableInfo> tableFactory) {
         this.dataLib = dataLib;
         this.tableFactory=tableFactory;
         cache = new ConcurrentLinkedHashMap.Builder<String, List<Pair<Long, Long>>>()

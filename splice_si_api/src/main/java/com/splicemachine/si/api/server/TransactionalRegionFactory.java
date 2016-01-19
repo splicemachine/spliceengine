@@ -40,6 +40,6 @@ public class TransactionalRegionFactory{
     }
 
     public TransactionalRegion newRegion(Partition p){
-        return new TxnRegion(p,rollForward, readResolver,txnSupplier,ignoreSupplier,dataStore,transactor,txnOpFactory);
+        return new TxnRegion(p,rollForward, readResolver,txnSupplier,ignoreSupplier,transactor,txnOpFactory);
     }
 }

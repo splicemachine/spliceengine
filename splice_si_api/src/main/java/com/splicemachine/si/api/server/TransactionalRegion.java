@@ -1,19 +1,17 @@
 package com.splicemachine.si.api.server;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.si.api.filter.TxnFilter;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
+
 import java.io.IOException;
 import java.util.Collection;
 
@@ -39,9 +37,7 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
 
     TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException;
 
-    DDLFilter ddlFilter(Txn ddlTxn) throws IOException;
-
-    SICompactionState compactionFilter() throws IOException;
+    //    SICompactionState compactionFilter() throws IOException;
 
     /**
      * @return true if the underlying region is either closed or is closing
@@ -52,13 +48,9 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
 
     boolean rowInRange(ByteSlice slice);
 
-    boolean containsRange(byte[] start, byte[] stop);
-
     String getTableName();
 
     void updateWriteRequests(long writeRequests);
-
-    void updateReadRequests(long readRequests);
 
     Iterable<MutationStatus> bulkWrite(TxnView txn,
                                 byte[] family, byte[] qualifier,

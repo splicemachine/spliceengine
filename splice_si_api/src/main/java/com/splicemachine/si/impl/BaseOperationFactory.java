@@ -23,48 +23,13 @@ import static com.splicemachine.si.constants.SIConstants.*;
  * @author Scott Fines
  *         Date: 7/8/14
  */
-public abstract class BaseOperationFactory<OperationWithAttributes,
-        Data,
-        Delete extends OperationWithAttributes,
-        Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,
-        Scan extends OperationWithAttributes> implements TxnOperationFactory<OperationWithAttributes, Get, Scan>{
-    private SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib;
+public abstract class BaseOperationFactory implements TxnOperationFactory{
     private ExceptionFactory exceptionLib;
 
-    public BaseOperationFactory(SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib,
-                                ExceptionFactory exceptionFactory){
-        this.dataLib = dataLib;
+    public BaseOperationFactory(ExceptionFactory exceptionFactory){
         this.exceptionLib = exceptionFactory;
     }
 
-
-    @Override
-    public Scan newScan(TxnView txn){
-        return newScan(txn,false);
-    }
-
-    @Override
-    public Scan newScan(TxnView txn,boolean isCountStar){
-        Scan scan=dataLib.newScan();
-        if(txn==null){
-            makeNonTransactional(scan);
-            return scan;
-        }
-        encodeForReads(scan,txn,isCountStar);
-        return scan;
-    }
-
-    @Override
-    public Get newGet(TxnView txn,byte[] rowKey){
-        Get get=dataLib.newGet(rowKey);
-        if(txn==null){
-            makeNonTransactional(get);
-            return get;
-        }
-        encodeForReads(get,txn,false);
-        return get;
-    }
 
     @Override
     public TxnView fromReads(Attributable op) throws IOException{
@@ -177,17 +142,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
         op.addAttribute(SI_EXEMPT,TRUE_BYTES);
     }
 
-    /******************************************************************************************************************/
-        /*private helper functions*/
-
-    private void encodeForReads(OperationWithAttributes op,TxnView txn,boolean isCountStar){
-        if(isCountStar)
-            dataLib.setAttribute(op,SI_COUNT_STAR,TRUE_BYTES);
-        byte[] data=encode(txn);
-        dataLib.setAttribute(op,SI_TRANSACTION_ID_KEY,data);
-        dataLib.setAttribute(op,SI_NEEDED,SI_NEEDED_VALUE_BYTES);
-    }
-
 
     private byte[] encodeParentIds(TxnView txn,LongArrayList parentTxnIds){
         /*
@@ -210,11 +164,6 @@ public abstract class BaseOperationFactory<OperationWithAttributes,
             parents.encodeNext(parentIds[parentSize-i]);
         }
         return parents.build();
-    }
-
-
-    private void makeNonTransactional(OperationWithAttributes op){
-        dataLib.setAttribute(op,SI_EXEMPT,TRUE_BYTES);
     }
 
 

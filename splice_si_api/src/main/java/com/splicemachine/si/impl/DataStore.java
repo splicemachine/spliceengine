@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -15,38 +14,24 @@ import java.util.Map;
  */
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class DataStore<OperationWithAttributes,Data, Get extends OperationWithAttributes, Scan extends OperationWithAttributes> {
+public class DataStore{
 
-    public final SDataLib<OperationWithAttributes,Data, Get,
-            Scan> dataLib;
+    public final SDataLib dataLib;
     private final String siNeededAttribute;
     private final String deletePutAttribute;
-    private final byte[] commitTimestampQualifier;
-    private final byte[] tombstoneQualifier;
     private final byte[] siNull;
-    private final byte[] siAntiTombstoneValue;
     private final byte[] userColumnFamily;
 
     public DataStore(SDataLib dataLib,
                      String siNeededAttribute,
                      String deletePutAttribute,
-                     byte[] siCommitQualifier,
-                     byte[] siTombstoneQualifier,
                      byte[] siNull,
-                     byte[] siAntiTombstoneValue,
                      byte[] userColumnFamily) {
         this.dataLib = dataLib;
         this.siNeededAttribute = siNeededAttribute;
         this.deletePutAttribute = deletePutAttribute;
-        this.commitTimestampQualifier = siCommitQualifier;
-        this.tombstoneQualifier = siTombstoneQualifier;
         this.siNull = siNull;
-        this.siAntiTombstoneValue = siAntiTombstoneValue;
         this.userColumnFamily = userColumnFamily;
-    }
-
-    public byte[] getSINeededAttribute(OperationWithAttributes operation) {
-        return dataLib.getAttribute(operation,siNeededAttribute);
     }
 
     public byte[] getSINeededAttribute(Attributable operation) {
@@ -58,23 +43,6 @@ public class DataStore<OperationWithAttributes,Data, Get extends OperationWithAt
         byte[] neededValue = operation.getAttribute(deletePutAttribute);
         if (neededValue == null) return false;
         return dataLib.decode(neededValue, Boolean.class);
-    }
-
-    public CellType getKeyValueType(Data keyValue) {
-        if (dataLib.singleMatchingQualifier(keyValue, commitTimestampQualifier)) {
-            return CellType.COMMIT_TIMESTAMP;
-        } else if (dataLib.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
-            return CellType.USER_DATA;
-        } else if (dataLib.singleMatchingQualifier(keyValue, tombstoneQualifier)) {
-            if (dataLib.matchingValue(keyValue, siNull)) {
-                return CellType.TOMBSTONE;
-            } else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
-                return CellType.ANTI_TOMBSTONE;
-            }
-        } else if (dataLib.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
-            return CellType.FOREIGN_KEY_COUNTER;
-        }
-        return CellType.OTHER;
     }
 
     public void setTombstonesOnColumns(Partition table, long timestamp, DataPut put) throws IOException {
@@ -99,8 +67,7 @@ public class DataStore<OperationWithAttributes,Data, Get extends OperationWithAt
         return table.getName();
     }
 
-    public SDataLib<OperationWithAttributes,Data, Get,
-            Scan> getDataLib() {
+    public SDataLib getDataLib() {
         return this.dataLib;
     }
 }

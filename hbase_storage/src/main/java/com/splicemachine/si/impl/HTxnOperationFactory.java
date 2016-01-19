@@ -15,16 +15,10 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 12/18/15
  */
-public class HTxnOperationFactory extends BaseOperationFactory<OperationWithAttributes,
-        Cell,
-        Delete,
-        Get,
-        Put,
-        Scan>{
+public class HTxnOperationFactory extends BaseOperationFactory{
 
-    public HTxnOperationFactory(SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
-                                ExceptionFactory exceptionFactory){
-        super(dataLib,exceptionFactory);
+    public HTxnOperationFactory(ExceptionFactory exceptionFactory){
+        super(exceptionFactory);
     }
 
     @Override

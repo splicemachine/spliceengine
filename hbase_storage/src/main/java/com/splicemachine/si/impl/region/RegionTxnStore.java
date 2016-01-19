@@ -42,7 +42,7 @@ public class RegionTxnStore implements TxnPartition{
     private static final Logger LOG=Logger.getLogger(RegionTxnStore.class);
 
     private final TxnDecoder newTransactionDecoder=V2TxnDecoder.INSTANCE;
-    private final SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib;
+    private final SDataLib dataLib;
     private final TransactionResolver resolver;
     private final TxnSupplier txnSupplier;
     private final HRegion region;
@@ -52,7 +52,7 @@ public class RegionTxnStore implements TxnPartition{
     public RegionTxnStore(HRegion region,
                           TxnSupplier txnSupplier,
                           TransactionResolver resolver,
-                          SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
+                          SDataLib dataLib,
                           long keepAliveTimeoutMs,
                           Clock keepAliveClock){
         this.txnSupplier=txnSupplier;
@@ -255,7 +255,7 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getActiveTxns afterTs=%d, beforeTs=%s",afterTs,beforeTs);
         Scan scan=setupScanOnRange(afterTs,beforeTs);
-        scan.setFilter(new ActiveTxnFilter(dataLib,this,beforeTs,afterTs,destinationTable));
+        scan.setFilter(new ActiveTxnFilter(this,beforeTs,afterTs,destinationTable));
 
         final RegionScanner scanner=region.getScanner(scan);
         return new ScanIterator(scanner){

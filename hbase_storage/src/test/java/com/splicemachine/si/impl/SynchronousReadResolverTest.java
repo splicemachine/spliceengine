@@ -80,7 +80,7 @@ public class SynchronousReadResolverTest {
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l, Txn.ROOT_TRANSACTION, 2l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
         DataStore ds = TxnTestUtils.playDataStore(HDataLib.instance(),store,tc,HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier, ds );
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -128,7 +128,7 @@ public class SynchronousReadResolverTest {
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(3l, Txn.ROOT_TRANSACTION, 3l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
         DataStore ds = TxnTestUtils.playDataStore(HDataLib.instance(),store,tc,HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier, ds );
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -176,7 +176,7 @@ public class SynchronousReadResolverTest {
 
         Txn readTxn = tc.beginTransaction(); //a read-only transaction with SI semantics
         DataStore ds = TxnTestUtils.playDataStore(HDataLib.instance(),store,tc,HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier, ds );
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());

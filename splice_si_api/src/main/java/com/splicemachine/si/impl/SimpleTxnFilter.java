@@ -26,15 +26,9 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 6/23/14
  */
-public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends OperationWithAttributes,Filter,
-        Get extends OperationWithAttributes,
-        Put extends OperationWithAttributes,RegionScanner,
-        Result,
-        Scan extends OperationWithAttributes> implements TxnFilter{
+public class SimpleTxnFilter implements TxnFilter{
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
-    private final DataStore<OperationWithAttributes, Data,
-            Get, Scan> dataStore;
     private final ReadResolver readResolver;
     //per row fields
     private final LongOpenHashSet visitedTxnIds=new LongOpenHashSet();
@@ -61,10 +55,8 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
                            TxnView myTxn,
                            ReadResolver readResolver,
                            TxnSupplier baseSupplier,
-                           IgnoreTxnCacheSupplier ignoreTxnSupplier,
-                           DataStore dataStore){
-        assert readResolver!=null && dataStore!=null;
-        this.dataStore = dataStore;
+                           IgnoreTxnCacheSupplier ignoreTxnSupplier){
+        assert readResolver!=null;
         this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier,1024); //TODO -sf- configure
         this.ignoreTxnCache = new ActiveIgnoreTxnCacheSupplier(ignoreTxnSupplier);
         this.tableName=tableName;
@@ -277,11 +269,6 @@ public class SimpleTxnFilter<OperationWithAttributes,Data,Delete extends Operati
             transactionStore.cache(toCache);
             currentTxn=toCache;
         }
-    }
-
-    @Override
-    public DataStore getDataStore(){
-        return dataStore;
     }
 
 

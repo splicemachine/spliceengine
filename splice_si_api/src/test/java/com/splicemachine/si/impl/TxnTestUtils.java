@@ -85,10 +85,7 @@ public class TxnTestUtils{
                                           ExceptionFactory exceptionFactory){
         return new DataStore(dataLib,SIConstants.SI_NEEDED,
                 SIConstants.SI_DELETE_PUT,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
-                SIConstants.EMPTY_BYTE_ARRAY,
                 SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
-                SIConstants.EMPTY_BYTE_ARRAY,
                 SIConstants.DEFAULT_FAMILY_BYTES
         );
     }

@@ -47,10 +47,10 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 public class SIObserver extends BaseRegionObserver{
     private static Logger LOG=Logger.getLogger(SIObserver.class);
     private boolean tableEnvMatch=false;
-    private TxnOperationFactory<OperationWithAttributes,Get, Scan> txnOperationFactory;
+    private TxnOperationFactory txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
-    private TransactionReadController<Get, Scan> txnReadController;
+    private TransactionReadController txnReadController;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
@@ -62,7 +62,7 @@ public class SIObserver extends BaseRegionObserver{
             SIDriver driver = env.getSIDriver();
             operationStatusFactory = driver.getOperationStatusLib();
             //noinspection unchecked
-            txnOperationFactory=new HTxnOperationFactory(driver.getDataLib(),driver.getExceptionFactory());
+            txnOperationFactory=new HTxnOperationFactory(driver.getExceptionFactory());
             //noinspection unchecked
             txnReadController = new SITransactionReadController<>(
                     driver.getDataStore(),
@@ -74,7 +74,6 @@ public class SIObserver extends BaseRegionObserver{
                     env.getReadResolver(regionPartition),
                     driver.getTxnSupplier(),
                     driver.getIgnoreTxnSupplier(),
-                    driver.getDataStore(),
                     driver.getTransactor(),
                     driver.getOperationFactory()
                     );
@@ -93,7 +92,8 @@ public class SIObserver extends BaseRegionObserver{
     public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
         SpliceLogUtils.trace(LOG,"preGet %s",get);
         if(tableEnvMatch && shouldUseSI(get)){
-            txnReadController.preProcessGet(get);
+            get.setMaxVersions();
+            get.setTimeRange(0l,Long.MAX_VALUE);
             assert (get.getMaxVersions()==Integer.MAX_VALUE);
             addSIFilterToGet(get);
         }
@@ -105,7 +105,9 @@ public class SIObserver extends BaseRegionObserver{
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException{
         SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
         if(tableEnvMatch && shouldUseSI(scan)){
-            txnReadController.preProcessScan(scan);
+            scan.setMaxVersions();
+            scan.setTimeRange(0l,Long.MAX_VALUE);
+//            txnReadController.preProcessScan(scan);
             assert (scan.getMaxVersions()==Integer.MAX_VALUE);
             addSIFilterToScan(scan);
         }

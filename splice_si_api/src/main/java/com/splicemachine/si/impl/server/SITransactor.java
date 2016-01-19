@@ -46,25 +46,21 @@ import static com.splicemachine.si.constants.SIConstants.*;
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
 @SuppressWarnings("unchecked")
-public class SITransactor<OperationWithAttributes,Data,Delete extends OperationWithAttributes,
-        Get extends OperationWithAttributes,Filter,
-        Mutation extends OperationWithAttributes,
-        Put extends OperationWithAttributes,RegionScanner,Result,ReturnCode,Scan extends OperationWithAttributes>
-        implements Transactor{
+public class SITransactor implements Transactor{
     private static final Logger LOG=Logger.getLogger(SITransactor.class);
-    private final SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib;
-    private final DataStore<OperationWithAttributes, Data, Get, Scan> dataStore;
+    private final SDataLib dataLib;
+    private final DataStore dataStore;
     private final OperationStatusFactory operationStatusLib;
     private final ExceptionFactory exceptionLib;
 
-    private final TxnOperationFactory<OperationWithAttributes, Get, Scan> txnOperationFactory;
+    private final TxnOperationFactory txnOperationFactory;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
 
     public SITransactor(TxnSupplier txnSupplier,
                         IgnoreTxnCacheSupplier ignoreTxnSupplier,
-                        TxnOperationFactory<OperationWithAttributes, Get, Scan> txnOperationFactory,
-                        DataStore<OperationWithAttributes, Data, Get, Scan> dataStore,
+                        TxnOperationFactory txnOperationFactory,
+                        DataStore dataStore,
                         OperationStatusFactory operationStatusLib,
                         ExceptionFactory exceptionFactory){
         this.txnSupplier=txnSupplier;
@@ -174,7 +170,7 @@ public class SITransactor<OperationWithAttributes,Data,Delete extends OperationW
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
         TxnFilter constraintState=null;
         if(constraintChecker!=null)
-            constraintState=new SimpleTxnFilter(null,txn,NoOpReadResolver.INSTANCE,txnSupplier,ignoreTxnSupplier,dataStore);
+            constraintState=new SimpleTxnFilter(null,txn,NoOpReadResolver.INSTANCE,txnSupplier,ignoreTxnSupplier);
         @SuppressWarnings("unchecked") final LongOpenHashSet[] conflictingChildren=new LongOpenHashSet[mutations.size()];
         try{
             lockRows(table,mutations,lockPairs,finalStatus);

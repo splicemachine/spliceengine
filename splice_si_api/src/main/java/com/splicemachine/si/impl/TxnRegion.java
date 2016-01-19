@@ -9,12 +9,10 @@ import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
-import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
@@ -35,7 +33,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     private final ReadResolver readResolver;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
-    private final DataStore dataStore;
     private final Transactor transactor;
     private final TxnOperationFactory opFactory;
     private Partition region;
@@ -47,14 +44,12 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
                      ReadResolver readResolver,
                      TxnSupplier txnSupplier,
                      IgnoreTxnCacheSupplier ignoreTxnCacheSupplier,
-                     DataStore dataStore,
                      Transactor transactor,TxnOperationFactory opFactory){
         this.region=region;
         this.rollForward=rollForward;
         this.readResolver=readResolver;
         this.txnSupplier=txnSupplier;
         this.ignoreTxnCacheSupplier=ignoreTxnCacheSupplier;
-        this.dataStore=dataStore;
         this.transactor=transactor;
         this.opFactory=opFactory;
         if(region!=null){
@@ -64,7 +59,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
     @Override
     public TxnFilter unpackedFilter(TxnView txn) throws IOException{
-        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier,ignoreTxnCacheSupplier,dataStore);
+        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier,ignoreTxnCacheSupplier);
     }
 
     @Override
@@ -72,15 +67,10 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
         return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
     }
 
-    @Override
-    public DDLFilter ddlFilter(Txn ddlTxn) throws IOException{
-        return new DDLFilter(ddlTxn);
-    }
-
-    @Override
-    public SICompactionState compactionFilter() throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
+//    @Override
+//    public SICompactionState compactionFilter() throws IOException{
+//        throw new UnsupportedOperationException("IMPLEMENT");
+//    }
 
     @Override
     public InternalScanner compactionScanner(InternalScanner internalScanner){
@@ -103,11 +93,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     }
 
     @Override
-    public boolean containsRange(byte[] start,byte[] stop){
-        return region.overlapsRange(start,stop);
-    }
-
-    @Override
     public String getTableName(){
         return tableName;
     }
@@ -115,11 +100,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     @Override
     public void updateWriteRequests(long writeRequests){
         region.writesRequested(writeRequests);
-    }
-
-    @Override
-    public void updateReadRequests(long readRequests){
-        region.readsRequested(readRequests);
     }
 
     @Override

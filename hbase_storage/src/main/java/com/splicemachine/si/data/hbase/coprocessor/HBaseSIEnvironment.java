@@ -98,7 +98,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,SIConstants.completedTransactionCacheSize,SIConstants.completedTransactionConcurrency);
         this.txnStore.setCache(txnSupplier);
         this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(dataLib(),tableFactory);
-        this.txnOpFactory = new HTxnOperationFactory(dataLib(),exceptionFactory());
+        this.txnOpFactory = new HTxnOperationFactory(exceptionFactory());
         this.clock = clock;
 
         this.readResolver = initializeReadResolver();

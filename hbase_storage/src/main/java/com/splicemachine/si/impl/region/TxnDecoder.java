@@ -23,12 +23,10 @@ import java.util.List;
 
 public interface TxnDecoder {
 
-    TxnMessage.Txn decode(SDataLib<OperationWithAttributes,Cell, Get,
-            Scan> dataLib,
+    TxnMessage.Txn decode(SDataLib dataLib,
                           RegionTxnStore txnStore,long txnId, Result result) throws IOException;
 
-    TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Get,
-            Scan> datalib,
+    TxnMessage.Txn decode(SDataLib datalib,
                           RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
 
 	Put encodeForPut(TxnMessage.TxnInfo txn) throws IOException;

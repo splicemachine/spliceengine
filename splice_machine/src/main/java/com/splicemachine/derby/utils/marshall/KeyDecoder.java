@@ -22,14 +22,8 @@ public class KeyDecoder<Data> implements Closeable{
 				this.prefixOffset = prefixOffset;
 		}
 
-		public void decode(Data data,ExecRow destination) throws StandardException {
-			hashDecoder.set(dataLib.getDataRowBuffer(data),
-					dataLib.getDataRowOffset(data)+prefixOffset,dataLib.getDataRowlength(data)-prefixOffset);
-			hashDecoder.decode(destination);
-	}
 
-		
-		public void decode(byte[] data, int offset, int length,ExecRow destination) throws StandardException {
+	public void decode(byte[] data, int offset, int length,ExecRow destination) throws StandardException {
 				hashDecoder.set(data,offset+prefixOffset,length-prefixOffset);
 				hashDecoder.decode(destination);
 		}

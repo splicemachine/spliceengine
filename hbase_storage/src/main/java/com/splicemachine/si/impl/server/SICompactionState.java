@@ -1,18 +1,22 @@
 package com.splicemachine.si.impl.server;
 
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.storage.CellType;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
 import com.splicemachine.si.impl.txn.RolledBackTxn;
+import com.splicemachine.storage.CellType;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
@@ -24,23 +28,17 @@ import java.util.TreeSet;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<OperationWithAttributes,Data,
-        Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes> {
+public class SICompactionState {
     private static final Logger LOG = Logger.getLogger(SICompactionState.class);
-    private final DataStore<OperationWithAttributes,Data,
-            Get,
-            Scan> dataStore;
     private final TxnSupplier transactionStore;
-    private SortedSet<Data> dataToReturn;
+    private SortedSet<Cell> dataToReturn;
     private final RollForward rollForward;
     private ByteSlice rowSlice = new ByteSlice();
 
-    public SICompactionState(DataStore dataStore, TxnSupplier transactionStore,RollForward rollForward,int activeTransactionCacheSize) {
-        this.dataStore = dataStore;
+    public SICompactionState(TxnSupplier transactionStore,RollForward rollForward,int activeTransactionCacheSize) {
         this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
-        this.dataToReturn  =new TreeSet<>(dataStore.dataLib.getComparator());
+        this.dataToReturn  =new TreeSet<>();
     }
 
     /**
@@ -49,9 +47,9 @@ public class SICompactionState<OperationWithAttributes,Data,
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Data> rawList, List<Data> results) throws IOException {
+    public void mutate(List<Cell> rawList, List<Cell> results) throws IOException {
         dataToReturn.clear();
-        for (Data aRawList : rawList) {
+        for (Cell aRawList : rawList) {
             mutate(aRawList);
         }
         results.addAll(dataToReturn);
@@ -60,9 +58,9 @@ public class SICompactionState<OperationWithAttributes,Data,
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private void mutate(Data element) throws IOException {
-        final CellType cellType= dataStore.getKeyValueType(element);
-        long timestamp = dataStore.dataLib.getTimestamp(element);
+    private void mutate(Cell element) throws IOException {
+        final CellType cellType= getKeyValueType(element);
+        long timestamp = element.getTimestamp();
         switch (cellType) {
             case COMMIT_TIMESTAMP:
                 /*
@@ -82,18 +80,21 @@ public class SICompactionState<OperationWithAttributes,Data,
                 return;
             default:
                 if(LOG.isDebugEnabled()){
-                       SpliceLogUtils.debug(LOG,"KeyValue with family %s and column %s are not SI-managed, ignoring",dataStore.dataLib.getFamilyAsString(element),dataStore.dataLib.getQualifierAsString(element));
+                    String famString = Bytes.toString(element.getFamilyArray(),element.getFamilyOffset(),element.getFamilyLength());
+                    String qualString = Bytes.toString(element.getQualifierArray(),element.getQualifierOffset(),element.getQualifierLength());
+                       SpliceLogUtils.debug(LOG,"KeyValue with family %s and column %s are not SI-managed, ignoring",
+                               famString,qualString);
                 }
                 dataToReturn.add(element);
         }
     }
 
-    private void ensureTransactionCached(long timestamp,Data element) {
+    private void ensureTransactionCached(long timestamp,Cell element) {
         if(!transactionStore.transactionCached(timestamp)){
             if(isFailedCommitTimestamp(element)){
                 transactionStore.cache(new RolledBackTxn(timestamp));
-            }else if (dataStore.dataLib.getValueLength(element)>0){ //shouldn't happen, but you never know
-                long commitTs = dataStore.dataLib.getValueToLong(element);
+            }else if (element.getValueLength()>0){ //shouldn't happen, but you never know
+                long commitTs = Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }
         }
@@ -102,7 +103,7 @@ public class SICompactionState<OperationWithAttributes,Data,
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private boolean mutateCommitTimestamp(long timestamp,Data element) throws IOException {
+    private boolean mutateCommitTimestamp(long timestamp,Cell element) throws IOException {
         TxnView transaction = transactionStore.getTransaction(timestamp);
         if(transaction.getEffectiveState()== Txn.State.ROLLEDBACK){
             /*
@@ -128,18 +129,41 @@ public class SICompactionState<OperationWithAttributes,Data,
         return true;
     }
 
-    private void recordResolved(Data element, TxnView transaction) {
-    	dataStore.dataLib.setRowInSlice(element, rowSlice);
+    private void recordResolved(Cell element, TxnView transaction) {
+        rowSlice.set(element.getRowArray(),element.getRowOffset(),element.getRowLength());
         rollForward.recordResolved(rowSlice,transaction.getTxnId());
     }
 
-    public Data newTransactionTimeStampKeyValue(Data element, byte[] value) {
-    	return dataStore.dataLib.newTransactionTimeStampKeyValue(element, value);
+    public Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {
+        return new KeyValue(element.getRowArray(),
+                element.getRowOffset(),
+                element.getRowLength(),
+                SIConstants.DEFAULT_FAMILY_BYTES,0,1,
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,
+                element.getTimestamp(),KeyValue.Type.Put,
+                value,0,value==null?0:value.length);
     }
 
 
-    public boolean isFailedCommitTimestamp(Data element) {
-    	return dataStore.dataLib.isFailedCommitTimestamp(element);
+    public boolean isFailedCommitTimestamp(Cell element) {
+        return element.getValueLength()==1 && element.getValueArray()[element.getValueOffset()]==SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
+    }
+
+    public CellType getKeyValueType(Cell keyValue) {
+        if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)) {
+            return CellType.COMMIT_TIMESTAMP;
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
+            return CellType.USER_DATA;
+        } else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)) {
+            if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
+                return CellType.TOMBSTONE;
+            } else if (CellUtils.matchingValue(keyValue,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
+                return CellType.ANTI_TOMBSTONE;
+            }
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
+            return CellType.FOREIGN_KEY_COUNTER;
+        }
+        return CellType.OTHER;
     }
 
 }

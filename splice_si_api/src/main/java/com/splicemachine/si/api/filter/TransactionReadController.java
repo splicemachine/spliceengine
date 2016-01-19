@@ -1,11 +1,9 @@
 package com.splicemachine.si.api.filter;
 
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.storage.DataGet;
-import com.splicemachine.storage.DataResult;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.EntryPredicateFilter;
 
@@ -17,16 +15,9 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 2/13/14
  */
-public interface TransactionReadController<Get,Scan>{
-
-    /**
-     * Perform server-side pre-processing of operations. This is before they are actually executed.
-     */
-    void preProcessGet(Get get) throws IOException;
+public interface TransactionReadController{
 
     void preProcessGet(DataGet get) throws IOException;
-
-    void preProcessScan(Scan scan) throws IOException;
 
     void preProcessScan(DataScan scan) throws IOException;
 

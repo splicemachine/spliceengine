@@ -19,7 +19,7 @@ public class MTxnOperationFactory extends BaseOperationFactory{
     private Clock clock;
 
     public MTxnOperationFactory(SDataLib dataLib,Clock clock,ExceptionFactory exceptionFactory){
-        super(dataLib,exceptionFactory);
+        super(exceptionFactory);
         this.clock = clock;
     }
 

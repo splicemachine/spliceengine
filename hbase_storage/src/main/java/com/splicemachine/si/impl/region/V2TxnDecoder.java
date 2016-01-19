@@ -11,6 +11,7 @@ import com.google.protobuf.ByteString;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.Txn;
@@ -36,7 +37,7 @@ public class V2TxnDecoder implements TxnDecoder{
     private V2TxnDecoder(){ } //singleton instance
 
     @Override
-    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
+    public TxnMessage.Txn decode(SDataLib dataLib,
                                  RegionTxnStore txnStore,
                                  List<Cell> keyValues) throws IOException{
         if(keyValues.size()<=0) return null;
@@ -48,27 +49,27 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell destinationTables=null;
 
         for(Cell kv : keyValues){
-            if(dataLib.singleMatchingColumn(kv,FAMILY,DATA_QUALIFIER_BYTES))
+            if(CellUtils.singleMatchingColumn(kv,FAMILY,DATA_QUALIFIER_BYTES))
                 dataKv=kv;
-            else if(dataLib.singleMatchingColumn(kv,FAMILY,KEEP_ALIVE_QUALIFIER_BYTES))
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,KEEP_ALIVE_QUALIFIER_BYTES))
                 keepAliveKv=kv;
-            else if(dataLib.singleMatchingColumn(kv,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES))
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,GLOBAL_COMMIT_QUALIFIER_BYTES))
                 globalCommitKv=kv;
-            else if(dataLib.singleMatchingColumn(kv,FAMILY,COMMIT_QUALIFIER_BYTES))
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,COMMIT_QUALIFIER_BYTES))
                 commitKv=kv;
-            else if(dataLib.singleMatchingColumn(kv,FAMILY,STATE_QUALIFIER_BYTES))
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,STATE_QUALIFIER_BYTES))
                 stateKv=kv;
-            else if(dataLib.singleMatchingColumn(kv,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES))
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES))
                 destinationTables=kv;
         }
         if(dataKv==null) return null;
 
-        long txnId=TxnUtils.txnIdFromRowKey(dataLib.getDataRowBuffer(dataKv),dataLib.getDataRowOffset(dataKv),dataLib.getDataRowlength(dataKv));
-        return decodeInternal(dataLib,txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId);
+        long txnId=TxnUtils.txnIdFromRowKey(dataKv.getRowArray(),dataKv.getRowOffset(),dataKv.getRowLength());
+        return decodeInternal(txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId);
     }
 
     @Override
-    public TxnMessage.Txn decode(SDataLib<OperationWithAttributes, Cell, Get, Scan> dataLib,
+    public TxnMessage.Txn decode(SDataLib dataLib,
                                  RegionTxnStore txnStore,
                                  long txnId,Result result) throws IOException{
         Cell dataKv=result.getColumnLatestCell(FAMILY,DATA_QUALIFIER_BYTES);
@@ -79,21 +80,17 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell kaTime=result.getColumnLatestCell(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES);
 
         if(dataKv==null) return null;
-        return decodeInternal(dataLib,txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
+        return decodeInternal(txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId);
     }
 
-    protected long toLong(SDataLib<OperationWithAttributes, Cell, Get,
-            Scan> dataLib,Cell data){
-        return Encoding.decodeLong(dataLib.getDataValueBuffer(data),dataLib.getDataValueOffset(data),false);
+    protected long toLong(Cell data){
+        return Encoding.decodeLong(data.getValueArray(),data.getValueOffset(),false);
     }
 
-    protected TxnMessage.Txn decodeInternal(SDataLib<OperationWithAttributes, Cell, Get,
-            Scan> dataLib,
-                                            RegionTxnStore txnStore,
+    protected TxnMessage.Txn decodeInternal(RegionTxnStore txnStore,
                                             Cell dataKv,Cell keepAliveKv,Cell commitKv,Cell globalCommitKv,
                                             Cell stateKv,Cell destinationTables,long txnId){
-        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(dataLib.getDataValueBuffer(dataKv),
-                dataLib.getDataValueOffset(dataKv),dataLib.getDataValuelength(dataKv));
+        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(dataKv.getValueArray(),dataKv.getValueOffset(),dataKv.getValueLength());
         long beginTs=decoder.decodeNextLong();
         long parentTxnId=-1l;
         if(!decoder.nextIsNull()) parentTxnId=decoder.decodeNextLong();
@@ -114,14 +111,13 @@ public class V2TxnDecoder implements TxnDecoder{
 
         long commitTs=-1l;
         if(commitKv!=null)
-            commitTs=toLong(dataLib,commitKv);
+            commitTs=toLong(commitKv);
 
         long globalTs=-1l;
         if(globalCommitKv!=null)
-            globalTs=toLong(dataLib,globalCommitKv);
+            globalTs=toLong(globalCommitKv);
 
-        Txn.State state=Txn.State.decode(dataLib.getDataValueBuffer(stateKv),
-                dataLib.getDataValueOffset(stateKv),dataLib.getDataValuelength(stateKv));
+        Txn.State state=Txn.State.decode(stateKv.getValueArray(),stateKv.getValueOffset(),stateKv.getValueLength());
         //adjust for committed timestamp
         if(commitTs>0 || globalTs>0){
             //we have a commit timestamp, our state MUST be committed

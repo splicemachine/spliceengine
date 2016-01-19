@@ -13,17 +13,9 @@ import java.io.ObjectOutput;
  * @author Scott Fines
  *         Date: 7/8/14
  */
-public interface TxnOperationFactory<OperationWithAttributes,
-        Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes>{
-
-    Scan newScan(TxnView txn);
-
-    Scan newScan(TxnView txn,boolean isCountStar);
+public interface TxnOperationFactory{
 
     DataScan newDataScan(TxnView txn);
-
-    Get newGet(TxnView txn,byte[] rowKey);
 
     DataGet newDataGet(TxnView txn,byte[] rowKey,DataGet previous);
 

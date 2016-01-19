@@ -23,13 +23,13 @@ import java.io.IOException;
 public class SITransactionReadController<OperationWithAttributes,Data,
         Get extends OperationWithAttributes,
         Scan extends OperationWithAttributes>
-        implements TransactionReadController<Get, Scan>{
-    private final DataStore<OperationWithAttributes, Data, Get, Scan> dataStore;
-    private final SDataLib<OperationWithAttributes, Data, Get, Scan> dataLib;
+        implements TransactionReadController{
+    private final DataStore dataStore;
+    private final SDataLib dataLib;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSuppler;
 
-    public SITransactionReadController(DataStore<OperationWithAttributes, Data, Get, Scan> dataStore,
+    public SITransactionReadController(DataStore dataStore,
                                        TxnSupplier txnSupplier,
                                        IgnoreTxnCacheSupplier ignoreTxnSuppler){
         this.dataStore = dataStore;
@@ -39,21 +39,9 @@ public class SITransactionReadController<OperationWithAttributes,Data,
     }
 
     @Override
-    public void preProcessGet(Get get) throws IOException{
-        dataLib.setGetTimeRange(get,0,Long.MAX_VALUE);
-        dataLib.setGetMaxVersions(get);
-    }
-
-    @Override
     public void preProcessGet(DataGet get) throws IOException{
         get.returnAllVersions();
         get.setTimeRange(0,Long.MAX_VALUE);
-    }
-
-    @Override
-    public void preProcessScan(Scan scan) throws IOException{
-        dataLib.setScanTimeRange(scan,0,Long.MAX_VALUE);
-        dataLib.setScanMaxVersions(scan);
     }
 
     @Override
@@ -64,7 +52,7 @@ public class SITransactionReadController<OperationWithAttributes,Data,
 
     @Override
     public TxnFilter newFilterState(ReadResolver readResolver,TxnView txn) throws IOException{
-        return new SimpleTxnFilter(null,txn,readResolver,txnSupplier,ignoreTxnSuppler,dataStore);
+        return new SimpleTxnFilter(null,txn,readResolver,txnSupplier,ignoreTxnSuppler);
     }
 
     @Override

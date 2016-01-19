@@ -9,7 +9,10 @@ import java.util.concurrent.locks.Lock;
 
 
 /**
- * Abstraction that makes HBase tables and regions have a uniform interface.
+ * Representation of a unique logical data owner.
+ *
+ * A Partition represents the main storage abstraction in use. It encapsulates all logic for interacting
+ * with the underlying storage interface.
  */
 public interface Partition extends AutoCloseable{
 

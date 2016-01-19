@@ -2,13 +2,12 @@ package com.splicemachine.si.impl.region;
 
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.TxnUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 
@@ -21,7 +20,6 @@ import java.io.IOException;
  *         Date: 8/18/14
  */
 public class ActiveTxnFilter extends FilterBase implements Writable{
-    private final SDataLib<OperationWithAttributes,Cell, Get, Scan> datalib;
     private final RegionTxnStore txnStore;
     protected final long beforeTs;
     protected final long afterTs;
@@ -37,13 +35,11 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private MultiFieldDecoder fieldDecoder;
     
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public ActiveTxnFilter(SDataLib<OperationWithAttributes, Cell, Get, Scan> datalib,
-                           RegionTxnStore txnStore,
+    public ActiveTxnFilter(RegionTxnStore txnStore,
                            long beforeTs,
                            long afterTs,
                            byte[] destinationTable) {
         this.txnStore = txnStore;
-        this.datalib=datalib;
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;
         this.destinationTable = destinationTable;
@@ -111,7 +107,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private ReturnCode filterCommitTimestamp(Cell kv) {
-        if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES)) {
+        if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES)) {
             /*
              * We have a global commit timestamp set. This means that not only are we
              * committed, but we are also (probably) the child of a committed transaction.
@@ -122,7 +118,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
             return ReturnCode.NEXT_ROW;
         }
         //check for a normal commit column
-        if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.COMMIT_QUALIFIER_BYTES)){
+        if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.COMMIT_QUALIFIER_BYTES)){
                 /*
                  * We have a commit column, so we've been committed. However, we could
                  * be a child, so we can't filter immediately here
@@ -133,7 +129,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     }
 
     private void detectChild(Cell kv) {
-        if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.DATA_QUALIFIER_BYTES)){
+        if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.DATA_QUALIFIER_BYTES)){
                 /*
                  * We want to pick out the parent transaction id in the data, which is the second
                  * field. To do that, we wrap up in a re-used MultiFieldDecoder, skip the first entry,
@@ -155,7 +151,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
         if(destinationTable==null)
             return ReturnCode.INCLUDE; //no destination table to check
         byte[] compareBytes = null;        
-        if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES)){
+        if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES)){
             compareBytes = newEncodedDestinationTable;
         }
 
@@ -175,7 +171,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
 
     private ReturnCode filterKeepAlive(Cell kv) {
         Txn.State adjustedState;
-        if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES)){
+        if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES)){
             if(keepAliveSeen)
                 return ReturnCode.SKIP;
             adjustedState = txnStore.adjustStateForTimeout(Txn.State.ACTIVE,kv);
@@ -210,7 +206,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
             return ReturnCode.INCLUDE;
         }        
         assert V2TxnDecoder.STATE_QUALIFIER_BYTES.length == 1;
-        if(datalib.singleMatchingQualifier(kv,V2TxnDecoder.STATE_QUALIFIER_BYTES)){
+        if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.STATE_QUALIFIER_BYTES)){
             if(stateSeen) return ReturnCode.INCLUDE;
             stateSeen = true;
             byte[] checkState = Txn.State.ACTIVE.encode(); //doesn't actually create a new byte[]

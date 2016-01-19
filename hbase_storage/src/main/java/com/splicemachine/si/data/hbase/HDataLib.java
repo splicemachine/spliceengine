@@ -1,30 +1,22 @@
 package com.splicemachine.si.data.hbase;
 
-import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.*;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-
-import static com.splicemachine.si.constants.SIConstants.*;
 
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
  */
-public class HDataLib implements SDataLib<OperationWithAttributes,
-        Cell,
-        Get,
-        Scan>{
+public class HDataLib implements SDataLib{
     private static final HDataLib INSTANCE= new HDataLib();
 
     @Override
@@ -103,34 +95,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
         return new Put(key.array(),key.offset(),key.length());
     }
 
-    @Override
-    public void setGetTimeRange(Get get,long minTimestamp,long maxTimestamp){
-        try{
-            get.setTimeRange(minTimestamp,maxTimestamp);
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void setGetMaxVersions(Get get){
-        get.setMaxVersions();
-    }
-
-    @Override
-    public void setScanTimeRange(Scan scan,long minTimestamp,long maxTimestamp){
-        try{
-            scan.setTimeRange(minTimestamp,maxTimestamp);
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void setScanMaxVersions(Scan scan){
-        scan.setMaxVersions();
-    }
-
     static byte[] convertToBytes(Object value,Class clazz){
         if(clazz==String.class){
             return Bytes.toBytes((String)value);
@@ -151,120 +115,6 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public boolean singleMatchingColumn(Cell element,byte[] family,
-                                        byte[] qualifier){
-        return CellUtils.singleMatchingColumn(element,family,qualifier);
-    }
-
-    @Override
-    public boolean singleMatchingQualifier(Cell element,byte[] qualifier){
-        return CellUtils.singleMatchingQualifier(element,qualifier);
-    }
-
-    @Override
-    public boolean matchingValue(Cell element,byte[] value){
-        return CellUtils.matchingValue(element,value);
-    }
-
-    @Override
-    public Comparator getComparator(){
-        return KeyValue.COMPARATOR;
-    }
-
-    @Override
-    public long getTimestamp(Cell element){
-        return element.getTimestamp();
-    }
-
-    @Override
-    public String getFamilyAsString(Cell element){
-        return Bytes.toString(CellUtil.cloneFamily(element));
-    }
-
-    @Override
-    public String getQualifierAsString(Cell element){
-        return Bytes.toString(CellUtil.cloneQualifier(element));
-    }
-
-    @Override
-    public void setRowInSlice(Cell element,ByteSlice slice){
-        slice.set(element.getRowArray(),element.getRowOffset(),element.getRowLength());
-    }
-
-    @Override
-    public boolean isFailedCommitTimestamp(Cell element){
-        return element.getValueLength()==1 && element.getValueArray()[element.getValueOffset()]==SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
-    }
-
-    @Override
-    public Cell newTransactionTimeStampKeyValue(Cell element,byte[] value){
-        return new KeyValue(element.getRowArray(),element.getRowOffset(),element.getRowLength(),DEFAULT_FAMILY_BYTES,0,1,SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,element.getTimestamp(),KeyValue.Type.Put,value,0,value==null?0:value.length);
-    }
-
-    @Override
-    public long getValueLength(Cell element){
-        return element.getValueLength();
-    }
-
-    @Override
-    public long getValueToLong(Cell element){
-        return Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
-    }
-
-    @Override
-    public byte[] getDataValueBuffer(Cell element){
-        return element.getValueArray();
-    }
-
-    @Override
-    public int getDataValueOffset(Cell element){
-        return element.getValueOffset();
-    }
-
-    @Override
-    public int getDataValuelength(Cell element){
-        return element.getValueLength();
-    }
-
-    @Override
-    public int getLength(Cell element){
-        return element.getQualifierLength()+element.getFamilyLength()+element.getRowLength()+element.getValueLength()+element.getTagsLength();
-    }
-
-    @Override
-    public byte[] getDataRowBuffer(Cell element){
-        return element.getRowArray();
-    }
-
-    @Override
-    public int getDataRowOffset(Cell element){
-        return element.getRowOffset();
-    }
-
-    @Override
-    public int getDataRowlength(Cell element){
-        return element.getRowLength();
-    }
-
-    @Override
-    public Cell matchKeyValue(Cell[] kvs,byte[] columnFamily,
-                              byte[] qualifier){
-        int size=kvs!=null?kvs.length:0;
-        for(int i=0;i<size;i++){
-            Cell kv=kvs[i];
-            if(CellUtils.matchingColumn(kv,columnFamily,qualifier))
-                return kv;
-        }
-        return null;
-    }
-
-    @Override
-    public Cell matchDataColumn(Cell[] kvs){
-        return matchKeyValue(kvs,DEFAULT_FAMILY_BYTES,
-                PACKED_COLUMN_BYTES);
-    }
-
-    @Override
     public DataResult newResult(List<DataCell> visibleColumns){
         List<Cell> actualCells = new ArrayList<>(visibleColumns.size());
         for(DataCell dc:visibleColumns){
@@ -275,28 +125,7 @@ public class HDataLib implements SDataLib<OperationWithAttributes,
     }
 
     @Override
-    public Get newGet(byte[] key){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public Scan newScan(){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
     public DataScan newDataScan(){
-        throw new UnsupportedOperationException("IMPLEMENT");
-    }
-
-    @Override
-    public void setAttribute(OperationWithAttributes operation,String name,byte[] value){
-        throw new UnsupportedOperationException("IMPLEMENT");
-
-    }
-
-    @Override
-    public byte[] getAttribute(OperationWithAttributes operation,String attributeName){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
 

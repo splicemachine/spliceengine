@@ -73,10 +73,7 @@ public class TestTransactionSetup {
         dataStore = new DataStore(dataLib,
                 SIConstants.SI_NEEDED,
                 SIConstants.SI_DELETE_PUT,
-                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
                 SIConstants.EMPTY_BYTE_ARRAY,
-                SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
                 SIConstants.DEFAULT_FAMILY_BYTES
         );
 

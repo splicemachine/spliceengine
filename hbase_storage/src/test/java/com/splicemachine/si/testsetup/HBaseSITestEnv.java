@@ -110,7 +110,7 @@ public class HBaseSITestEnv implements SITestEnv{
 
     @Override
     public TxnOperationFactory getOperationFactory(){
-        return new HTxnOperationFactory(HDataLib.instance(),getExceptionFactory());
+        return new HTxnOperationFactory(getExceptionFactory());
     }
 
     @Override

@@ -4,7 +4,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class LGet extends LOperationWithAttributes{
     final byte[] startTupleKey;
@@ -22,12 +21,6 @@ public class LGet extends LOperationWithAttributes{
         this.families=families;
         this.columns=columns;
         this.effectiveTimestamp=effectiveTimestamp;
-    }
-
-    public LGet(byte[] startTupleKey,byte[] endTupleKey,List<byte[]> families,List<List<byte[]>> columns,
-                Long effectiveTimestamp,int maxVersions){
-        this(startTupleKey,endTupleKey,families,columns,effectiveTimestamp);
-        this.maxVersions=maxVersions;
     }
 
     @Override

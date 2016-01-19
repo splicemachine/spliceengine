@@ -11,7 +11,6 @@ import com.splicemachine.si.impl.HTxnOperationFactory;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.HFilterFactory;
-import org.junit.Test;
 
 /**
  * @author Scott Fines
@@ -21,7 +20,7 @@ public class HBaseDataEnv implements SITestDataEnv{
     private final TxnOperationFactory txnOperationFactory;
 
     public HBaseDataEnv(){
-        this.txnOperationFactory = new HTxnOperationFactory(HDataLib.instance(),HExceptionFactory.INSTANCE);
+        this.txnOperationFactory = new HTxnOperationFactory(HExceptionFactory.INSTANCE);
     }
 
     @Override
