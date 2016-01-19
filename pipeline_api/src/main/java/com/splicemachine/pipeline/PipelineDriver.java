@@ -8,7 +8,9 @@ import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
+import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
+import com.splicemachine.pipeline.traffic.SynchronousWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 
 import javax.management.*;
@@ -65,7 +67,7 @@ public class PipelineDriver{
         int maxIndependentWrites = config.getInt(PipelineConfiguration.MAX_INDEPENDENT_WRITES);
         int maxDependentWrites = config.getInt(PipelineConfiguration.MAX_DEPENDENT_WRITES);
 
-        this.writeControl= new SpliceWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
+        this.writeControl= new SynchronousWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
         this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl);
         channelFactory.setWriter(pipelineWriter);
         channelFactory.setPipeline(writePipelineFactory);
@@ -183,22 +185,22 @@ public class PipelineDriver{
 
         @Override
         public int getDependentWriteCount(){
-            return writeControl.getWriteStatus().get().getDependentWriteCount();
+            return writeControl.getWriteStatus().getDependentWriteCount();
         }
 
         @Override
         public int getDependentWriteThreads(){
-            return writeControl.getWriteStatus().get().getDependentWriteThreads();
+            return writeControl.getWriteStatus().getDependentWriteThreads();
         }
 
         @Override
         public int getIndependentWriteCount(){
-            return writeControl.getWriteStatus().get().getIndependentWriteCount();
+            return writeControl.getWriteStatus().getIndependentWriteCount();
         }
 
         @Override
         public int getIndependentWriteThreads(){
-            return writeControl.getWriteStatus().get().getIndependentWriteThreads();
+            return writeControl.getWriteStatus().getIndependentWriteThreads();
         }
 
     }

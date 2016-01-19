@@ -3,6 +3,7 @@ package com.splicemachine.pipeline;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.*;
+import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.utils.Pair;
@@ -53,62 +54,18 @@ public class PipelineWriter{
             throw new IOException(e1);
         }
 
-        SpliceWriteControl.Status status;
+        AtomicSpliceWriteControl.Status status;
         int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
         // Get the "permit" to write.  WriteControl does not perform the writes.  It just controls whether or not the write is allowed to proceed.
 
         status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
-        if (status.equals(SpliceWriteControl.Status.REJECTED)) {
+        if (status.equals(AtomicSpliceWriteControl.Status.REJECTED)) {
             rejectAll(bws,result);
             rejectedCount.addAndGet(numBulkWrites);
             return new BulkWritesResult(result);
         }
         try {
-
-            // Add the writes to the writePairMap, which helps link the BulkWrites to their result and write pipeline objects.
-            Map<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> writePairMap = getBulkWritePairMap(bws);
-
-            //
-            // Submit the bulk writes for which we found a PartitionWritePipeline.
-            //
-            for (Map.Entry<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> entry : writePairMap.entrySet()) {
-                Pair<BulkWriteResult, PartitionWritePipeline> pair = entry.getValue();
-                PartitionWritePipeline writePipeline = pair.getSecond();
-                if (writePipeline != null) {
-                    BulkWrite bulkWrite = entry.getKey();
-                    BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
-                    pair.setFirst(submitResult);
-                }
-            }
-
-            //
-            // Same iteration, now calling finishWrite() for each BulkWrite
-            //
-            for (Map.Entry<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> entry : writePairMap.entrySet()) {
-                Pair<BulkWriteResult, PartitionWritePipeline> pair = entry.getValue();
-                PartitionWritePipeline writePipeline = pair.getSecond();
-                if (writePipeline != null) {
-                    BulkWrite bulkWrite = entry.getKey();
-                    BulkWriteResult writeResult = pair.getFirst();
-                    BulkWriteResult finishResult = writePipeline.finishWrite(writeResult, bulkWrite);
-                    pair.setFirst(finishResult);
-                }
-            }
-
-            /*
-             * Collect the overall results.
-             *
-             * It is IMPERATIVE that we collect results in the *same iteration order*
-             * as we received the writes, otherwise we won't be interpreting the correct
-             * results on the other side; the end result will be extraneous errors, but only at scale,
-             * so you won't necessarily see the errors in the ITs and you'll think everything is fine,
-             * but it's not. I assure you.
-             */
-            for(BulkWrite bw:bws){
-                Pair<BulkWriteResult,PartitionWritePipeline> results = writePairMap.get(bw);
-                result.add(results.getFirst());
-            }
-            return new BulkWritesResult(result);
+            return performWrite(bulkWrites,bws,result,indexWriteBufferFactory);
         } finally {
             switch (status) {
                 case REJECTED:
@@ -121,6 +78,53 @@ public class PipelineWriter{
                     break;
             }
         }
+    }
+
+    protected BulkWritesResult performWrite(@Nonnull BulkWrites bulkWrites,Collection<BulkWrite> bws,List<BulkWriteResult> result,SharedCallBufferFactory indexWriteBufferFactory) throws IOException{
+        // Add the writes to the writePairMap, which helps link the BulkWrites to their result and write pipeline objects.
+        Map<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> writePairMap = getBulkWritePairMap(bws);
+
+        //
+        // Submit the bulk writes for which we found a PartitionWritePipeline.
+        //
+        for (Map.Entry<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> entry : writePairMap.entrySet()) {
+            Pair<BulkWriteResult, PartitionWritePipeline> pair = entry.getValue();
+            PartitionWritePipeline writePipeline = pair.getSecond();
+            if (writePipeline != null) {
+                BulkWrite bulkWrite = entry.getKey();
+                BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
+                pair.setFirst(submitResult);
+            }
+        }
+
+        //
+        // Same iteration, now calling finishWrite() for each BulkWrite
+        //
+        for (Map.Entry<BulkWrite, Pair<BulkWriteResult, PartitionWritePipeline>> entry : writePairMap.entrySet()) {
+            Pair<BulkWriteResult, PartitionWritePipeline> pair = entry.getValue();
+            PartitionWritePipeline writePipeline = pair.getSecond();
+            if (writePipeline != null) {
+                BulkWrite bulkWrite = entry.getKey();
+                BulkWriteResult writeResult = pair.getFirst();
+                BulkWriteResult finishResult = writePipeline.finishWrite(writeResult, bulkWrite);
+                pair.setFirst(finishResult);
+            }
+        }
+
+            /*
+             * Collect the overall results.
+             *
+             * It is IMPERATIVE that we collect results in the *same iteration order*
+             * as we received the writes, otherwise we won't be interpreting the correct
+             * results on the other side; the end result will be extraneous errors, but only at scale,
+             * so you won't necessarily see the errors in the ITs and you'll think everything is fine,
+             * but it's not. I assure you.
+             */
+        for(BulkWrite bw:bws){
+            Pair<BulkWriteResult,PartitionWritePipeline> results = writePairMap.get(bw);
+            result.add(results.getFirst());
+        }
+        return new BulkWritesResult(result);
     }
 
     public void setWriteCoordinator(WriteCoordinator writeCoordinator){

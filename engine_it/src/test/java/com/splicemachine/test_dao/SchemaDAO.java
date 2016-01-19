@@ -1,6 +1,7 @@
 package com.splicemachine.test_dao;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 
 /**
@@ -22,10 +23,12 @@ public class SchemaDAO {
     public void drop(String schemaName) {
         Connection connection = jdbcTemplate.getConnection();
         try {
+            DatabaseMetaData metaData=connection.getMetaData();
+            String uSchema=schemaName.toUpperCase();
             //
             // Delete views
             //
-            try(ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"VIEW"})){
+            try(ResultSet resultSet = metaData.getTables(null,uSchema,null,new String[]{"VIEW"})){
                 while(resultSet.next()){
                     tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),true);
                 }
@@ -34,7 +37,7 @@ public class SchemaDAO {
             //
             // Deletes tables
             //
-            try(ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null)){
+            try(ResultSet resultSet = metaData.getTables(null,uSchema,null,null)){
                 while(resultSet.next()){
                     tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),false);
                 }
@@ -43,16 +46,17 @@ public class SchemaDAO {
             //
             // Delete procedures
             //
-            try(ResultSet resultSet = connection.getMetaData().getProcedures(null, schemaName.toUpperCase(), null)){
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("drop procedure %s.%s",schemaName.toUpperCase(),resultSet.getString("PROCEDURE_NAME")));
-                }
-            }
+            //TODO -sf- this breaks something
+//            try(ResultSet resultSet = metaData.getProcedures(null,uSchema,null)){
+//                while(resultSet.next()){
+//                    jdbcTemplate.executeUpdate(String.format("drop procedure %s.%s",uSchema,resultSet.getString("PROCEDURE_NAME")));
+//                }
+//            }
 
             //
             // Drop schema
             //
-            try(ResultSet resultSet = connection.getMetaData().getSchemas(null, schemaName.toUpperCase())){
+            try(ResultSet resultSet = metaData.getSchemas(null,uSchema)){
                 while(resultSet.next()){
                     jdbcTemplate.executeUpdate("drop schema "+schemaName+" RESTRICT");
                 }

@@ -146,18 +146,13 @@ public class JDBCTemplate {
      * and closing resultSet and statement.
      */
     private <T> T executeQuery(ResultSetExtractor<T> resultSetExtractor, String sql, Object... args) {
-        ResultSet resultSet = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            preparedStatement = connection.prepareStatement(sql);
-            setArgs(preparedStatement, args);
-            resultSet = preparedStatement.executeQuery();
-            return resultSetExtractor.extractData(resultSet);
+        try (PreparedStatement ps = connection.prepareStatement(sql)){
+            setArgs(ps, args);
+            try(ResultSet resultSet = ps.executeQuery()){
+                return resultSetExtractor.extractData(resultSet);
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            DbUtils.closeQuietly(resultSet);
-            DbUtils.closeQuietly(preparedStatement);
         }
     }
 

@@ -18,7 +18,7 @@ import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
 import com.splicemachine.pipeline.mem.DirectBulkWriterFactory;
 import com.splicemachine.pipeline.mem.DirectPipelineExceptionFactory;
 import com.splicemachine.pipeline.ManualContextFactoryLoader;
-import com.splicemachine.pipeline.traffic.SpliceWriteControl;
+import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.MemSITestEnv;
@@ -67,7 +67,7 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
          trf = buildTransactionalRegionFactory();
         pipelineFactory = new MappedPipelineFactory();
         DirectBulkWriterFactory bwf = new DirectBulkWriterFactory(pipelineFactory,
-                new SpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
+                new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 DirectPipelineExceptionFactory.INSTANCE);
         Writer writer = new SynchronousBucketingWriter(bwf,DirectPipelineExceptionFactory.INSTANCE,
                 getTableFactory());

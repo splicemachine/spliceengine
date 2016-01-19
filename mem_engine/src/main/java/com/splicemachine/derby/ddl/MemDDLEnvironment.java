@@ -19,8 +19,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *         Date: 1/11/16
  */
 public class MemDDLEnvironment implements DDLEnvironment{
-    private AsynchronousDDLController ddlController;
-    private AsynchronousDDLWatcher ddlWatcher;
+    private DDLController ddlController;
+    private DDLWatcher ddlWatcher;
 
     public MemDDLEnvironment(){
         SIDriver driver = SIDriver.driver();
@@ -28,7 +28,8 @@ public class MemDDLEnvironment implements DDLEnvironment{
         config.addDefaults(DDLConfiguration.defaults);
         DDLChangeStore changeStore = new DDLChangeStore();
         DDLWatchChecker ddlWatchChecker=new DirectWatcher(changeStore);
-        this.ddlWatcher = new AsynchronousDDLWatcher(driver.readController(),
+        this.ddlWatcher = new SynchronousDDLWatcher(
+                driver.readController(),
                 driver.getClock(),
                 driver.getConfiguration(),
                 ddlWatchChecker);

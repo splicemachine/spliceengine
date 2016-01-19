@@ -34,17 +34,17 @@ public class TableDAO {
      */
     public void drop(String schemaName, String tableName, boolean isView) {
         try {
-            synchronized(SpliceTableWatcher.class){ //TODO -sf- synchronize on something else, or remove the need
-                DatabaseMetaData metaData=jdbcTemplate.getConnection().getMetaData();
-                try(ResultSet rs=metaData.getTables(null,schemaName.toUpperCase(),tableName.toUpperCase(),null)){
-                    if(rs.next()){
+            synchronized(jdbcTemplate){ //TODO -sf- synchronize on something else, or remove the need
+//                DatabaseMetaData metaData=jdbcTemplate.getConnection().getMetaData();
+//                try(ResultSet rs=metaData.getTables(null,schemaName.toUpperCase(),tableName.toUpperCase(),null)){
+//                    if(rs.next()){
                         if(isView){
                             jdbcTemplate.executeUpdate(format("drop view %s.%s",schemaName,tableName));
                         }else{
-                            jdbcTemplate.executeUpdate(format("drop table if exists %s.%s",schemaName,tableName));
+                            jdbcTemplate.executeUpdate(format("drop table %s.%s",schemaName,tableName));
                         }
-                    }
-                }
+//                    }
+//                }
             }
         } catch (Exception e) {
             // Drop failed because of FK constraint.

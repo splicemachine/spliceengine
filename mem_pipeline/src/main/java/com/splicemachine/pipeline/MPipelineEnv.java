@@ -10,9 +10,8 @@ import com.splicemachine.pipeline.context.NoOpPipelineMeter;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.mem.DirectBulkWriterFactory;
 import com.splicemachine.pipeline.mem.DirectPipelineExceptionFactory;
-import com.splicemachine.pipeline.traffic.SpliceWriteControl;
+import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
-import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.SDataLib;
@@ -44,7 +43,7 @@ public class MPipelineEnv  implements PipelineEnvironment{
         super();
         this.siEnv=siEnv;
         this.writerFactory = new DirectBulkWriterFactory(new MappedPipelineFactory(),
-                new SpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
+                new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 pipelineExceptionFactory());
         this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
     }

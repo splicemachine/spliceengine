@@ -8,7 +8,7 @@ public class SpliceWriteControlTest {
 
     @Test
     public void performIndependentWrite() {
-        SpliceWriteControl writeControl = new SpliceWriteControl(3, 3, 200, 200);
+        SpliceWriteControl writeControl = new AtomicSpliceWriteControl(3, 3, 200, 200);
 
         writeControl.performIndependentWrite(25);
         assertEquals("{ dependentWriteThreads=0, independentWriteThreads=1, dependentWriteCount=0, independentWriteCount=25 }", writeControl.getWriteStatus().toString());

@@ -87,7 +87,17 @@ public class SchemaTransactionIT {
 
         ResultSet schemas = conn1.getMetaData().getSchemas(null, schemaName);
         Assert.assertTrue("schema is not visible within the same transaction!", schemas.next());
+
+        schemas = conn1.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("schema is not visible after commit!",schemas.next());
+
+        schemas = conn1.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("schema is not visible after commit!",schemas.next());
+        //commit the txn
         conn1.commit();
+
+        schemas = conn1.getMetaData().getSchemas(null, schemaName);
+        Assert.assertTrue("schema is not visible within the same transaction!", schemas.next());
 
         schemas = conn1.getMetaData().getSchemas(null, schemaName);
         Assert.assertTrue("schema is not visible after commit!",schemas.next());

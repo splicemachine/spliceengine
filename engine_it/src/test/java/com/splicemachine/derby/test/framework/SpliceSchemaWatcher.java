@@ -29,15 +29,15 @@ public class SpliceSchemaWatcher extends TestWatcher {
     @Override
     protected void starting(Description description) {
         try (Connection connection = SpliceNetConnection.getConnection()){
-            connection.setAutoCommit(false);
+//            connection.setAutoCommit(false);
 
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             try(ResultSet rs = connection.getMetaData().getSchemas(null, schemaName)){
                 if(rs.next()){
-//                return;
-                    schemaDAO.drop(schemaName);
+                    schemaDAO.drop(rs.getString("TABLE_SCHEM"));
                 }
             }catch(Exception e){
+                e.printStackTrace();
                 connection.rollback();
                 throw e;
             }
@@ -47,6 +47,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
                 else
                     statement.execute(String.format("create schema %s",schemaName));
             }catch(Exception e){
+                e.printStackTrace();
                 connection.rollback();
                 throw e;
             }

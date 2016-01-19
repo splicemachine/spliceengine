@@ -327,22 +327,22 @@ public class TableScanOperationIT{
         }
 
         // where char column IS primary key
-        assertCountEquals(1L,"select * from char_table where a = 'aaa'");
-        assertCountEquals(1L,"select * from char_table where a = 'aaa   '");
-        assertCountEquals(1L,"select * from char_table where a = 'aaa      '");
-        assertCountEquals(1L,"select * from char_table where 'aaa' = a");
+        assertCountEquals(conn,1L,"select * from char_table where a = 'aaa'");
+        assertCountEquals(conn,1L,"select * from char_table where a = 'aaa   '");
+        assertCountEquals(conn,1L,"select * from char_table where a = 'aaa      '");
+        assertCountEquals(conn,1L,"select * from char_table where 'aaa' = a");
 
         // where char column is not primary key
-        assertCountEquals(1L,"select * from char_table where b = 'aaa'");
-        assertCountEquals(1L,"select * from char_table where b = 'aaa   '");
-        assertCountEquals(1L,"select * from char_table where b = 'aaa      '");
-        assertCountEquals(1L,"select * from char_table where 'aaa' = b");
+        assertCountEquals(conn,1L,"select * from char_table where b = 'aaa'");
+        assertCountEquals(conn,1L,"select * from char_table where b = 'aaa   '");
+        assertCountEquals(conn,1L,"select * from char_table where b = 'aaa      '");
+        assertCountEquals(conn,1L,"select * from char_table where 'aaa' = b");
 
         // where char column is unique index
-        assertCountEquals(1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa'");
-        assertCountEquals(1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa   '");
-        assertCountEquals(1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa      '");
-        assertCountEquals(1L,"select * from char_table --splice-properties index=char_table_index\n where 'aaa' = c");
+        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa'");
+        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa   '");
+        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where c = 'aaa      '");
+        assertCountEquals(conn,1L,"select * from char_table --splice-properties index=char_table_index\n where 'aaa' = c");
     }
 
 
@@ -353,27 +353,27 @@ public class TableScanOperationIT{
             s.executeUpdate("create table char_table_ps(a char(9), b char(9), c char(9), primary key(a))");
             s.executeUpdate("create unique index char_table_ps_index on char_table_ps(c)");
             s.executeUpdate("insert into char_table_ps values('aaa', 'aaa', 'aaa'),('aa', 'aa', 'aa'),('a', 'a', 'a'),('', '', '')");
+
+            JDBCTemplate template=new JDBCTemplate(conn);
+
+            // where char column IS primary key
+            assertEquals(1L,template.query("select count(*) from char_table_ps where a = ?","aaa").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps where a = ?","aaa   ").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps where a = ?","aaa      ").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps where ? = a","aaa").get(0));
+
+            // where char column is not primary key
+            assertEquals(1L,template.query("select count(*) from char_table_ps where b = ?","aaa").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps where b = ?","aaa   ").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps where b = ?","aaa      ").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps where ? = b","aaa").get(0));
+
+            // where char column is unique index
+            assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where c = ?","aaa").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where c = ?","aaa   ").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where c = ?","aaa      ").get(0));
+            assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where ? = c","aaa").get(0));
         }
-
-        JDBCTemplate template=new JDBCTemplate(conn);
-
-        // where char column IS primary key
-        assertEquals(1L,template.query("select count(*) from char_table_ps where a = ?","aaa").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps where a = ?","aaa   ").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps where a = ?","aaa      ").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps where ? = a","aaa").get(0));
-
-        // where char column is not primary key
-        assertEquals(1L,template.query("select count(*) from char_table_ps where b = ?","aaa").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps where b = ?","aaa   ").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps where b = ?","aaa      ").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps where ? = b","aaa").get(0));
-
-        // where char column is unique index
-        assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where c = ?","aaa").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where c = ?","aaa   ").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where c = ?","aaa      ").get(0));
-        assertEquals(1L,template.query("select count(*) from char_table_ps --splice-properties index=char_table_ps_index\n where ? = c","aaa").get(0));
     }
 
     @Test
@@ -760,7 +760,7 @@ public class TableScanOperationIT{
     @Test
     public void testCanScanDoubleEdgeCase() throws Exception{
         try(Statement s=conn.createStatement()){
-        try(ResultSet rs=s.executeQuery("select 1,1.797e+308,-1.797e+308,'This query should work' from "+spliceTableWatcher)) {
+            try(ResultSet rs=s.executeQuery("select 1,1.797e+308,-1.797e+308,'This query should work' from "+spliceTableWatcher)){
                 int count=0;
                 while(rs.next()){
                     int first=rs.getInt(1);
@@ -875,9 +875,9 @@ public class TableScanOperationIT{
         }
     }
 
-    private void assertCountEquals(long expectedCount,String query) throws SQLException{
+    private void assertCountEquals(Connection connection,long expectedCount,String query) throws SQLException{
         long count=0l;
-        try(Statement s=conn.createStatement()){
+        try(Statement s=connection.createStatement()){
             try(ResultSet rs=s.executeQuery(query)){
                 while(rs.next()){
                     count++;

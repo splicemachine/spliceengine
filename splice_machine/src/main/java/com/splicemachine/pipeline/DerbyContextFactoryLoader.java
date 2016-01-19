@@ -171,8 +171,10 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             case ADD_CHECK:
                 break;
             case CREATE_INDEX:
-                IndexFactory index=IndexFactory.create(ddlChange);
-                indexFactories.replace(index);
+                DDLMessage.TentativeIndex tentativeIndex=ddlChange.getTentativeIndex();
+                if(tentativeIndex.getTable().getConglomerate()==conglomId){
+                    indexFactories.replace(IndexFactory.create(ddlChange));
+                }
                 break;
             case ADD_NOT_NULL:
                 break;

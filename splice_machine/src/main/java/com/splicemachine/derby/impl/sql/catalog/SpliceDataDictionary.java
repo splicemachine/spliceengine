@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
@@ -585,6 +586,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public boolean canUseCache() throws StandardException {
-        return DDLDriver.driver().ddlWatcher().canUseCache((TransactionManager) getTransactionCompile());
+        DDLWatcher ddlWatcher=DDLDriver.driver().ddlWatcher();
+        return ddlWatcher.canUseCache((TransactionManager)getTransactionCompile());
     }
+
+    @Override
+    public boolean canUseSPSCache() throws StandardException {
+        DDLWatcher ddlWatcher=DDLDriver.driver().ddlWatcher();
+        return ddlWatcher.canUseSPSCache((TransactionManager)getTransactionCompile());
+    }
+
 }

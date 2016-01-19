@@ -48,7 +48,7 @@ public class TxnPartition implements Partition{
 
     @Override
     public String getTableName(){
-        return "SPLICE_TXN";
+        return basePartition.getTableName();
     }
 
     @Override
@@ -76,10 +76,7 @@ public class TxnPartition implements Partition{
         MGet get = new MGet();
         get.setAllAttributes(attributes.allAttributes());
         txnReadController.preProcessGet(get);
-        TxnView txnView = txnOpFactory.fromReads(attributes);
-        if(txnView!=null){
-            get.setFilter(new MTxnFilterWrapper(getFilter(attributes,txnView)));
-        }
+        attachFilterIfNeeded(get);
 
         List<DataResult> results = new ArrayList<>(rowKeys.size());
         for(byte[] key:rowKeys){
@@ -89,6 +86,7 @@ public class TxnPartition implements Partition{
         return results.iterator();
     }
 
+
     @Override
     public DataScanner openScanner(DataScan scan) throws IOException{
         return openScanner(scan,Metrics.noOpMetricFactory());
@@ -97,11 +95,7 @@ public class TxnPartition implements Partition{
     @Override
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         txnReadController.preProcessScan(scan);
-        TxnView txnView=txnOpFactory.fromReads(scan);
-        if(txnView!=null){
-            TxnFilter txnFilter=getFilter(scan,txnView);
-            scan.filter(new MTxnFilterWrapper(txnFilter)); //TODO -sf- is this the cleanest way to do this?
-        }
+        attachFilterIfNeeded(scan);
         return basePartition.openScanner(scan,metricFactory);
     }
 
@@ -172,14 +166,9 @@ public class TxnPartition implements Partition{
 
     @Override
     public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        TxnView txnView=txnOpFactory.fromReads(scan);
-        if(txnView!=null){
-            TxnFilter txnFilter=getFilter(scan,txnView);
-            scan.filter(new MTxnFilterWrapper(txnFilter));
-        }
+        attachFilterIfNeeded(scan);
         return basePartition.openResultScanner(scan,metricFactory);
     }
-
 
 
     @Override
@@ -277,6 +266,11 @@ public class TxnPartition implements Partition{
         //no-op--memory storage does not perform compactions yet
     }
 
+    @Override
+    public String toString(){
+        return getName()+"["+getTableName()+"]";
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private EntryPredicateFilter getEntryPredicateFilter(Attributable scan) throws IOException{
@@ -295,5 +289,25 @@ public class TxnPartition implements Partition{
             txnFilter=txnReadController.newFilterState(readResolver,txnView);
         }
         return txnFilter;
+    }
+
+    private void attachFilterIfNeeded(DataGet get) throws IOException{
+        if(get.getAttribute(SIConstants.SI_NEEDED)!=null){
+            TxnView txnView=txnOpFactory.fromReads(get);
+            if(txnView!=null){
+                TxnFilter txnFilter=getFilter(get,txnView);
+                get.setFilter(new MTxnFilterWrapper(txnFilter));
+            }
+        }
+    }
+
+    private void attachFilterIfNeeded(DataScan scan) throws IOException{
+        if(scan.getAttribute(SIConstants.SI_NEEDED)!=null){
+            TxnView txnView=txnOpFactory.fromReads(scan);
+            if(txnView!=null){
+                TxnFilter txnFilter=getFilter(scan,txnView);
+                scan.filter(new MTxnFilterWrapper(txnFilter));
+            }
+        }
     }
 }

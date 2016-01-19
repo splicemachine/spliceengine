@@ -57,4 +57,5 @@ public interface DDLWatcher {
 
     boolean canUseCache(TransactionManager xact_mgr);
 
+    boolean canUseSPSCache(TransactionManager txnMgr);
 }

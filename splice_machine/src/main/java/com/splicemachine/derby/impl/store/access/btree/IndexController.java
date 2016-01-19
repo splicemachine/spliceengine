@@ -60,15 +60,16 @@ public class IndexController extends SpliceController{
     public int insert(DataValueDescriptor[] row) throws StandardException{
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("insert row into conglomerate: %s, row: %s",this.getConglomerate(),(row==null?null:Arrays.toString(row))));
-        try(Partition htable = getTable()){
+        Partition htable = getTable();
+        try{
             boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
             byte[] rowKey=generateIndexKey(row,order);
-                        /*
-						 * Check if the rowKey already exists.
-						 * TODO: An optimization would be to not check for existence of a rowKey if the index is non-unique.
-						 *		 Unfortunately, this information is not available here and would need to be passed down from
-						 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
-						 */
+            /*
+			 * Check if the rowKey already exists.
+			 * TODO: An optimization would be to not check for existence of a rowKey if the index is non-unique.
+			 *		 Unfortunately, this information is not available here and would need to be passed down from
+			 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
+			 */
             TxnView txn=((SpliceTransaction)trans).getTxn();
             DataGet get=opFactory.newDataGet(txn,rowKey,null);
             DataResult result=htable.get(get,null);

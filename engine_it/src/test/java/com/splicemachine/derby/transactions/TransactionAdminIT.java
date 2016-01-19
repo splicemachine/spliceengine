@@ -8,6 +8,9 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.SQLException;
+import java.sql.Statement;
+
 /**
  * Tests around the maintenance of TransactionAdmin tools.
  *
@@ -51,8 +54,8 @@ public class TransactionAdminIT {
     public void setUp() throws Exception {
         conn1.setAutoCommit(false);
         conn2.setAutoCommit(false);
-        conn1Txn = conn1.getCurrentTransactionId();
-        conn2Txn = conn2.getCurrentTransactionId();
+//        conn1Txn = conn1.getCurrentTransactionId();
+//        conn2Txn = conn2.getCurrentTransactionId();
     }
 
     @Test
@@ -61,5 +64,48 @@ public class TransactionAdminIT {
         conn1.createStatement().execute("call SYSCS_UTIL.SYSCS_KILL_TRANSACTION("+conn2Txn+")");
         //vacuum must wait for conn2 to complete, unless it's been killed
         conn1.createStatement().execute("call SYSCS_UTIL.VACUUM()");
+    }
+
+    @Test
+    public void testGetCurrentTransactionWorks() throws Exception{
+        /*
+         * Sequence:
+         * 1. create table
+         * 2. commit
+         * 3. drop table
+         * 4. call SYSCS_UTIL.GET_CURRENT_TRANSACTION();
+         * 5. rollback;
+         * 6. call SYSCS_UTIL.GET_CURRENT_TRANSACTION();
+         *
+         * and make sure that there is no error.
+         */
+        System.out.println("Creating table");
+        String table; //= createTable(conn1,9);
+        try(Statement s = conn1.createStatement()){
+            try{
+                s.execute("create table t9 (a int, b int)");
+            }catch(SQLException se){
+                if(!se.getSQLState().equals("X0Y32"))
+                    throw se; //ignore LANG_OBJECT_ALREADY_EXISTS errors
+            }
+            table = "t9";
+        }
+        System.out.println("Committing");
+        conn1.commit();
+
+        try(Statement s =conn1.createStatement()){
+            System.out.println("inserting data");
+            s.execute("insert into "+ table+" (a,b) values (1,1)");
+        }
+
+        conn1.commit();
+        System.out.println("getCurrId");
+        long txnId2 = conn1.getCurrentTransactionId();
+
+//        Assert.assertNotEquals("Transaction id did not advance!",txnId,txnId2);
+//
+//        try(Statement s = conn1.createStatement()){
+//            s.execute("insert into "+table+" (a,b) values (1,1)");
+//        }
     }
 }

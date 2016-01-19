@@ -126,9 +126,10 @@ public abstract class SpliceController implements ConglomerateController{
     }
 
     public boolean delete(RowLocation loc) throws StandardException{
-        try(Partition htable = getTable()){
-            opFactory.newDataDelete(((SpliceTransaction)trans).getTxn(),loc.getBytes());
-//            SpliceUtils.doDelete(htable,((SpliceTransaction)trans).getTxn(),loc.getBytes());
+        Partition htable = getTable();
+        try{
+            DataMutation dataMutation=opFactory.newDataDelete(((SpliceTransaction)trans).getTxn(),loc.getBytes());
+            htable.mutate(dataMutation);
             return true;
         }catch(Exception e){
             throw Exceptions.parseException(e);

@@ -112,6 +112,26 @@ public class DDLWatchRefresher{
         return true;
     }
 
+    public boolean canUseSPSCache(TransactionManager txnMgr){
+        /*
+         * -sf- TODO resolve this more clearly
+         *
+         * The SPS Cache is a cache of stored prepared statements (SPS). When you initially
+         * call an SPS, then it first attempts to read that information from tables, then it recompiles
+         * and writes some stuff back to the database. After that, it is cached, which is totally cool. However,
+         * if the cache is disabled, then the second time around the recompile phase may throw essentially
+         * a Unique Constraint violation; as a result, when performing DDL operations, the SPS cache issue may
+         * result in weird duplication errors. To temporarily bypass this, we make it so that you always
+         * can use the SPS cache, but that is probably not the correct behavior in all cases. We'll find out
+         * when it starts to smell.
+         */
+        return true;
+    }
+
+    public boolean canUseCache(TransactionManager xact_mgr) {
+        return cacheIsValid() && canSeeDDLDemarcationPoint(xact_mgr);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
@@ -203,8 +223,5 @@ public class DDLWatchRefresher{
         }
     }
 
-    public boolean canUseCache(TransactionManager xact_mgr) {
-        return cacheIsValid() && canSeeDDLDemarcationPoint(xact_mgr);
-    }
 
 }

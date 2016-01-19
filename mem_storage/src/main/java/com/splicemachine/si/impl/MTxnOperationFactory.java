@@ -4,6 +4,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 
 import java.io.IOException;
@@ -50,10 +51,15 @@ public class MTxnOperationFactory extends BaseOperationFactory{
     }
 
     @Override
-    public DataDelete newDataDelete(TxnView txn,byte[] key) throws IOException{
-        DataDelete delete = new MDelete(key);
-        encodeForWrites(delete,txn);
-        return delete;
+    public DataMutation newDataDelete(TxnView txn,byte[] key) throws IOException{
+        if(txn==null){
+            return new MDelete(key);
+        }
+        MPut put = new MPut(key);
+        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txn.getTxnId(),SIConstants.EMPTY_BYTE_ARRAY);
+        put.addAttribute(SIConstants.SI_DELETE_PUT,SIConstants.TRUE_BYTES);
+        encodeForWrites(put,txn);
+        return put;
     }
 
     @Override

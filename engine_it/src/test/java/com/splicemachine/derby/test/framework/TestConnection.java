@@ -206,13 +206,17 @@ public class TestConnection implements Connection{
     /*Convenience test methods*/
 
     public void forAllRows(String query,Accumulator<ResultSet>accumulator) throws Exception {
-        Statement s = createStatement();
-        ResultSet resultSet = s.executeQuery(query);
-        SQLWarning warnings = s.getWarnings();
-        while(resultSet.next()){
-            accumulator.accumulate(resultSet);
+        try(Statement s = createStatement()){
+            forAllRows(s,query,accumulator);
         }
-        resultSet.close();
+    }
+
+    public void forAllRows(Statement s,String query,Accumulator<ResultSet>accumulator) throws Exception {
+        try(ResultSet resultSet = s.executeQuery(query)){
+            while(resultSet.next()){
+                accumulator.accumulate(resultSet);
+            }
+        }
     }
 
     public void collectStats(String schemaName,String tableName) throws SQLException{
@@ -233,6 +237,17 @@ public class TestConnection implements Connection{
     public long count(String query) throws Exception{
         final AtomicLong rowCount = new AtomicLong(0);
         forAllRows(query,new Accumulator<ResultSet>() {
+            @Override
+            public void accumulate(ResultSet next) throws StreamException {
+                rowCount.incrementAndGet();
+            }
+        });
+        return rowCount.get();
+    }
+
+    public long count(Statement s,String query) throws Exception{
+        final AtomicLong rowCount = new AtomicLong(0);
+        forAllRows(s,query,new Accumulator<ResultSet>() {
             @Override
             public void accumulate(ResultSet next) throws StreamException {
                 rowCount.incrementAndGet();

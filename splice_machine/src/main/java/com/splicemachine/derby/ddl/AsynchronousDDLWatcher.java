@@ -152,4 +152,9 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     public boolean canUseCache(TransactionManager xact_mgr) {
         return refresher.canUseCache(xact_mgr);
     }
+
+    @Override
+    public boolean canUseSPSCache(TransactionManager txnMgr){
+        return refresher.canUseSPSCache(txnMgr);
+    }
 }
