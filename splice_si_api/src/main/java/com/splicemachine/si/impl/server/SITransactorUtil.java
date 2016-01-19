@@ -4,10 +4,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.storage.Attributable;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataPut;
 
@@ -25,8 +24,7 @@ import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
 class SITransactorUtil{
 
     public static Map<Long,Map<byte[],Map<byte[],List<KVPair>>>> putToKvPairMap(DataPut[] mutations,
-                                                                                TxnOperationFactory txnOperationFactory,
-                                                                                DataStore dataStore) throws IOException{
+                                                                                TxnOperationFactory txnOperationFactory) throws IOException{
 
         /*
          * Here we convert a Put into a KVPair.
@@ -56,7 +54,7 @@ class SITransactorUtil{
         Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=Maps.newHashMap();
         for(DataPut mutation : mutations){
             long txnId=txnOperationFactory.fromWrites(mutation).getTxnId();
-            boolean isDelete=dataStore.getDeletePutAttribute(mutation);
+            boolean isDelete=getDeletePutAttribute(mutation);
             byte[] row=mutation.key();
             Iterable<DataCell> dataValues=mutation.cells();
             boolean isSIDataOnly=true;
@@ -114,5 +112,10 @@ class SITransactorUtil{
         }
 
         return kvPairMap;
+    }
+
+    private static boolean getDeletePutAttribute(Attributable operation){
+        byte[] neededValue=operation.getAttribute(SIConstants.SI_DELETE_PUT);
+        return neededValue!=null && Bytes.basicByteComparator().equals(neededValue,SIConstants.TRUE_BYTES);
     }
 }

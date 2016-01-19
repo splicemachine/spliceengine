@@ -4,10 +4,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
@@ -28,8 +25,6 @@ public interface SIEnvironment{
     ExceptionFactory exceptionFactory();
 
     SConfiguration configuration();
-
-    SDataLib dataLib();
 
     TxnStore txnStore();
 
@@ -58,4 +53,6 @@ public interface SIEnvironment{
     KeyedReadResolver keyedReadResolver();
 
     DistributedFileSystem fileSystem();
+
+    OperationFactory baseOperationFactory();
 }

@@ -16,7 +16,6 @@ import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.pipeline.utils.SimplePipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
@@ -94,7 +93,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
     @Override public PartitionFactory tableFactory(){ return delegate.tableFactory(); }
     @Override public ExceptionFactory exceptionFactory(){ return delegate.exceptionFactory(); }
-    @Override public SDataLib dataLib(){ return delegate.dataLib(); }
+
     @Override public TxnStore txnStore(){ return delegate.txnStore(); }
     @Override public OperationStatusFactory statusFactory(){ return delegate.statusFactory(); }
     @Override public TimestampSource timestampSource(){ return delegate.timestampSource(); }

@@ -23,8 +23,6 @@ import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.MemSITestEnv;
 import com.splicemachine.si.api.server.TransactionalRegionFactory;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.server.SITransactor;
@@ -130,14 +128,9 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
     /*private helper methods*/
     @SuppressWarnings("unchecked")
     private TransactionalRegionFactory buildTransactionalRegionFactory(){
-        DataStore ds = new DataStore(getDataLib(),
-                SIConstants.SI_NEEDED,
-                SIConstants.SI_DELETE_PUT,
-                SIConstants.EMPTY_BYTE_ARRAY,
-                SIConstants.DEFAULT_FAMILY_BYTES);
         SITransactor transactor = new SITransactor(getTxnStore(),getIgnoreTxnStore(),
-                getOperationFactory(),ds,getOperationStatusFactory(),getExceptionFactory());
+                getOperationFactory(),getBaseOperationFactory(),getOperationStatusFactory(),getExceptionFactory());
         return new TransactionalRegionFactory(this.getTxnStore(),
-                getIgnoreTxnStore(),ds,transactor,getOperationFactory(),NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE);
+                getIgnoreTxnStore(),transactor,getOperationFactory(),NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE);
     }
 }

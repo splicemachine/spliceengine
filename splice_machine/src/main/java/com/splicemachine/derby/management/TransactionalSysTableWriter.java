@@ -15,7 +15,6 @@ import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataResultScanner;
 import com.splicemachine.storage.EntryDecoder;
@@ -43,7 +42,6 @@ public abstract class TransactionalSysTableWriter<T> {
     protected DataValueDescriptor[] dvds;
     protected DescriptorSerializer[] serializers;
     protected EntryDecoder entryDecoder;
-    protected static final SDataLib dataLib = SIDriver.driver().getDataLib();
 
     private final ThreadLocal<Pair<DataHash<T>,DataHash<T>>> hashLocals;
     private final SqlExceptionFactory exceptionFactory;

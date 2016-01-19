@@ -143,7 +143,7 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * This means that we will NOT writes from dependent child transactions until their
 		 * parent transaction has been committed.
 		 */
-        long ts=element.version();//dataStore.getDataLib().getTimestamp(element);
+        long ts=element.version();//dataStore.getOpFactory().getTimestamp(element);
         if(!visitedTxnIds.add(ts)){
 			/*
 			 * We've already visited this version of the row data, so there's no
@@ -178,7 +178,7 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * Otherwise, we just look at the transaction of the entry's visibility to us--if
 		 * it matches, then we can see it.
 		 */
-        long timestamp=data.version();//dataStore.getDataLib().getTimestamp(data);
+        long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
         long[] tombstones=tombstonedTxnRows.buffer;
         int tombstoneSize=tombstonedTxnRows.size();
         for(int i=0;i<tombstoneSize;i++){
@@ -215,7 +215,7 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private void addToAntiTombstoneCache(DataCell data) throws IOException{
-        long txnId=data.version();//this.dataStore.getDataLib().getTimestamp(data);
+        long txnId=data.version();//this.dataStore.getOpFactory().getTimestamp(data);
         if(isVisible(txnId)){
 			/*
 			 * We can see this anti-tombstone, hooray!
@@ -226,7 +226,7 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private void addToTombstoneCache(DataCell data) throws IOException{
-        long txnId=data.version();//this.dataStore.getDataLib().getTimestamp(data);
+        long txnId=data.version();//this.dataStore.getOpFactory().getTimestamp(data);
 		/*
 		 * Only add a tombstone to our list if it's actually visible,
 		 * otherwise there's no point, since we can't see it anyway.
@@ -238,7 +238,7 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private void ensureTransactionIsCached(DataCell data) throws IOException{
-        long txnId=data.version();//this.dataStore.getDataLib().getTimestamp(data);
+        long txnId=data.version();//this.dataStore.getOpFactory().getTimestamp(data);
         visitedTxnIds.add(txnId);
         if(!transactionStore.transactionCached(txnId)){
 			/*
@@ -260,10 +260,10 @@ public class SimpleTxnFilter implements TxnFilter{
             TxnView toCache;
             if(ignoreTxnCache.shouldIgnore(tableName,txnId)){ //-sf- can remove the isSIFail since we aren't backward compatible with Lassen anyway
                 //use the current read-resolver to remove the entry
-                doResolve(data,data.version());//dataStore.getDataLib().getTimestamp(data));
+                doResolve(data,data.version());//dataStore.getOpFactory().getTimestamp(data));
                 toCache=new RolledBackTxn(txnId);
             }else{
-                long commitTs=data.valueAsLong();//dataStore.getDataLib().getValueToLong(data);
+                long commitTs=data.valueAsLong();//dataStore.getOpFactory().getValueToLong(data);
                 toCache=new CommittedTxn(txnId,commitTs);//since we don't care about the begin timestamp, just use the TxnId
             }
             transactionStore.cache(toCache);

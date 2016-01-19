@@ -1,12 +1,9 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
 
@@ -15,7 +12,7 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 12/18/15
  */
-public class HTxnOperationFactory extends BaseOperationFactory{
+public class HTxnOperationFactory extends SimpleTxnOperationFactory{
 
     public HTxnOperationFactory(ExceptionFactory exceptionFactory){
         super(exceptionFactory);

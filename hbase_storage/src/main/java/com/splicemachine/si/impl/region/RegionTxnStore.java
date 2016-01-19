@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
@@ -42,7 +41,6 @@ public class RegionTxnStore implements TxnPartition{
     private static final Logger LOG=Logger.getLogger(RegionTxnStore.class);
 
     private final TxnDecoder newTransactionDecoder=V2TxnDecoder.INSTANCE;
-    private final SDataLib dataLib;
     private final TransactionResolver resolver;
     private final TxnSupplier txnSupplier;
     private final HRegion region;
@@ -52,13 +50,11 @@ public class RegionTxnStore implements TxnPartition{
     public RegionTxnStore(HRegion region,
                           TxnSupplier txnSupplier,
                           TransactionResolver resolver,
-                          SDataLib dataLib,
                           long keepAliveTimeoutMs,
                           Clock keepAliveClock){
         this.txnSupplier=txnSupplier;
         this.region=region;
         this.resolver=resolver;
-        this.dataLib = dataLib;
         this.keepAliveTimeoutMs = keepAliveTimeoutMs;
         this.clock = keepAliveClock;
     }
@@ -339,14 +335,14 @@ public class RegionTxnStore implements TxnPartition{
 
 
     private TxnMessage.Txn decode(long txnId,Result result) throws IOException{
-        TxnMessage.Txn txn=newTransactionDecoder.decode(dataLib,this,txnId,result);
+        TxnMessage.Txn txn=newTransactionDecoder.decode(this,txnId,result);
         resolveTxn(txn);
         return txn;
 
     }
 
     private TxnMessage.Txn decode(List<Cell> keyValues) throws IOException{
-        TxnMessage.Txn txn=newTransactionDecoder.decode(dataLib,this,keyValues);
+        TxnMessage.Txn txn=newTransactionDecoder.decode(this,keyValues);
         resolveTxn(txn);
         return txn;
     }

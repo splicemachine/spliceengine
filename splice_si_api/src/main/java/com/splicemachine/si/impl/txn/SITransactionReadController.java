@@ -1,18 +1,19 @@
 package com.splicemachine.si.impl.txn;
 
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.DataGet;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 
 import java.io.IOException;
 
@@ -20,20 +21,12 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 2/13/14
  */
-public class SITransactionReadController<OperationWithAttributes,Data,
-        Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes>
-        implements TransactionReadController{
-    private final DataStore dataStore;
-    private final SDataLib dataLib;
+public class SITransactionReadController implements TransactionReadController{
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSuppler;
 
-    public SITransactionReadController(DataStore dataStore,
-                                       TxnSupplier txnSupplier,
+    public SITransactionReadController(TxnSupplier txnSupplier,
                                        IgnoreTxnCacheSupplier ignoreTxnSuppler){
-        this.dataStore = dataStore;
-        this.dataLib = dataStore.getDataLib();
         this.txnSupplier = txnSupplier;
         this.ignoreTxnSuppler = ignoreTxnSuppler;
     }

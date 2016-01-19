@@ -1,14 +1,11 @@
 package com.splicemachine.si;
 
 import com.splicemachine.concurrent.IncrementingClock;
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.impl.MOpStatusFactory;
-import com.splicemachine.si.impl.MTxnOperationFactory;
+import com.splicemachine.si.impl.MOperationFactory;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.data.MExceptionFactory;
-import com.splicemachine.si.impl.data.light.LDataLib;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.MFilterFactory;
@@ -18,16 +15,12 @@ import com.splicemachine.storage.MFilterFactory;
  *         Date: 12/21/15
  */
 public class MemSIDataEnv implements SITestDataEnv{
-    private SDataLib dataLib = new LDataLib();
+    private final MOperationFactory opFactory;
     private TxnOperationFactory txnOpFactory;
 
     public MemSIDataEnv(){
-        this.txnOpFactory = new MTxnOperationFactory(dataLib,new IncrementingClock(),MExceptionFactory.INSTANCE);
-    }
-
-    @Override
-    public SDataLib getDataLib(){
-        return dataLib;
+        this.opFactory=new MOperationFactory(new IncrementingClock());
+        this.txnOpFactory = new SimpleTxnOperationFactory(MExceptionFactory.INSTANCE, opFactory);
     }
 
     @Override
@@ -48,5 +41,10 @@ public class MemSIDataEnv implements SITestDataEnv{
     @Override
     public TxnOperationFactory getOperationFactory(){
         return txnOpFactory;
+    }
+
+    @Override
+    public OperationFactory getBaseOperationFactory(){
+        return opFactory;
     }
 }

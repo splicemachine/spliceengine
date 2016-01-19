@@ -1,7 +1,6 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataPut;
@@ -36,8 +35,6 @@ public interface Transactor{
                                     Collection<KVPair> toProcess,
                                     TxnView txn,
                                     ConstraintChecker constraintChecker) throws IOException;
-
-    SDataLib getDataLib();
 
     /**
      * Use the HBase counter API to store the specified transactionId as the value of a counter in this row.  The idea

@@ -21,7 +21,6 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -48,8 +47,7 @@ import static com.splicemachine.si.constants.SIConstants.*;
 @SuppressWarnings("unchecked")
 public class SITransactor implements Transactor{
     private static final Logger LOG=Logger.getLogger(SITransactor.class);
-    private final SDataLib dataLib;
-    private final DataStore dataStore;
+    private final OperationFactory opFactory;
     private final OperationStatusFactory operationStatusLib;
     private final ExceptionFactory exceptionLib;
 
@@ -60,13 +58,12 @@ public class SITransactor implements Transactor{
     public SITransactor(TxnSupplier txnSupplier,
                         IgnoreTxnCacheSupplier ignoreTxnSupplier,
                         TxnOperationFactory txnOperationFactory,
-                        DataStore dataStore,
+                        OperationFactory opFactory,
                         OperationStatusFactory operationStatusLib,
                         ExceptionFactory exceptionFactory){
         this.txnSupplier=txnSupplier;
         this.txnOperationFactory=txnOperationFactory;
-        this.dataStore = dataStore;
-        this.dataLib = dataStore.getDataLib();
+        this.opFactory= opFactory;
         this.operationStatusLib = operationStatusLib;
         this.exceptionLib = exceptionFactory;
         this.ignoreTxnSupplier = ignoreTxnSupplier;
@@ -93,7 +90,7 @@ public class SITransactor implements Transactor{
             return new MutationStatus[0];
         }
 
-        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory,dataStore);
+        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
         final Map<byte[], MutationStatus> statusMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
         for(Map.Entry<Long, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
             long txnId=entry.getKey();
@@ -313,7 +310,7 @@ public class SITransactor implements Transactor{
         constraintStateFilter.nextRow();
         if(!additiveConflict && visibleColumns.size()<=0) return false; //no visible values to check
 
-        MutationStatus operationStatus=constraintChecker.checkConstraint(mutation,dataLib.newResult(visibleColumns));
+        MutationStatus operationStatus=constraintChecker.checkConstraint(mutation,opFactory.newResult(visibleColumns));
         if(operationStatus!=null && !operationStatus.isSuccess()){
             finalStatus[rowPosition]=operationStatus;
             return true;
@@ -362,13 +359,13 @@ public class SITransactor implements Transactor{
              * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
              * for the values column (but which is nulls everywhere)
              */
-            newPut=dataLib.newDataPut(kvPair.rowKeySlice());
-            dataStore.setTombstonesOnColumns(table,txnIdLong,newPut);
+            newPut=opFactory.newPut(kvPair.rowKeySlice());
+            setTombstonesOnColumns(table,txnIdLong,newPut);
         }else if(kvPair.getType()==KVPair.Type.DELETE){
-            newPut=dataLib.newDataPut(kvPair.rowKeySlice());
+            newPut=opFactory.newPut(kvPair.rowKeySlice());
             newPut.tombstone(txnIdLong);
         }else
-            newPut=dataLib.toDataPut(kvPair,family,column,txnIdLong);
+            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
 
         newPut.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         if(kvPair.getType()!=KVPair.Type.DELETE && conflictResults.hasTombstone())
@@ -381,7 +378,7 @@ public class SITransactor implements Transactor{
 
     private void resolveChildConflicts(Partition table,DataPut put,LongOpenHashSet conflictingChildren) throws IOException{
         if(conflictingChildren!=null && !conflictingChildren.isEmpty()){
-            DataDelete delete=dataLib.newDataDelete(put.key());
+            DataDelete delete=opFactory.newDelete(put.key());
             Iterable<DataCell> cells=put.cells();
             for(LongCursor lc : conflictingChildren){
                 for(DataCell dc : cells){
@@ -401,9 +398,9 @@ public class SITransactor implements Transactor{
      */
     private ConflictResults ensureNoWriteConflict(TxnView updateTransaction,KVPair.Type updateType,DataResult row) throws IOException{
 
-        DataCell commitTsKeyValue=row.commitTimestamp();//dataLib.getColumnLatest(result, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-//        Data tombstoneKeyValue = dataLib.getColumnLatest(result, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
-//        Data userDataKeyValue = dataLib.getColumnLatest(result, DEFAULT_FAMILY_BYTES, PACKED_COLUMN_BYTES);
+        DataCell commitTsKeyValue=row.commitTimestamp();//opFactory.getColumnLatest(result, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
+//        Data tombstoneKeyValue = opFactory.getColumnLatest(result, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
+//        Data userDataKeyValue = opFactory.getColumnLatest(result, DEFAULT_FAMILY_BYTES, PACKED_COLUMN_BYTES);
 
         ConflictResults conflictResults=null;
         if(commitTsKeyValue!=null){
@@ -444,7 +441,7 @@ public class SITransactor implements Transactor{
     private ConflictResults checkCommitTimestampForConflict(TxnView updateTransaction,
                                                             ConflictResults conflictResults,
                                                             DataCell commitCell) throws IOException{
-//        final long dataTransactionId = dataLib.getTimestamp(dataCommitKeyValue);
+//        final long dataTransactionId = opFactory.getTimestamp(dataCommitKeyValue);
         long txnId=commitCell.version();
         if(commitCell.valueLength()>0){
             long globalCommitTs=commitCell.valueAsLong();
@@ -524,8 +521,9 @@ public class SITransactor implements Transactor{
     // Helpers
 
     private boolean isFlaggedForSITreatment(Attributable operation){
-        return dataStore.getSINeededAttribute(operation)!=null;
+        return operation.getAttribute(SIConstants.SI_NEEDED)!=null;
     }
+
 
     private void ensureTransactionAllowsWrites(TxnView transaction) throws IOException{
         if(transaction==null || !transaction.allowsWrites()){
@@ -534,15 +532,10 @@ public class SITransactor implements Transactor{
     }
 
     @Override
-    public SDataLib getDataLib(){
-        return dataLib;
-    }
-
-    @Override
     public void updateCounterColumn(Partition hbRegion,TxnView txnView,byte[] rowKey) throws IOException{
         // Get the current counter value.
-//        Get get = dataLib.newGet(rowKey);
-//        dataLib.addFamilyQualifierToGet(get,DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
+//        Get get = opFactory.newGet(rowKey);
+//        opFactory.addFamilyQualifierToGet(get,DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
         DataResult result=hbRegion.getFkCounter(rowKey,null);
         long counterTransactionId=result==null?0L:result.fkCounter().valueAsLong();
         // Update counter value if the calling transaction started after counter value.
@@ -553,5 +546,23 @@ public class SITransactor implements Transactor{
         // Throw WriteConflict exception if the target row has already been deleted concurrently.
         DataResult possibleConflicts=hbRegion.getLatest(rowKey,result);//dataStore.getCommitTimestampsAndTombstonesSingle(hbRegion, rowKey);
         ensureNoWriteConflict(txnView,KVPair.Type.FOREIGN_KEY_PARENT_EXISTENCE_CHECK,possibleConflicts);
+    }
+
+    private void setTombstonesOnColumns(Partition table, long timestamp, DataPut put) throws IOException {
+        //-sf- this doesn't really happen in practice, it's just for a safety valve, which is good, cause it's expensive
+        final Map<byte[], byte[]> userData = getUserData(table,put.key());
+        if (userData != null) {
+            for (byte[] qualifier : userData.keySet()) {
+                put.addCell(SIConstants.PACKED_COLUMN_BYTES,qualifier,timestamp,SIConstants.EMPTY_BYTE_ARRAY);
+            }
+        }
+    }
+
+    private Map<byte[], byte[]> getUserData(Partition table, byte[] rowKey) throws IOException {
+        DataResult dr = table.getLatest(rowKey,SIConstants.PACKED_COLUMN_BYTES,null);
+        if (dr != null) {
+            return dr.familyCellMap(SIConstants.PACKED_COLUMN_BYTES);
+        }
+        return null;
     }
 }

@@ -64,8 +64,7 @@ public class SIObserver extends BaseRegionObserver{
             //noinspection unchecked
             txnOperationFactory=new HTxnOperationFactory(driver.getExceptionFactory());
             //noinspection unchecked
-            txnReadController = new SITransactionReadController<>(
-                    driver.getDataStore(),
+            txnReadController = new SITransactionReadController(
                     driver.getTxnSupplier(),
                     driver.getIgnoreTxnSupplier());
             Partition regionPartition = new RegionPartition(rce.getRegion());

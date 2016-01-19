@@ -13,7 +13,6 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -37,8 +36,7 @@ public class V2TxnDecoder implements TxnDecoder{
     private V2TxnDecoder(){ } //singleton instance
 
     @Override
-    public TxnMessage.Txn decode(SDataLib dataLib,
-                                 RegionTxnStore txnStore,
+    public TxnMessage.Txn decode(RegionTxnStore txnStore,
                                  List<Cell> keyValues) throws IOException{
         if(keyValues.size()<=0) return null;
         Cell dataKv=null;
@@ -69,8 +67,7 @@ public class V2TxnDecoder implements TxnDecoder{
     }
 
     @Override
-    public TxnMessage.Txn decode(SDataLib dataLib,
-                                 RegionTxnStore txnStore,
+    public TxnMessage.Txn decode(RegionTxnStore txnStore,
                                  long txnId,Result result) throws IOException{
         Cell dataKv=result.getColumnLatestCell(FAMILY,DATA_QUALIFIER_BYTES);
         Cell commitTsVal=result.getColumnLatestCell(FAMILY,COMMIT_QUALIFIER_BYTES);

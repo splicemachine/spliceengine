@@ -9,7 +9,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanne
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.StatisticsAdmin;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
@@ -31,7 +30,6 @@ public class StatisticsScanner<Data> extends SITableScanner<Data>{
     SimpleOverheadManagedPartitionStatistics statistics;
 
     public StatisticsScanner(long conglomId,
-                             final SDataLib dataLib,
                              DataScanner scanner,
                              final TransactionalRegion region,
                              final ExecRow template,

@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.region;
 
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
@@ -23,11 +22,9 @@ import java.util.List;
 
 public interface TxnDecoder {
 
-    TxnMessage.Txn decode(SDataLib dataLib,
-                          RegionTxnStore txnStore,long txnId, Result result) throws IOException;
+    TxnMessage.Txn decode(RegionTxnStore txnStore,long txnId, Result result) throws IOException;
 
-    TxnMessage.Txn decode(SDataLib datalib,
-                          RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
+    TxnMessage.Txn decode(RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
 
 	Put encodeForPut(TxnMessage.TxnInfo txn) throws IOException;
 

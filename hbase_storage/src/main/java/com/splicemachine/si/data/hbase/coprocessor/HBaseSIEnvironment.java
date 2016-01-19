@@ -8,7 +8,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.AsyncReadResolver;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
@@ -18,7 +17,6 @@ import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
-import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import com.splicemachine.si.impl.CoprocessorTxnStore;
 import com.splicemachine.si.impl.HTxnOperationFactory;
@@ -36,9 +34,7 @@ import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
 import com.splicemachine.utils.GreenLight;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
@@ -54,8 +50,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final PartitionFactory<TableName> tableFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier<OperationWithAttributes,Cell,
-            Get, Scan,TableName> ignoreTxnSupplier;
+    private final IgnoreTxnCacheSupplier<
+            TableName> ignoreTxnSupplier;
     private final HTxnOperationFactory txnOpFactory;
     private final AsyncReadResolver readResolver;
     private final PartitionInfoCache partitionCache;
@@ -97,7 +93,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,SIConstants.completedTransactionCacheSize,SIConstants.completedTransactionConcurrency);
         this.txnStore.setCache(txnSupplier);
-        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(dataLib(),tableFactory);
+        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(opFactory,tableFactory);
         this.txnOpFactory = new HTxnOperationFactory(exceptionFactory());
         this.clock = clock;
 
@@ -121,8 +117,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     public SConfiguration configuration(){
         return config;
     }
-
-    @Override public SDataLib dataLib(){ return HDataLib.instance(); }
 
     @Override
     public TxnStore txnStore(){

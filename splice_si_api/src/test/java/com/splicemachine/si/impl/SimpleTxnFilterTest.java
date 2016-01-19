@@ -5,7 +5,7 @@ import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.SDataLib;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.*;
@@ -44,7 +44,6 @@ import static org.mockito.Mockito.*;
 public class SimpleTxnFilterTest{
 
     private ClientTxnLifecycleManager txnLifecycleManager;
-    private DataStore ds;
     private TxnStore txnStore;
     private TxnSupplier txnSupplier;
     private IgnoreTxnCacheSupplier ignoreSupplier;
@@ -58,16 +57,15 @@ public class SimpleTxnFilterTest{
         this.operationFactory=testEnv.getOperationFactory();
         this.exceptionFactory = testEnv.getExceptionFactory();
 
-        SDataLib dataLib=testEnv.getDataLib();
 
+        OperationFactory operationFactory = testEnv.getBaseOperationFactory();
         TimestampSource tss = new TestingTimestampSource();
-        this.ignoreSupplier=new IgnoreTxnCacheSupplier(dataLib,mock(PartitionFactory.class));
+        this.ignoreSupplier=new IgnoreTxnCacheSupplier(operationFactory,mock(PartitionFactory.class));
         this.txnStore=new TestingTxnStore(new IncrementingClock(),tss,exceptionFactory,Long.MAX_VALUE);
         this.txnSupplier = new ActiveTxnCacheSupplier(txnStore,1024);
         this.txnLifecycleManager= new ClientTxnLifecycleManager(tss,exceptionFactory);
         this.txnLifecycleManager.setTxnStore(txnStore);
         this.txnLifecycleManager.setKeepAliveScheduler(new ManualKeepAliveScheduler(txnStore));
-        this.ds =TxnTestUtils.playDataStore(dataLib,txnSupplier,txnLifecycleManager,exceptionFactory);
     }
 
     @Test

@@ -7,10 +7,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
@@ -18,7 +15,6 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.data.MExceptionFactory;
-import com.splicemachine.si.impl.data.light.LDataLib;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
@@ -34,7 +30,6 @@ import java.nio.file.FileSystems;
  */
 public class MemSIEnvironment implements SIEnvironment{
     public static volatile MemSIEnvironment INSTANCE;
-    private final SDataLib dataLib = new LDataLib();
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
@@ -43,7 +38,8 @@ public class MemSIEnvironment implements SIEnvironment{
     private final IgnoreTxnCacheSupplier ignoreSupplier;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
-    private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,clock,exceptionFactory);
+    private final OperationFactory opFactory = new MOperationFactory(clock);
+    private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
     private final KeepAliveScheduler kaScheduler = new ManualKeepAliveScheduler(txnStore);
     private final SConfiguration config;
 
@@ -58,7 +54,7 @@ public class MemSIEnvironment implements SIEnvironment{
         this.tableFactory = tableFactory;
         this.config=new MapConfiguration();
         config.addDefaults(SIConfigurations.defaults);
-        this.ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
+        this.ignoreSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
     }
 
     @Override
@@ -74,11 +70,6 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public SConfiguration configuration(){
         return config;
-    }
-
-    @Override
-    public SDataLib dataLib(){
-        return dataLib;
     }
 
     @Override
@@ -151,5 +142,10 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public DistributedFileSystem fileSystem(){
         return fileSystem;
+    }
+
+    @Override
+    public OperationFactory baseOperationFactory(){
+        return opFactory;
     }
 }

@@ -26,7 +26,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
 
 @Ignore
@@ -36,7 +35,6 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
-	SDataLib dataLib = HTransactorFactory.getTransactor().getDataLib();
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import com.google.common.io.Closeables;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -25,10 +24,8 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -37,7 +34,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class SpliceScan implements ScanManager, LazyScan{
-    protected static final SDataLib dataLib=SIDriver.driver().getDataLib();
     protected static Logger LOG=Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;

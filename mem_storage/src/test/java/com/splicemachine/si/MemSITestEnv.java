@@ -5,14 +5,10 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.data.MExceptionFactory;
-import com.splicemachine.si.impl.data.light.LDataLib;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -28,17 +24,17 @@ import java.io.IOException;
  *         Date: 12/16/15
  */
 public class MemSITestEnv implements SITestEnv{
-    private final SDataLib dataLib = new LDataLib();
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock = new IncrementingClock();
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
     protected Partition personPartition;
     private final PartitionFactory tableFactory = new MPartitionFactory();
-    private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(dataLib,tableFactory);
+    private final OperationFactory opFactory = new MOperationFactory(clock);
+    private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
-    private final TxnOperationFactory txnOpFactory = new MTxnOperationFactory(dataLib,clock,exceptionFactory);
+    private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
 
     public MemSITestEnv() throws IOException{
     }
@@ -47,8 +43,6 @@ public class MemSITestEnv implements SITestEnv{
         createTransactionalTable(Bytes.toBytes("person"));
         this.personPartition = tableFactory.getTable("person");
     }
-
-    @Override public SDataLib getDataLib(){ return dataLib; }
 
     @Override public String getPersonTableName(){ return "person"; }
     @Override public Clock getClock(){ return clock; }
@@ -74,6 +68,11 @@ public class MemSITestEnv implements SITestEnv{
     @Override
     public TxnOperationFactory getOperationFactory(){
         return txnOpFactory;
+    }
+
+    @Override
+    public OperationFactory getBaseOperationFactory(){
+        return opFactory;
     }
 
     @Override

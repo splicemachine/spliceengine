@@ -14,8 +14,8 @@ import com.splicemachine.pipeline.mem.DirectPipelineExceptionFactory;
 import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
@@ -50,6 +50,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
     }
 
     @Override
+    public OperationFactory baseOperationFactory(){
+        return siEnv.baseOperationFactory();
+    }
+
+    @Override
     public PartitionFactory tableFactory(){
         return siEnv.tableFactory();
     }
@@ -62,11 +67,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public SConfiguration configuration(){
         return siEnv.configuration();
-    }
-
-    @Override
-    public SDataLib dataLib(){
-        return siEnv.dataLib();
     }
 
     @Override

@@ -4,7 +4,6 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -17,7 +16,6 @@ import com.splicemachine.storage.Partition;
 public class TransactionalRegionFactory{
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreSupplier;
-    private final DataStore dataStore;
     private final SITransactor transactor;
     private final TxnOperationFactory txnOpFactory;
     private final RollForward rollForward;
@@ -25,14 +23,12 @@ public class TransactionalRegionFactory{
 
     public TransactionalRegionFactory(TxnSupplier txnSupplier,
                                       IgnoreTxnCacheSupplier ignoreSupplier,
-                                      DataStore dataStore,
                                       SITransactor transactor,
                                       TxnOperationFactory txnOpFactory,
                                       RollForward rollForward,
                                       ReadResolver readResolver){
         this.txnSupplier=txnSupplier;
         this.ignoreSupplier=ignoreSupplier;
-        this.dataStore=dataStore;
         this.transactor=transactor;
         this.txnOpFactory=txnOpFactory;
         this.rollForward=rollForward;

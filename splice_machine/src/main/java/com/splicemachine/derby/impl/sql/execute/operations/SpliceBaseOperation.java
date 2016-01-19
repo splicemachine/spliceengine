@@ -25,14 +25,11 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -49,7 +46,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     private static final long serialVersionUID=4l;
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
-    protected static final SDataLib dataLib=SIDriver.driver().getDataLib();
     /* Run time statistics variables */
     public int numOpens;
     public long beginTime;

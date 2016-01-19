@@ -6,8 +6,8 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.storage.Partition;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
 import java.io.IOException;
@@ -18,18 +18,15 @@ import java.util.List;
  *
  * Created by jyuan on 4/17/15.
  */
-public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,
-        Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes,
-        TableInfo> {
+public class IgnoreTxnCacheSupplier<TableInfo> {
     private final ConcurrentLinkedHashMap<String,List<Pair<Long, Long>>> cache;
-    private final SDataLib dataLib;
+    private final OperationFactory opFactory;
     private final PartitionFactory<TableInfo> tableFactory;
 
     private EntryDecoder entryDecoder;
 
-    public IgnoreTxnCacheSupplier(SDataLib dataLib,PartitionFactory<TableInfo> tableFactory) {
-        this.dataLib = dataLib;
+    public IgnoreTxnCacheSupplier(OperationFactory opFactory,PartitionFactory<TableInfo> tableFactory) {
+        this.opFactory = opFactory;
         this.tableFactory=tableFactory;
         cache = new ConcurrentLinkedHashMap.Builder<String, List<Pair<Long, Long>>>()
                 .maximumWeightedCapacity(1024)
@@ -81,7 +78,7 @@ public class IgnoreTxnCacheSupplier<OperationWithAttributes,Data,
         Partition p =tableFactory.getTable(tableName);
         byte[] startRow = MultiFieldEncoder.create(1).encodeNext(tableName).build();
         byte[] stopRow = Bytes.unsignedCopyAndIncrement(startRow);
-        DataScan scan = dataLib.newDataScan().startKey(startRow).stopKey(stopRow);
+        DataScan scan = opFactory.newScan().startKey(startRow).stopKey(stopRow);
         return p.openResultScanner(scan,Metrics.noOpMetricFactory());
     }
 }

@@ -15,7 +15,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -44,18 +43,15 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreSupplier;
     private final Transactor transactory;
-    private final DataStore dataStore;
     private final TxnOperationFactory txnOperationFactory;
 
     public ControlDataSetProcessor(TxnSupplier txnSupplier,
                                    IgnoreTxnCacheSupplier ignoreSupplier,
                                    Transactor transactory,
-                                   DataStore dataStore,
                                    TxnOperationFactory txnOperationFactory){
         this.txnSupplier=txnSupplier;
         this.ignoreSupplier=ignoreSupplier;
         this.transactory=transactory;
-        this.dataStore=dataStore;
         this.txnOperationFactory=txnOperationFactory;
     }
 

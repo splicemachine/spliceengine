@@ -69,7 +69,6 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),
                     resolver,
-                    driver.getDataLib(),
                     txnKeepAliveInterval,
                     new SystemClock());
             TimestampSource timestampSource=driver.getTimestampSource();

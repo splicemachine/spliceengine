@@ -279,7 +279,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         if(fieldLengths!=null){
             return new StatisticsScanner(
                     baseTableConglomId,
-                    SIDriver.driver().getDataLib(),
                     scanner,
                     region,
                     template,

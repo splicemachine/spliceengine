@@ -2,7 +2,6 @@ package com.splicemachine.si.testenv;
 
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.ManualKeepAliveScheduler;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.server.Transactor;
@@ -38,22 +37,17 @@ public class TestTransactionSetup {
 
     TxnOperationFactory txnOperationFactory;
     public Transactor transactor;
-    private DataStore dataStore;
     public TimestampSource timestampSource;
     public TransactionReadController readController;
 
-    private KeepAliveScheduler keepAliveScheduler;
     public final TxnStore txnStore;
-    private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     public TxnLifecycleManager txnLifecycleManager;
     private DataFilterFactory filterFactory;
 
     public TestTransactionSetup(SITestEnv testEnv, boolean simple) {
-        final SDataLib dataLib = testEnv.getDataLib();
 
-        family = dataLib.encode(SIConstants.DEFAULT_FAMILY_BYTES);
-        ageQualifier = dataLib.encode(Bytes.toBytes("age"));
+        family = SIConstants.DEFAULT_FAMILY_BYTES;
+        ageQualifier = Bytes.toBytes("age");
 
         final ManagedTransactor listener = new ManagedTransactor();
 
@@ -61,33 +55,25 @@ public class TestTransactionSetup {
         ClientTxnLifecycleManager lfManager = new ClientTxnLifecycleManager(timestampSource,testEnv.getExceptionFactory());
 
         txnStore = testEnv.getTxnStore();
-        txnSupplier = new CompletedTxnCacheSupplier(txnStore, 100, 16);
-        ignoreTxnSupplier = testEnv.getIgnoreTxnStore();
+        TxnSupplier txnSupplier=new CompletedTxnCacheSupplier(txnStore,100,16);
+        IgnoreTxnCacheSupplier ignoreTxnSupplier=testEnv.getIgnoreTxnStore();
         filterFactory = testEnv.getFilterFactory();
         lfManager.setTxnStore(txnStore);
         txnLifecycleManager = lfManager;
 
         txnOperationFactory = testEnv.getOperationFactory();
 
-        //noinspection unchecked
-        dataStore = new DataStore(dataLib,
-                SIConstants.SI_NEEDED,
-                SIConstants.SI_DELETE_PUT,
-                SIConstants.EMPTY_BYTE_ARRAY,
-                SIConstants.DEFAULT_FAMILY_BYTES
-        );
 
-
-        keepAliveScheduler = new ManualKeepAliveScheduler(txnStore);
+        KeepAliveScheduler keepAliveScheduler=new ManualKeepAliveScheduler(txnStore);
         lfManager.setKeepAliveScheduler(keepAliveScheduler);
         ((ClientTxnLifecycleManager) txnLifecycleManager).setKeepAliveScheduler(keepAliveScheduler);
 
-        readController = new SITransactionReadController(dataStore,txnSupplier,ignoreTxnSupplier);
+        readController = new SITransactionReadController(txnSupplier,ignoreTxnSupplier);
 
         transactor = new SITransactor(txnSupplier,
                 ignoreTxnSupplier,
                 txnOperationFactory,
-                dataStore,
+                testEnv.getBaseOperationFactory(),
                 testEnv.getOperationStatusFactory(),
                 testEnv.getExceptionFactory());
 

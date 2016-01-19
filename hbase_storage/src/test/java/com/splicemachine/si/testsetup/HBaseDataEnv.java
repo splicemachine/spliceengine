@@ -2,10 +2,8 @@ package com.splicemachine.si.testsetup;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.data.HExceptionFactory;
-import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import com.splicemachine.si.impl.HTxnOperationFactory;
 import com.splicemachine.si.testenv.SITestDataEnv;
@@ -21,11 +19,6 @@ public class HBaseDataEnv implements SITestDataEnv{
 
     public HBaseDataEnv(){
         this.txnOperationFactory = new HTxnOperationFactory(HExceptionFactory.INSTANCE);
-    }
-
-    @Override
-    public SDataLib getDataLib(){
-        return HDataLib.instance();
     }
 
     @Override

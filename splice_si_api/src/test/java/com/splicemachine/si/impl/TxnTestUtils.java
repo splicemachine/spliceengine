@@ -2,12 +2,7 @@ package com.splicemachine.si.impl;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.data.ExceptionFactory;
-import com.splicemachine.si.api.data.SDataLib;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.ByteSlice;
 import org.junit.Assert;
@@ -77,17 +72,6 @@ public class TxnTestUtils{
         Assert.assertEquals(baseErrorMessage+" Additive property differs",correct.getIsAdditive(),actual.getIsAdditive());
         Assert.assertEquals(baseErrorMessage+" Isolation level differs",correct.getIsolationLevel(),actual.getIsolationLevel());
         Assert.assertEquals(baseErrorMessage+" Table buffer differs",correct.getDestinationTables(),actual.getDestinationTables());
-    }
-
-    public static DataStore playDataStore(SDataLib dataLib,
-                                          TxnSupplier txnSupplier,
-                                          TxnLifecycleManager txnLifecycleManager,
-                                          ExceptionFactory exceptionFactory){
-        return new DataStore(dataLib,SIConstants.SI_NEEDED,
-                SIConstants.SI_DELETE_PUT,
-                SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,
-                SIConstants.DEFAULT_FAMILY_BYTES
-        );
     }
 
 }

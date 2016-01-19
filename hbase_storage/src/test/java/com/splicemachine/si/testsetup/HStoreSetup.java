@@ -7,7 +7,6 @@
 //import com.splicemachine.constants.SIConstants;
 //import com.splicemachine.constants.SpliceConstants;
 //import com.splicemachine.si.api.txn.TxnStore;
-//import com.splicemachine.si.api.data.SDataLib;
 //import com.splicemachine.si.api.data.STableReader;
 //import com.splicemachine.si.data.hbase.HDataLib;
 //import com.splicemachine.si.client.*;
@@ -32,7 +31,6 @@
 //    private static int nextBasePort = 12_000;
 //    public static final Map<String, HRegion> REGION_MAP = new HashMap<>();
 //
-//    private SDataLib dataLib;
 //    private STableReader reader;
 //    private Clock clock = new SystemClock();
 //    private HBaseTestingUtility testCluster;
@@ -101,7 +99,7 @@
 //    }
 //
 //    @Override
-//    public SDataLib getDataLib() {
+//    public SDataLib getOpFactory() {
 //        return dataLib;
 //    }
 //

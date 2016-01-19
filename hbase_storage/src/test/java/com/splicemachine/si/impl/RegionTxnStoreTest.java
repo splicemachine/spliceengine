@@ -8,7 +8,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
@@ -31,14 +30,13 @@ import static org.mockito.Mockito.mock;
 public class RegionTxnStoreTest{
     private static final Clock clock = new IncrementingClock();
     private static final TxnSupplier txnSupplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,Long.MAX_VALUE);
-    private static final HDataLib dataLib = new HDataLib();
 
 
     @Test
     public void testCanWriteAndReadNewTransactionInformation() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
         TransactionResolver resolver=getTransactionResolver();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,resolver,dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,resolver,Long.MAX_VALUE,clock);
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
                 .setBeginTs(1)
@@ -60,7 +58,7 @@ public class RegionTxnStoreTest{
     public void testNoTransactionReturnsNull() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
         TransactionResolver resolver=getTransactionResolver();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,resolver,dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,resolver,Long.MAX_VALUE,clock);
         Assert.assertNull("Non-null txn came back!",store.getTransaction(1));
     }
 
@@ -68,7 +66,7 @@ public class RegionTxnStoreTest{
     @Test
     public void testCanCommitATransaction() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
 
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -98,7 +96,7 @@ public class RegionTxnStoreTest{
     @Test
     public void testCanRollbackATransaction() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
 
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -124,7 +122,7 @@ public class RegionTxnStoreTest{
     @Test
     public void testCanGetActiveTransactions() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
 
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -148,7 +146,7 @@ public class RegionTxnStoreTest{
     @Test
     public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
 
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -169,7 +167,7 @@ public class RegionTxnStoreTest{
     @Test
     public void testGetActiveTransactionsFiltersOutCommittedTxns() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),dataLib,Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
 
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)

@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
@@ -27,7 +26,6 @@ public class TransactorTestUtility {
     private boolean useSimple = true;
     private SITestEnv testEnv;
     private TestTransactionSetup transactorSetup;
-    private SDataLib dataLib;
 
     public TransactorTestUtility(boolean useSimple,
                                  SITestEnv testEnv,
@@ -35,7 +33,6 @@ public class TransactorTestUtility {
         this.useSimple = useSimple;
         this.testEnv=testEnv;
         this.transactorSetup = transactorSetup;
-        this.dataLib = testEnv.getDataLib();
     }
 
     public void insertAge(Txn txn, String name, Integer age) throws IOException {
@@ -75,7 +72,7 @@ public class TransactorTestUtility {
 
 
     public String scan(Txn txn, String name) throws IOException {
-        byte[] key = dataLib.newRowKey(new Object[]{name});
+        byte[] key = newRowKey(name);
         DataScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
         s = s.startKey(key).stopKey(key);
 
@@ -98,14 +95,14 @@ public class TransactorTestUtility {
 
     public String scanAll(Txn txn, String startKey, String stopKey, Integer filterValue) throws IOException {
 
-        byte[] key = dataLib.newRowKey(new Object[]{startKey});
-        byte[] endKey = dataLib.newRowKey(new Object[]{stopKey});
+        byte[] key = newRowKey(startKey);
+        byte[] endKey = newRowKey(stopKey);
         DataScan scan = transactorSetup.txnOperationFactory.newDataScan(txn);
         scan.startKey(key).stopKey(endKey);
         addPredicateFilter(scan);
 
         if (!useSimple && filterValue != null) {
-            DataFilter df = transactorSetup.equalsValueFilter(transactorSetup.ageQualifier,dataLib.encode(filterValue));
+            DataFilter df = transactorSetup.equalsValueFilter(transactorSetup.ageQualifier,convertToBytes(filterValue,filterValue.getClass()));
             scan.filter(df);
 //            SingleColumnValueFilter filter = new SingleColumnValueFilter(transactorSetup.family,
 //                    transactorSetup.ageQualifier,
@@ -140,15 +137,14 @@ public class TransactorTestUtility {
 
     private static void insertField(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                     Txn txn,String name,int index,Object fieldValue) throws IOException {
-        final SDataLib dataLib = testEnv.getDataLib();
-        DataPut put = makePut(transactorSetup, txn, name, index, fieldValue, dataLib);
+        DataPut put = makePut(transactorSetup, txn, name, index, fieldValue);
         processPutDirect(transactorSetup,testEnv, put);
     }
 
     private static DataPut makePut(TestTransactionSetup transactorSetup,
-                                                   Txn txn, String name, int index,
-                                                   Object fieldValue, SDataLib dataLib) throws IOException {
-        byte[] key = dataLib.newRowKey(new Object[]{name});
+                                   Txn txn,String name,int index,
+                                   Object fieldValue) throws IOException {
+        byte[] key = newRowKey(name);
         DataPut put = transactorSetup.txnOperationFactory.newDataPut(txn,key);
         final BitSet bitSet = new BitSet();
         if (fieldValue != null)
@@ -169,7 +165,6 @@ public class TransactorTestUtility {
 
     private static void insertFieldBatch(TestTransactionSetup transactorSetup,SITestEnv SITestEnv,
                                          Object[] args,int index) throws IOException {
-        final SDataLib dataLib = SITestEnv.getDataLib();
         DataPut[] puts = new DataPut[args.length];
         int i = 0;
         for (Object subArgs : args) {
@@ -177,7 +172,7 @@ public class TransactorTestUtility {
             Txn transactionId = (Txn) subArgsArray[0];
             String name = (String) subArgsArray[1];
             Object fieldValue = subArgsArray[2];
-            DataPut put = makePut(transactorSetup, transactionId, name, index, fieldValue, dataLib);
+            DataPut put = makePut(transactorSetup, transactionId, name, index, fieldValue);
             puts[i] = put;
             i++;
         }
@@ -186,9 +181,8 @@ public class TransactorTestUtility {
 
     private static void deleteRowDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                         Txn txn,String name) throws IOException {
-        final SDataLib dataLib = testEnv.getDataLib();
 
-        byte[] key = dataLib.newRowKey(new Object[]{name});
+        byte[] key = newRowKey(name);
         DataMutation put = transactorSetup.txnOperationFactory.newDataDelete(txn, key);
         processMutationDirect(transactorSetup,testEnv,put);
 //        if(put instanceof DataPut)
@@ -211,13 +205,6 @@ public class TransactorTestUtility {
         }
     }
 
-    private static void processDeleteDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
-                                            DataDelete put) throws IOException {
-        try(Partition table = transactorSetup.getPersonTable(testEnv)){
-            table.delete(put);
-        }
-    }
-
     private static void processPutDirectBatch(TestTransactionSetup transactorSetup,
                                               SITestEnv testEnv,
                                               DataPut[] puts) throws IOException {
@@ -236,9 +223,8 @@ public class TransactorTestUtility {
 
     private static String readAgeDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                         Txn txn,String name) throws IOException {
-        final SDataLib dataLib = testEnv.getDataLib();
 
-        byte[] key = dataLib.newRowKey(new Object[]{name});
+        byte[] key = newRowKey(name);
         DataGet get = transactorSetup.txnOperationFactory.newDataGet(txn, key,null);
         addPredicateFilter(get);
         try (Partition p = transactorSetup.getPersonTable(testEnv)){
@@ -249,9 +235,7 @@ public class TransactorTestUtility {
 
     private static String scanNoColumnsDirect(TestTransactionSetup transactorSetup,SITestEnv testEnv,
                                               Txn txn,String name,boolean deleted) throws IOException {
-        final SDataLib dataLib = testEnv.getDataLib();
-
-        byte[] endKey = dataLib.newRowKey(new Object[]{name});
+        byte[] endKey = newRowKey(name);
         DataScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
         s = s.startKey(endKey).stopKey(endKey);
         addPredicateFilter(s);
@@ -278,10 +262,6 @@ public class TransactorTestUtility {
         } else {
             return "";
         }
-    }
-
-    public String resultToString(String name, DataResult result) {
-        return resultToStringDirect(name,result);
     }
 
     private static String resultToStringDirect(String name,DataResult result) {
@@ -348,4 +328,30 @@ public class TransactorTestUtility {
         operation.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 
+    public static byte[] newRowKey(Object... args){
+        List<byte[]> bytes=new ArrayList<>();
+        for(Object a : args){
+            bytes.add(convertToBytes(a,a.getClass()));
+        }
+        return Bytes.concat(bytes);
+    }
+
+    static byte[] convertToBytes(Object value,Class clazz){
+        if(clazz==String.class){
+            return Bytes.toBytes((String)value);
+        }else if(clazz==Integer.class){
+            return Bytes.toBytes((Integer)value);
+        }else if(clazz==Short.class){
+            return Bytes.toBytes((Short)value);
+        }else if(clazz==Long.class){
+            return Bytes.toBytes((Long)value);
+        }else if(clazz==Boolean.class){
+            return Bytes.toBytes((Boolean)value);
+        }else if(clazz==byte[].class){
+            return (byte[])value;
+        }else if(clazz==Byte.class){
+            return new byte[]{(Byte)value};
+        }
+        throw new RuntimeException("Unsupported class "+clazz.getName()+" for "+value);
+    }
 }

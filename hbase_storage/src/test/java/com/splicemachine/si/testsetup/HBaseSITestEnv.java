@@ -9,12 +9,10 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.HExceptionFactory;
-import com.splicemachine.si.data.hbase.HDataLib;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
@@ -91,7 +89,6 @@ public class HBaseSITestEnv implements SITestEnv{
         }
     }
 
-    @Override public SDataLib getDataLib(){ return HDataLib.instance(); }
     @Override public String getPersonTableName(){ return "person"; }
     @Override public ExceptionFactory getExceptionFactory(){ return HExceptionFactory.INSTANCE; }
     @Override public OperationStatusFactory getOperationStatusFactory(){ return HOperationStatusFactory.INSTANCE; }

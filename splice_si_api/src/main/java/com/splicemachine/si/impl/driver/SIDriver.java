@@ -7,7 +7,6 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
-import com.splicemachine.si.api.data.SDataLib;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.readresolve.AsyncReadResolver;
@@ -19,9 +18,7 @@ import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ClientTxnLifecycleManager;
-import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
@@ -47,13 +44,11 @@ public class SIDriver {
     private final PartitionFactory tableFactory;
     private final ExceptionFactory exceptionFactory;
     private final SConfiguration config;
-    private final SDataLib dataLib;
     private final TxnStore txnStore;
     private final OperationStatusFactory operationStatusFactory;
     private final TimestampSource timestampSource;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
-    private final DataStore dataStore;
     private final Transactor transactor;
     private final TxnOperationFactory txnOpFactory;
     private final RollForward rollForward;
@@ -67,7 +62,6 @@ public class SIDriver {
         this.tableFactory = env.tableFactory();
         this.exceptionFactory = env.exceptionFactory();
         this.config = env.configuration();
-        this.dataLib = env.dataLib();
         this.txnStore = env.txnStore();
         this.operationStatusFactory = env.statusFactory();
         this.timestampSource = env.timestampSource();
@@ -78,24 +72,19 @@ public class SIDriver {
         this.filterFactory = env.filterFactory();
         this.clock = env.systemClock();
 
-        this.dataStore = new DataStore(env.dataLib(),
-                SIConstants.SI_NEEDED,
-                SIConstants.SI_DELETE_PUT,
-                SIConstants.EMPTY_BYTE_ARRAY,
-                SIConstants.DEFAULT_FAMILY_BYTES);
         //noinspection unchecked
         this.transactor = new SITransactor(
                 this.txnSupplier,
                 this.ignoreTxnSupplier,
                 this.txnOpFactory,
-                this.dataStore,
+                env.baseOperationFactory(),
                 this.operationStatusFactory,
                 this.exceptionFactory);
         ClientTxnLifecycleManager clientTxnLifecycleManager=new ClientTxnLifecycleManager(this.timestampSource,env.exceptionFactory());
         clientTxnLifecycleManager.setTxnStore(this.txnStore);
         clientTxnLifecycleManager.setKeepAliveScheduler(env.keepAliveScheduler());
         this.lifecycleManager =clientTxnLifecycleManager;
-        readController = new SITransactionReadController(dataStore,txnSupplier,ignoreTxnSupplier);
+        readController = new SITransactionReadController(txnSupplier,ignoreTxnSupplier);
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
         this.fileSystem = env.fileSystem();
     }
@@ -120,10 +109,6 @@ public class SIDriver {
         return config;
     }
 
-	public SDataLib getDataLib() {
-        return dataLib;
-    }
-
     public TxnStore getTxnStore() {
         return txnStore;
     }
@@ -138,10 +123,6 @@ public class SIDriver {
 
     public TimestampSource getTimestampSource() {
         return timestampSource;
-    }
-
-    public DataStore getDataStore(){
-        return dataStore;
     }
 
     public Transactor getTransactor(){
