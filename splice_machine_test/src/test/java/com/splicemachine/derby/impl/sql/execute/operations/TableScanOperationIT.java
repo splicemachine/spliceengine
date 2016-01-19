@@ -23,6 +23,7 @@ import static org.junit.Assert.*;
 /**
  * This tests basic table scans with and without projection/restriction
  */
+@Ignore("DB-4272")
 public class TableScanOperationIT {
 
     private static Logger LOG = Logger.getLogger(TableScanOperationIT.class);

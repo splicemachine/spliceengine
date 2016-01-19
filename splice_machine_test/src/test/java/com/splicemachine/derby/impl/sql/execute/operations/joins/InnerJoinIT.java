@@ -19,6 +19,7 @@ import java.util.*;
 import static com.splicemachine.homeless.TestUtils.o;
 
 
+@Ignore("DB-4272")
 public class InnerJoinIT extends SpliceUnitTest {
 
 		private static Logger LOG = Logger.getLogger(InnerJoinIT.class);

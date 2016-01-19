@@ -18,6 +18,7 @@ import java.sql.*;
  * @author Scott Fines
  *         Date: 4/1/15
  */
+@Ignore("DB-4272")
 public class ExplainTableScanIT extends SpliceUnitTest{
     private static final int size=128;
     private static final SpliceWatcher classWatcher = new SpliceWatcher();

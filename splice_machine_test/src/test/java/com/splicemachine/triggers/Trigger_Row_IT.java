@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 /**
  * Test ROW triggers.
  */
+@Ignore("DB-4272")
 public class Trigger_Row_IT {
 
     private static final String SCHEMA = Trigger_Row_IT.class.getSimpleName();

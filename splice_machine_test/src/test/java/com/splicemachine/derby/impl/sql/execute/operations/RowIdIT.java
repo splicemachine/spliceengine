@@ -15,6 +15,7 @@ import java.sql.RowId;
 /**
  * Created by jyuan on 9/28/14.
  */
+@Ignore("DB-4272")
 public class RowIdIT extends SpliceUnitTest {
     public static final String CLASS_NAME = RowIdIT.class.getSimpleName().toUpperCase();
     public static int nRows = 3;
