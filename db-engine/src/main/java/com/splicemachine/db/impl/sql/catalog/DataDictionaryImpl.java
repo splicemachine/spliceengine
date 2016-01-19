@@ -6319,6 +6319,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
 
         Properties heapProperties=ti.getCreateHeapProperties();
+        heapProperties.setProperty("tableDisplayName", ti.getTableName());
         ti.setHeapConglomerate(
                 createConglomerate(
                         tc,
@@ -6553,6 +6554,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // For now, all columns are key fields, including the RowLocation
         indexProperties.put("nKeyFields",Integer.toString(numColumns+1));
 
+        // Cache human readable display name for table and index,
+        // which will make it to the relevant descriptor if necessary.
+        // These attr names need to match SpliceConstants.TABLE_DISPLAY_NAME_ATTR
+        // and SpliceConstants.INDEX_DISPLAY_NAME_ATTR, respectively.
+        indexProperties.setProperty("tableDisplayName", ti.getTableName());
+        indexProperties.setProperty("indexDisplayName", ti.getIndexName(indexNumber));
+        
 		/* Create and add the conglomerate (index) */
         conglomId=tc.createConglomerate(
                 "BTREE", // we're requesting an index conglomerate
@@ -10078,6 +10086,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ContextService.getFactory().setCurrentContextManager(cm);
                 TabInfoImpl ti=coreInfo[coreCtr];
                 Properties heapProperties=ti.getCreateHeapProperties();
+                heapProperties.setProperty("tableDisplayName", ti.getTableName());
                 ExecRow rowTemplate=ti.getCatalogRowFactory().makeEmptyRow();
                 long conglomerate=createConglomerate(tc,rowTemplate,heapProperties);
                 ti.setHeapConglomerate(conglomerate);
