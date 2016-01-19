@@ -319,6 +319,13 @@ public class DataDictionaryCache {
         return roleCache.getIfPresent(roleName);
     }
 
+    public void roleCacheRemove(String roleName) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("roleCacheRemove " + roleName);
+        roleCache.invalidate(roleName);
+    }
+
+
 
     @MXBean
     @SuppressWarnings("UnusedDeclaration")

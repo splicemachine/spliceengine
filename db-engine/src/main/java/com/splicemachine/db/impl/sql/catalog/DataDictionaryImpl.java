@@ -2195,7 +2195,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void dropRoleGrantsByName(String roleName,TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
-
+        dataDictionaryCache.roleCacheRemove(roleName);
         visitRoleGrants(ti,
                 rf,
                 SYSROLESRowFactory.SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR,
