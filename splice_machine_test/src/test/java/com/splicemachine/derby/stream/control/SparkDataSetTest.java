@@ -9,7 +9,6 @@ import org.junit.Ignore;
 /**
  * Created by jleach on 4/15/15.
  */
-@Ignore("Broken now that we moved to yarn, need to revisit")
 public class SparkDataSetTest extends AbstractDataSetTest {
 
     public SparkDataSetTest() {

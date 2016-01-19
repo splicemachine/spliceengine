@@ -91,7 +91,7 @@ public class SpliceSpark {
 
     private static JavaSparkContext initializeSparkContext() {
 
-        String master = System.getProperty("splice.spark.master", "yarn-client");
+        String master = System.getProperty("splice.spark.master", "local[8]");
         String sparkHome = System.getProperty("splice.spark.home", null);
 
         LOG.warn("##############################################################################");
@@ -103,16 +103,6 @@ public class SpliceSpark {
         String schedulerAllocationFile = System.getProperty("splice.spark.scheduler.allocation.file");
         if (schedulerAllocationFile != null) {
             conf.set("spark.scheduler.allocation.file", schedulerAllocationFile);
-        }
-
-        if (master.startsWith("local[8]")) {
-            conf.set("spark.cores.max", "8");
-            if (localContext == null) {
-                localContext = new JavaSparkContext(conf);
-            }
-            return localContext;
-        } else if (sparkHome != null) {
-            conf.setSparkHome(sparkHome);
         }
         conf.set("executor.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
         conf.set("driver.source.splice-machine.class", "com.splicemachine.derby.stream.spark.SpliceMachineSource");
@@ -148,6 +138,15 @@ public class SpliceSpark {
         conf.set("spark.logConf", System.getProperty("splice.spark.logConf", "true"));
         conf.set("spark.master", master);
 
+        if (master.startsWith("local[8]")) {
+            conf.set("spark.cores.max", "8");
+            if (localContext == null) {
+                localContext = new JavaSparkContext(conf);
+            }
+            return localContext;
+        } else if (sparkHome != null) {
+            conf.setSparkHome(sparkHome);
+        }
         /*
             Spark Streaming
         */
