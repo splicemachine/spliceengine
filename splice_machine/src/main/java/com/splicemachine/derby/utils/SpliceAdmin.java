@@ -12,7 +12,6 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions.ActivationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.spark.ActivationHolder;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.jmx.JMXUtils;
@@ -734,9 +733,22 @@ public class SpliceAdmin extends BaseAdminProcedures {
         GenericPreparedStatement gps = (GenericPreparedStatement)lcc.prepareInternalStatement(statement);
         GenericActivationHolder activationHolder = (GenericActivationHolder)gps.getActivation(lcc, false);
         Activation activation = activationHolder.ac;
-        ActivationHolder ah = new ActivationHolder(activation);
+        SpliceOperation operation = (SpliceOperation)activation.execute();
+        ActivationContext activationContext = ActivationContext.create(activation, operation);
+        TriggerExecutionStack triggerExecutionStack = null;
+        if (lcc.hasTriggers()) {
+            triggerExecutionStack = lcc.getTriggerStack();
+        }
 
-        byte[] activationHolderBytes = SerializationUtils.serialize(ah);
+        SpliceObserverInstructions soi = new SpliceObserverInstructions(
+                (GenericStorablePreparedStatement) activation.getPreparedStatement(),
+                operation,
+                activationContext,
+                lcc.getSessionUserId(),
+                lcc.getDefaultSchema(),
+                triggerExecutionStack);
+
+        byte[] soiBytes = SerializationUtils.serialize(soi);
         DataValueDescriptor[] dvds = new DataValueDescriptor[] {
                 new SQLBlob()
         };
@@ -745,7 +757,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         dataTemplate.setRowArray(dvds);
 
         List<ExecRow> rows = Lists.newArrayList();
-        dvds[0].setValue(activationHolderBytes);
+        dvds[0].setValue(soiBytes);
         rows.add(dataTemplate);
 
         // Describe the format of the output rows (ResultSet).
