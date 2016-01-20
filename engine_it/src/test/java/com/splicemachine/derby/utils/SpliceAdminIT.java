@@ -188,7 +188,7 @@ public class SpliceAdminIT {
                 ps.setString(2,Integer.toString(i+1));
                 ps.executeUpdate();
             }
-            spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
+//            spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

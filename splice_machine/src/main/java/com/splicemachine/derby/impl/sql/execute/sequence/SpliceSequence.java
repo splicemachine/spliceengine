@@ -37,6 +37,8 @@ public class SpliceSequence extends AbstractSequence{
         try(Partition sysColumnTable = partitionFactory.getTable(OperationConfiguration.SEQUENCE_TABLE_NAME_BYTES)){
             DataGet currValue=opFactory.newDataGet(null,sysColumnsRow,null);
             currValue.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier);
+            currValue.returnAllVersions();
+            currValue.setTimeRange(0l,Long.MAX_VALUE);
             DataResult result=sysColumnTable.get(currValue,null);
             if(result==null || result.size()<=0)
                 return startingValue;

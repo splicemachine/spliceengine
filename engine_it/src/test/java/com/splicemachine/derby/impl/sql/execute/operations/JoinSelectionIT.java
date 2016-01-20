@@ -362,13 +362,18 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         methodWatcher.executeUpdate("create table NLJ3812C1 (i bigint, j bigint, k bigint, l bigint)");
         methodWatcher.executeUpdate("create table NLJ3812C2 (i bigint, j bigint, k bigint, l bigint)");
 
+        System.out.println("insert data");
         methodWatcher.executeUpdate("insert into NLJ3812A (j) values 1,2,3,4,5,6,7,8,9,10");
+        System.out.println("insert select");
         methodWatcher.executeUpdate("insert into NLJ3812A (j) select j from NLJ3812A");
-    	for (int i = 0; i < 16; i++) {
+    	for (int i = 0; i < 8; i++) {
+            System.out.println("insert select["+i+"]");
             methodWatcher.executeUpdate("insert into NLJ3812A (j) select j from NLJ3812A");
 		}
+        System.out.println("insert values 1");
         methodWatcher.executeUpdate("insert into NLJ3812B (j) values 1");
-        
+
+        System.out.println("insert select join");
 		String query = "%s insert into %s (i, j, k, l) " +
             "select a.i, a.j, b.i, b.j " +
             "from %s " +

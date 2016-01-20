@@ -81,6 +81,11 @@ public class MGet implements DataGet{
     }
 
     @Override
+    public Map<byte[],Set<byte[]>> familyQualifierMap(){
+        return familyQualifierMap;
+    }
+
+    @Override
     public void addAttribute(String key,byte[] value){
         attrs.put(key,value);
     }

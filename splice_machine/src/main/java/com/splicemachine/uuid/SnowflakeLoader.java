@@ -2,6 +2,7 @@ package com.splicemachine.uuid;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -41,7 +42,7 @@ public class SnowflakeLoader{
         //get this machine's IP address
         byte[] localAddress=Bytes.concat(Arrays.asList(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port)));
         byte[] counterNameRow=SIConstants.MACHINE_ID_COUNTER.getBytes();
-        try(Partition sequenceTable = tableFactory.getTable(SIConstants.SEQUENCE_TABLE_NAME)){
+        try(Partition sequenceTable = tableFactory.getTable(OperationConfiguration.SEQUENCE_TABLE_NAME)){
             DataScan scan = opFactory.newDataScan(null)
                     .batchCells(100)
                     .startKey(counterNameRow)
@@ -107,7 +108,7 @@ public class SnowflakeLoader{
     public synchronized void unload() throws Exception{
         byte[] counterNameRow=SIConstants.MACHINE_ID_COUNTER.getBytes();
         SIDriver driver=SIDriver.driver();
-        try(Partition table = driver.getTableFactory().getTable(SIConstants.SEQUENCE_TABLE_NAME)){
+        try(Partition table = driver.getTableFactory().getTable(OperationConfiguration.SEQUENCE_TABLE_NAME)){
             DataPut put=driver.getOperationFactory().newDataPut(null,counterNameRow);
             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,Encoding.encode(usedMachineId),SIConstants.EMPTY_BYTE_ARRAY);
 

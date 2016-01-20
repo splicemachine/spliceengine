@@ -2,16 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.splicemachine.derby.test.framework.SpliceHBaseUtils;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.ResultSet;
 import java.util.Collections;
@@ -23,7 +20,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class RowCountOperationIT {
+public class SplitRegionRowCountOperationIT{
 
     private static final String SCHEMA = RowCountOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
@@ -63,6 +60,10 @@ public class RowCountOperationIT {
                 .withInsert("insert into B values(?)")
                 .withRows(rows(tableBRows)).create();
 
+        // Important: we need at least three splits (four regions) for good/realistic tests of RowCountOperation.
+        SpliceHBaseUtils.splitTable("A",SCHEMA,4);
+        SpliceHBaseUtils.splitTable("A",SCHEMA,8);
+        SpliceHBaseUtils.splitTable("A",SCHEMA,12);
 
         conn.collectStats(spliceSchemaWatcher.schemaName,"A");
 

@@ -281,38 +281,4 @@ public class SpliceWatcher extends TestWatcher {
         }
         return -1l;
     }
-
-    public void splitTable(String tableName, String schemaName, int position) throws Exception {
-        throw new UnsupportedOperationException("IMPLEMENT USING ONLY JDBC");
-//        Scan scan = new Scan();
-//        scan.setCaching(100);
-//        scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
-//
-//        long conglomId = getConglomId(tableName, schemaName);
-//        HTable table = null;
-//        ResultScanner scanner = null;
-//        try {
-//            table = new HTable(SpliceConstants.config, conglomId + "");
-//            scanner = table.getScanner(scan);
-//            int count = 0;
-//            Result result = null;
-//            while (count < position) {
-//                Result next = scanner.next();
-//                if (next == null) {
-//                    break;
-//                } else {
-//                    result = next;
-//                }
-//                count++;
-//            }
-//            if (result != null)
-//                ConglomerateUtils.splitConglomerate(conglomId, result.getRow());
-//        } catch (Exception e) {
-//            SpliceLogUtils.logAndThrow(LOG, "error splitting table", e);
-//            throw e;
-//        } finally {
-//            Closeables.closeQuietly(scanner);
-//            Closeables.closeQuietly(table);
-//        }
-    }
 }

@@ -759,9 +759,9 @@ public class StatisticsDataTypeIT {
         Assert.assertTrue("No rows returned!",results.next());
         Assert.assertEquals("Incorrect schema name!", schema.schemaName, results.getString(1));
         Assert.assertEquals("Incorrect table name!", tableName, results.getString(2));
-        Assert.assertEquals("Incorrect # of Regions collected!", 1, results.getInt(3));
-        Assert.assertEquals("Incorrect # of tasks executed!", 1, results.getInt(4));
-        Assert.assertEquals("Incorrect # of rows collected!",size,results.getInt(5));
+//        Assert.assertEquals("Incorrect # of Regions collected!", 1, results.getInt(3));
+//        Assert.assertEquals("Incorrect # of tasks executed!", 1, results.getInt(4));
+        Assert.assertEquals("Incorrect # of rows collected!",size,results.getInt(4));
         Assert.assertFalse("More than one row returned!",results.next());
     }
 

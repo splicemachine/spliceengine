@@ -106,7 +106,7 @@ public class TxnPartition implements Partition{
 
     @Override
     public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return basePartition.checkAndPut(key,family,qualifier,expectedValue,put);
     }
 
     @Override

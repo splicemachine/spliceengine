@@ -1,7 +1,10 @@
 package com.splicemachine.storage;
 
+import com.google.common.base.*;
+import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -65,15 +68,22 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResult get(DataGet get,DataResult previous) throws IOException{
+    public DataResult get(final DataGet get,DataResult previous) throws IOException{
         DataCell start=new MCell(get.key(),new byte[]{},new byte[]{},get.highTimestamp(),new byte[]{},CellType.USER_DATA);
-        DataCell end=new MCell(get.key(),SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,get.lowTimestamp(),new byte[]{},CellType.USER_DATA);
 
-        Set<DataCell> data=memstore.subSet(start,true,end,true);
+        Set<DataCell> data=Sets.filter(memstore.tailSet(start,true),new Predicate<DataCell>(){
+            @Override
+            public boolean apply(DataCell dataCell){
+                byte[] key=get.key();
+                return Bytes.equals(dataCell.keyArray(),dataCell.keyOffset(),dataCell.keyLength(),key,0,key.length);
+            }
+        });
         try(SetScanner ss=new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn==null) return null;
 
+            filterByFamilies(toReturn,get.familyQualifierMap());
+            if(toReturn.size()<=0) return null;
             if(previous==null)
                 previous=new MResult();
             assert previous instanceof MResult:"Incorrect result type!";
@@ -82,6 +92,7 @@ public class MPartition implements Partition{
             return previous;
         }
     }
+
 
     @Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
@@ -134,7 +145,28 @@ public class MPartition implements Partition{
 
     @Override
     public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        Lock lock = getRowLock(key,0,key.length);
+        lock.lock();
+        try{
+            DataResult latest=getLatest(key,family,null);
+            if(latest!=null&& latest.size()>0){
+                DataCell dc = latest.latestCell(family,qualifier);
+                if(dc!=null){
+                    if(Bytes.basicByteComparator().compare(dc.valueArray(),dc.valueOffset(),dc.valueLength(),expectedValue,0,expectedValue.length)==0){
+                        put(put);
+                        return true;
+                    }else return false;
+                }else{
+                    put(put);
+                    return true;
+                }
+            }else{
+                put(put);
+                return true;
+            }
+        }finally{
+            lock.unlock();
+        }
     }
 
     @Override
@@ -435,4 +467,34 @@ public class MPartition implements Partition{
         return dataCells;
     }
 
+
+    private void filterByFamilies(List<DataCell> toReturn,Map<byte[], Set<byte[]>> familyQualifierMap){
+        if(familyQualifierMap==null||familyQualifierMap.size()<=0) return;
+        Iterator<DataCell> dcIter = toReturn.iterator();
+        while(dcIter.hasNext()){
+            DataCell dc = dcIter.next();
+            boolean foundFamily = false;
+            for(Map.Entry<byte[],Set<byte[]>> familyQuals:familyQualifierMap.entrySet()){
+               if(dc.matchesFamily(familyQuals.getKey())){
+                   foundFamily = true;
+                   Set<byte[]> quals = familyQuals.getValue();
+                   if(quals.size()>0){
+                       boolean foundQual = false;
+                       for(byte[] qual:quals){
+                           if(dc.matchesQualifier(familyQuals.getKey(),qual)){
+                               foundQual=true;
+                               break;
+                           }
+                       }
+                       if(!foundQual){
+                            dcIter.remove();
+                       }
+                   }
+                   break;
+               }
+            }
+            if(!foundFamily)
+                dcIter.remove();
+        }
+    }
 }
