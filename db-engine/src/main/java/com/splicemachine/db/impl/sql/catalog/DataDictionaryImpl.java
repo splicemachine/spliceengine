@@ -9619,7 +9619,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException{
 
         Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleCacheFind(roleName);
-        if (optional!=null)
+        if (optional!=null && optional.isPresent())
             return optional.orNull();
 
         DataValueDescriptor roleNameOrderable;
