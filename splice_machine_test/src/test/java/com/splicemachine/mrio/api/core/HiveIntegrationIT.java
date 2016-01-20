@@ -31,6 +31,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.fail;
 
+@Ignore("DB-4272")
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
     public static final String CLASS_NAME = HiveIntegrationIT.class.getSimpleName().toUpperCase();
