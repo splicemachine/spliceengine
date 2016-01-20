@@ -1,5 +1,8 @@
 package com.splicemachine.storage;
 
+import com.google.common.base.*;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
@@ -94,8 +97,14 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
-        public Iterable<? extends Partition> allPartitions(String tableName) throws IOException{
-            return partitionMap.values();
+        public Iterable<? extends Partition> allPartitions(final String tableName) throws IOException{
+            if(tableName==null) return partitionMap.values();
+            return Iterables.filter(partitionMap.values(),new Predicate<Partition>(){
+                @Override
+                public boolean apply(Partition partition){
+                    return partition.getTableName().equals(tableName);
+                }
+            });
         }
     }
 }

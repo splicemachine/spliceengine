@@ -96,7 +96,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testSingleRowIndexLookup() throws Exception {
-        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 = 1","IndexScan[TS_HIGH_CARDINALITY_IX_1",methodWatcher);
+        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 = 1","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
     }
 
     @Ignore("Obsoleted by testRangeIndexLookup1 and testRangeIndexLookup2")

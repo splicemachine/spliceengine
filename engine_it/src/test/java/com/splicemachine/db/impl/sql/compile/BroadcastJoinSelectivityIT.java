@@ -29,25 +29,25 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     @Test
     public void innerJoin() throws Exception {
         rowContainsQuery(
-                new int[] {0,3},
+                new int[] {3},
                 "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk, ts_5_npk --splice-properties joinStrategy=BROADCAST\n where ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
-                "rows=10","BroadcastJoin");
+                "BroadcastJoin");
     }
 
     @Test
     public void leftOuterJoin() throws Exception {
         rowContainsQuery(
-                new int[] {1,3},
+                new int[] {3},
                 "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk left outer join ts_5_npk --splice-properties joinStrategy=BROADCAST\n on ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
-                "rows=10","BroadcastLeftOuterJoin");
+                "BroadcastLeftOuterJoin");
     }
 
     @Test
     public void rightOuterJoin() throws Exception {
         rowContainsQuery(
-                new int[] {1,3},
+                new int[] {3},
                 "explain select * from ts_10_npk --splice-properties joinStrategy=BROADCAST\n right outer join ts_5_npk on ts_10_npk.c1 = ts_5_npk.c1",methodWatcher,
-                "rows=10","BroadcastRightOuterJoin");
+                "BroadcastRightOuterJoin");
     }
 
 }

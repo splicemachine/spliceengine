@@ -449,8 +449,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             throw Exceptions.parseException(e);
         }
 
-
-
         DDLChange ddlChange = ProtoUtil.createDropPKConstraint(tentativeTransaction.getTxnId(),
                 newCongNum,oldCongNum,oldColumnOrdering,DataDictionaryUtils.getColumnOrdering(parentTxn, tableId),
                 tableDescriptor.getColumnInfo(),lcc,(BasicUUID) tableId);
@@ -468,7 +466,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 constraintColumnNames + ")");
 
             // Read from old conglomerate, transform each row and write to new conglomerate.
-            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, oldCongNum,newCongNum,populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -679,7 +677,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 constraintColumnNames + ")");
 
             // Read from old conglomerate, transform each row and write to new conglomerate.
-            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange,oldCongNum,newCongNum, populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -746,7 +744,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             }
 
             DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(),
-                    newIndexCongloms[index], newHeapConglom, td, indexDescriptor);
+                    newHeapConglom,newIndexCongloms[index], td, indexDescriptor);
             DDLUtils.notifyMetadataChangeAndWait(ddlChange);
             Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, newHeapConglom,indexName);
              populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex());
@@ -1071,17 +1069,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
     protected void transformAndWriteToNewConglomerate(Activation activation,
                                                       TxnView parentTxn,
                                                       DDLChange ddlChange,
+                                                      long baseConglomNumber,
+                                                      long destConglom,
                                                       long demarcationPoint) throws IOException, StandardException {
 
         Txn childTxn = beginChildTransaction(parentTxn, ddlChange.getTxnId());
         // create a scanner to scan old conglomerate
-        long baseConglomerateNumber = ddlChange.getTentativeIndex().getTable().getConglomerate();
 
         DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setup(activation,this.toString(),"admin");
-//        StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
 
-        DataSet<KVPair> dataSet = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomerateNumber))
+        DataSet<KVPair> dataSet = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
                 .activation(activation)
                 .scan(DDLUtils.createFullScan())
                 .transaction(childTxn)
@@ -1090,26 +1088,26 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
 
         //Create table writer for new conglomerate
-        PipelineWriterBuilder tableWriter = createTableWriterBuilder(childTxn, ddlChange);
+//        PipelineWriterBuilder tableWriter = createTableWriterBuilder(childTxn, destConglom);
 
         PairDataSet<LocatedRow,KVPair> ds=dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction());
         DataSet<LocatedRow> result = ds.directWriteData()
                 .txn(childTxn)
-                .destConglomerate(ddlChange.getTentativeIndex().getIndex().getConglomerate())
+                .destConglomerate(destConglom)
                 .skipIndex(true).build().write();
 
         childTxn.commit();
     }
 
     // Create a table writer to wrte KVPairs to new conglomerate, skipping index writing.
-    private PipelineWriterBuilder createTableWriterBuilder(TxnView txn, DDLChange ddlChange) {
-        PipelineWriterBuilder tableWriterBuilder = new PipelineWriterBuilder()
-                .txn(txn)
-                .skipIndex(true)
-                .heapConglom(ddlChange.getTentativeIndex().getIndex().getConglomerate());
-
-        return tableWriterBuilder;
-
-    }
+//    private PipelineWriterBuilder createTableWriterBuilder(TxnView txn, long heapConglom) {
+//        PipelineWriterBuilder tableWriterBuilder = new PipelineWriterBuilder()
+//                .txn(txn)
+//                .skipIndex(true)
+//                .heapConglom(heapConglom);
+//
+//        return tableWriterBuilder;
+//
+//    }
 
 }

@@ -30,7 +30,6 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/9/15
  */
 public class PartitionStatsStore {
-    private static final Logger LOG = Logger.getLogger(PartitionStatsStore.class);
     private static final Function<? super Partition,? extends String> partitionNameTransform = new Function<Partition, String>(){
         @Override public String apply(Partition hRegionInfo){ return hRegionInfo.getName(); }
     };
@@ -52,7 +51,7 @@ public class PartitionStatsStore {
         List<OverheadManagedPartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
         String tableId = Long.toString(conglomerateId);
         PartitionStatisticsDescriptor tStats;
-        List<String> missingPartitions = new ArrayList();
+        List<String> missingPartitions = new LinkedList<>();
 
         for(String partitionName : partitionNames){
             tStats = partitionMap.get(partitionName);

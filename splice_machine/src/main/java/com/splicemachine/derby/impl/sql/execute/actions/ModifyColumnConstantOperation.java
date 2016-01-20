@@ -1471,7 +1471,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn(" + columnName + ")");
 
             // Read from old conglomerate, transform each row and write to new conglomerate.
-            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, populateTxn.getBeginTimestamp());
+            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, oldCongNum,newHeapConglom,populateTxn.getBeginTimestamp());
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

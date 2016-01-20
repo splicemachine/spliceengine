@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.protobuf.SpliceZeroCopyByteString;
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.concurrent.MoreExecutors;
@@ -179,7 +180,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                 rl.setStorefileSizeMB((int) (sizeMB / 2));
                 rl.setRegionSpecifier(HBaseProtos.RegionSpecifier.newBuilder()
                     .setType(HBaseProtos.RegionSpecifier.RegionSpecifierType.ENCODED_REGION_NAME).setValue(
-                                        SpliceZeroCopyByteString.copyFromUtf8(info.getFirst())).build());
+                                        ZeroCopyLiteralByteString.copyFromUtf8(info.getFirst())).build());
                 ClusterStatusProtos.RegionLoad load = rl.build();
                 retMap.put(info.getFirst(), new RegionLoad(load));
             }

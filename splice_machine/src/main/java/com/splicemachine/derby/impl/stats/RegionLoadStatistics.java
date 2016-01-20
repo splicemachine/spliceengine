@@ -21,7 +21,7 @@ public class RegionLoadStatistics{
         Map<String,PartitionLoad> regionIdToLoadMap = new HashMap<>(cachedRegionLoadsForTable.size());
         for(PartitionLoad load:cachedRegionLoadsForTable){
             String regionName=load.getPartitionName();
-            regionName = regionName.substring(regionName.indexOf(".")+1,regionName.length()-1);
+//            regionName = regionName.substring(regionName.indexOf(".")+1,regionName.length()-1);
             regionIdToLoadMap.put(regionName,load);
         }
 

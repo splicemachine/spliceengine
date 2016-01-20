@@ -40,6 +40,7 @@
         <module>mem_storage</module>
         <module>mem_pipeline</module>
         <module>engine_it</module>
+        <module>hbase_it</module>
     </modules>
     <properties>
         <derby.version>2.0.0.1-SNAPSHOT</derby.version>
