@@ -10,9 +10,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 /**
- * Encapsulates an ActivationHolder and the Broadcast Spark object used to transfer it to all servers.
- * Makes it possible to (de)serialize only once the activation and operation tree
- *
  * Created by dgomezferro on 1/14/16.
  */
 public class BroadcastedActivation implements Externalizable {

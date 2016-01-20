@@ -253,8 +253,8 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
-        setupBroadcastedActivation(spliceOperation.getActivation());
-        OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation, broadcastedActivation.get());
+        setupActivationHolder(spliceOperation.getActivation());
+        OperationContext<Op> operationContext = new SparkOperationContext<Op>(spliceOperation, context.get());
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive();
@@ -263,9 +263,15 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         return operationContext;
     }
 
+    private void setupActivationHolder(Activation activation) {
+        if (context.get() == null) {
+            context.set(new BroadcastedActivation(activation));
+        }
+    }
+
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
-        setupBroadcastedActivation(activation);
+        setupActivationHolder(activation);
         return new SparkOperationContext<Op>(activation);
     }
 
@@ -357,16 +363,10 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
         this.failBadRecordCount = failBadRecordCount;
     }
 
-    private ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
+    private ThreadLocal<BroadcastedActivation> context = new ThreadLocal<>();
 
     @Override
-    public void clearBroadcastedActivation() {
-        broadcastedActivation.remove();
-    }
-
-    private void setupBroadcastedActivation(Activation activation) {
-        if (broadcastedActivation.get() == null) {
-            broadcastedActivation.set(new BroadcastedActivation(activation));
-        }
+    public void clearOperationContext() {
+        context.remove();
     }
 }

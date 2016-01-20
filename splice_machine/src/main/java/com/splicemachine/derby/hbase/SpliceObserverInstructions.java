@@ -24,8 +24,8 @@ import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 
 /**
- * Class utilized to serialize the Activation and related elments for Spark.  It attaches the
- * GenericStorablePreparedStatement
+ * Class utilized to serialize the Splice Operation onto the scan for hbase.  It attaches the
+ * GenericStorablePreparedStatement and the Top Operation.
  *
  * @author johnleach
  */
