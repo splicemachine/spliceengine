@@ -110,7 +110,14 @@ public class MemFileSystem extends DistributedFileSystem{
 
     @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
-        localDelegate.createDirectory(dir,attrs);
+        try{
+            localDelegate.createDirectory(dir,attrs);
+        }catch(FileAlreadyExistsException fafe){
+            //determine if the path is already a directory, or if it is a file. If it's a file, then
+            //throw a NotADirectoryException. Otherwise, we are good
+            if(Files.isDirectory(dir)) return;
+            else throw fafe;
+        }
     }
 
     @Override

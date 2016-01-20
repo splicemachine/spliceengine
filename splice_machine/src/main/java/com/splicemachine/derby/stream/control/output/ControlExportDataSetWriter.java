@@ -51,7 +51,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         }
 //        OutputStream fileOut = null;
         final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
-        try(OutputStream fileOut =dfs.newOutputStream(dfs.getPath(path,"/part-r-00000"+extension), StandardOpenOption.CREATE_NEW)) {
+        try(OutputStream fileOut =dfs.newOutputStream(dfs.getPath(path,"/part-r-00000"+extension), StandardOpenOption.CREATE)) {
 //            Path file = new Path(path);
 //            FileSystem fs = file.getFileSystem(SpliceConstants.config);
 //            fs.mkdirs(file);

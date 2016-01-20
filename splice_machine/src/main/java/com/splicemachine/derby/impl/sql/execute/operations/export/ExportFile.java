@@ -5,9 +5,12 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.GZIPOutputStream;
@@ -46,7 +49,7 @@ class ExportFile {
     // Create the directory if it doesn't exist.
     public boolean createDirectory() {
         try {
-            Path directoryPath = fileSystem.getPath(URI.create(exportParams.getDirectory()));
+            Path directoryPath = fileSystem.getPath(exportParams.getDirectory());
             fileSystem.createDirectory(directoryPath);
             return true;
         } catch (IOException e) {
@@ -55,13 +58,25 @@ class ExportFile {
     }
 
     public boolean delete() throws IOException {
-        fileSystem.delete(buildOutputFilePath());
-        return true;
+        try{
+            fileSystem.delete(buildOutputFilePath());
+            return true;
+        }catch(NoSuchFileException fnfe){
+            return false;
+        }
     }
 
     public boolean deleteDirectory() throws IOException {
-        fileSystem.delete(fileSystem.getPath(URI.create(exportParams.getDirectory())),true);
-        return true;
+        try{
+            fileSystem.delete(fileSystem.getPath(exportParams.getDirectory()),true);
+            return true;
+        }catch(NoSuchFileException fnfe){
+            return false;
+        }
+    }
+
+    public boolean isWritable(){
+        return Files.isWritable(fileSystem.getPath(exportParams.getDirectory()));
     }
 
     protected Path buildOutputFilePath() {

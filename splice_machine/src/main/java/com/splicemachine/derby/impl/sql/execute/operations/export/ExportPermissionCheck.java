@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Random;
@@ -50,27 +51,30 @@ class ExportPermissionCheck {
         StandardException userVisibleErrorMessage = StandardException.newException(SQLState.UU_INVALID_PARAMETER,
                 "cannot write to export directory", exportParams.getDirectory()); // TODO: i18n
 
-        try {
-            Writer writer = new OutputStreamWriter(testFile.getOutputStream(), exportParams.getCharacterEncoding());
-            writer.write(" ");
-            writer.close();
-        } catch (IOException e) {
+        if(!testFile.isWritable()){
             throw userVisibleErrorMessage;
-        } finally {
-            // no-op if file does not exist.  File will be empty (single space) in the event that
-            // we can, for some reason, create it but not delete it. However documentation of HDFS permission model
-            // seems to indicate that this should not be possible.
-            try {
-                testFile.delete();
-            } catch (IOException io) {
-                //noinspection ThrowFromFinallyBlock
-                throw userVisibleErrorMessage;
-            }
         }
+//        try(OutputStream os = testFile.getOutputStream()){
+//            try(Writer writer = new OutputStreamWriter(os, exportParams.getCharacterEncoding())){
+//                writer.write(" ");
+//            }
+//        } catch (IOException e) {
+//            throw userVisibleErrorMessage;
+//        } finally {
+//            // no-op if file does not exist.  File will be empty (single space) in the event that
+//            // we can, for some reason, create it but not delete it. However documentation of HDFS permission model
+//            // seems to indicate that this should not be possible.
+//            try {
+//                testFile.delete();
+//            } catch (IOException io) {
+//                //noinspection ThrowFromFinallyBlock
+//                throw userVisibleErrorMessage;
+//            }
+//        }
     }
 
     public void cleanup() throws IOException {
         testFile.delete();
-        testFile.deleteDirectory();
+//        testFile.deleteDirectory();
     }
 }
