@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -37,7 +38,7 @@ public class ShutdownRegionServerObserver implements RegionServerObserver {
     public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException {
         LOG.warn("shutting down splice on this node/JVM");
         try {
-            SpliceDriver.driver().shutdown();
+            DatabaseLifecycleManager.manager().shutdown();
         } catch (Exception e) {
             SpliceLogUtils.warn(LOG,"splice machine shut down with error",e);
         }

@@ -15,7 +15,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.splicemachine.derby.hbase.DerbyFactoryImpl;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
@@ -29,8 +28,7 @@ public class SplitRegionScannerIT extends BaseMRIOTest {
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SplitRegionScannerIT.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
 	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SplitRegionScannerIT.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-	protected static DerbyFactoryImpl derbyFactory = new DerbyFactoryImpl();
-	
+
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)

@@ -29,15 +29,13 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.si.impl.SIFactoryImpl;
 
 @Ignore
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
     private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SIFactoryImpl impl = new SIFactoryImpl();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
 	
 	@ClassRule 
