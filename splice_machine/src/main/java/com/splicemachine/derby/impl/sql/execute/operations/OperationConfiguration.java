@@ -34,7 +34,7 @@ public class OperationConfiguration{
     public static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
 
-    public static class Defaults implements SConfiguration.Defaults{
+    public static SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
 
         @Override
         public boolean hasLongDefault(String key){
@@ -95,5 +95,5 @@ public class OperationConfiguration{
         public boolean hasDoubleDefault(String key){
             return false;
         }
-    }
+    };
 }

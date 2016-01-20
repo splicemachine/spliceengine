@@ -207,6 +207,7 @@ public class SQLConfiguration{
                 case INDEX_BATCH_SIZE: return DEFAULT_INDEX_BATCH_SIZE;
                 case INDEX_LOOKUP_BLOCKS: return DEFAULT_INDEX_LOOKUP_BLOCKS;
                 case IMPORT_MAX_QUOTED_COLUMN_LINES: return DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES;
+                case BATCH_ONCE_BATCH_SIZE: return DEFAULT_BATCH_ONCE_BATCH_SIZE;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
             }
@@ -220,6 +221,7 @@ public class SQLConfiguration{
                 case INDEX_BATCH_SIZE:
                 case INDEX_LOOKUP_BLOCKS:
                 case IMPORT_MAX_QUOTED_COLUMN_LINES:
+                case BATCH_ONCE_BATCH_SIZE:
                     return true;
                 default:
                     return false;

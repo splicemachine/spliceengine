@@ -5,6 +5,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
 import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.pipeline.MPipelineEnv;
@@ -37,6 +38,7 @@ public class MemDatabase{
         config.addDefaults(SQLConfiguration.defaults);
         config.addDefaults(AuthenticationConfiguration.defaults);
         config.addDefaults(StatsConfiguration.defaults);
+        config.addDefaults(OperationConfiguration.defaults);
         config.addDefaults(NATURAL_DEFAULTS);
         //start the database sequence
         EngineLifecycleService els = new EngineLifecycleService(new DistributedDerbyStartup(){
