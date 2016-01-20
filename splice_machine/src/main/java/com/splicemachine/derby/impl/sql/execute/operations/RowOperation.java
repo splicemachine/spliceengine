@@ -117,8 +117,8 @@ public class RowOperation extends SpliceBaseOperation {
 				super.writeExternal(out);
 				out.writeBoolean(canCacheRow);
 				out.writeBoolean(next);
-				out.writeBoolean(rowMethodName!=null);
-				if(rowMethodName!=null){
+				out.writeBoolean(rowMethod!=null);
+				if(rowMethod!=null){
 						out.writeUTF(rowMethodName);
 				}
 		}

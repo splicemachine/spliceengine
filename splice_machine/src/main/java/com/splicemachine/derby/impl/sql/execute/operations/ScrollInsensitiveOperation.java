@@ -17,7 +17,6 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.CursorActivation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.ScrollInsensitiveFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -121,13 +120,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         }
 	}
 
-    @Override
-    public void init(SpliceOperationContext context) throws IOException, StandardException {
-        super.init(context);
-        source.init(context);
-    }
-
-    @Override
+	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("readExternal");
@@ -136,7 +129,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		scrollable = in.readBoolean();
         keepAfterCommit = in.readBoolean();
         maxRows = in.readInt();
-        source = (SpliceOperation) in.readObject();
 	}
 
 	@Override
@@ -148,7 +140,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		out.writeBoolean(scrollable);
         out.writeBoolean(keepAfterCommit);
         out.writeInt(maxRows);
-        out.writeObject(source);
 	}
 
 	@Override
