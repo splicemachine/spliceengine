@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -99,6 +100,7 @@ public class UniqueConstraintIT {
      * Table NOT created with NOT NULL criteria.
      */
     @Test
+    @Ignore("DB-4272")
     public void testAlterTableCreateUniqueConstraintWithDuplicateNulls() throws Exception {
         String tableName = "ZONING7";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -152,6 +154,7 @@ public class UniqueConstraintIT {
      * Should not be able to insert a record with a duplicate key after unique constraint added
      */
     @Test
+    @Ignore("DB-4272")
     public void testAlterTableCreateUniqueConstraintInsertDupe() throws Exception {
         String tableName = "ZONING2";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");

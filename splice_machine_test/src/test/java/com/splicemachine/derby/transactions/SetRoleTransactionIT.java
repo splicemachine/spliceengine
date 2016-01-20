@@ -18,6 +18,7 @@ import java.sql.SQLException;
  * Date 5/28/15.
  */
 @Category({Transactions.class})
+@Ignore("DB-4272")
 public class SetRoleTransactionIT {
 
     public static final SpliceSchemaWatcher schemaWatcher =

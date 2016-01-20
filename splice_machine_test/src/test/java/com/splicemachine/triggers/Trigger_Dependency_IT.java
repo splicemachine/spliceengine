@@ -36,6 +36,7 @@ public class Trigger_Dependency_IT {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void dropTableDropsTriggers() throws Exception {
         // given
         createTrigger(tb.named("trig1").after().update().of("a").on("T").row().then("INSERT INTO R VALUES(1)"));

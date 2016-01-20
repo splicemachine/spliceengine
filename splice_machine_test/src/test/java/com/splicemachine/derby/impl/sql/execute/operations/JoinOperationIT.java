@@ -78,6 +78,7 @@ public class JoinOperationIT {
         Assert.assertEquals(String.format("Wrong min for %s", joinStrategy),3,rs.getInt(2));
     }
     @Test
+    @Ignore("DB-4272")
     public void testInnerAntiJoinNoRestriction() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*) from --Splice-properties joinOrder=FIXED\n" +

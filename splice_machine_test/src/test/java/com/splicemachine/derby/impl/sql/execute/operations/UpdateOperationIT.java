@@ -442,12 +442,14 @@ public class UpdateOperationIT {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testUpdateMultiColumnOneSubSyntaxNoOuterWhere() throws Exception {
         int rows = doTestUpdateMultiColumnOneSubSyntax(null);
         Assert.assertEquals("incorrect num rows updated!", 5, rows);
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
         int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
         Assert.assertEquals("incorrect num rows updated!", 4, rows);

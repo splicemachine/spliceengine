@@ -33,7 +33,7 @@ import static org.junit.Assert.assertEquals;
  *         Date: 7/31/13
  */
 @Category(SlowTest.class)
-public class IndexIT extends SpliceUnitTest { 
+public class IndexIT extends SpliceUnitTest {
     private static final Logger LOG = Logger.getLogger(IndexIT.class);
 
     private static final String SCHEMA_NAME = IndexIT.class.getSimpleName().toUpperCase();
@@ -598,6 +598,7 @@ public class IndexIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testFailedIndexRollbacks() throws Exception {
         try {
             conn.prepareStatement("drop index ib").execute();

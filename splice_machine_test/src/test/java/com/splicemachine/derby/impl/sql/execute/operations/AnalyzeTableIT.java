@@ -75,6 +75,7 @@ public class AnalyzeTableIT {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testAnalyzeTablePrivilege() throws Exception {
         String message = null;
         String expected = null;
@@ -93,6 +94,7 @@ public class AnalyzeTableIT {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testAnalyzeSchemaPrivilege() throws Exception {
 
         String message = null;

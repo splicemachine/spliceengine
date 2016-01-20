@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
  *         Date: 9/4/14
  */
 @Category({Transactions.class})
+@Ignore("DB-4272")
 public class DropTableTransactionIT {
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());

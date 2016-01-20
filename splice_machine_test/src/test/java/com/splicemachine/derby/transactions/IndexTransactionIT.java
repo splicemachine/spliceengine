@@ -68,6 +68,7 @@ public class IndexTransactionIT {
     }
 
     @Test(expected = SQLException.class)
+    @Ignore("DB-4272")
     public void testCannotCreateIfActiveWritesOutstanding() throws Exception {
         int a = 1;
         int b = 1;
@@ -177,6 +178,7 @@ public class IndexTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testDropIsIgnoredByOtherTransaction() throws Exception {
         int aInt = 4;
         int bInt = 4;

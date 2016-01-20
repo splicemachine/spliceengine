@@ -88,6 +88,7 @@ public class SchemaConstantIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testSchemaRollbackIsolation() throws Exception{
         Connection connection1 = methodWatcher.createConnection();
         Connection connection2 = methodWatcher.createConnection();

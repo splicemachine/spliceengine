@@ -15,6 +15,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@Ignore("DB-4272")
 public class AuthorizationIT {
 
     private static final String SCHEMA = AuthorizationIT.class.getSimpleName().toUpperCase();

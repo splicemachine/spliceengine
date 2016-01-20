@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+@Ignore("DB-4272")
 public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String SCHEMA = AlterTableConstantOperationIT.class.getSimpleName().toUpperCase();
 

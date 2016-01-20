@@ -17,6 +17,7 @@ import java.util.List;
  * @author Jeff Cunningham
  *         Date: 6/6/13
  */
+@Ignore("DB-4272")
 public class ViewConstantOperationIT extends SpliceUnitTest { 
     public static final String CLASS_NAME = ViewConstantOperationIT.class.getSimpleName().toUpperCase();
 

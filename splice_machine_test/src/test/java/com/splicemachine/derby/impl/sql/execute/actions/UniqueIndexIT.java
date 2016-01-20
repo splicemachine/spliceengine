@@ -181,6 +181,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
      * and B) the index is no longer used in the lookup.
      */
     @Test(timeout=10000)
+    @Ignore("DB-4272")
     public void testCanDropIndex() throws Exception{
 
         //ensure that the uniqueness constraint holds

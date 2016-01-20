@@ -7,10 +7,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.CallableStatement;
 import java.sql.SQLException;
@@ -19,6 +16,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 
+@Ignore("DB-4272")
 public class DeleteOperationIT {
 
     private static final String SCHEMA = DeleteOperationIT.class.getSimpleName().toUpperCase();

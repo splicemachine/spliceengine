@@ -3,6 +3,7 @@ package com.splicemachine.subquery;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -33,6 +34,7 @@ public class Subquery_NestedWhere_IT {
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     @Test
+    @Ignore("DB-4272")
     public void testBasicOperations() throws Exception {
         Statement s = methodWatcher.getStatement();
 

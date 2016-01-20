@@ -3,10 +3,7 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TableDAO;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.Connection;
 
@@ -24,6 +21,7 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
+@Ignore("DB-4272")
 public class ForeignKey_AlterDropTable_IT {
 
     private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();

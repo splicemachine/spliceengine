@@ -14,6 +14,7 @@ import java.sql.ResultSet;
  * @author Scott Fines
  *         Date: 9/2/14
  */
+@Ignore("DB-4272")
 public class TruncateTableIT {
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(TruncateTableIT.class.getSimpleName().toUpperCase());

@@ -2,10 +2,7 @@ package com.splicemachine.hbase.backup;
 
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.Assert;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 
 import java.io.File;
@@ -17,6 +14,7 @@ import java.sql.ResultSet;
  * Created by jyuan on 4/21/15.
  */
 @Category(com.splicemachine.test.BackupTest.class)
+@Ignore("DB-4272")
 public class RestoreIT extends SpliceUnitTest {
 
     protected Connection connection;
