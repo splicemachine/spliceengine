@@ -215,6 +215,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
         DataSet<LocatedRow> dataSet = dsp.getEmpty();
         for (DataScan scan: scans) {
+            deSiify(scan);
             DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation,LocatedRow>newScanSet(this,tableName)
                     .transaction(txn)
                     .scan(scan)

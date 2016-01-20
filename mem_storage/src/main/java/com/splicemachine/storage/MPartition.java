@@ -462,6 +462,13 @@ public class MPartition implements Partition{
                 return memstore.tailSet(start,true);
             }else
                 stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+
+            /*
+             * It is possible (particularly if the start key is null) that the stop value compares to less than
+             * the start key, and that is a reasonable situation. In that case, we know that the end results
+             * are empty, so bypass creating a new Set object in this case.
+             */
+            if(stop.compareTo(start)<0) return EmptyNavigableSet.instance();
             dataCells=memstore.subSet(start,true,stop,false);
         }
         return dataCells;

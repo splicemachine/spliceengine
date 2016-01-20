@@ -15,7 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 
 @Category(SlowTest.class)
-@Ignore
+//@Ignore
 public class DataTypeCheckNegIT extends SpliceUnitTest {
 
     private static boolean done;
@@ -545,7 +545,6 @@ public class DataTypeCheckNegIT extends SpliceUnitTest {
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= -3", 1, "retval");
             runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + table + " where integer3 <= -4", 0, "retval");
         }
-
     }
 
     @Test
