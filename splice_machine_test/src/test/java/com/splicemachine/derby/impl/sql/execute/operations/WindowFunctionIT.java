@@ -2512,6 +2512,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testLagFunction() throws Exception {
         // DB-3920
         String tableName = "emp3";
