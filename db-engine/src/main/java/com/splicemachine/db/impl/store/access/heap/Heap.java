@@ -399,88 +399,16 @@ public class Heap
     int                 column_id,
     Storable            template_column,
     int                 collation_id)
-        throws StandardException
-    {
-        // need to open the container and update the row containing the 
-        // serialized format of the heap.  
-        ContainerHandle container = null;
-        Page            page      = null;
-        Transaction     rawtran   = xact_manager.getRawStoreXact();
-
-        try
-        {
-            container = 
-                rawtran.openContainer(
-                    id, 
-                    rawtran.newLockingPolicy(
-                        LockingPolicy.MODE_CONTAINER,
-                        TransactionController.ISOLATION_SERIALIZABLE, true),
-                    ContainerHandle.MODE_FORUPDATE | 
-                        (isTemporary() ? ContainerHandle.MODE_TEMP_IS_KEPT : 0));
-
-            if (column_id != format_ids.length)
-            {
-                if (SanityManager.DEBUG)
-                    SanityManager.THROWASSERT(
-                        "column_id = " + column_id +
-                        "format_ids.length = " + format_ids.length +
-                        "format_ids = " + format_ids);
-
-                throw(StandardException.newException(
-                        SQLState.HEAP_TEMPLATE_MISMATCH,
-                        new Long(column_id), 
-                        new Long(this.format_ids.length)));
-            }
-
-            // create a new array, and copy old values to it.
-            int[] old_format_ids = format_ids;
-            format_ids              = new int[old_format_ids.length + 1];
-            System.arraycopy(
-                old_format_ids, 0, format_ids, 0, old_format_ids.length);
-
-            // add the new column
-            format_ids[old_format_ids.length] = 
-                template_column.getTypeFormatId();
-
-            // create a new collation array, and copy old values to it.
-            int[] old_collation_ids = collation_ids;
-            collation_ids           = new int[old_collation_ids.length + 1];
-            System.arraycopy(
-                old_collation_ids, 0, collation_ids, 0, 
-                old_collation_ids.length);
-
-            // add the new column's collation id.
-            collation_ids[old_collation_ids.length] =  collation_id;
-           
-            // row in slot 0 of heap page 1 which is just a single column with
-            // the heap entry.
-            DataValueDescriptor[] control_row = new DataValueDescriptor[1];
-            control_row[0] = this;
-
-            page =
-                container.getPage(ContainerHandle.FIRST_PAGE_NUMBER);
-
-            page.updateAtSlot(
-                Page.FIRST_SLOT_NUMBER,
-                control_row,
-                (FormatableBitSet) null);
-
-            page.unlatch();
-            page = null;
-        }
-        finally
-        {
-            if (container != null)
-                container.close();
-            if (page !=null)
-                page.unlatch();
-        }
-
-        return;
+        throws StandardException {
+        throw StandardException.plainWrapException(new IOException("not supported"));
     }
 
+    @Override
+    public void dropColumn(TransactionManager xact_manager, int column_id) throws StandardException {
+        throw StandardException.plainWrapException(new IOException("not supported"));
+    }
 
-	/**
+    /**
 	Drop this heap.
 	@see Conglomerate#drop
 

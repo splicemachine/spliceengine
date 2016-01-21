@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.store.access;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -2470,5 +2471,10 @@ public class RAMTransaction
 
     public boolean isElevated() {
         return false;
+    }
+
+    @Override
+    public void dropColumnFromConglomerate(long conglomId, int column_id) throws StandardException {
+        throw StandardException.plainWrapException(new IOException("not supported"));
     }
 }

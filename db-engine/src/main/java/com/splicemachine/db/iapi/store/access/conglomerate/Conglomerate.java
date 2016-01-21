@@ -68,6 +68,26 @@ public interface Conglomerate extends Storable, DataValueDescriptor
     /**
      * Add a column to the conglomerate.
      * <p>
+     * This routine update's the in-memory object version of the
+     * Conglomerate to have one less column
+     *
+     * Note that not all conglomerates may support this feature.
+     *
+     * @param xact_manager     The TransactionController under which this
+     *                         operation takes place.
+     * @param column_id        The column number to remove this column at.
+     *
+     * @exception  StandardException  Standard exception policy.
+     **/
+    public void dropColumn(
+            TransactionManager  xact_manager,
+            int                 column_id)
+            throws StandardException;
+
+
+    /**
+     * Add a column to the conglomerate.
+     * <p>
      * This routine update's the in-memory object version of the 
      * Conglomerate to have one more column of the type described by the
      * input template column.

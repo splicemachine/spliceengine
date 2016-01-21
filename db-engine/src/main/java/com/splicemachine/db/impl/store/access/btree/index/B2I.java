@@ -1206,4 +1206,9 @@ public class B2I extends BTree
 	{
         localReadExternal(in);
     }
+
+    @Override
+    public void dropColumn(TransactionManager xact_manager, int column_id) throws StandardException {
+        throw StandardException.plainWrapException(new IOException("unsupported"));
+    }
 }

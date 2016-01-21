@@ -622,6 +622,22 @@ public interface TransactionController
 		throws StandardException;
 
 
+
+    /**
+     Remove a column from the conglomerate.
+
+     @param conglomId        The identifier of the conglomerate to alter.
+     @param column_id        The column number to add this column at.
+
+     @exception StandardException Only base conglomerates support.  If the column can not be
+     dropped an exception will be thrown.
+     **/
+    public void dropColumnFromConglomerate(
+            long        conglomId,
+            int         column_id)
+            throws StandardException;
+
+
     /**
     Drop a conglomerate.  The conglomerate must not be open in
 	the current transaction.  This also means that there must

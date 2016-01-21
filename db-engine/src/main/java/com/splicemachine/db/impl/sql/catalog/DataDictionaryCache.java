@@ -214,8 +214,6 @@ public class DataDictionaryCache {
     public void conglomerateCacheRemove(Long conglomId) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheRemove " + conglomId);
-        if (!dd.canUseCache())
-            return;
         conglomerateCache.invalidate(conglomId);
     }
 
@@ -239,8 +237,6 @@ public class DataDictionaryCache {
     public void schemaCacheRemove(String schemaName) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheRemove " + schemaName);
-        if (!dd.canUseCache())
-            return;
         schemaCache.invalidate(schemaName);
     }
 
