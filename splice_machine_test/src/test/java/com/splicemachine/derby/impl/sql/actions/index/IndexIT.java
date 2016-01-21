@@ -282,6 +282,7 @@ public class IndexIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testQueryCustomerByNameWithIndex() throws Exception {
         // Test for DB-1620
             SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);

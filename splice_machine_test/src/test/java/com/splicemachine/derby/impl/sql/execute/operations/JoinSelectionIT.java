@@ -189,6 +189,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     }
 
     @Test
+    @Ignore("DB-4272")
     public void testInnerJoinWithNestedSubqueries() throws Exception {
     	fourthRowContainsQuery(
             format("explain SELECT a2.pid FROM %s a2 " + 
