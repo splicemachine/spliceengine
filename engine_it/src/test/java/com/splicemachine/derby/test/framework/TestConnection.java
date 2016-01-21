@@ -265,8 +265,11 @@ public class TestConnection implements Connection{
                     ", sys.systables t"+
                     ", sys.sysconglomerates c "+
                     "where s.schemaid = t.schemaid "+
-                    "and t.tableid = c.tableid "+
-                    "and s.schemaname = '"+schema.toUpperCase()+"' and t.tablename = '"+table.toUpperCase()+"'";
+                    "and t.tableid = c.tableid ";
+            if(schema!=null)
+                sql += "and s.schemaname = '"+schema.toUpperCase()+"' ";
+            if(table!=null)
+                sql+="and t.tablename = '"+table.toUpperCase()+"' ";
             try(ResultSet rs = s.executeQuery(sql)){
                while(rs.next()){
                    congloms.add(rs.getLong(1));

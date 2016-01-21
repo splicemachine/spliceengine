@@ -8,7 +8,7 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class SimpleSpliceMachineVersionTest {
+public class SimpleDatabaseVersionTest{
 
     @Test
     public void release() {
@@ -18,7 +18,7 @@ public class SimpleSpliceMachineVersionTest {
         map.put("Release", "1.2.3");
         map.put("URL", "http://www.splicemachine.com");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("2014-05-27", version.getBuildTime());
         assertEquals("1d073ed3f6", version.getImplementationVersion());
         assertEquals("1.2.3", version.getRelease());
@@ -33,7 +33,7 @@ public class SimpleSpliceMachineVersionTest {
     public void snapshot() {
         Map<String, String> map = ImmutableMap.of("Release", "2.3.4-SNAPSHOT");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("2.3.4-SNAPSHOT", version.getRelease());
         assertEquals(2, version.getMajorVersionNumber());
         assertEquals(3, version.getMinorVersionNumber());
@@ -45,7 +45,7 @@ public class SimpleSpliceMachineVersionTest {
     public void releaseCandidate() {
         Map<String, String> map = ImmutableMap.of("Release", "4.5.55RC01");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("4.5.55RC01", version.getRelease());
         assertEquals(4, version.getMajorVersionNumber());
         assertEquals(5, version.getMinorVersionNumber());
@@ -57,7 +57,7 @@ public class SimpleSpliceMachineVersionTest {
     public void releaseCandidateSnapshot() {
         Map<String, String> map = ImmutableMap.of("Release", "88.99.23004RC76-SNAPSHOT");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("88.99.23004RC76-SNAPSHOT", version.getRelease());
         assertEquals(88, version.getMajorVersionNumber());
         assertEquals(99, version.getMinorVersionNumber());
@@ -69,7 +69,7 @@ public class SimpleSpliceMachineVersionTest {
     public void fourDigitVersion() {
         Map<String, String> map = ImmutableMap.of("Release", "1.2.3.4");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("1.2.3.4", version.getRelease());
         assertEquals(1, version.getMajorVersionNumber());
         assertEquals(2, version.getMinorVersionNumber());
@@ -81,7 +81,7 @@ public class SimpleSpliceMachineVersionTest {
     public void twoDigitVersion() {
         Map<String, String> map = ImmutableMap.of("Release", "1.2");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("1.2", version.getRelease());
         assertEquals(1, version.getMajorVersionNumber());
         assertEquals(2, version.getMinorVersionNumber());
@@ -93,7 +93,7 @@ public class SimpleSpliceMachineVersionTest {
     public void oneDigitVersion() {
         Map<String, String> map = ImmutableMap.of("Release", "1");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("1", version.getRelease());
         assertEquals(1, version.getMajorVersionNumber());
         assertEquals(-1, version.getMinorVersionNumber());
@@ -105,8 +105,8 @@ public class SimpleSpliceMachineVersionTest {
     public void emptyVersion() {
         Map<String, String> map = ImmutableMap.of("Release", "");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
-        assertEquals(SimpleSpliceMachineVersion.UNKNOWN_VERSION, version.getRelease());
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
+        assertEquals(SimpleDatabaseVersion.UNKNOWN_VERSION, version.getRelease());
         assertEquals(-1, version.getMajorVersionNumber());
         assertEquals(-1, version.getMinorVersionNumber());
         assertEquals(-1, version.getPatchVersionNumber());
@@ -117,8 +117,8 @@ public class SimpleSpliceMachineVersionTest {
     public void missingVersion() {
         Map<String, String> map = Maps.newTreeMap();
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
-        assertEquals(SimpleSpliceMachineVersion.UNKNOWN_VERSION, version.getRelease());
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
+        assertEquals(SimpleDatabaseVersion.UNKNOWN_VERSION, version.getRelease());
         assertEquals(-1, version.getMajorVersionNumber());
         assertEquals(-1, version.getMinorVersionNumber());
         assertEquals(-1, version.getPatchVersionNumber());
@@ -127,8 +127,8 @@ public class SimpleSpliceMachineVersionTest {
 
     @Test
     public void nullVersion() {
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(null);
-        assertEquals(SimpleSpliceMachineVersion.UNKNOWN_VERSION, version.getRelease());
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(null);
+        assertEquals(SimpleDatabaseVersion.UNKNOWN_VERSION, version.getRelease());
         assertEquals(-1, version.getMajorVersionNumber());
         assertEquals(-1, version.getMinorVersionNumber());
         assertEquals(-1, version.getPatchVersionNumber());
@@ -139,7 +139,7 @@ public class SimpleSpliceMachineVersionTest {
     public void crazyVersion() {
         Map<String, String> map = ImmutableMap.of("Release", "a1a.b2b.c3c");
 
-        SimpleSpliceMachineVersion version = new SimpleSpliceMachineVersion(map);
+        SimpleDatabaseVersion version = new SimpleDatabaseVersion(map);
         assertEquals("a1a.b2b.c3c", version.getRelease());
         assertEquals(1, version.getMajorVersionNumber());
         assertEquals(2, version.getMinorVersionNumber());

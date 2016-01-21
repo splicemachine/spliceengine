@@ -25,6 +25,7 @@ import com.splicemachine.test.SlowTest;
  *         Date: 12/11/13
  */
 @Category(SerialTest.class)
+@Ignore("-sf- Needs to be reimplemented in an architecture-independent way, but shouldn't interfere with other work")
 public class SpliceAdminIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();

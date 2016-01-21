@@ -1,6 +1,6 @@
 package com.splicemachine.tools.version;
 
-import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.access.api.DatabaseVersion;
 
 import javax.management.*;
 import java.util.HashMap;
@@ -16,6 +16,7 @@ import java.util.jar.Manifest;
  *         Date: 5/27/14
  */
 public class ManifestReader {
+    public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=DatabaseVersion";
 
     private ManifestFinder manifestFinder;
 
@@ -31,7 +32,7 @@ public class ManifestReader {
      * Register with JMX
      */
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        mbs.registerMBean(createVersion(), new ObjectName(JMXUtils.SPLICEMACHINE_VERSION));
+        mbs.registerMBean(createVersion(), new ObjectName(SPLICEMACHINE_VERSION));
     }
 
     /**
@@ -39,8 +40,8 @@ public class ManifestReader {
      *
      * @return version of the Splice Machine software from the manifest file
      */
-    public SpliceMachineVersion createVersion() {
-        return new SimpleSpliceMachineVersion(getManifestProps());
+    public DatabaseVersion createVersion() {
+        return new SimpleDatabaseVersion(getManifestProps());
     }
 
     private Map<String, String> getManifestProps() {

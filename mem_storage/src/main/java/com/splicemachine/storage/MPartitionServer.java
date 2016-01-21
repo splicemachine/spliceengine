@@ -14,27 +14,34 @@ public class MPartitionServer implements PartitionServer{
 
     @Override
     public String getHostname(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return "localhost";
     }
 
     @Override
     public String getHostAndPort(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return "localhost:1527";
     }
 
     @Override
     public int getPort(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return 1527;
     }
 
     @Override
     public PartitionServerLoad getLoad() throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new PartitionServerLoad(){
+            @Override public int numPartitions(){ return 0; }
+            @Override public long totalWriteRequests(){ return 0; }
+            @Override public long totalReadRequests(){ return 0; }
+            @Override public long totalRequests(){ return 0; }
+            @Override public int compactionQueueLength(){ return -1; }
+            @Override public int flushQueueLength(){ return -1; }
+        };
     }
 
     @Override
     public long getStartupTimestamp(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return 0l;
     }
 
     @Override

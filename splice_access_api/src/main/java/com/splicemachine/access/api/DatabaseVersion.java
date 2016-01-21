@@ -1,4 +1,4 @@
-package com.splicemachine.tools.version;
+package com.splicemachine.access.api;
 
 import javax.management.MXBean;
 
@@ -6,7 +6,7 @@ import javax.management.MXBean;
  * Interface to expose to JMX for version info
  */
 @MXBean
-public interface SpliceMachineVersion {
+public interface DatabaseVersion{
 
     /**
      * @return the Splice release version

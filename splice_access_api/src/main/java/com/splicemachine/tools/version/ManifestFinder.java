@@ -1,7 +1,6 @@
 package com.splicemachine.tools.version;
 
 import com.google.common.io.Closeables;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -56,7 +55,7 @@ class ManifestFinder {
                 }
             }
         } catch (IOException e) {
-            SpliceLogUtils.warn(LOG, "Didn't find splice machine jar on the classpath. Version information will be unavailable.");
+            LOG.warn("Didn't find splice machine jar on the classpath. Version information will be unavailable.");
         }
         return null;
     }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.store.access.FileResource;
+import com.splicemachine.db.io.StorageFactory;
 
 /**
  * @author Scott Fines
@@ -8,5 +9,5 @@ import com.splicemachine.db.iapi.store.access.FileResource;
  */
 public interface FileResourceFactory{
 
-    FileResource newFileResource();
+    FileResource newFileResource(StorageFactory storageFactory);
 }

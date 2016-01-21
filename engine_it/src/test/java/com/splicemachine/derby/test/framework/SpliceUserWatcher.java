@@ -45,52 +45,46 @@ public class SpliceUserWatcher extends TestWatcher{
     }
 
     public void createUser(String userName,String password){
-        Assert.fail("IMPLEMENT PROPERLY");
 
-//        if(!AuthenticationConstants.authentication.toUpperCase().equals("LDAP")){
-//            Connection connection=null;
-//            PreparedStatement statement=null;
-//            try{
-//                connection=SpliceNetConnection.getConnection();
-//                statement=connection.prepareStatement("call syscs_util.syscs_create_user(?,?)");
-//                statement.setString(1,userName);
-//                statement.setString(2,password);
-//                statement.execute();
-//            }catch(Exception e){
-//                LOG.error("error Creating "+e.getMessage());
-//                e.printStackTrace();
-//                throw new RuntimeException(e);
-//            }finally{
-//                DbUtils.closeQuietly(statement);
-//                DbUtils.commitAndCloseQuietly(connection);
-//            }
-//        }
+        Connection connection=null;
+        PreparedStatement statement=null;
+        try{
+            connection=SpliceNetConnection.getConnection();
+            statement=connection.prepareStatement("call syscs_util.syscs_create_user(?,?)");
+            statement.setString(1,userName);
+            statement.setString(2,password);
+            statement.execute();
+        }catch(Exception e){
+            LOG.error("error Creating "+e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }finally{
+            DbUtils.closeQuietly(statement);
+            DbUtils.commitAndCloseQuietly(connection);
+        }
     }
 
     public void dropUser(String userName){
-        Assert.fail("IMPLEMENT PROPERLY");
-//        if(!AuthenticationConstants.authentication.toUpperCase().equals("LDAP")){
-//            Connection connection=null;
-//            PreparedStatement statement=null;
-//            try{
-//                connection=SpliceNetConnection.getConnection();
-//                statement=connection.prepareStatement("select username from sys.sysusers where username = ?");
-//                statement.setString(1,userName.toUpperCase());
-//                ResultSet rs=statement.executeQuery();
-//                if(rs.next()){
-//                    statement=connection.prepareStatement("call syscs_util.syscs_drop_user(?)");
-//                    statement.setString(1,userName);
-//                    statement.execute();
-//                }
-//            }catch(Exception e){
-//                LOG.error("error Creating "+e.getMessage());
-//                e.printStackTrace();
-//                throw new RuntimeException(e);
-//            }finally{
-//                DbUtils.closeQuietly(statement);
-//                DbUtils.commitAndCloseQuietly(connection);
-//            }
-//        }
+        Connection connection=null;
+        PreparedStatement statement=null;
+        try{
+            connection=SpliceNetConnection.getConnection();
+            statement=connection.prepareStatement("select username from sys.sysusers where username = ?");
+            statement.setString(1,userName.toUpperCase());
+            ResultSet rs=statement.executeQuery();
+            if(rs.next()){
+                statement=connection.prepareStatement("call syscs_util.syscs_drop_user(?)");
+                statement.setString(1,userName);
+                statement.execute();
+            }
+        }catch(Exception e){
+            LOG.error("error Creating "+e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }finally{
+            DbUtils.closeQuietly(statement);
+            DbUtils.commitAndCloseQuietly(connection);
+        }
     }
 
     public void dropAndCreateUser(String userName,String password){

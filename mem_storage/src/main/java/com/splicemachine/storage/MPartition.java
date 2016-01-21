@@ -344,7 +344,7 @@ public class MPartition implements Partition{
 
     @Override
     public PartitionLoad getLoad() throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new MPartitionLoad(getName());
     }
 
     @Override

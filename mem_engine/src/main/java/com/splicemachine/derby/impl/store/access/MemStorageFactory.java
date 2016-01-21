@@ -51,17 +51,17 @@ public class MemStorageFactory implements StorageFactory{
 
     @Override
     public StorageFile newStorageFile(String path){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new MFile(path,null);
     }
 
     @Override
     public StorageFile newStorageFile(String directoryName,String fileName){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new MFile(directoryName,fileName);
     }
 
     @Override
     public StorageFile newStorageFile(StorageFile directoryName,String fileName){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return newStorageFile(directoryName.getPath(),fileName);
     }
 
     @Override

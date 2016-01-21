@@ -17,8 +17,8 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.tools.version.ManifestReader;
-import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.SnowflakeLoader;
 import com.splicemachine.uuid.UUIDService;
@@ -42,7 +42,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private Snowflake snowflake;
     private SnowflakeLoader snowflakeLoader;
     private Connection internalConnection;
-    private SpliceMachineVersion spliceVersion;
+    private DatabaseVersion spliceVersion;
     private ManifestReader manifestReader;
 
     public EngineLifecycleService(DistributedDerbyStartup startup,SConfiguration configuration){

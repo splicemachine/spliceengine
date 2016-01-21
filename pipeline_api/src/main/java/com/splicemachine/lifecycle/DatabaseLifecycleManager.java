@@ -170,6 +170,9 @@ public class DatabaseLifecycleManager{
         networkServices.remove(service);
     }
 
+    public void setJMXServer(MBeanServer mbs){
+        this.jmxServer = mbs;
+    }
     public void awaitStartup() throws InterruptedException{
         startupLock.await();
     }
@@ -206,7 +209,8 @@ public class DatabaseLifecycleManager{
                 startupLock.countDown(); //release any waiting threads
             }
             //register JMX
-            jmxServer= ManagementFactory.getPlatformMBeanServer();
+            if(jmxServer==null)
+                jmxServer= ManagementFactory.getPlatformMBeanServer();
             for(DatabaseLifecycleService service: services){
                 try{
                     service.registerJMX(jmxServer);

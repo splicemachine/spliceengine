@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.store.access.FileResource;
+import com.splicemachine.db.io.StorageFactory;
+import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
 
 /**
  * @author Scott Fines
@@ -8,7 +10,7 @@ import com.splicemachine.db.iapi.store.access.FileResource;
  */
 public class MemFileResourceFactory implements FileResourceFactory{
     @Override
-    public FileResource newFileResource(){
-        return null; //TODO -sf- implement
+    public FileResource newFileResource(StorageFactory storageFactory){
+        return new SpliceLocalFileResource(storageFactory);
     }
 }

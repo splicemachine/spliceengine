@@ -80,14 +80,13 @@ public class QueryTimeoutIT extends SpliceUnitTest {
     @Before
     public void setUpClass() throws Exception {
         // Install the jar file of user-defined stored procedures.
-        Assert.fail("IMPLEMENT PROPERLY");
-//        String STORED_PROCS_JAR_FILE = TestProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-//        File jar = new File(STORED_PROCS_JAR_FILE);
-//        Assert.assertTrue("Can't run test without " + STORED_PROCS_JAR_FILE, jar.exists());
-//        classWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_STRING, STORED_PROCS_JAR_FILE, DERBY_JAR_NAME));
-//        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
-//        classWatcher.executeUpdate(CREATE_PROC_UPDATE_TIMEOUT_BEFORE);
-//        classWatcher.executeUpdate(CREATE_PROC_UPDATE_TIMEOUT_AFTER);
+        String STORED_PROCS_JAR_FILE = TestProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        File jar = new File(STORED_PROCS_JAR_FILE);
+        Assert.assertTrue("Can't run test without " + STORED_PROCS_JAR_FILE, jar.exists());
+        classWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_STRING, STORED_PROCS_JAR_FILE, DERBY_JAR_NAME));
+        classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
+        classWatcher.executeUpdate(CREATE_PROC_UPDATE_TIMEOUT_BEFORE);
+        classWatcher.executeUpdate(CREATE_PROC_UPDATE_TIMEOUT_AFTER);
     }
 
     @After

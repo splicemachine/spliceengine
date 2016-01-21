@@ -12,6 +12,7 @@ import com.splicemachine.primitives.Bytes;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -93,7 +94,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public Collection<PartitionServer> allServers() throws IOException{
-            throw new UnsupportedOperationException("IMPLEMENT");
+            return Collections.<PartitionServer>singletonList(new MPartitionServer());
         }
 
         @Override

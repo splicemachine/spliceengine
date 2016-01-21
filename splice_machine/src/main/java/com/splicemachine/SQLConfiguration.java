@@ -173,6 +173,9 @@ public class SQLConfiguration{
     public static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
     private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
 
+    public static final String PARTITIONSERVER_JMX_PORT = "hbase.regionserver.jmx.port";
+    private static final int DEFAULT_PARTITIONSERVER_JMX_PORT = 10102;
+
     public static final SConfiguration.Defaults defaults=new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
@@ -208,6 +211,7 @@ public class SQLConfiguration{
                 case INDEX_LOOKUP_BLOCKS: return DEFAULT_INDEX_LOOKUP_BLOCKS;
                 case IMPORT_MAX_QUOTED_COLUMN_LINES: return DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES;
                 case BATCH_ONCE_BATCH_SIZE: return DEFAULT_BATCH_ONCE_BATCH_SIZE;
+                case PARTITIONSERVER_JMX_PORT: return DEFAULT_PARTITIONSERVER_JMX_PORT;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
             }
@@ -222,6 +226,7 @@ public class SQLConfiguration{
                 case INDEX_LOOKUP_BLOCKS:
                 case IMPORT_MAX_QUOTED_COLUMN_LINES:
                 case BATCH_ONCE_BATCH_SIZE:
+                case PARTITIONSERVER_JMX_PORT:
                     return true;
                 default:
                     return false;

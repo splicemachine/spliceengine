@@ -2,17 +2,14 @@ package com.splicemachine;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.backup.BackupManager;
-import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.FileResourceFactory;
-import com.splicemachine.derby.utils.Sequencer;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
-import com.splicemachine.tools.version.SpliceMachineVersion;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -29,7 +26,7 @@ public class EngineDriver{
     private final Connection internalConnection;
     private final Snowflake uuidGen;
     private final ResourcePool<SpliceSequence, SequenceKey> sequencePool;
-    private final SpliceMachineVersion version;
+    private final DatabaseVersion version;
     private final SConfiguration config;
     private final BackupManager backupManager;
     private final PartitionLoadWatcher loadWatcher;
@@ -81,7 +78,7 @@ public class EngineDriver{
         return sequencePool;
     }
 
-    public SpliceMachineVersion getVersion(){
+    public DatabaseVersion getVersion(){
         return version;
     }
 

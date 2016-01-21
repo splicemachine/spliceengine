@@ -228,7 +228,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
             throw StandardException.newException(SQLState.FILE_UNEXPECTED_EXCEPTION,ioe);
         }
         FileResourceFactory frf = FileResourceFactoryService.loadFileResourceFactory();
-        fileHandler = frf.newFileResource();
+        fileHandler = frf.newFileResource(storageFactory);
     }
 
     public void stop(){

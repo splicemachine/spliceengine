@@ -2,7 +2,7 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.SqlEnvironment;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.tools.version.SpliceMachineVersion;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;
@@ -20,7 +20,7 @@ public class SqlEnvironmentLoader{
     public static SqlEnvironment loadEnvironment(SConfiguration config,
                                                  Snowflake snowflake,
                                                  Connection internalConnection,
-                                                 SpliceMachineVersion spliceVersion){
+                                                 DatabaseVersion spliceVersion){
         SqlEnvironment env = sqlEnv;
         if(env==null){
             env = initializeEnvironment(config,snowflake,internalConnection,spliceVersion);
@@ -31,7 +31,7 @@ public class SqlEnvironmentLoader{
     private static synchronized SqlEnvironment initializeEnvironment(SConfiguration config,
                                                                      Snowflake snowflake,
                                                                      Connection internalConnection,
-                                                                     SpliceMachineVersion spliceVersion){
+                                                                     DatabaseVersion spliceVersion){
         SqlEnvironment env = sqlEnv;
         if(env==null){
             ServiceLoader<SqlEnvironment> load = ServiceLoader.load(SqlEnvironment.class);

@@ -9,8 +9,7 @@ import com.splicemachine.derby.impl.sql.ControlOnlyDataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.DirectPartitionLoadWatcher;
 import com.splicemachine.derby.impl.sql.DirectPropertyManager;
 import com.splicemachine.derby.impl.sql.NoOpBackupManager;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.tools.version.SpliceMachineVersion;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;
@@ -29,7 +28,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     public void initialize(SConfiguration config,
                            Snowflake snowflake,
                            Connection internalConnection,
-                           SpliceMachineVersion spliceVersion){
+                           DatabaseVersion spliceVersion){
         super.initialize(config,snowflake,internalConnection,spliceVersion);
         this.propertyManager = new DirectPropertyManager();
         this.partitionLoadWatcher = new DirectPartitionLoadWatcher();

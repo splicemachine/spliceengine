@@ -18,6 +18,7 @@ import com.splicemachine.storage.MPartitionFactory;
 import com.splicemachine.storage.MTxnPartitionFactory;
 import com.splicemachine.storage.StorageConfiguration;
 
+import javax.management.MBeanServerFactory;
 import java.io.IOException;
 
 /**
@@ -30,9 +31,7 @@ public class MemDatabase{
         //load SI
         MemSIEnvironment env=new MemSIEnvironment(new MPipelinePartitionFactory(new MTxnPartitionFactory(new MPartitionFactory())));
         MemSIEnvironment.INSTANCE = env;
-        SIDriver.loadDriver(env);
-        final SIDriver driver = env.getSIDriver();
-        SConfiguration config = driver.getConfiguration();
+        SConfiguration config = env.configuration();
         config.addDefaults(StorageConfiguration.defaults);
         config.addDefaults(PipelineConfiguration.defaults);
         config.addDefaults(SQLConfiguration.defaults);
@@ -40,6 +39,9 @@ public class MemDatabase{
         config.addDefaults(StatsConfiguration.defaults);
         config.addDefaults(OperationConfiguration.defaults);
         config.addDefaults(NATURAL_DEFAULTS);
+
+        SIDriver.loadDriver(env);
+        final SIDriver driver = env.getSIDriver();
         //start the database sequence
         EngineLifecycleService els = new EngineLifecycleService(new DistributedDerbyStartup(){
             @Override

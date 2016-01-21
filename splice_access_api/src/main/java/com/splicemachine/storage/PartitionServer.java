@@ -16,4 +16,8 @@ public interface PartitionServer extends Comparable<PartitionServer>{
     PartitionServerLoad getLoad() throws IOException;
 
     long getStartupTimestamp();
+
+//    ServerLogging getLogging();
+//
+//    DatabaseVersion getVersion();
 }

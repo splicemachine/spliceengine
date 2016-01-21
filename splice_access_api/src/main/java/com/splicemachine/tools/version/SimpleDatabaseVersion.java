@@ -1,13 +1,13 @@
 package com.splicemachine.tools.version;
 
 import com.google.common.base.Splitter;
+import com.splicemachine.access.api.DatabaseVersion;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.commons.lang.StringUtils.isBlank;
 
 /**
  * Represents a version string and provides access to its components.
@@ -20,7 +20,7 @@ import static org.apache.commons.lang.StringUtils.isBlank;
  * 1.2.3RC2
  * 1.2.3RC2-SNAPSHOT
  */
-public class SimpleSpliceMachineVersion implements SpliceMachineVersion {
+public class SimpleDatabaseVersion implements DatabaseVersion{
 
     private static final Splitter SPLITTER = Splitter.on(".");
     protected static final String UNKNOWN_VERSION = "UNKNOWN";
@@ -34,7 +34,7 @@ public class SimpleSpliceMachineVersion implements SpliceMachineVersion {
     private final int minorVersion;
     private final int patchVersion;
 
-    SimpleSpliceMachineVersion(Map<String, String> manifestProps) {
+    SimpleDatabaseVersion(Map<String, String> manifestProps) {
         release = safeGet(manifestProps, "Release");
         implementationVersion = safeGet(manifestProps, "Implementation-Version");
         buildTime = safeGet(manifestProps, "Build-Time");
@@ -104,5 +104,36 @@ public class SimpleSpliceMachineVersion implements SpliceMachineVersion {
         } catch (NumberFormatException nfe) {
             return UNKNOWN_INT;
         }
+    }
+
+    /**
+     * -sf- stolen directly from Apache commons-lang, but reproduced here to avoid
+     * the dependency.
+     *
+     * <p>Checks if a String is whitespace, empty ("") or null.</p>
+     *
+     * <pre>
+     * StringUtils.isBlank(null)      = true
+     * StringUtils.isBlank("")        = true
+     * StringUtils.isBlank(" ")       = true
+     * StringUtils.isBlank("bob")     = false
+     * StringUtils.isBlank("  bob  ") = false
+     * </pre>
+     *
+     * @param str  the String to check, may be null
+     * @return <code>true</code> if the String is null, empty or whitespace
+     * @since 2.0
+     */
+    public static boolean isBlank(String str) {
+        int strLen;
+        if (str == null || (strLen = str.length()) == 0) {
+            return true;
+        }
+        for (int i = 0; i < strLen; i++) {
+            if ((!Character.isWhitespace(str.charAt(i)))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

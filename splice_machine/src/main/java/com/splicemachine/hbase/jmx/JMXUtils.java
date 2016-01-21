@@ -12,10 +12,11 @@ import java.util.Collection;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.timestamp.api.TimestampClientStatistics;
 import com.splicemachine.timestamp.api.TimestampOracleStatistics;
-import com.splicemachine.tools.version.SpliceMachineVersion;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.utils.DatabasePropertyManagement;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
@@ -29,16 +30,16 @@ public class JMXUtils {
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
 	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
-    public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=SpliceMachineVersion";
+    public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=DatabaseVersion";
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.client.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.client.timestamp.request:type=TimestampRegionManagement";
 	public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
-        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getInt("hbase.regionserver.jmx.port");
+        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getInt(SQLConfiguration.PARTITIONSERVER_JMX_PORT);
         for (Pair<String,String> serverConn: serverConnections) {
-            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$d/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
+            JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s:%2$d/jndi/rmi://%1$s:%2$d/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
             JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
             mbscArray.add(Pair.newPair(serverConn.getSecond(),jmxc));
         }
@@ -75,10 +76,10 @@ public class JMXUtils {
         return activeWrites;
     }
 
-    public static List<SpliceMachineVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
-        List<SpliceMachineVersion> versions =new ArrayList<>();
+    public static List<DatabaseVersion> getSpliceMachineVersion(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<DatabaseVersion> versions =new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, SpliceMachineVersion.class));
+            versions.add(getNewMBeanProxy(mbsc.getSecond(), SPLICEMACHINE_VERSION, DatabaseVersion.class));
         }
         return versions;
     }

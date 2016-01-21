@@ -1,5 +1,6 @@
 package com.splicemachine.tools.version;
 
+import com.splicemachine.access.api.DatabaseVersion;
 import org.junit.Test;
 
 import java.util.jar.Attributes;
@@ -15,7 +16,7 @@ public class ManifestReaderTest {
     public void createVersion_snapshot() throws Exception {
         ManifestFinder manifestFinder = mockManifest("0.5.1-SNAPSHOT");
         ManifestReader manifestReader = new ManifestReader(manifestFinder);
-        SpliceMachineVersion version = manifestReader.createVersion();
+        DatabaseVersion version = manifestReader.createVersion();
 
         assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
         assertEquals("1d073ed3f6", version.getImplementationVersion());
@@ -30,7 +31,7 @@ public class ManifestReaderTest {
     public void createVersion_releaseCandidate() throws Exception {
         ManifestFinder manifestFinder = mockManifest("4.3.2RC16");
         ManifestReader manifestReader = new ManifestReader(manifestFinder);
-        SpliceMachineVersion version = manifestReader.createVersion();
+        DatabaseVersion version = manifestReader.createVersion();
 
         assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
         assertEquals("1d073ed3f6", version.getImplementationVersion());
@@ -45,7 +46,7 @@ public class ManifestReaderTest {
     public void createVersion_releaseCandidate_snapshot() throws Exception {
         ManifestFinder manifestFinder = mockManifest("88.77.66RC16-SNAPSHOT");
         ManifestReader manifestReader = new ManifestReader(manifestFinder);
-        SpliceMachineVersion version = manifestReader.createVersion();
+        DatabaseVersion version = manifestReader.createVersion();
 
         assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
         assertEquals("1d073ed3f6", version.getImplementationVersion());
@@ -60,7 +61,7 @@ public class ManifestReaderTest {
     public void createVersion_release() throws Exception {
         ManifestFinder manifestFinder = mockManifest("1.0.3");
         ManifestReader manifestReader = new ManifestReader(manifestFinder);
-        SpliceMachineVersion version = manifestReader.createVersion();
+        DatabaseVersion version = manifestReader.createVersion();
 
         assertEquals("2014-05-27 12:52 -0500", version.getBuildTime());
         assertEquals("1d073ed3f6", version.getImplementationVersion());

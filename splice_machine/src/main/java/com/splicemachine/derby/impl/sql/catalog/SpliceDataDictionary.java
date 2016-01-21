@@ -35,8 +35,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.tools.version.ManifestReader;
-import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.util.Collections;
@@ -346,10 +346,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         SpliceLogUtils.trace(LOG,"boot with create=%s,startParams=%s",create,startParams);
-        SpliceMachineVersion spliceMachineVersion=(new ManifestReader()).createVersion();
-        if(!spliceMachineVersion.isUnknown()){
-            spliceSoftwareVersion=new Splice_DD_Version(this,spliceMachineVersion.getMajorVersionNumber(),
-                    spliceMachineVersion.getMinorVersionNumber(),spliceMachineVersion.getPatchVersionNumber());
+        DatabaseVersion databaseVersion=(new ManifestReader()).createVersion();
+        if(!databaseVersion.isUnknown()){
+            spliceSoftwareVersion=new Splice_DD_Version(this,databaseVersion.getMajorVersionNumber(),
+                    databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber());
         }
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);

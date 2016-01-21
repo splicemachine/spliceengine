@@ -73,7 +73,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                 schemaName,tableName,Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
                 constantActions,properties,lockGranularity,
-                onCommitDeleteRows,onRollbackDeleteRows,null); //TODO -sf- finish implementing
+                onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
     }
 
 
