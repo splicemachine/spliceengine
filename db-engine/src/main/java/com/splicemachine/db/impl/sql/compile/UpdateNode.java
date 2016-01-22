@@ -748,7 +748,7 @@ public final class UpdateNode extends DMLModStatementNode
 			( heapConglomId,
 			  targetTableDescriptor.getTableType(),
 			  tc.getStaticCompiledConglomInfo(heapConglomId),
-                    pkColumns,
+              pkColumns,
 			  indicesToMaintain,
 			  indexConglomerateNumbers,
 			  indexSCOCIs,
@@ -768,7 +768,8 @@ public final class UpdateNode extends DMLModStatementNode
 				  targetTableDescriptor.getNumberOfColumns() :
 				  readColsBitSet.getNumBitsSet(),			
 			  positionedUpdate,
-			  resultSet.isOneRowResultSet()
+			  resultSet.isOneRowResultSet(),
+              targetTableDescriptor.getStoragePositionArray()
 			  );
 	}
 

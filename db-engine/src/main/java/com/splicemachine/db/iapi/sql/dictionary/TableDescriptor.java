@@ -451,6 +451,13 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return maxColumnID;
     }
 
+    public int[] getStoragePositionArray() {
+        int[] storagePositionArray = new int[getColumnDescriptorList().size()];
+        for (int i = 0; i < getColumnDescriptorList().size(); i++) {
+            storagePositionArray[i] = getColumnDescriptor(i+1).getStoragePosition()-1;
+        }
+        return storagePositionArray;
+    }
 
     /**
      * Sets the UUID of the table

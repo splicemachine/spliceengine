@@ -731,7 +731,8 @@ public abstract class GenericConstantActionFactory
 								int[]				streamStorableHeapColIds,
 								int					numColumns,
 								boolean				positionedUpdate,
-								boolean				singleRowSource
+								boolean				singleRowSource,
+                                int[] storagePositionArray
 							)
 			throws StandardException;
 
