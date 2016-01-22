@@ -57,7 +57,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 public class UserType extends DataType
 						implements UserDataValue
 {
-	private Object	value;
+	private Object	value = null;
 
 	/*
 	** DataValueDescriptor interface
@@ -247,7 +247,6 @@ public class UserType extends DataType
 	/* this is for DataType's error generator */
 	public String getTypeName()
 	{
-
 		return isNull() ? "JAVA_OBJECT" : ClassInspector.readableClassName(value.getClass());
 	}
 	
@@ -295,10 +294,13 @@ public class UserType extends DataType
 	public void readExternal(ObjectInput in) 
         throws IOException, ClassNotFoundException
 	{
-		boolean isNull = in.readBoolean();
-		if (!isNull) {
+		boolean readIsNull = in.readBoolean();
+		if (!readIsNull) {
 			/* RESOLVE: Sanity check for right class */
 			value = in.readObject();
+			isNull = evaluateNull();
+		} else {
+			restoreToNull();
 		}
 	}
 	public void readExternalFromArray(ArrayInputStream in) 
@@ -306,6 +308,7 @@ public class UserType extends DataType
 	{
 		/* RESOLVE: Sanity check for right class */
 		value = in.readObject();
+		isNull = evaluateNull();
 	}
 
 	/*
@@ -334,6 +337,7 @@ public class UserType extends DataType
 	public void restoreToNull()
 	{
 		value = null;
+		isNull = evaluateNull();
 	}
 
 	/*
@@ -350,6 +354,7 @@ public class UserType extends DataType
 		throws SQLException
 	{
 			value = resultSet.getObject(colNumber);
+			isNull = evaluateNull();
 	}
 
 	/**
@@ -464,13 +469,14 @@ public class UserType extends DataType
 	/*
 	** Constructors
 	*/
-
 	/** no-arg constructor required by Formattable */
-	public UserType() { }
+	public UserType() {
+	}
 
 	public UserType(Object value)
 	{
 		this.value = value;
+		isNull = evaluateNull();
 	}
 	/**
 	 * @see UserDataValue#setValue
@@ -479,6 +485,7 @@ public class UserType extends DataType
 	public void setValue(Object value)
 	{
 		this.value = value;
+		isNull = evaluateNull();
 	}
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
@@ -506,6 +513,7 @@ public class UserType extends DataType
 			// Higher levels must have performed type checking for us.
 			value = theValue;
 		}
+		isNull = evaluateNull();
 	}
 
 	/*
@@ -594,7 +602,7 @@ public class UserType extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	public final boolean isNull()
+	private final boolean evaluateNull()
 	{
 		return (value == null);
 	}

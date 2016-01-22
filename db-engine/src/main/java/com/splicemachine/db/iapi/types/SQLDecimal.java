@@ -121,24 +121,23 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 	public SQLDecimal(BigDecimal val)
 	{
-		value = val;
+		setValue(val);
 	}
 
 	public SQLDecimal(BigDecimal val, int nprecision, int scale)
 			throws StandardException
 	{
 		
-		value = val;
+		setValue(val);
 		if ((value != null) && (scale >= 0))
 		{
-			value = value.setScale(scale, 
-							BigDecimal.ROUND_DOWN);
+			setValue(value.setScale(scale, BigDecimal.ROUND_DOWN));
 		}
 	}
 
 	public SQLDecimal(String val) 
 	{
-		value = new BigDecimal(val);
+		setValue(new BigDecimal(val));
 	}
 
 	/*
@@ -277,7 +276,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		if ((value == null) && (rawData != null)) 
 		{
-			value = new BigDecimal(new BigInteger(rawData), rawScale);
+			setValue(new BigDecimal(new BigInteger(rawData), rawScale));
 		}
 
 		return value;
@@ -353,8 +352,9 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	/*
 	 * see if the decimal value is null.
 	 */
-	/** @see Storable#isNull */
-	public boolean isNull()
+	/* @see Storable#isNull 
+	 */
+	private final boolean evaluateNull()
 	{
 		return (value == null) && (rawData == null);
 	}
@@ -399,7 +399,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			
 			if (scale < 0) {			
 				scale = 0;
-				value = value.setScale(0);
+				setValue(value.setScale(0));
 			}
 
 			BigInteger bi = value.unscaledValue();
@@ -450,6 +450,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			rawData = new byte[size];
 		}
 		in.readFully(rawData);
+		isNull = evaluateNull();
 
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException 
@@ -474,6 +475,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			rawData = new byte[size];
 		}
 		in.readFully(rawData);
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -484,6 +486,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		value = null;
 		rawData = null;
+		isNull = true;
 	}
 
 
@@ -523,8 +526,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 									  boolean isNullable)
 		throws SQLException
 	{
-			value = resultSet.getBigDecimal(colNumber);
 			rawData = null;
+			setValue(resultSet.getBigDecimal(colNumber));
 	}
 	/**
 		Set the value into a PreparedStatement.
@@ -558,15 +561,15 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		if (theValue == null)
 		{
-			value = null;
+			restoreToNull();
 		}
 		else
 		{
 		    try 
 			{
 				theValue = theValue.trim();
-		        value = new BigDecimal(theValue);
 				rawData = null;
+		        setValue(new BigDecimal(theValue));
 			} catch (NumberFormatException nfe) 
 			{
 			    throw invalidFormat();
@@ -582,6 +585,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void setValue(double theValue) throws StandardException
 	{
 		setCoreValue(NumberDataType.normalizeDOUBLE(theValue));
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -592,6 +596,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		throws StandardException
 	{
 		setCoreValue((double)NumberDataType.normalizeREAL(theValue));
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -602,6 +607,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		value = BigDecimal.valueOf(theValue);
 		rawData = null;
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -611,6 +617,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void setValue(int theValue)
 	{
 		setValue((long)theValue);
+		isNull = evaluateNull();
+	}
+
+	public void setValue(BigDecimal theValue)
+	{
+		setCoreValue(theValue);
 	}
 
 	/**
@@ -668,11 +680,13 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		value = theValue;
 		rawData = null;
+		isNull = evaluateNull();
 	}
 
 	private void setCoreValue(double theValue) {
 		value = new BigDecimal(Double.toString(theValue));
 		rawData = null;
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -1006,8 +1020,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, 
 									("DECIMAL/NUMERIC("+desiredPrecision+","+desiredScale+")"));
 		}
-		value = value.setScale(desiredScale, BigDecimal.ROUND_DOWN);
 		rawData = null;
+		setValue(value.setScale(desiredScale, BigDecimal.ROUND_DOWN));
 	}
 
 	/**

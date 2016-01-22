@@ -197,7 +197,7 @@ public class SQLChar
 
     public SQLChar(String val)
     {
-        value = val;
+        setValue (val);
     }
 
     public SQLChar(Clob val)
@@ -227,7 +227,7 @@ public class SQLChar
     {
         if ( val == null )
         {
-            value = null;
+            restoreToNull();
         }
         else
         {
@@ -308,6 +308,7 @@ public class SQLChar
         if ( rawData == null ) { return; }
 
         Arrays.fill( rawData, (char) 0 );
+		isNull = evaluateNull();
     }
 
     /**************************************************************************
@@ -644,6 +645,7 @@ public class SQLChar
         this.stream = newStream;
         cKey = null;
         _clobValue = null;
+        isNull = evaluateNull();
     }
 
     public void loadStream() throws StandardException
@@ -804,6 +806,7 @@ public class SQLChar
                             String.class.getName());
                 }
             }
+            isNull = evaluateNull();
         }
 
         return value;
@@ -838,8 +841,8 @@ public class SQLChar
             // copy of the char array that the 
             // String wrapper uses.
             getString();
-            rawData = value.toCharArray();
-            rawLength = rawData.length;
+			char[] data = value.toCharArray();
+			setRaw(data, data.length);
             cKey = null;
             return rawData;
         }
@@ -861,10 +864,10 @@ public class SQLChar
 
     /**
      * see if the String value is null.
-     @see Storable#isNull
-    */
-    public boolean isNull()
-    {
+     * @see Storable#isNull
+	 */
+	private final boolean evaluateNull()
+	{
         return ((value == null) && (rawLength == -1) && (stream == null) && (_clobValue == null));
     }
 
@@ -1103,6 +1106,14 @@ public class SQLChar
      
      * @see java.io.Externalizable#readExternal
      */
+
+	private void setRaw(char[] data, int length)
+	{
+		rawData = data;
+		rawLength = length;
+		isNull = evaluateNull();
+	}
+
     public void readExternalFromArray(ArrayInputStream in) 
         throws IOException
     {
@@ -1117,9 +1128,8 @@ public class SQLChar
             rawData = new char[utfLen];
         }
         arg_passer[0]        = rawData;
-
-        rawLength = in.readDerbyUTF(arg_passer, utfLen);
-        rawData = arg_passer[0];
+		int length = in.readDerbyUTF(arg_passer, utfLen);
+        setRaw(arg_passer[0], length);
     }
     char[][] arg_passer = new char[1][];
 
@@ -1138,8 +1148,8 @@ public class SQLChar
             rawData = new char[charLen];
         }
         arg_passer[0] = rawData;
-        rawLength = in.readDerbyUTF(arg_passer, 0);
-        rawData = arg_passer[0];
+		int length = in.readDerbyUTF(arg_passer, 0);
+        setRaw(arg_passer[0], length);
     }
 
     /**
@@ -1149,6 +1159,7 @@ public class SQLChar
         value  = null;
         stream = null;
         cKey = null;
+		isNull = evaluateNull();
     }
 
     public void readExternal(ObjectInput in) throws IOException
@@ -1156,6 +1167,7 @@ public class SQLChar
         // Read the stored length in the stream header.
         int utflen = in.readUnsignedShort();
         readExternal(in, utflen, 0);
+		isNull = evaluateNull();
     }
 
     /**
@@ -1345,8 +1357,7 @@ public class SQLChar
         }
 
 
-        rawData = str;
-        rawLength = strlen;
+		setRaw(str, strlen);
     }
 
     /**
@@ -1372,6 +1383,7 @@ public class SQLChar
         stream = null;
         rawLength = -1;
         cKey = null;
+        isNull = true;
     }
 
     /**
@@ -1503,6 +1515,7 @@ public class SQLChar
         throws SQLException, StandardException 
     {
         ps.setString(position, getString());
+		isNull = evaluateNull();
     }
 
 
@@ -1515,6 +1528,7 @@ public class SQLChar
         value = null;
 
         _clobValue = theValue;
+        isNull = evaluateNull();
     }
 
     public void setValue(String theValue)
@@ -1525,6 +1539,7 @@ public class SQLChar
         _clobValue = null;
 
         value = theValue;
+        isNull = evaluateNull();
     }
 
     public void setValue(boolean theValue) throws StandardException
@@ -1734,6 +1749,7 @@ public class SQLChar
     public final void setValue(InputStream theStream, int valueLength)
     {
         setStream(theStream);
+		isNull = evaluateNull();
     }
     
     /**
@@ -1758,9 +1774,11 @@ public class SQLChar
 
         if ("java.lang.String".equals(resultTypeClassName))
             setValue(theValue.toString());
-        else
+        else {
             super.setObjectForCast(
                 theValue, instanceOfResultType, resultTypeClassName);
+			isNull = evaluateNull();
+		}
     }
     
     protected void setFrom(DataValueDescriptor theValue) 
@@ -1839,7 +1857,7 @@ public class SQLChar
             sourceValue.getChars(0, sourceWidth, ca, 0);
             SQLChar.appendBlanks(ca, sourceWidth, desiredWidth - sourceWidth);
 
-            rawLength = desiredWidth;
+			setRaw(rawData, desiredWidth);
 
             return;
         }
@@ -3213,6 +3231,7 @@ public class SQLChar
         stream = otherStream;
         _clobValue = otherClobValue;
         localeFinder = otherLocaleFinder;
+        isNull = evaluateNull();
     }
 
     /**

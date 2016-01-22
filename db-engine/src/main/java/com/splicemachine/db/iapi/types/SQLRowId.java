@@ -25,7 +25,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     }
 
     public SQLRowId(byte[] bytes) {
-        this.bytes = bytes;
+        setValue(bytes);
     }
 
     public SQLRowId(SQLRowId other) {
@@ -34,9 +34,15 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
             for (int i = 0; i < other.bytes.length; ++i) {
                 b[i] = other.bytes[i];
             }
-            bytes = b;
+            setValue(b);
         }
     }
+
+	public void setValue(byte[] bytesArg)
+	{
+		bytes = bytesArg;
+		isNull = evaluateNull();
+	}
 
     public  boolean equals(Object obj) {
         if (this == obj)
@@ -132,6 +138,7 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
             for (int i = 0; i < len; ++i) {
                 bytes[i] = in.readByte();
             }
+			isNull = evaluateNull();
         }
     }
 
@@ -140,8 +147,9 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
 
     }
 
-    @Override
-    public boolean isNull() {
+
+	private final boolean evaluateNull()
+	{
         return bytes == null;
     }
 

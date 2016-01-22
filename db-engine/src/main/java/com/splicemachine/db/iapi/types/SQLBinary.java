@@ -151,7 +151,7 @@ abstract class SQLBinary
 
 	SQLBinary(byte[] val)
 	{
-		dataValue = val;
+		setValue(val);
 	}
 
 	SQLBinary(Blob val)
@@ -167,6 +167,7 @@ abstract class SQLBinary
         _blobValue = null;
 		stream = null;
 		streamValueLength = -1;
+		isNull = evaluateNull();
 	}
 
 	public final void setValue(Blob theValue)
@@ -175,6 +176,7 @@ abstract class SQLBinary
         _blobValue = theValue;
 		stream = null;
 		streamValueLength = -1;
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -253,6 +255,7 @@ abstract class SQLBinary
 		}
 		catch (SQLException se) { throw StandardException.plainWrapException( se ); }
 
+		isNull = evaluateNull();
 		return dataValue;
 	}
 	
@@ -313,7 +316,8 @@ abstract class SQLBinary
 	 * see if the Bit value is null.
 	 * @see com.splicemachine.db.iapi.services.io.Storable#isNull
 	 */
-	public final boolean isNull()
+
+	private final boolean evaluateNull()
 	{
 		return (dataValue == null) && (stream == null) && (_blobValue == null);
 	}
@@ -423,6 +427,7 @@ abstract class SQLBinary
 		{
 			readFromStream((InputStream) in);
 		}
+		isNull = evaluateNull();
 	}
 	public final void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
@@ -443,6 +448,7 @@ abstract class SQLBinary
 		{
 			readFromStream(in);
 		}
+		isNull = evaluateNull();
 	}
 
     /**
@@ -527,6 +533,7 @@ abstract class SQLBinary
 
 		dataValue = new byte[off];
 		System.arraycopy(tmpData, 0, dataValue, 0, off);
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -538,6 +545,7 @@ abstract class SQLBinary
         _blobValue = null;
 		stream = null;
 		streamValueLength = -1;
+		isNull = true;
 	}
 
 	/**
@@ -677,6 +685,7 @@ abstract class SQLBinary
         _blobValue = null;
 		this.stream = newStream;
 		streamValueLength = -1;
+		isNull = evaluateNull();
 	}
 
 	public final void loadStream() throws StandardException
@@ -710,6 +719,7 @@ abstract class SQLBinary
         _blobValue = null;
 		stream = theStream;
 		this.streamValueLength = valueLength;
+		isNull = evaluateNull();
 	}
 
 	protected final void setFrom(DataValueDescriptor theValue) throws StandardException {
@@ -726,6 +736,7 @@ abstract class SQLBinary
 		{
 			setValue(theValue.getBytes());
 		}
+		isNull = evaluateNull();
 	}
 
 	/*

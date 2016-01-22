@@ -224,13 +224,12 @@ public final class SQLDate extends DataType
 	 */
 	public void readExternal(ObjectInput in) throws IOException
 	{
-		encodedDate = in.readInt();
-
+		setValue(in.readInt());
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
-		encodedDate = in.readInt();
-
+		setValue(in.readInt());
 	}
 
 	/*
@@ -241,7 +240,13 @@ public final class SQLDate extends DataType
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
 		// Call constructor with all of our info
-		return new SQLDate(encodedDate);
+		SQLDate local = null;
+		try {
+			local = new SQLDate(encodedDate);
+		} catch (StandardException se) {
+			throw new RuntimeException(se);
+		}
+		return local;
 	}
 
 	/**
@@ -260,6 +265,7 @@ public final class SQLDate extends DataType
 	{
 		// clear encodedDate
 		encodedDate = 0;
+		isNull = true;
 
 	}
 
@@ -389,11 +395,12 @@ public final class SQLDate extends DataType
     
     private void parseDate( java.util.Date value) throws StandardException
 	{
-		encodedDate = computeEncodedDate(value);
+		setValue(computeEncodedDate(value));
 	}
 
-	private SQLDate(int encodedDate) {
-		this.encodedDate = encodedDate;
+	private SQLDate(int encodedDate) throws StandardException
+	{
+		setValue(encodedDate);
 	}
 
     /**
@@ -461,7 +468,7 @@ public final class SQLDate extends DataType
             switch( parser.nextSeparator())
             {
             case ISO_SEPARATOR:
-                encodedDate = SQLTimestamp.parseDateOrTimestamp( parser, false)[0];
+                setValue(SQLTimestamp.parseDateOrTimestamp( parser, false)[0]);
                 return;
 
             case IBM_USA_SEPARATOR:
@@ -497,7 +504,7 @@ public final class SQLDate extends DataType
         }
         if( validSyntax)
         {
-            encodedDate = computeEncodedDate( year, month, day);
+            setValue(computeEncodedDate(year, month, day));
         }
         else
         {
@@ -514,14 +521,14 @@ public final class SQLDate extends DataType
                 dateFormat.setCalendar( cal);
             try
             {
-                encodedDate = computeEncodedDate( dateFormat.parse( dateStr), cal);
+                setValue(computeEncodedDate(dateFormat.parse(dateStr), cal));
             }
             catch( ParseException pe)
             {
                 // Maybe it is a localized timestamp
                 try
                 {
-                    encodedDate = SQLTimestamp.parseLocalTimestamp( dateStr, localeFinder, cal)[0];
+                    setValue(SQLTimestamp.parseLocalTimestamp( dateStr, localeFinder, cal)[0]);
                 }
                 catch( ParseException pe2)
                 {
@@ -546,7 +553,7 @@ public final class SQLDate extends DataType
 		// Same format means same type SQLDate
 		if (theValue instanceof SQLDate) {
 			restoreToNull();
-			encodedDate = ((SQLDate) theValue).encodedDate;
+			setValue(((SQLDate) theValue).encodedDate);
 		}
         else
         {
@@ -559,32 +566,45 @@ public final class SQLDate extends DataType
 		@see DateTimeDataValue#setValue
 
 	 */
-	public void setValue(Date value, Calendar cal) throws StandardException
+	public void setValue(Date value, Calendar cal)
+		throws StandardException
 	{
 		restoreToNull();
 		encodedDate = computeEncodedDate((java.util.Date) value, cal);
+		isNull = evaluateNull();
 	}
 
 	/**
 		@see DateTimeDataValue#setValue
 
 	 */
-	public void setValue(Timestamp value, Calendar cal) throws StandardException
+	public void setValue(Timestamp value, Calendar cal)
+		throws StandardException
 	{
 		restoreToNull();
 		encodedDate = computeEncodedDate((java.util.Date) value, cal);
+		isNull = evaluateNull();
 	}
 	
-	public void setValue(DateTime value) throws StandardException {
+	public void setValue(DateTime value)
+		throws StandardException
+	{
 		restoreToNull();		
 		encodedDate = computeEncodedDate(value.getYear(),
 						value.getMonthOfYear(),
 						value.getDayOfMonth());
+		isNull = evaluateNull();
+	}
+
+	public void setValue(int value)
+	{
+		encodedDate = value;
+		isNull = evaluateNull();
 	}
 
 
 	public void setValue(String theValue)
-	    throws StandardException
+		throws StandardException
 	{
 		restoreToNull();
 
@@ -596,6 +616,7 @@ public final class SQLDate extends DataType
                        (databaseContext == null) ? null : databaseContext.getDatabase(),
                        (Calendar) null);
         }
+		isNull = evaluateNull();
 	}
 
 	/*
@@ -809,7 +830,7 @@ public final class SQLDate extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	public final boolean isNull()
+	private final boolean evaluateNull()
 	{
 		return (encodedDate == 0);
 	}
@@ -1138,7 +1159,7 @@ public final class SQLDate extends DataType
                 retVal.setValue( operand);
                 return retVal;
             }
-            if( operand instanceof NumberDataValue)
+            if( operand instanceof NumberDataType)
             {
                 int daysSinceEpoch = operand.getInt();
                 if( daysSinceEpoch <= 0 || daysSinceEpoch > 3652059)

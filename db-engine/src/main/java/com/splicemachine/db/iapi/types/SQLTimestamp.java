@@ -53,6 +53,7 @@ import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+
 /**
  * This contains an instance of a SQL Timestamp object.
  * <p>
@@ -244,15 +245,22 @@ public final class SQLTimestamp extends DataType
 	 */
 	public void readExternal(ObjectInput in) throws IOException
 	{
-		encodedDate = in.readInt();
-		encodedTime = in.readInt();
-		nanos = in.readInt();
+		int date;
+		int time;
+
+		date = in.readInt();
+		time = in.readInt();
+		setValue(date, time);
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
-		encodedDate = in.readInt();
-		encodedTime = in.readInt();
-		nanos = in.readInt();
+		int date;
+		int time;
+		int nanos;
+
+		date = in.readInt();
+		time = in.readInt();
+		setValue(date, time);
 	}
 
 	/*
@@ -263,6 +271,8 @@ public final class SQLTimestamp extends DataType
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
 		// Call constructor with all of our info
+		if (isNull)
+			return new SQLTimestamp();
 		return new SQLTimestamp(encodedDate, encodedTime, nanos);
 	}
 
@@ -283,6 +293,7 @@ public final class SQLTimestamp extends DataType
 		encodedDate = 0;
 		encodedTime = 0;
 		nanos = 0;
+		isNull = true;
 
 	}
 
@@ -424,38 +435,39 @@ public final class SQLTimestamp extends DataType
 
 	SQLTimestamp(int encodedDate, int encodedTime, int nanos) {
 
-		this.encodedDate = encodedDate;
-		this.encodedTime = encodedTime;
-		this.nanos = nanos;
+		setValue(encodedDate, encodedTime, nanos);
 	}
 
     public SQLTimestamp( DataValueDescriptor date, DataValueDescriptor time) throws StandardException
     {
         Calendar cal = null;
+		int encodedDateLocal;
+		int encodedTimeLocal;
         if( date == null || date.isNull()
             || time == null || time.isNull())
             return;
         if( date instanceof SQLDate)
         {
             SQLDate sqlDate = (SQLDate) date;
-            encodedDate = sqlDate.getEncodedDate();
+            encodedDateLocal = sqlDate.getEncodedDate();
         }
         else
         {
             cal = new GregorianCalendar();
-            encodedDate = computeEncodedDate( date.getDate( cal), cal);
+            encodedDateLocal = computeEncodedDate( date.getDate( cal), cal);
         }
         if( time instanceof SQLTime)
         {
             SQLTime sqlTime = (SQLTime) time;
-            encodedTime = sqlTime.getEncodedTime();
+            encodedTimeLocal = sqlTime.getEncodedTime();
         }
         else
         {
             if( cal == null)
                 cal = new GregorianCalendar();
-            encodedTime = computeEncodedTime( time.getTime( cal), cal);
+            encodedTimeLocal = computeEncodedTime( time.getTime( cal), cal);
         }
+		setValue(encodedDateLocal, encodedTimeLocal);
     }
 
     /**
@@ -511,9 +523,7 @@ public final class SQLTimestamp extends DataType
         try
         {
             int[] dateTimeNano = parseDateOrTimestamp( parser, false);
-            encodedDate = dateTimeNano[0];
-            encodedTime = dateTimeNano[1];
-            nanos = dateTimeNano[2];
+			setValue(dateTimeNano[0], dateTimeNano[1], dateTimeNano[2]);
             return;
         }
         catch( StandardException se)
@@ -525,8 +535,7 @@ public final class SQLTimestamp extends DataType
         {
             timestampStr = StringUtil.trimTrailing( timestampStr);
             int[] dateAndTime = parseLocalTimestamp( timestampStr, localeFinder, cal);
-            encodedDate = dateAndTime[0];
-            encodedTime = dateAndTime[1];
+			setValue(dateAndTime[0], dateAndTime[1]);
             return;
         }
         catch( ParseException pe){}
@@ -628,9 +637,7 @@ public final class SQLTimestamp extends DataType
 		if (theValue instanceof SQLTimestamp) {
 			restoreToNull();
 			SQLTimestamp tvst = (SQLTimestamp) theValue;
-			encodedDate = tvst.encodedDate;
-			encodedTime = tvst.encodedTime;
-			nanos = tvst.nanos;
+			setValue(tvst.encodedDate, tvst.encodedTime, tvst.nanos);
         }
 		else
         {
@@ -651,12 +658,11 @@ public final class SQLTimestamp extends DataType
         {
             if( cal == null)
                 cal = new GregorianCalendar();
-            encodedDate = computeEncodedDate(value, cal);
+            setValue(computeEncodedDate(value, cal));
         }
 		/* encodedTime and nanos are already set to zero by restoreToNull() */
 	}
-    
-    
+
 	/**
 		@see DateTimeDataValue#setValue
 
@@ -689,6 +695,33 @@ public final class SQLTimestamp extends DataType
                             (Calendar) null);
 		}
 		/* restoreToNull will have already set the encoded date to 0 (null value) */
+	}
+
+	public void setValue(int encodedDateArg)
+	{
+		restoreToNull();
+		encodedDate = encodedDateArg;
+		encodedTime = 0;
+		nanos = 0;
+		isNull = evaluateNull();
+	}
+
+	public void setValue(int encodedDateArg, int encodedTimeArg)
+	{
+		restoreToNull();
+		encodedDate = encodedDateArg;
+		encodedTime = encodedTimeArg;
+		nanos = 0;
+		isNull = evaluateNull();
+	}
+
+	public void setValue(int encodedDateArg, int encodedTimeArg, int nanosArg)
+	{
+		restoreToNull();
+		encodedDate = encodedDateArg;
+		encodedTime = encodedTimeArg;
+		nanos = nanosArg;
+		isNull = evaluateNull();
 	}
 
 	/*
@@ -938,7 +971,7 @@ public final class SQLTimestamp extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	public final boolean isNull()
+	private final boolean evaluateNull()
 	{
 		return (encodedDate == 0);
 	}
@@ -1039,9 +1072,7 @@ public final class SQLTimestamp extends DataType
             if( cal == null) {
 				cal = Calendar.getInstance();
 			}
-            encodedDate = computeEncodedDate(value, cal);
-            encodedTime = computeEncodedTime(value, cal);
-            nanos = value.getNanos();
+			setValue(computeEncodedDate(value, cal), computeEncodedTime(value, cal), value.getNanos());
 
 		}
 		/* encoded date should already be 0 for null */
@@ -1056,12 +1087,12 @@ public final class SQLTimestamp extends DataType
         }
         if (dt != null)
         {
-            encodedDate = computeEncodedDate(dt);
-            encodedTime = computeEncodedTime(dt);
-            nanos = (int)((dt.getMillis()%1000) * 1000000);
-            if (nanos < 0) {
-                nanos = 1000000000 + nanos;
+			int nanosLocal;
+            nanosLocal = (int)((dt.getMillis()%1000) * 1000000);
+            if (nanosLocal < 0) {
+                nanosLocal = 1000000000 + nanosLocal;
             }
+            setValue(computeEncodedDate(dt), computeEncodedTime(dt), nanosLocal);
         }
 		/* encoded date should already be 0 for null */
     }
@@ -1272,8 +1303,7 @@ public final class SQLTimestamp extends DataType
         try
         {
             cal.add( calIntervalType, count);
-            tsResult.encodedTime = SQLTime.computeEncodedTime( cal);
-            tsResult.encodedDate = SQLDate.computeEncodedDate( cal);
+            tsResult.setValue(SQLDate.computeEncodedDate(cal), SQLTime.computeEncodedTime(cal));
         }
         catch( StandardException se)
         {

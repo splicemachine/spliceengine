@@ -38,6 +38,7 @@ import java.sql.ResultSet;
 import java.sql.RowId;
 import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import com.splicemachine.db.iapi.types.NullValueData;
 
 /**
  *
@@ -58,7 +59,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
  * values with.
  *
  */
-public abstract class DataType
+public abstract class DataType extends NullValueData
     implements DataValueDescriptor, Comparable
 {
 	/*

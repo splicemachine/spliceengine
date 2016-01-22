@@ -84,7 +84,7 @@ public class SQLRef extends DataType implements RefDataValue
 		if (theValue.isNull())
 			setToNull();
 		else
-			value = (RowLocation) theValue.getObject();
+			setValue((RowLocation) theValue.getObject());
 	}
 
 	public int getLength()
@@ -112,7 +112,7 @@ public class SQLRef extends DataType implements RefDataValue
 		return StoredFormatIds.SQL_REF_ID;
 	}  
 
-	public boolean isNull()
+	private final boolean evaluateNull()
 	{
 		return (value == null);
 	}
@@ -138,12 +138,12 @@ public class SQLRef extends DataType implements RefDataValue
 	{
         boolean nonNull = in.readBoolean();
         if (nonNull) {
-            value = (RowLocation) in.readObject();
+            setValue((RowLocation) in.readObject());
         }
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
 	{
-		value = (RowLocation) in.readObject();
+		setValue((RowLocation) in.readObject());
 	}
 
 	/**
@@ -153,6 +153,7 @@ public class SQLRef extends DataType implements RefDataValue
 	public void restoreToNull()
 	{
 		value = null;
+		isNull = true;
 	}
 
 	/*
@@ -243,17 +244,19 @@ public class SQLRef extends DataType implements RefDataValue
 
 	public SQLRef(RowLocation rowLocation)
 	{
-		value = rowLocation;
+		setValue(rowLocation);
 	}
 
     @Override
 	public void setValue(RowLocation rowLocation)
 	{
 		value = rowLocation;
+		isNull = evaluateNull();
 	}
 
     public void setValue(RowId rowId) {
-        value = (SQLRowId)rowId;
+		value = (SQLRowId)rowId;
+		isNull = evaluateNull();
     }
 	/*
 	** String display of value

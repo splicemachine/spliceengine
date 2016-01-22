@@ -72,7 +72,7 @@ import java.util.Map;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 import com.splicemachine.db.iapi.services.io.CloseFilterInputStream;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 
@@ -680,7 +680,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 				DataValueDescriptor dvd = getColumn(columnIndex);
 
-				if (wasNull = dvd.isNull())
+                wasNull = dvd.isNull();
+				if (wasNull)
 					return null;
 
 				String value = dvd.getString();
@@ -963,7 +964,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 			DataValueDescriptor dvd = getColumn(columnIndex);
 
-			if (wasNull = dvd.isNull())
+            wasNull = dvd.isNull();
+			if (wasNull)
 				return null;
 
             if( cal == null)
@@ -1702,7 +1704,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 		try {
 
 			DataValueDescriptor dvd = getColumn(columnIndex);
-			if (wasNull = dvd.isNull())
+            wasNull = dvd.isNull();
+			if (wasNull)
 				return null;
 
 			return dvd.getObject();

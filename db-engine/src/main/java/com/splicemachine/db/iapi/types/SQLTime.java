@@ -46,7 +46,6 @@ import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-
 /**
  * This contains an instance of a SQL Time
  * Our current implementation doesn't implement time precision so the fractional
@@ -196,13 +195,11 @@ public final class SQLTime extends DataType
 	 */
 	public void readExternal(ObjectInput in) throws IOException
 	{
-		encodedTime = in.readInt();
-		encodedTimeFraction = in.readInt();
+		setValue(in.readInt(), in.readInt());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
-		encodedTime = in.readInt();
-		encodedTimeFraction = in.readInt();
+		setValue(in.readInt(), in.readInt());
 	}
 
 	/*
@@ -232,6 +229,7 @@ public final class SQLTime extends DataType
 	{
 		encodedTime = -1;
 		encodedTimeFraction = 0;
+		isNull = true;
 	}
 
 	/*
@@ -247,8 +245,7 @@ public final class SQLTime extends DataType
 									  boolean isNullable)
 		throws SQLException, StandardException
 	{
-			restoreToNull();
-			encodedTime = computeEncodedTime(resultSet.getTime(colNumber));
+			setValue(computeEncodedTime(resultSet.getTime(colNumber)));
 			//need to set encodedTimeFraction when we implement time precision
 	}
 
@@ -356,7 +353,7 @@ public final class SQLTime extends DataType
 	/** no-arg constructor required by Formattable */
 	public SQLTime() 
 	{ 
-		encodedTime = -1;	//null value
+		restoreToNull();
 	}
 
 	public SQLTime(Time value) throws StandardException
@@ -366,12 +363,11 @@ public final class SQLTime extends DataType
 
     private void parseTime(java.util.Date value) throws StandardException
 	{
-		encodedTime = computeEncodedTime(value);
+		setValue(computeEncodedTime(value));
 	}
 
 	private SQLTime(int encodedTime, int encodedTimeFraction) {
-		this.encodedTime = encodedTime;
-		this.encodedTimeFraction = encodedTimeFraction;
+		setValue(encodedTime, encodedTimeFraction);
 	}
 
 
@@ -429,7 +425,7 @@ public final class SQLTime extends DataType
         {
             if( parser.nextSeparator() == SQLTimestamp.DATE_SEPARATOR)
             {
-                    encodedTime = SQLTimestamp.parseDateOrTimestamp( parser, true)[1];
+                    setValue(SQLTimestamp.parseDateOrTimestamp( parser, true)[1]);
                     return;
             }
             hour = parser.parseInt( 2, true, ANY_SEPARATOR, false);
@@ -511,7 +507,7 @@ public final class SQLTime extends DataType
                     throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
             }
             parser.checkEnd();
-            encodedTime = computeEncodedTime( hour, minute, second);
+            setValue(computeEncodedTime( hour, minute, second));
         }
         else
         {
@@ -528,14 +524,14 @@ public final class SQLTime extends DataType
                 timeFormat.setCalendar( cal);
             try
             {
-                encodedTime = computeEncodedTime( timeFormat.parse( timeStr), cal);
+                setValue(computeEncodedTime( timeFormat.parse( timeStr), cal));
             }
             catch( ParseException pe)
             {
                 // Maybe it is a localized timestamp
                 try
                 {
-                    encodedTime = SQLTimestamp.parseLocalTimestamp( timeStr, localeFinder, cal)[1];
+                    setValue(SQLTimestamp.parseLocalTimestamp( timeStr, localeFinder, cal)[1]);
                 }
                 catch( ParseException pe2)
                 {
@@ -559,11 +555,9 @@ public final class SQLTime extends DataType
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
 		if (theValue instanceof SQLTime) {
-			restoreToNull();
 
 			SQLTime tvst = (SQLTime) theValue;
-			encodedTime = tvst.encodedTime;
-			encodedTimeFraction = tvst.encodedTimeFraction;
+			setValue(tvst.encodedTime, tvst.encodedTimeFraction);
 
 		}
         else
@@ -580,8 +574,7 @@ public final class SQLTime extends DataType
 	 */
 	public void setValue(Time value, Calendar cal) throws StandardException
 	{
-		restoreToNull();
-		encodedTime = computeEncodedTime(value, cal);
+		setValue(computeEncodedTime(value, cal));
 	}
 
 	/**
@@ -591,15 +584,13 @@ public final class SQLTime extends DataType
 	 */
 	public void setValue(Timestamp value, Calendar cal) throws StandardException
 	{
-		restoreToNull();
-		encodedTime = computeEncodedTime(value, cal);
+		setValue(computeEncodedTime(value, cal));
 	}
 
 	public void setValue(DateTime value) throws StandardException {
-		restoreToNull();
-		encodedTime = computeEncodedTime(value.getHourOfDay(),
+		setValue(computeEncodedTime(value.getHourOfDay(),
 				value.getMinuteOfHour(),
-				value.getSecondOfMinute());
+				value.getSecondOfMinute()));
 	}
 
 	
@@ -607,7 +598,6 @@ public final class SQLTime extends DataType
 	public void setValue(String theValue)
 	    throws StandardException
 	{
-		restoreToNull();
 		if (theValue != null)
         {
             DatabaseContext databaseContext = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
@@ -616,6 +606,19 @@ public final class SQLTime extends DataType
                        (databaseContext == null) ? null : databaseContext.getDatabase(),
                        (Calendar) null);
         }
+	}
+
+	public void setValue(int theValue)
+	{
+		encodedTime = theValue;
+		encodedTimeFraction = 0;
+		isNull = evaluateNull();
+	}
+	public void setValue(int theValue, int theFraction)
+	{
+		encodedTime = theValue;
+		encodedTimeFraction = theFraction;
+		isNull = evaluateNull();
 	}
 
 	/*
@@ -820,7 +823,7 @@ public final class SQLTime extends DataType
 	 *
 	 * @return Whether or not value is logically null.
 	 */
-	public final boolean isNull()
+	private final boolean evaluateNull()
 	{
 		return (encodedTime ==  -1);
 	}

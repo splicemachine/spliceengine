@@ -115,7 +115,7 @@ abstract class BinaryDecimal extends NumberDataType
 	/**
 	 * see if the decimal value is null.
 	 */
-	public boolean isNull()
+	public boolean evaluateNull()
 	{
 		return data2c == null;
 	}	
@@ -123,6 +123,7 @@ abstract class BinaryDecimal extends NumberDataType
 	public void restoreToNull()
 	{
 		data2c = null;
+		isNull = true;
 	}
 
 	/* Check the leftmost bit, if set the value is negative.
@@ -186,6 +187,7 @@ abstract class BinaryDecimal extends NumberDataType
 				SanityManager.THROWASSERT(se);
 			}
 		}	
+		isNull = evaluateNull();
 	}
 
 	/**
@@ -206,6 +208,7 @@ abstract class BinaryDecimal extends NumberDataType
 			
 		data2c = BinaryDecimal.reduceBytes2c(rd, 0, 4);
 		sqlScale = 0;
+		isNull = evaluateNull();
 	}
 	
 	/**
@@ -637,6 +640,7 @@ return divide(dividend, divisor, result, -1);
 			data2c = new byte[size];
 		}
 		in.readFully(data2c);
+		isNull = evaluateNull();
 
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException 
@@ -657,6 +661,7 @@ return divide(dividend, divisor, result, -1);
 			data2c = new byte[size];
 		}
 		in.readFully(data2c);
+		isNull = evaluateNull();
 	}
 
 
@@ -677,6 +682,7 @@ return divide(dividend, divisor, result, -1);
 			dvd.data2c = new byte[data2c.length];
 			System.arraycopy(data2c, 0, dvd.data2c, 0, data2c.length);
 			dvd.sqlScale = sqlScale;
+			dvd.isNull = false;
 		}
 		
 		return dvd;
