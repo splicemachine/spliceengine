@@ -1,9 +1,13 @@
 package com.splicemachine.derby.impl.load;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -58,12 +62,16 @@ public class ImportErrorIT extends SpliceUnitTest {
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date not null,g time not null, h timestamp not null)");
     private static final SpliceTableWatcher decimalTable = new SpliceTableWatcher("DECIMALTABLE", schema.schemaName, "(d decimal(2))");
     private static final SpliceTableWatcher incrementTable = new SpliceTableWatcher("INCREMENT", schema.schemaName, "(a int generated always as identity, b int)");
+
+    private static final SpliceTableWatcher constraintTable = new SpliceTableWatcher("CONSTRAINT_TABLE", schema.schemaName, "(i int check (i<10))");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(schema)
                                             .around(tableWatcher)
                                             .around(decimalTable)
-                                            .around(incrementTable);
+                                            .around(incrementTable)
+                                            .around(constraintTable);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -102,7 +110,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 String correctErrorMessage1 = String.format("Data file not found: File %s does not exist.",location);
                 String retval = se.getMessage();
                 Assert.assertTrue("Incorrect error message! location={" + location + "}, retval={" + retval + "}",
-                                  retval.equals(correctErrorMessage)||retval.equals(correctErrorMessage1));
+                        retval.equals(correctErrorMessage) || retval.equals(correctErrorMessage1));
 //                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -276,6 +284,43 @@ public class ImportErrorIT extends SpliceUnitTest {
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
+    }
+
+    /**
+     * DB-3937
+     * @throws Exception
+     */
+    @Test
+    public void testCannotInsertValueOutOfConstraint() throws Exception{
+
+        String table = constraintTable.tableName;
+        String file = "field_with_constraint.csv";
+
+        String inputFilePath = getResourceDirectory()+"import/"+file;
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "'true'," +  // has one line records
+                        "null)",   // char set
+                schema.schemaName, table, inputFilePath,
+                0, BADDIR.getCanonicalPath()));
+
+        ps.execute();
+
+        Path badFile = Paths.get(BADDIR.getCanonicalPath() + "/" + file + ".bad");
+
+        if (!Files.exists(badFile)) {
+            Assert.fail("No SQLException was thrown!");
+        }
     }
 
     @Test @Ignore("DB-4342")
