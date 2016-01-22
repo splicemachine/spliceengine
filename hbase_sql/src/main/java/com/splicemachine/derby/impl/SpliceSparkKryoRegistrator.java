@@ -14,13 +14,10 @@ import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeDropPKConstraintDesc;
+import com.splicemachine.derby.impl.sql.execute.dvd.*;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.kryo.SparkValueRowSerializer;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.dvd.LazyTimestamp;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -497,6 +494,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                 });
 
         instance.register(LazyTimestamp.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER);
 //        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER);

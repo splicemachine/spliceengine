@@ -15,6 +15,7 @@ import java.io.IOException;
  * Date: 4/2/14
  */
 public class NullDescriptorSerializer implements DescriptorSerializer{
+
 		private DescriptorSerializer delegate;
 		private final boolean sparse;
 
@@ -90,10 +91,18 @@ public class NullDescriptorSerializer implements DescriptorSerializer{
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-				if(dvd==null||dvd.isNull()){
+				boolean isNullLocal;
+				if (dvd == null)
+					isNullLocal = true;
+                else
+                    isNullLocal = dvd.isNull();
+				if(isNullLocal) {
 						if (!sparse) encodeEmpty(fieldEncoder);
 						return;
 				}
+//                if (dvd.getObject() instanceof UDTBase) {
+//                    delegate = UDTDescriptorSerializer.INSTANCE;
+//                }
 				delegate.encode(fieldEncoder,dvd,desc);
 		}
 
