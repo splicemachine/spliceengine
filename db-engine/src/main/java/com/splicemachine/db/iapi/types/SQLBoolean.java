@@ -72,14 +72,6 @@ public final class SQLBoolean
 	 * (mostly implemented in DataType)
 	 */
 
-	/*
-	 * see if the integer value is null.
-	 */
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public boolean	getBoolean()
 	{
 		return value;
@@ -211,11 +203,11 @@ public final class SQLBoolean
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
 		value = in.readBoolean();
-		isnull = false;
+		isNull = false;
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		value = in.readBoolean();
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -224,7 +216,7 @@ public final class SQLBoolean
 	 */
 	public void restoreToNull() {
 		value = false;
-		isnull = true;
+		isNull = true;
 	}
 
 	/*
@@ -308,7 +300,7 @@ public final class SQLBoolean
 	/** @see DataValueDescriptor#cloneValue */
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-		return new SQLBoolean(value, isnull);
+		return new SQLBoolean(value, isNull);
 	}
 
 	/**
@@ -329,7 +321,7 @@ public final class SQLBoolean
 		throws SQLException
 	{
 			value = resultSet.getBoolean(colNumber);
-			isnull = (isNullable && resultSet.wasNull());
+			isNull = (isNullable && resultSet.wasNull());
 	}
 	/**
 		Set the value into a PreparedStatement.
@@ -362,32 +354,32 @@ public final class SQLBoolean
 
 	public SQLBoolean()
 	{
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLBoolean(boolean val)
 	{
-		value = val;
+		setValue(val);
 	}
 	public SQLBoolean(Boolean obj) {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
 			;
 		else
-			value = obj.booleanValue();
+			setValue(obj.booleanValue());
 	}
 
     /* This constructor gets used for the cloneValue method */
-	private SQLBoolean(boolean val, boolean isnull)
+	private SQLBoolean(boolean val, boolean isNull)
 	{
 		value = val;
-		this.isnull = isnull;
+		this.isNull = isNull;
 	}
 
 	/** @see BooleanDataValue#setValue */
 	public void setValue(boolean theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -396,12 +388,12 @@ public final class SQLBoolean
 		if (theValue == null)
 		{
 			value = false;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
 			value = theValue.booleanValue();
-			isnull = false;
+			isNull = false;
 		}
 
 	}
@@ -410,7 +402,7 @@ public final class SQLBoolean
 	public void setValue(byte theValue)
 	{
 		value = theValue != 0;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -419,7 +411,7 @@ public final class SQLBoolean
 	public void setValue(short theValue)
 	{
 		value = theValue != 0;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -428,14 +420,14 @@ public final class SQLBoolean
 	public void setValue(int theValue)
 	{
 		value = theValue != 0;
-		isnull = false;
+		isNull = false;
 
 	}
 
 	public void setValue(long theValue)
 	{
 		value = theValue != 0;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -443,14 +435,14 @@ public final class SQLBoolean
 	public void setValue(float theValue)
 	{
 		value = theValue != 0;
-		isnull = false;
+		isNull = false;
 
 	}
 
 	public void setValue(double theValue)
 	{
 		value = theValue != 0;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -459,14 +451,14 @@ public final class SQLBoolean
 		if (bigDecimal == null)
 		{
 			value = false;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
 			DataValueDescriptor tempDecimal = NumberDataType.ZERO_DECIMAL.getNewNull();
 			tempDecimal.setBigDecimal(bigDecimal);
 			value = NumberDataType.ZERO_DECIMAL.compare(tempDecimal) != 0;
-			isnull = false;
+			isNull = false;
 		}
 
 	}
@@ -486,7 +478,7 @@ public final class SQLBoolean
 		if (theValue == null)
 		{
 			value = false;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
@@ -497,15 +489,15 @@ public final class SQLBoolean
 			String cleanedValue = StringUtil.SQLToUpperCase(theValue.trim());
 			if (cleanedValue.equals("TRUE") || cleanedValue.equals("T") || cleanedValue.equals("1")) {
 				value = true;
-                isnull = false;
+                isNull = false;
 			}
 			else if (cleanedValue.equals("FALSE")  || cleanedValue.equals("F") || cleanedValue.equals("0")) {
 				value = false;
-                isnull = false;
+                isNull = false;
 			}
 			else if (cleanedValue.equals("UNKNOWN")) {
 				value = false;
-                isnull = true;
+                isNull = true;
 			}
 			else
 			{ 
@@ -1060,7 +1052,6 @@ public final class SQLBoolean
 	 * object state
 	 */
 	private boolean value;
-	private boolean isnull;
 	public Format getFormat() {
 		return Format.BOOLEAN;
 	}

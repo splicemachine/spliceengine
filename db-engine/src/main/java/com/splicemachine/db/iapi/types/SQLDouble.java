@@ -210,15 +210,6 @@ public final class SQLDouble extends NumberDataType
 		return StoredFormatIds.SQL_DOUBLE_ID;
 	}
 
-	/*
-	 * see if the double value is null.
-	 */
-	/** @see Storable#isNull */
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 
@@ -233,14 +224,14 @@ public final class SQLDouble extends NumberDataType
 	public void readExternal(ObjectInput in) throws IOException {
 
 		value = in.readDouble();
-		isnull = false;
+		isNull = false;
 	}
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 
 		value = in.readDouble();
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -251,7 +242,7 @@ public final class SQLDouble extends NumberDataType
 	public void restoreToNull()
 	{
 		value = 0;
-		isnull = true;
+		isNull = true;
 	}
 
 
@@ -279,7 +270,7 @@ public final class SQLDouble extends NumberDataType
 	/** @see DataValueDescriptor#cloneValue */
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-			return new SQLDouble(value, isnull, true); // Do not test me again on cloning : JL
+			return new SQLDouble(value, isNull, true); // Do not test me again on cloning : JL
 	}
 
 	/**
@@ -301,8 +292,8 @@ public final class SQLDouble extends NumberDataType
 		throws StandardException, SQLException
 	{
 			double dv = resultSet.getDouble(colNumber);
-			isnull = (isNullable && resultSet.wasNull());
-            if (isnull)
+			isNull = (isNullable && resultSet.wasNull());
+            if (isNull)
                 value = 0;
             else 
                 value = NumberDataType.normalizeDOUBLE(dv);
@@ -343,25 +334,25 @@ public final class SQLDouble extends NumberDataType
     // This constructor also gets used when we are
     // allocating space for a double.
 	public SQLDouble() {
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLDouble(double val) throws StandardException
 	{
-		value = NumberDataType.normalizeDOUBLE(val);
+		setValue(NumberDataType.normalizeDOUBLE(val));
 	}
 
 	public SQLDouble(Double obj) throws StandardException {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
             ;
 		else
-			value = NumberDataType.normalizeDOUBLE(obj.doubleValue());
+			setValue(NumberDataType.normalizeDOUBLE(obj.doubleValue()));
 	}
 
 	private SQLDouble(double val, boolean startsnull) throws StandardException
 	{
 		value = NumberDataType.normalizeDOUBLE(val); // maybe only do if !startsnull
-		isnull = startsnull;
+		isNull = startsnull;
 	}
 	/**
 	 * Method to create double with normalization, normalize ignored
@@ -369,7 +360,7 @@ public final class SQLDouble extends NumberDataType
 	private SQLDouble(double val, boolean startsnull, boolean normalize)
 	{
 		value = val; // maybe only do if !startsnull
-		isnull = startsnull;
+		isNull = startsnull;
 	}
 
 	
@@ -382,7 +373,7 @@ public final class SQLDouble extends NumberDataType
 		if (theValue == null)
 		{
 			value = 0;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
@@ -394,7 +385,7 @@ public final class SQLDouble extends NumberDataType
 			    throw invalidFormat();
 			}
 			value = NumberDataType.normalizeDOUBLE(doubleValue);
-			isnull = false;
+			isNull = false;
 		}
 	}
 
@@ -404,7 +395,7 @@ public final class SQLDouble extends NumberDataType
 	public void setValue(double theValue) throws StandardException
 	{
 		value = NumberDataType.normalizeDOUBLE(theValue);
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -413,19 +404,19 @@ public final class SQLDouble extends NumberDataType
 	public void setValue(float theValue) throws StandardException
 	{
 		value = NumberDataType.normalizeDOUBLE(theValue);
-		isnull = false;
+		isNull = false;
 	}
 
 	public void setValue(long theValue)
 	{
 		value = theValue; // no check needed
-		isnull = false;
+		isNull = false;
 	}
 
 	public void setValue(int theValue)
 	{
 		value = theValue; // no check needed
-		isnull = false;
+		isNull = false;
 	}
 
 	public  void setValue(Number theValue) throws StandardException
@@ -464,7 +455,7 @@ public final class SQLDouble extends NumberDataType
 	public void setValue(boolean theValue)
 	{
 		value = theValue?1:0;
-		isnull = false;
+		isNull = false;
 	}
 
 
@@ -896,8 +887,7 @@ public final class SQLDouble extends NumberDataType
 	 * object state
 	 */
 	private double	value;
-	private boolean	isnull;
-	
+
     public boolean isDoubleType() {
         return true;
     }

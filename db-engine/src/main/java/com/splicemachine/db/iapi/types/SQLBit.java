@@ -129,7 +129,7 @@ public class SQLBit
 
 	public SQLBit(byte[] val)
 	{
-		dataValue = val;
+		setValue(val);
 	}
 
 	/**

@@ -185,15 +185,6 @@ public final class SQLSmallint
 		return StoredFormatIds.SQL_SMALLINT_ID;
 	}
 
-	/**
-	 * always false for non-nullable columns
-	 @see Storable#isNull
-	*/
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		// never called when value is null
@@ -206,13 +197,11 @@ public final class SQLSmallint
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 
-		value = in.readShort();
-		isnull = false;
+		setValue(in.readShort());
 	}
 	public void readExternal(ObjectInput in) throws IOException {
 
-		value = in.readShort();
-		isnull = false;
+		setValue(in.readShort());
 	}
 
 	/**
@@ -222,7 +211,7 @@ public final class SQLSmallint
 	public void restoreToNull()
 	{
 		value = 0;
-		isnull = true;
+		isNull = true;
 	}
 
 
@@ -249,7 +238,7 @@ public final class SQLSmallint
 	/** @see DataValueDescriptor#cloneValue */
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-		return new SQLSmallint(value, isnull);
+		return new SQLSmallint(value, isNull);
 	}
 
 	/**
@@ -271,11 +260,11 @@ public final class SQLSmallint
 	{
 		try {
 			value = resultSet.getShort(colNumber);
-			isnull = (isNullable && resultSet.wasNull());
+			isNull = (isNullable && resultSet.wasNull());
 		} catch (SQLException selq) {
 			int i = resultSet.getInt(colNumber);
 			value = (short) i;
-			isnull = false;
+			isNull = false;
 
 		}
 	}
@@ -320,25 +309,25 @@ public final class SQLSmallint
 	*/
 	public SQLSmallint() 
 	{
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLSmallint(short val)
 	{
-		value = val;
+		setValue(val);
 	}
 
 	/* This constructor gets used for the cloneValue() method */
-	private SQLSmallint(short val, boolean isnull) {
-		value = val;
-		this.isnull = isnull;
+	private SQLSmallint(short val, boolean isNull) {
+		setValue(val);
+		this.isNull = isNull;
 	}
 
 	public SQLSmallint(Short obj) {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
 			;
 		else
-			value = obj.shortValue();
+			setValue(obj.shortValue());
 	}
 
 	/**
@@ -350,7 +339,7 @@ public final class SQLSmallint
 		if (theValue == null)
 		{
 			value = 0;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
@@ -359,7 +348,7 @@ public final class SQLSmallint
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}
-			isnull = false;
+			isNull = false;
 		}
 
 	}
@@ -367,13 +356,13 @@ public final class SQLSmallint
 	public void setValue(short theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	public void setValue(byte theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -384,7 +373,7 @@ public final class SQLSmallint
 		if (theValue > Short.MAX_VALUE || theValue < Short.MIN_VALUE)
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SMALLINT");
 		value = (short)theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -395,7 +384,7 @@ public final class SQLSmallint
 		if (theValue > Short.MAX_VALUE || theValue < Short.MIN_VALUE)
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SMALLINT");
 		value = (short)theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -413,7 +402,7 @@ public final class SQLSmallint
 		float floorValue = (float)Math.floor(theValue);
 
 		value = (short)floorValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -431,7 +420,7 @@ public final class SQLSmallint
 		double floorValue = Math.floor(theValue);
 
 		value = (short)floorValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -441,7 +430,7 @@ public final class SQLSmallint
 	public void setValue(boolean theValue)
 	{
 		value = theValue?(short)1:(short)0;
-		isnull = false;
+		isNull = false;
 	}
 
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
@@ -748,7 +737,6 @@ public final class SQLSmallint
 	 * object state
 	 */
 	private short value;
-	private boolean isnull;
 	public Format getFormat() {
 		return Format.SMALLINT;
 	}

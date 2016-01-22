@@ -71,7 +71,6 @@ public final class SQLTinyint
 	 * object state
 	 */
 	private byte value;
-	private boolean isnull;
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTinyint.class);
 
@@ -95,25 +94,25 @@ public final class SQLTinyint
 	 */
 	public SQLTinyint() 
 	{
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLTinyint(byte val)
 	{
-		value = val;
+		setValue(val);
 	}
 
 	/* This constructor gets used for the cloneValue() method */
-	private SQLTinyint(byte val, boolean isnull) {
+	private SQLTinyint(byte val, boolean isNull) {
 		value = val;
-		this.isnull = isnull;
+		this.isNull = isNull;
 	}
 
 	public SQLTinyint(Byte obj) {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
 			;
 		else
-			value = obj.byteValue();
+			setValue(obj.byteValue());
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -228,14 +227,6 @@ public final class SQLTinyint
 		return StoredFormatIds.SQL_TINYINT_ID;
 	}
 
-	/**
-	 * @see Storable#isNull
-	 */
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		// never called when value is null
@@ -248,13 +239,11 @@ public final class SQLTinyint
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
 
-		value = in.readByte();
-		isnull = false;
+		setValue(in.readByte());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 
-		value = in.readByte();
-		isnull = false;
+		setValue(in.readByte());
 	}
 
 
@@ -265,7 +254,7 @@ public final class SQLTinyint
 	public void restoreToNull()
 	{
 		value = 0;
-		isnull = true;
+		isNull = true;
 	}
 
 	/** @exception StandardException		Thrown on error */
@@ -292,7 +281,7 @@ public final class SQLTinyint
 	/** @see DataValueDescriptor#cloneValue */
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-		return new SQLTinyint(value, isnull);
+		return new SQLTinyint(value, isNull);
 	}
 
 	/**
@@ -313,7 +302,7 @@ public final class SQLTinyint
 		throws SQLException
 	{
 			value = resultSet.getByte(colNumber);
-			isnull = (isNullable && resultSet.wasNull());
+			isNull = (isNullable && resultSet.wasNull());
 	}
 	/**
 		Set the value into a PreparedStatement.
@@ -350,7 +339,7 @@ public final class SQLTinyint
 		if (theValue == null)
 		{
 			value = 0;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
@@ -359,7 +348,7 @@ public final class SQLTinyint
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}
-			isnull = false;
+			isNull = false;
 		}
 	}
 
@@ -367,7 +356,7 @@ public final class SQLTinyint
 	public void setValue(byte theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -378,7 +367,7 @@ public final class SQLTinyint
 		if (theValue > Byte.MAX_VALUE || theValue < Byte.MIN_VALUE)
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
 		value = (byte)theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -389,7 +378,7 @@ public final class SQLTinyint
 		if (theValue > Byte.MAX_VALUE || theValue < Byte.MIN_VALUE)
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
 		value = (byte)theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -400,7 +389,7 @@ public final class SQLTinyint
 		if (theValue > Byte.MAX_VALUE || theValue < Byte.MIN_VALUE)
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
 		value = (byte)theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -418,7 +407,7 @@ public final class SQLTinyint
 		float floorValue = (float)Math.floor(theValue);
 
 		value = (byte)floorValue;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -437,7 +426,7 @@ public final class SQLTinyint
 		double floorValue = Math.floor(theValue);
 
 		value = (byte)floorValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -447,7 +436,7 @@ public final class SQLTinyint
 	public void setValue(boolean theValue)
 	{
 		value = theValue?(byte)1:(byte)0;
-		isnull = false;
+		isNull = false;
 	}
 
 	

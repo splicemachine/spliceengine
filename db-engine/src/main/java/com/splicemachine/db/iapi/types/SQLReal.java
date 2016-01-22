@@ -211,15 +211,6 @@ public final class SQLReal
 		return StoredFormatIds.SQL_REAL_ID;
 	}
 
-	/*
-	 * see if the real value is null.
-	 */
-	/** @see Storable#isNull */
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		// never called when value is null
@@ -234,13 +225,13 @@ public final class SQLReal
         // setValue(in.readFloat()); // can throw StandardException which we can't pass on
         // assume we wrote the value, so we can read it without problem, for now.
         value = in.readFloat();
-        isnull = false;
+        isNull = false;
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
         // setValue(in.readFloat()); // can throw StandardException which we can't pass on
         // assume we wrote the value, so we can read it without problem, for now.
         value = in.readFloat();
-        isnull = false;
+        isNull = false;
 	}
 
 	/**
@@ -250,7 +241,7 @@ public final class SQLReal
 	public void restoreToNull()
 	{
 		value = 0;
-		isnull = true;
+		isNull = true;
 	}
 
 
@@ -280,7 +271,7 @@ public final class SQLReal
 	{
 		SQLReal ret = new SQLReal();
 		ret.value = this.value;
-		ret.isnull = this.isnull;
+		ret.isNull = this.isNull;
 		return ret;
 	}
 
@@ -346,19 +337,19 @@ public final class SQLReal
     // allocating space for a float.
 	public SQLReal() 
 	{
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLReal(float val)
 		throws StandardException
 	{
-		value = NumberDataType.normalizeREAL(val);
+		setValue(NumberDataType.normalizeREAL(val));
 	}
 	public SQLReal(Float obj) throws StandardException {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
 			;
 		else {
-			value = NumberDataType.normalizeREAL(obj.floatValue());
+			setValue(NumberDataType.normalizeREAL(obj.floatValue()));
 		}
 	}
 
@@ -371,7 +362,7 @@ public final class SQLReal
 		if (theValue == null)
 		{
 			value = 0;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
@@ -417,20 +408,20 @@ public final class SQLReal
 		throws StandardException
 	{
 		value = NumberDataType.normalizeREAL(theValue);
-		isnull = false;
+		isNull = false;
 	}
 
 	public void setValue(int theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 
 	}
 
 	public void setValue(long theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -456,7 +447,7 @@ public final class SQLReal
 	public void setValue(boolean theValue)
 	{
 		value = theValue?1:0;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -886,7 +877,6 @@ public final class SQLReal
 	 * object state
 	 */
 	private float value;
-	private boolean isnull;
 
 	public Format getFormat() {
 		return Format.REAL;

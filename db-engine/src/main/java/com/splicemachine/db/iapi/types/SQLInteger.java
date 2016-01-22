@@ -147,15 +147,6 @@ public final class SQLInteger
 		return StoredFormatIds.SQL_INTEGER_ID;
 	}
 
-	/*
-	 * see if the integer value is null.
-	 */
-	/** @see Storable#isNull */
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		// never called when value is null
@@ -169,14 +160,12 @@ public final class SQLInteger
 	public final void readExternal(ObjectInput in) 
         throws IOException {
 
-		value = in.readInt();
-		isnull = false;
+		setValue(in.readInt());
 	}
 	public final void readExternalFromArray(ArrayInputStream in) 
         throws IOException {
 
-		value = in.readInt();
-		isnull = false;
+		setValue(in.readInt());
 	}
 
 	/**
@@ -187,7 +176,7 @@ public final class SQLInteger
 	public void restoreToNull()
 	{
 		value = 0;
-		isnull = true;
+		isNull = true;
 	}
 
 
@@ -218,7 +207,7 @@ public final class SQLInteger
 	{
 		SQLInteger nsi = new SQLInteger(value);
 
-		nsi.isnull = isnull;
+		nsi.isNull = isNull;
 		return nsi;
 	}
 
@@ -240,9 +229,9 @@ public final class SQLInteger
 		throws SQLException
 	{
 			if ((value = resultSet.getInt(colNumber)) == 0)
-				isnull = (isNullable && resultSet.wasNull());
+				isNull = (isNullable && resultSet.wasNull());
 			else
-				isnull = false;
+				isNull = false;
 	}
 	/**
 		Set the value into a PreparedStatement.
@@ -281,24 +270,24 @@ public final class SQLInteger
     // allocating space for an integer.
 	public SQLInteger() 
 	{
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLInteger(int val)
 	{
-		value = val;
+		setValue(val);
 	}
 
 	public SQLInteger(char val)
 	{
-		value = val;
+		setValue(val);
 	}
 
 	public SQLInteger(Integer obj) {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
 			;
 		else
-			value = obj.intValue();
+			setValue(obj.intValue());
 	}
 
 	/**
@@ -309,26 +298,24 @@ public final class SQLInteger
 	{
 		if (theValue == null)
 		{
-			value = 0;
-			isnull = true;
+			restoreToNull();
 		}
 		else
 		{
 		    try {
 		    	String s = theValue.trim();
 		    	if (s.length() > 0 && s.charAt(0) == '+') s = s.substring(1);  // remove leading + if there
-		        value = Integer.parseInt(s);
+		        setValue(Integer.parseInt(s));
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}
-			isnull = false;
 		}
 	}
 
 	public void setValue(int theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -341,7 +328,7 @@ public final class SQLInteger
 		}
 
 		value = (int)theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -359,7 +346,7 @@ public final class SQLInteger
 		float floorValue = (float)Math.floor(theValue);
 
 		value = (int)floorValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -377,13 +364,13 @@ public final class SQLInteger
 		double floorValue = Math.floor(theValue);
 
 		value = (int)floorValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	public void setValue(boolean theValue)
 	{
 		value = theValue?1:0;
-		isnull = false;
+		isNull = false;
 	}
 
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
@@ -701,13 +688,12 @@ public final class SQLInteger
 	 * object state
 	 */
 	private int		value;
-	private boolean	isnull;
-	
+
 	public Format getFormat() {
 		return Format.INTEGER;
 	}
 
 	public BigDecimal getBigDecimal() {
-		return isnull ? null : BigDecimal.valueOf(value);
+		return isNull ? null : BigDecimal.valueOf(value);
 	}
 }

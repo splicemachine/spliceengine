@@ -169,15 +169,6 @@ public final class SQLLongint
 		return StoredFormatIds.SQL_LONGINT_ID;
 	}
 
-	/*
-	 * see if the integer value is null.
-	 */
-	/** @see Storable#isNull */
-	public boolean isNull()
-	{
-		return isnull;
-	}
-
 	public void writeExternal(ObjectOutput out) throws IOException {
 
 		// never called when value is null
@@ -190,13 +181,11 @@ public final class SQLLongint
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
 
-		value = in.readLong();
-		isnull = false;
+		setValue(in.readLong());
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 
-		value = in.readLong();
-		isnull = false;
+		setValue(in.readLong());
 	}
 
 	/**
@@ -207,7 +196,7 @@ public final class SQLLongint
 	public void restoreToNull()
 	{
 		value = 0;
-		isnull = true;
+		isNull = true;
 	}
 
 	/** @exception StandardException		Thrown on error */
@@ -235,7 +224,7 @@ public final class SQLLongint
 	/** @see DataValueDescriptor#cloneValue */
 	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
-		return new SQLLongint(value, isnull);
+		return new SQLLongint(value, isNull);
 	}
 
 	/**
@@ -256,9 +245,9 @@ public final class SQLLongint
 		throws SQLException
 	{
 			if ((value = resultSet.getLong(colNumber)) == 0L)
-				isnull = (isNullable && resultSet.wasNull());
+				isNull = (isNullable && resultSet.wasNull());
 			else
-				isnull = false;
+				isNull = false;
 	}
 	/**
 		Set the value into a PreparedStatement.
@@ -297,25 +286,25 @@ public final class SQLLongint
     // allocating space for a long.
 	public SQLLongint() 
 	{
-		isnull = true;
+		isNull = true;
 	}
 
 	public SQLLongint(long val)
 	{
-		value = val;
+		setValue(val);
 	}
 
 	/* This constructor gets used for the cloneValue method */
-	private SQLLongint(long val, boolean isnull)
+	private SQLLongint(long val, boolean isNullArg)
 	{
-		value = val;
-		this.isnull = isnull;
+		setValue(val);
+		isNull = isNullArg;
 	}
 	public SQLLongint(Long obj) {
-		if (isnull = (obj == null))
+		if (isNull = (obj == null))
 			;
 		else
-			value = obj.longValue();
+			setValue(obj.longValue());
 	}
 
 	/**
@@ -327,7 +316,7 @@ public final class SQLLongint
 		if (theValue == null)
 		{
 			value = 0;
-			isnull = true;
+			isNull = true;
 		}
 		else
 		{
@@ -336,7 +325,7 @@ public final class SQLLongint
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}
-			isnull = false;
+			isNull = false;
 		}
 	}
 
@@ -362,13 +351,13 @@ public final class SQLLongint
 	public void setValue(long theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	public void setValue(int theValue)
 	{
 		value = theValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -387,7 +376,7 @@ public final class SQLLongint
 		float floorValue = (float)Math.floor(theValue);
 
 		value = (long)floorValue;
-		isnull = false;
+		isNull = false;
 	}
 
 	/**
@@ -406,7 +395,7 @@ public final class SQLLongint
 		double floorValue = Math.floor(theValue);
 
 		value = (long)floorValue;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -417,7 +406,7 @@ public final class SQLLongint
 	public void setValue(boolean theValue)
 	{
 		value = theValue?1:0;
-		isnull = false;
+		isNull = false;
 
 	}
 
@@ -900,14 +889,13 @@ public final class SQLLongint
 	 * object state
 	 */
 	private long		value;
-	private boolean	isnull;
-	
+
 	public Format getFormat() {
 		return Format.LONGINT;
 		
 	}
 
 	public BigDecimal getBigDecimal() {
-		return isnull ? null : BigDecimal.valueOf(value);
+		return isNull ? null : BigDecimal.valueOf(value);
 	}
 }
