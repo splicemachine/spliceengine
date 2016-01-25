@@ -3,7 +3,6 @@ package com.splicemachine.derby.stream.spark;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.metrics.source.Source;
-import org.eclipse.jetty.servlet.ServletContextHandler;
 
 /**
  * Created by jleach on 4/20/15.

@@ -60,8 +60,6 @@ public class SpliceDerbyCoprocessor extends BaseRegionServerObserver {
         rsZnode = regionServerServices.getZooKeeper().rsZNode;
         regionServerZNode = regionServerServices.getServerName().getServerName();
 
-        //use the independent write control from the write pipeline
-//        TransactionalRegions.setTrafficControl(SpliceBaseIndexEndpoint.independentTrafficControl);
 
         //ensure that the SI environment is booted properly
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());

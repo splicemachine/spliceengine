@@ -1,20 +1,23 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
-
-
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.si.api.txn.TxnView;
+import org.apache.spark.api.java.JavaRDD;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +27,8 @@ import java.util.Collections;
 
 
 /**
+ * Spark-based DataSetProcessor.
+ *
  * Created by jleach on 4/13/15.
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
@@ -33,6 +38,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public SparkDataSetProcessor() {
 
     }
+
 
     @Override
     public void setup(Activation activation,String description,String schedulerPool) throws StandardException{
@@ -64,42 +70,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return displayableTableName;
     }
 
-//    @Override
-//    public <V> DataSet<V> getTableScanner(final Activation activation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
-//        JavaSparkContext ctx = SpliceSpark.getContext();
-//        Configuration conf = new Configuration(SIConstants.config);
-//        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
-//        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
-//        conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
-//        try {
-//            conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, siTableBuilder.getTableScannerBuilderBase64String());
-//        } catch (IOException ioe) {
-//            throw StandardException.unexpectedUserException(ioe);
-//        }
-//        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
-//                RowLocation.class, ExecRow.class);
-//
-//        return new SparkDataSet(rawRDD.map(
-//                new TableScanTupleFunction(createOperationContext(activation))));
-//    }
+    @Override
+    public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException{
+        return new SparkScanSetBuilder<>(this,tableName);
+    }
 
-//    @Override
-//    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException {
-//        JavaSparkContext ctx = SpliceSpark.getContext();
-//        Configuration conf = new Configuration(SIConstants.config);
-//        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
-//        conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
-//        try {
-//            conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO, hTableBuilder.getTableScannerBuilderBase64String());
-//        } catch (IOException ioe) {
-//            throw StandardException.unexpectedUserException(ioe);
-//        }
-//        JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(conf, HTableInputFormat.class,
-//                byte[].class, KVPair.class);
-//
-//        return new SparkDataSet(rawRDD.map(new HTableScanTupleFunction()));
-//    }
-    
+    @Override
+    public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException{
+        return new SparkIndexScanBuilder<>(tableName);
+    }
+
     @Override
     public <V> DataSet<V> getEmpty() {
         return getEmpty(SparkConstants.RDD_NAME_EMPTY_DATA_SET);
@@ -107,21 +87,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty(String name) {
-        return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
     }
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
         JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
         rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
-        return new SparkDataSet(rdd1);
+        return new SparkDataSet<>(rdd1);
     }
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
-        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
         rdd1.setName(isLast ? op.getPrettyExplainPlan() : SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
-        return new SparkDataSet(rdd1);
+        return new SparkDataSet<>(rdd1);
     }
 
     @Override
@@ -157,12 +137,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
-            ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
+            FileInfo contentSummary = ImportUtils.getImportDataSize(path);
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
-                "size=" + contentSummary.getSpaceConsumed() + ", " +
-                "files=" + contentSummary.getFileCount());
+                "size=" + contentSummary.spaceConsumed() + ", " +
+                "files=" + contentSummary.fileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config));
         } catch (IOException ioe) {
@@ -181,12 +161,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
-            ContentSummary contentSummary = ImportUtils.getImportDataSize(new Path(path));
+            FileInfo contentSummary = ImportUtils.getImportDataSize(path);
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
-                "{file=" + String.format(path) + ", " +
-                "size=" + contentSummary.getSpaceConsumed() + ", " +
-                "files=" + contentSummary.getFileCount() + "}");
+                "{file=" +path+ ", " +
+                "size=" + contentSummary.spaceConsumed() + ", " +
+                "files=" + contentSummary.fileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             return new SparkDataSet<String>(rdd, SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
@@ -198,17 +178,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
-        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Collections.<Tuple2<K,V>>emptyList(), 1));
+        return new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(Collections.<Tuple2<K,V>>emptyList(), 1));
     }
 
     @Override
     public <V> DataSet< V> createDataSet(Iterable<V> value) {
-        return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }
 
     @Override
     public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
-        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));
+        return new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));
     }
 
     @Override

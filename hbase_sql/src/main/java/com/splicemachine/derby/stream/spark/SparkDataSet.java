@@ -21,8 +21,6 @@ import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,17 +54,17 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
-        return new SparkDataSet<>(rdd.mapPartitions(f),f.getSparkName());
+        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),f.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, String name) {
-        return new SparkDataSet<>(rdd.mapPartitions(f),name);
+        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),name);
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
-        return new SparkDataSet<>(rdd.mapPartitions(f),planIfLast(f,isLast));
+        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),planIfLast(f,isLast));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -86,36 +84,36 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
-        return rdd.fold(zeroValue,function2);
+        return rdd.fold(zeroValue,new SparkSpliceFunctionWrapper2<>(function2));
     }
 
     @Override
     public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
         rdd.setName(planIfLast(function2, isLast));
-        return rdd.fold(zeroValue, function2);
+        return rdd.fold(zeroValue, new SparkSpliceFunctionWrapper2<>(function2));
     }
     
     @Override
     public <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function) {
-       return new SparkPairDataSet(rdd.mapToPair(function), function.getSparkName());
+       return new SparkPairDataSet<>(rdd.mapToPair(new SparkSplittingFunction<>(function)), function.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast) {
-        return new SparkPairDataSet(rdd.mapToPair(function), planIfLast(function, isLast));
+        return new SparkPairDataSet<>(rdd.mapToPair(new SparkSplittingFunction<>(function)), planIfLast(function, isLast));
     }
     
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new SparkDataSet<>(rdd.map(function), function.getSparkName());
+        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), function.getSparkName());
     }
 
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
-        return new SparkDataSet<>(rdd.map(function), name);
+        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), name);
     }
 
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
-        return new SparkDataSet<>(rdd.map(function), planIfLast(function, isLast));
+        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), planIfLast(function, isLast));
     }
 
     @Override
@@ -132,11 +130,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
-        return new SparkPairDataSet(rdd.keyBy(f), f.getSparkName());
+        return new SparkPairDataSet<>(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), f.getSparkName());
     }
 
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f, String name) {
-        return new SparkPairDataSet(rdd.keyBy(f), name);
+        return new SparkPairDataSet<>(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), name);
     }
     
     @Override
@@ -151,24 +149,24 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet< V> union(DataSet< V> dataSet, String name) {
-        JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
-        rdd1.setName(name);
-        return new SparkDataSet<>(rdd1);
+        JavaRDD<V> union=rdd.union(((SparkDataSet<V>)dataSet).rdd);
+        union.setName(name);
+        return new SparkDataSet<>(union);
     }
     
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
-        return new SparkDataSet<>(rdd.filter(f), f.getSparkName());
+        return new SparkDataSet<>(rdd.filter(new SparkSpliceFunctionWrapper<>(f)), f.getSparkName());
     }
 
     @Override
     public DataSet< V> intersect(DataSet< V> dataSet) {
-        return new SparkDataSet<>(rdd.intersection(((SparkDataSet) dataSet).rdd));
+        return new SparkDataSet<>(rdd.intersection(((SparkDataSet<V>) dataSet).rdd));
     }
 
     @Override
     public DataSet< V> subtract(DataSet< V> dataSet) {
-        return new SparkDataSet<>(rdd.subtract( ((SparkDataSet) dataSet).rdd));
+        return new SparkDataSet<>(rdd.subtract( ((SparkDataSet<V>) dataSet).rdd));
     }
 
     @Override
@@ -178,15 +176,15 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
-        return new SparkDataSet<>(rdd.flatMap(f), f.getSparkName());
+        return new SparkDataSet<>(rdd.flatMap(new SparkFlatMapFunction<>(f)), f.getSparkName());
     }
 
     public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f, String name) {
-        return new SparkDataSet<>(rdd.flatMap(f), name);
+        return new SparkDataSet<>(rdd.flatMap(new SparkFlatMapFunction<>(f)), name);
     }
 
     public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f, boolean isLast) {
-        return new SparkDataSet<>(rdd.flatMap(f), planIfLast(f, isLast));
+        return new SparkDataSet<>(rdd.flatMap(new SparkFlatMapFunction<>(f)), planIfLast(f, isLast));
     }
     
     @Override
@@ -196,24 +194,24 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction) {
-        return new SparkDataSet<>(rdd.mapPartitions(offsetFunction),offsetFunction.getSparkName());
+        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(offsetFunction)),offsetFunction.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation> DataSet<V> offset(OffsetFunction<Op,V> offsetFunction, boolean isLast) {
-        return new SparkDataSet<>(rdd.mapPartitions(offsetFunction),planIfLast(offsetFunction,isLast));
+        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(offsetFunction)),planIfLast(offsetFunction,isLast));
     }
 
     @Override
     public <Op extends SpliceOperation> DataSet<V> take(TakeFunction<Op,V> takeFunction) {
-        JavaRDD<V> rdd1 = rdd.mapPartitions(takeFunction);
+        JavaRDD<V> rdd1 = rdd.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd1.setName(takeFunction.getSparkName());
         
         JavaRDD<V> rdd2 = rdd1.coalesce(1, true);
         rdd2.setName("Coalesce 1 partition");
         RDDUtils.setAncestorRDDNames(rdd2, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
         
-        JavaRDD<V> rdd3 = rdd2.mapPartitions(takeFunction);
+        JavaRDD<V> rdd3 = rdd2.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd3.setName(takeFunction.getSparkName());
         
         return new SparkDataSet<V>(rdd3);
@@ -275,9 +273,14 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    @Override
+//    @Override
     public void saveAsTextFile(String path) {
         rdd.saveAsTextFile(path);
+    }
+
+    @Override
+    public ExportDataSetWriterBuilder<String> saveAsTextFile(){
+        return new SparkExportDataSetWriter.Builder<>();
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -286,7 +289,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
         rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
         RDDUtils.setAncestorRDDNames(rdd1, 3, new String[]{"Coalesce Data", "Shuffle Data", "Map For Coalesce"});
-        return new SparkDataSet<V>(rdd1);
+        return new SparkDataSet<>(rdd1);
     }
 
     @Override

@@ -3,6 +3,8 @@ package com.splicemachine.derby.stream.utils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.iapi.TableWriter.Type;
+import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
@@ -21,7 +23,7 @@ public class TableWriterUtils {
         conf.set(MRConstants.TABLE_WRITER_TYPE, Type.INSERT.toString());
     }
 
-    public static void serializeHTableWriterBuilder(Configuration conf, HTableWriterBuilder builder) throws IOException, StandardException {
+    public static void serializeHTableWriterBuilder(Configuration conf, DirectTableWriterBuilder builder) throws IOException, StandardException {
         conf.set(MRConstants.TABLE_WRITER, builder.getHTableWriterBuilderBase64String());
         conf.set(MRConstants.TABLE_WRITER_TYPE, Type.INDEX.toString());
     }
@@ -37,7 +39,7 @@ public class TableWriterUtils {
     }
 
 
-    public static TableWriter deserializeTableWriter(Configuration conf) throws IOException, StandardException {
+    public static DataSetWriter deserializeTableWriter(Configuration conf) throws IOException, StandardException {
         String typeString = conf.get(MRConstants.TABLE_WRITER_TYPE);
         if (typeString == null)
             throw new IOException("Table Writer Type Missing");
@@ -53,7 +55,7 @@ public class TableWriterUtils {
             case DELETE:
                 return DeleteTableWriterBuilder.getDeleteTableWriterBuilderFromBase64String(base64).build();
             case INDEX:
-                return HTableWriterBuilder.getHTableWriterBuilderFromBase64String(base64).build();
+                return DirectTableWriterBuilder.getDirectTableWriterBuilderFromBase64String(base64).build();
             default:
                 throw new IOException("Type Incorrect");
         }

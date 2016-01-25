@@ -25,11 +25,8 @@ public class ImportUtils{
      * @throws IOException
      */
     public static FileInfo getImportDataSize(String filePath) throws IOException{
-//        FileSystem fs = FileSystem.get(SpliceConstants.config);
         DistributedFileSystem fsLayer=SIDriver.driver().fileSystem();
         return fsLayer.getInfo(filePath);
-//        ContentSummary summary=fs.getContentSummary(filePath);
-//        return summary;
     }
 
     public static void validateReadable(String file,boolean checkDirectory) throws StandardException{
@@ -49,9 +46,4 @@ public class ImportUtils{
             throw ErrorState.LANG_NO_READ_PERMISSION.newException(info.getUser(),info.getGroup(),file);
         }
     }
-
-
-
-
-
 }

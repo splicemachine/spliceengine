@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Function;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -13,6 +14,10 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.utils.ByteDataOutput;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,7 +39,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
 
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
-        Configuration conf=new Configuration();
+        Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
         ByteDataOutput bdo=new ByteDataOutput();
         Job job;
         String encoded;
