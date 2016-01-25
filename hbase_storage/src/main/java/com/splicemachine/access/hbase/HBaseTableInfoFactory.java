@@ -8,10 +8,12 @@ import org.apache.hadoop.hbase.TableName;
  * Created by jleach on 11/18/15.
  */
 public class HBaseTableInfoFactory implements STableInfoFactory<TableName> {
+    private static volatile HBaseTableInfoFactory INSTANCE;
     private final String namespace;
     private final byte[] namespaceBytes;
 
-    public HBaseTableInfoFactory(SConfiguration config) {
+    //use the getInstance() method instead
+    private HBaseTableInfoFactory(SConfiguration config) {
         this.namespace = config.getString(HConfiguration.NAMESPACE);
         this.namespaceBytes = Bytes.toBytes(namespace);
 
@@ -27,4 +29,16 @@ public class HBaseTableInfoFactory implements STableInfoFactory<TableName> {
         return TableName.valueOf(namespaceBytes,name);
     }
 
+    public static HBaseTableInfoFactory getInstance(SConfiguration configuration){
+        HBaseTableInfoFactory htif = INSTANCE;
+        if(htif==null){
+            synchronized(HBaseTableInfoFactory.class){
+                htif = INSTANCE;
+                if(htif==null){
+                    htif = INSTANCE = new HBaseTableInfoFactory(configuration);
+                }
+            }
+        }
+        return htif;
+    }
 }

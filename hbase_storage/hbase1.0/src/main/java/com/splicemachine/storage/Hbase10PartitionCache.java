@@ -13,16 +13,20 @@ import java.io.IOException;
  *         Date: 12/29/15
  */
 public class Hbase10PartitionCache implements PartitionInfoCache{
-    private final SConfiguration config;
-    private final HBaseTableInfoFactory tableInfoFactory;
+    private SConfiguration config;
+    private HBaseTableInfoFactory tableInfoFactory;
 
-    public Hbase10PartitionCache(SConfiguration config){
-        this.config=config;
-        this.tableInfoFactory = new HBaseTableInfoFactory(config);
-    }
+    //must be a no-args to support the PartitionCacheService--use configure() instead
+    public Hbase10PartitionCache(){ }
 
     public void invalidate(TableName tableName) throws IOException{
         ((HConnection)HBaseConnectionFactory.getInstance(config).getConnection()).clearRegionCache(tableName);
+    }
+
+    @Override
+    public void configure(SConfiguration configuration){
+        this.config=configuration;
+        this.tableInfoFactory = HBaseTableInfoFactory.getInstance(config);
     }
 
     @Override

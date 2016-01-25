@@ -33,15 +33,15 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
     private byte[] namespaceBytes;
     private HBaseTableInfoFactory tableInfoFactory;
 
-    public HBase10TableFactory(HBaseTableInfoFactory tableInfoFactory){
-        this.tableInfoFactory = tableInfoFactory;
-    }
+    //must be no-args to support the TableFactoryService
+    public HBase10TableFactory(){ }
 
     @Override
     public void initialize(Clock timeKeeper,SConfiguration configuration) throws IOException{
         if(!initialized.compareAndSet(false,true))
             return; //already initialized by someone else
 
+        this.tableInfoFactory = HBaseTableInfoFactory.getInstance(configuration);
         this.timeKeeper = timeKeeper;
         this.splitSleepIntervalMs = configuration.getLong(StorageConfiguration.TABLE_SPLIT_SLEEP_INTERVAL);
         try{

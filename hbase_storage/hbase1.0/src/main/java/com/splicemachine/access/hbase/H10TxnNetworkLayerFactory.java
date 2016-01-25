@@ -1,5 +1,6 @@
 package com.splicemachine.access.hbase;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.si.impl.TxnNetworkLayer;
 import com.splicemachine.si.impl.TxnNetworkLayerFactory;
@@ -16,12 +17,18 @@ import java.io.IOException;
  */
 @ThreadSafe
 public class H10TxnNetworkLayerFactory implements TxnNetworkLayerFactory{
-    private final TableName txnTable;
-    private final Connection connection;
+    private TableName txnTable;
+    private Connection connection;
 
-    public H10TxnNetworkLayerFactory(SConfiguration config,String namespace,String txnTableName) throws IOException{
+    public H10TxnNetworkLayerFactory(){ }
+
+    @Override
+    public void configure(SConfiguration config) throws IOException{
         this.connection=HBaseConnectionFactory.getInstance(config).getConnection();
-        this.txnTable= TableName.valueOf(namespace,txnTableName);
+        String namespace = config.getString(HConfiguration.NAMESPACE);
+        String txnTable = HConfiguration.TRANSACTION_TABLE;
+        this.txnTable= TableName.valueOf(namespace,txnTable);
+
     }
 
     @Override

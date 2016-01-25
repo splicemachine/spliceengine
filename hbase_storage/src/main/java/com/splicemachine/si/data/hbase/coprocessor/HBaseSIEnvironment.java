@@ -86,10 +86,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.timestampSource =timestampSource;
         this.config=HConfiguration.INSTANCE;
         this.config.addDefaults(StorageConfiguration.defaults);
+        this.config.addDefaults(SIConfigurations.defaults);
 
         this.tableFactory=TableFactoryService.loadTableFactory(clock,this.config);
-        this.partitionCache = PartitionCacheService.loadPartitionCache();
-        TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer();
+        this.partitionCache = PartitionCacheService.loadPartitionCache(config);
+        TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         int completedTxnCacheSize = config.getInt(SIConfigurations.completedTxnCacheSize);
         int completedTxnConcurrency = config.getInt(SIConfigurations.completedTxnConcurrency);

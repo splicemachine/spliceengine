@@ -3,6 +3,7 @@ package com.splicemachine.access;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.util.ChainedDefaults;
 import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.si.api.SIConfigurations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
@@ -201,8 +202,11 @@ public class HConfiguration implements SConfiguration{
         @Override
         public boolean hasIntDefault(String key){
             switch(key){
-                case HConstants.REGION_SERVER_HANDLER_COUNT: return true;
-                default:return false;
+                case HConstants.REGION_SERVER_HANDLER_COUNT:
+                case SIConfigurations.TRANSACTION_LOCK_STRIPES:
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -211,6 +215,8 @@ public class HConfiguration implements SConfiguration{
             assert hasIntDefault(key): "No hbase default for key '"+key+"'";
             switch(key){
                 case HConstants.REGION_SERVER_HANDLER_COUNT: return HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT;
+                case SIConfigurations.TRANSACTION_LOCK_STRIPES:
+                    return configuration.getInt(HConstants.REGION_SERVER_HANDLER_COUNT,HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
                 default:
                     throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
             }
@@ -218,6 +224,11 @@ public class HConfiguration implements SConfiguration{
 
         @Override
         public boolean hasStringDefault(String key){
+            switch(key){
+                case SPLICE_ROOT_PATH:
+                case NAMESPACE:
+                    return true;
+            }
             return false;
         }
 
@@ -226,6 +237,8 @@ public class HConfiguration implements SConfiguration{
             switch(key){
                 case SPLICE_ROOT_PATH:
                     return DEFAULT_ROOT_PATH;
+                case NAMESPACE:
+                    return DEFAULT_NAMESPACE;
             }
             throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
         }

@@ -140,7 +140,8 @@ public class SIConfigurations{
                 case completedTxnCacheSize:
                 case TRANSACTION_KEEP_ALIVE_THREADS:
                 case READ_RESOLVER_THREADS:
-                    case READ_RESOLVER_QUEUE_SIZE:
+                case READ_RESOLVER_QUEUE_SIZE:
+                case TRANSACTION_LOCK_STRIPES:
                     return true;
                 default:
                     return false;

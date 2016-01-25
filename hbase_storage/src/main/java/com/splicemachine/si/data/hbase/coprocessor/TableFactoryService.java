@@ -27,12 +27,14 @@ public class TableFactoryService{
         return (PartitionFactory<TableName>)stf;
     }
 
-    public static TxnNetworkLayerFactory loadTxnNetworkLayer(){
+    public static TxnNetworkLayerFactory loadTxnNetworkLayer(SConfiguration config) throws IOException{
         ServiceLoader<TxnNetworkLayerFactory> serviceLoader = ServiceLoader.load(TxnNetworkLayerFactory.class);
         Iterator<TxnNetworkLayerFactory> iter = serviceLoader.iterator();
         if(!iter.hasNext())
             throw new IllegalStateException("No TableFactory found!");
 
-        return iter.next();
+        TxnNetworkLayerFactory next=iter.next();
+        next.configure(config);
+        return next;
     }
 }
