@@ -2190,4 +2190,70 @@ public class SpliceTransactionManager implements XATransactionController,
     public TxnView getActiveStateTxn() {
         return ((BaseSpliceTransaction)rawtran).getActiveStateTxn();
     }
+
+    /**
+     * Add a column to a conglomerate. The conglomerate must not be open in the
+     * current transaction. This also means that there must not be any active
+     * scans on it.
+     *
+     * The column can only be added at the spot just after the current set of
+     * columns.
+     *
+     * The template_column must be nullable.
+     *
+     * After this call has been made, all fetches of this column from rows that
+     * existed in the table prior to this call will return "null".
+     *
+     * @param conglomId
+     *            The identifier of the conglomerate to drop.
+     * @param column_id
+     *            The column number to add this column at.
+     * @exception StandardException
+     *                Only some types of conglomerates can support adding a
+     *                column, for instance "heap" conglomerates support adding a
+     *                column while "btree" conglomerates do not. If the column
+     *                can not be added an exception will be thrown.
+     **/
+    public void dropColumnFromConglomerate(long conglomId, int column_id)
+            throws StandardException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("addColumnToConglomerate conglomID " + conglomId
+                    + ", column_id" + column_id);
+        boolean is_temporary = (conglomId < 0);
+
+        Conglomerate conglom = findConglomerate(conglomId);
+        if (conglom == null) {
+            throw StandardException.newException(
+                    SQLState.AM_NO_SUCH_CONGLOMERATE_DROP, conglomId);
+        }
+
+        // Get exclusive lock on the table being altered.
+        ConglomerateController cc = conglom
+                .open(this,
+                        rawtran,
+                        false,
+                        OPENMODE_FORUPDATE,
+                        MODE_TABLE,
+                        accessmanager.table_level_policy[TransactionController.ISOLATION_SERIALIZABLE],
+                        null,
+                        null);
+        conglom.dropColumn(this,column_id);
+
+        // remove the old entry in the Conglomerate directory, and add the
+        // new one.
+        if (is_temporary) {
+            // remove old entry in the Conglomerate directory, and add new one
+            if (tempCongloms != null){
+                tempCongloms.remove(new Long(conglomId));
+                tempCongloms.put(conglomId, conglom);
+            }
+        } else {
+            alterTableCallMade = true;
+            // have access manager update the conglom to this new one.
+            accessmanager.conglomCacheUpdateEntry(conglomId, conglom);
+        }
+
+        cc.close();
+    }
+
 }

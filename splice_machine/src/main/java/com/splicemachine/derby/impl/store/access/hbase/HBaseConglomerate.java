@@ -75,7 +75,20 @@ public class HBaseConglomerate extends SpliceConglomerate{
         ConglomerateUtils.createConglomerate(containerId,this,((SpliceTransaction)rawtran).getTxn());
     }
 
-	/*
+    @Override
+    public void dropColumn(TransactionManager xact_manager, int column_id) throws StandardException {
+        SpliceLogUtils.trace(LOG, "dropColumn column_id=%s, table_nam=%s", column_id, getContainerid());
+        try {
+            format_ids = ConglomerateUtils.dropValueFromArray(format_ids,column_id-1);
+            collation_ids = ConglomerateUtils.dropValueFromArray(collation_ids,column_id-1);
+            ConglomerateUtils.updateConglomerate(this, (Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
+        } finally {
+        }
+    }
+
+    /*
     ** Methods of Conglomerate
 	*/
 

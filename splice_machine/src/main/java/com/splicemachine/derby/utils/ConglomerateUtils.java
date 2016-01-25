@@ -293,4 +293,12 @@ public class ConglomerateUtils  {
         return s;
     }
 
+    public static int[] dropValueFromArray(int[] initialArray, int position) {
+        int[] droppedArray = new int[initialArray.length-1];
+        System.arraycopy(initialArray, 0, droppedArray, 0, position);
+        if (position != initialArray.length)
+            System.arraycopy(initialArray, position+1, droppedArray, position, initialArray.length-1-position);
+        return droppedArray;
+    }
+
 }

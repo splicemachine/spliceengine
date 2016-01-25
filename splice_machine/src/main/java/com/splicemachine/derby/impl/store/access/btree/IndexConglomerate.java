@@ -179,6 +179,24 @@ public class IndexConglomerate extends SpliceConglomerate{
 
 
     /**
+     * Drops a column from the hbase conglomerate.
+     * <p>
+     * This routine update's the in-memory object version of the HBase
+     * Conglomerate to have one less column
+     *
+     * @param column_id        The column number to add this column at.
+     *
+     * @exception  StandardException  Standard exception policy.
+     **/
+    public void dropColumn(
+            TransactionManager  xact_manager,
+            int                 column_id)
+            throws StandardException {
+        throw StandardException.newException(SQLState.BTREE_UNIMPLEMENTED_FEATURE);
+    }
+
+
+    /**
      * Drop this hbase conglomerate (what's the relationship with dropping container).
      *
      * @throws StandardException Standard exception policy.

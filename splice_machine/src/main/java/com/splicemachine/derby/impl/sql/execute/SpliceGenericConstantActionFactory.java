@@ -363,17 +363,30 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
     @Override
     public ConstantAction getUpdateConstantAction(long conglomId,
-                                                  int tableType,StaticCompiledOpenConglomInfo heapSCOCI,
-                                                  int[] pkColumns,IndexRowGenerator[] irgs,long[] indexCIDS,
-                                                  StaticCompiledOpenConglomInfo[] indexSCOCIs,String[] indexNames,
-                                                  ExecRow emptyHeapRow,boolean deferred,UUID targetUUID,
-                                                  int lockMode,boolean tableIsPublished,int[] changedColumnIds,
-                                                  int[] keyPositions,Object updateToken,FKInfo[] fkInfo,
-                                                  TriggerInfo triggerInfo,FormatableBitSet baseRowReadList,
-                                                  int[] baseRowReadMap,int[] streamStorableHeapColIds,
-                                                  int numColumns,boolean positionedUpdate,boolean singleRowSource)
-            throws StandardException{
-        SpliceLogUtils.trace(LOG,"getUpdateConstantAction with triggerinfo {%s}",triggerInfo);
+                                                  int tableType,
+                                                  StaticCompiledOpenConglomInfo heapSCOCI,
+                                                  int[] pkColumns,
+                                                  IndexRowGenerator[] irgs,
+                                                  long[] indexCIDS,
+                                                  StaticCompiledOpenConglomInfo[] indexSCOCIs,
+                                                  String[] indexNames,
+                                                  ExecRow emptyHeapRow,
+                                                  boolean deferred,
+                                                  UUID targetUUID,
+                                                  int lockMode,
+                                                  boolean tableIsPublished,
+                                                  int[] changedColumnIds,
+                                                  int[] keyPositions,
+                                                  Object updateToken,
+                                                  FKInfo[] fkInfo,
+                                                  TriggerInfo triggerInfo,
+                                                  FormatableBitSet baseRowReadList,
+                                                  int[] baseRowReadMap,
+                                                  int[] streamStorableHeapColIds,
+                                                  int numColumns,
+                                                  boolean positionedUpdate,
+                                                  boolean singleRowSource,
+                                                  int[] storagePositionArray) throws StandardException{
         return new UpdateConstantOperation(
                 conglomId,
                 heapSCOCI,
