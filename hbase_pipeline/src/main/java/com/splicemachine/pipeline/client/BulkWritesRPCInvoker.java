@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.client;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.api.BulkWriter;
@@ -27,10 +28,11 @@ public class BulkWritesRPCInvoker implements BulkWriter{
                                 PipelineCompressor pipelineCompressor,
                                 PipelineExceptionFactory exceptionFactory,
                                 RpcChannelFactory channelFactory,
-                                PartitionInfoCache partInfoCache) {
+                                PartitionInfoCache partInfoCache,
+                                HBaseTableInfoFactory tableInfoFactory) {
         this.pipelineFactory = pipelineFactory;
         this.pipelineWriter = pipelineWriter;
-        this.bulkWriteChannelInvoker = new BulkWriteChannelInvoker(tableName,pipelineCompressor,channelFactory,partInfoCache,exceptionFactory);
+        this.bulkWriteChannelInvoker = new BulkWriteChannelInvoker(tableName,pipelineCompressor,channelFactory,partInfoCache,exceptionFactory,tableInfoFactory);
     }
 
     @Override

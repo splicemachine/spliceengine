@@ -15,7 +15,9 @@ import com.splicemachine.si.api.server.DisconnectException;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.data.HExceptionFactory;
+import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HWriteConflict;
+import com.splicemachine.si.impl.HWrongRegion;
 
 import java.io.IOException;
 import java.net.ConnectException;

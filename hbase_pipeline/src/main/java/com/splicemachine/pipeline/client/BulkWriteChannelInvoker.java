@@ -1,12 +1,15 @@
 package com.splicemachine.pipeline.client;
 
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.SpliceRpcController;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionInfoCache;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
@@ -27,21 +30,24 @@ public class BulkWriteChannelInvoker {
     private final PipelineCompressor compressor;
     private final RpcChannelFactory channelFactory;
     private final PartitionInfoCache partitionInfoCache;
+    private final HBaseTableInfoFactory tableInfoFactory;
 
     public BulkWriteChannelInvoker(byte[] tableName,
                                    PipelineCompressor pipelineCompressor,
                                    RpcChannelFactory channelFactory,
                                    PartitionInfoCache partitionInfoCache,
-                                   PipelineExceptionFactory pef) {
+                                   PipelineExceptionFactory pef,
+                                   HBaseTableInfoFactory tableInfoFactory) {
         this.tableName = tableName;
         this.pef = pef;
         this.compressor = pipelineCompressor;
         this.channelFactory = channelFactory;
         this.partitionInfoCache =partitionInfoCache;
+        this.tableInfoFactory=tableInfoFactory;
     }
 
     public BulkWritesResult invoke(BulkWrites write) throws IOException {
-        TableName tableName=HBaseTableInfoFactory.getInstance().getTableInfo(this.tableName);
+        TableName tableName=tableInfoFactory.getTableInfo(this.tableName);
         CoprocessorRpcChannel channel = channelFactory.newChannel(tableName,write.getRegionKey());
 
         boolean cacheCheck = false;

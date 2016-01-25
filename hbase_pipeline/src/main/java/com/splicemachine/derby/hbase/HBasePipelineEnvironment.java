@@ -1,7 +1,9 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.PipelineConfiguration;
@@ -15,6 +17,7 @@ import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.pipeline.utils.SimplePipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
@@ -77,8 +80,9 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
         //TODO -sf- enable snappy compression here
         this.compressor = new SimplePipelineCompressor(kryoPool,env.getSIDriver().getOperationFactory());
 
-        RpcChannelFactory channelFactory = ChannelFactoryService.loadChannelFactory();
-        this.writerFactory = new CoprocessorWriterFactory(compressor,partitionInfoCache(),pipelineExceptionFactory,channelFactory);
+        RpcChannelFactory channelFactory = ChannelFactoryService.loadChannelFactory(this.pipelineConfiguration);
+        this.writerFactory = new CoprocessorWriterFactory(compressor,partitionInfoCache(),pipelineExceptionFactory,channelFactory,
+                HBaseTableInfoFactory.getInstance(configuration()));
     }
 
     @Override
@@ -151,5 +155,15 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override
     public PipelineMeter pipelineMeter(){
         return meter;
+    }
+
+    @Override
+    public DistributedFileSystem fileSystem(){
+        return delegate.fileSystem();
+    }
+
+    @Override
+    public OperationFactory baseOperationFactory(){
+        return delegate.baseOperationFactory();
     }
 }

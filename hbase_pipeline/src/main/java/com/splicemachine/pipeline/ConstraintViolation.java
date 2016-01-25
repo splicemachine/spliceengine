@@ -28,7 +28,7 @@ public class ConstraintViolation extends DoNotRetryIOException{
         this.cc = context;
     }
 
-    public ConstraintContext getConstraintContext(){
+    public ConstraintContext getContext(){
         return cc;
     }
 
@@ -46,6 +46,7 @@ public class ConstraintViolation extends DoNotRetryIOException{
         public PkViolation(String message,ConstraintContext context){
             super(message,context);
         }
+
     }
 
     public static class FkViolation extends ConstraintViolation implements ForeignKeyViolation{

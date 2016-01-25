@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.testsetup;
 
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.pipeline.ContextFactoryDriverService;
 import com.splicemachine.pipeline.ManualContextFactoryLoader;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteCoordinator;
@@ -27,19 +28,21 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
 
     public HPipelineTestEnv() throws IOException{
         super(Level.WARN); //don't create SI tables, we'll manually add them once the driver is setup
-        this.env = HBasePipelineEnvironment.loadEnvironment(super.getClock(),new ContextFactoryDriver(){
+        ContextFactoryDriver ctxFactoryLoader=new ContextFactoryDriver(){
             @Override
             public ContextFactoryLoader getLoader(long conglomerateId){
-                ContextFactoryLoader cfl = contextFactoryLoaderMap.get(conglomerateId);
+                ContextFactoryLoader cfl=contextFactoryLoaderMap.get(conglomerateId);
                 if(cfl==null){
-                    cfl = new ManualContextFactoryLoader();
+                    cfl=new ManualContextFactoryLoader();
                     ContextFactoryLoader old=contextFactoryLoaderMap.putIfAbsent(conglomerateId,cfl);
                     if(old!=null)
-                        cfl = old;
+                        cfl=old;
                 }
                 return cfl;
             }
-        });
+        };
+        ContextFactoryDriverService.setDriver(ctxFactoryLoader);
+        this.env = HBasePipelineEnvironment.loadEnvironment(super.getClock(),ctxFactoryLoader);
         DatabaseLifecycleManager.manager().start(); //start the database
     }
 

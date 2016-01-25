@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.client;
 
+import com.splicemachine.access.api.SConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 
@@ -11,4 +12,6 @@ import java.io.IOException;
  */
 public interface RpcChannelFactory{
     CoprocessorRpcChannel newChannel(TableName tableName,byte[] regionKey) throws IOException;
+
+    void configure(SConfiguration config);
 }

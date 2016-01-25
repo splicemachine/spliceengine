@@ -1,11 +1,11 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.base.Function;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
@@ -19,6 +19,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.RegionPartition;
@@ -76,7 +77,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)e);
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
-        SpliceConstants.TableEnv table=EnvUtils.getTableEnv(rce);
+        TableType table=EnvUtils.getTableType(HConfiguration.INSTANCE,rce);
         switch(table){
             case TRANSACTION_TABLE:
             case ROOT_TABLE:

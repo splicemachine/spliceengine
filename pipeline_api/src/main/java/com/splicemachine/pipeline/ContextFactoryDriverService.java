@@ -31,10 +31,10 @@ public class ContextFactoryDriverService{
                 ServiceLoader<ContextFactoryDriver> load=ServiceLoader.load(ContextFactoryDriver.class);
                 Iterator<ContextFactoryDriver> iter=load.iterator();
                 if(!iter.hasNext())
-                    throw new IllegalStateException("No SITestEnv found!");
+                    throw new IllegalStateException("No ContextFactoryDriver found!");
                 driver = iter.next();
                 if(iter.hasNext())
-                    throw new IllegalStateException("Only one SITestEnv is allowed!");
+                    throw new IllegalStateException("Only one ContextFactoryDriver is allowed!");
             }
         }
         return driver;

@@ -5,23 +5,22 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.lifecycle.PipelineLoadService;
-import com.splicemachine.pipeline.*;
+import com.splicemachine.pipeline.PartitionWritePipeline;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.BulkWritesResult;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
-import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
-import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
-import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -32,7 +31,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-import javax.management.MBeanServer;
 import java.io.IOException;
 
 /**
@@ -67,8 +65,8 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         final ServerControl serverControl=new RegionServerControl(rce.getRegion());
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
-        SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
-        if(table.equals(SpliceConstants.TableEnv.USER_TABLE) || table.equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
+        TableType table=EnvUtils.getTableType(HConfiguration.INSTANCE,(RegionCoprocessorEnvironment)env);
+        if(table.equals(TableType.USER_TABLE) || table.equals(TableType.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
             long conglomId;
             try{
                 conglomId=Long.parseLong(tableName);

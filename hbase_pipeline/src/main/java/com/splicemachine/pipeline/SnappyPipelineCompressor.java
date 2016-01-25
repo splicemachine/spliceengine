@@ -1,10 +1,9 @@
 package com.splicemachine.pipeline;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.log4j.Logger;
 
@@ -22,7 +21,7 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
 
     static{
         snappy = new SnappyCodec();
-        snappy.setConf(SpliceConstants.config);
+        snappy.setConf(HConfiguration.INSTANCE.unwrapDelegate());
         boolean sN;
         Method method;
         try{
@@ -33,7 +32,7 @@ public class SnappyPipelineCompressor implements PipelineCompressor{
             SpliceLogUtils.error(LOG,"basic snappy codec not supported, checking alternative method signature");
             try{
                 method=SnappyCodec.class.getMethod("isNativeSnappyLoaded",Configuration.class);
-                sN=(Boolean)method.invoke(snappy,SpliceConstants.config);
+                sN=(Boolean)method.invoke(snappy,HConfiguration.INSTANCE.unwrapDelegate());
             }catch(Exception ioe){
                 SpliceLogUtils.error(LOG,"Alternative signature did not work, No Snappy Codec Support",ioe);
                 sN=false;

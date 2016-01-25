@@ -6,5 +6,5 @@ package com.splicemachine.pipeline.constraint;
  *         Date: 1/4/16
  */
 public interface ForeignKeyViolation{
-    ConstraintContext getConstraintContext();
+    ConstraintContext getContext();
 }

@@ -40,7 +40,7 @@ class ForeignKeyViolationProcessor {
     }
 
     private void doFail(WriteContext ctx, ForeignKeyViolation cause) {
-        String hexEncodedFailedRowKey = cause.getConstraintContext().getMessages()[0];
+        String hexEncodedFailedRowKey = cause.getContext().getMessages()[0];
         byte[] failedRowKey = Bytes.fromHex(hexEncodedFailedRowKey);
         ConstraintContext constraintContext = fkConstraintContextProvider.get(cause);
         ctx.result(failedRowKey, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
@@ -90,7 +90,7 @@ class ForeignKeyViolationProcessor {
             //
             // Error message looks like: DELETE on table 'P' caused a violation of foreign key constraint 'FK_1' for key (5).
             //
-            return cause.getConstraintContext()
+            return cause.getContext()
                     .withoutMessage(0)                      // Remove the rowKey
                     .withMessage(1, parentTableName);       // Add correct table name
         }

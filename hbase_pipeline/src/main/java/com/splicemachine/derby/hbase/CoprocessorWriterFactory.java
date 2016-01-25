@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.api.BulkWriter;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
@@ -23,22 +24,26 @@ public class CoprocessorWriterFactory implements BulkWriterFactory{
     private final PipelineCompressor compressor;
     private final PartitionInfoCache partitionInfoCache;
     private final RpcChannelFactory channelFactory;
+    private final HBaseTableInfoFactory tableInfoFactory;
 
     public CoprocessorWriterFactory(PipelineCompressor compressor,
                                     PartitionInfoCache partitionInfoCache,
                                     PipelineExceptionFactory exceptionFactory,
-                                    RpcChannelFactory channelFactory){
+                                    RpcChannelFactory channelFactory,
+                                    HBaseTableInfoFactory tableInfoFactory){
         this.exceptionFactory=exceptionFactory;
         this.compressor = compressor;
         this.partitionInfoCache = partitionInfoCache;
         this.channelFactory=channelFactory;
+        this.tableInfoFactory = tableInfoFactory;
     }
 
     @Override
     public BulkWriter newWriter(byte[] tableName){
         return new BulkWritesRPCInvoker(tableName,pipelineWriter,
                 pipelineWriteFactory,compressor,
-                exceptionFactory,channelFactory,partitionInfoCache);
+                exceptionFactory,channelFactory,partitionInfoCache,
+                tableInfoFactory);
     }
 
     @Override
