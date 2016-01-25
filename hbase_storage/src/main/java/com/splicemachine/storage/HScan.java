@@ -23,6 +23,11 @@ public class HScan implements DataScan{
     }
 
     @Override
+    public boolean isDescendingScan(){
+        return scan.isReversed();
+    }
+
+    @Override
     public DataScan startKey(byte[] startKey){
         scan.setStartRow(startKey);
         return this;

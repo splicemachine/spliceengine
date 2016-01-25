@@ -1,12 +1,13 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.AsyncReadResolver;
@@ -18,10 +19,7 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
-import com.splicemachine.si.impl.CoprocessorTxnStore;
-import com.splicemachine.si.impl.HTxnOperationFactory;
-import com.splicemachine.si.impl.QueuedKeepAliveScheduler;
-import com.splicemachine.si.impl.TxnNetworkLayerFactory;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
@@ -34,6 +32,7 @@ import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
 import com.splicemachine.utils.GreenLight;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
@@ -50,14 +49,15 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final PartitionFactory<TableName> tableFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier<
-            TableName> ignoreTxnSupplier;
-    private final HTxnOperationFactory txnOpFactory;
+    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
+    private final TxnOperationFactory txnOpFactory;
     private final AsyncReadResolver readResolver;
     private final PartitionInfoCache partitionCache;
     private final KeepAliveScheduler keepAlive;
     private final SConfiguration config;
+    private final HOperationFactory opFactory;
     private Clock clock;
+    private DistributedFileSystem fileSystem;
 
     public static HBaseSIEnvironment loadEnvironment(Clock clock,RecoverableZooKeeper rzk) throws IOException{
         HBaseSIEnvironment env = INSTANCE;
@@ -65,7 +65,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
             synchronized(HBaseSIEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
-                    env = INSTANCE = new HBaseSIEnvironment(clock,new ZkTimestampSource(rzk));
+                    env = INSTANCE = new HBaseSIEnvironment(clock,new ZkTimestampSource(HConfiguration.INSTANCE,rzk));
                     SIDriver.loadDriver(INSTANCE);
                 }
             }
@@ -84,18 +84,22 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @SuppressWarnings("unchecked")
     public HBaseSIEnvironment(TimestampSource timestampSource,Clock clock) throws IOException{
         this.timestampSource =timestampSource;
-        this.config=new HConfiguration(SIConstants.config,SIConfigurations.defaults);
+        this.config=HConfiguration.INSTANCE;
         this.config.addDefaults(StorageConfiguration.defaults);
 
         this.tableFactory=TableFactoryService.loadTableFactory(clock,this.config);
         this.partitionCache = PartitionCacheService.loadPartitionCache();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer();
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
-        this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,SIConstants.completedTransactionCacheSize,SIConstants.completedTransactionConcurrency);
+        int completedTxnCacheSize = config.getInt(SIConfigurations.completedTxnCacheSize);
+        int completedTxnConcurrency = config.getInt(SIConfigurations.completedTxnConcurrency);
+        this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
-        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier<>(opFactory,tableFactory);
-        this.txnOpFactory = new HTxnOperationFactory(exceptionFactory());
+        this.opFactory =HOperationFactory.INSTANCE;
+        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
+        this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
+        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()));
 
         this.readResolver = initializeReadResolver();
 
@@ -188,11 +192,24 @@ public class HBaseSIEnvironment implements SIEnvironment{
         return SynchronousReadResolver.INSTANCE;
     }
 
+    @Override
+    public DistributedFileSystem fileSystem(){
+        return fileSystem;
+    }
+
+    @Override
+    public OperationFactory baseOperationFactory(){
+        return opFactory;
+    }
+
     private AsyncReadResolver initializeReadResolver(){
-        int readResolverQueueSize=SIConstants.readResolverQueueSize;
+        SConfiguration config = configuration();
+
+        int readResolverQueueSize=config.getInt(SIConfigurations.READ_RESOLVER_QUEUE_SIZE);
         if(readResolverQueueSize<=0) return null; //read resolution is disabled
-        //TODO -sf- add in the proper TrafficControl and RollForwardStatus fields
-        return new AsyncReadResolver(SIConstants.readResolverThreads,readResolverQueueSize,
+        int readResolverThreads = config.getInt(SIConfigurations.READ_RESOLVER_THREADS);
+        //TODO -sf- add in the proper TrafficControl fields
+        return new AsyncReadResolver(readResolverThreads,readResolverQueueSize,
                 txnSupplier(),new RollForwardStatus(),new GreenLight(),SynchronousReadResolver.INSTANCE);
     }
 }

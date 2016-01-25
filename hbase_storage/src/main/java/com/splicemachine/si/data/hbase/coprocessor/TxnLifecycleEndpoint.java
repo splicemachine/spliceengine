@@ -8,8 +8,6 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.CountedReference;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
@@ -59,12 +57,12 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
         HRegion region=((RegionCoprocessorEnvironment)env).getRegion();
-        SpliceConstants.TableEnv table=EnvUtils.getTableEnv((RegionCoprocessorEnvironment)env);
-        if(table.equals(SpliceConstants.TableEnv.TRANSACTION_TABLE)){
-            HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+        HBaseSIEnvironment siEnv = HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+        SConfiguration configuration=siEnv.configuration();
+        TableType table=EnvUtils.getTableType(configuration,(RegionCoprocessorEnvironment)env);
+        if(table.equals(TableType.TRANSACTION_TABLE)){
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
-            SConfiguration configuration=driver.getConfiguration();
             long txnKeepAliveInterval = configuration.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL);
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),
@@ -72,7 +70,9 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                     txnKeepAliveInterval,
                     new SystemClock());
             TimestampSource timestampSource=driver.getTimestampSource();
-            lifecycleStore = new StripedTxnLifecycleStore(SIConstants.transactionlockStripes,regionStore,new RegionServerControl(region),timestampSource);
+            int txnLockStrips = configuration.getInt(SIConfigurations.TRANSACTION_LOCK_STRIPES);
+            lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
+                    new RegionServerControl(region),timestampSource);
             isTxnTable=true;
         }
     }

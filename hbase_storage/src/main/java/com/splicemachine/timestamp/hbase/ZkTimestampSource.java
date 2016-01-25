@@ -1,6 +1,9 @@
 package com.splicemachine.timestamp.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.impl.TimestampClient;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -24,21 +27,26 @@ public class ZkTimestampSource implements TimestampSource {
 
     private RecoverableZooKeeper _rzk;
     private TimestampClient _tc = null;
+    private String rootZkPath;
 
-    public ZkTimestampSource(RecoverableZooKeeper rzk) {
+    public ZkTimestampSource(SConfiguration config,RecoverableZooKeeper rzk) {
         _rzk = rzk;
-        initialize();
+        initialize(config);
     }
     
-    private void initialize() {
+    private void initialize(SConfiguration config) {
     	// We synchronize because we only want one instance of TimestampClient
     	// per region server, each of which handles multiple concurrent requests.
     	// Should be fine since synchronization occurs on the server.
     	synchronized(this) {
     		if (_tc == null) {
+                rootZkPath = config.getString(HConfiguration.SPLICE_ROOT_PATH);
+                int timeout = config.getInt(SIConfigurations.TIMESTAMP_CLIENT_WAIT_TIME);
+                int timestampPort = config.getInt(SIConfigurations.TIMESTAMP_SERVER_BIND_PORT);
 		    	LOG.info("Creating the TimestampClient...");
-                _tc = new TimestampClient(SpliceConstants.timestampClientWaitTime,
-                        new HBaseTimestampHostProvider());
+                HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
+                _tc = new TimestampClient(timeout,
+                        new HBaseTimestampHostProvider(hbcf,timestampPort));
     		}
     	}
     }
@@ -71,7 +79,7 @@ public class ZkTimestampSource implements TimestampSource {
     public void rememberTimestamp(long timestamp) {
         byte[] data = Bytes.toBytes(timestamp);
         try {
-            _rzk.setData(SpliceConstants.zkSpliceMinimumActivePath, data, -1);
+            _rzk.setData(rootZkPath+HConfiguration.MINIMUM_ACTIVE_PATH, data, -1);
         } catch (Exception e) {
             LOG.error("Couldn't remember timestamp", e);
             throw new RuntimeException("Couldn't remember timestamp",e);
@@ -82,7 +90,7 @@ public class ZkTimestampSource implements TimestampSource {
     public long retrieveTimestamp() {
         byte[] data;
         try {
-            data = _rzk.getData(SpliceConstants.zkSpliceMinimumActivePath, false, null);
+            data = _rzk.getData(rootZkPath+HConfiguration.MINIMUM_ACTIVE_PATH, false, null);
         } catch (Exception e) {
             LOG.error("Couldn't retrieve minimum timestamp", e);
             return 0;

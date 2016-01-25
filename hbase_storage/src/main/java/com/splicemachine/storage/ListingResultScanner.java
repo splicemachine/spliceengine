@@ -18,10 +18,13 @@ import java.util.List;
 @NotThreadSafe
 public class ListingResultScanner implements DataScanner{
     private final MeasuredResultScanner resultScanner;
+    private final Partition partition;
 
     private HCell wrapper = new HCell();
-    public ListingResultScanner(MeasuredResultScanner resultScanner){
+
+    public ListingResultScanner(Partition table, MeasuredResultScanner resultScanner){
         this.resultScanner = resultScanner;
+        this.partition = table;
     }
 
     @Override
@@ -39,6 +42,11 @@ public class ListingResultScanner implements DataScanner{
     @Override
     public void close() throws IOException{
         resultScanner.close();
+    }
+
+    @Override
+    public Partition getPartition(){
+        return partition;
     }
 
     /*Metrics reporting*/

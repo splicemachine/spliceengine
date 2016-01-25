@@ -1,6 +1,5 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -13,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *         Date: 12/22/15
  */
 public class HConnectionPool{
-    private static final HConnectionPool INSTANCE= new HConnectionPool(SpliceConstants.numHConnections);
+    private static volatile HConnectionPool INSTANCE= new HConnectionPool(HConfiguration.getInt(HConfiguration.NUM_CONNECTIONS));
     private final Configuration[] configurations;
     private final AtomicInteger seq = new AtomicInteger(0);
 
@@ -26,7 +25,7 @@ public class HConnectionPool{
 
         this.configurations = new Configuration[p];
         for(int i=0;i<configurations.length;i++){
-            this.configurations[i] = new Configuration(SpliceConstants.config);
+            this.configurations[i] = new Configuration(HConfiguration.getInstance().unwrapDelegate());
         }
         this.size = p-1;
     }

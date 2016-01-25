@@ -25,6 +25,7 @@
         </repository>
     </repositories>
     <modules>
+        <!-- core modules-->
         <module>splice_encoding</module>
         <module>splice_protocol</module>
         <module>splice_timestamp_api</module>
@@ -32,15 +33,20 @@
         <module>pipeline_api</module>
         <module>splice_access_api</module>
         <module>splice_machine</module>
+        <module>engine_it</module>
+
+        <!-- memory architecture-->
+        <module>mem_engine</module>
+        <module>mem_storage</module>
+        <module>mem_pipeline</module>
+
+        <!-- hbase arch-->
         <module>hbase_storage</module>
         <module>hbase_pipeline</module>
         <module>hbase_ddl</module>
         <module>hbase_sql</module>
-        <module>mem_engine</module>
-        <module>mem_storage</module>
-        <module>mem_pipeline</module>
-        <module>engine_it</module>
         <module>hbase_it</module>
+
     </modules>
     <properties>
         <derby.version>2.0.0.1-SNAPSHOT</derby.version>

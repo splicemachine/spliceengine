@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
@@ -8,12 +9,17 @@ import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
+import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 
@@ -26,17 +32,37 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
 
+    private TimestampServer timestampServer;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
         LOG.info("Starting SpliceMasterObserver");
 
+        LOG.info("Starting Timestamp Master Observer");
+
+        ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
+        RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
+
+        HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
+        SConfiguration configuration=env.configuration();
+
+        String timestampReservedPath=configuration.getString(HConfiguration.MAX_RESERVED_TIMESTAMP_PATH);
+        int timestampPort=configuration.getInt(HConfiguration.TIMESTAMP_SERVER_BIND_PORT);
+        int timestampBlockSize = configuration.getInt(HConfiguration.TIMESTAMP_BLOCK_SIZE);
+
+        TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
+        this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
+
+        this.timestampServer.startServer();
+
+        super.start(ctx);
     }
 
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
         LOG.warn("Stopping SpliceMasterObserver");
         DatabaseLifecycleManager.manager().shutdown();
+        this.timestampServer.stopServer();
     }
 
     @Override

@@ -161,7 +161,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 }
             }
         }
-        return new HPartitionLoad(totalStoreFileSizeMB,totalMemstoreSieMB,storefileIndexSizeMB);
+        return new HPartitionLoad(getName(),totalStoreFileSizeMB,totalMemstoreSieMB,storefileIndexSizeMB);
     }
 
     @Override

@@ -18,14 +18,14 @@ import java.util.List;
  *
  * Created by jyuan on 4/17/15.
  */
-public class IgnoreTxnCacheSupplier<TableInfo> {
+public class IgnoreTxnCacheSupplier {
     private final ConcurrentLinkedHashMap<String,List<Pair<Long, Long>>> cache;
     private final OperationFactory opFactory;
-    private final PartitionFactory<TableInfo> tableFactory;
+    private final PartitionFactory tableFactory;
 
     private EntryDecoder entryDecoder;
 
-    public IgnoreTxnCacheSupplier(OperationFactory opFactory,PartitionFactory<TableInfo> tableFactory) {
+    public IgnoreTxnCacheSupplier(OperationFactory opFactory,PartitionFactory tableFactory) {
         this.opFactory = opFactory;
         this.tableFactory=tableFactory;
         cache = new ConcurrentLinkedHashMap.Builder<String, List<Pair<Long, Long>>>()

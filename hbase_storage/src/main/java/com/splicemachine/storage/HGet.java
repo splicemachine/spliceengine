@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.NavigableSet;
 
 /**
  * @author Scott Fines
@@ -18,8 +19,14 @@ public class HGet implements DataGet{
         this.get = new Get(key);
     }
 
+
     @Override
-    public void setTimeRange(int low,long high){
+    public Map<byte[], NavigableSet<byte[]>> familyQualifierMap(){
+        return get.getFamilyMap();
+    }
+
+    @Override
+    public void setTimeRange(long low,long high){
         assert low <=high :"high < low!";
         try{
             get.setTimeRange(low,high);

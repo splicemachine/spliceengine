@@ -1,14 +1,11 @@
 package com.splicemachine.timestamp.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.timestamp.impl.TimestampClient;
 import com.splicemachine.timestamp.api.TimestampHostProvider;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.protobuf.generated.MasterProtos;
 import org.apache.log4j.Logger;
 
 /**
@@ -22,7 +19,7 @@ public class HBaseTimestampHostProvider implements TimestampHostProvider {
     public String getHost() throws TimestampIOException{
         String hostName = null;
         try {
-            HConnection connection=HConnectionManager.getConnection(SpliceConstants.config);
+            HConnection connection=HConnectionManager.getConnection(HConfiguration.);
             try(HBaseAdmin admin = new HBaseAdmin(connection)){
                return admin.getClusterStatus().getMaster().getHostname();
             }
@@ -33,7 +30,7 @@ public class HBaseTimestampHostProvider implements TimestampHostProvider {
     }
 
     public int getPort() {
-        return SpliceConstants.timestampServerBindPort;
+        return HConfiguration.getInt(TIMESTAMP_SERVER_BIND_PORT);
     }
 
 }

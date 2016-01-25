@@ -14,7 +14,32 @@ public class HServerLoad implements PartitionServerLoad{
     }
 
     @Override
-    public long totalRequestCount(){
+    public int numPartitions(){
+        return load.getNumberOfRegions();
+    }
+
+    @Override
+    public long totalWriteRequests(){
+        return load.getWriteRequestsCount();
+    }
+
+    @Override
+    public long totalReadRequests(){
+        return load.getReadRequestsCount();
+    }
+
+    @Override
+    public long totalRequests(){
         return load.getTotalNumberOfRequests();
+    }
+
+    @Override
+    public int compactionQueueLength(){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public int flushQueueLength(){
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 }

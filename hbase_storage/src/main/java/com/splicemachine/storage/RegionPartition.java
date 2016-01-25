@@ -157,7 +157,7 @@ public class RegionPartition implements Partition{
         Scan s=((HScan)scan).unwrapDelegate();
         RegionScanner scanner=region.getScanner(s);
 
-        return new RegionDataScanner(scanner,metricFactory);
+        return new RegionDataScanner(this,scanner,metricFactory);
     }
 
     @Override

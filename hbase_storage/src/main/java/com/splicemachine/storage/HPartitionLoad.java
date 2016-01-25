@@ -8,11 +8,18 @@ public class HPartitionLoad implements PartitionLoad{
     private final int storefileSizeMB;
     private final int memStoreSizeMB;
     private final int storefileIndexSizeMB;
+    private final String name;
 
-    public HPartitionLoad(int storefileSizeMB,int memStoreSizeMB,int storefileIndexSizeMB){
+    public HPartitionLoad(String name,int storefileSizeMB,int memStoreSizeMB,int storefileIndexSizeMB){
         this.storefileSizeMB=storefileSizeMB;
         this.memStoreSizeMB=memStoreSizeMB;
         this.storefileIndexSizeMB=storefileIndexSizeMB;
+        this.name = name;
+    }
+
+    @Override
+    public String getPartitionName(){
+        return name;
     }
 
     @Override

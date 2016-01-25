@@ -54,7 +54,7 @@ public class SynchronousReadResolverTest {
 
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), control, false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(new HOperationFactory(),mock(PartitionFactory.class));
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HOperationFactory.INSTANCE,mock(PartitionFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
             @Override
@@ -101,7 +101,7 @@ public class SynchronousReadResolverTest {
         final TestingTimestampSource commitTsGenerator = new TestingTimestampSource();
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),commitTsGenerator,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(new HOperationFactory(),mock(PartitionFactory.class));
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HOperationFactory.INSTANCE,mock(PartitionFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
             @Override
@@ -150,7 +150,7 @@ public class SynchronousReadResolverTest {
         RegionPartition rp = new RegionPartition(region);
 
         TestingTimestampSource timestampSource = new TestingTimestampSource();
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(new HOperationFactory(),mock(PartitionFactory.class));
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HOperationFactory.INSTANCE,mock(PartitionFactory.class));
         TxnStore store = new TestingTxnStore(new IncrementingClock(),timestampSource,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), GreenLight.INSTANCE, false);
 

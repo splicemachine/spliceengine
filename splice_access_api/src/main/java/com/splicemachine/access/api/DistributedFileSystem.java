@@ -16,5 +16,5 @@ public abstract class DistributedFileSystem extends FileSystemProvider{
 
     public abstract Path getPath(String fullPath);
 
-    public abstract FileInfo getInfo(String filePath);
+    public abstract FileInfo getInfo(String filePath) throws IOException;
 }

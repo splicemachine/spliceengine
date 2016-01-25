@@ -1,6 +1,5 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -475,13 +474,13 @@ public class MPartition implements Partition{
     }
 
 
-    private void filterByFamilies(List<DataCell> toReturn,Map<byte[], Set<byte[]>> familyQualifierMap){
+    private void filterByFamilies(List<DataCell> toReturn,Map<byte[], ? extends Set<byte[]>> familyQualifierMap){
         if(familyQualifierMap==null||familyQualifierMap.size()<=0) return;
         Iterator<DataCell> dcIter = toReturn.iterator();
         while(dcIter.hasNext()){
             DataCell dc = dcIter.next();
             boolean foundFamily = false;
-            for(Map.Entry<byte[],Set<byte[]>> familyQuals:familyQualifierMap.entrySet()){
+            for(Map.Entry<byte[],? extends Set<byte[]>> familyQuals:familyQualifierMap.entrySet()){
                if(dc.matchesFamily(familyQuals.getKey())){
                    foundFamily = true;
                    Set<byte[]> quals = familyQuals.getValue();

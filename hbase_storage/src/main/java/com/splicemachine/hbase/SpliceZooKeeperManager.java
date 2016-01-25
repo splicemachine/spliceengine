@@ -1,7 +1,7 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
-import org.apache.hadoop.conf.Configuration;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -16,19 +16,19 @@ import java.io.IOException;
  * @author Scott Fines
  *         Created: 2/2/13 9:47 AM
  */
-public class SpliceZooKeeperManager extends SpliceConstants implements Abortable, Closeable{
+public class SpliceZooKeeperManager implements Abortable, Closeable{
     private static final Logger LOG=Logger.getLogger(SpliceZooKeeperManager.class);
     protected ZooKeeperWatcher watcher;
     protected RecoverableZooKeeper rzk;
     private volatile boolean isAborted;
 
     public SpliceZooKeeperManager(){
-        initialize(config);
+        initialize(HConfiguration.INSTANCE);
     }
 
-    public void initialize(Configuration configuration){
+    public void initialize(SConfiguration configuration){
         try{
-            watcher=new ZooKeeperWatcher(configuration,"spliceconnection",this);
+            watcher=new ZooKeeperWatcher(((HConfiguration)configuration).unwrapDelegate(),"spliceconnection",this);
             rzk=watcher.getRecoverableZooKeeper();
         }catch(Exception e){
             LOG.error(e);
@@ -50,7 +50,7 @@ public class SpliceZooKeeperManager extends SpliceConstants implements Abortable
             try{
                 LOG.info("Lost connection with ZooKeeper, attempting reconnect");
                 watcher=null;
-                initialize(config);
+                initialize(HConfiguration.INSTANCE);
                 LOG.info("Successfully reconnected to ZooKeeper");
             }catch(RuntimeException zce){
                 LOG.error("Could not reconnect to zookeeper after session expiration, aborting");

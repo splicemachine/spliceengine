@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 
 /**
@@ -25,5 +26,5 @@ public interface DataGet extends Attributable{
 
     void addColumn(byte[] family,byte[] qualifier);
 
-    Map<byte[],Set<byte[]>> familyQualifierMap();
+    Map<byte[],NavigableSet<byte[]>> familyQualifierMap();
 }

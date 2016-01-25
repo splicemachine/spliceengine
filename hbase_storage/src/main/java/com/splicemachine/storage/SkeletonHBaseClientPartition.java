@@ -96,7 +96,7 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     @Override
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         MeasuredResultScanner scanner=new MeasuredResultScanner(getScanner(((HScan)scan).unwrapDelegate()),metricFactory);
-        return new ListingResultScanner(scanner);
+        return new ListingResultScanner(this,scanner);
     }
 
 

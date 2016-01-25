@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicLong;
 @ThreadSafe
 public class CoprocessorTxnStore implements TxnStore {
     private final TxnNetworkLayerFactory tableFactory;
-//    protected static final TableName TABLE_NAME = TableName.valueOf(SIConstants.spliceNamespace,SIConstants.TRANSACTION_TABLE);
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     @ThreadSafe
     private final TimestampSource timestampSource;

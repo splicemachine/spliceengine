@@ -19,7 +19,7 @@ public class MGet implements DataGet{
     private long highTs;
     private long lowTs;
 
-    private Map<byte[],Set<byte[]>> familyQualifierMap = new TreeMap<>(Bytes.basicByteComparator());
+    private Map<byte[],NavigableSet<byte[]>> familyQualifierMap = new TreeMap<>(Bytes.basicByteComparator());
 
     public MGet(){ }
 
@@ -72,7 +72,7 @@ public class MGet implements DataGet{
 
     @Override
     public void addColumn(byte[] family,byte[] qualifier){
-        Set<byte[]> bytes=familyQualifierMap.get(family);
+        NavigableSet<byte[]> bytes=familyQualifierMap.get(family);
         if(bytes==null){
             bytes = new TreeSet<>(Bytes.basicByteComparator());
             familyQualifierMap.put(family,bytes);
@@ -81,7 +81,7 @@ public class MGet implements DataGet{
     }
 
     @Override
-    public Map<byte[],Set<byte[]>> familyQualifierMap(){
+    public Map<byte[],NavigableSet<byte[]>> familyQualifierMap(){
         return familyQualifierMap;
     }
 

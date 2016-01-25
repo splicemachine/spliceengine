@@ -37,7 +37,12 @@ public class ImportUtils{
         if(file==null) return;
 
         DistributedFileSystem fsLayer=SIDriver.driver().fileSystem();
-        FileInfo info=fsLayer.getInfo(file);
+        FileInfo info;
+        try{
+            info=fsLayer.getInfo(file);
+        }catch(IOException e){
+            throw Exceptions.parseException(e);
+        }
         if(checkDirectory && info.isDirectory())
             throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(file);
         if(!info.isReadable()){

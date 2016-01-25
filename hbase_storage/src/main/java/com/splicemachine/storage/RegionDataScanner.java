@@ -26,6 +26,7 @@ public class RegionDataScanner implements DataScanner{
     private final Counter filteredRowCounter;
     private final Counter visitedRowCounter;
     private final RegionScanner delegate;
+    private final Partition partition;
 
     private List<Cell> internalList;
 
@@ -39,12 +40,18 @@ public class RegionDataScanner implements DataScanner{
         }
     };
 
-    public RegionDataScanner(RegionScanner delegate,MetricFactory metricFactory){
+    public RegionDataScanner(Partition source,RegionScanner delegate,MetricFactory metricFactory){
         this.delegate=delegate;
         this.readTimer = metricFactory.newTimer();
+        this.partition = source;
         this.outputBytesCounter = metricFactory.newCounter();
         this.filteredRowCounter = metricFactory.newCounter();
         this.visitedRowCounter = metricFactory.newCounter();
+    }
+
+    @Override
+    public Partition getPartition(){
+        return partition;
     }
 
     @Override

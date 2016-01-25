@@ -2,6 +2,7 @@ package com.splicemachine;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.SIConfigurations;
 
 /**
  * @author Scott Fines
@@ -11,8 +12,8 @@ public class SQLConfiguration{
     public static final String SPLICE_DB = "splicedb";
     public static final String SPLICE_USER = "SPLICE";
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
-    public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
-    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
+    public static final String CONGLOMERATE_TABLE_NAME =SIConfigurations.CONGLOMERATE_TABLE_NAME;
+    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = SIConfigurations.CONGLOMERATE_TABLE_NAME_BYTES;
 
     //TODO -sf- move this to HBase-specific configuration
     public static final String PARTITIONSERVER_PORT="hbase.regionserver.port";

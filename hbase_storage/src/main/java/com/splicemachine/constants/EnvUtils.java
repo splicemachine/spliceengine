@@ -1,6 +1,8 @@
 package com.splicemachine.constants;
 
-import com.splicemachine.constants.SpliceConstants.TableEnv;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -11,31 +13,31 @@ public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
 	private static final long FIRST_USER_TABLE_NUMBER = 1328;
 
-    public static TableEnv getTableEnv(RegionCoprocessorEnvironment e) {
-        return EnvUtils.getTableEnv(e.getRegion().getTableDesc().getTableName());
+    public static TableType getTableType(SConfiguration config,RegionCoprocessorEnvironment e) {
+        return EnvUtils.getTableType(config,e.getRegion().getTableDesc().getTableName());
     }
 
-    public static TableEnv getTableEnv(TableName tableName) {
+    public static TableType getTableType(SConfiguration config,TableName tableName) {
         SpliceLogUtils.trace(LOG,"Checking table environment for %s",tableName);
-        if (!tableName.getNamespaceAsString().equals(SpliceConstants.spliceNamespace))
-            if (tableName.getQualifierAsString().equals("-ROOT-"))
-                return TableEnv.ROOT_TABLE;
-            else if (isMetaOrNamespaceTable(tableName))
-                return TableEnv.META_TABLE;
-            else {
-                return TableEnv.HBASE_TABLE;
+        if (!tableName.getNamespaceAsString().equals(config.getString(HConfiguration.NAMESPACE))){
+            if(tableName.getQualifierAsString().equals("-ROOT-"))
+                return TableType.ROOT_TABLE;
+            else if(isMetaOrNamespaceTable(tableName))
+                return TableType.META_TABLE;
+            else{
+                return TableType.HBASE_TABLE;
             }
-        else if (tableName.getQualifierAsString().equals(SpliceConstants.TRANSACTION_TABLE))
-            return TableEnv.TRANSACTION_TABLE;
+        }else if (tableName.getQualifierAsString().equals(HConfiguration.TRANSACTION_TABLE))
+            return TableType.TRANSACTION_TABLE;
         else {
 			try {
 				long tableNumber = Long.parseLong(tableName.getQualifierAsString());
 				if (tableNumber <= FIRST_USER_TABLE_NUMBER)
-					return TableEnv.DERBY_SYS_TABLE;
+					return TableType.DERBY_SYS_TABLE;
 			} catch (Exception e) {
                 SpliceLogUtils.debug(LOG,tableName+" is not a number");
 			}
-			return TableEnv.USER_TABLE;
+			return TableType.USER_TABLE;
 		}
 	}
 

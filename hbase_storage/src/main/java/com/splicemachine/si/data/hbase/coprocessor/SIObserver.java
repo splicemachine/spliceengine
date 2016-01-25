@@ -2,14 +2,13 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TransactionalFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
@@ -17,10 +16,12 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -50,7 +51,6 @@ public class SIObserver extends BaseRegionObserver{
     private TxnOperationFactory txnOperationFactory;
     private OperationStatusFactory operationStatusFactory;
     private TransactionalRegion region;
-    private TransactionReadController txnReadController;
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
@@ -62,11 +62,8 @@ public class SIObserver extends BaseRegionObserver{
             SIDriver driver = env.getSIDriver();
             operationStatusFactory = driver.getOperationStatusLib();
             //noinspection unchecked
-            txnOperationFactory=new HTxnOperationFactory(driver.getExceptionFactory());
+            txnOperationFactory=new SimpleTxnOperationFactory(driver.getExceptionFactory(),HOperationFactory.INSTANCE);
             //noinspection unchecked
-            txnReadController = new SITransactionReadController(
-                    driver.getTxnSupplier(),
-                    driver.getIgnoreTxnSupplier());
             Partition regionPartition = new RegionPartition(rce.getRegion());
             region=new TxnRegion(regionPartition,
                     driver.getRollForward(),
@@ -250,19 +247,20 @@ public class SIObserver extends BaseRegionObserver{
 
     private boolean shouldUseSI(OperationWithAttributes op){
         if(op.getAttribute(SIConstants.SI_NEEDED)==null) return false;
-        else if(op.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return false;
-        else return true;
+        else return op.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null;
     }
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
     private static boolean doesTableNeedSI(TableName tableName){
-        SpliceConstants.TableEnv tableEnv=EnvUtils.getTableEnv(tableName);
-        SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableEnv);
-        if(SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEnv) ||
-                SpliceConstants.TableEnv.META_TABLE.equals(tableEnv) ||
-                SpliceConstants.TableEnv.TRANSACTION_TABLE.equals(tableEnv) ||
-                SpliceConstants.TableEnv.HBASE_TABLE.equals(tableEnv)) return false;
-        else if(SpliceConstants.TEST_TABLE.equals(tableName.getNameAsString())) return false;
+        TableType tableType=EnvUtils.getTableType(HConfiguration.INSTANCE,tableName);
+        SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableType);
+        switch(tableType){
+            case TRANSACTION_TABLE:
+            case ROOT_TABLE:
+            case META_TABLE:
+            case HBASE_TABLE:
+                return false;
+        }
         return true;
     }
 

@@ -1,11 +1,13 @@
 package com.splicemachine.si.testsetup;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
-import com.splicemachine.si.impl.HTxnOperationFactory;
+import com.splicemachine.si.impl.HOperationFactory;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.HFilterFactory;
@@ -18,7 +20,7 @@ public class HBaseDataEnv implements SITestDataEnv{
     private final TxnOperationFactory txnOperationFactory;
 
     public HBaseDataEnv(){
-        this.txnOperationFactory = new HTxnOperationFactory(HExceptionFactory.INSTANCE);
+        this.txnOperationFactory = new SimpleTxnOperationFactory(HExceptionFactory.INSTANCE,HOperationFactory.INSTANCE);
     }
 
     @Override
@@ -39,5 +41,10 @@ public class HBaseDataEnv implements SITestDataEnv{
     @Override
     public TxnOperationFactory getOperationFactory(){
         return txnOperationFactory;
+    }
+
+    @Override
+    public OperationFactory getBaseOperationFactory(){
+        return HOperationFactory.INSTANCE;
     }
 }

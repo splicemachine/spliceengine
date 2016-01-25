@@ -1,7 +1,5 @@
 package org.apache.hadoop.hbase.regionserver;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -137,50 +135,6 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
         }
         return sizeOfBlocks;
-    }
-
-    public static List<byte[]> getCutpoints(Store store,byte[] start,byte[] end) throws IOException{
-        assert Bytes.compareTo(start,end)<=0 || start.length==0 || end.length==0;
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getCutpoints");
-        Collection<StoreFile> storeFiles;
-        storeFiles=store.getStorefiles();
-        HFileBlockIndex.BlockIndexReader fileReader;
-        List<byte[]> cutPoints=new ArrayList<byte[]>();
-        for(StoreFile file : storeFiles){
-            if(file!=null){
-                long storeFileInBytes=file.getFileInfo().getFileStatus().getLen();
-                if(LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG,"getCutpoints with file=%s with size=%d",file.getPath(),storeFileInBytes);
-                fileReader=file.createReader().getHFileReader().getDataBlockIndexReader();
-                int size=fileReader.getRootBlockCount();
-                long incrementalSize=size==0?storeFileInBytes:storeFileInBytes/(long)size;
-                int blockCounter=0;
-                long lastOffset=0;
-                for(int i=0;i<size;i++){
-                    blockCounter+=incrementalSize;
-                    if(LOG.isTraceEnabled())
-                        SpliceLogUtils.trace(LOG,"block %d, with blockCounter=%d",i,blockCounter);
-                    byte[] possibleCutpoint=KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
-                    if((start.length==0 || Bytes.compareTo(start,possibleCutpoint)<0) && (end.length==0 || Bytes.compareTo(end,possibleCutpoint)>0)){ // Do not include cutpoints out of bounds
-                        if(blockCounter>=SIConstants.splitBlockSize){
-                            lastOffset=fileReader.getRootBlockOffset(i);
-                            blockCounter=0;
-                            cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
-                        }
-                    }
-                }
-            }
-        }
-        if(storeFiles.size()>1){              // have to sort, hopefully will not happen a lot if major compaction is working properly...
-            Collections.sort(cutPoints,new Comparator<byte[]>(){
-                @Override
-                public int compare(byte[] left,byte[] right){
-                    return Bytes.compareTo(left,right);
-                }
-            });
-        }
-        return cutPoints;
     }
 
     static{

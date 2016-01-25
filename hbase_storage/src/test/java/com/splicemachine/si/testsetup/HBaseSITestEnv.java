@@ -1,13 +1,14 @@
 package com.splicemachine.si.testsetup;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -18,7 +19,8 @@ import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TableFactoryService;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
-import com.splicemachine.si.impl.HTxnOperationFactory;
+import com.splicemachine.si.impl.HOperationFactory;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
@@ -63,7 +65,7 @@ public class HBaseSITestEnv implements SITestEnv{
 
     public HBaseSITestEnv(Level baseLoggingLevel){
         configureLogging(baseLoggingLevel);
-        Configuration conf = SpliceConstants.config;
+        Configuration conf = HConfiguration.INSTANCE.unwrapDelegate();
         try{
             startCluster(conf);
             SIEnvironment hEnv=loadSIEnvironment();
@@ -107,7 +109,12 @@ public class HBaseSITestEnv implements SITestEnv{
 
     @Override
     public TxnOperationFactory getOperationFactory(){
-        return new HTxnOperationFactory(getExceptionFactory());
+        return new SimpleTxnOperationFactory(getExceptionFactory(),HOperationFactory.INSTANCE);
+    }
+
+    @Override
+    public OperationFactory getBaseOperationFactory(){
+        return HOperationFactory.INSTANCE;
     }
 
     @Override
@@ -133,7 +140,7 @@ public class HBaseSITestEnv implements SITestEnv{
     /*private helper methods*/
 
     private static HTableDescriptor generateTransactionTable() throws IOException{
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",SpliceConstants.TRANSACTION_TABLE));
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",HConfiguration.TRANSACTION_TABLE));
         desc.addCoprocessor(TxnLifecycleEndpoint.class.getName());
 
         HColumnDescriptor columnDescriptor = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_BYTES);
@@ -159,7 +166,7 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     private HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.spliceNamespace,tableName));
+        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(HConfiguration.INSTANCE.getString(HConfiguration.NAMESPACE),tableName));
         desc.addFamily(createDataFamily());
         desc.addCoprocessor(SIObserver.class.getName());
         return desc;
@@ -193,10 +200,8 @@ public class HBaseSITestEnv implements SITestEnv{
         configuration.setInt("hbase.regionserver.port", basePort + 2);
         configuration.setInt("hbase.regionserver.info.port", basePort + 3);
 
-        SpliceConstants.config = configuration;
-
         testUtility.startMiniCluster(1);
-        ZkUtils.getZkManager().initialize(configuration);
+        ZkUtils.getZkManager().initialize(HConfiguration.INSTANCE);
         ZkUtils.initializeZookeeper();
     }
 

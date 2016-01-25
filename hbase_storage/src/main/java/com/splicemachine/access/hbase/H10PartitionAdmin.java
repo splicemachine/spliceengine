@@ -36,13 +36,16 @@ public class H10PartitionAdmin implements PartitionAdmin{
     private final Admin admin;
     private final long splitSleepInterval;
     private final Clock timeKeeper;
+    private final HBaseTableInfoFactory tableInfoFactory;
 
     public H10PartitionAdmin(Admin admin,
                              long splitSleepInterval,
-                             Clock timeKeeper){
+                             Clock timeKeeper,
+                             HBaseTableInfoFactory tableInfoFactory){
         this.admin=admin;
         this.splitSleepInterval = splitSleepInterval;
         this.timeKeeper=timeKeeper;
+        this.tableInfoFactory = tableInfoFactory;
     }
 
     @Override
@@ -54,17 +57,17 @@ public class H10PartitionAdmin implements PartitionAdmin{
         snapshot.setInMemory(true);
         snapshot.setBlockCacheEnabled(true);
         snapshot.setBloomFilterType(BloomType.ROW);
-        return new HPartitionCreator(admin.getConnection(),snapshot);
+        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,snapshot);
     }
 
     @Override
     public void deleteTable(String tableName) throws IOException{
-        admin.deleteTable(HBaseTableInfoFactory.getInstance().getTableInfo(tableName));
+        admin.deleteTable(tableInfoFactory.getTableInfo(tableName));
     }
 
     @Override
     public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
-        TableName tableInfo=HBaseTableInfoFactory.getInstance().getTableInfo(tableName);
+        TableName tableInfo=tableInfoFactory.getTableInfo(tableName);
         for(byte[] splitPoint:splitPoints){
             admin.split(tableInfo,splitPoint);
         }
@@ -109,7 +112,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public Iterable<? extends Partition> allPartitions(String tableName) throws IOException{
-        TableName tn =HBaseTableInfoFactory.getInstance().getTableInfo(tableName);
+        TableName tn =tableInfoFactory.getTableInfo(tableName);
         List<HRegionInfo> tableRegions=admin.getTableRegions(tn);
         List<Partition> partitions=new ArrayList<>(tableRegions.size());
         Connection connection=admin.getConnection();

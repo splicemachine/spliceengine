@@ -1,6 +1,5 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.impl.TxnNetworkLayer;
 import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import org.apache.hadoop.hbase.TableName;
@@ -17,7 +16,7 @@ import java.io.IOException;
  */
 @ThreadSafe
 public class H98TxnNetworkLayerFactory implements TxnNetworkLayerFactory{
-    private static final TableName TXN_TABLE=TableName.valueOf(SIConstants.spliceNamespace,SIConstants.TRANSACTION_TABLE);
+    private static final TableName TXN_TABLE=TableName.valueOf(namespace,txnTable);
     private final HConnectionPool connectionPool;
 
     public H98TxnNetworkLayerFactory(){

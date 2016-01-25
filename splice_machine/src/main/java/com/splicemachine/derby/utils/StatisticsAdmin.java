@@ -18,7 +18,6 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
-import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;

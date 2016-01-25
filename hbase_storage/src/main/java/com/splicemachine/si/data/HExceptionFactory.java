@@ -46,6 +46,20 @@ public class HExceptionFactory implements ExceptionFactory{
         return new HCannotCommitException(txnId,actualState);
     }
 
+    @Override
+    public IOException cannotCommit(String message){
+        return new HCannotCommitException(message);
+    }
+
+    @Override
+    public IOException doNotRetry(Throwable t){
+        return new DoNotRetryIOException(t);
+    }
+
+    @Override
+    public boolean allowsRetry(Throwable error){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
 
     @Override
     public IOException callerDisconnected(String message){
