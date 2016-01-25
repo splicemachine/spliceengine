@@ -189,17 +189,17 @@ public abstract class ValueNode extends QueryTreeNode
 
 	public String toString()
 	{
-		if (SanityManager.DEBUG)
-		{
+//		if (SanityManager.DEBUG)
+//		{
 			return "dataTypeServices: " +
 				( ( dataTypeServices != null) ?
 						dataTypeServices.toString() : "null" ) + "\n" +
 				super.toString();
-		}
-		else
-		{
-			return "";
-		}
+//		}
+//		else
+//		{
+//			return "";
+//		}
 	}
 
 	/**

@@ -159,15 +159,15 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 		print the non-node subfields
 	 */
 	public String toString() {
-		if (SanityManager.DEBUG)
-		{
+//		if (SanityManager.DEBUG)
+//		{
 			return "methodName: " + methodName[whichType] + "\n" +
 				super.toString();
-		}
-		else
-		{
-			return "";
-		}
+//		}
+//		else
+//		{
+//			return "";
+//		}
 	}
         
         /**
