@@ -49,7 +49,7 @@
 
     </modules>
     <properties>
-        <derby.version>2.0.0.1-SNAPSHOT</derby.version>
+        <derby.version>2.0.0.k2_refactor-SNAPSHOT</derby.version>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest,
             com.splicemachine.test.BackupTest
         </excluded.categories>
