@@ -6,12 +6,10 @@ import java.util.List;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.si.data.hbase.coprocessor.TableFactoryService;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HScan;
@@ -190,7 +188,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
     }
 
 
-    private List<InputSplit> toSMSplits (List<InputSplit> splits) {
+    private List<InputSplit> toSMSplits (List<InputSplit> splits) throws IOException{
         List<InputSplit> sMSplits = Lists.newArrayList();
         for(InputSplit split:splits) {
             final TableSplit tableSplit = (TableSplit) split;

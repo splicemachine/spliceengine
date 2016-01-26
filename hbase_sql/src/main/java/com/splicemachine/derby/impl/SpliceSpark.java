@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
 import com.splicemachine.derby.stream.spark.SpliceMachineSource;
@@ -134,7 +134,7 @@ public class SpliceSpark {
         // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");
        // conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.io.compression.codec", SpliceConstants.config.get("spark.io.compression.codec","lz4"));
+        conf.set("spark.io.compression.codec",HConfiguration.INSTANCE.unwrapDelegate().get("spark.io.compression.codec","lz4"));
         conf.set("spark.io.compression.lz4.block.size","3276800");
         conf.set("spark.shuffle.compress","false");
         conf.set("spark.kryoserializer.buffer.mb", "4");

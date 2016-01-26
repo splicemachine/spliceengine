@@ -1,6 +1,6 @@
 package com.splicemachine.backup;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -64,10 +64,10 @@ public class RestoreBackupTask {
         FileSystem fs = region.getFilesystem();
         for (Pair<byte[], String> pair : famPaths) {
             Path srcPath = new Path(pair.getSecond());
-            FileSystem srcFs = srcPath.getFileSystem(SpliceConstants.config);
+            FileSystem srcFs = srcPath.getFileSystem(HConfiguration.INSTANCE.unwrapDelegate());
             Path localDir = region.getRegionFileSystem().getRegionDir();
             Path tmpPath = getRandomFilename(fs, localDir);
-            FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, SpliceConstants.config);
+            FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, HConfiguration.INSTANCE.unwrapDelegate());
             copy.add(new Pair<>(pair.getFirst(),tmpPath.toString()));
         }
         return copy;

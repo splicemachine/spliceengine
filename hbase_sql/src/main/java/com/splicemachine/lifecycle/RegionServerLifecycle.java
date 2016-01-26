@@ -1,8 +1,8 @@
 package com.splicemachine.lifecycle;
 
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.hbase.SpliceMetrics;
@@ -65,7 +65,7 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                      * runs upgrade code via the SpliceMasterObserver.  So we mark the flag to false to ensure that the
                      * region servers don't run the upgrade.
                      */
-                    SpliceConstants.upgradeForced = false;
+                    SQLConfiguration.upgradeForced = false;
 
                     // Ensure ZK paths exist.
                     try{

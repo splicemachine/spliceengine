@@ -115,8 +115,9 @@ public class MemFileSystem extends DistributedFileSystem{
         }catch(FileAlreadyExistsException fafe){
             //determine if the path is already a directory, or if it is a file. If it's a file, then
             //throw a NotADirectoryException. Otherwise, we are good
-            if(Files.isDirectory(dir)) return;
-            else throw fafe;
+            if(!Files.isDirectory(dir)){
+                throw fafe;
+            }
         }
     }
 
@@ -257,6 +258,11 @@ public class MemFileSystem extends DistributedFileSystem{
         @Override
         public String getGroup(){
             throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public boolean isWritable(){
+            return Files.isWritable(p);
         }
     }
 }

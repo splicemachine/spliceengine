@@ -158,6 +158,7 @@ public class SQLConfiguration{
     private static final int DEFAULT_INDEX_BATCH_SIZE=4000;
 
 
+    public static volatile boolean upgradeForced = false;
 
     /**
      * The number of concurrent bulk fetches a single index operation can initiate

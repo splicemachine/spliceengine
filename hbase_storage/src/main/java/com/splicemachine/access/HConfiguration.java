@@ -23,6 +23,12 @@ public class HConfiguration implements SConfiguration{
     private static final String DEFAULT_NAMESPACE = "splice";
 
     /**
+     * Path in Zookeeper for storing ongoing backup Id
+     */
+    public static final String BACKUP_PATH = "splice.backup_node";
+    public static final String DEFAULT_BACKUP_PATH = "/backup";
+
+    /**
      * The Path in zookeeper for storing the minimum active transaction.
      * Defaults to /transactions/minimum
      */
@@ -123,6 +129,9 @@ public class HConfiguration implements SConfiguration{
      */
     public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
     private static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
+
+    public static final int DEFAULT_JMX_BIND_PORT = 10102;
+
 
     private final Configuration delegate;
     private final ChainedDefaults defaults;

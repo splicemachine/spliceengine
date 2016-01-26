@@ -1,8 +1,8 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -144,7 +144,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 "size=" + contentSummary.spaceConsumed() + ", " +
                 "files=" + contentSummary.fileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
-                path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config));
+                path, WholeTextInputFormat.class, String.class, InputStream.class,HConfiguration.INSTANCE.unwrapDelegate()));
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {

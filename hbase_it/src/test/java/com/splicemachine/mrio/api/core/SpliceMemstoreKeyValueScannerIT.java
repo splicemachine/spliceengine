@@ -1,34 +1,21 @@
 package com.splicemachine.mrio.api.core;
 
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
-import org.junit.*;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.constants.SIConstants;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.mrio.MRConstants;
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 @Ignore
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
@@ -98,7 +85,7 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 	    	scan.setCaching(50);
 	    	scan.setBatch(50);
 	    	scan.setMaxVersions();
-	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);    	
+	    	scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, SIConstants.EMPTY_BYTE_ARRAY);
 	    	rs = htable.getScanner(scan);
 	    	Result result;
 	    	boolean flush = false;
@@ -114,10 +101,8 @@ public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
 		    		flushTable(SCHEMA_NAME+".A");
 	    	}	    	
 		}
-    	finally { 
-    		if (admin != null)
-    			admin.close();
-    		if (htable != null)
+    	finally {
+			if (htable != null)
     			htable.close();
     		if (rs != null)
    			rs.close();

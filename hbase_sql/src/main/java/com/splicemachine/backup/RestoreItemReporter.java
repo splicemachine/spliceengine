@@ -1,10 +1,10 @@
 package com.splicemachine.backup;
 
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.hbase.HBaseTableFactory;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.management.TransactionalSysTableWriter;
@@ -16,8 +16,6 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
@@ -28,7 +26,7 @@ import com.carrotsearch.hppc.BitSet;
 public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem> {
     private int totalLength;
     private Partition table;
-    private HBaseTableFactory tableFactory;
+    private PartitionFactory tableFactory;
 
     public RestoreItemReporter(SqlExceptionFactory ef) {
         super("SYSRESTOREITEMS",ef);
@@ -101,7 +99,7 @@ public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem
         }
     }
     public void openScanner() throws IOException{
-        table = tableFactory.getTable(SpliceConstants.RESTORE_TABLE_NAME);
+        table = tableFactory.getTable(HConfiguration.RESTORE_TABLE_NAME);
         DataScan scan = SIDriver.driver().baseOperationFactory().newScan();
         resultScanner = table.openResultScanner(scan);
     }

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.constants.SIConstants;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -33,7 +33,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
     @Override
     public DataSet<V> buildDataSet() throws StandardException{
         JavaSparkContext ctx = SpliceSpark.getContext();
-        Configuration conf = new Configuration(SIConstants.config);
+        Configuration conf = new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin");
         conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
