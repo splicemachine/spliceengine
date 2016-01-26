@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
-    <artifactId>hbase-sql</artifactId>
+    <artifactId>hbase_sql</artifactId>
     <name>${project.artifactId}</name>
     <description>SQL engine based on HBase</description>
     <version>2.0.0-SNAPSHOT</version>
@@ -22,7 +22,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase-storage</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
             <exclusions>
                 <!-- For some reason, if you allow maven to perform a transitive
@@ -98,7 +98,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase-storage</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
