@@ -5,14 +5,10 @@ import java.sql.SQLException;
 
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.SMSQLUtil;
 import org.apache.hadoop.fs.Path;
 import org.junit.Ignore;
 

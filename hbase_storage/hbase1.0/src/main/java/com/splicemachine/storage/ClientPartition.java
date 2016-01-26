@@ -2,10 +2,12 @@ package com.splicemachine.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.protobuf.Service;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -179,5 +181,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 compactionState=admin.getCompactionState(tableName);
             }while(compactionState!=AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
         }
+    }
+
+    public <T extends Service,V> Map<byte[],V> coprocessorExec(Class<T> serviceClass,Batch.Call<T,V> call) throws Throwable{
+        return table.coprocessorService(serviceClass,getStartKey(),getEndKey(),call);
+    }
+
+    public Table unwrapDelegate(){
+        return table;
     }
 }

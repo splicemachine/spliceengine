@@ -219,7 +219,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public ExportDataSetWriterBuilder writeToDisk(){
-        return new SparkExportDataSetWriter.Builder();
+        return new SparkExportDataSetWriter.Builder(rdd);
     }
 
     public static class EOutputFormat extends FileOutputFormat<Void, LocatedRow> {
@@ -280,7 +280,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public ExportDataSetWriterBuilder<String> saveAsTextFile(){
-        return new SparkExportDataSetWriter.Builder<>();
+        return new SparkExportDataSetWriter.Builder<>(rdd);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

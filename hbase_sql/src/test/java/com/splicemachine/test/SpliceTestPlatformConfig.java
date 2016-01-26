@@ -7,9 +7,11 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.backup.BackupHFileCleaner;
-import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.hbase.SpliceDerbyCoprocessor;
+import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
-import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -28,12 +30,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
-            ShutdownRegionServerObserver.class
+            SpliceDerbyCoprocessor.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceIndexObserver.class,
-            SpliceDerbyCoprocessor.class,
             SpliceIndexEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class);

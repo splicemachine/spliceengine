@@ -3,6 +3,7 @@ package com.splicemachine.lifecycle;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
@@ -17,10 +18,10 @@ public class MasterLifecycle implements DistributedDerbyStartup{
     public void distributedStart() throws IOException{
         try{
             if(ZkUtils.isSpliceLoaded()){
-                HBaseConnectionFactory.createRestoreTableIfNecessary();
+                HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration()).createRestoreTableIfNecessary();
             }else{
                 ZkUtils.refreshZookeeper();
-                HBaseConnectionFactory.createSpliceHBaseTables();
+                HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration()).createSpliceHBaseTables();
             }
         }catch(InterruptedException e){
             throw new InterruptedIOException();

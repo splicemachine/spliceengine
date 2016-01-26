@@ -7,6 +7,7 @@ import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.stream.output.SMOutputFormat;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 
@@ -27,7 +28,7 @@ public class SparkDeleteTableWriterBuilder<K,V> extends DeleteTableWriterBuilder
             operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
             TableWriterUtils.serializeDeleteTableWriterBuilder(conf,this);
-            conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
+            conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
             return new DeleteDataSetWriter<>(rdd,operationContext,conf);
         }catch(Exception e){
             throw new RuntimeException(e);

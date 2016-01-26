@@ -38,7 +38,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
     @Override
     public RecordWriter getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
-            TableWriter tableWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
+            TableWriter tableWriter = (TableWriter)TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
                 throw new IOException("child transaction lookup failed");
@@ -61,7 +61,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
             SpliceLogUtils.debug(LOG,"getOutputCommitter for taskAttemptContext=%s",taskAttemptContext);
         try {
             if (outputCommitter == null) {
-                TableWriter tableWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
+                TableWriter tableWriter = (TableWriter)TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
                 outputCommitter = new SpliceOutputCommitter(tableWriter.getTxn(),tableWriter.getDestinationTable());
             }
             return outputCommitter;

@@ -8,9 +8,11 @@ import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataScanner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -21,7 +23,7 @@ import java.io.ObjectOutput;
  * Created by jyuan on 10/16/15.
  */
 public class HTableScannerBuilder implements Externalizable {
-    private MeasuredRegionScanner scanner;
+    private DataScanner scanner;
     private MetricFactory metricFactory;
     private Scan scan;
     private TxnView txn;
@@ -30,7 +32,7 @@ public class HTableScannerBuilder implements Externalizable {
     private TransactionalRegion region;
     private int[] indexColToMainColPosMap;
 
-    public HTableScannerBuilder scanner(MeasuredRegionScanner scanner) {
+    public HTableScannerBuilder scanner(DataScanner scanner) {
         assert scanner !=null :"Null scanners are not allowed!";
         this.scanner = scanner;
         return this;

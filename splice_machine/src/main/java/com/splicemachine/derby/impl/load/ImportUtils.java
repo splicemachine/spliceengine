@@ -10,6 +10,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.Path;
 
 /**
@@ -44,6 +45,33 @@ public class ImportUtils{
             throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(file);
         if(!info.isReadable()){
             throw ErrorState.LANG_NO_READ_PERMISSION.newException(info.getUser(),info.getGroup(),file);
+        }
+    }
+
+    /**
+     * ValidateWritable FileSystem
+     *
+     * @param path the path to check
+     * @param checkDirectory if true, then ensure that the file specified by {@code path} is not
+     *                       a directory
+     * @throws StandardException
+     */
+    public static void validateWritable(String path,boolean checkDirectory) throws StandardException{
+        //check that the badLogDirectory exists and is writable
+        if(path==null) return;
+        DistributedFileSystem fsLayer = SIDriver.driver().fileSystem();
+        FileInfo info;
+        try{
+            info = fsLayer.getInfo(path);
+        }catch(IOException e){
+            throw Exceptions.parseException(e);
+        }
+
+        if(checkDirectory &&info.isDirectory()){
+            throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(path);
+        }
+        if(!info.isWritable()){
+            throw ErrorState.LANG_NO_WRITE_PERMISSION.newException(info.getUser(),info.getGroup(),path);
         }
     }
 }

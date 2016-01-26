@@ -23,14 +23,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class RegionServerLifecycle implements DistributedDerbyStartup{
     private final Clock clock;
+    private final HBaseConnectionFactory connectionFactory;
 
-    public RegionServerLifecycle(Clock clock){
+    public RegionServerLifecycle(Clock clock,HBaseConnectionFactory connectionFactory){
         this.clock=clock;
+        this.connectionFactory = connectionFactory;
     }
 
     @Override
     public void distributedStart() throws IOException{
-        Connection conn =HBaseConnectionFactory.getInstance().getConnection();
+        Connection conn =connectionFactory.getConnection();
         boolean onHold;
         try(Admin admin=conn.getAdmin()){
             do{

@@ -73,4 +73,5 @@ public class SIConstants {
 
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
+    public static final int DEFAULT_CACHE_SIZE=1<<10;
 }

@@ -11,6 +11,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.TxnView;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,6 +44,11 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
+    }
+
+    @Override
+    public void setTxn(TxnView childTxn){
+        pipelineWriter.setTxn(childTxn);
     }
 
     private class CountingIterator implements Iterator<KVPair>{

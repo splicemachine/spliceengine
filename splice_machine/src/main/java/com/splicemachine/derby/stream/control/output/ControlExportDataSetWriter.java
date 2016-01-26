@@ -12,6 +12,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.File;
@@ -77,6 +78,11 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         valueRow.setColumn(1,new SQLInteger(count));
         valueRow.setColumn(2,new SQLInteger(0));
         return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
+    }
+
+    @Override
+    public void setTxn(TxnView childTxn){
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     public static class Builder<V> implements ExportDataSetWriterBuilder{

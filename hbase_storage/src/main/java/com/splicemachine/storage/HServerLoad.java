@@ -1,6 +1,12 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.primitives.Bytes;
+import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.ServerLoad;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -41,5 +47,18 @@ public class HServerLoad implements PartitionServerLoad{
     @Override
     public int flushQueueLength(){
         throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public Set<PartitionLoad> getPartitionLoads(){
+        Map<byte[], RegionLoad> regionsLoad=load.getRegionsLoad();
+        Set<PartitionLoad> loads = new HashSet<>(regionsLoad.size(),0.9f);
+        for(Map.Entry<byte[],RegionLoad> regionLoad:regionsLoad.entrySet()){
+            String name = Bytes.toString(regionLoad.getKey());
+            RegionLoad rl = regionLoad.getValue();
+            PartitionLoad pl = new HPartitionLoad(name,rl.getStorefileSizeMB(),rl.getMemStoreSizeMB(),rl.getStorefileIndexSizeMB());
+            loads.add(pl);
+        }
+        return null;
     }
 }

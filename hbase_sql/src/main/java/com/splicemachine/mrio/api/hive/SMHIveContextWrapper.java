@@ -161,7 +161,7 @@ public class SMHIveContextWrapper implements JobContext {
 		return false;
 	}
 
-	@Override
+//	@Override
 	public boolean getTaskCleanupNeeded() {
 		// TODO Auto-generated method stub
 		return false;
@@ -179,7 +179,7 @@ public class SMHIveContextWrapper implements JobContext {
 		return null;
 	}
 
-	@Override
+//	@Override
 	public IntegerRanges getProfileTaskRange(boolean isMap) {
 		// TODO Auto-generated method stub
 		return null;

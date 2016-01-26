@@ -43,7 +43,7 @@ public class TableScannerBuilderTest{
         Assert.assertArrayEquals(array1,builder.keyColumnEncodingOrder);
         Assert.assertArrayEquals(array2,builder.keyDecodingMap);
         Assert.assertArrayEquals(array3,builder.keyColumnTypes);
-        Assert.assertEquals(SpliceTableMapReduceUtil.convertScanToString(scan),SpliceTableMapReduceUtil.convertScanToString(builder.scan));
+        Assert.assertEquals(SpliceTableMapReduceUtil.convertScanToString(scan),SpliceTableMapReduceUtil.convertScanToString(((HScan)builder.scan).unwrapDelegate()));
         Assert.assertEquals(txn,builder.txn);
 
     }

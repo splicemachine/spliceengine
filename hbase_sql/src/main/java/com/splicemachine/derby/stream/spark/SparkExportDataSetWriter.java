@@ -1,6 +1,5 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.base.Function;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
@@ -12,6 +11,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteDataOutput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -31,9 +31,13 @@ import java.util.Iterator;
 public class SparkExportDataSetWriter<V> implements DataSetWriter{
     private final String directory;
     private final SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction;
+    private final JavaRDD<V> rdd;
 
-    public SparkExportDataSetWriter(String directory,SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction){
+    public SparkExportDataSetWriter(JavaRDD<V> rdd,
+                                    String directory,
+                                    SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction){
         this.directory=directory;
+        this.rdd = rdd;
         this.exportFunction=exportFunction;
     }
 
@@ -60,7 +64,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
 
         JavaRDD<V> cached=rdd.cache();
         int writtenRows=(int)cached.count();
-        rdd.keyBy(new Function<V, Object>(){
+        rdd.keyBy(new org.apache.spark.api.java.function.Function<V, Object>(){
             @Override
             public Object call(V v) throws Exception{
                 return null;
@@ -75,9 +79,19 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         return new SparkDataSet<>(ctx.parallelize(Collections.singletonList(new LocatedRow(valueRow)),1));
     }
 
+    @Override
+    public void setTxn(TxnView childTxn){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
     public static class Builder<V> implements ExportDataSetWriterBuilder{
         private String directory;
         private SpliceFunction2<? extends SpliceOperation,OutputStream,Iterator<V>,Integer> exportFunction;
+        private JavaRDD<V> rdd;
+
+        public Builder(JavaRDD<V> rdd){
+            this.rdd=rdd;
+        }
 
         @Override
         public ExportDataSetWriterBuilder directory(String directory){
@@ -94,7 +108,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
 
         @Override
         public DataSetWriter build(){
-            return new SparkExportDataSetWriter<>(directory,exportFunction);
+            return new SparkExportDataSetWriter<>(rdd,directory,exportFunction);
         }
     }
 }

@@ -11,6 +11,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  *         Date: 1/7/16
@@ -59,4 +61,6 @@ public interface ScanSetBuilder<V>{
     DataSet<V> buildDataSet() throws StandardException;
 
     ScanSetBuilder<V> activation(Activation activation);
+
+    String base64Encode() throws IOException, StandardException;
 }

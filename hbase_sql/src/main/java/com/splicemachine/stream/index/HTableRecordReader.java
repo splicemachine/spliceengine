@@ -27,9 +27,9 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
     protected Table htable;
     protected HRegion hregion;
     protected Configuration config;
-    protected MeasuredRegionScanner mrs;
+//    protected MeasuredRegionScanner mrs;
     protected DirectScanner directScanner;
-    protected long txnId;
+//    protected long txnId;
     protected Scan scan;
     protected SMSQLUtil sqlUtil = null;
     protected KVPair currentRow;

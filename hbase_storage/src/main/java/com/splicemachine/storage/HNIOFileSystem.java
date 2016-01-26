@@ -151,6 +151,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
         private final boolean isDir;
         private final AclStatus aclStatus;
         private final boolean isReadable;
+        private final boolean isWritable;
         private org.apache.hadoop.fs.Path path;
         private ContentSummary contentSummary;
 
@@ -166,7 +167,15 @@ public class HNIOFileSystem extends DistributedFileSystem{
             }catch(AccessDeniedException ade){
                readable = false;
             }
+            boolean writable;
+            try{
+                fs.access(path,FsAction.WRITE);
+                writable = true;
+            }catch(AccessDeniedException ade){
+                writable = false;
+            }
             this.isReadable = readable;
+            this.isWritable = writable;
         }
 
         @Override
@@ -207,6 +216,11 @@ public class HNIOFileSystem extends DistributedFileSystem{
         @Override
         public String getGroup(){
             return aclStatus.getGroup();
+        }
+
+        @Override
+        public boolean isWritable(){
+            return isWritable;
         }
     }
 }

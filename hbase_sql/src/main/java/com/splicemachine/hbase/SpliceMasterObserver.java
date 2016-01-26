@@ -7,6 +7,7 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.MasterLifecycle;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
@@ -47,7 +48,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         SConfiguration configuration=env.configuration();
 
         String timestampReservedPath=configuration.getString(HConfiguration.MAX_RESERVED_TIMESTAMP_PATH);
-        int timestampPort=configuration.getInt(HConfiguration.TIMESTAMP_SERVER_BIND_PORT);
+        int timestampPort=configuration.getInt(SIConfigurations.TIMESTAMP_SERVER_BIND_PORT);
         int timestampBlockSize = configuration.getInt(HConfiguration.TIMESTAMP_BLOCK_SIZE);
 
         TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);

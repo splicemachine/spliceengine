@@ -1,11 +1,9 @@
 package com.splicemachine.derby.stream.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.iapi.TableWriter.Type;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
-import com.splicemachine.stream.index.HTableWriterBuilder;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
@@ -14,6 +12,8 @@ import org.apache.hadoop.conf.Configuration;
 import java.io.IOException;
 
 /**
+ *  Utilities for encoding and decoding writers.
+ *
  * Created by jleach on 5/20/15.
  */
 public class TableWriterUtils {
@@ -24,7 +24,7 @@ public class TableWriterUtils {
     }
 
     public static void serializeHTableWriterBuilder(Configuration conf, DirectTableWriterBuilder builder) throws IOException, StandardException {
-        conf.set(MRConstants.TABLE_WRITER, builder.getHTableWriterBuilderBase64String());
+        conf.set(MRConstants.TABLE_WRITER, builder.base64Encode());
         conf.set(MRConstants.TABLE_WRITER_TYPE, Type.INDEX.toString());
     }
 
@@ -55,7 +55,7 @@ public class TableWriterUtils {
             case DELETE:
                 return DeleteTableWriterBuilder.getDeleteTableWriterBuilderFromBase64String(base64).build();
             case INDEX:
-                return DirectTableWriterBuilder.getDirectTableWriterBuilderFromBase64String(base64).build();
+                return DirectTableWriterBuilder.decodeBase64(base64).build();
             default:
                 throw new IOException("Type Incorrect");
         }

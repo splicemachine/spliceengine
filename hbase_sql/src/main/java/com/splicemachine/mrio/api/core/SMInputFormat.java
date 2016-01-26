@@ -5,11 +5,16 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.clearspring.analytics.util.Lists;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.si.data.hbase.coprocessor.TableFactoryService;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.storage.HScan;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -84,7 +89,8 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
             }
         }
         try {
-                setHTable(HBaseTableFactory.getInstance().getTable(conglomerate));
+            PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+            setHTable(((ClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }
@@ -94,7 +100,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
                 throw new RuntimeException("JDBC String Not Supplied");
             }
             try {
-                conf.set(MRConstants.SPLICE_SCAN_INFO, util.getTableScannerBuilder(tableName, null).getTableScannerBuilderBase64String());
+                conf.set(MRConstants.SPLICE_SCAN_INFO, util.getTableScannerBuilder(tableName, null).base64Encode());
             } catch (Exception e) {
                 LOG.error(StringUtils.stringifyException(e));
                 throw new RuntimeException(e);
@@ -116,11 +122,11 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
         setConf(context.getConfiguration());
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
-        CloseableTableInputFormat tableInputFormat = new CloseableTableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE, HBaseTableInfoFactory.getInstance().getTableInfo(conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE)).getNameAsString());
+        TableInputFormat tableInputFormat = new TableInputFormat();
+        conf.set(TableInputFormat.INPUT_TABLE, HBaseTableInfoFactory.getInstance(SIDriver.driver().getConfiguration()).getTableInfo(conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE)).getNameAsString());
         tableInputFormat.setConf(conf);
         try {
-            tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
+            tableInputFormat.setScan(((HScan)TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan()).unwrapDelegate());
         } catch (StandardException e) {
             SpliceLogUtils.error(LOG, e);
             throw new IOException(e);
@@ -137,9 +143,8 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
             }
         }
         SubregionSplitter splitter =  new HBaseSubregionSplitter();
-        List<InputSplit> results = splitter.getSubSplits(table, splits);
-        tableInputFormat.close();
-        return results;
+        //        tableInputFormat.close();
+        return splitter.getSubSplits(table, splits);
     }
 
     public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,

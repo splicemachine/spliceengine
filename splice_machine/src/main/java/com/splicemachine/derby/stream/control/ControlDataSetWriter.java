@@ -10,6 +10,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
+import com.splicemachine.si.api.txn.TxnView;
 
 import java.util.Collections;
 
@@ -53,5 +54,10 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             }
 
         }
+    }
+
+    @Override
+    public void setTxn(TxnView childTxn){
+        pipelineWriter.setTxn(childTxn);
     }
 }

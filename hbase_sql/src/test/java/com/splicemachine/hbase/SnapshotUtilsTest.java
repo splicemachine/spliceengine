@@ -5,11 +5,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
+import com.splicemachine.backup.SnapshotUtilsFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.util.FSUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class SnapshotUtilsTest {
@@ -21,9 +23,10 @@ public class SnapshotUtilsTest {
 				new Path("/TABLE_A/a60772afe8c4aa3355360d3a6de0b292/fam_a/9fb67500d79a43e79b01da8d5d3017a4.88a177637e155be4d01f21441bf8595d");
 		Path storeFilePath = 
 				new Path("/TABLE_A/88a177637e155be4d01f21441bf8595d/fam_a/9fb67500d79a43e79b01da8d5d3017a4");
-		
-		SnapshotUtilsImpl sui = (SnapshotUtilsImpl)SnapshotUtilsFactory.snapshotUtils;
-		assertEquals(storeFilePath, sui.getReferredFile(refFilePath));		
+
+		Assert.fail("IMPLEMENT");
+//		SnapshotUtilsImpl sui = (SnapshotUtilsImpl)SnapshotUtilsFactory.snapshotUtils;
+//		assertEquals(storeFilePath, sui.getReferredFile(refFilePath));
 	}
 	
 	@Test 
@@ -41,9 +44,10 @@ public class SnapshotUtilsTest {
 		String family = "fam_a";
 		String hfile = "9fb67500d79a43e79b01da8d5d3017a4";
 		Path linkPath = createPath(table, region, family, hfile);
-		HFileLink link = SnapshotUtilsImpl.newLink(conf, linkPath);
-		SnapshotUtilsImpl sui = (SnapshotUtilsImpl)SnapshotUtilsFactory.snapshotUtils;
-		assertTrue( new String(sui.getColumnFamily(link)).equals(family));
+		Assert.fail("IMPLEMENT");
+//		HFileLink link = SnapshotUtilsImpl.newLink(conf, linkPath);
+//		SnapshotUtilsImpl sui = (SnapshotUtilsImpl)SnapshotUtilsFactory.snapshotUtils;
+//		assertTrue( new String(sui.getColumnFamily(link)).equals(family));
 	}
 	
 	

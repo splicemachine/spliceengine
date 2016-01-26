@@ -1,6 +1,7 @@
 package com.splicemachine.backup;
 
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.management.TransactionalSysTableWriter;
 import com.splicemachine.derby.utils.marshall.DataHash;
@@ -14,8 +15,8 @@ import com.carrotsearch.hppc.BitSet;
  */
 public class BackupJobReporter extends TransactionalSysTableWriter<BackupJob> {
 
-    public BackupJobReporter() {
-        super("SYSBACKUPJOBS");
+    public BackupJobReporter(SqlExceptionFactory ef) {
+        super("SYSBACKUPJOBS",ef);
     }
 
     @Override

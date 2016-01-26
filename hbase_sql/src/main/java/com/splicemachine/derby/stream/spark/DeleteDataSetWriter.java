@@ -8,6 +8,7 @@ import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 
@@ -35,5 +36,10 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
         return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
+    }
+
+    @Override
+    public void setTxn(TxnView childTxn){
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 }

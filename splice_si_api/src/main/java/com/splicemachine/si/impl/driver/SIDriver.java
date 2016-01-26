@@ -6,6 +6,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
@@ -57,6 +58,7 @@ public class SIDriver {
     private final Clock clock;
     private final AsyncReadResolver readResolver;
     private final DistributedFileSystem fileSystem;
+    private final OperationFactory baseOpFactory;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -87,6 +89,7 @@ public class SIDriver {
         readController = new SITransactionReadController(txnSupplier,ignoreTxnSupplier);
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
         this.fileSystem = env.fileSystem();
+        this.baseOpFactory = env.baseOperationFactory();
     }
 
 
@@ -181,6 +184,13 @@ public class SIDriver {
         return fileSystem;
     }
 
+    public OperationFactory baseOperationFactory(){
+        return baseOpFactory;
+    }
+
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
     private AsyncReadResolver initializedReadResolver(SConfiguration config,KeyedReadResolver keyedResolver){
         int maxThreads = config.getInt(SIConfigurations.READ_RESOLVER_THREADS);
         int bufferSize = config.getInt(SIConfigurations.READ_RESOLVER_QUEUE_SIZE);

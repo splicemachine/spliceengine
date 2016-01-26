@@ -1,11 +1,16 @@
 package com.splicemachine.mrio.api.core;
 
-import com.splicemachine.constants.SIConstants;
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
@@ -22,19 +27,17 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
-public class SMSQLUtil extends SIConstants {
+public class SMSQLUtil  {
     static final Logger LOG = Logger.getLogger(SMSQLUtil.class);
     private Connection connect = null;
     private static SMSQLUtil sqlUtil = null;
     private String connStr = null;
 
     private SMSQLUtil(String connStr) throws Exception {
-        Class.forName(SPLICE_JDBC_DRIVER).newInstance();
         this.connStr = connStr;
-        connect = DriverManager.getConnection(connStr);
+        connect = createConn();
     }
 
     public static SMSQLUtil getInstance(String connStr){
@@ -50,9 +53,8 @@ public class SMSQLUtil extends SIConstants {
 
 
     public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-        Class.forName(SPLICE_JDBC_DRIVER).newInstance();
-        Connection conn = DriverManager.getConnection(connStr);
-        return conn;
+        Class.forName(SQLConfiguration.SPLICE_JDBC_DRIVER).newInstance();
+        return DriverManager.getConnection(connStr);
     }
 
     public void disableAutoCommit(Connection conn) throws SQLException{
@@ -376,11 +378,11 @@ public class SMSQLUtil extends SIConstants {
     }
 
 
-    public TableScannerBuilder getTableScannerBuilder(String tableName, List<String> columnNames) throws SQLException {
+    public ScanSetBuilder getTableScannerBuilder(String tableName, List<String> columnNames) throws SQLException {
         List<PKColumnNamePosition> primaryKeys = getPrimaryKeys(tableName);
         List<NameType> nameTypes = getTableStructure(tableName);
         if (columnNames ==null) {
-            columnNames = new ArrayList<String>(nameTypes.size());
+            columnNames =new ArrayList<>(nameTypes.size());
             for (int i = 0; i< nameTypes.size(); i++) {
                 columnNames.add(nameTypes.get(i).name);
             }
@@ -401,8 +403,15 @@ public class SMSQLUtil extends SIConstants {
             throw new SQLException(e);
         }
         FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(keyColumnEncodingOrder,keyDecodingMap);
-        return new TableScannerBuilder()
-                .transaction(ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION, null))
+        Txn txn=ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION,null,SIDriver.driver().getExceptionFactory());
+        TableScannerBuilder tableScannerBuilder=new TableScannerBuilder(){
+            @Override
+            public DataSet buildDataSet() throws StandardException{
+                throw new UnsupportedOperationException("IMPLEMENT");
+            }
+        };
+        return tableScannerBuilder
+                .transaction(txn)
                 .scan(createNewScan())
                 .execRowTypeFormatIds(execRowFormatIds)
                 .tableVersion("2.0")
@@ -422,11 +431,9 @@ public class SMSQLUtil extends SIConstants {
 
     }
 
-    public static Scan createNewScan() {
-        Scan scan = new Scan();
-        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-        scan.setMaxVersions();
-        scan.setCaching(DEFAULT_CACHE_SIZE);
+    public static DataScan createNewScan() {
+        DataScan scan = SIDriver.driver().baseOperationFactory().newScan();
+        scan.returnAllVersions();
         return scan;
     }
 

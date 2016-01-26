@@ -10,6 +10,7 @@ import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -383,7 +384,7 @@ public class SpliceTableMapReduceUtil{
     }
 
     protected static int getReduceNumberOfRegions(String hbaseTableID) throws IOException{
-        Connection connection=HBaseConnectionFactory.getInstance().getConnection();
+        Connection connection=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration()).getConnection();
         int regions;
         try(RegionLocator rl = connection.getRegionLocator(TableName.valueOf(SIConstants.spliceNamespace,hbaseTableID))){
             List<HRegionLocation> allRegionLocations=rl.getAllRegionLocations();

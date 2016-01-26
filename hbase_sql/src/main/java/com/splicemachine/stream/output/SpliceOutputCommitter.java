@@ -94,7 +94,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
         SIDriver.driver().lifecycleManager().rollback(txn.getTxnId());
     }
 
-    @Override
+//    @Override
     public boolean isRecoverySupported() {
         return false;
     }
@@ -103,9 +103,9 @@ public class SpliceOutputCommitter extends OutputCommitter {
         return false;
     }
 
-    @Override
+//    @Override
     public void recoverTask(TaskAttemptContext taskContext) throws IOException {
-        super.recoverTask(taskContext);
+//        super.recoverTask(taskContext);
     }
 
     public TxnView getChildTransaction(TaskAttemptID taskAttemptID) {

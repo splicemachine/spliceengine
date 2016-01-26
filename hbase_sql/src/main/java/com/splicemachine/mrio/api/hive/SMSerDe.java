@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -98,8 +99,8 @@ public class SMSerDe implements SerDe {
                 if (!sqlUtil.checkTableExists(tableName))
                 	throw new SerDeException(String.format("table %s does not exist...",tableName));
                 if (conf != null) {
-                    TableScannerBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(tableName, colNames);
-                    conf.set(MRConstants.SPLICE_SCAN_INFO, tableScannerBuilder.getTableScannerBuilderBase64String());
+                    ScanSetBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(tableName, colNames);
+                    conf.set(MRConstants.SPLICE_SCAN_INFO, tableScannerBuilder.base64Encode());
 
                   //  TableContext tableContext = sqlUtil.createTableContext(tableName, tableScannerBuilder);
                   //  conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());

@@ -1,11 +1,11 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.backup.*;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.CompactionObserver;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SplitObserver;
-import com.splicemachine.backup.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -17,7 +17,6 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.util.*;
@@ -68,11 +67,12 @@ public class BackupObserver implements CompactionObserver,SplitObserver{
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
-    private void waitForBackupToComplete() throws InterruptedException, KeeperException{
+    private void waitForBackupToComplete() throws InterruptedException{
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-        while (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
-            Thread.sleep(1000);
-        }
+        throw new UnsupportedOperationException("Implement using Watches and good concurrency!");
+//        while (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
+//            Thread.sleep(1000);
+//        }
     }
 
     private void recordRegionSplitForBackup(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException{

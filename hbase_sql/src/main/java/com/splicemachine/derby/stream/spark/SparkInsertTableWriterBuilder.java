@@ -9,6 +9,7 @@ import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.stream.output.SMOutputFormat;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 
@@ -39,7 +40,7 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
-        conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
+        conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
         return new InsertDataSetWriter<>(rdd,operationContext,conf);
     }
 }

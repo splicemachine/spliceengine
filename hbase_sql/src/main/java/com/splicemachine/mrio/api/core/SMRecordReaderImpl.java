@@ -6,7 +6,11 @@ import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.HScan;
+import com.splicemachine.storage.RegionPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -19,8 +23,6 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -29,10 +31,10 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	protected Table htable;
 	protected HRegion hregion;
 	protected Configuration config;
-	protected MeasuredRegionScanner mrs;
+	protected DataScanner mrs;
 	protected SITableScanner siTableScanner;
 	protected long txnId;
-	protected Scan scan;
+	protected DataScan scan;
 	protected SMSQLUtil sqlUtil = null;
 	protected ExecRow currentRow;
 	protected TableScannerBuilder builder;
@@ -62,9 +64,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 			TableSplit tSplit = ((SMSplit)split).getSplit();
-			Scan scan = builder.getScan();
-			scan.setStartRow(tSplit.getStartRow());
-			scan.setStopRow(tSplit.getEndRow());
+			DataScan scan = builder.getScan();
+			scan.startKey(tSplit.getStartRow()).stopKey(tSplit.getEndRow());
             this.scan = scan;
 			restart(tSplit.getStartRow());
 		} catch (StandardException e) {
@@ -125,7 +126,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 	
 	public void setScan(Scan scan) {
-		this.scan = scan;
+		this.scan = new HScan(scan);
 	}
 	
 	public void setHTable(Table htable) {
@@ -134,8 +135,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 	
 	public void restart(byte[] firstRow) throws IOException {		
-		Scan newscan = new Scan(scan);
-		newscan.setStartRow(firstRow);
+		DataScan newscan = new HScan(((HScan)scan).unwrapDelegate());
+		newscan.startKey(firstRow);
         scan = newscan;
 		if(htable != null) {
 			if(true)throw new UnsupportedOperationException("IMPLEMENT");
@@ -148,7 +149,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 //			this.hregion = splitRegionScanner.getRegion();
 //			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.basicMetricFactory());
 			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
-        	builder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).template(template).scanner(mrs).scan(scan);
+			long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getNameAsString());
+        	builder.region(SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion))).template(template).scanner(mrs).scan(scan);
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
 			siTableScanner = builder.build();

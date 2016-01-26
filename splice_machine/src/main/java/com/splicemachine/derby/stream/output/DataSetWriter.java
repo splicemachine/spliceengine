@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * @author Scott Fines
@@ -12,4 +13,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 public interface DataSetWriter{
 
     DataSet<LocatedRow> write() throws StandardException;
+
+    void setTxn(TxnView childTxn);
 }

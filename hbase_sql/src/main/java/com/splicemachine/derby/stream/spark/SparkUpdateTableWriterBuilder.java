@@ -12,6 +12,7 @@ import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.stream.output.SMOutputFormat;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 
@@ -34,7 +35,7 @@ public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder
             operationContext.getOperation().fireBeforeStatementTriggers();
             Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf,this);
-            conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
+            conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
             return new SparkUpdateDataSetWriter<>(rdd,operationContext,conf);
         }catch(Exception e){
             throw new RuntimeException(e);

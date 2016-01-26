@@ -1,5 +1,8 @@
 package com.splicemachine.storage;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author Scott Fines
  *         Date: 1/6/16
@@ -32,4 +35,5 @@ public interface PartitionServerLoad{
      */
     int flushQueueLength();
 
+    Set<PartitionLoad> getPartitionLoads();
 }

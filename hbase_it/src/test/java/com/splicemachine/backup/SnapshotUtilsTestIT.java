@@ -53,8 +53,7 @@ public class SnapshotUtilsTestIT {
   
   private byte[] tableName;
   private HBaseAdmin admin;
-  private HBaseSupport support;
-  
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     TEST_UTIL.getConfiguration().setBoolean(SnapshotManager.HBASE_SNAPSHOT_ENABLED, true);

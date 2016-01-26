@@ -1,4 +1,4 @@
-package com.splicemachine.pipeline.error;
+package com.splicemachine;
 
 import java.io.IOException;
 
@@ -6,7 +6,6 @@ import org.junit.Assert;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.junit.Test;
 
-import com.splicemachine.pipeline.exception.SpliceDoNotRetryIOException;
 
 public class SpliceDoNotRetryIOExceptionTest {
 	protected static String msg1 = "CHECK WITH ME";

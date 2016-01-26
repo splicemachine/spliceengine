@@ -5,6 +5,7 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceRequest;
@@ -72,7 +73,8 @@ public class SpliceDerbyCoprocessor extends BaseRegionServerObserver {
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         //register the engine boot service
         try{
-            RegionServerLifecycle distributedStartupSequence=new RegionServerLifecycle(driver.getClock());
+            HBaseConnectionFactory connFactory = HBaseConnectionFactory.getInstance(driver.getConfiguration());
+            RegionServerLifecycle distributedStartupSequence=new RegionServerLifecycle(driver.getClock(),connFactory);
             manager.registerEngineService(new MonitoredLifecycleService(distributedStartupSequence,config));
 
             //register the network boot service

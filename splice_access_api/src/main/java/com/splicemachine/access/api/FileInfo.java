@@ -24,4 +24,6 @@ public interface FileInfo{
     String getUser();
 
     String getGroup();
+
+    boolean isWritable();
 }

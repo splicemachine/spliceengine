@@ -33,7 +33,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
-import com.splicemachine.hbase.KVPair;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
@@ -75,7 +75,7 @@ import java.util.*;
  */
 public class SpliceSparkKryoRegistrator implements KryoRegistrator {
     //ExternalizableSerializers are stateless, no need to create more than we need
-    private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = new ExternalizableSerializer();
+    private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = ExternalizableSerializer.INSTANCE;
     private static final UnmodifiableCollectionsSerializer UNMODIFIABLE_COLLECTIONS_SERIALIZER = new UnmodifiableCollectionsSerializer();
 
     @Override

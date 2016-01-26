@@ -1,6 +1,8 @@
 package com.splicemachine.backup;
 
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.SqlExceptionFactory;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseTableFactory;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -12,8 +14,8 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 
@@ -25,10 +27,11 @@ import com.carrotsearch.hppc.BitSet;
  */
 public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem> {
     private int totalLength;
-    private Table table;
+    private Partition table;
+    private HBaseTableFactory tableFactory;
 
-    public RestoreItemReporter() {
-        super("SYSRESTOREITEMS");
+    public RestoreItemReporter(SqlExceptionFactory ef) {
+        super("SYSRESTOREITEMS",ef);
         totalLength = 3;
         dvds = new DataValueDescriptor[totalLength];
         dvds[0] = new SQLVarchar();     //item
@@ -85,21 +88,22 @@ public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem
             dataHash.setRow(element);
             byte[] key = keyHash.encode();
             byte[] value = dataHash.encode();
-            Put put = new Put(key);
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES, value);
-            if (table == null) {
-                table = new HTable(SpliceConstants.config, SpliceConstants.RESTORE_TABLE_NAME);
-            }
-            table.put(put);
+            throw new UnsupportedOperationException("IMPLEMENT");
+//            Put put = new Put(key);
+//            put.add(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, value);
+//            if (table == null) {
+////                table = new ClientPartition(new HTable(HConfiguration.INSTANCE.unwrapDelegate(), SpliceConstants.RESTORE_TABLE_NAME));
+//            }
+//            table.put(put);
 
         } catch (Exception e) {
             throw StandardException.newException(e.getMessage());
         }
     }
     public void openScanner() throws IOException{
-        table = HBaseTableFactory.getInstance().getTable(SpliceConstants.RESTORE_TABLE_NAME);
-        Scan scan = new Scan();
-        resultScanner = table.getScanner(scan);
+        table = tableFactory.getTable(SpliceConstants.RESTORE_TABLE_NAME);
+        DataScan scan = SIDriver.driver().baseOperationFactory().newScan();
+        resultScanner = table.openResultScanner(scan);
     }
 
     public void closeScanner() throws IOException{
@@ -113,10 +117,10 @@ public class RestoreItemReporter extends TransactionalSysTableWriter<RestoreItem
     public RestoreItem next() throws StandardException {
         RestoreItem restoreItem = null;
         try {
-            Result r = resultScanner.next();
+            DataResult r = resultScanner.next();
             if (r != null) {
-                Cell c = r.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
-                restoreItem = decode(c.getValueArray(),c.getValueOffset(),c.getValueLength());
+                DataCell c = r.latestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+                restoreItem = decode(c.valueArray(),c.valueOffset(),c.valueLength());
             }
         }
         catch (Exception e) {

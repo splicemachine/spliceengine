@@ -1,10 +1,18 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.db.impl.store.raw.log.Scan;
-import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.access.client.MemStoreFlushAwareScanner;
+import com.splicemachine.access.client.MemstoreAware;
+import com.splicemachine.derby.hbase.*;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -133,8 +141,7 @@ public class MemstoreAwareObserver implements CompactionObserver,
             InternalScan iscan = new InternalScan(scan);
             iscan.checkOnlyMemStore();
             HRegion region=c.getEnvironment().getRegion();
-            return factory.getMemstoreFlushAwareScanner(region,store, store.getScanInfo(), iscan, targetCols,
-                    getReadpoint(region),memstoreAware,memstoreAware.get());
+            return new MemStoreFlushAwareScanner(region,store,store.getScanInfo(),iscan,targetCols,getReadpoint(region),memstoreAware,memstoreAware.get());
         }else return s;
 
     }

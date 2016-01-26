@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -76,7 +77,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
                 for (NameType nameType : nameTypes) {
                     colNames.add(nameType.getName());
                 }
-                TableScannerBuilder tableScannerBuilder = util.getTableScannerBuilder(tableName, colNames);
+                ScanSetBuilder tableScannerBuilder = util.getTableScannerBuilder(tableName, colNames);
 
             } catch (Exception e) {
                 throw new RuntimeException(e);

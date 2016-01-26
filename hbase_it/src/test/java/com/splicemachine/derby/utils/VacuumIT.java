@@ -1,12 +1,11 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -34,7 +33,9 @@ public class VacuumIT {
 				/*
 				 * Simple test to make sure that Vacuum works and doesn't delete anything <1168.
 				 */
-				HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config);
+			//TODO -sf- this probably doesn't work quite right.
+				HBaseAdmin admin = new HBaseAdmin(new Configuration());
+
 				try{
 						HTableDescriptor[] beforeTables = admin.listTables();
 						CallableStatement callableStatement = methodRule.prepareCall("call SYSCS_UTIL.VACUUM()");

@@ -1,5 +1,6 @@
-package com.splicemachine.pipeline.error;
+package com.splicemachine;
 
+import com.splicemachine.SpliceDoNotRetryIOException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import org.junit.Test;

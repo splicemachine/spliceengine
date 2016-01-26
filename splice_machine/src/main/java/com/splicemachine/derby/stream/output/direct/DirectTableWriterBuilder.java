@@ -3,6 +3,8 @@ package com.splicemachine.derby.stream.output.direct;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.SerializationUtils;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -51,5 +53,14 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    public String base64Encode(){
+        return Base64.encodeBase64String(SerializationUtils.serialize(this));
+    }
+
+    public static DirectTableWriterBuilder decodeBase64(String base64){
+        byte[] bytes=Base64.decodeBase64(base64);
+        return (DirectTableWriterBuilder)SerializationUtils.deserialize(bytes);
     }
 }

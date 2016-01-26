@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
+ *
  * Created by jyuan on 10/19/15.
  */
 public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Configurable{
@@ -87,7 +88,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
                 throw new RuntimeException("JDBC String Not Supplied");
             }
             try {
-                conf.set(MRConstants.SPLICE_SCAN_INFO, util.getTableScannerBuilder(tableName, null).getTableScannerBuilderBase64String());
+                conf.set(MRConstants.SPLICE_SCAN_INFO, util.getTableScannerBuilder(tableName, null).base64Encode());
             } catch (Exception e) {
                 LOG.error(StringUtils.stringifyException(e));
                 throw new RuntimeException(e);
@@ -126,8 +127,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
             }
         }
         SubregionSplitter splitter = new HBaseSubregionSplitter();
-        List<InputSplit> results = splitter.getSubSplits(table, splits);
-        return results;
+        return splitter.getSubSplits(table, splits);
     }
 
     public HTableRecordReader getRecordReader(InputSplit split, Configuration config) throws IOException,

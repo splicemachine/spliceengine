@@ -2,7 +2,6 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -15,12 +14,13 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.api.java.JavaPairRDD;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,7 +29,7 @@ import java.util.List;
  *         Date: 1/25/16
  */
 public class InsertDataSetWriter<K,V> implements DataSetWriter{
-    private final JavaPairRDD<K,V> rdd;
+    private final JavaPairRDD<K, V> rdd;
     private final OperationContext<? extends SpliceOperation> opContext;
     private final Configuration config;
 
@@ -38,7 +38,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                                Configuration config){
         this.rdd=rdd;
         this.opContext=opContext;
-        this.config = config;
+        this.config=config;
     }
 
     @Override
@@ -58,7 +58,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     Path path=null;
                     if(insertOperation.statusDirectory!=null && !insertOperation.statusDirectory.equals("NULL")){
                         FileSystem fileSystem=FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
-                        path=ImportUtils.generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
+                        path=generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
                         dataSet.saveAsTextFile().directory(path.toString()).build().write();
 //                        fileSystem.close();
                     }
@@ -75,4 +75,29 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
             throw Exceptions.parseException(ioe);
         }
     }
+
+    @Override
+    public void setTxn(TxnView childTxn){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    private static Path generateFileSystemPathForWrite(String badDirectory,FileSystem fileSystem,SpliceOperation spliceOperation) throws StandardException{
+        try{
+            String vtiFileName=spliceOperation.getVTIFileName();
+            ImportUtils.validateWritable(badDirectory,true);
+            int i=0;
+            while(true){
+                String fileName=new org.apache.hadoop.fs.Path(vtiFileName).getName();
+                fileName=fileName+(i==0?".bad":"_"+i+".bad");
+                Path fileSystemPathForWrites=new Path(badDirectory,fileName);
+                if(!fileSystem.exists(fileSystemPathForWrites))
+                    return fileSystemPathForWrites;
+                i++;
+            }
+        }catch(IOException ioe){
+            throw StandardException.plainWrapException(ioe);
+        }
+    }
+
+
 }

@@ -466,6 +466,11 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         }
     }
 
+    @Override
+    public String base64Encode() throws IOException, StandardException{
+        return getTableScannerBuilderBase64String();
+    }
+
     public static TableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException{
         if(base64String==null)
             throw new IOException("tableScanner base64 String is null");
