@@ -16,12 +16,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.splicemachine</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>hbase-storage-${envClassifier}</artifactId>
             <version>${project.version}</version>
             <exclusions>
@@ -78,21 +78,21 @@
 
         <!--Test dependencies -->
         <dependency>
-            <groupId>com.splicemachine</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>pipeline_api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>splice_si_api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.splicemachine</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>hbase-storage-${envClassifier}</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
@@ -154,7 +154,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.6</version>
                 <executions>
                     <execution>
                         <goals>
