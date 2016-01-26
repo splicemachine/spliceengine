@@ -2,12 +2,13 @@ package com.splicemachine.backup;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
-import com.splicemachine.constants.SpliceConstants;
 import org.apache.log4j.Logger;
 
 /**
@@ -89,9 +90,8 @@ public class CreateBackupTask {
                 */
     }
     
-    private Configuration getConfiguration()
-    {
-    	return SpliceConstants.config;
+    private Configuration getConfiguration() {
+    	return HConfiguration.INSTANCE.unwrapDelegate();
     }
     
 	

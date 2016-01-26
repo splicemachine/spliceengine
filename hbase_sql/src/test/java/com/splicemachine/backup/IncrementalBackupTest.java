@@ -1,10 +1,9 @@
 package com.splicemachine.backup;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.util.HFileArchiveUtil;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,7 +42,7 @@ public class IncrementalBackupTest {
 
         String snapshotName = "s1";
         String lastSnapshotName = "s0";
-        Configuration conf = SpliceConstants.config;
+        Configuration conf =HConfiguration.INSTANCE.unwrapDelegate();
         try {
             String backupFileSystem = backupDir.getAbsolutePath();
             FileSystem fs = FileSystem.get(URI.create(backupFileSystem), conf);

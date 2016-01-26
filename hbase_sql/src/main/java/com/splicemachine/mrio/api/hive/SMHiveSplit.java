@@ -12,7 +12,7 @@ import com.splicemachine.mrio.api.core.SMSplit;
 public class SMHiveSplit extends FileSplit implements InputSplit {
 	  protected SMSplit split;
 
-	  public SMHiveSplit() {
+	  public SMHiveSplit() throws IOException{
 	    super((Path) null, 0, 0, (String[]) null);
 	    split = new SMSplit();
 	  }

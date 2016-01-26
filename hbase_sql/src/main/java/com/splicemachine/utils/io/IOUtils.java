@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -14,7 +15,6 @@ import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.backup.Backup;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -23,7 +23,7 @@ public class IOUtils {
 	protected static final Logger LOG = Logger.getLogger(IOUtils.class);
 
 	private static Configuration getConfiguration() {
-		return SpliceConstants.config;
+		return HConfiguration.INSTANCE.unwrapDelegate();
 	}
 
 	private static Path getPath(FileSystem fs, Object file) throws IOException {

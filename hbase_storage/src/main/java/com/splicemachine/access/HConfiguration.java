@@ -133,6 +133,9 @@ public class HConfiguration implements SConfiguration{
     public static final int DEFAULT_JMX_BIND_PORT = 10102;
 
 
+    public static final String REGION_LOAD_UPDATE_INTERVAL = "splice.statistics.regionLoadUpdateInterval";
+    public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 5;
+
     private final Configuration delegate;
     private final ChainedDefaults defaults;
 

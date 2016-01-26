@@ -1,7 +1,7 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.backup.*;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.CompactionObserver;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
@@ -90,7 +90,7 @@ public class BackupObserver implements CompactionObserver,SplitObserver{
 //                SpliceLogUtils.trace(LOG_SPLIT, "postSplit: r region " + r.getRegionInfo().getEncodedName());
 //            }
 
-            Configuration conf = SpliceConstants.config;
+            Configuration conf =HConfiguration.INSTANCE.unwrapDelegate();
             SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
             HRegion region =e.getEnvironment().getRegion();
             FileSystem fs = region.getFilesystem();
@@ -203,7 +203,7 @@ public class BackupObserver implements CompactionObserver,SplitObserver{
             String snapshotName = BackupUtils.getLastSnapshotName(tableName);
             if (snapshotName != null) {
 //                SpliceLogUtils.trace(LOG, "Retrived snapshot %s.", snapshotName);
-                Configuration conf = SpliceConstants.config;
+                Configuration conf = HConfiguration.INSTANCE.unwrapDelegate();
                 List<Object> pathList = snapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotName, false);
 
                 for (Object obj : pathList) {

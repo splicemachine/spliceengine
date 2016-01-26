@@ -3,10 +3,10 @@ package com.splicemachine.hbase;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.hbase.HBaseTableFactory;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.MoreExecutors;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -76,7 +76,10 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
         if (started.compareAndSet(false, true)) {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"update service scheduled");
-            updateService.scheduleAtFixedRate(updater,0l,SpliceConstants.regionLoadUpdateInterval,TimeUnit.SECONDS);
+
+            SConfiguration configuration=SIDriver.driver().getConfiguration();
+            long updateInterval = configuration.getLong(HConfiguration.REGION_LOAD_UPDATE_INTERVAL);
+            updateService.scheduleAtFixedRate(updater,0l,updateInterval,TimeUnit.SECONDS);
         }
     }
 
@@ -152,7 +155,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
     // Lookups
 
     public static Map<String, PartitionLoad> getCostWhenNoCachedRegionLoadsFound(String tableName){
-        try (Partition p =  HBaseTableFactory.getInstance().getTable(tableName)){
+        try (Partition p =  SIDriver.driver().getTableFactory().getTable(tableName)){
             Map<byte[], Pair<String, Long>> ret = ((ClientPartition)p).coprocessorExec(SpliceMessage.SpliceDerbyCoprocessorService.class,
                      new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, Pair<String, Long>>() {
                         @Override

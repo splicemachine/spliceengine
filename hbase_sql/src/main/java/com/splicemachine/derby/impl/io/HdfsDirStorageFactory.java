@@ -3,11 +3,9 @@ package com.splicemachine.derby.impl.io;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.SyncFailedException;
 
-import org.apache.hadoop.conf.Configuration;
+import com.splicemachine.access.HConfiguration;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.io.WritableStorageFactory;
@@ -47,7 +45,7 @@ public class HdfsDirStorageFactory implements WritableStorageFactory
 			 * that is always writable by the hbase user in the DFS.
 			 * Otherwise, it's a standalone install and the jars will be stored in directories off of the splice install directory.
 			 */
-			String defaultFS = SpliceConstants.config.get("fs.defaultFS");
+			String defaultFS = HConfiguration.INSTANCE.unwrapDelegate().get("fs.defaultFS");
 			if (defaultFS != null && (defaultFS.startsWith("hdfs://") || defaultFS.startsWith("maprfs://"))) {
 				home = "/hbase";
 			}

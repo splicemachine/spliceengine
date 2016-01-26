@@ -1,6 +1,6 @@
 package com.splicemachine.test;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.SQLConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.log4j.Logger;
@@ -48,7 +48,7 @@ public class SpliceTestClusterParticipant {
     private void start() throws Exception {
         int regionServerPort = REGION_SERVER_PORT + memberNumber;
         int regionServerInfoPort = REGION_SERVER_WEB_PORT + memberNumber;
-        int derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT + memberNumber;
+        int derbyPort = SQLConfiguration.DEFAULT_NETWORK_BIND_PORT + memberNumber;
 
         Configuration config = SpliceTestPlatformConfig.create(
                 hbaseTargetDirectory,

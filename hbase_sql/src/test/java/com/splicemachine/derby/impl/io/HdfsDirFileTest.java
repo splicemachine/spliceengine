@@ -5,9 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.Reader;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.fs.FileUtil;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -29,7 +28,7 @@ public class HdfsDirFileTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
         // necessary for mapr
-        SpliceConstants.config.set("fs.default.name", "file:///");
+        HConfiguration.INSTANCE.unwrapDelegate().set("fs.default.name","file:///");
 
         FileUtil.fullyDelete(new File(localBaseDir).getAbsoluteFile());
 	}

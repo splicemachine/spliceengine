@@ -1,6 +1,5 @@
 package com.splicemachine.backup;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
