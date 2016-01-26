@@ -18,7 +18,7 @@ public class SingletonSortedSet<E>  extends AbstractSet<E> implements SortedSet<
     }
 
     public static <E extends Comparable<E>> SortedSet<E> wrap(E value){
-        return new SingletonSortedSet<E>(value,ComparableComparator.<E>newComparator());
+        return new SingletonSortedSet<>(value,ComparableComparator.<E>newComparator());
     }
 
 		@Override public Iterator<E> iterator() {
