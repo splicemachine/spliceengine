@@ -22,7 +22,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase-storage-${envClassifier}</artifactId>
+            <artifactId>hbase-storage</artifactId>
             <version>${project.version}</version>
             <exclusions>
                 <!-- For some reason, if you allow maven to perform a transitive
@@ -98,7 +98,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase-storage-${envClassifier}</artifactId>
+            <artifactId>hbase-storage</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

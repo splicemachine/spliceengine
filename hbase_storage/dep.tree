@@ -1,6 +1,0 @@
-
-hbase_storage -> SI_CORE
-hbase_pipeline ->
-    hbase_storage
-    PIPELINE_CORE
-    SI_CORE
