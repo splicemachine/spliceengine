@@ -4546,6 +4546,13 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
             </msg>
 
             <msg>
+                <name>XIE0A.S</name>
+                <text>Number of columns in column definition, {0}, differ from those found in import file {1}. </text>
+                <arg>columnName</arg>
+                <arg>type</arg>
+            </msg>
+
+            <msg>
                 <name>XIE0B.S</name>
                 <text>Column '{0}' in the table is of type {1}, it is not supported by the import/export feature.   </text>
                 <arg>columnName</arg>

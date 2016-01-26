@@ -1856,6 +1856,7 @@ public interface SQLState {
 	String FIELD_IS_RECORD_SEPERATOR_SUBSET                        ="XIE07.S";
     String INVALID_COLUMN_NAME                                     ="XIE08.S";
 	String INVALID_COLUMN_NUMBER                                   ="XIE09.S";
+	String COLUMN_NUMBER_MISMATCH                                  ="XIE0A.S";
 	String UNSUPPORTED_COLUMN_TYPE                                 ="XIE0B.S";
 	String RECORD_SEPERATOR_MISSING                                ="XIE0D.S";
 	String UNEXPECTED_END_OF_FILE                                  ="XIE0E.S";
