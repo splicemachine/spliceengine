@@ -21,16 +21,12 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PrivilegedSQLObject;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.catalog.UUID;
 
@@ -90,7 +86,7 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void executeGrantRevoke( Activation activation,
+	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
 									boolean grant,
 									List grantees)
 		throws StandardException
@@ -103,7 +99,7 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
         SchemaDescriptor sd = _tupleDescriptor.getSchemaDescriptor();
         UUID objectID = _tupleDescriptor.getUUID();
         String objectTypeName = _tupleDescriptor.getObjectTypeName();
-
+		List<PermissionsDescriptor> result = Lists.newArrayList();
 		// Check that the current user has permission to grant the privileges.
 		checkOwnership( currentUser, (TupleDescriptor) _tupleDescriptor, sd, dd );
 		
@@ -131,12 +127,18 @@ public class GenericPrivilegeInfo extends PrivilegeInfo
 				dd.getDependencyManager().invalidateFor( permDesc, invalidationType, lcc );
 
 				// Now invalidate all GPSs refering to the object.
-				dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc );
+				dd.getDependencyManager().invalidateFor(_tupleDescriptor, invalidationType, lcc);
+                PermDescriptor permDescriptor = ddg.newPermDescriptor
+                        ( permDesc.getUUID(), objectTypeName, objectID, _privilege, currentUser, grantee, false );
+                result.add(permDescriptor);
+
 			}
-			
 			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
 		}
+        return result;
 	} // end of executeGrantRevoke
 
-
+    public boolean isRestrict() {
+        return _restrict;
+    }
 }

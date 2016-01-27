@@ -21,21 +21,14 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TablePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import java.util.List;
@@ -190,11 +183,12 @@ public class TablePrivilegeInfo extends PrivilegeInfo
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void executeGrantRevoke( Activation activation,
+	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
 									boolean grant,
 									List grantees)
 		throws StandardException
 	{
+		List<PermissionsDescriptor> result = Lists.newArrayList();
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
         String currentUser = lcc.getCurrentUserId(activation);
@@ -266,6 +260,14 @@ public class TablePrivilegeInfo extends PrivilegeInfo
 					// Dependents.
 					dd.getDependencyManager().invalidateFor
 						(td, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+                    TablePermsDescriptor tablePermsDescriptor =
+                            new TablePermsDescriptor(dd, tablePermsDesc.getGrantee(),
+                                    tablePermsDesc.getGrantor(), tablePermsDesc.getTableUUID(),
+                                    tablePermsDesc.getSelectPriv(), tablePermsDesc.getDeletePriv(),
+                                    tablePermsDesc.getInsertPriv(), tablePermsDesc.getUpdatePriv(),
+                                    tablePermsDesc.getReferencesPriv(), tablePermsDesc.getTriggerPriv());
+                    tablePermsDescriptor.setUUID(tablePermsDesc.getUUID());
+                    result.add(tablePermsDescriptor);
 				}
 			}
 			for( int i = 0; i < columnBitSets.length; i++)
@@ -286,12 +288,19 @@ public class TablePrivilegeInfo extends PrivilegeInfo
 							(td,
 							 DependencyManager.INTERNAL_RECOMPILE_REQUEST,
 							 lcc);
+                        ColPermsDescriptor colPermsDescriptor =
+                                new ColPermsDescriptor(dd, grantee, colPermsDescs[i].getGrantor(),
+                                        colPermsDescs[i].getTableUUID(), colPermsDescs[i].getType(),
+                                        colPermsDescs[i].getColumns());
+                        colPermsDescriptor.setUUID(colPermsDescs[i].getUUID());
+                        result.add(colPermsDescriptor);
 					}
 				}
 			}
 			
 			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
 		}
+        return result;
 	} // end of executeConstantAction
 
 	private String getPermString( int action, boolean forGrantOption)

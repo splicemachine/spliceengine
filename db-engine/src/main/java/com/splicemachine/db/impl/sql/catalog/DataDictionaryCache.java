@@ -148,7 +148,19 @@ public class DataDictionaryCache {
         partitionStatisticsCache.invalidate(conglomID);
     }
 
+    public void permissionCacheAdd(PermissionsDescriptor key, PermissionsDescriptor permissions) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("permissionCacheAdd " + key);
+        if (!dd.canUseCache())
+            return;
+        permissionsCache.put(key, permissions);
+    }
 
+    public void permissionCacheRemove(PermissionsDescriptor desc) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("permissionCacheRemove " + desc);
+        permissionsCache.invalidate(desc);
+    }
 
     public PermissionsDescriptor permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
         if (LOG.isDebugEnabled())
@@ -171,13 +183,7 @@ public class DataDictionaryCache {
             LOG.debug("spsNameCacheAdd tableKey=" + tableKey + " descriptor="+sps);
         if (!dd.canUseSPSCache())
             return;
-        spsNameCache.put(tableKey,sps);
-    }
-
-    public void permissionCacheRemove(PermissionsDescriptor desc) throws StandardException {
-        if (LOG.isDebugEnabled())
-            LOG.debug("permissionCacheRemove " + desc);
-        permissionsCache.invalidate(desc);
+        spsNameCache.put(tableKey, sps);
     }
 
     public void storedPreparedStatementCacheAdd(SPSDescriptor desc) throws StandardException {

@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -43,7 +44,7 @@ public abstract class PrivilegeInfo
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	abstract public void executeGrantRevoke( Activation activation,
+	abstract public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
 											 boolean grant,
 											 List grantees)
 		throws StandardException;

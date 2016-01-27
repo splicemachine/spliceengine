@@ -21,14 +21,12 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.Iterator;
@@ -52,7 +50,7 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void executeGrantRevoke( Activation activation,
+	public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
 									boolean grant,
 									List grantees)
 		throws StandardException
@@ -63,7 +61,8 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
         String currentUser = lcc.getCurrentUserId(activation);
 		TransactionController tc = lcc.getTransactionExecute();
 
-		// Check that the current user has permission to grant the privileges.
+		List<PermissionsDescriptor> result = Lists.newArrayList();
+        // Check that the current user has permission to grant the privileges.
 		checkOwnership( currentUser,
 						aliasDescriptor,
 						dd.getSchemaDescriptor( aliasDescriptor.getSchemaUUID(), tc),
@@ -100,9 +99,16 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 				dd.getDependencyManager().invalidateFor
 					(aliasDescriptor,
 					 DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+
+                RoutinePermsDescriptor routinePermsDescriptor =
+                        new RoutinePermsDescriptor(dd, routinePermsDesc.getGrantee(), routinePermsDesc.getGrantor(),
+                                routinePermsDesc.getRoutineUUID());
+                routinePermsDescriptor.setUUID(routinePermsDesc.getUUID());
+                result.add(routinePermsDescriptor);
 			}
 			
 			addWarningIfPrivilegeNotRevoked(activation, grant, privileges_revoked, grantee);
 		}
+        return result;
 	} // end of executeConstantAction
 }

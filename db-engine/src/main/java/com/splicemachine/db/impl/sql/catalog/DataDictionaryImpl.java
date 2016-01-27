@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -9252,11 +9253,129 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     private Object getPermissions(PermissionsDescriptor key) throws StandardException{
-        // RESOLVE get a READ COMMITTED (shared) lock on the permission row
-        PermissionsDescriptor desc = dataDictionaryCache.permissionCacheFind(key);
-        if (desc==null)
-            return null;
-        return desc;
+
+        PermissionsDescriptor permissions = dataDictionaryCache.permissionCacheFind(key);
+        if (permissions != null)
+            return permissions;
+
+        if( key instanceof TablePermsDescriptor) {
+
+            TablePermsDescriptor tablePermsKey = (TablePermsDescriptor) key;
+            permissions = getUncachedTablePermsDescriptor(tablePermsKey);
+            if( permissions == null)
+            {
+                // The owner has all privileges unless they have been revoked.
+                TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
+                SchemaDescriptor sd = td.getSchemaDescriptor();
+                if( sd.isSystemSchema())
+                {
+                    // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
+                    // Is this the way we want Derby to work? Should we allow revocation of read access
+                    // to system tables? If so we must explicitly add a row to the SYS.SYSTABLEPERMISSIONS
+                    // table for each system table when a database is created.
+                    permissions = new TablePermsDescriptor( this,
+                            tablePermsKey.getGrantee(),
+                            (String) null,
+                            tablePermsKey.getTableUUID(),
+                            "Y", "N", "N", "N", "N", "N");
+                    // give the permission the same UUID as the system table
+                    ((TablePermsDescriptor) permissions).setUUID( tablePermsKey.getTableUUID() );
+                }
+                else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                {
+                    permissions = new TablePermsDescriptor( this,
+                            tablePermsKey.getGrantee(),
+                            Authorizer.SYSTEM_AUTHORIZATION_ID,
+                            tablePermsKey.getTableUUID(),
+                            "Y", "Y", "Y", "Y", "Y", "Y");
+                }
+                else
+                {
+                    permissions = new TablePermsDescriptor( this,
+                            tablePermsKey.getGrantee(),
+                            (String) null,
+                            tablePermsKey.getTableUUID(),
+                            "N", "N", "N", "N", "N", "N");
+                }
+            }
+        }
+        else if( key instanceof ColPermsDescriptor)
+        {
+            ColPermsDescriptor colPermsKey = (ColPermsDescriptor) key;
+            permissions = getUncachedColPermsDescriptor(colPermsKey );
+            if( permissions == null)
+                permissions = new ColPermsDescriptor( this,
+                        colPermsKey.getGrantee(),
+                        (String) null,
+                        colPermsKey.getTableUUID(),
+                        colPermsKey.getType(),
+                        (FormatableBitSet) null);
+        }
+        else if( key instanceof RoutinePermsDescriptor)
+        {
+            RoutinePermsDescriptor routinePermsKey = (RoutinePermsDescriptor) key;
+            permissions = getUncachedRoutinePermsDescriptor( routinePermsKey);
+            if( permissions == null)
+            {
+                // The owner has all privileges unless they have been revoked.
+                try
+                {
+                    AliasDescriptor ad = getAliasDescriptor( routinePermsKey.getRoutineUUID());
+                    SchemaDescriptor sd = getSchemaDescriptor( ad.getSchemaUUID(),
+                            ConnectionUtil.getCurrentLCC().getTransactionExecute());
+                    if (sd.isSystemSchema() && !sd.isSchemaWithGrantableRoutines())
+                        permissions = new RoutinePermsDescriptor( this,
+                                routinePermsKey.getGrantee(),
+                                (String) null,
+                                routinePermsKey.getRoutineUUID(),
+                                true);
+                    else if( routinePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                        permissions = new RoutinePermsDescriptor( this,
+                                routinePermsKey.getGrantee(),
+                                Authorizer.SYSTEM_AUTHORIZATION_ID,
+                                routinePermsKey.getRoutineUUID(),
+                                true);
+                }
+                catch( java.sql.SQLException sqle)
+                {
+                    throw StandardException.plainWrapException( sqle);
+                }
+            }
+        }
+        else if( key instanceof PermDescriptor)
+        {
+            PermDescriptor permKey = (PermDescriptor) key;
+            permissions = getUncachedGenericPermDescriptor( permKey);
+            if( permissions == null)
+            {
+                // The owner has all privileges unless they have been revoked.
+                String objectType = permKey.getObjectType();
+                String privilege = permKey.getPermission();
+                UUID protectedObjectsID = permKey.getPermObjectId();
+
+
+                PrivilegedSQLObject pso = PermDescriptor.getProtectedObject( this, protectedObjectsID, objectType );
+                SchemaDescriptor sd = pso.getSchemaDescriptor();
+                if( permKey.getGrantee().equals( sd.getAuthorizationId()))
+                {
+                    permissions = new PermDescriptor
+                            (
+                                    this,
+                                    null,
+                                    objectType,
+                                    pso.getUUID(),
+                                    privilege,
+                                    Authorizer.SYSTEM_AUTHORIZATION_ID,
+                                    permKey.getGrantee(),
+                                    true
+                            );
+                }
+            }
+        }
+
+        dataDictionaryCache.permissionCacheAdd(key, permissions);
+
+        return permissions;
     }
 
     @Override
