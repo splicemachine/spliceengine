@@ -253,11 +253,20 @@ public class CallStatementNode extends DMLStatementNode {
 		userExprFun.endStatement();
 		userExprFun.methodReturn();
 		userExprFun.complete();
-
 		acb.pushGetResultSetFactoryExpression(mb);
 		acb.pushMethodReference(mb, userExprFun); // first arg
 		acb.pushThisAsActivation(mb); // arg 2
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getCallStatementResultSet", ClassName.ResultSet, 2);
+		int args = 2;
+        if (methodCallBody instanceof MethodCallNode) {
+            // These are the real java class and method name of the stored procedure,
+            // not the activation. For example, if this is an import action, the class
+            // would be HdfsImport and the method would be IMPORT_DATA.
+            // These are for reference only, not to be used in any reflection.
+            mb.push(((MethodCallNode)methodCallBody).getJavaClassName());
+            mb.push(((MethodCallNode)methodCallBody).getMethodName());
+            args = 4;
+        }
+		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getCallStatementResultSet", ClassName.ResultSet, args);
 	}
 
 	public ResultDescription makeResultDescription()

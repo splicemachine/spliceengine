@@ -266,9 +266,15 @@ public interface ResultSetFactory {
 		@exception StandardException thrown when unable to perform the call statement
 	 */
 	ResultSet getCallStatementResultSet(GeneratedMethod methodCall,
-				Activation activation) 
-			throws StandardException;
+				                        Activation activation) 
+        throws StandardException;
 
+    ResultSet getCallStatementResultSet(GeneratedMethod methodCall,
+                                        Activation activation,
+                                        String origClassName,
+                                        String origMethodName) 
+        throws StandardException;
+    
 	//
 	// Query expression operations
 	//
