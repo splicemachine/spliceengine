@@ -25,12 +25,6 @@
             <artifactId>pipeline_api</artifactId>
             <version>${project.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase-pipeline-${envClassifier}</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_storage</artifactId>
