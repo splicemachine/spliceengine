@@ -13,4 +13,5 @@ public interface DDLEnvironment{
 
     SConfiguration getConfiguration();
 
+    void configure(SConfiguration config);
 }

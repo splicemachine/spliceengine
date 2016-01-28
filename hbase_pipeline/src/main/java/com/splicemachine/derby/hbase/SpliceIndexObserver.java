@@ -4,14 +4,16 @@ import com.google.common.base.Function;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.lifecycle.DatabaseLifecycleService;
+import com.splicemachine.lifecycle.PipelineLoadService;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.contextfactory.WriteContextFactoryManager;
@@ -22,6 +24,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.PipelineDriver;
@@ -38,7 +41,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
-import javax.management.MBeanServer;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.List;
@@ -71,6 +74,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private Set<SplitObserver> splitObservers = new CopyOnWriteArraySet<>();
     private Set<FlushObserver> flushObservers = new CopyOnWriteArraySet<>();
     private Set<StoreScannerObserver> storeScannerObservers = new CopyOnWriteArraySet<>();
+    private PipelineLoadService<TableName> service;
 
     @Override
     public void start(final CoprocessorEnvironment e) throws IOException{
@@ -85,43 +89,58 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case HBASE_TABLE:
                 return; //disregard table environments which are not user or system tables
         }
-        final long conglomId;
+        long conglomId;
         try{
             conglomId=Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
             SpliceLogUtils.warn(LOG,"Unable to parse conglomerate id for table %s, "+
                     "index management for batch operations will be disabled",tableName);
-            return;
+            conglomId=-1;
         }
-        PipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(new SystemClock(),null); //TODO -sf- register a factory loader
-        RegionPartition baseRegion=new RegionPartition(rce.getRegion());
-        final PipelineDriver pipelineDriver=pipelineEnv.getPipelineDriver();
-        SIDriver siDriver=pipelineEnv.getSIDriver();
 
-        region=siDriver.transactionalPartition(conglomId,baseRegion);
-        operationFactory = siDriver.getOperationFactory();
-        exceptionFactory = pipelineDriver.exceptionFactory();
-        config = pipelineEnv.configuration();
-        tableFactory = siDriver.getTableFactory();
+        final long cId = conglomId;
+        final RegionPartition baseRegion=new RegionPartition(rce.getRegion());
+        ServerControl sc = new RegionServerControl(rce.getRegion());
         try{
-            DatabaseLifecycleManager.manager().registerGeneralService(new DatabaseLifecycleService(){
+            service = new PipelineLoadService<TableName>(sc,baseRegion,cId){
                 @Override
                 public void start() throws Exception{
-                    factoryLoader=pipelineDriver.getContextFactoryLoader(conglomId);
-                }
+                    PipelineDriver pipelineDriver=PipelineDriver.driver();
+                    factoryLoader=pipelineDriver.getContextFactoryLoader(cId);
 
-                @Override
-                public void registerJMX(MBeanServer mbs) throws Exception{
-                    pipelineDriver.registerJMX(mbs); //may already be registered, but why not?
+                    SIDriver siDriver=SIDriver.driver();
+
+                    region=siDriver.transactionalPartition(cId,baseRegion);
+                    operationFactory = siDriver.getOperationFactory();
+                    exceptionFactory = pipelineDriver.exceptionFactory();
+                    config = pipelineEnv.configuration();
+                    tableFactory = siDriver.getTableFactory();
                 }
 
                 @Override
                 public void shutdown() throws Exception{
-                    stop(e);
+                    if(factoryLoader!=null)
+                        factoryLoader.unload();
                 }
-            });
-        }catch(Exception e1){
-            throw new IOException(e1);
+
+                @Override
+                protected Function<TableName, String> getStringParsingFunction(){
+                    return new Function<TableName, String>(){
+                        @Nullable
+                        @Override
+                        public String apply(TableName tableName){
+                            return tableName.getNameAsString();
+                        }
+                    };
+                }
+
+                @Override
+                protected PipelineEnvironment loadPipelineEnvironment(ContextFactoryDriver cfDriver) throws IOException{
+                    return HBasePipelineEnvironment.loadEnvironment(new SystemClock(),cfDriver);
+                }
+            };
+        }catch(Exception ex){
+            throw new IOException(ex);
         }
     }
 
@@ -130,6 +149,12 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         super.stop(e);
         if (region != null)
             region.close();
+        if(service!=null)
+            try{
+                service.shutdown();
+            }catch(Exception e1){
+                throw new IOException(e1);
+            }
     }
 
     @Override

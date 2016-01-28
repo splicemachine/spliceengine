@@ -49,7 +49,6 @@
         <dependency>
             <groupId>com.splicemachine.db-project</groupId>
             <artifactId>db-engine</artifactId>
-            <version>${derby.version}</version>
         </dependency>
     </dependencies>
 

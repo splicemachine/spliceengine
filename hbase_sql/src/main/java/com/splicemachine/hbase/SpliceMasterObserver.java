@@ -14,6 +14,7 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.ha.HAServiceStatus;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
@@ -34,6 +35,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
 
     private TimestampServer timestampServer;
+    private DatabaseLifecycleManager manager;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
@@ -47,7 +49,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
         SConfiguration configuration=env.configuration();
 
-        String timestampReservedPath=configuration.getString(HConfiguration.MAX_RESERVED_TIMESTAMP_PATH);
+        String timestampReservedPath=configuration.getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
         int timestampPort=configuration.getInt(SIConfigurations.TIMESTAMP_SERVER_BIND_PORT);
         int timestampBlockSize = configuration.getInt(HConfiguration.TIMESTAMP_BLOCK_SIZE);
 
@@ -56,13 +58,23 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
         this.timestampServer.startServer();
 
+        /*
+         * We create a new instance here rather than referring to the singleton because we have
+         * a problem when booting the master and the region server in the same JVM; the singleton
+         * then is unable to boot on the master side because the regionserver has already started it.
+         *
+         * Generally, this isn't a problem because the underlying singleton is constructed on demand, so we
+         * will still only create a single manager per JVM in a production environment, and we avoid the deadlock
+         * issue during testing
+         */
+        this.manager = new DatabaseLifecycleManager();
         super.start(ctx);
     }
 
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
         LOG.warn("Stopping SpliceMasterObserver");
-        DatabaseLifecycleManager.manager().shutdown();
+        manager.shutdown();
         this.timestampServer.stopServer();
     }
 
@@ -70,7 +82,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
         SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
         if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
-            DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
             switch(manager.getState()){
                 case NOT_STARTED:
                     boot();
@@ -99,7 +110,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         SConfiguration config=driver.getConfiguration();
         config.addDefaults(SQLConfiguration.defaults);
 
-        DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         //register the engine boot service
         try{
             MasterLifecycle distributedStartupSequence=new MasterLifecycle();

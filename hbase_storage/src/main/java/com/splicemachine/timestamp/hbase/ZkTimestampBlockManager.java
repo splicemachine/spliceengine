@@ -47,7 +47,7 @@ public class ZkTimestampBlockManager implements TimestampBlockManager{
             SpliceLogUtils.info(LOG, "Initializing: existing max reserved timestamp = %s", maxReservedTs);
             return maxReservedTs;
         } catch (Exception e) {
-            throw new TimestampIOException("count not initialize timestamp data source",e);
+            throw new TimestampIOException("could not initialize timestamp data source",e);
         }
     }
 }

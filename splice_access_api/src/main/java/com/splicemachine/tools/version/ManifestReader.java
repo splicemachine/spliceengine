@@ -32,7 +32,16 @@ public class ManifestReader {
      * Register with JMX
      */
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        mbs.registerMBean(createVersion(), new ObjectName(SPLICEMACHINE_VERSION));
+        try{
+            mbs.registerMBean(createVersion(),new ObjectName(SPLICEMACHINE_VERSION));
+        }catch(InstanceAlreadyExistsException ignored){
+            /*
+             * For most purposes, this should never happen. However, it's possible to happen
+             * when you are booting a regionserver and master in the same JVM (e.g. for testing purposes); Since
+             * we can only really have one version of the software on a single node at one time, we just ignore
+             * this exception and don't worry about it too much.
+             */
+        }
     }
 
     /**

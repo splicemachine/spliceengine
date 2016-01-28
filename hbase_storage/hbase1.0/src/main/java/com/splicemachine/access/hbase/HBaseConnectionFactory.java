@@ -141,7 +141,7 @@ public class HBaseConnectionFactory{
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespaceBytes,HConfiguration.TRANSACTION_TABLE_BYTES));
         HColumnDescriptor columnDescriptor=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
         columnDescriptor.setMaxVersions(5);
-        Compression.Algorithm compress=Compression.Algorithm.valueOf(config.getString(HConfiguration.COMPRESSION_ALGORITHM));
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getString(HConfiguration.COMPRESSION_ALGORITHM));
         columnDescriptor.setCompressionType(compress);
         columnDescriptor.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
         columnDescriptor.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
@@ -163,7 +163,7 @@ public class HBaseConnectionFactory{
     public HColumnDescriptor createDataFamily(){
         HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
         snapshot.setMaxVersions(Integer.MAX_VALUE);
-        Compression.Algorithm compress=Compression.Algorithm.valueOf(config.getString(HConfiguration.COMPRESSION_ALGORITHM));
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getString(HConfiguration.COMPRESSION_ALGORITHM));
         snapshot.setCompressionType(compress);
         snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
         snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);

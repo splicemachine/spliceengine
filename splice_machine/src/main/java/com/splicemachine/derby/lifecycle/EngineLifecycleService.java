@@ -8,6 +8,8 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLEnvironmentLoader;
+import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
+import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
@@ -86,10 +88,13 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
         //initialize the engine driver
         SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(configuration,snowflake,internalConnection,spliceVersion);
+        SConfiguration configuration=ese.getConfiguration();
+        configuration.addDefaults(AuthenticationConfiguration.defaults); //add auth defaults
+        configuration.addDefaults(StatsConfiguration.defaults);
         EngineDriver.loadDriver(ese);
 
         //initialize the DDLDriver
-        DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment());
+        DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration));
     }
 
     @Override
@@ -127,6 +132,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         SIDriver driver = SIDriver.driver();
         assert driver!=null: "Must boot SI before the database!";
         snowflakeLoader= new SnowflakeLoader(driver.getTableFactory(),driver.getOperationFactory(),driver.filterFactory());
+
         snowflake = snowflakeLoader.load(port);
         /*
          * In order to make snowflake available for derby classes during the boot sequence, we have to set snowflake

@@ -14,14 +14,17 @@ import java.io.InterruptedIOException;
  *         Date: 1/6/16
  */
 public class MasterLifecycle implements DistributedDerbyStartup{
+    private boolean loading = false;
     @Override
     public void distributedStart() throws IOException{
         try{
+            HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
             if(ZkUtils.isSpliceLoaded()){
-                HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration()).createRestoreTableIfNecessary();
+                instance.createRestoreTableIfNecessary();
             }else{
+                loading = true;
                 ZkUtils.refreshZookeeper();
-                HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration()).createSpliceHBaseTables();
+                instance.createSpliceHBaseTables();
             }
         }catch(InterruptedException e){
             throw new InterruptedIOException();
@@ -32,12 +35,14 @@ public class MasterLifecycle implements DistributedDerbyStartup{
 
     @Override
     public void markBootFinished() throws IOException{
-        try{
-            ZkUtils.spliceFinishedLoading();
-        }catch(InterruptedException e){
-            throw new InterruptedIOException();
-        }catch(KeeperException e){
-            throw new IOException(e);
+        if(loading){
+            try{
+                ZkUtils.spliceFinishedLoading();
+            }catch(InterruptedException e){
+                throw new InterruptedIOException();
+            }catch(KeeperException e){
+                throw new IOException(e);
+            }
         }
     }
 

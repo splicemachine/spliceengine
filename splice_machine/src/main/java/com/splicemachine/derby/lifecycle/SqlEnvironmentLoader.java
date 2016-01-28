@@ -37,11 +37,11 @@ public class SqlEnvironmentLoader{
             ServiceLoader<SqlEnvironment> load = ServiceLoader.load(SqlEnvironment.class);
             Iterator<SqlEnvironment> iter = load.iterator();
             if(!iter.hasNext())
-                throw new IllegalStateException("No SITestEnv found!");
+                throw new IllegalStateException("No SqlEnvironment found!");
             env = sqlEnv = iter.next();
             sqlEnv.initialize(config,snowflake,internalConnection,spliceVersion);
             if(iter.hasNext())
-                throw new IllegalStateException("Only one SITestEnv is allowed!");
+                throw new IllegalStateException("Only one SqlEnvironment is allowed!");
         }
         return env;
     }

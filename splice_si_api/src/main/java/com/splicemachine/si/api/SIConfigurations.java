@@ -117,6 +117,8 @@ public class SIConfigurations{
                 case TRANSACTION_KEEP_ALIVE_THREADS: return DEFAULT_KEEP_ALIVE_THREADS;
                 case READ_RESOLVER_THREADS: return DEFAULT_READ_RESOLVER_THREADS;
                 case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
+                case TIMESTAMP_CLIENT_WAIT_TIME: return DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME;
+                case TIMESTAMP_SERVER_BIND_PORT: return DEFAULT_TIMESTAMP_SERVER_BIND_PORT;
                 default:
                     throw new IllegalArgumentException("No SI default for key '"+key+"'");
             }
@@ -142,6 +144,8 @@ public class SIConfigurations{
                 case READ_RESOLVER_THREADS:
                 case READ_RESOLVER_QUEUE_SIZE:
                 case TRANSACTION_LOCK_STRIPES:
+                case TIMESTAMP_CLIENT_WAIT_TIME:
+                case TIMESTAMP_SERVER_BIND_PORT:
                     return true;
                 default:
                     return false;

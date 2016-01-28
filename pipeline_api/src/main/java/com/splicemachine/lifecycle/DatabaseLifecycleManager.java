@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DatabaseLifecycleManager{
     private static final Logger LOG= Logger.getLogger(DatabaseLifecycleManager.class);
-    public static final DatabaseLifecycleManager INSTANCE = new DatabaseLifecycleManager();
+    public static volatile DatabaseLifecycleManager INSTANCE;
 
     public enum State{
         NOT_STARTED,
@@ -49,7 +49,15 @@ public class DatabaseLifecycleManager{
     private volatile MBeanServer jmxServer;
 
     public static DatabaseLifecycleManager manager(){
-        return INSTANCE;
+        DatabaseLifecycleManager dlm = INSTANCE; //volatile read
+        if(dlm==null){
+            synchronized(DatabaseLifecycleManager.class){
+                dlm = INSTANCE; //volatile read
+                if(dlm==null)
+                    dlm = INSTANCE = new DatabaseLifecycleManager(); //volatile write
+            }
+        }
+        return dlm;
     }
 
     public void start(){

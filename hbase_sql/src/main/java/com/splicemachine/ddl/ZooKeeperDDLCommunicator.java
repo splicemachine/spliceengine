@@ -11,31 +11,37 @@ import java.util.Collection;
  *         Date: 9/4/15
  */
 public class ZooKeeperDDLCommunicator implements DDLCommunicator{
+    private final DDLZookeeperClient zkClient;
+
+    public ZooKeeperDDLCommunicator(DDLZookeeperClient zkClient){
+        this.zkClient=zkClient;
+    }
+
     @Override
     public String createChangeNode(DDLMessage.DDLChange change) throws StandardException{
-        return DDLZookeeperClient.createChangeNode(change.toByteArray());
+        return zkClient.createChangeNode(change.toByteArray());
     }
 
     @Override
     public Collection<String> activeListeners(com.splicemachine.derby.ddl.CommunicationListener asyncListener) throws StandardException{
         Watcher listenerWatcher = new ActiveWatcher(asyncListener);
-        return DDLZookeeperClient.getActiveServers(listenerWatcher);
+        return zkClient.getActiveServers(listenerWatcher);
     }
 
     @Override
     public Collection<String> completedListeners(String changeId,com.splicemachine.derby.ddl.CommunicationListener asyncListener) throws StandardException{
         Watcher childrenWatcher = new ChildWatcher(asyncListener);
-        return DDLZookeeperClient.getFinishedServers(changeId,childrenWatcher);
+        return zkClient.getFinishedServers(changeId,childrenWatcher);
     }
 
     @Override
     public String getErrorMessage(String changeId, String errorId) throws StandardException {
-        return DDLZookeeperClient.getServerChangeData(changeId,errorId);
+        return zkClient.getServerChangeData(changeId,errorId);
     }
 
     @Override
     public void deleteChangeNode(String changeId){
-        DDLZookeeperClient.deleteChangeNode(changeId);
+        zkClient.deleteChangeNode(changeId);
     }
 
 

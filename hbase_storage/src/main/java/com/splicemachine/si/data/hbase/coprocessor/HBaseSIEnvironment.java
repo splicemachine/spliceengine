@@ -56,8 +56,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final KeepAliveScheduler keepAlive;
     private final SConfiguration config;
     private final HOperationFactory opFactory;
-    private Clock clock;
-    private DistributedFileSystem fileSystem;
+    private final Clock clock;
+    private final DistributedFileSystem fileSystem;
 
     public static HBaseSIEnvironment loadEnvironment(Clock clock,RecoverableZooKeeper rzk) throws IOException{
         HBaseSIEnvironment env = INSTANCE;
@@ -65,7 +65,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
             synchronized(HBaseSIEnvironment.class){
                 env = INSTANCE;
                 if(env==null){
-                    env = INSTANCE = new HBaseSIEnvironment(clock,new ZkTimestampSource(HConfiguration.INSTANCE,rzk));
+                    env = INSTANCE = new HBaseSIEnvironment(rzk,clock);
                     SIDriver.loadDriver(INSTANCE);
                 }
             }
@@ -77,17 +77,41 @@ public class HBaseSIEnvironment implements SIEnvironment{
         INSTANCE = siEnv;
     }
 
-    public HBaseSIEnvironment(Clock clock,TimestampSource timestampSource) throws IOException{
-        this(timestampSource,clock);
-    }
-
-    @SuppressWarnings("unchecked")
-    public HBaseSIEnvironment(TimestampSource timestampSource,Clock clock) throws IOException{
-        this.timestampSource =timestampSource;
+    public HBaseSIEnvironment(TimestampSource timeSource,Clock clock) throws IOException{
         this.config=HConfiguration.INSTANCE;
         this.config.addDefaults(StorageConfiguration.defaults);
         this.config.addDefaults(SIConfigurations.defaults);
 
+        this.timestampSource =timeSource;
+        this.tableFactory=TableFactoryService.loadTableFactory(clock,this.config);
+        this.partitionCache = PartitionCacheService.loadPartitionCache(config);
+        TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
+        this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
+        int completedTxnCacheSize = config.getInt(SIConfigurations.completedTxnCacheSize);
+        int completedTxnConcurrency = config.getInt(SIConfigurations.completedTxnConcurrency);
+        this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
+        this.txnStore.setCache(txnSupplier);
+        this.opFactory =HOperationFactory.INSTANCE;
+        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
+        this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
+        this.clock = clock;
+        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()));
+
+        this.readResolver = initializeReadResolver();
+
+        this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
+                config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
+                config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),
+                txnStore);
+    }
+
+    @SuppressWarnings("unchecked")
+    public HBaseSIEnvironment(RecoverableZooKeeper rzk,Clock clock) throws IOException{
+        this.config=HConfiguration.INSTANCE;
+        this.config.addDefaults(StorageConfiguration.defaults);
+        this.config.addDefaults(SIConfigurations.defaults);
+
+        this.timestampSource =new ZkTimestampSource(config,rzk);
         this.tableFactory=TableFactoryService.loadTableFactory(clock,this.config);
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);

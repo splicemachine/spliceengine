@@ -1,13 +1,12 @@
 package com.splicemachine.ddl;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.CommunicationListener;
 import com.splicemachine.derby.ddl.DDLConfiguration;
 import com.splicemachine.derby.ddl.DDLWatchChecker;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
@@ -21,16 +20,19 @@ import java.util.List;
  *         Date: 9/7/15
  */
 public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
-    private static final String CHANGES_PATH = SpliceConstants.zkSpliceDDLOngoingTransactionsPath;
     private static final Logger LOG=Logger.getLogger(ZooKeeperDDLWatchChecker.class);
     private String id;
     private Watcher changeIdWatcher;
+    private final DDLZookeeperClient zkClient;
+
+    public ZooKeeperDDLWatchChecker(DDLZookeeperClient zkClient){
+        this.zkClient=zkClient;
+    }
 
     @Override
     public boolean initialize(final CommunicationListener changeIdListener) throws IOException{
-        DDLZookeeperClient.createRequiredZooNodes();
 
-        this.id = DDLZookeeperClient.registerThisServer();
+        this.id = zkClient.registerThisServer();
         if(id==null) return false; //not a server, so inform the world
         if(id.startsWith("/"))
             id = id.substring(1); //strip the leading / to make sure that we register properly
@@ -52,7 +54,7 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     @Override
     public Collection<String> getCurrentChangeIds() throws IOException{
         try{
-            return ZkUtils.getRecoverableZooKeeper().getChildren(CHANGES_PATH,changeIdWatcher);
+            return ZkUtils.getRecoverableZooKeeper().getChildren(zkClient.changePath,changeIdWatcher);
         }catch(KeeperException ke){
             if(ke.code().equals(KeeperException.Code.SESSIONEXPIRED)){
                 LOG.error("ZooKeeper Session expired, terminating early");
@@ -65,25 +67,25 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     }
 
     @Override
-    public DDLChange getChange(String changeId) throws IOException{
-        byte[] data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+changeId);
-        return DDLChange.newBuilder()
-                .mergeFrom(DDLChange.parseFrom(data))
+    public DDLMessage.DDLChange getChange(String changeId) throws IOException{
+        byte[] data = ZkUtils.getData(zkClient.changePath+"/"+changeId);
+        return DDLMessage.DDLChange.newBuilder()
+                .mergeFrom(DDLMessage.DDLChange.parseFrom(data))
                 .setChangeId(changeId).build();
     }
 
     @Override
-    public void notifyProcessed(Collection<Pair<DDLChange,String>> processedChanges) throws IOException{
+    public void notifyProcessed(Collection<Pair<DDLMessage.DDLChange,String>> processedChanges) throws IOException{
         /*
          * Notify the relevant controllers that their change has been processed
          */
         List<Op> ops = Lists.newArrayListWithExpectedSize(processedChanges.size());
-        List<DDLChange> changeList = Lists.newArrayList();
-        for (Pair<DDLChange,String> pair : processedChanges) {
-            DDLChange change = pair.getFirst();
+        List<DDLMessage.DDLChange> changeList = Lists.newArrayList();
+        for (Pair<DDLMessage.DDLChange,String> pair : processedChanges) {
+            DDLMessage.DDLChange change = pair.getFirst();
             String errorMessage = pair.getSecond();
             // Tag Errors for handling on the client, will allow us to understand what node failed and why...
-            String path=SpliceConstants.zkSpliceDDLOngoingTransactionsPath+"/"+change.getChangeId()+"/"+(errorMessage==null?"":DDLConfiguration.ERROR_TAG)+id;
+            String path=zkClient.changePath+"/"+change.getChangeId()+"/"+(errorMessage==null?"":DDLConfiguration.ERROR_TAG)+id;
             Op op = Op.create(path, (errorMessage==null?new byte[]{}:(String.format("server [%s] failed with error [%s]",id,errorMessage).getBytes())),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
             ops.add(op);
             changeList.add(change);
@@ -123,7 +125,7 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
 
     @Override
     public void killDDLTransaction(String key){
-       DDLZookeeperClient.deleteChangeNode(key);
+       zkClient.deleteChangeNode(key);
     }
 
 }

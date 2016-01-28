@@ -263,7 +263,7 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     protected void bootStore(boolean create,Properties startParams) throws StandardException{
         //boot the ddl environment if necessary
-        DDLEnvironment env = DDLEnvironmentLoader.loadEnvironment();
+        DDLEnvironment env = DDLEnvironmentLoader.loadEnvironment(SIDriver.driver().getConfiguration());
 
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);

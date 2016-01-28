@@ -17,7 +17,7 @@ public class SQLConfiguration{
 
     //TODO -sf- move this to HBase-specific configuration
     public static final String PARTITIONSERVER_PORT="hbase.regionserver.port";
-    private static final String DEFAULT_PARTITIONSERVER_PORT="16020";
+    private static int DEFAULT_PARTITIONSERVER_PORT=16020;
     /**
      * The IP address to bind the Derby connection to.
      * Defaults to 0.0.0.0
@@ -214,6 +214,7 @@ public class SQLConfiguration{
                 case IMPORT_MAX_QUOTED_COLUMN_LINES: return DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES;
                 case BATCH_ONCE_BATCH_SIZE: return DEFAULT_BATCH_ONCE_BATCH_SIZE;
                 case PARTITIONSERVER_JMX_PORT: return DEFAULT_PARTITIONSERVER_JMX_PORT;
+                case PARTITIONSERVER_PORT: return DEFAULT_PARTITIONSERVER_PORT;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
             }
@@ -229,6 +230,7 @@ public class SQLConfiguration{
                 case IMPORT_MAX_QUOTED_COLUMN_LINES:
                 case BATCH_ONCE_BATCH_SIZE:
                 case PARTITIONSERVER_JMX_PORT:
+                case PARTITIONSERVER_PORT:
                     return true;
                 default:
                     return false;
@@ -238,7 +240,6 @@ public class SQLConfiguration{
         @Override
         public boolean hasStringDefault(String key){
             switch(key){
-                case PARTITIONSERVER_PORT:
                 case DEBUG_LOG_STATEMENT_CONTEXT:
                 case NETWORK_BIND_ADDRESS:
                     return true;
@@ -250,7 +251,6 @@ public class SQLConfiguration{
         @Override
         public String defaultStringFor(String key){
             switch(key){
-                case PARTITIONSERVER_PORT: return DEFAULT_PARTITIONSERVER_PORT;
                 case NETWORK_BIND_ADDRESS: return DEFAULT_NETWORK_BIND_ADDRESS;
                 default:
                     throw new IllegalArgumentException("No SQL default for key '"+key+"'");
@@ -287,12 +287,25 @@ public class SQLConfiguration{
 
         @Override
         public double defaultDoubleFor(String key){
-            throw new IllegalArgumentException("No SQL default for key '"+key+"'");
+            switch(key){
+                case CONTROL_SIDE_COST_THRESHOLD:
+                    return DEFAULT_CONTROL_SIDE_COST_THRESHOLD;
+                case CONTROL_SIDE_ROWCOUNT_THRESHOLD:
+                    return DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD;
+                default:
+                    throw new IllegalArgumentException("No SQL default for key '"+key+"'");
+            }
         }
 
         @Override
         public boolean hasDoubleDefault(String key){
-            return false;
+            switch(key){
+                case CONTROL_SIDE_COST_THRESHOLD:
+                case CONTROL_SIDE_ROWCOUNT_THRESHOLD:
+                    return true;
+                default:
+                    return false;
+            }
         }
     };
 }

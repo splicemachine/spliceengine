@@ -204,7 +204,10 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
 
     @Override
     public Collection<PartitionLoad> tableLoad(String tableName){
-        Map<String, PartitionLoad> partitionLoadMap=cache.get().get(tableName);
+        Map<String, Map<String, PartitionLoad>> regionLoadMap=cache.get();
+        if(regionLoadMap==null) return Collections.emptyList();
+        Map<String, PartitionLoad> partitionLoadMap=regionLoadMap.get(tableName);
+        if(partitionLoadMap==null) return Collections.emptyList();
         return partitionLoadMap.values();
     }
 

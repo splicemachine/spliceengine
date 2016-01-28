@@ -1,5 +1,6 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.derby.hbase.AllocatedFilter;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 
@@ -21,6 +22,6 @@ public class HFilterFactory implements DataFilterFactory{
 
     @Override
     public DataFilter allocatedFilter(byte[] localAddress){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return new HFilterWrapper(new AllocatedFilter(localAddress));
     }
 }

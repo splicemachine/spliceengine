@@ -4,6 +4,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.util.ChainedDefaults;
 import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.si.api.SIConfigurations;
+import com.splicemachine.storage.StorageConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
@@ -29,22 +30,31 @@ public class HConfiguration implements SConfiguration{
     public static final String DEFAULT_BACKUP_PATH = "/backup";
 
     /**
-     * The Path in zookeeper for storing the minimum active transaction.
-     * Defaults to /transactions/minimum
+     * The Path in zookeeper for manipulating transactional information.
+     * Set to [SpliceRootPath]/transactions
      */
-    public static final String MINIMUM_ACTIVE_PATH = "splice.minimum_active_node";
+    public static final String TRANSACTION_PATH = "/transactions";
+
+    /**
+     * The Path in zookeeper for storing the minimum active transaction.
+     * Defaults to [TRANSACTION_PATH]/minimum
+     */
+    public static final String MINIMUM_ACTIVE_PATH = TRANSACTION_PATH+"/minimum";
 
     /**
      * Path in ZooKeeper for manipulating Conglomerate information.
      * Defaults to /conglomerates
      */
-    public static final String CONGLOMERATE_SCHEMA_PATH = "splice.conglomerates_node";
+    public static final String CONGLOMERATE_SCHEMA_PATH = "/conglomerates";
 
     /**
      * Path in ZooKeeper for storing Derby properties information.
      * Defaults to /derbyPropertyPath
      */
-    public static final String DERBY_PROPERTY_PATH = "splice.derby_property_node";
+    public static final String DERBY_PROPERTY_PATH = "/derbyPropertyPath";
+
+    public static final String DDL_PATH="/ddl";
+    public static final String DDL_CHANGE_PATH="/ddlChange";
 
     /**
      * Location of Startup node in ZooKeeper. The presence of this node
@@ -59,12 +69,7 @@ public class HConfiguration implements SConfiguration{
      * Location of Leader Election path in ZooKeeper.
      * Defaults to /leaderElection
      */
-    public static final String LEADER_ELECTION = "splice.leader_election";
-    /**
-     * The Path in zookeeper for manipulating transactional information.
-     * Defaults to /transactions
-     */
-    public static final String TRANSACTION_PATH = "/transactions";
+    public static final String LEADER_ELECTION = "/leaderElection";
 
     public static final String SPLICE_ROOT_PATH = "splice.root.path";
     private static final String DEFAULT_ROOT_PATH="/splice";
@@ -83,7 +88,9 @@ public class HConfiguration implements SConfiguration{
             CONGLOMERATE_SCHEMA_PATH,
             MINIMUM_ACTIVE_PATH,
             TRANSACTION_PATH,
-            MAX_RESERVED_TIMESTAMP_PATH
+            MAX_RESERVED_TIMESTAMP_PATH,
+            DDL_CHANGE_PATH,
+            DDL_PATH
     ));
 
     // Splice Internal Tables
@@ -114,13 +121,6 @@ public class HConfiguration implements SConfiguration{
     public static final String DEFAULT_BLOOMFILTER = HColumnDescriptor.DEFAULT_BLOOMFILTER;
 
 //    private static final String DEFAULT_MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
-
-    /**
-     * The IP address to bind the Timestamp Server connection to.
-     * Defaults to 0.0.0.0
-     */
-    public static final String TIMESTAMP_SERVER_BIND_ADDRESS = "splice.timestamp_server.address";
-    private static final String DEFAULT_TIMESTAMP_SERVER_BIND_ADDRESS = "0.0.0.0";
 
 
     /**
@@ -156,7 +156,7 @@ public class HConfiguration implements SConfiguration{
             else if(defaults.hasLongDefault(key))
                 return Long.toString(defaults.defaultLongFor(key));
         }
-        return null;
+        return value;
     }
 
     @Override
@@ -203,12 +203,22 @@ public class HConfiguration implements SConfiguration{
 
         @Override
         public boolean hasLongDefault(String key){
-            return false;
+            switch(key){
+                case StorageConfiguration.REGION_MAX_FILE_SIZE:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         @Override
         public long defaultLongFor(String key){
-            throw new IllegalArgumentException("No hbase default for key '"+key+"'");
+            switch(key){
+                case StorageConfiguration.REGION_MAX_FILE_SIZE:
+                    return configuration.getLong(StorageConfiguration.REGION_MAX_FILE_SIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
+                default:
+                    throw new IllegalArgumentException("No hbase default for key '"+key+"'");
+            }
         }
 
         @Override
@@ -216,6 +226,7 @@ public class HConfiguration implements SConfiguration{
             switch(key){
                 case HConstants.REGION_SERVER_HANDLER_COUNT:
                 case SIConfigurations.TRANSACTION_LOCK_STRIPES:
+                case TIMESTAMP_BLOCK_SIZE:
                     return true;
                 default:
                     return false;
@@ -229,6 +240,7 @@ public class HConfiguration implements SConfiguration{
                 case HConstants.REGION_SERVER_HANDLER_COUNT: return HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT;
                 case SIConfigurations.TRANSACTION_LOCK_STRIPES:
                     return configuration.getInt(HConstants.REGION_SERVER_HANDLER_COUNT,HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
+                case TIMESTAMP_BLOCK_SIZE: return DEFAULT_TIMESTAMP_BLOCK_SIZE;
                 default:
                     throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
             }
@@ -239,6 +251,7 @@ public class HConfiguration implements SConfiguration{
             switch(key){
                 case SPLICE_ROOT_PATH:
                 case NAMESPACE:
+                case COMPRESSION_ALGORITHM:
                     return true;
             }
             return false;
@@ -247,12 +260,12 @@ public class HConfiguration implements SConfiguration{
         @Override
         public String defaultStringFor(String key){
             switch(key){
-                case SPLICE_ROOT_PATH:
-                    return DEFAULT_ROOT_PATH;
-                case NAMESPACE:
-                    return DEFAULT_NAMESPACE;
+                case SPLICE_ROOT_PATH: return DEFAULT_ROOT_PATH;
+                case NAMESPACE: return DEFAULT_NAMESPACE;
+                case COMPRESSION_ALGORITHM: return DEFAULT_COMPRESSION;
+                default:
+                    throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
             }
-            throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
         }
 
         @Override

@@ -8,7 +8,8 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.backup.BackupHFileCleaner;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.hbase.SpliceDerbyCoprocessor;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.hbase.RegionSizeEndpoint;
 import com.splicemachine.hbase.SpliceMasterObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
@@ -29,12 +30,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
-            SpliceDerbyCoprocessor.class
+            RegionServerLifecycleObserver.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceIndexObserver.class,
             SpliceIndexEndpoint.class,
+            RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class);
 
@@ -80,12 +82,12 @@ class SpliceTestPlatformConfig {
         // Networking -- interfaces
         //
         // force use of loop back interface on MacOSX, else don't set it
-        if (System.getProperty("os.name").contains("Mac") ) {
-            String interfaceName = "lo0";
-            config.set("hbase.zookeeper.dns.interface", interfaceName);
-            config.set("hbase.master.dns.interface", interfaceName);
-            config.set("hbase.regionserver.dns.interface", interfaceName);
-        }
+//        if (System.getProperty("os.name").contains("Mac") ) {
+//            String interfaceName = "lo0";
+//            config.set("hbase.zookeeper.dns.interface", interfaceName);
+//            config.set("hbase.master.dns.interface", interfaceName);
+//            config.set("hbase.regionserver.dns.interface", interfaceName);
+//        }
 
         //
         // File System

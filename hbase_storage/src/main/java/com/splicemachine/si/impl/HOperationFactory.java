@@ -8,6 +8,8 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -77,17 +79,18 @@ public class HOperationFactory implements OperationFactory{
     @Override
     public void writeScan(DataScan scan,ObjectOutput out) throws IOException{
         Scan delegate=((HScan)scan).unwrapDelegate();
-        out.writeObject(delegate);
+
+        byte[] bytes=ProtobufUtil.toScan(delegate).toByteArray();
+        out.writeInt(bytes.length);
+        out.write(bytes);
     }
 
     @Override
     public DataScan readScan(ObjectInput in) throws IOException{
-        try{
-            Scan scan=(Scan)in.readObject();
-            return new HScan(scan);
-        }catch(ClassNotFoundException e){
-            throw new IOException(e);
-        }
+        byte[] bytes = new byte[in.readInt()];
+        in.readFully(bytes);
+        ClientProtos.Scan scan=ClientProtos.Scan.parseFrom(bytes);
+        return new HScan(ProtobufUtil.toScan(scan));
     }
 
     @Override

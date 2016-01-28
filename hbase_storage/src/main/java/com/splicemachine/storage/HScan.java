@@ -142,7 +142,8 @@ public class HScan implements DataScan{
 
     @Override
     public DataScan batchCells(int cellsToBatch){
-        return null;
+        scan.setBatch(cellsToBatch);
+        return this;
     }
 
     public Scan unwrapDelegate(){
