@@ -190,6 +190,11 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
+    public void pushScopeForOp(String step) {
+        // no op
+    }
+
+    @Override
     public void popScope() {
         // no op
     }

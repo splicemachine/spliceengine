@@ -6,7 +6,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.spark.RDDUtils;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -46,18 +45,18 @@ public class ScalarAggregateFlatMapFunction
 
     private void accumulate(ExecRow next, ExecRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-        if (RDDUtils.LOG.isTraceEnabled()) {
-            RDDUtils.LOG.trace(String.format("Accumulating %s to %s", next, agg));
-        }
+//        if (RDDUtils.LOG.isTraceEnabled()) {
+//            RDDUtils.LOG.trace(String.format("Accumulating %s to %s", next, agg));
+//        }
         for (SpliceGenericAggregator aggregate : op.aggregates)
             aggregate.accumulate(next, agg);
     }
 
     private void merge(ExecRow next, ExecRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-        if (RDDUtils.LOG.isTraceEnabled()) {
-            RDDUtils.LOG.trace(String.format("Merging %s to %s", next, agg));
-        }
+//        if (RDDUtils.LOG.isTraceEnabled()) {
+//            RDDUtils.LOG.trace(String.format("Merging %s to %s", next, agg));
+//        }
         for (SpliceGenericAggregator aggregate : op.aggregates)
             aggregate.merge(next, agg);
     }
@@ -76,9 +75,9 @@ public class ScalarAggregateFlatMapFunction
         }
         ExecRow r1 = locatedRows.next().getRow();
         if (!op.isInitialized(r1)) {
-            if (RDDUtils.LOG.isTraceEnabled()) {
-                RDDUtils.LOG.trace(String.format("Initializing and accumulating %s", r1));
-            }
+//            if (RDDUtils.LOG.isTraceEnabled()) {
+//                RDDUtils.LOG.trace(String.format("Initializing and accumulating %s", r1));
+//            }
             op.initializeVectorAggregation(r1);
         }
         while (locatedRows.hasNext()) {
