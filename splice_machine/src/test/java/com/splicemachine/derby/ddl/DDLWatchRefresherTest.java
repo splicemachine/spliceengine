@@ -1,7 +1,9 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.TickingClock;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
@@ -21,13 +23,34 @@ import static org.junit.Assert.assertTrue;
 public class DDLWatchRefresherTest{
 
     private static final WritableTxn txn=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
+    private static final SqlExceptionFactory ef = new SqlExceptionFactory(){
+        @Override
+        public IOException asIOException(StandardException se){
+            return new IOException(se);
+        }
+
+        @Override public IOException writeWriteConflict(long txn1,long txn2){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException readOnlyModification(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException noSuchFamily(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException transactionTimeout(long tnxId){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException cannotCommit(long txnId,Txn.State actualState){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException cannotCommit(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException additiveWriteConflict(){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException doNotRetry(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException doNotRetry(Throwable t){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException processRemoteException(Throwable e){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException callerDisconnected(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException failedServer(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException notServingPartition(String s){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public boolean allowsRetry(Throwable error){ throw new UnsupportedOperationException("Should not happen"); }
+    };
 
     @Test
     public void picksUpNonTentativeChange() throws Exception{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,10l);
+        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,10l);
 
         //add a new change
 
@@ -52,7 +75,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,10l);
+        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,10l);
         CountingListener assertionListener = new CountingListener();
 
         for(DDLChangeType type:DDLChangeType.values()){
@@ -83,7 +106,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,10l);
+        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,10l);
         CountingListener assertionListener = new CountingListener();
 
         for(DDLChangeType type:DDLChangeType.values()){
@@ -113,7 +136,7 @@ public class DDLWatchRefresherTest{
         TestChecker checker=getTestChecker();
         Clock clock = new IncrementingClock(0);
 
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,10l);
+        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,10l);
 
         //add a new change
         DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change");
@@ -157,7 +180,7 @@ public class DDLWatchRefresherTest{
         TickingClock clock = new IncrementingClock(0);
 
         long timeoutMs=10l;
-        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,timeoutMs);
+        DDLWatchRefresher refresher = new DDLWatchRefresher(checker,null,clock,ef,timeoutMs);
         //add a new change
         final DDLChange testChange  = ProtoUtil.createNoOpDDLChange(txn.getTxnId(),"change");
         CountingListener assertionListener = new CountingListener();

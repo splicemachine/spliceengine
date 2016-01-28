@@ -11,7 +11,7 @@ import java.util.List;
  * Decorator for an HBase scanner that performs SI operations at compaction time. Delegates the core work to
  * SICompactionState.
  */
-public abstract class SICompactionScanner implements InternalScanner {
+public class SICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
     private List<Cell> rawList =new ArrayList<>();

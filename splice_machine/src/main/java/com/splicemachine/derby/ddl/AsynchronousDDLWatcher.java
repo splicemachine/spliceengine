@@ -1,6 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -44,28 +45,20 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     public AsynchronousDDLWatcher(TransactionReadController txnController,
                                   Clock clock,
                                   SConfiguration config,
-                                  DDLWatchChecker ddlWatchChecker){
+                                  DDLWatchChecker ddlWatchChecker,
+                                  SqlExceptionFactory exceptionFactory){
         long maxDdlWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
         this.refreshWaitMs = config.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL);
         this.checker = ddlWatchChecker;
-        this.refresher = new DDLWatchRefresher(checker,txnController,clock,maxDdlWait);
+        this.refresher = new DDLWatchRefresher(checker,txnController,clock,exceptionFactory,maxDdlWait);
     }
 
     @Override
-    public void start() throws StandardException {
-
-        try{
-            if(!checker.initialize(this))
-                return; //we aren't a server, so do nothing further
-        }catch(IOException ioe){
-            throw Exceptions.parseException(ioe);
-        }
+    public void start() throws IOException {
+        if(!checker.initialize(this))
+            return; //we aren't a server, so do nothing further
         // run refresh() synchronously the first time
-        try {
-            if(!refresher.refreshDDL(ddlListeners)) return;
-        } catch (Exception e) {
-            throw Exceptions.parseException(e);
-        }
+        if(!refresher.refreshDDL(ddlListeners)) return;
 
         refreshThread.submit(new Runnable() {
             @Override

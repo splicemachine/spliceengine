@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Utility methods for wrapping a StandardException in a IOException.
  */
-class SpliceDoNotRetryIOExceptionWrapping {
+public class SpliceDoNotRetryIOExceptionWrapping {
 
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(StandardException.class, new StandardExceptionAdapter())

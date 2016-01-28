@@ -68,7 +68,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 		this.htd = htd;
 		this.hri = hri;
 		this.scan = scan;
-		updateScanner();
 	}
 
     @Override

@@ -16,14 +16,19 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
  *         Date: 1/25/16
  */
 public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
-    private final String tableName;
-    private final SparkDataSetProcessor dsp;
+    private String tableName;
+    private SparkDataSetProcessor dsp;
+
+    public SparkScanSetBuilder(){
+    }
 
     public SparkScanSetBuilder(SparkDataSetProcessor dsp,String tableName){
         this.tableName=tableName;
@@ -47,5 +52,19 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
 
         Function f=new SparkSpliceFunctionWrapper<>(new TableScanTupleFunction<>(dsp.createOperationContext(activation)));
         return new SparkDataSet<>(rawRDD.map(f));
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException{
+        super.writeExternal(out);
+        out.writeUTF(tableName);
+        out.writeObject(dsp);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+        super.readExternal(in);
+        this.tableName = in.readUTF();
+        this.dsp = (SparkDataSetProcessor)in.readObject();
     }
 }

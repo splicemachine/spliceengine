@@ -1,5 +1,6 @@
 package com.splicemachine.ddl;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LockFactory;
@@ -7,6 +8,8 @@ import com.splicemachine.concurrent.ReentrantLockFactory;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.impl.driver.SIDriver;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -37,7 +40,7 @@ public class HBaseDDLEnvironment implements DDLEnvironment{
     }
 
     @Override
-    public void configure(SConfiguration config){
+    public void configure(SqlExceptionFactory exceptionFactory,SConfiguration config) throws IOException{
         config.addDefaults(DDLConfiguration.defaults); //make sure that we have the defaults in place
         DDLZookeeperClient zkClient = new DDLZookeeperClient(config);
         ZooKeeperDDLCommunicator communicator=new ZooKeeperDDLCommunicator(zkClient);
@@ -45,7 +48,12 @@ public class HBaseDDLEnvironment implements DDLEnvironment{
         Clock clock= SIDriver.driver().getClock();
         this.ddlController = new AsynchronousDDLController(communicator,lf,clock,config);
         TransactionReadController txnController=SIDriver.driver().readController();
-        this.watcher = new AsynchronousDDLWatcher(txnController,clock,config,new ZooKeeperDDLWatchChecker(zkClient));
+        this.watcher = new AsynchronousDDLWatcher(txnController,
+                clock,
+                config,
+                new ZooKeeperDDLWatchChecker(zkClient),
+                exceptionFactory );
+        this.watcher.start();
         this.config = config;
 
     }

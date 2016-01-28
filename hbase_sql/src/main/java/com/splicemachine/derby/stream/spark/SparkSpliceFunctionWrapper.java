@@ -31,7 +31,7 @@ public class SparkSpliceFunctionWrapper<T,R> implements Function<T,R>,Externaliz
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-       delegate.writeExternal(out);
+        out.writeObject(delegate);
     }
 
     @Override

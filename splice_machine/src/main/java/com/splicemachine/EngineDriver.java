@@ -32,6 +32,7 @@ public class EngineDriver{
     private final PartitionLoadWatcher loadWatcher;
     private final DataSetProcessorFactory processorFactory;
     private final PropertyManager propertyManager;
+    private final SqlExceptionFactory exceptionFactory;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -50,6 +51,7 @@ public class EngineDriver{
         this.loadWatcher = environment.getLoadWatcher();
         this.processorFactory = environment.getProcessorFactory();
         this.propertyManager = environment.getPropertyManager();
+        this.exceptionFactory = environment.exceptionFactory();
         this.sequencePool=CachedResourcePool.Builder.<SpliceSequence, SequenceKey>newBuilder()
                 .expireAfterAccess(1,TimeUnit.MINUTES)
                 .generator(new ResourcePool.Generator<SpliceSequence, SequenceKey>(){
@@ -100,5 +102,9 @@ public class EngineDriver{
 
     public BackupManager backupManager(){
         return backupManager;
+    }
+
+    public SqlExceptionFactory getExceptionFactory(){
+        return exceptionFactory;
     }
 }

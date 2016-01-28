@@ -1,5 +1,6 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -28,14 +29,15 @@ public class SynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     public SynchronousDDLWatcher(TransactionReadController txnController,
                                   Clock clock,
                                   SConfiguration config,
+                                 SqlExceptionFactory exceptionFactory,
                                   DDLWatchChecker ddlWatchChecker){
         long maxDdlWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
         this.checker = ddlWatchChecker;
-        this.refresher = new DDLWatchRefresher(checker,txnController,clock,maxDdlWait);
+        this.refresher = new DDLWatchRefresher(checker,txnController,clock,exceptionFactory,maxDdlWait);
     }
 
     @Override
-    public void start() throws StandardException{
+    public void start() throws IOException{
 
         try{
             if(!checker.initialize(this))
@@ -76,7 +78,7 @@ public class SynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
     public void onCommunicationEvent(String node){
         try{
             refresher.refreshDDL(ddlListeners);
-        }catch(IOException | StandardException e){
+        }catch(IOException e){
             LOG.error("Unable to refresh DDL",e);
         }
     }

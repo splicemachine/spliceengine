@@ -32,4 +32,6 @@ public interface SqlEnvironment{
     PropertyManager getPropertyManager();
 
     void initialize(SConfiguration config,Snowflake snowflake,Connection internalConnection,DatabaseVersion spliceVersion);
+
+    SqlExceptionFactory exceptionFactory();
 }

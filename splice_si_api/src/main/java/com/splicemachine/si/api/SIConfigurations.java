@@ -98,6 +98,9 @@ public class SIConfigurations{
     public static final String TIMESTAMP_SERVER_BIND_PORT = "splice.timestamp_server.port";
     private static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
 
+    public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
+    private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
+
     public static final SConfiguration.Defaults defaults=new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
@@ -119,6 +122,7 @@ public class SIConfigurations{
                 case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
                 case TIMESTAMP_CLIENT_WAIT_TIME: return DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME;
                 case TIMESTAMP_SERVER_BIND_PORT: return DEFAULT_TIMESTAMP_SERVER_BIND_PORT;
+                case ACTIVE_TRANSACTION_CACHE_SIZE: return DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE;
                 default:
                     throw new IllegalArgumentException("No SI default for key '"+key+"'");
             }
@@ -146,6 +150,7 @@ public class SIConfigurations{
                 case TRANSACTION_LOCK_STRIPES:
                 case TIMESTAMP_CLIENT_WAIT_TIME:
                 case TIMESTAMP_SERVER_BIND_PORT:
+                case ACTIVE_TRANSACTION_CACHE_SIZE:
                     return true;
                 default:
                     return false;

@@ -4,11 +4,15 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.SqlEnvironment;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.database.Database;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnection40;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLEnvironmentLoader;
 import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
+import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
@@ -94,7 +98,9 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         EngineDriver.loadDriver(ese);
 
         //initialize the DDLDriver
-        DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration));
+        DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration,EngineDriver.driver().getExceptionFactory()));
+        SpliceDatabase db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getDatabase();
+        db.registerDDL();
     }
 
     @Override

@@ -20,9 +20,15 @@ import java.io.IOException;
 public class HBase10ClientSideRegionScanner extends SkeletonClientSideRegionScanner{
     private final Table table;
 
-    public HBase10ClientSideRegionScanner(Table table,FileSystem fs,Path rootDir,HTableDescriptor htd,HRegionInfo hri,Scan scan) throws IOException{
+    public HBase10ClientSideRegionScanner(Table table,
+                                          FileSystem fs,
+                                          Path rootDir,
+                                          HTableDescriptor htd,
+                                          HRegionInfo hri,
+                                          Scan scan) throws IOException{
         super(table.getConfiguration(),fs,rootDir,htd,hri,scan);
         this.table = table;
+        updateScanner();
     }
 
     @Override

@@ -56,7 +56,7 @@ public class RegionDataScanner implements DataScanner{
 
     @Override
     public List<DataCell> next(int limit) throws IOException{
-        if(internalList!=null)
+        if(internalList==null)
             internalList = new ArrayList<>(limit>0?limit:10);
         readTimer.startTiming();
         delegate.next(internalList);

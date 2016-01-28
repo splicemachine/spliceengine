@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
+import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
 import com.splicemachine.concurrent.Clock;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
@@ -158,17 +160,19 @@ public class SplitRegionScanner implements RegionScanner {
 		if (System.getProperty("hbase.rootdir") != null)
 			conf.set("hbase.rootdir",System.getProperty("hbase.rootdir"));
 
-		throw new UnsupportedOperationException("IMPLEMENT");
-//        try{
-//			ClientSideRegionScanner skeletonClientSideRegionScanner=
-//					new ClientSideRegionScanner(conf, FSUtils.getCurrentFileSystem(conf), FSUtils.getRootDir(conf),
-//							table.getTableDescriptor(),getRegionInfo(newScan),
-//							newScan,null);
-//			this.region = skeletonClientSideRegionScanner.getRegion();
-//			registerRegionScanner(skeletonClientSideRegionScanner);
-//		} catch (Exception e) {
-//			throw new IOException(e);
-//		}
+        try{
+			SkeletonClientSideRegionScanner skeletonClientSideRegionScanner=
+					new HBase10ClientSideRegionScanner(table,
+							FSUtils.getCurrentFileSystem(conf),
+							FSUtils.getRootDir(conf),
+							table.getTableDescriptor(),
+							getRegionInfo(newScan),
+							newScan);
+			this.region = skeletonClientSideRegionScanner.getRegion();
+			registerRegionScanner(skeletonClientSideRegionScanner);
+		} catch (Exception e) {
+			throw new IOException(e);
+		}
 	}
 
     private HRegionInfo getRegionInfo(Scan newScan) throws IOException{

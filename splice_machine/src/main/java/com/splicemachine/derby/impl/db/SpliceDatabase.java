@@ -25,6 +25,7 @@ import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -260,19 +261,7 @@ public class SpliceDatabase extends BasicDatabase{
         pf=(PropertyFactory)Monitor.bootServiceModule(create,this,com.splicemachine.db.iapi.reference.Module.PropertyFactory,startParams);
     }
 
-    @Override
-    protected void bootStore(boolean create,Properties startParams) throws StandardException{
-        //boot the ddl environment if necessary
-        DDLEnvironment env = DDLEnvironmentLoader.loadEnvironment(SIDriver.driver().getConfiguration());
-
-        SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
-        af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
-        ((SpliceAccessManager) af).setDatabase(this);
-        if(create){
-            TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate("boot".getBytes());
-        }
-
+    public void registerDDL(){
         DDLDriver.driver().ddlWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
             @Override
             public void startGlobalChange(){
@@ -321,6 +310,21 @@ public class SpliceDatabase extends BasicDatabase{
                 System.out.println("Change failed "+ changeId);
             }
         });
+    }
+
+    @Override
+    protected void bootStore(boolean create,Properties startParams) throws StandardException{
+        //boot the ddl environment if necessary
+//        DDLEnvironment env = DDLEnvironmentLoader.loadEnvironment(SIDriver.driver().getConfiguration());
+
+        SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
+        af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
+        ((SpliceAccessManager) af).setDatabase(this);
+        if(create){
+            TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
+            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate("boot".getBytes());
+        }
+
     }
 
 }

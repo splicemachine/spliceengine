@@ -1,6 +1,9 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
+
+import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -13,5 +16,5 @@ public interface DDLEnvironment{
 
     SConfiguration getConfiguration();
 
-    void configure(SConfiguration config);
+    void configure(SqlExceptionFactory exceptionFactory,SConfiguration config) throws IOException;
 }

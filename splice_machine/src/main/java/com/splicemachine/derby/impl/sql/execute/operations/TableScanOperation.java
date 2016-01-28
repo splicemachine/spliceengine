@@ -181,6 +181,7 @@ public class TableScanOperation extends ScanOperation{
     public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
         return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
+                .activation(activation)
                 .transaction(txn)
                 .scan(getNonSIScan())
                 .template(currentTemplate)

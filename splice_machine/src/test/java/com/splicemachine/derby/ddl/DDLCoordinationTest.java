@@ -1,5 +1,6 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SingleInstanceLockFactory;
@@ -32,6 +33,27 @@ public class DDLCoordinationTest{
     private static final WritableTxn txn=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
     private static final SConfiguration config = new TestConfiguration();
 
+    private static final SqlExceptionFactory ef = new SqlExceptionFactory(){
+        @Override
+        public IOException asIOException(StandardException se){
+            return new IOException(se);
+        }
+
+        @Override public IOException writeWriteConflict(long txn1,long txn2){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException readOnlyModification(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException noSuchFamily(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException transactionTimeout(long tnxId){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException cannotCommit(long txnId,Txn.State actualState){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException cannotCommit(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException additiveWriteConflict(){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException doNotRetry(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException doNotRetry(Throwable t){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException processRemoteException(Throwable e){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException callerDisconnected(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException failedServer(String message){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public IOException notServingPartition(String s){ throw new UnsupportedOperationException("Should not happen"); }
+        @Override public boolean allowsRetry(Throwable error){ throw new UnsupportedOperationException("Should not happen"); }
+    };
 
     @Test
     public void refreshNotifyAfterTimeout() throws Exception{
@@ -58,7 +80,7 @@ public class DDLCoordinationTest{
                  */
                 try{
                     refresher.refreshDDL(Collections.<DDLWatcher.DDLListener>singleton(listener));
-                }catch(StandardException | IOException e){
+                }catch(IOException e){
                     throw new RuntimeException(e);
                 }
             }
@@ -118,7 +140,7 @@ public class DDLCoordinationTest{
                 Assert.assertTrue("DDLCommunicator did not receive a notification!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));
                 try{
                     refresher.refreshDDL(Collections.<DDLWatcher.DDLListener>singleton(listener));
-                }catch(IOException|StandardException e){
+                }catch(IOException e){
                     throw new RuntimeException(e);
                 }
                 clock.tickMillis(4l);
@@ -138,7 +160,7 @@ public class DDLCoordinationTest{
                      */
                     try{
                         refresher.refreshDDL(Collections.<DDLWatcher.DDLListener>singleton(listener));
-                    }catch(IOException|StandardException e){
+                    }catch(IOException e){
                         throw new RuntimeException(e);
                     }
                 }
@@ -198,7 +220,7 @@ public class DDLCoordinationTest{
                  */
                 try{
                     refresher.refreshDDL(Collections.<DDLWatcher.DDLListener>singleton(listener));
-                }catch(IOException|StandardException e){
+                }catch(IOException e){
                     throw new RuntimeException(e);
                 }
             }
@@ -247,7 +269,7 @@ public class DDLCoordinationTest{
                 ddlCommunicator.serverCompleted(fields[0],fields[1]);
             }
         });
-        return new DDLWatchRefresher(refreshChecker,null,clock,10l);
+        return new DDLWatchRefresher(refreshChecker,null,clock,ef,10l);
     }
 
     private TestDDLCommunicator getDDLCommunicator(final List<String> servers,final List<DDLChange> changes){

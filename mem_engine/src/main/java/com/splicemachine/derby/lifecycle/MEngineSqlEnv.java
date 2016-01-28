@@ -1,15 +1,14 @@
 package com.splicemachine.derby.lifecycle;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
-import com.splicemachine.derby.impl.sql.ControlOnlyDataSetProcessorFactory;
-import com.splicemachine.derby.impl.sql.DirectPartitionLoadWatcher;
-import com.splicemachine.derby.impl.sql.DirectPropertyManager;
-import com.splicemachine.derby.impl.sql.NoOpBackupManager;
+import com.splicemachine.derby.impl.sql.*;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;
@@ -23,6 +22,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     private PropertyManager propertyManager;
     private PartitionLoadWatcher partitionLoadWatcher;
     private DataSetProcessorFactory dspFactory;
+    private SqlExceptionFactory exceptionFactory;
 
     @Override
     public void initialize(SConfiguration config,
@@ -33,6 +33,12 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
         this.propertyManager = new DirectPropertyManager();
         this.partitionLoadWatcher = new DirectPartitionLoadWatcher();
         this.dspFactory = new ControlOnlyDataSetProcessorFactory();
+        this.exceptionFactory = new MSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
+    }
+
+    @Override
+    public SqlExceptionFactory exceptionFactory(){
+        return exceptionFactory;
     }
 
     @Override

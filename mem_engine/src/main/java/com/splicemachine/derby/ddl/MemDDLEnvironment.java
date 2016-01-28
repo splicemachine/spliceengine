@@ -1,5 +1,7 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.ReentrantLockFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -22,27 +24,7 @@ public class MemDDLEnvironment implements DDLEnvironment{
     private DDLController ddlController;
     private DDLWatcher ddlWatcher;
 
-    public MemDDLEnvironment(){
-        SIDriver driver = SIDriver.driver();
-        SConfiguration config = driver.getConfiguration();
-        config.addDefaults(DDLConfiguration.defaults);
-        DDLChangeStore changeStore = new DDLChangeStore();
-        DDLWatchChecker ddlWatchChecker=new DirectWatcher(changeStore);
-        this.ddlWatcher = new SynchronousDDLWatcher(
-                driver.readController(),
-                driver.getClock(),
-                driver.getConfiguration(),
-                ddlWatchChecker);
-
-        DDLCommunicator communicator = new DirectCommunicator(changeStore);
-        this.ddlController = new AsynchronousDDLController(communicator,new ReentrantLockFactory(false),
-                driver.getClock(),driver.getConfiguration());
-        try{
-            this.ddlWatcher.start();
-        }catch(StandardException e){
-            throw new RuntimeException(e);
-        }
-    }
+    public MemDDLEnvironment(){ }
 
     @Override
     public DDLController getController(){
@@ -57,6 +39,26 @@ public class MemDDLEnvironment implements DDLEnvironment{
     @Override
     public SConfiguration getConfiguration(){
         return SIDriver.driver().getConfiguration();
+    }
+
+    @Override
+    public void configure(SqlExceptionFactory exceptionFactory,SConfiguration config) throws IOException{
+        config.addDefaults(DDLConfiguration.defaults);
+        DDLChangeStore changeStore = new DDLChangeStore();
+        DDLWatchChecker ddlWatchChecker=new DirectWatcher(changeStore);
+
+        SIDriver driver = SIDriver.driver();
+        this.ddlWatcher = new SynchronousDDLWatcher(
+                        driver.readController(),
+                        driver.getClock(),
+                        driver.getConfiguration(),
+                EngineDriver.driver().getExceptionFactory(),
+                ddlWatchChecker);
+
+        DDLCommunicator communicator = new DirectCommunicator(changeStore);
+        this.ddlController = new AsynchronousDDLController(communicator,new ReentrantLockFactory(false),
+                driver.getClock(),driver.getConfiguration());
+        this.ddlWatcher.start();
     }
 
     private static class DDLChangeStore{

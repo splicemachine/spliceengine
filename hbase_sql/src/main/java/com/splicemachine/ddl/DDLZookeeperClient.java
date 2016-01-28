@@ -30,7 +30,7 @@ class DDLZookeeperClient {
 
     public DDLZookeeperClient(SConfiguration config){
         String rootPath = config.getString(HConfiguration.SPLICE_ROOT_PATH);
-        this.changePath = rootPath+"/"+HConfiguration.DDL_CHANGE_PATH;
+        this.changePath = rootPath+HConfiguration.DDL_CHANGE_PATH;
     }
 
 

@@ -3,6 +3,8 @@ package com.splicemachine.derby.ddl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage;
+
+import java.io.IOException;
 import java.util.Collection;
 
 public interface DDLWatcher {
@@ -47,7 +49,7 @@ public interface DDLWatcher {
     }
 
 
-    void start() throws StandardException;
+    void start() throws IOException;
 
     Collection<DDLMessage.DDLChange> getTentativeDDLs();
 

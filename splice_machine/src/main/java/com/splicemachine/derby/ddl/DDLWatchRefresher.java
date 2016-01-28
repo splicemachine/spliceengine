@@ -1,5 +1,6 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
@@ -33,11 +34,13 @@ public class DDLWatchRefresher{
     private final TransactionReadController txController;
     private final long maxDdlWaitMs;
     private final AtomicInteger currChangeCount= new AtomicInteger(0);
+    private final SqlExceptionFactory exceptionFactory;
 
 
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
                              TransactionReadController txnController,
                              Clock clock,
+                             SqlExceptionFactory exceptionFactory,
                              long maxDdlWaitMs){
         this.clock=clock;
         this.txController = txnController;
@@ -47,6 +50,7 @@ public class DDLWatchRefresher{
         this.currentDDLChanges=new HashMap<>();
         this.tentativeDDLS=new ConcurrentHashMap<>();
         this.watchChecker=watchChecker;
+        this.exceptionFactory =exceptionFactory;
         ddlDemarcationPoint = new AtomicReference<>();
     }
 
@@ -58,14 +62,18 @@ public class DDLWatchRefresher{
         return currChangeCount.get();
     }
 
-    public boolean refreshDDL(Set<DDLWatcher.DDLListener> callbacks) throws IOException, StandardException{
+    public boolean refreshDDL(Set<DDLWatcher.DDLListener> callbacks) throws IOException{
         Collection<String> ongoingDDLChangeIds=watchChecker.getCurrentChangeIds();
         if(ongoingDDLChangeIds==null) return false;
 
         Set<Pair<DDLChange,String>> newChanges=new HashSet<>();
         boolean currentWasEmpty=currentDDLChanges.isEmpty();
 
-        clearFinishedChanges(ongoingDDLChangeIds,callbacks);
+        try{
+            clearFinishedChanges(ongoingDDLChangeIds,callbacks);
+        }catch(StandardException se){
+            throw exceptionFactory.asIOException(se);
+        }
 
         for(String changeId : ongoingDDLChangeIds){
             if(!seenDDLChanges.contains(changeId)){

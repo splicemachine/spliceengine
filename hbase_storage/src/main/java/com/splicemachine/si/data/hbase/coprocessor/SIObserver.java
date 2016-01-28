@@ -5,8 +5,10 @@ import com.google.common.collect.Maps;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionalFilter;
@@ -16,6 +18,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
@@ -135,8 +138,11 @@ public class SIObserver extends BaseRegionObserver{
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
         if(tableEnvMatch){
-            throw new UnsupportedOperationException("IMPLEMENT COMPACTION");
-//			return region.compactionScanner(scanner);
+            SIDriver driver=SIDriver.driver();
+            SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
+                    driver.getRollForward(),
+                    driver.getConfiguration().getInt(SIConfigurations.ACTIVE_TRANSACTION_CACHE_SIZE));
+            return new SICompactionScanner(state,scanner);
         }else{
             return super.preCompact(e,store,scanner,scanType,compactionRequest);
         }
