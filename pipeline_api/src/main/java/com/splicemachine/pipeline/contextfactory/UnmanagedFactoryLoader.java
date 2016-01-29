@@ -32,7 +32,9 @@ public class UnmanagedFactoryLoader implements ContextFactoryLoader{
     }
 
     @Override
-    public void unload(){ } //no-op
+    public void close(){
+
+    }
 
     @Override
     public WriteFactoryGroup getForeignKeyFactories(){

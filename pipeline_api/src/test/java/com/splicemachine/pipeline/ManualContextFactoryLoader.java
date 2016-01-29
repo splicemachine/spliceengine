@@ -50,7 +50,7 @@ public class ManualContextFactoryLoader implements ContextFactoryLoader{
     }
 
     @Override
-    public void unload(){
+    public void close(){
         //no-op
     }
 }

@@ -137,7 +137,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     }
 
     @Override
-    public void unload(){
+    public void close(){
         DDLDriver.driver().ddlWatcher().unregisterDDLListener(ddlListener);
     }
 
