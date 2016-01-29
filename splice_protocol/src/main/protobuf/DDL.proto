@@ -16,11 +16,7 @@ message AlterStats {
 message DropIndex {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
-}
 
-message DropIndexTrigger {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
 }
 
 message DropSchema {
@@ -151,7 +147,6 @@ enum DDLChangeType {
     DICTIONARY_UPDATE = 17;
     CREATE_TABLE = 18;
     CREATE_SCHEMA = 19;
-    DROP_INDEX_TRIGGER = 20;
 }
 
 message DDLChange {
@@ -170,5 +165,4 @@ message DDLChange {
     optional TentativeDropPKConstraint tentativeDropPKConstraint = 13;
     optional TentativeIndex tentativeIndex = 14;
     optional TentativeDropConstraint tentativeDropConstraint = 15;
-    optional DropIndexTrigger dropIndexTrigger = 16;
 }

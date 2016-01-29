@@ -18,8 +18,6 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.primitives.BooleanArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -95,7 +93,7 @@ public class ProtoUtil {
     }
 
     public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor) {
-        boolean[] descColumns = indexDescriptor.isAscending();
+        boolean[] descColumns = BooleanArrays.not(indexDescriptor.isAscending());
         return Index.newBuilder()
                 .setConglomerate(conglomerate)
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
@@ -107,11 +105,10 @@ public class ProtoUtil {
     public static Table createTable(long conglomerate, TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
         assert td!=null:"TableDescriptor is null";
         assert td.getFormatIds()!=null:"No Format ids";
-        SpliceConglomerate sc = (SpliceConglomerate)((SpliceTransactionManager)lcc.getTransactionExecute()).findConglomerate(conglomerate);
         return Table.newBuilder()
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
-                .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
+                .addAllColumnOrdering(Ints.asList(td.getColumnOrdering(lcc.getDataDictionary())))
                 .setTableVersion(DataDictionaryUtils.getTableVersion(lcc, td.getUUID())).build();
     }
 
@@ -238,16 +235,6 @@ public class ProtoUtil {
                 .setChangeId(changeId)
                 .build();
     }
-
-    public static DDLChange createDropIndexTrigger(long indexConglomId, long tableConglomId, long txnId) {
-        return DDLChange.newBuilder().setTxnId(txnId).setDropIndexTrigger(DropIndexTrigger.newBuilder()
-                .setBaseConglomerate(tableConglomId)
-                .setConglomerate(indexConglomId))
-                .setDdlChangeType(DDLChangeType.DROP_INDEX_TRIGGER)
-                .build();
-    }
-
-
 
 }
 
