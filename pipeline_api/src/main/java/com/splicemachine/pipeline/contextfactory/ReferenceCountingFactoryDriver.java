@@ -62,11 +62,6 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
         }
 
         @Override
-        public void unload(){
-            delegate.unload();
-        }
-
-        @Override
         public WriteFactoryGroup getForeignKeyFactories(){
             return delegate.getForeignKeyFactories();
         }
