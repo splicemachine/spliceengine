@@ -486,7 +486,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // Check if there is a manual override that is forcing an upgrade.
         // This flag should only be true for the master server.  If the upgrade runs on the region server,
         // it would probably be bad (at least if it ran concurrently with another upgrade).
-        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        SConfiguration configuration=SIDriver.driver().getConfiguration();
         if(configuration.getBoolean(SQLConfiguration.UPGRADE_FORCED)){
             LOG.info(String.format("Upgrade has been manually forced from version %s",
                     configuration.getString(SQLConfiguration.UPGRADE_FORCED_FROM)));

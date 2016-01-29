@@ -48,6 +48,6 @@ public class MasterLifecycle implements DistributedDerbyStartup{
 
     @Override
     public boolean connectAsFirstTime(){
-        return true;
+        return loading;
     }
 }

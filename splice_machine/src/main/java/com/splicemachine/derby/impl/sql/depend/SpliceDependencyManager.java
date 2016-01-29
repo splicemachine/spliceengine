@@ -51,8 +51,11 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 		TransactionController tCont = tc;
 		if(tCont==null)
 			tCont = lcc.getTransactionExecute();
-		if(tCont!=null)
-			tCont.elevate("dictionary");
+//		if(tCont!=null){
+//			BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)tCont).getRawTransaction();
+//			if(!rawTransaction.getTxnInformation().allowsWrites())
+//				tCont.elevate("dictionary");
+//		}
 		super.clearDependencies(lcc,d,tc);
 	}
 

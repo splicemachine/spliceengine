@@ -25,6 +25,7 @@ import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Level;
@@ -58,12 +59,8 @@ public class SpliceDatabase extends BasicDatabase{
             SanityManager.DEBUG_SET("DumpOptimizedTree");
 
         configureAuthentication();
-//        EngineDriver.driver().getInternalConnection()
-        try{
-            create=EngineDriver.driver()==null;
-        }catch(Exception e){
-            SpliceLogUtils.logAndThrow(LOG,"isSpliceLoadedOnBoot failure",Exceptions.parseException(e));
-        }
+
+        create=Boolean.TRUE==EngineLifecycleService.isCreate.get(); //written like this to avoid autoboxing
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");

@@ -3,6 +3,8 @@ package com.splicemachine.pipeline;
 import com.google.common.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
 
@@ -17,14 +19,23 @@ public class Exceptions {
     private Exceptions(){} //can't make me
 
     public static StandardException parseException(Throwable e) {
+        if(e instanceof StandardException)
+            return (StandardException)e;
         Throwable rootCause = Throwables.getRootCause(e);
         if (rootCause instanceof StandardException) {
             return (StandardException) rootCause;
         }
-        PipelineExceptionFactory ef=PipelineDriver.driver().exceptionFactory();
+        PipelineDriver pd = PipelineDriver.driver();
+        if(pd!=null){
+           e = pd.exceptionFactory().processPipelineException(e);
+        }else{
+            ExceptionFactory ef=SIDriver.driver().getExceptionFactory();
+            e = ef.processRemoteException(e);
+        }
+        Throwable t = Throwables.getRootCause(e);
+        if(t instanceof StandardException) return (StandardException)t;
 
-        e = ef.processPipelineException(rootCause);
-        ErrorState state = ErrorState.stateFor(rootCause);
+        ErrorState state = ErrorState.stateFor(e);
 
 //        if (rootCause instanceof RetriesExhaustedWithDetailsException) {
 //            return parseException((RetriesExhaustedWithDetailsException) rootCause);

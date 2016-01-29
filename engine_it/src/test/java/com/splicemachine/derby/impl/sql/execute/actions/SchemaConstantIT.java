@@ -21,6 +21,7 @@ public class SchemaConstantIT extends SpliceUnitTest {
     private static final String CLASS_NAME = SchemaConstantIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA1_NAME = CLASS_NAME + "_1";
     private static final String SCHEMA2_NAME = CLASS_NAME + "_2";
+    private static final String SCHEMA3_NAME = CLASS_NAME + "_3";
 
     private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -91,19 +92,19 @@ public class SchemaConstantIT extends SpliceUnitTest {
     public void testSchemaRollbackIsolation() throws Exception{
         Connection connection1 = methodWatcher.createConnection();
         Connection connection2 = methodWatcher.createConnection();
-        schemaDAO.drop(SCHEMA1_NAME);
+        schemaDAO.drop(SCHEMA3_NAME);
         connection1.setAutoCommit(false);
         connection2.setAutoCommit(false);
-        connection1.createStatement().execute(String.format("create schema %s",SCHEMA1_NAME));
-        ResultSet resultSet = connection2.getMetaData().getSchemas(null, SCHEMA1_NAME);
+        connection1.createStatement().execute(String.format("create schema %s",SCHEMA3_NAME));
+        ResultSet resultSet = connection2.getMetaData().getSchemas(null, SCHEMA3_NAME);
         Assert.assertFalse("Read Committed Violated",resultSet.next());
-        resultSet = connection1.getMetaData().getSchemas(null, SCHEMA1_NAME);
+        resultSet = connection1.getMetaData().getSchemas(null, SCHEMA3_NAME);
         Assert.assertTrue("Connection should see its own writes",resultSet.next());
         connection1.rollback();
-        resultSet = connection2.getMetaData().getSchemas(null, SCHEMA1_NAME);
+        resultSet = connection2.getMetaData().getSchemas(null, SCHEMA3_NAME);
         Assert.assertFalse("Read Timestamp Violated",resultSet.next());
         connection2.commit();
-        resultSet = connection2.getMetaData().getSchemas(null, SCHEMA1_NAME);
+        resultSet = connection2.getMetaData().getSchemas(null, SCHEMA3_NAME);
         Assert.assertFalse("New Transaction cannot see rollbacked schema",resultSet.next());
     }
 

@@ -114,20 +114,27 @@ public class CreateTableTransactionIT {
 
     @Test
     public void testCreateTableCommitAllowsOtherTransactionsToInsert() throws Exception{
+        String table = schemaWatcher.schemaName+".t10";
         try(Statement s = conn1.createStatement()){
-            s.executeUpdate("create table t10 (a int, b int)");
+            s.executeUpdate("create table "+table+" (a int, b int)");
         }
         conn1.commit();
         conn2.commit(); //advance to ensure visibility
 
-        try(Statement s = conn1.createStatement()){
-            Assert.assertEquals("Data was mysteriously present!",0l,conn1.count(s,"select * from t10"));
-        }
+        try{
+            try(Statement s=conn1.createStatement()){
+                Assert.assertEquals("Data was mysteriously present!",0l,conn1.count(s,"select * from "+table));
+            }
 
-        try(Statement s = conn2.createStatement()){
-            Assert.assertEquals("Data was mysteriously present!",0l,conn2.count(s,"select * from t10"));
-            s.execute("insert into t10 (a, b) values (1,1)");
-            Assert.assertEquals("Data was not inserted properly!",1l,conn2.count(s,"select * from t10"));
+            try(Statement s=conn2.createStatement()){
+                Assert.assertEquals("Data was mysteriously present!",0l,conn2.count(s,"select * from "+table));
+                s.execute("insert into t10 (a, b) values (1,1)");
+                Assert.assertEquals("Data was not inserted properly!",1l,conn2.count(s,"select * from "+table));
+            }
+        }finally{
+            try(Statement s = conn1.createStatement()){
+                s.executeUpdate("drop table "+table);
+            }
         }
     }
 }

@@ -40,6 +40,8 @@ import java.util.Properties;
  *         Date: 1/6/16
  */
 public class EngineLifecycleService implements DatabaseLifecycleService{
+    public static ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
+
     private static final Logger LOG=Logger.getLogger(EngineLifecycleService.class);
     private final DistributedDerbyStartup startup;
     private final SConfiguration configuration;
@@ -74,11 +76,15 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
         if(startup.connectAsFirstTime()){
+            isCreate.set(Boolean.TRUE);
             internalConnection=maker.createFirstNew(configuration,dbProperties);
-        }else
-            internalConnection = maker.createNew(dbProperties);
+        }else{
+            isCreate.set(Boolean.FALSE);
+            internalConnection=maker.createNew(dbProperties);
+        }
 
         startup.markBootFinished();
+        isCreate.remove();
 
         ContextFactoryDriver cfDriver = new ContextFactoryDriver(){
             @Override
