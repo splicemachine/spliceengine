@@ -83,9 +83,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             boolean prepared = false;
             try {
                 impl = new SpliceTransactionResourceImpl();
-                impl.prepareContextManager();
-                prepared = true;
-                impl.marshallTransaction(txn);
+
+                prepared = impl.marshallTransaction(txn);
                 activation = soi.getActivation(impl.getLcc());
                 context = SpliceOperationContext.newContext(activation);
                 op.init(context);

@@ -12,6 +12,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -40,14 +41,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         dbname=InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
         username=IdUtil.getUserNameFromURLProps(info); // Static
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
-        ContextManager ctxM = csf.getCurrentContextManager();
-        if(ctxM==null){
-            cm=csf.newContextManager(); // Needed
-            csf.setCurrentContextManager(cm);
-        }else{
-            cm = ctxM;
-            generateLcc = false;
-        }
 
         database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
         if(database==null){
@@ -64,14 +57,25 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         }
     }
 
-    public void marshallTransaction(TxnView txn) throws StandardException, SQLException{
+    public boolean marshallTransaction(TxnView txn) throws StandardException, SQLException{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
-        if(generateLcc){
-            lcc = database.generateLanguageConnectionContext(txn,csf.getCurrentContextManager(),username,drdaID,dbname);
-        }else{
-            lcc = (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
+
+        ContextManager ctxM = csf.getCurrentContextManager();
+        if(ctxM!=null){
+            LanguageConnectionContext possibleLcc = (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
+            if(((SpliceTransactionManager)possibleLcc.getTransactionExecute()).getActiveStateTxn().equals(txn)){
+                cm=ctxM;
+                generateLcc=false;
+                lcc=possibleLcc;
+                return false;
+            }
         }
+        cm=csf.newContextManager(); // Needed
+        cm.setActiveThread();
+        csf.setCurrentContextManager(cm);
+        lcc = database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname);
+        return true;
     }
 
 
@@ -81,6 +85,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                 cm.popContext();
             }
             csf.resetCurrentContextManager(cm);
+            csf.forceRemoveContext(cm);
         }
     }
 

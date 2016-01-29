@@ -3,12 +3,12 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import com.splicemachine.test_dao.SchemaDAO;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
@@ -22,8 +22,8 @@ public class SchemaConstantIT extends SpliceUnitTest {
     private static final String SCHEMA1_NAME = CLASS_NAME + "_1";
     private static final String SCHEMA2_NAME = CLASS_NAME + "_2";
     private static final String SCHEMA3_NAME = CLASS_NAME + "_3";
+    private static final String SCHEMA4_NAME = CLASS_NAME + "_4";
 
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     @Override
@@ -32,7 +32,7 @@ public class SchemaConstantIT extends SpliceUnitTest {
     }
 
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).around(spliceSchemaWatcher);
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -108,4 +108,65 @@ public class SchemaConstantIT extends SpliceUnitTest {
         Assert.assertFalse("New Transaction cannot see rollbacked schema",resultSet.next());
     }
 
+    @Test
+    public void testSchemaCreationShowsInMetadata() throws Exception{
+        Connection conn = methodWatcher.getOrCreateConnection();
+        String schemaName = SCHEMA4_NAME;
+        boolean drop = false;
+        try(ResultSet schemas=conn.getMetaData().getSchemas()){
+            while(schemas.next()){
+                if(schemaName.equalsIgnoreCase(schemas.getString(1))){
+                    //schema exists, so try and drop it
+                    drop=true;
+                    break;
+                }
+            }
+        }
+        if(drop){
+            //try dropping the schema then try finding it again to make sure it's dropped
+            try(Statement s = conn.createStatement()){
+                s.executeUpdate("drop schema "+schemaName+" restrict");
+            }
+            //validate that it isn't in the metadata any longer
+            try(ResultSet schemas=conn.getMetaData().getSchemas()){
+                while(schemas.next()){
+                    Assert.assertNotEquals("Schema still found after dropping!",schemaName.toUpperCase(),schemas.getString(1));
+                }
+            }
+        }
+
+        //create the schema and make sure it's present
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create schema "+schemaName);
+        }
+
+        boolean found = false;
+        try(ResultSet schemas=conn.getMetaData().getSchemas()){
+            while(schemas.next()){
+                if(schemaName.equalsIgnoreCase(schemas.getString(1))){
+                    //schema exists!
+                    found=true;
+                    break;
+                }
+            }
+        }
+        Assert.assertTrue("Did not find schema after creation!",found);
+
+        //now drop it and make sure it's not there any more
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("drop schema "+schemaName+" restrict");
+        }
+        //validate that it isn't in the metadata any longer
+        try(ResultSet schemas=conn.getMetaData().getSchemas()){
+            while(schemas.next()){
+                Assert.assertNotEquals("Schema still found after dropping!",schemaName.toUpperCase(),schemas.getString(1));
+            }
+        }
+    }
+
+    @Test
+    public void doubleTestSchemaCreationShowsInMetadata() throws Exception{
+        testSchemaCreationShowsInMetadata();
+        testSchemaCreationShowsInMetadata();
+    }
 }

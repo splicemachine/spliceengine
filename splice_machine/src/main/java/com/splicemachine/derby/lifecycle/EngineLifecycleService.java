@@ -3,12 +3,10 @@ package com.splicemachine.derby.lifecycle;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.SqlEnvironment;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.database.Database;
 import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedConnection40;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLEnvironmentLoader;
 import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
@@ -21,9 +19,9 @@ import com.splicemachine.pipeline.DerbyContextFactoryLoader;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
+import com.splicemachine.pipeline.contextfactory.ReferenceCountingFactoryDriver;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
-import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.SnowflakeLoader;
@@ -86,9 +84,9 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         startup.markBootFinished();
         isCreate.remove();
 
-        ContextFactoryDriver cfDriver = new ContextFactoryDriver(){
+        ContextFactoryDriver cfDriver = new ReferenceCountingFactoryDriver(){
             @Override
-            public ContextFactoryLoader getLoader(long conglomerateId){
+            protected ContextFactoryLoader newDelegate(long conglomerateId){
                 SIDriver siDriver=SIDriver.driver();
                 return new DerbyContextFactoryLoader(conglomerateId,siDriver.getOperationStatusLib(),
                         PipelineDriver.driver().exceptionFactory(),siDriver.readController());

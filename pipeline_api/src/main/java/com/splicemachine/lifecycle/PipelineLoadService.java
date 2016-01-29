@@ -67,7 +67,7 @@ public abstract class PipelineLoadService<TableNameInfo> implements DatabaseLife
     @Override
     public void shutdown() throws Exception{
         if(ctxLoader!=null)
-            ctxLoader.unload();
+            ctxLoader.close();
     }
 
     public PipelineCompressor getCompressor(){

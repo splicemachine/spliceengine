@@ -132,7 +132,6 @@ public abstract class TransactionalSysTableWriter<T> {
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         try {
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
             transactionResource.marshallTransaction(txn);
 
             LanguageConnectionContext lcc = transactionResource.getLcc();

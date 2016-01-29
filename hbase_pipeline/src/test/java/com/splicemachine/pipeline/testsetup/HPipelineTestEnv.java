@@ -8,6 +8,7 @@ import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
+import com.splicemachine.pipeline.contextfactory.ReferenceCountingFactoryDriver;
 import com.splicemachine.si.testsetup.HBaseSITestEnv;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
@@ -23,22 +24,14 @@ import java.util.concurrent.ConcurrentMap;
  *         Date: 12/23/15
  */
 public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
-    private final ConcurrentMap<Long,ContextFactoryLoader> contextFactoryLoaderMap = new ConcurrentHashMap<>();
     private final HBasePipelineEnvironment env;
 
     public HPipelineTestEnv() throws IOException{
         super(Level.WARN); //don't create SI tables, we'll manually add them once the driver is setup
-        ContextFactoryDriver ctxFactoryLoader=new ContextFactoryDriver(){
+        ContextFactoryDriver ctxFactoryLoader=new ReferenceCountingFactoryDriver(){
             @Override
-            public ContextFactoryLoader getLoader(long conglomerateId){
-                ContextFactoryLoader cfl=contextFactoryLoaderMap.get(conglomerateId);
-                if(cfl==null){
-                    cfl=new ManualContextFactoryLoader();
-                    ContextFactoryLoader old=contextFactoryLoaderMap.putIfAbsent(conglomerateId,cfl);
-                    if(old!=null)
-                        cfl=old;
-                }
-                return cfl;
+            public ContextFactoryLoader newDelegate(long conglomerateId){
+                return new ManualContextFactoryLoader();
             }
         };
         ContextFactoryDriverService.setDriver(ctxFactoryLoader);

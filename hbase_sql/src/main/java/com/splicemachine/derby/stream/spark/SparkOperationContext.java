@@ -143,9 +143,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             boolean prepared = false;
             try {
                 impl = new SpliceTransactionResourceImpl();
-                impl.prepareContextManager();
-                prepared = true;
-                impl.marshallTransaction(txn);
+                prepared = impl.marshallTransaction(txn);
                 if (isOp) {
                     activation = soi.getActivation(impl.getLcc());
                     context = SpliceOperationContext.newContext(activation);
@@ -168,7 +166,8 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void prepare() {
-        impl.prepareContextManager();
+//        impl.prepareContextManager();
+//        impl.marshallTransaction(txn);
     }
 
     @Override

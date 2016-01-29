@@ -62,17 +62,29 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                                      OperationStatusFactory osf,
                                      PipelineExceptionFactory pef,
                                      TransactionReadController trc){
-        this.conglomId = conglomId;
+        this.conglomId=conglomId;
         this.osf=osf;
         this.pef=pef;
         this.trc=trc;
-        this.fkGroup = new FKWriteFactoryHolder(pef);
+        this.fkGroup=new FKWriteFactoryHolder(pef);
         //TODO -sf- memory leak
         this.ddlListener=new DDLWatcher.DDLListener(){
-            @Override public void startGlobalChange(){ }
-            @Override public void finishGlobalChange(){ }
-            @Override public void changeSuccessful(String changeId,DDLMessage.DDLChange change) throws StandardException{ }
-            @Override public void changeFailed(String changeId){ }
+            @Override
+            public void startGlobalChange(){
+            }
+
+            @Override
+            public void finishGlobalChange(){
+            }
+
+            @Override
+            public void changeSuccessful(String changeId,DDLMessage.DDLChange change) throws StandardException{
+            }
+
+            @Override
+            public void changeFailed(String changeId){
+            }
+
             @Override
             public void startChange(DDLMessage.DDLChange change) throws StandardException{
                 ddlChange(change);
@@ -86,9 +98,9 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         SpliceTransactionResourceImpl transactionResource;
         try{
             transactionResource=new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
+            boolean prepared=false;
             try{
-                transactionResource.marshallTransaction(txn);
+                prepared=transactionResource.marshallTransaction(txn);
 
                 DataDictionary dataDictionary=transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor=dataDictionary.getConglomerateDescriptor(conglomId);
@@ -210,10 +222,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
+
     /**
      * Called once as part of context initialization.
      *
-     * @param td The table descriptor for the base table associated with the physical table this context writes to.
+     * @param td  The table descriptor for the base table associated with the physical table this context writes to.
      * @param lcc
      */
     private boolean startDirect(long conglomId,

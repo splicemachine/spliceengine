@@ -12,6 +12,8 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
@@ -272,16 +274,42 @@ public class SpliceDatabase extends BasicDatabase{
 
             @Override
             public void startChange(DDLChange change) throws StandardException{
-                if(change.getDdlChangeType()==DDLChangeType.DROP_TABLE){
-                    DDLUtils.preDropTable(change,getDataDictionary(),getDataDictionary().getDependencyManager());
-                }else if(change.getDdlChangeType()==DDLChangeType.ALTER_STATS){
-                    DDLUtils.preAlterStats(change,getDataDictionary(),getDataDictionary().getDependencyManager());
-                }else if(change.getDdlChangeType()==DDLChangeType.ENTER_RESTORE_MODE){
-                    SIDriver.driver().lifecycleManager().enterRestoreMode();
-                    Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                    for(LanguageConnectionContext context : allContexts){
-                        context.enterRestoreMode();
-                    }
+                DataDictionary dataDictionary=getDataDictionary();
+                DependencyManager dependencyManager=dataDictionary.getDependencyManager();
+                switch(change.getDdlChangeType()){
+                    case CHANGE_PK:
+                    case ADD_CHECK:
+                    case ADD_FOREIGN_KEY:
+                    case CREATE_INDEX:
+                    case ADD_NOT_NULL:
+                    case ADD_COLUMN:
+                    case ADD_PRIMARY_KEY:
+                    case ADD_UNIQUE_CONSTRAINT:
+                    case DROP_COLUMN:
+                    case DROP_CONSTRAINT:
+                    case DROP_PRIMARY_KEY:
+                    case DROP_INDEX:
+                    case DROP_FOREIGN_KEY:
+                    case DICTIONARY_UPDATE:
+                    case CREATE_TABLE:
+                    case CREATE_SCHEMA:
+                        break;
+                    case DROP_TABLE:
+                        DDLUtils.preDropTable(change,dataDictionary,dependencyManager);
+                        break;
+                    case DROP_SCHEMA:
+                        DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
+                        break;
+                    case ALTER_STATS:
+                        DDLUtils.preAlterStats(change,dataDictionary,dependencyManager);
+                        break;
+                    case ENTER_RESTORE_MODE:
+                        SIDriver.driver().lifecycleManager().enterRestoreMode();
+                        Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                        for(LanguageConnectionContext context : allContexts){
+                            context.enterRestoreMode();
+                        }
+                        break;
                 }
             }
 

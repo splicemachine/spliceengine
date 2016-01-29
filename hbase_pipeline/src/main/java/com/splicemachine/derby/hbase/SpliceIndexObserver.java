@@ -120,7 +120,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                 @Override
                 public void shutdown() throws Exception{
                     if(factoryLoader!=null)
-                        factoryLoader.unload();
+                        factoryLoader.close();
                 }
 
                 @Override

@@ -10,11 +10,9 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 12/22/15
  */
-public interface ContextFactoryLoader{
+public interface ContextFactoryLoader extends AutoCloseable{
 
     void load(TxnView txn) throws IOException, InterruptedException;
-
-    void unload();
 
     WriteFactoryGroup getForeignKeyFactories();
 
@@ -25,4 +23,6 @@ public interface ContextFactoryLoader{
     Set<ConstraintFactory> getConstraintFactories();
 
     void ddlChange(DDLMessage.DDLChange ddlChange);
+
+    void close();
 }

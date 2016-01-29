@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
@@ -310,10 +311,9 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+//            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            boolean prepared = transactionResource.marshallTransaction(txn);
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
             if (td==null) // Table Descriptor transaction never committed
                 return;
@@ -324,15 +324,39 @@ public class DDLUtils {
         }
     }
 
-    public static void preAlterStats(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+    public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
+            boolean initializedTxn = false;
+            try{
+                initializedTxn = transactionResource.marshallTransaction(txn);
+
+                SchemaDescriptor sd=dd.getSchemaDescriptor(change.getDropSchema().getSchemaName(),transactionResource.getLcc().getTransactionExecute(),false);
+                if(sd==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnSchemaDescriptor(sd,dd);
+                dm.invalidateFor(sd,DependencyManager.DROP_SCHEMA,transactionResource.getLcc());
+            }finally{
+                if(initializedTxn)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preAlterStats(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+//            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean prepared = transactionResource.marshallTransaction(txn);
             List<DerbyMessage.UUID> tdUIDs = change.getAlterStats().getTableIdList();
             for (DerbyMessage.UUID uuuid : tdUIDs) {
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
@@ -357,7 +381,19 @@ public class DDLUtils {
             cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
             cache.conglomerateCacheRemove(cd.getConglomerateNumber());
         }
+    }
 
+    private static void flushCachesBasedOnSchemaDescriptor(SchemaDescriptor sd,DataDictionary dd) throws StandardException {
+        DataDictionaryCache cache = dd.getDataDictionaryCache();
+        cache.schemaCacheRemove(sd.getSchemaName());
+//        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
+//        cache.nameTdCacheRemove(tableKey);
+//        cache.oidTdCacheRemove(td.getUUID());
+//        // Remove Conglomerate Level and Statistics Caching..
+//        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
+//            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
+//            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
+//        }
     }
 
 }
