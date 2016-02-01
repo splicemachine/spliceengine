@@ -1,0 +1,91 @@
+package com.splicemachine.derby.stream.function;
+
+import org.supercsv.io.Tokenizer;
+import org.supercsv.prefs.CsvPreference;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ *
+ * Scaled back tokenizer that allows you to swap in a string during imports.
+ *
+ * This class allows us to not have to re-instantiate the CSV parser each time and
+ * to bypass the synchronized lineNumber implementation in SuperCSV.
+ *
+ */
+public class MutableCSVTokenizer extends Tokenizer {
+
+    private String line;
+    private final List<String> columns = new ArrayList<String>();
+    public MutableCSVTokenizer(Reader reader, CsvPreference preferences) {
+        super(reader, preferences);
+    }
+
+    /**
+     *
+     * Reads the line that is set and then sets it to null
+     *
+     * @return
+     * @throws IOException
+     */
+    @Override
+    protected String readLine() throws IOException {
+        try {
+            return line;
+        } finally {
+            line = null;
+        }
+    }
+    /**
+     *
+     * Set the line to be tokenized
+     *
+     * @return
+     * @throws IOException
+     */
+    public void setLine(String line) {
+        this.line = line;
+    }
+
+    /**
+     *
+     * Perform read, main way to take the string passed to setLine and return a
+     * list of strings
+     *
+     * @return
+     * @throws IOException
+     */
+    public List<String> read() throws IOException {
+        if( readRow() ) {
+            return new ArrayList<String>(getColumns()); // Do we need to array copy here?
+        }
+        return null; // EOF
+    }
+
+    /**
+     * Reads the row
+     *
+     * @return
+     * @throws IOException
+     */
+    protected boolean readRow() throws IOException {
+        if( readColumns(columns) ) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Gets the tokenized columns.
+     *
+     * @return the tokenized columns
+     */
+    protected List<String> getColumns() {
+        return columns;
+    }
+
+}
+
