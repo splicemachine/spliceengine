@@ -128,7 +128,7 @@ public class CreateTableTransactionIT {
 
             try(Statement s=conn2.createStatement()){
                 Assert.assertEquals("Data was mysteriously present!",0l,conn2.count(s,"select * from "+table));
-                s.execute("insert into t10 (a, b) values (1,1)");
+                s.execute("insert into "+table+" (a, b) values (1,1)");
                 Assert.assertEquals("Data was not inserted properly!",1l,conn2.count(s,"select * from "+table));
             }
         }finally{

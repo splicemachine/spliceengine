@@ -85,8 +85,7 @@ public class DDLWatchRefresher{
                     seenDDLChanges.add(changeId);
                     newChanges.add(new Pair<DDLChange, String>(change,null));
                 } catch (Exception e) {
-                    if (LOG.isDebugEnabled())
-                        SpliceLogUtils.error(LOG,e);
+                    LOG.error("Encountered an exception processing DDL change",e);
                     newChanges.add(new Pair<>(change,e.getLocalizedMessage()));
                 }
             }

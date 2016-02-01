@@ -63,7 +63,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
         ContextManager ctxM = csf.getCurrentContextManager();
         if(ctxM!=null){
-            LanguageConnectionContext possibleLcc = (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
+            LanguageConnectionContext possibleLcc = (LanguageConnectionContext) ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
             if(((SpliceTransactionManager)possibleLcc.getTransactionExecute()).getActiveStateTxn().equals(txn)){
                 cm=ctxM;
                 generateLcc=false;

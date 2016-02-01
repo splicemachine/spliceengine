@@ -54,9 +54,9 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 				 */
         dd.startWriting(lcc);
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
-        DDLUtils.notifyMetadataChangeAndWait(ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName));
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         sd.drop(lcc, activation);
+        DDLUtils.notifyMetadataChangeAndWait(ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName));
     }
 
 }
