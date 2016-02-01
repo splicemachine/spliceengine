@@ -1,0 +1,76 @@
+#!/bin/bash
+
+##################################################################################
+# Start Zookeeper and the Splice HBase servers
+# See usage() below.
+##################################################################################
+SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd)
+ROOT_DIR=$(pwd)
+
+ZOOLOG="${ROOT_DIR}"/zoo_it.log
+SPLICELOG="${ROOT_DIR}"/splice_it.log
+
+CHAOS="false"
+PROFILE="cloudera-cdh4.5.0"  # default hbase platform profile
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 -c -p [<hbase_profile>] -h[elp]"
+    echo "Where: "
+    echo "  -c is an optional flag determining random task failures. Default is that the chaos"
+    echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
+    echo "        grep 'task fail' splice_machine/splice.log"
+    echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
+    echo "  cloudera-cdh4.5.0, cloudera-cdh5.1.3, hdp2.1, mapr4.0.  Default is cloudera-cdh4.5.0."
+    echo "  -h => print this message"
+}
+
+while getopts ":chp:b:" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        c)
+        # start server with the chaos monkey (random task failures)
+            CHAOS="true"
+        ;;
+        p)
+        # the hbase profile
+            PROFILE=$(echo "$OPTARG" | tr -d [[:space:]])
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
+
+# Check if server running. Shut down if so.
+S=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
+Z=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
+if [[ -n ${S[0]} || -n ${Z[0]} ]]; then
+    echo "Splice server is running. Shutting down."
+    "${SCRIPT_DIR}"/stop-splice-its
+fi
+
+# Start zookeeper in background.
+echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
+mvn -B exec:exec -PspliceZoo > ${ZOOLOG} 2>&1 &
+
+echo "waiting 30 seconds for Zookeeper startup"
+sleep 30
+
+# Start SpliceTestPlaform in background.
+echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
+mvn -B exec:exec -PspliceFast -DfailTasksRandomly=${CHAOS} > ${SPLICELOG} 2>&1 &
+# echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
+# mvn -B exec:exec -PspliceClusterMember -DmemberNumber=1             > ${SPLICELOG}.member1.log 2>&1 &
+# echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
+# mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             > ${SPLICELOG}.member2.log 2>&1 &
+
+popd &>/dev/null
+

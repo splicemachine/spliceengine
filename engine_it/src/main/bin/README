@@ -1,0 +1,111 @@
+Welcome to the Splice Machine Version 1.0 Release.  This README file contains 
+supplementary material to the complete documentation found at http://doc.splicemachine.com.
+Note that the documentation contains the full installation and startup procedures, access to 
+sample data and example queries, and a full definition of features and SQL specification.  
+But please do read through the README file for supplementary information as well as any errata, etc.
+
+Please visit http://support.splicemachine.com for any problems, questions, or comments, 
+or to report a bug.
+
+=========================================================
+Key Reminders - PLEASE READ FIRST
+=========================================================
+
+Most of the following points are found in the Installation Guide and Getting Started Guide, 
+but bear repeating here:
+
+1.  There are separate instructions for installing a STANDALONE version of Splice Machine
+(i.e. one that only runs on one computer) vs. a version to run on a CLUSTER.  The download is
+only for STANDALONE usage.  Contact sales (info@splicemachine.com) for how to get access to
+the clustered version.
+
+2.  Only one of the following hardware/OS environments are supported for STANDALONE:
+a.  Windows 7 or 8 (requires Cygwin install first)
+b.  Mac OS X (10.8 or greater)
+c.  Linux (Ubuntu 12.0.4 LTS, CentOS 6.4, or equivalent)
+
+3.  Only the following hardware/OS environments are supported for the CLUSTER:
+a.  Linux (Ubuntu 12.0.4 LTS, CentOS 6.4, or equivalent)
+
+4.  For the CLUSTER, the following platforms are supported:
+a.  Cloudera CDH 4.5
+b.  Cloudera CDH 5.1
+c.  Hortonworks HDP 2.1
+d.  MapR 4.0
+
+5.  To run STANDALONE, your computer should have at least 8GB of RAM, with 4+ GB available,
+and at least 3x the available disk as data you intend to load.
+
+6.  To run in a CLUSTER, each computer should have at least 15GB RAM and at least 3x the available
+disk as data you intend to load.  Our recommended configuration is "commodity" but still should
+have 32-64 GB RAM, 8+ cores, and sufficient disk for your application.
+
+7.  There is no need to install any Hadoop packages before beginning.  The installation for 
+both STANDALONE and CLUSTER versions will install the appropriate Hadoop packages
+for you. For the standalone version, if you do have any Hadoop packages installed, make 
+sure they are not running before you begin.  For a Cluster, if you have Hadoop packages 
+installed, please consult Technical Support at http://support.splicemachine.com.  
+
+8.  Importing (and upserting) data on CLUSTERS: note that data to be imported MUST BE IN HDFS before it 
+can be imported.  See examples in the Getting Started Guide.
+
+=========================================
+New Features in Version 1.0
+=========================================
+
+Version 1.0 brings a number of new features.  You will find these documented at http://doc.splicemachine.com
+
+- Native Backup and Recovery
+- User/Role Authentication and Authorization
+- Parallel, Bulk Export
+- Data Upsert
+- Management Console for Explain Trace
+- MapReduce Integration
+- HCatalog Integration
+- Analytic Window Functions
+- Log Capture Capability
+
+=========================================
+Known bugs and other issues
+=========================================
+- STANDALONE WINDOWS USERS:  If you had an earlier version of Splice Machine installed on your
+computer, you must first run ./bin/clean.sh to remove any old database objects.  Upgrading 
+a standalone database from v0.5 to 1.0 is not supported.
+  
+- IMPORTANT REMINDER FOR CLUSTER USERS: If you import data like the examples shown with the sample data, 
+you must FIRST copy your sample data into HDFS (using copyFromLocal, etc), then change the paths to the 
+HDFS path specified.
+
+- After importing a large amount of data into a table, it is useful to run a an HBase "full compaction" 
+against the table afterward.  See the System Calls in the documentation to do this in Splice Machine.
+
+- AWS/EC2 CLUSTER users - it is important to use the "Public DNS" of the instance when specifying hosts for the CDH
+cluster installation.  For example, use ec2-54-243-14-239.compute-1.amazonaws.com - not 54.243.14.239.  Also
+you should not stop and restart a server once you have created your cluster since AWS will use different IP
+addresses after restart, and will corrupt your cluster.
+
+- IMPORTANT NOTE FOR LAPTOP USERS: If you are running the standalone database on a laptop, you will need to stop and 
+restart the database after closing and reopening the laptop.
+
+- The scripts used to start and stop the Splice database do NOT handle directories with spaces in them. 
+Please be sure to create directories without spaces or other special characters.
+
+- Before importing data files, it is recommended that you compress them first using gzip.  Also it is recommended
+to split your files up, then put them in a single directory, then import that directory.  This improves
+parallel load performance.
+
+- Certain planned features are not available as part of the release but are expected to follow soon.  These include (but
+are not limited to):
+  - Cursors
+  - Foreign key constraints
+  - Triggers
+  - Temporary tables
+  - Materialized views
+  - table truncation
+
+- If you create a long-running query that you want to kill, typing Control-C at the prompt won't kill the query.
+If necessary you can stop and restart the database, or just start another query interface session in another
+terminal window using ./bin/sqlshell.sh.
+
+
+
