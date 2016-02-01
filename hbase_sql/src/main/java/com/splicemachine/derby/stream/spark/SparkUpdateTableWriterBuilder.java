@@ -36,7 +36,17 @@ public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder
             Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
-            return new SparkUpdateDataSetWriter<>(rdd,operationContext,conf);
+            return new SparkUpdateDataSetWriter<>(rdd,
+                    operationContext,
+                    conf,
+                    heapConglom,
+                    formatIds,
+                    columnOrdering,
+                    pkCols,
+                    pkColumns,
+                    tableVersion,
+                    execRowDefinition,
+                    heapList);
         }catch(Exception e){
             throw new RuntimeException(e);
         }

@@ -1,17 +1,22 @@
 package com.splicemachine.stream.index;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.HBaseSubregionSplitter;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.mrio.api.core.SubregionSplitter;
+import com.splicemachine.storage.HScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -78,7 +83,8 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
 //            if (spark)
 //                setHTable(SpliceAccessManager.getHTable(conglomerate));
 //            else
-                setHTable(new HTable(conf,conglomerate));
+            TableName tableInfo=HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(conglomerate);
+            setHTable(new HTable(conf,tableInfo));
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }
@@ -111,10 +117,13 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         TableInputFormat tableInputFormat = new TableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        conf.set(TableInputFormat.INPUT_TABLE,"splice:"+conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         tableInputFormat.setConf(conf);
         try {
-            tableInputFormat.setScan(HTableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
+            IndexScanSetBuilder isb=HTableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
+            Scan s = ((HScan)isb.getScan()).unwrapDelegate();
+
+            tableInputFormat.setScan(s);
         } catch (StandardException e) {
             SpliceLogUtils.error(LOG, e);
             throw new IOException(e);
@@ -132,11 +141,13 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
 
     public HTableRecordReader getRecordReader(InputSplit split, Configuration config) throws IOException,
             InterruptedException {
+        TableName tableName=HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+            SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,tableName);
         rr = new HTableRecordReader(config);
-        if(table == null)
-            table = new HTable(HBaseConfiguration.create(config), config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        if(table == null){
+            table=new HTable(HBaseConfiguration.create(config),tableName);
+        }
         rr.setHTable(table);
         //if (!conf.getBoolean("splice.spark", false))
         rr.init(config, split);

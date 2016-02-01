@@ -157,10 +157,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 return;
             }
             authorize(tds);
-            ddlNotification(tc,tds);
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
             dropTableStatistics(tds,dd,tc);
+            ddlNotification(tc,tds);
             ExecRow templateOutputRow = buildOutputTemplateRow();
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
@@ -239,8 +239,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             ExecRow outputRow = buildOutputTemplateRow();
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             tc.elevate("statistics");
-            ddlNotification(tc, tds);
             dropTableStatistics(tds,dd,tc);
+            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
@@ -268,8 +268,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             authorize(tds);
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             tc.elevate("statistics");
-            ddlNotification(tc,tds);
             dropTableStatistics(tds,dd,tc);
+            ddlNotification(tc,tds);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -288,8 +288,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             tc.elevate("statistics");
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
-            ddlNotification(tc,tds);
             dropTableStatistics(tds,dd,tc);
+            ddlNotification(tc,tds);
             SpliceLogUtils.debug(LOG, "Done dropping statistics for table %s.", table);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -320,7 +320,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();//StreamUtils.sparkDataSetProcessor;
         dsp.setup(activation,"collection table statistics","admin");
 //        StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
-        ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
+        ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId)).activation(activation);
         return  createTableScanner(ssb,conn,table,txn);
     }
 

@@ -14,6 +14,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -21,6 +23,9 @@ import java.io.IOException;
  */
 public class SparkIndexScanBuilder<V> extends IndexTableScannerBuilder<V>{
     private String tableName;
+
+    public SparkIndexScanBuilder(){
+    }
 
     public SparkIndexScanBuilder(String tableName){
         this.tableName=tableName;
@@ -42,5 +47,17 @@ public class SparkIndexScanBuilder<V> extends IndexTableScannerBuilder<V>{
 
         Function f=new SparkSpliceFunctionWrapper<>(new HTableScanTupleFunction<>());
         return new SparkDataSet<>(rawRDD.map(f));
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException{
+        super.writeExternal(out);
+        out.writeUTF(tableName);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+        super.readExternal(in);
+        tableName = in.readUTF();
     }
 }

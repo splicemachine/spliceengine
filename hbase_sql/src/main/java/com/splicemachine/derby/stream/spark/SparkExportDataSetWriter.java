@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
@@ -82,6 +83,21 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
     @Override
     public void setTxn(TxnView childTxn){
         throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public TableWriter getTableWriter() throws StandardException{
+        return null;
+    }
+
+    @Override
+    public TxnView getTxn(){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        throw new UnsupportedOperationException();
     }
 
     public static class Builder<V> implements ExportDataSetWriterBuilder{

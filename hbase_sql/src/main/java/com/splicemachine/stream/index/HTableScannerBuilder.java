@@ -1,6 +1,7 @@
 package com.splicemachine.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
 import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -115,10 +116,10 @@ public class HTableScannerBuilder implements Externalizable {
         }
     }
 
-    public static HTableScannerBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
+    public static IndexScanSetBuilder getTableScannerBuilderFromBase64String(String base64String) throws IOException, StandardException {
         if (base64String == null)
             throw new IOException("tableScanner base64 String is null");
-        return (HTableScannerBuilder) SerializationUtils.deserialize(Base64.decodeBase64(base64String));
+        return (IndexScanSetBuilder) SerializationUtils.deserialize(Base64.decodeBase64(base64String));
     }
 
     public String getTableScannerBuilderBase64String() throws IOException, StandardException {

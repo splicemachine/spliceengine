@@ -21,12 +21,15 @@ public class StorageConfiguration{
 
     public static final String REGION_MAX_FILE_SIZE = "hbase.hregion.max.filesize";
 
+    public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
+    public static final long DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
 
     public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
         @Override
         public long defaultLongFor(String key){
             switch(key){
                 case TABLE_SPLIT_SLEEP_INTERVAL: return DEFAULT_SPLIT_WAIT_INTERVAL;
+                case SPLIT_BLOCK_SIZE: return DEFAULT_SPLIT_BLOCK_SIZE;
                 default:
                     throw new IllegalArgumentException("No long default for key '"+key+"'");
             }
@@ -41,6 +44,7 @@ public class StorageConfiguration{
         public boolean hasLongDefault(String key){
             switch(key){
                 case TABLE_SPLIT_SLEEP_INTERVAL: return true;
+                case SPLIT_BLOCK_SIZE: return true;
                 default:return false;
             }
         }

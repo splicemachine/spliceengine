@@ -44,6 +44,11 @@ public class SpliceTransactionView extends BaseSpliceTransaction {
     }
 
     @Override
+    public boolean allowsWrites(){
+        return txn.allowsWrites();
+    }
+
+    @Override
     public LogInstant commit() throws StandardException {
         ExceptionFactory ef =SIDriver.driver().getExceptionFactory();
         throw Exceptions.parseException(ef.cannotCommit("Cannot commit from SpliceTransactionView"));

@@ -1,11 +1,21 @@
 package com.splicemachine.stream.index;
 
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.mrio.api.core.SMSplit;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.HScan;
+import com.splicemachine.storage.RegionDataScanner;
+import com.splicemachine.storage.RegionPartition;
+import com.splicemachine.storage.SplitRegionScanner;
+import com.splicemachine.stream.utils.StreamPartitionUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
@@ -31,9 +41,9 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
     protected DirectScanner directScanner;
 //    protected long txnId;
     protected Scan scan;
-    protected SMSQLUtil sqlUtil = null;
+//    protected SMSQLUtil sqlUtil = null;
     protected KVPair currentRow;
-    protected HTableScannerBuilder builder;
+    protected TableScannerBuilder builder;
     protected byte[] rowKey;
 
     public HTableRecordReader(Configuration config) {
@@ -55,11 +65,11 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
         if (tableScannerAsString == null)
             throw new IOException("splice scan info was not serialized to task, failing");
         try {
-            builder = HTableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
+            builder =(TableScannerBuilder)HTableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
             TableSplit tSplit = ((SMSplit)split).getSplit();
-            Scan scan = builder.getScan();
+            Scan scan = ((HScan)builder.getScan()).unwrapDelegate();
             scan.setStartRow(tSplit.getStartRow());
             scan.setStopRow(tSplit.getEndRow());
             this.scan = scan;
@@ -125,24 +135,24 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
         newscan.setStartRow(firstRow);
         scan = newscan;
         if(htable != null) {
-//            SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan,htable);
-//            this.hregion = splitRegionScanner.getRegion();
+            SIDriver driver=SIDriver.driver();
+            HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(driver.getConfiguration());
+            Clock clock = driver.getClock();
+            SplitRegionScanner srs = new SplitRegionScanner(scan,
+                    htable,
+                    instance.getConnection(),
+                    clock,
+                    StreamPartitionUtils.getRegionsInRange(instance.getConnection(),htable.getName(),scan.getStartRow(),scan.getStopRow()));
+            this.hregion = srs.getRegion();
 
-            throw new UnsupportedOperationException("IMPLEMENT");
-//            try {
-//                return new SplitRegionScanner(scan, htable, getRegionsInRange(htable.getName().getQualifier(),scan.getStartRow(),scan.getStopRow()));
-//            } catch (Exception e) {
-//                throw new IOException(e);
-//            }
-//            this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner, Metrics.noOpMetricFactory());
-//            builder.tableVersion("2.0")
-//                    .region(TransactionalRegions.get(hregion))
-//                    .scanner(mrs)
-//                    .scan(scan)
-//                    .metricFactory(Metrics.noOpMetricFactory());
-//            if (LOG.isTraceEnabled())
-//                SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-//            directScanner = builder.build();
+            long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
+            RegionPartition basePartition=new RegionPartition(hregion);
+
+            directScanner= new DirectScanner(new RegionDataScanner(basePartition,srs,Metrics.basicMetricFactory()),
+                    driver.transactionalPartition(conglomId,basePartition),
+                    builder.getTxn(), //TODO -sf- might not be correct
+                    builder.getTxn().getBeginTimestamp(),
+                    Metrics.basicMetricFactory());
         } else {
             throw new IOException("htable not set");
         }

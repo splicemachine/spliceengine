@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.output.direct;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
 
@@ -47,12 +48,18 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        out.writeLong(destConglomerate);
+        out.writeObject(opCtx);
+        out.writeBoolean(skipIndex);
+        SIDriver.driver().getOperationFactory().writeTxn(txn,out);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        destConglomerate = in.readLong();
+        opCtx = (OperationContext)in.readObject();
+        skipIndex = in.readBoolean();
+        txn = SIDriver.driver().getOperationFactory().readTxn(in);
     }
 
     public String base64Encode(){

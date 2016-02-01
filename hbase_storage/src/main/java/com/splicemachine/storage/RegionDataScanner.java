@@ -12,6 +12,7 @@ import com.splicemachine.storage.HCell;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,9 +56,10 @@ public class RegionDataScanner implements DataScanner{
     }
 
     @Override
-    public List<DataCell> next(int limit) throws IOException{
+    public @Nonnull List<DataCell> next(int limit) throws IOException{
         if(internalList==null)
             internalList = new ArrayList<>(limit>0?limit:10);
+        internalList.clear();
         readTimer.startTiming();
         delegate.next(internalList);
         readTimer.stopTiming();

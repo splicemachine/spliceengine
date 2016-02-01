@@ -41,6 +41,15 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
             throw Exceptions.parseException(e);
         }
         conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
-        return new InsertDataSetWriter<>(rdd,operationContext,conf);
+        return new InsertDataSetWriter<>(rdd,
+                operationContext,
+                conf,
+                pkCols,
+                tableVersion,
+                execRowDefinition,
+                autoIncrementRowLocationArray,
+                spliceSequences,
+                heapConglom,
+                isUpsert);
     }
 }

@@ -18,6 +18,9 @@ import java.io.ObjectOutput;
 public class SparkSplittingFunction<V,K,U> implements PairFunction<V, K,U>,Externalizable{
     private SplittingFunction<V, K, U> function;
 
+    public SparkSplittingFunction(){
+    }
+
     public SparkSplittingFunction(SplittingFunction<V, K, U> function){
         this.function=function;
     }

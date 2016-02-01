@@ -43,7 +43,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public String getTableName(){
-        return region.getTableDesc().getTableName().getNameAsString();
+        return region.getTableDesc().getTableName().getQualifierAsString();
     }
 
     @Override

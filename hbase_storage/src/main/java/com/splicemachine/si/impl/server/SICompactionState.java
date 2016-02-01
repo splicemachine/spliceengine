@@ -38,7 +38,7 @@ public class SICompactionState {
     public SICompactionState(TxnSupplier transactionStore,RollForward rollForward,int activeTransactionCacheSize) {
         this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
-        this.dataToReturn  =new TreeSet<>();
+        this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
     }
 
     /**

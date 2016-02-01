@@ -45,7 +45,7 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
 
                                 SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder().setBeginKey(ByteString.copyFrom(startKey)).setEndKey(ByteString.copyFrom(stopKey)).build();
 
-                                BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback();
+                                BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback<>();
                                 instance.computeSplits(controller, message, rpcCallback);
                                 SpliceMessage.SpliceSplitServiceResponse response = rpcCallback.get();
                                 List<InputSplit> result =new ArrayList<>();

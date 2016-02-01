@@ -6,6 +6,7 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.primitives.Bytes;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -52,7 +53,7 @@ class SetScanner implements DataScanner{
     }
 
     @Override
-    public List<DataCell> next(int limit) throws IOException{
+    public @Nonnull List<DataCell> next(int limit) throws IOException{
         if(currentRow==null)
             currentRow = new ArrayList<>(limit>0?limit:10);
         if(limit<0)limit = Integer.MAX_VALUE;

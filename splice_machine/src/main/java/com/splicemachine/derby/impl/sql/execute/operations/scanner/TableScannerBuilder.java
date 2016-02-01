@@ -486,6 +486,11 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
+    public TxnView getTxn(){
+        return txn;
+    }
+
+    @Override
     public String toString(){
         return String.format("template=%s, scan=%s, rowColumnMap=%s, txn=%s, "
                         +"keyColumnEncodingOrder=%s, keyColumnSortOrder=%s, keyColumnTypes=%s, keyDecodingMap=%s, "

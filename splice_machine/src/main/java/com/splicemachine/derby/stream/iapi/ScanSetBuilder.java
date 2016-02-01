@@ -63,4 +63,8 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> activation(Activation activation);
 
     String base64Encode() throws IOException, StandardException;
+
+    DataScan getScan();
+
+    TxnView getTxn();
 }

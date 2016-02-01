@@ -58,6 +58,8 @@ public abstract class BaseSpliceTransaction implements Transaction{
         state=CLOSED;
     }
 
+    public abstract boolean allowsWrites();
+
     protected abstract void clearState();
 
     public void destroy() throws StandardException{

@@ -3,11 +3,15 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -22,6 +26,7 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
     private final JavaPairRDD<K,V> rdd;
     private final OperationContext operationContext;
     private final Configuration conf;
+    private TxnView txnView;
 
     public DeleteDataSetWriter(JavaPairRDD<K, V> rdd,OperationContext operationContext,Configuration conf){
         this.rdd=rdd;
@@ -40,6 +45,25 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public void setTxn(TxnView childTxn){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        this.txnView = childTxn;
+    }
+
+    @Override
+    public TableWriter getTableWriter() throws StandardException{
+        TxnView txn=txnView;
+        long conglom = Bytes.toLong(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable());
+        return new DeletePipelineWriter(txn,conglom,operationContext);
+    }
+
+    @Override
+    public TxnView getTxn(){
+        if(txnView==null)
+            return operationContext.getTxn();
+        return txnView;
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        return ((DMLWriteOperation)operationContext.getOperation()).getDestinationTable();
     }
 }

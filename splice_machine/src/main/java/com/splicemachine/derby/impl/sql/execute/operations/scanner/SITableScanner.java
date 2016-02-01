@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -52,7 +51,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     protected final int[] rowDecodingMap;
     private SIFilter siFilter;
     private EntryPredicateFilter predicateFilter;
-    private List<DataCell> keyValues;
+//    private List<DataCell> keyValues;
     protected RowLocation currentRowLocation;
     private final boolean[] keyColumnSortOrder;
     private String indexName;
@@ -141,12 +140,13 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     @Override
     public ExecRow next() throws StandardException, IOException {
         SIFilter filter = getSIFilter();
-        if(keyValues==null)
-            keyValues = Lists.newArrayListWithExpectedSize(2);
+//        if(keyValues==null)
+//            keyValues = Lists.newArrayListWithExpectedSize(2);
         do{
-            keyValues.clear();
+//            keyValues.clear();
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
-            keyValues = regionScanner.next(-1);
+            List<DataCell> keyValues=regionScanner.next(-1);
+
             if(keyValues.size()<=0){
                 currentRowLocation = null;
                 return null;
@@ -154,12 +154,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 DataCell currentKeyValue = keyValues.get(0);
                 updatePredicateFilterIfNecessary(currentKeyValue);
                 if(template.nColumns()>0){
-                    if(!filterRowKey(currentKeyValue)||!filterRow(filter)){
+                    if(!filterRowKey(currentKeyValue)||!filterRow(filter,keyValues)){
                         //filter the row first, then filter the row key
                         filterCounter.increment();
                         continue;
                     }
-                }else if(!filterRow(filter)){
+                }else if(!filterRow(filter,keyValues)){
                     //still need to filter rows to deal with transactional issues
                     filterCounter.increment();
                     continue;
@@ -167,7 +167,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
                 }
-                measureOutputSize();
+                measureOutputSize(keyValues);
                 currentKeyValue = keyValues.get(0);
                 setRowLocation(currentKeyValue);
                 return template;
@@ -179,7 +179,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         return outputBytesCounter.getTotal();
     }
 
-    private void measureOutputSize(){
+    private void measureOutputSize(List<DataCell> keyValues){
         if(outputBytesCounter.isActive()){
             for(DataCell cell:keyValues){
                 outputBytesCounter.add(cell.encodedLength());
@@ -390,7 +390,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         }
     }
 
-    private boolean filterRow(SIFilter filter) throws IOException {
+    private boolean filterRow(SIFilter filter,List<DataCell> keyValues) throws IOException {
         filter.nextRow();
         Iterator<DataCell> kvIter = keyValues.iterator();
         while(kvIter.hasNext()){

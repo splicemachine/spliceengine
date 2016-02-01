@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.storage.DataCell;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
  */
 public interface DataScanner extends AutoCloseable{
 
-    List<DataCell> next(int limit) throws IOException;
+    @Nonnull List<DataCell> next(int limit) throws IOException;
 
     TimeView getReadTime();
 

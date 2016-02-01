@@ -566,7 +566,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)lcc.getTransactionExecute()).getRawTransaction();
         assert rawTransaction instanceof SpliceTransaction:
                 "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
-        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
         /*
          * This is a bit of an awkward hack--at this stage, we need to ensure that the transaction
          * allows writes, but we don't really know where it's going, except to the data dictionary (and
@@ -580,8 +579,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
          * In that situation, we don't want to confuse people with which table is being modified. So to do this,
          * we just only elevate the transaction if we absolutely have to.
          */
-        if(!txn.allowsWrites())
-            txn.elevate("dictionary".getBytes());
+        if(rawTransaction.allowsWrites())
+            return;
+        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
+        txn.elevate("dictionary".getBytes());
     }
 
     @Override

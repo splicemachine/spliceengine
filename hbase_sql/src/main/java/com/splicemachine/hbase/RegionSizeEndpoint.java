@@ -3,11 +3,13 @@ package com.splicemachine.hbase;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
+import com.google.protobuf.Service;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
@@ -21,7 +23,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/26/16
  */
-public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorService implements Coprocessor{
+public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorService implements CoprocessorService,Coprocessor{
     private static final Logger LOG=Logger.getLogger(RegionSizeEndpoint.class);
     private HRegion region;
 
@@ -33,6 +35,11 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
     @Override
     public void stop(CoprocessorEnvironment env) throws IOException{
 
+    }
+
+    @Override
+    public Service getService(){
+        return this;
     }
 
     @Override
@@ -73,8 +80,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
-        throw new RuntimeException("Not Implemented");
-//        return null;//BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
+        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
     }
 
     /**

@@ -2,18 +2,25 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,16 +36,41 @@ import java.util.List;
  *         Date: 1/25/16
  */
 public class InsertDataSetWriter<K,V> implements DataSetWriter{
-    private final JavaPairRDD<K, V> rdd;
-    private final OperationContext<? extends SpliceOperation> opContext;
-    private final Configuration config;
+    private JavaPairRDD<K, V> rdd;
+    private OperationContext<? extends SpliceOperation> opContext;
+    private Configuration config;
+    private int[] pkCols;
+    private String tableVersion;
+    private ExecRow execRowDefinition;
+    private RowLocation[] autoIncRowArray;
+    private SpliceSequence[] sequences;
+    private long heapConglom;
+    private boolean isUpsert;
+    private TxnView txn;
+
+    public InsertDataSetWriter(){
+    }
 
     public InsertDataSetWriter(JavaPairRDD<K, V> rdd,
                                OperationContext<? extends SpliceOperation> opContext,
-                               Configuration config){
+                               Configuration config,
+                               int[] pkCols,
+                               String tableVersion,
+                               ExecRow execRowDefinition,
+                               RowLocation[] autoIncRowArray,
+                               SpliceSequence[] sequences,
+                               long heapConglom,
+                               boolean isUpsert){
         this.rdd=rdd;
         this.opContext=opContext;
         this.config=config;
+        this.pkCols=pkCols;
+        this.tableVersion=tableVersion;
+        this.execRowDefinition=execRowDefinition;
+        this.autoIncRowArray=autoIncRowArray;
+        this.sequences=sequences;
+        this.heapConglom=heapConglom;
+        this.isUpsert=isUpsert;
     }
 
     @Override
@@ -60,7 +92,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                         FileSystem fileSystem=FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
                         path=generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
                         dataSet.saveAsTextFile().directory(path.toString()).build().write();
-//                        fileSystem.close();
                     }
                     if(insertOperation.failBadRecordCount==0)
                         throw new RuntimeException(badRecords.get(0));
@@ -78,7 +109,24 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public void setTxn(TxnView childTxn){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        this.txn = childTxn;
+    }
+
+    @Override
+    public TableWriter getTableWriter() throws StandardException{
+        TxnView txnView = txn==null? opContext.getTxn(): txn;
+        return new InsertPipelineWriter(pkCols,tableVersion,execRowDefinition,autoIncRowArray,sequences,heapConglom,
+                txnView,opContext,isUpsert);
+    }
+
+    @Override
+    public TxnView getTxn(){
+        return txn;
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        return Bytes.toBytes(heapConglom);
     }
 
     private static Path generateFileSystemPathForWrite(String badDirectory,FileSystem fileSystem,SpliceOperation spliceOperation) throws StandardException{
