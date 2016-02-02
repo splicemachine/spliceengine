@@ -304,7 +304,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     ConglomerateDescriptor srcConglomDesc=uniqueIndexConglom.isPresent()?uniqueIndexConglom.get():currentCongloms.iterator().next();
                     IndexDescriptor indexDescriptor=srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
 
-                    DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,srcConglomDesc.getConglomerateNumber(),
+                    DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,td.getBaseConglomerateDescriptor().getConglomerateNumber(),
                             indexConglom.get().getConglomerateNumber(),td,indexDescriptor);
                     IndexFactory indexFactory=IndexFactory.create(ti);
                     indexFactories.replace(indexFactory);
