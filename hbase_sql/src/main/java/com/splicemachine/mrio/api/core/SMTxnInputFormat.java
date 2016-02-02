@@ -1,34 +1,25 @@
 package com.splicemachine.mrio.api.core;
 
-import com.clearspring.analytics.util.Lists;
-import com.splicemachine.constants.SpliceConfiguration;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  *
@@ -45,8 +36,8 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, Transac
 
     @Override
     public void setConf(Configuration conf) {
-        String tableName = SpliceConstants.TRANSACTION_TABLE;
-        String conglomerate = SpliceConstants.TRANSACTION_TABLE;
+        String tableName = HConfiguration.TRANSACTION_TABLE;
+        String conglomerate = HConfiguration.TRANSACTION_TABLE;
         String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
         String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
         String rootDir = conf.get(HConstants.HBASE_DIR);
@@ -69,7 +60,8 @@ public class SMTxnInputFormat extends AbstractSMInputFormat<RowLocation, Transac
             }
         }
         try {
-            setHTable(SpliceAccessManager.getHTable(conglomerate));
+            PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+            setHTable(((ClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }

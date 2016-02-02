@@ -1,18 +1,18 @@
 package com.splicemachine.mrio.api.core;
 
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.si.impl.TransactionalRegions;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.*;
+import com.splicemachine.storage.util.MeasuredResultScanner;
+import com.splicemachine.stream.utils.StreamPartitionUtils;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -35,9 +35,9 @@ public class SMTxnRecordReaderImpl extends RecordReader<RowLocation, Transaction
 	protected Table htable;
 	protected HRegion hregion;
 	protected Configuration config;
-	protected MeasuredRegionScanner<Cell> mrs;
 	protected long txnId;
 	protected Scan scan;
+    protected MeasuredResultScanner mrs;
 	protected Transaction currentTransaction;
 	protected TableScannerBuilder builder;
 	protected RowLocation rowLocation;
@@ -66,11 +66,11 @@ public class SMTxnRecordReaderImpl extends RecordReader<RowLocation, Transaction
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
 			TableSplit tSplit = ((SMSplit)split).getSplit();
-			Scan scan = builder.getScan();
-			scan.setStartRow(tSplit.getStartRow());
-			scan.setStopRow(tSplit.getEndRow());
-            this.scan = scan;
-			restart(tSplit.getStartRow());
+			DataScan scan = builder.getScan();
+            this.scan = ((HScan)scan).unwrapDelegate();
+            this.scan.setStartRow(tSplit.getStartRow());
+            this.scan.setStopRow(tSplit.getEndRow());
+            restart(tSplit.getStartRow());
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}
@@ -78,7 +78,7 @@ public class SMTxnRecordReaderImpl extends RecordReader<RowLocation, Transaction
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
-		Cell nextRow = mrs.next();
+		Cell nextRow = mrs.next().current();
 		RowLocation nextLocation = new HBaseRowLocation(ByteSlice.wrap(nextRow.getRowArray(), nextRow.getRowOffset(), nextRow.getRowLength()));
 		if (nextRow != null) {
 			currentTransaction = null; //TODO
@@ -138,9 +138,17 @@ public class SMTxnRecordReaderImpl extends RecordReader<RowLocation, Transaction
 		newscan.setStartRow(firstRow);
         scan = newscan;
 		if(htable != null) {
-			SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan,htable);
-			this.hregion = splitRegionScanner.getRegion();
-			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.basicMetricFactory());
+            SIDriver driver = SIDriver.driver();
+            HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(driver.getConfiguration());
+            Clock clock = driver.getClock();
+            SplitRegionScanner srs = new SplitRegionScanner(
+                scan,
+                htable,
+                instance.getConnection(),
+                clock,
+                StreamPartitionUtils.getRegionsInRange(instance.getConnection(), htable.getName(), scan.getStartRow(), scan.getStopRow()));
+            this.hregion = srs.getRegion();
+            this.mrs = new MeasuredResultScanner(htable.getScanner(this.scan), Metrics.noOpMetricFactory());
 		} else {
 			throw new IOException("htable not set");
 		}

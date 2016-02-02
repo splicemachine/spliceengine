@@ -3,11 +3,12 @@ package com.splicemachine.mrio.api.core;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.storage.HScan;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
@@ -47,8 +48,10 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         tableInputFormat.setConf(conf);
         try {
-            tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
-        } catch (StandardException e) {
+            TableScannerBuilder tsb = TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
+            Scan s = ((HScan)tsb.getScan()).unwrapDelegate();
+            tableInputFormat.setScan(s);
+        } catch (com.splicemachine.db.iapi.error.StandardException e) {
             SpliceLogUtils.error(LOG, e);
             throw new IOException(e);
         }
