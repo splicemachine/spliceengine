@@ -57,7 +57,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         }
         List<InputSplit> splits = tableInputFormat.getSplits(context);
         String oneSplitPerRegion = conf.get(MRConstants.ONE_SPLIT_PER_REGION);
-        if (oneSplitPerRegion == null || oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0) {
+        if (oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0) {
             return toSMSplits(splits);
         }
         if (LOG.isDebugEnabled()) {

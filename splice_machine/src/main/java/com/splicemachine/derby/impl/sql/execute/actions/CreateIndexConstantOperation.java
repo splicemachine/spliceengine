@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import org.apache.log4j.Logger;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
@@ -545,7 +544,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             //
             if(!alreadyHaveConglomDescriptor){
                 long indexCId=createConglomerateDescriptor(dd,userTransaction,sd,td,indexRowGenerator,ddg);
-                createAndPopulateIndex(activation,userTransaction,td,indexCId,indexRowGenerator);
+                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator);
             }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
@@ -754,6 +753,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                                           TransactionController tc,
                                           TableDescriptor td,
                                           long indexConglomId,
+                                          long heapConglomerateId,
                                           IndexDescriptor indexDescriptor) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases

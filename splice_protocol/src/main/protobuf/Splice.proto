@@ -42,6 +42,12 @@ message SkippingScanFilterMessage {
     repeated bytes predicates = 3;
 }
 
+message ActiveTxnFilterMessage {
+    required int64 beforeTs = 1;
+    required int64 afterTs = 2;
+    optional bytes destinationTable = 3;
+}
+
 message HbaseAttributeHolderMessage {
     message Attribute {
         required string name = 1;

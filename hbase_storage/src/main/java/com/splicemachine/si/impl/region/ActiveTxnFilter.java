@@ -1,12 +1,16 @@
 package com.splicemachine.si.impl.region;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.coprocessor.SpliceMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 
@@ -22,8 +26,8 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private final RegionTxnStore txnStore;
     protected final long beforeTs;
     protected final long afterTs;
-    private final byte[] destinationTable;
-    private final byte[] newEncodedDestinationTable;
+    protected final byte[] destinationTable;
+    protected final byte[] newEncodedDestinationTable;
     private boolean isAlive = false;
     private boolean stateSeen= false;
     private boolean keepAliveSeen = false;
@@ -104,6 +108,30 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
      */
     @Override public void write(DataOutput out) throws IOException{ }
     @Override public void readFields(DataInput in) throws IOException{ }
+
+    /* TODO (wjkmerge) - uncomment if this is still needed
+    @Override
+    public byte[] toByteArray() throws IOException {
+        SpliceMessage.ActiveTxnFilterMessage.Builder builder = SpliceMessage.ActiveTxnFilterMessage.newBuilder();
+        builder.setAfterTs(afterTs);
+        builder.setBeforeTs(beforeTs);
+        if (destinationTable != null) {
+            builder.setDestinationTable(SpliceZeroCopyByteString.wrap(destinationTable));
+        }
+        return builder.build().toByteArray();
+    }
+
+    public static ActiveTxnFilter parseFrom(byte[] bytes) throws DeserializationException {
+        SpliceMessage.ActiveTxnFilterMessage proto;
+        try {
+            proto = SpliceMessage.ActiveTxnFilterMessage.parseFrom(bytes);
+        } catch (InvalidProtocolBufferException e) {
+            throw new DeserializationException(e);
+        }
+
+        return new ActiveTxnFilter(proto.getBeforeTs(), proto.getAfterTs(), proto.getDestinationTable().toByteArray());
+    }
+    */
 
     /* ****************************************************************************************************************/
     /*private helper methods*/

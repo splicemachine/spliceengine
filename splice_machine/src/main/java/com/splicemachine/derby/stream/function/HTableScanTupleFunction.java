@@ -10,7 +10,7 @@ import java.io.Serializable;
 /**
  * Created by jyuan on 10/19/15.
  */
-public class HTableScanTupleFunction<Op extends SpliceOperation> extends SpliceFunction<Op, Tuple2<byte[],KVPair>,KVPair> implements Serializable {
+public class HTableScanTupleFunction<Op extends SpliceOperation, T> extends SpliceFunction<Op, Tuple2<byte[],T>,T> implements Serializable {
 
     public HTableScanTupleFunction() {
         super();
@@ -21,7 +21,7 @@ public class HTableScanTupleFunction<Op extends SpliceOperation> extends SpliceF
     }
 
     @Override
-    public KVPair call(Tuple2<byte[], KVPair> tuple) throws Exception {
+    public T call(Tuple2<byte[], T> tuple) throws Exception {
         return tuple._2();
     }
 
