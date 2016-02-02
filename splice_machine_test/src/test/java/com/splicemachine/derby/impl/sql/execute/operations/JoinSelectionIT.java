@@ -477,6 +477,25 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     }
 
 
+    @Test
+    //DB-4473
+    public void testMergeSortJoinWithUnion() throws Exception {
+        String query = "SELECT count(*)\n" +
+                "FROM --splice-properties joinOrder=FIXED\n" +
+                "t1 a\n" +
+                "JOIN \n" +
+                "  (select i from t2\n" +
+                "   union\n" +
+                "   select i from t3) b --splice-properties joinStrategy=SORTMERGE\n" +
+                "ON a.i=b.i";
+
+        String explain = "explain " + query;
+        rowContainsQuery(new int[]{6}, explain, methodWatcher, "MergeSortJoin");
+
+        ResultSet rs = methodWatcher.executeQuery(query);
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue("wrong row counts", 4 == rs.getInt(1));
+    }
     //DB-4189
     @Test
     public void testMergeSortJoinCost() throws Exception {
