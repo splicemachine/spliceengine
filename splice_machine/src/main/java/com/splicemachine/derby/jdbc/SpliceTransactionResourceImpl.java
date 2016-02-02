@@ -12,7 +12,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -29,7 +28,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private String drdaID;
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
-    private boolean generateLcc = true;
+    private boolean generateLcc=true;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this("jdbc:splice:"+SQLConfiguration.SPLICE_DB+";create=true",new Properties());
@@ -61,20 +60,21 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
 
-        ContextManager ctxM = csf.getCurrentContextManager();
+        ContextManager ctxM=csf.getCurrentContextManager();
         if(ctxM!=null){
-            LanguageConnectionContext possibleLcc = (LanguageConnectionContext) ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
+            LanguageConnectionContext possibleLcc=(LanguageConnectionContext)ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
 //            if(txn.descendsFrom(((SpliceTransactionManager)possibleLcc.getTransactionExecute()).getActiveStateTxn())){
-                cm=ctxM;
-                generateLcc=false;
-                lcc=possibleLcc;
-                return false;
+            cm=ctxM;
+            cm.setActiveThread();
+            generateLcc=false;
+            lcc=possibleLcc;
+            return false;
 //            }
         }
         cm=csf.newContextManager(); // Needed
         cm.setActiveThread();
         csf.setCurrentContextManager(cm);
-        lcc = database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname);
+        lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname);
         return true;
     }
 

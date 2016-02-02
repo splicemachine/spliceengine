@@ -16,6 +16,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -97,13 +98,20 @@ public class ProtoUtil {
     }
 
     public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor) {
-        boolean[] descColumns = indexDescriptor.isAscending();
-        return Index.newBuilder()
+        boolean[] ascColumns = indexDescriptor.isAscending();
+        Index.Builder builder=Index.newBuilder()
                 .setConglomerate(conglomerate)
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
-                .setUnique(indexDescriptor.isUnique())
-                .addAllDescColumns(Booleans.asList(descColumns))
-                .addAllIndexColsToMainColMap(Ints.asList(indexDescriptor.baseColumnPositions())).build();
+                .setUnique(indexDescriptor.isUnique());
+        for(int i=0;i<ascColumns.length;i++){
+            builder = builder.addDescColumns(!ascColumns[i]);
+        }
+
+        int[] backingArray=indexDescriptor.baseColumnPositions();
+        for(int i=0;i<backingArray.length;i++){
+            builder = builder.addIndexColsToMainColMap(backingArray[i]);
+        }
+        return builder.build();
     }
 
     public static Table createTable(long conglomerate, TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
@@ -115,7 +123,7 @@ public class ProtoUtil {
                 .setTableId(transferDerbyUUID((BasicUUID) td.getUUID()))
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
-                .setTableVersion(DataDictionaryUtils.getTableVersion(lcc, td.getUUID()))
+                .setTableVersion(DataDictionaryUtils.getTableVersion(lcc,td.getUUID()))
                 .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID())).build();
     }
 
@@ -123,8 +131,8 @@ public class ProtoUtil {
                                                        TableDescriptor td, IndexDescriptor indexDescriptor) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate, indexDescriptor))
-                .setTable(createTable(baseConglomerate, td, lcc))
+                .setIndex(createIndex(indexConglomerate,indexDescriptor))
+                .setTable(createTable(baseConglomerate,td,lcc))
                 .build())
                 .setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.CREATE_INDEX)
@@ -135,8 +143,8 @@ public class ProtoUtil {
                                                        TableDescriptor td, IndexDescriptor indexDescriptor) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate, indexDescriptor))
-                .setTable(createTable(baseConglomerate, td, lcc))
+                .setIndex(createIndex(indexConglomerate,indexDescriptor))
+                .setTable(createTable(baseConglomerate,td,lcc))
                 .build();
     }
 
@@ -158,7 +166,7 @@ public class ProtoUtil {
                                 .addAllSrcColumnOrdering(Ints.asList(srcColumnOrdering))
                                 .addAllTargetColumnOrdering(Ints.asList(targetColumnOrdering))
                                 .setColumnInfos(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(columInfos))
-                )).build();
+                                )).build();
     }
 
     public static DDLChange createTentativeAddColumn(long txnId, long newCongNum,
@@ -170,7 +178,7 @@ public class ProtoUtil {
                                 .setTableVersion(tableVersion)
                                 .setOldConglomId(oldCongNum)
                                 .setNewConglomId(newCongNum)
-                                .addAllColumnOrdering(columnOrdering != null ? Ints.asList(columnOrdering) : Collections.EMPTY_LIST)
+                                .addAllColumnOrdering(columnOrdering!=null?Ints.asList(columnOrdering):Collections.EMPTY_LIST)
                                 .setColumnInfo(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(newColumnInfo)))
                 ).build();
     }
@@ -209,13 +217,13 @@ public class ProtoUtil {
     return DDLChange.newBuilder().setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.ADD_UNIQUE_CONSTRAINT)
                 .setTentativeAddConstraint(TentativeAddConstraint.newBuilder()
-                       .setNewConglomId(newConglomId)
-                       .setOldConglomId(oldConglomId)
-                       .setIndexConglomerateId(indexConglomerateId)
-                       .setTableVersion(tableVersion)
-                       .addAllSrcColumnOrdering(Ints.asList(srcColumnOrdering))
-                        .addAllTargetColumnOrdering(Ints.asList(targetColumnOrdering))
-                        .setColumnInfos(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(columnInfo)))
+                                .setNewConglomId(newConglomId)
+                                .setOldConglomId(oldConglomId)
+                                .setIndexConglomerateId(indexConglomerateId)
+                                .setTableVersion(tableVersion)
+                                .addAllSrcColumnOrdering(Ints.asList(srcColumnOrdering))
+                                .addAllTargetColumnOrdering(Ints.asList(targetColumnOrdering))
+                                .setColumnInfos(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(columnInfo)))
                 ).build();
 
 
@@ -227,12 +235,12 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.ADD_FOREIGN_KEY)
                 .setTentativeFK(TentativeFK.newBuilder()
-                       .addAllBackingIndexFormatIds(Ints.asList(backingIndexFormatIds))
-                       .setBaseConglomerate(baseConglomerate)
-                       .setReferencedTableName(tableName)
-                       .setReferencedTableVersion(tableVersion)
-                       .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor))
-                       .setBackingIndexConglomerateId(backingIndexConglomerateId)
+                                .addAllBackingIndexFormatIds(Ints.asList(backingIndexFormatIds))
+                                .setBaseConglomerate(baseConglomerate)
+                                .setReferencedTableName(tableName)
+                                .setReferencedTableVersion(tableVersion)
+                                .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor))
+                                .setBackingIndexConglomerateId(backingIndexConglomerateId)
                 ).build();
     }
 

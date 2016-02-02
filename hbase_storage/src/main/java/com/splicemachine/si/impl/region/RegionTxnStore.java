@@ -247,7 +247,7 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getActiveTxns afterTs=%d, beforeTs=%s",afterTs,beforeTs);
         Scan scan=setupScanOnRange(afterTs,beforeTs);
-        scan.setFilter(new ActiveTxnFilter(this,beforeTs,afterTs,destinationTable));
+        scan.setFilter(new ActiveTxnFilter(beforeTs,afterTs,destinationTable,clock,keepAliveTimeoutMs));
 
         final RegionScanner scanner=region.getScanner(scan);
         return new ScanIterator(scanner){
@@ -291,11 +291,7 @@ public class RegionTxnStore implements TxnPartition{
     }
 
     public Txn.State adjustStateForTimeout(Txn.State currentState,Cell keepAliveCell){
-        long lastKATime = V2TxnDecoder.decodeKeepAlive(keepAliveCell,false);
-
-        if((clock.currentTimeMillis()-lastKATime)>keepAliveTimeoutMs)
-            return Txn.State.ROLLEDBACK;
-        return currentState;
+        return TxnStoreUtils.adjustStateForTimeout(currentState,keepAliveCell,clock,keepAliveTimeoutMs);
     }
 
     /******************************************************************************************************************/

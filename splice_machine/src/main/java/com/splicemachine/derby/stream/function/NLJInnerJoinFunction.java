@@ -47,6 +47,7 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
     public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         checkInit();
         leftRow = from;
+        op.getLeftOperation().setCurrentLocatedRow(from);
         SpliceOperation rightOperation=op.getRightOperation();
         if(opened)
             rightOperation.close();

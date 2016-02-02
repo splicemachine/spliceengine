@@ -48,16 +48,21 @@ public class HGet implements DataGet{
 
     @Override
     public void setFilter(DataFilter txnFilter){
-        assert txnFilter instanceof HFilterWrapper;
         Filter toAdd;
         Filter existingFilter=get.getFilter();
         if(existingFilter!=null){
             FilterList fl = new FilterList(FilterList.Operator.MUST_PASS_ALL);
             fl.addFilter(existingFilter);
-            fl.addFilter(((HFilterWrapper)txnFilter).unwrapDelegate());
+            if(txnFilter instanceof HFilterWrapper)
+                fl.addFilter(((HFilterWrapper)txnFilter).unwrapDelegate());
+            else
+                fl.addFilter(new HDataFilterWrapper(txnFilter));
             toAdd = fl;
         }else{
-            toAdd = ((HFilterWrapper)txnFilter).unwrapDelegate();
+            if(txnFilter instanceof HFilterWrapper)
+                toAdd = ((HFilterWrapper)txnFilter).unwrapDelegate();
+            else
+                toAdd = new HDataFilterWrapper(txnFilter);
         }
         get.setFilter(toAdd);
     }

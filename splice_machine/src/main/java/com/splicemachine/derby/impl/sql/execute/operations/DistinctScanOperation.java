@@ -161,6 +161,7 @@ public class DistinctScanOperation extends ScanOperation {
         }
 
         return dsp.<DistinctScanOperation,LocatedRow>newScanSet(this,tableName)
+                .activation(activation)
                 .transaction(getCurrentTransaction())
                 .scan(getNonSIScan())
                 .template(currentRow)

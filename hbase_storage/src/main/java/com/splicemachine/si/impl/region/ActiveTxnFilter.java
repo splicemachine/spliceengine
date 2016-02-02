@@ -1,16 +1,15 @@
 package com.splicemachine.si.impl.region;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.splicemachine.encoding.Encoding;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 
@@ -23,11 +22,12 @@ import java.io.IOException;
  *         Date: 8/18/14
  */
 public class ActiveTxnFilter extends FilterBase implements Writable{
-    private final RegionTxnStore txnStore;
     protected final long beforeTs;
     protected final long afterTs;
-    protected final byte[] destinationTable;
-    protected final byte[] newEncodedDestinationTable;
+    private final byte[] destinationTable;
+    private final byte[] newEncodedDestinationTable;
+    private final Clock clock;
+    private final long keepAliveTimeoutMs;
     private boolean isAlive = false;
     private boolean stateSeen= false;
     private boolean keepAliveSeen = false;
@@ -40,11 +40,13 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private transient MultiFieldDecoder destTableDecoder;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public ActiveTxnFilter(RegionTxnStore txnStore,
-                           long beforeTs,
+    public ActiveTxnFilter(long beforeTs,
                            long afterTs,
-                           byte[] destinationTable) {
-        this.txnStore = txnStore;
+                           byte[] destinationTable,
+                           Clock clock,
+                           long keepAliveTimeoutMs) {
+        this.clock =clock;
+        this.keepAliveTimeoutMs = keepAliveTimeoutMs;
         this.beforeTs = beforeTs;
         this.afterTs = afterTs;
         this.destinationTable = destinationTable;
@@ -52,6 +54,13 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
             this.newEncodedDestinationTable = destinationTable;
         else
             this.newEncodedDestinationTable = null;
+    }
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+    public static ActiveTxnFilter newFilter(long beforeTs, long afterTs, byte[] destinationTable) {
+        SIDriver driver=SIDriver.driver();
+        Clock clock =driver.getClock();
+        long keepAliveTimeoutMs = driver.getConfiguration().getLong(SIConfigurations.TRANSACTION_TIMEOUT);
+        return new ActiveTxnFilter(beforeTs,afterTs,destinationTable,clock,keepAliveTimeoutMs);
     }
 
     @Override
@@ -216,7 +225,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
         if(CellUtils.singleMatchingQualifier(kv,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES)){
             if(keepAliveSeen)
                 return ReturnCode.SKIP;
-            adjustedState = txnStore.adjustStateForTimeout(Txn.State.ACTIVE,kv);
+            adjustedState = TxnStoreUtils.adjustStateForTimeout(Txn.State.ACTIVE,kv,clock,keepAliveTimeoutMs);
         } else{
             return ReturnCode.INCLUDE; //not the keep alive column
         }

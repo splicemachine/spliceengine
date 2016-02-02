@@ -22,6 +22,8 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     protected Cell[] cells;
     int cellScannerIndex=0;
 
+    private boolean closed=false;
+
     public MemstoreKeyValueScanner(ResultScanner resultScanner) throws IOException{
         assert resultScanner!=null:"Passed Result Scanner is null";
         this.resultScanner=resultScanner;
@@ -130,9 +132,11 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
 
     @Override
     public void close(){
+        if(closed) return;
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"close");
         resultScanner.close();
+        closed=true;
     }
 
     @Override

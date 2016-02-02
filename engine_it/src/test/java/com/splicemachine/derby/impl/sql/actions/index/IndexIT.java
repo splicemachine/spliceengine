@@ -692,6 +692,6 @@ public class IndexIT extends SpliceUnitTest{
         // check for total cost
         double cost1=SpliceUnitTest.parseTotalCost(arr1.get(1));
         double cost2=SpliceUnitTest.parseTotalCost(arr2.get(1));
-        assertTrue("Cost #1 must be bigger than cost #2",Double.compare(cost1,cost2)>0);
+        assertTrue("Cost #1 must be bigger than cost #2",Double.compare(cost1,cost2)>=0);
     }
 }
