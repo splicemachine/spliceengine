@@ -174,8 +174,9 @@ public class HConfiguration implements SConfiguration{
     }
 
     @Override
-    public boolean getBoolean(String ignoreSavePoints){
-        return false;
+    public boolean getBoolean(String key){
+        boolean defBool = defaults.defaultBooleanFor(key);
+        return delegate.getBoolean(key,defBool);
     }
 
     @Override

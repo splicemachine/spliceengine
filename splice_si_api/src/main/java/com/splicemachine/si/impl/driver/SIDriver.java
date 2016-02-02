@@ -145,6 +145,8 @@ public class SIDriver {
     }
 
     public ReadResolver getReadResolver(Partition basePartition){
+        if(readResolver==null) return NoOpReadResolver.INSTANCE;
+        else
         return readResolver.getResolver(basePartition,getRollForward());
     }
 
@@ -194,6 +196,7 @@ public class SIDriver {
     private AsyncReadResolver initializedReadResolver(SConfiguration config,KeyedReadResolver keyedResolver){
         int maxThreads = config.getInt(SIConfigurations.READ_RESOLVER_THREADS);
         int bufferSize = config.getInt(SIConfigurations.READ_RESOLVER_QUEUE_SIZE);
+        if(bufferSize<=0) return null;
         final AsyncReadResolver asyncReadResolver=new AsyncReadResolver(maxThreads,
                 bufferSize,
                 txnSupplier,

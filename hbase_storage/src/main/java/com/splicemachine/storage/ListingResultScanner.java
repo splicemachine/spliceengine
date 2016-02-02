@@ -10,8 +10,7 @@ import org.apache.hadoop.hbase.client.Result;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -22,14 +21,7 @@ public class ListingResultScanner implements DataScanner{
     private final MeasuredResultScanner resultScanner;
     private final Partition partition;
 
-    private final HCell wrapper = new HCell();
-    private final Function<Cell, DataCell> wrapFunction=new Function<Cell, DataCell>(){
-        @Override
-        public DataCell apply(Cell input){
-            wrapper.set(input);
-            return wrapper;
-        }
-    };
+    private final ListView resultView = new ListView();
 
     public ListingResultScanner(Partition table, MeasuredResultScanner resultScanner){
         this.resultScanner = resultScanner;
@@ -42,8 +34,10 @@ public class ListingResultScanner implements DataScanner{
         Result r = resultScanner.next();
         if(r==null||r.size()<=0) return Collections.emptyList();
         List<Cell> cells=r.listCells();
-        return Lists.transform(cells,wrapFunction); //TODO -sf- this uses 1 extra object, maybe avoid that with a fixed list?
+        resultView.setCells(cells);
+        return resultView;
     }
+
     @Override
     public void close() throws IOException{
         resultScanner.close();
@@ -59,4 +53,50 @@ public class ListingResultScanner implements DataScanner{
     @Override public long getBytesOutput(){ return resultScanner.getBytesOutput(); }
     @Override public long getRowsFiltered(){ return resultScanner.getRowsFiltered(); }
     @Override public long getRowsVisited(){ return resultScanner.getRowsVisited(); }
+
+    private static class ListView extends AbstractList<DataCell>{
+        private List<Cell> cells;
+        private final HCell wrapper = new HCell();
+
+        void setCells(List<Cell> cells){
+            this.cells = cells;
+        }
+
+        @Override
+        public Iterator<DataCell> iterator(){
+            return new ViewIter();
+        }
+
+        @Override
+        public DataCell get(int index){
+            wrapper.set(cells.get(index));
+            return wrapper;
+        }
+
+        @Override
+        public int size(){
+            return cells.size();
+        }
+
+        private class ViewIter implements Iterator<DataCell>{
+            private final Iterator<Cell> cells = ListView.this.cells.iterator();
+            @Override
+            public boolean hasNext(){
+                return cells.hasNext();
+            }
+
+            @Override
+            public DataCell next(){
+                if(!hasNext()) throw new NoSuchElementException();
+                Cell c = cells.next();
+                wrapper.set(c);
+                return wrapper;
+            }
+
+            @Override
+            public void remove(){
+                cells.remove();
+            }
+        }
+    }
 }

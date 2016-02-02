@@ -60,7 +60,7 @@ public class SQLConfiguration{
      * Defaults to false (off)
      */
     public static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
-    private static final boolean DEFAULT_DUMP_CLASS_FILE=false;
+    private static final boolean DEFAULT_DUMP_CLASS_FILE=true;
 
     public static final String DEBUG_DUMP_BIND_TREE = "splice.debug.compile.dumpBindTree";
     private static final boolean DEFAULT_DUMP_BIND_TREE=false;
@@ -262,10 +262,12 @@ public class SQLConfiguration{
             switch(key){
                 case DEBUG_LOG_STATEMENT_CONTEXT:
                 case DEBUG_DUMP_BIND_TREE:
-                case DEBUG_DUMP_CLASS_FILE:
                 case DEBUG_DUMP_OPTIMIZED_TREE:
                     return false; //always disable debug statements by default
+                case DEBUG_DUMP_CLASS_FILE:
+                    return DEFAULT_DUMP_CLASS_FILE;
                 case IGNORE_SAVE_POINTS: return DEFAULT_IGNORE_SAVEPTS;
+                case UPGRADE_FORCED: return DEFAULT_UPGRADE_FORCED;
                 default:
                     return false;
             }
@@ -279,6 +281,7 @@ public class SQLConfiguration{
                 case DEBUG_DUMP_CLASS_FILE:
                 case DEBUG_DUMP_OPTIMIZED_TREE:
                 case IGNORE_SAVE_POINTS:
+                case UPGRADE_FORCED:
                     return true;
                 default:
                     return false;

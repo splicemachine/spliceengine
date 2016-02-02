@@ -53,7 +53,7 @@ public class AuthenticationConfiguration{
 
         @Override
         public long defaultLongFor(String key){
-            return 0;
+            throw new IllegalArgumentException("No Authentication default found for key '"+key+"'");
         }
 
         @Override
@@ -63,7 +63,7 @@ public class AuthenticationConfiguration{
 
         @Override
         public int defaultIntFor(String key){
-            return 0;
+            throw new IllegalArgumentException("No Authentication default found for key '"+key+"'");
         }
 
         @Override

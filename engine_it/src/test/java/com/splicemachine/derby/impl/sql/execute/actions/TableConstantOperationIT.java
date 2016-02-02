@@ -179,14 +179,15 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     public void testCreateDropTableIfExist() throws Exception {
         String tableName = "R";
         Statement statement = methodWatcher.getStatement();
-        statement.execute(String.format("create table %s.%s (i int)", tableSchema.schemaName, tableName));
-        statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+        String table=tableSchema.schemaName+"."+tableName;
+        statement.execute(String.format("create table %s (i int)", table));
+        statement.execute(String.format("drop table %s",table));
 
         try {
-            statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+            statement.execute(String.format("drop table %s",table));
         }finally{
             // we should not get an exception here because we've used "if exists"
-            statement.execute(String.format("drop table if exists %s", tableSchema.schemaName + "." + tableName));
+            statement.execute(String.format("drop table if exists %s",table));
         }
     }
 
@@ -312,8 +313,6 @@ public class TableConstantOperationIT extends SpliceUnitTest {
 
             methodWatcher.execute("drop table tableA");
 
-        } catch (SQLException se) {
-            Assert.fail("Drop table must be performed properly");
         } finally {
             methodWatcher.closeAll();
         }

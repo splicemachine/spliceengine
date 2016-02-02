@@ -393,6 +393,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private boolean filterRow(SIFilter filter,List<DataCell> keyValues) throws IOException {
         filter.nextRow();
         Iterator<DataCell> kvIter = keyValues.iterator();
+        int numCells = keyValues.size();
         while(kvIter.hasNext()){
             DataCell kv = kvIter.next();
             DataFilter.ReturnCode returnCode = filter.filterCell(kv);
@@ -402,12 +403,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 case SEEK:
                     return false; //failed the predicate
                 case SKIP:
-                    kvIter.remove();
+                    numCells--;
                 default:
                     //these are okay--they mean the encoding is good
             }
         }
-        return keyValues.size() > 0 && filter.getAccumulator().result() != null;
+        return numCells > 0 && filter.getAccumulator().result() != null;
     }
 
     private boolean filterRowKey(DataCell data) throws IOException {

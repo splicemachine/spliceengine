@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
@@ -148,10 +149,20 @@ public class IndexRowReaderBuilder implements Externalizable{
             lookupService=SameThreadExecutorService.instance();
         else{
             ThreadFactory factory=new ThreadFactoryBuilder()
-                    .setNameFormat("index-lookup-%d").build();
-            lookupService=new ThreadPoolExecutor(numConcurrentLookups,numConcurrentLookups,
+                    .setNameFormat("index-lookup-%d")
+                    .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
+                        @Override
+                        public void uncaughtException(Thread t,Throwable e){
+                            e.printStackTrace();
+                        }
+                    })
+                    .build();
+            ThreadPoolExecutor tpe=new ThreadPoolExecutor(1,numConcurrentLookups,
                     60,TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
                     new ThreadPoolExecutor.CallerRunsPolicy());
+            tpe.allowCoreThreadTimeOut(false);
+            tpe.prestartAllCoreThreads();
+            lookupService=tpe;
         }
 
         BitSet rowFieldsToReturn=new BitSet(mainTableAccessedRowColumns.getNumBitsSet());

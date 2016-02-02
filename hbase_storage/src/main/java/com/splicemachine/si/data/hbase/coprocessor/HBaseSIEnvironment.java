@@ -51,7 +51,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     private final TxnOperationFactory txnOpFactory;
-    private final AsyncReadResolver readResolver;
     private final PartitionInfoCache partitionCache;
     private final KeepAliveScheduler keepAlive;
     private final SConfiguration config;
@@ -97,7 +96,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()));
 
-        this.readResolver = initializeReadResolver();
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
                 config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
@@ -126,7 +124,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()));
 
-        this.readResolver = initializeReadResolver();
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
                 config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
@@ -170,11 +167,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public TimestampSource timestampSource(){
         return timestampSource;
-    }
-
-    public ReadResolver getReadResolver(Partition region){
-        if(readResolver==null) return NoOpReadResolver.INSTANCE; //disabled read resolution
-        return readResolver.getResolver(region,rollForward());
     }
 
     @Override
@@ -227,14 +219,4 @@ public class HBaseSIEnvironment implements SIEnvironment{
         return opFactory;
     }
 
-    private AsyncReadResolver initializeReadResolver(){
-        SConfiguration config = configuration();
-
-        int readResolverQueueSize=config.getInt(SIConfigurations.READ_RESOLVER_QUEUE_SIZE);
-        if(readResolverQueueSize<=0) return null; //read resolution is disabled
-        int readResolverThreads = config.getInt(SIConfigurations.READ_RESOLVER_THREADS);
-        //TODO -sf- add in the proper TrafficControl fields
-        return new AsyncReadResolver(readResolverThreads,readResolverQueueSize,
-                txnSupplier(),new RollForwardStatus(),new GreenLight(),SynchronousReadResolver.INSTANCE);
-    }
 }

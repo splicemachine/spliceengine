@@ -70,7 +70,7 @@ public class SIObserver extends BaseRegionObserver{
             Partition regionPartition = new RegionPartition(rce.getRegion());
             region=new TxnRegion(regionPartition,
                     driver.getRollForward(),
-                    env.getReadResolver(regionPartition),
+                    driver.getReadResolver(regionPartition),
                     driver.getTxnSupplier(),
                     driver.getIgnoreTxnSupplier(),
                     driver.getTransactor(),

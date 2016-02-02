@@ -60,6 +60,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
     @Override
     public void start() throws Exception{
+        System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
         loadManifest();
 
         startup.distributedStart();
@@ -70,6 +71,8 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         // can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
         loadUUIDGenerator(configuration.getInt(SQLConfiguration.PARTITIONSERVER_PORT));
 
+        configuration.addDefaults(AuthenticationConfiguration.defaults); //add auth defaults
+        configuration.addDefaults(StatsConfiguration.defaults);
         // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
@@ -96,9 +99,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
         //initialize the engine driver
         SqlEnvironment ese = SqlEnvironmentLoader.loadEnvironment(configuration,snowflake,internalConnection,spliceVersion);
-        SConfiguration configuration=ese.getConfiguration();
-        configuration.addDefaults(AuthenticationConfiguration.defaults); //add auth defaults
-        configuration.addDefaults(StatsConfiguration.defaults);
         EngineDriver.loadDriver(ese);
 
         //initialize the DDLDriver

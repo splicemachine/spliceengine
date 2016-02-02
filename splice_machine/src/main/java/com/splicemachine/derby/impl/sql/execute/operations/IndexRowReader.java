@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -50,11 +49,13 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private final PartitionFactory tableFactory;
 
     private List<Pair<LocatedRow, DataResult>> currentResults;
-    private LocatedRow toReturn=new LocatedRow();
     private List<Future<List<Pair<LocatedRow, DataResult>>>> resultFutures;
     private boolean populated=false;
     private EntryDecoder entryDecoder;
     protected Iterator<LocatedRow> sourceIterator;
+
+    private LocatedRow heapRowToReturn=new LocatedRow();
+    private LocatedRow indexRowToReturn;
 
     IndexRowReader(ExecutorService lookupService,
                    Iterator<LocatedRow> sourceIterator,
@@ -67,7 +68,8 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
                    KeyHashDecoder keyDecoder,
                    KeyHashDecoder rowDecoder,
                    int[] indexCols,
-                   TxnOperationFactory operationFactory,PartitionFactory tableFactory){
+                   TxnOperationFactory operationFactory,
+                   PartitionFactory tableFactory){
         this.lookupService=lookupService;
         this.sourceIterator=sourceIterator;
         this.outputTemplate=outputTemplate;
@@ -94,7 +96,11 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
 
     @Override
     public LocatedRow next(){
-        return toReturn;
+        return heapRowToReturn;
+    }
+
+    public LocatedRow nextScannedRow(){
+        return indexRowToReturn;
     }
 
     @Override
@@ -108,8 +114,10 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
             if(currentResults==null || currentResults.size()<=0)
                 getMoreData();
 
-            if(currentResults==null || currentResults.size()<=0)
+            if(currentResults==null || currentResults.size()<=0){
                 return false; // No More Data
+            }
+
             Pair<LocatedRow, DataResult> next=currentResults.remove(0);
             //merge the results
             LocatedRow nextScannedRow=next.getFirst();
@@ -121,7 +129,8 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
                 rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
                 rowDecoder.decode(nextScannedRow.getRow());
             }
-            toReturn=nextScannedRow;
+            heapRowToReturn=nextScannedRow;
+            indexRowToReturn=nextScannedRow;
             return true;
         }catch(Exception e){
             throw new RuntimeException(e);
@@ -148,7 +157,8 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         }
         if(sourceRows.size()>0){
             //submit to the background thread
-            resultFutures.add(lookupService.submit(new Lookup(sourceRows)));
+            Lookup task=new Lookup(sourceRows);
+            resultFutures.add(lookupService.submit(task));
         }
 
         //if there is only one submitted future, call this again to set off an additional background process
@@ -162,7 +172,8 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            currentResults=resultFutures.remove(0).get();
+            Future<List<Pair<LocatedRow, DataResult>>> future=resultFutures.remove(0);
+            currentResults=future.get();
         }catch(InterruptedException e){
             throw new InterruptedIOException(e.getMessage());
         }catch(ExecutionException e){
@@ -172,7 +183,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
         }
     }
 
-    private class Lookup implements Callable<List<Pair<LocatedRow, DataResult>>>{
+    public class Lookup implements Callable<List<Pair<LocatedRow, DataResult>>>{
         private final List<LocatedRow> sourceRows;
 
         public Lookup(List<LocatedRow> sourceRows){

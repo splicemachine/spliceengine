@@ -50,7 +50,7 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
         if (!op.getRestriction().apply(from.getRow())) {
             operationContext.recordFilter();
             StreamLogUtils.logOperationRecordWithMessage(from,operationContext,"filtered");
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 //        ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
         ExecRow preCopy = op.doProjection(from.getRow());

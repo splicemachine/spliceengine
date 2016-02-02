@@ -25,6 +25,7 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
 
     public Iterator<LocatedRow> rightSideNLJIterator;
     public LocatedRow leftRow;
+    private boolean opened = false;
 
     public NLJInnerJoinFunction() {}
 
@@ -46,21 +47,15 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
     public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
         checkInit();
         leftRow = from;
-        DataSet dataSet = null;
         SpliceOperation rightOperation=op.getRightOperation();
-//        SpliceTransactionResourceImpl trImpl = new SpliceTransactionResourceImpl();
-//        boolean prepared = false;
-        try {
-//            prepared = trImpl.marshallTransaction(op.getCurrentTransaction());
-            rightOperation.openCore(EngineDriver.driver().processorFactory().localProcessor(op.getActivation(),op));
-            rightSideNLJIterator = rightOperation.getLocatedRowIterator();
-            return new NestedLoopInnerIterator<>(this);
-        } finally {
+        if(opened)
             rightOperation.close();
-//            if(prepared)
-//                trImpl.close();
-        }
+        else
+            opened=true;
 
+        rightOperation.openCore(EngineDriver.driver().processorFactory().localProcessor(op.getActivation(),op));
+        rightSideNLJIterator = rightOperation.getLocatedRowIterator();
+        return new NestedLoopInnerIterator<>(this);
     }
 
     @Override

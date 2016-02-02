@@ -3,9 +3,12 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import org.apache.hadoop.conf.Configuration;
@@ -31,7 +34,6 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
-    protected Configuration conf;
     protected Table table;
     protected Scan scan;
     protected SMSQLUtil util;
@@ -103,8 +105,12 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         rr = new SMRecordReaderImpl(config);
-        if(table == null)
-            table = new HTable(HBaseConfiguration.create(config), config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        if(table == null){
+            org.apache.hadoop.hbase.TableName tableInfo=HBaseTableInfoFactory
+                    .getInstance(HConfiguration.INSTANCE)
+                    .getTableInfo(config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+            table=new HTable(HBaseConfiguration.create(config),tableInfo);
+        }
         rr.setHTable(table);
         //if (!conf.getBoolean("splice.spark", false))
         rr.init(config, split);

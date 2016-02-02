@@ -119,7 +119,8 @@ public class SIConfigurations{
                 case completedTxnCacheSize: return DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE;
                 case TRANSACTION_KEEP_ALIVE_THREADS: return DEFAULT_KEEP_ALIVE_THREADS;
                 case READ_RESOLVER_THREADS: return DEFAULT_READ_RESOLVER_THREADS;
-                case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
+                case READ_RESOLVER_QUEUE_SIZE: return -1; //TODO -sf- reset to DEFAULT once ReadResolution works
+//                case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
                 case TIMESTAMP_CLIENT_WAIT_TIME: return DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME;
                 case TIMESTAMP_SERVER_BIND_PORT: return DEFAULT_TIMESTAMP_SERVER_BIND_PORT;
                 case ACTIVE_TRANSACTION_CACHE_SIZE: return DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE;

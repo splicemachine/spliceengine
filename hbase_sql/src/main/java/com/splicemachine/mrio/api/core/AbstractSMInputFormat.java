@@ -45,7 +45,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         TableInputFormat tableInputFormat = new TableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        conf.set(TableInputFormat.INPUT_TABLE,"splice:"+conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         tableInputFormat.setConf(conf);
         try {
             TableScannerBuilder tsb = TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
