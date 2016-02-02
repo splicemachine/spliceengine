@@ -85,7 +85,9 @@ public class ContextManager
 				pop();
 				return;
 			}
-			stack_.remove(stack_.lastIndexOf(context)); 
+			int index=stack_.lastIndexOf(context);
+			if(index>=0)
+				stack_.remove(index);
 		}
 		Context top() { 
 			return top_; 
