@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl.region;
 
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
@@ -32,8 +31,10 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     private boolean filter = false;
     private boolean isChild = false;
     private boolean committed = false;
-    private MultiFieldDecoder fieldDecoder;
-    
+
+    private transient MultiFieldDecoder dataFieldDecoder;
+    private transient MultiFieldDecoder destTableDecoder;
+
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ActiveTxnFilter(RegionTxnStore txnStore,
                            long beforeTs,
@@ -44,7 +45,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
         this.afterTs = afterTs;
         this.destinationTable = destinationTable;
         if(destinationTable!=null)
-            this.newEncodedDestinationTable = Encoding.encodeBytesUnsorted(destinationTable);
+            this.newEncodedDestinationTable = destinationTable;
         else
             this.newEncodedDestinationTable = null;
     }
@@ -135,13 +136,13 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
                  * field. To do that, we wrap up in a re-used MultiFieldDecoder, skip the first entry,
                  * then read the second
                  */
-            if(fieldDecoder==null)
-                fieldDecoder = MultiFieldDecoder.create();            
-            fieldDecoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
+            if(dataFieldDecoder==null)
+                dataFieldDecoder= MultiFieldDecoder.create();
+            dataFieldDecoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
                         
             
-            fieldDecoder.skipLong();
-            long pTxnId = fieldDecoder.decodeNextLong();
+            dataFieldDecoder.skipLong();
+            long pTxnId = dataFieldDecoder.decodeNextLong();
             isChild = pTxnId>0;            
         }
     }
@@ -158,9 +159,22 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
         if(compareBytes!=null){
             if(destTablesSeen) return ReturnCode.SKIP;
             destTablesSeen = true;
-            if(!Bytes.equals(compareBytes, 0, compareBytes.length,
-                    kv.getValueArray(),kv.getValueOffset(),kv.getValueLength())){
+            if(destTableDecoder==null)
+                destTableDecoder = MultiFieldDecoder.create();
 
+            destTableDecoder.set(kv.getValueArray(),kv.getValueOffset(),kv.getValueLength());
+            boolean found = false;
+            while(destTableDecoder.available()){
+                int off = destTableDecoder.offset();
+                destTableDecoder.skip();
+                int length = destTableDecoder.offset()-off-1;
+                if(Bytes.equals(compareBytes,0,compareBytes.length,
+                        destTableDecoder.array(),off,length)){
+                    found=true;
+                    break;
+                }
+            }
+            if(!found){
                 //tables do not match
                 filter = true;
                 return ReturnCode.NEXT_ROW;

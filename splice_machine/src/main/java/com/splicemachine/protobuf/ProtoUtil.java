@@ -7,6 +7,7 @@ import com.google.common.primitives.Booleans;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -112,7 +113,8 @@ public class ProtoUtil {
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
-                .setTableVersion(DataDictionaryUtils.getTableVersion(lcc, td.getUUID())).build();
+                .setTableVersion(DataDictionaryUtils.getTableVersion(lcc, td.getUUID()))
+                .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID())).build();
     }
 
     public static DDLChange createTentativeIndexChange(long txnId, LanguageConnectionContext lcc, long baseConglomerate, long indexConglomerate,

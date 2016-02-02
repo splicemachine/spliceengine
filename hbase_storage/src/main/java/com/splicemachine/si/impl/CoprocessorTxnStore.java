@@ -134,7 +134,7 @@ public class CoprocessorTxnStore implements TxnStore {
         byte[] rowKey=getTransactionRowKey(txn.getTxnId());
         TxnMessage.ElevateRequest elevateRequest=TxnMessage.ElevateRequest.newBuilder()
                 .setTxnId(txn.getTxnId())
-                .setNewDestinationTable(ZeroCopyLiteralByteString.wrap(newDestinationTable)).build();
+                .setNewDestinationTable(ZeroCopyLiteralByteString.wrap(Encoding.encodeBytesUnsorted(newDestinationTable))).build();
 
         try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
 //            TxnMessage.TxnLifecycleService service=getLifecycleService(table,rowKey);
@@ -157,7 +157,7 @@ public class CoprocessorTxnStore implements TxnStore {
         TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
                 .newBuilder().setStartTxnId(minTxnId).setEndTxnId(maxTxnId);
         if(writeTable!=null)
-            requestBuilder=requestBuilder.setDestinationTables(ZeroCopyLiteralByteString.wrap(writeTable));
+            requestBuilder=requestBuilder.setDestinationTables(ZeroCopyLiteralByteString.wrap(Encoding.encodeBytesUnsorted(writeTable)));
 
         final TxnMessage.ActiveTxnRequest request=requestBuilder.build();
         try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
@@ -172,13 +172,13 @@ public class CoprocessorTxnStore implements TxnStore {
         TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
                 .newBuilder().setStartTxnId(minTxnid).setEndTxnId(maxTxnId);
         if(activeTable!=null)
-            requestBuilder=requestBuilder.setDestinationTables(ZeroCopyLiteralByteString.wrap(activeTable));
+            requestBuilder=requestBuilder.setDestinationTables(ZeroCopyLiteralByteString.wrap(Encoding.encodeBytesUnsorted(activeTable)));
 
         final TxnMessage.ActiveTxnRequest request=requestBuilder.build();
         try(TxnNetworkLayer table = tableFactory.accessTxnNetwork()){
             Collection<TxnMessage.ActiveTxnResponse> data = table.getActiveTxns(request);
 
-            List<TxnView> txns=Lists.newArrayList();
+            List<TxnView> txns=new ArrayList<>(data.size());
 
             for(TxnMessage.ActiveTxnResponse response : data){
                 int size=response.getTxnsCount();

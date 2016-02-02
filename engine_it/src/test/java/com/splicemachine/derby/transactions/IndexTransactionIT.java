@@ -14,6 +14,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * @author Scott Fines
@@ -159,15 +160,17 @@ public class IndexTransactionIT {
         int aInt = 2;
         int bInt = 2;
         int cInt = 2;
-        PreparedStatement preparedStatement = b.prepareStatement("insert into " + table + " (a,b,c) values (?,?,?)");
-        preparedStatement.setInt(1,aInt);
-        preparedStatement.setInt(2,bInt);
-        preparedStatement.setInt(3,cInt);
-        preparedStatement.execute();
+        try(PreparedStatement preparedStatement = b.prepareStatement("insert into " + table + " (a,b,c) values (?,?,?)")){
+            preparedStatement.setInt(1,aInt);
+            preparedStatement.setInt(2,bInt);
+            preparedStatement.setInt(3,cInt);
+            preparedStatement.execute();
+        }
         b.commit(); //need to force commit to make sure that the data is visible
 
-        preparedStatement = a.prepareStatement("create index b_idx on "+table+"(b)");
-        preparedStatement.execute();
+        try(PreparedStatement preparedStatement = a.prepareStatement("create index b_idx on "+table+"(b)")){
+            preparedStatement.execute();
+        }
         a.commit(); //force to a new timestamp for visibility check
 
         long count = a.count("select * from " + table + " --SPLICE-PROPERTIES index=B_IDX \n" +
@@ -182,15 +185,16 @@ public class IndexTransactionIT {
         int bInt = 4;
         int cInt = 4;
 
-        PreparedStatement preparedStatement = conn1.prepareStatement("create index ab_idx on "+table+"(a,b)");
-        preparedStatement.execute();
+        try(PreparedStatement preparedStatement = conn1.prepareStatement("create index ab_idx on "+table+"(a,b)")){
+            preparedStatement.execute();
+        }
         conn1.commit(); //force to a new timestamp for visibility check
         conn2.rollback(); //move other transaction forward so that index is visible
 
         String query = "select * from " + table + " --SPLICE-PROPERTIES index=AB_IDX \n" +
                 "where a = " + aInt + " and b = " + bInt;
-        long count = conn2.count(query);
-        Assert.assertEquals("conn2 has incorrect index count!",0l,count);
+//        long count = conn2.count(query);
+//        Assert.assertEquals("conn2 has incorrect index count!",0l,count);
 
         /*
          * Now, the real test:
@@ -201,22 +205,26 @@ public class IndexTransactionIT {
          * 4. commit the insert transaction
          * 5. check that the data is not visible any longer
          */
-        conn2.createStatement().execute("drop index "+schemaWatcher.schemaName+".ab_idx");
-        try{
-            conn2.count(query);
-            Assert.fail("Should have thrown an IndexNotFoundException");
-        }catch(SQLException se){
-            Assert.assertEquals("Incorrect error message returned!",SQLState.LANG_INVALID_FORCED_INDEX1,se.getSQLState());
+        try(Statement s = conn2.createStatement()){
+            s.execute("drop index "+schemaWatcher.schemaName+".ab_idx");
+            try{
+                conn2.count(query);
+                Assert.fail("Should have thrown an IndexNotFoundException");
+            }catch(SQLException se){
+                Assert.assertEquals("Incorrect error message returned!",SQLState.LANG_INVALID_FORCED_INDEX1,se.getSQLState());
+            }
         }
 
         //insert some data with the other transaction
-        preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b,c) values (?,?,?)");
-        preparedStatement.setInt(1,aInt);
-        preparedStatement.setInt(2,bInt);
-        preparedStatement.setInt(3, cInt);
-        preparedStatement.execute();
+        System.out.println("inserting with second txn");
+        try(PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b,c) values (?,?,?)")){
+            preparedStatement.setInt(1,aInt);
+            preparedStatement.setInt(2,bInt);
+            preparedStatement.setInt(3,cInt);
+            preparedStatement.execute();
+        }
 
-        count = conn1.count(query); //confirm that we can still use the index, and that it's still being updated
+        long count = conn1.count(query); //confirm that we can still use the index, and that it's still being updated
         Assert.assertEquals("conn1 has incorrect index count!",1l,count);
 
         //commit the drop transaction

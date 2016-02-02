@@ -64,12 +64,12 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         ContextManager ctxM = csf.getCurrentContextManager();
         if(ctxM!=null){
             LanguageConnectionContext possibleLcc = (LanguageConnectionContext) ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
-            if(((SpliceTransactionManager)possibleLcc.getTransactionExecute()).getActiveStateTxn().equals(txn)){
+//            if(txn.descendsFrom(((SpliceTransactionManager)possibleLcc.getTransactionExecute()).getActiveStateTxn())){
                 cm=ctxM;
                 generateLcc=false;
                 lcc=possibleLcc;
                 return false;
-            }
+//            }
         }
         cm=csf.newContextManager(); // Needed
         cm.setActiveThread();
@@ -81,11 +81,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
     public void close(){
         if(generateLcc){
-            while(!cm.isEmpty()){
-                cm.popContext();
-            }
+//            while(!cm.isEmpty()){
+//                cm.popContext();
+//            }
             csf.resetCurrentContextManager(cm);
-            csf.forceRemoveContext(cm);
+//            csf.forceRemoveContext(cm);
         }
     }
 

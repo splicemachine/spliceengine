@@ -14,8 +14,10 @@ import java.io.ObjectOutput;
  */
 public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,KVPair,KVPair> {
     private boolean initialized;
-    private IndexTransformer transformer;
     private DDLMessage.TentativeIndex tentativeIndex;
+
+    private transient IndexTransformer transformer;
+
     public IndexTransformFunction() {
         super();
     }
@@ -47,5 +49,7 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         byte[] message = new byte[in.readInt()];
         in.readFully(message);
+        tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
+        initialized = false;
     }
 }

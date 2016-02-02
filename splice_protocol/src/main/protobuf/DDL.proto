@@ -117,6 +117,7 @@ message Table {
         repeated int32 columnOrdering = 3; // The ordering of the columns in the table
         repeated bool descColumns = 4; // The source tables columnSort, all ascending right now
         required string tableVersion = 5; // Table Version for SerDe
+        optional UUID tableUuid = 6; //the derby UUID
 }
 
 message TentativeIndex {

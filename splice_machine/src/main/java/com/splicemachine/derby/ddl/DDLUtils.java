@@ -1,5 +1,7 @@
 package com.splicemachine.derby.ddl;
 
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -36,6 +38,7 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.hppc.BitSet;
 
@@ -169,9 +172,10 @@ public class DDLUtils {
         byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
-        //TODO -sf- make this configurable
-        long waitTime = 1000; //the initial time to wait
-        long maxWait = 100000; // the maximum time to wait
+        SConfiguration config = SIDriver.driver().getConfiguration();
+        Clock clock = SIDriver.driver().getClock();
+        long waitTime = config.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL); //the initial time to wait
+        long maxWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT); // the maximum time to wait
         long scale = 2; //the scale factor for the exponential backoff
         long timeAvailable = maxWait;
         long activeTxnId = -1l;
@@ -193,13 +197,13 @@ public class DDLUtils {
              * time spent and use that for our time remaining period
              * instead.
              */
-            long start = System.currentTimeMillis();
+            long start = clock.currentTimeMillis();
             try {
-                Thread.sleep(waitTime);
+                clock.sleep(waitTime,TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 throw new IOException(e);
             }
-            long stop = System.currentTimeMillis();
+            long stop = clock.currentTimeMillis();
             timeAvailable-=(stop-start);
             /*
              * We want to exponentially back off, but only to the limit imposed on us. Once
@@ -329,7 +333,6 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean initializedTxn = false;
             try{
@@ -368,6 +371,60 @@ public class DDLUtils {
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
+    }
+
+    public static void preCreateIndex(DDLMessage.DDLChange change,DataDictionary dd,DependencyManager dm) throws StandardException{
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"preCreateIndex with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean initializedTxn = false;
+            try{
+                initializedTxn = transactionResource.marshallTransaction(txn);
+
+                //get the table descriptor for the base table, and invalidate it's caches
+                DDLMessage.Table t = change.getTentativeIndex().getTable();
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(t.getTableUuid()));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td,DependencyManager.CREATE_INDEX,transactionResource.getLcc());
+            }finally{
+                if(initializedTxn)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+
+    }
+
+    public static void preDropIndex(DDLMessage.DDLChange change,DataDictionary dd,DependencyManager dm) throws StandardException{
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"preCreateIndex with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            boolean initializedTxn = false;
+            try{
+                initializedTxn = transactionResource.marshallTransaction(txn);
+
+                //get the table descriptor for the base table, and invalidate it's caches
+                DDLMessage.Table t = change.getTentativeIndex().getTable();
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(t.getTableUuid()));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td,DependencyManager.DROP_INDEX,transactionResource.getLcc());
+            }finally{
+                if(initializedTxn)
+                    transactionResource.close();
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+
     }
 
 

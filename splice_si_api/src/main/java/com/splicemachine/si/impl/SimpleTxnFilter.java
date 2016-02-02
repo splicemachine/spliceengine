@@ -215,7 +215,7 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private void addToAntiTombstoneCache(DataCell data) throws IOException{
-        long txnId=data.version();//this.dataStore.getOpFactory().getTimestamp(data);
+        long txnId=data.version();
         if(isVisible(txnId)){
 			/*
 			 * We can see this anti-tombstone, hooray!

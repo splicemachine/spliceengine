@@ -12,7 +12,8 @@ public class DDLConfiguration{
     public static final String ERROR_TAG = "[ERROR]";
 
     public static final String MAX_DDL_WAIT = "splice.ddl.maxWaitSeconds";
-    private static final long DEFAULT_MAX_DDL_WAIT=TimeUnit.SECONDS.toMillis(240);
+    //-sf- tuned down to facilitate testing. Tune up if it's causing problems
+    private static final long DEFAULT_MAX_DDL_WAIT=TimeUnit.SECONDS.toMillis(60);
 
     public static final String DDL_REFRESH_INTERVAL = "splice.ddl.refreshIntervalSeconds";
     private static final long DEFAULT_DDL_REFRESH_INTERVAL=TimeUnit.SECONDS.toMillis(10);

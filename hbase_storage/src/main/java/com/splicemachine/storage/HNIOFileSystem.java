@@ -159,7 +159,17 @@ public class HNIOFileSystem extends DistributedFileSystem{
             this.path=path;
             this.contentSummary=contentSummary;
             this.isDir = fs.isDirectory(path);
-            this.aclStatus=fs.getAclStatus(path);
+            AclStatus aclS;
+            try{
+                aclS=fs.getAclStatus(path);
+            }catch(UnsupportedOperationException uoe){
+                /*
+                 * Some Filesystems don't support aclStatus. In that case,
+                 * we replace it with our own ACL status object
+                 */
+                aclS = new AclStatus.Builder().owner("unknown").group("unknown").build();
+            }
+            this.aclStatus = aclS;
             boolean readable;
             try{
                 fs.access(path,FsAction.READ);

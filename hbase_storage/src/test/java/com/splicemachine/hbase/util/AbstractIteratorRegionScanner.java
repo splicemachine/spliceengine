@@ -95,6 +95,7 @@ public abstract class AbstractIteratorRegionScanner implements RegionScanner{
                 if(filter.filterRow()) continue;
 
                 filter.filterRowCells(toAdd);
+                filter.reset();
             }
             if(toAdd.size()>0){
                 results.addAll(toAdd);
@@ -105,6 +106,9 @@ public abstract class AbstractIteratorRegionScanner implements RegionScanner{
     }
 
     private boolean containedInScan(Cell kv) {
+        byte[] row=kv.getRow();
+        if(Bytes.compareTo(scan.getStartRow(),row)>0) return false;
+        if(Bytes.compareTo(scan.getStopRow(),row)<=0) return false;
         byte[] family = kv.getFamily();
         Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
         if(familyMap.size()<=0) return true;

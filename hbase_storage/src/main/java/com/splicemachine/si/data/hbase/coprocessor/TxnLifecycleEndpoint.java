@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.google.common.base.Supplier;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
@@ -181,7 +182,10 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         long endTxnId=request.getEndTxnId();
         long startTxnId=request.getStartTxnId();
         try{
-            Source<TxnMessage.Txn> activeTxns=lifecycleStore.getActiveTransactions(request.getDestinationTables().toByteArray(),startTxnId,endTxnId);
+            byte[] destTables=null;
+            if(request.hasDestinationTables())
+                destTables=request.getDestinationTables().toByteArray();
+            Source<TxnMessage.Txn> activeTxns=lifecycleStore.getActiveTransactions(destTables,startTxnId,endTxnId);
             TxnMessage.ActiveTxnResponse.Builder response=TxnMessage.ActiveTxnResponse.newBuilder();
             while(activeTxns.hasNext()){
                 response.addTxns(activeTxns.next());

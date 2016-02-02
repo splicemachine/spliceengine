@@ -92,16 +92,11 @@ public class SpliceScan implements ScanManager, LazyScan{
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s",Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
         }
-//				setupRowColumns();
     }
 
     public void close() throws StandardException{
         if(entryDecoder!=null)
             entryDecoder.close();
-
-        try{
-            if(scanner!=null) scanner.close();
-        }catch(IOException ignored){ }
 
         try{
             if(scanner!=null) scanner.close();
@@ -163,7 +158,7 @@ public class SpliceScan implements ScanManager, LazyScan{
     public boolean delete() throws StandardException{
         if(currentResult==null)
             throw StandardException.newException("Attempting to delete with a null current result");
-        try(Partition table = partitionFactory.getTable(tableName)){
+        try{
             DataMutation dataMutation=opFactory.newDataDelete(trans.getActiveStateTxn(),currentResult.key());
             table.mutate(dataMutation);
             currentRowDeleted=true;

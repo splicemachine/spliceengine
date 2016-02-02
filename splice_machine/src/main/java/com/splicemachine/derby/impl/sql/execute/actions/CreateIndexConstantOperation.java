@@ -753,7 +753,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
     private void createAndPopulateIndex(Activation activation,
                                           TransactionController tc,
                                           TableDescriptor td,
-                                          long indexConglomerate,
+                                          long indexConglomId,
                                           IndexDescriptor indexDescriptor) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
@@ -762,14 +762,15 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
             TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
-            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomerate));
+            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomId));
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
         }
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(), td.getHeapConglomerateId(), indexConglomerate, td, indexDescriptor);
-        ddlChange = DDLUtils.performMetadataChange(ddlChange);
-        Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, indexConglomerate,indexName);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(), activation.getLanguageConnectionContext(), td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor);
+        String changeId = DDLUtils.notifyMetadataChange(ddlChange);
+        tc.prepareDataDictionaryChange(changeId);
+        Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
         populateIndex(activation, indexTransaction,tentativeTransaction.getCommitTimestamp(),ddlChange.getTentativeIndex());
         indexTransaction.commit();
     }

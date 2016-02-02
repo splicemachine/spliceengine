@@ -90,7 +90,7 @@ public class HResult implements DataResult{
 
     @Override
     public Iterator<DataCell> iterator(){
-        if(result==null) return Collections.emptyIterator();
+        if(result==null||result.isEmpty()) return Collections.emptyIterator();
         return Iterators.transform(result.listCells().iterator(),transform);
     }
 

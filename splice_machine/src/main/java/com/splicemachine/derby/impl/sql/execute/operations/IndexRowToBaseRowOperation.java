@@ -236,6 +236,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             else if (!info.contains("baseTable")) {
                 info += ",baseTable:"+indexName+"";
             }
+            getConglomerate();
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
         }

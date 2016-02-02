@@ -111,7 +111,7 @@ buildNumber.properties
 *.pydevproject
 .metadata
 .gradle
-bin/
+#bin/
 tmp/
 *.tmp
 *.bak

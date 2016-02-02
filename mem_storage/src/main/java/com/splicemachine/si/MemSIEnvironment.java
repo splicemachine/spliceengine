@@ -5,6 +5,7 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.*;
@@ -31,7 +32,7 @@ import java.nio.file.FileSystems;
 public class MemSIEnvironment implements SIEnvironment{
     public static volatile MemSIEnvironment INSTANCE;
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
-    private final Clock clock = new IncrementingClock();
+    private final Clock clock = new ConcurrentTicker(0l);
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
     private final PartitionFactory tableFactory;

@@ -94,7 +94,7 @@ public class IndexTransformer {
      * table mutation.
      * @param mutation the incoming modification. Its rowKey is used to get the the row in the base table
      *                 that will be updated. Once we have that, we can create a new KVPair of type
-     *                 {@link com.splicemachine.hbase.KVPair.Type#DELETE DELETE} and call {@link #translate(KVPair)}
+     *                 {@link KVPair.Type#DELETE DELETE} and call {@link #translate(KVPair)}
      *                 to translate it to the index's rowKey.
      * @param ctx the write context of the modification. Used to get transaction and region info.
      * @param indexedColumns the columns which are part of this index. Used to filter the Get.
@@ -134,7 +134,7 @@ public class IndexTransformer {
      * all the required discriminating and encoding rules (column is part of a PK, value is null, etc).
      * @param mutation KVPair containing the rowKey of the base table record for which we want to
      *                 translate to the associated index. This mutation should already have its requred
-     *                 {@link com.splicemachine.hbase.KVPair.Type Type} set.
+     *                 {@link KVPair.Type Type} set.
      * @return A KVPair representing the index record of the given base table mutation. This KVPair is
      * suitable for performing the required modification of the index record associated with this mutation.
      * @throws IOException for encoding/decoding problems.

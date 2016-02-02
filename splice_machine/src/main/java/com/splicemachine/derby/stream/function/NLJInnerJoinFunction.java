@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -46,13 +47,18 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
         checkInit();
         leftRow = from;
         DataSet dataSet = null;
+        SpliceOperation rightOperation=op.getRightOperation();
+//        SpliceTransactionResourceImpl trImpl = new SpliceTransactionResourceImpl();
+//        boolean prepared = false;
         try {
-            op.getRightOperation().openCore(EngineDriver.driver().processorFactory().localProcessor(null,op));
-            rightSideNLJIterator = op.getRightOperation().getLocatedRowIterator();
+//            prepared = trImpl.marshallTransaction(op.getCurrentTransaction());
+            rightOperation.openCore(EngineDriver.driver().processorFactory().localProcessor(op.getActivation(),op));
+            rightSideNLJIterator = rightOperation.getLocatedRowIterator();
             return new NestedLoopInnerIterator<>(this);
         } finally {
-            if (op.getRightOperation()!= null)
-                op.getRightOperation().close();
+            rightOperation.close();
+//            if(prepared)
+//                trImpl.close();
         }
 
     }

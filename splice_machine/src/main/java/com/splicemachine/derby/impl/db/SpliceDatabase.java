@@ -277,10 +277,15 @@ public class SpliceDatabase extends BasicDatabase{
                 DataDictionary dataDictionary=getDataDictionary();
                 DependencyManager dependencyManager=dataDictionary.getDependencyManager();
                 switch(change.getDdlChangeType()){
+                    case CREATE_INDEX:
+                        DDLUtils.preCreateIndex(change,dataDictionary,dependencyManager);
+                        break;
+                    case DROP_INDEX:
+                        DDLUtils.preDropIndex(change,dataDictionary,dependencyManager);
+                        break;
                     case CHANGE_PK:
                     case ADD_CHECK:
                     case ADD_FOREIGN_KEY:
-                    case CREATE_INDEX:
                     case ADD_NOT_NULL:
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
@@ -288,7 +293,6 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_COLUMN:
                     case DROP_CONSTRAINT:
                     case DROP_PRIMARY_KEY:
-                    case DROP_INDEX:
                     case DROP_FOREIGN_KEY:
                     case DICTIONARY_UPDATE:
                     case CREATE_TABLE:

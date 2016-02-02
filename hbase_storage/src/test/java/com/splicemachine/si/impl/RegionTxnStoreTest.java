@@ -3,7 +3,7 @@ package com.splicemachine.si.impl;
 import com.google.protobuf.ByteString;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
-import com.splicemachine.impl.MockRegionUtils;
+import com.splicemachine.encoding.Encoding;import com.splicemachine.impl.MockRegionUtils;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
@@ -134,6 +134,72 @@ public class RegionTxnStoreTest{
                 .build();
         store.recordTransaction(info);
         long[] activeTxnIds=store.getActiveTxnIds(0,2,null);
+        Assert.assertEquals("Incorrect length!",1,activeTxnIds.length);
+        Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
+    }
+
+
+    @Test
+    public void testCanGetActiveTransactionsOutsideRange() throws Exception{
+        HRegion region=MockRegionUtils.getMockRegion();
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+
+        TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
+                .setTxnId(1)
+                .setBeginTs(1)
+                .setAllowsWrites(true)
+                .setIsAdditive(true)
+                .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel());
+        TxnMessage.TxnInfo info=builder
+                .setDestinationTables(ByteString.copyFrom(Bytes.toBytes("1234")))
+                .build();
+        store.recordTransaction(info);
+        info = builder.setTxnId(5).setBeginTs(5).setDestinationTables(ByteString.copyFrom(Bytes.toBytes("3124"))).build();
+        store.recordTransaction(info);
+        long[] activeTxnIds=store.getActiveTxnIds(0,3,null);
+        Assert.assertEquals("Incorrect length!",1,activeTxnIds.length);
+        Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
+    }
+
+    @Test
+    public void testCanGetActiveTransactionsForSpecificTable() throws Exception{
+        HRegion region=MockRegionUtils.getMockRegion();
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+
+        TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
+                .setTxnId(1)
+                .setBeginTs(1)
+                .setAllowsWrites(true)
+                .setIsAdditive(true)
+                .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel());
+        TxnMessage.TxnInfo info=builder
+                .setDestinationTables(ByteString.copyFrom(Encoding.encodeBytesUnsorted(Bytes.toBytes("1234"))))
+                .build();
+        store.recordTransaction(info);
+        info = builder.setTxnId(2).setBeginTs(2).setDestinationTables(ByteString.copyFrom(Encoding.encodeBytesUnsorted(Bytes.toBytes("3124")))).build();
+        store.recordTransaction(info);
+        long[] activeTxnIds=store.getActiveTxnIds(0,3,Encoding.encodeBytesUnsorted(Bytes.toBytes("1234")));
+        Assert.assertEquals("Incorrect length!",1,activeTxnIds.length);
+        Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
+    }
+
+    @Test
+    public void testCanGetActiveTransactionsForSpecificTableMultipleElevatedTables() throws Exception{
+        HRegion region=MockRegionUtils.getMockRegion();
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+
+        TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
+                .setTxnId(1)
+                .setBeginTs(1)
+                .setAllowsWrites(true)
+                .setIsAdditive(true)
+                .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel());
+        TxnMessage.TxnInfo info=builder
+                .setDestinationTables(ByteString.copyFrom(Encoding.encodeBytesUnsorted(Bytes.toBytes("3124"))))
+                .build();
+        store.recordTransaction(info);
+        store.addDestinationTable(1,Encoding.encodeBytesUnsorted(Bytes.toBytes("1234")));
+        long[] activeTxnIds=store.getActiveTxnIds(0,3,Bytes.toBytes("1234"));
         Assert.assertEquals("Incorrect length!",1,activeTxnIds.length);
         Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
     }

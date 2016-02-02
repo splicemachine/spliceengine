@@ -678,9 +678,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     private TxnView elevateTransaction() throws StandardException{
-				/*
-				 * Elevate the current transaction to make sure that we are writable
-				 */
+		/*
+		 * Elevate the current transaction to make sure that we are writable
+		 */
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;

@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
+
 import java.io.IOException;
 
 /**
@@ -21,12 +23,13 @@ public class ActiveTransactionReader {
     }
 
     public Stream<TxnView> getAllTransactions() throws IOException{
-        return Streams.empty(); // TODO JL
+        throw new UnsupportedOperationException("IMPLEMENT");
     }
 
     public Stream<TxnView> getActiveTransactions()
             throws IOException{
-        return Streams.empty(); // TODO JL
+        //TODO -sf- there may be millions here, so we need to be careful
+        return Streams.wrap(SIDriver.driver().getTxnStore().getActiveTransactions(minTxnId,maxTxnId,writeTable));
     }
 
 }

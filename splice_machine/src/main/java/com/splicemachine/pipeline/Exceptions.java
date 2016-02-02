@@ -27,10 +27,10 @@ public class Exceptions {
         }
         PipelineDriver pd = PipelineDriver.driver();
         if(pd!=null){
-           e = pd.exceptionFactory().processPipelineException(e);
+           e = pd.exceptionFactory().processPipelineException(rootCause);
         }else{
             ExceptionFactory ef=SIDriver.driver().getExceptionFactory();
-            e = ef.processRemoteException(e);
+            e = ef.processRemoteException(rootCause);
         }
         Throwable t = Throwables.getRootCause(e);
         if(t instanceof StandardException) return (StandardException)t;

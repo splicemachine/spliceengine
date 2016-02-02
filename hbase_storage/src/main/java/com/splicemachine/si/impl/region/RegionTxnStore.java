@@ -93,17 +93,13 @@ public class RegionTxnStore implements TxnPartition{
             throw new HReadOnlyModificationException("Transaction "+txnId+" is read-only, and was not properly elevated.");
         Cell kv=result.getColumnLatestCell(FAMILY,destTableQualifier);
         byte[] newBytes;
-        if(kv==null){
-			/*
-			 * this shouldn't happen, but you never know--someone might create a writable transaction
-			 * without specifying a table directly. In that case, this will still work
-			 */
-            newBytes=destinationTable;
+        if(kv==null || kv.getValueLength()<=0){
+            newBytes=Encoding.encodeBytesUnsorted(destinationTable);
         }else{
-            int valueLength=kv.getValueLength();
-            newBytes=new byte[valueLength+destinationTable.length+1];
-            System.arraycopy(kv.getValueArray(),kv.getValueOffset(),newBytes,0,valueLength);
-            System.arraycopy(destinationTable,0,newBytes,valueLength+1,destinationTable.length);
+            byte[] encodedTable=destinationTable;
+            newBytes=new byte[encodedTable.length+kv.getValueLength()+1];
+            System.arraycopy(encodedTable,0,newBytes,0,encodedTable.length);
+            System.arraycopy(kv.getValueArray(),kv.getValueOffset(),newBytes,encodedTable.length+1,kv.getValueLength());
         }
         Put put=new Put(get.getRow());
         put.add(FAMILY,destTableQualifier,newBytes);
@@ -316,16 +312,29 @@ public class RegionTxnStore implements TxnPartition{
 			   * The way the transaction table is built, a region may have an empty start
 			   * OR an empty end, but will never have both
 			   */
+        byte[] startKey=Bytes.toBytes(afterTs);
+        byte[] stopKey = Bytes.toBytes(beforeTs+1);
+
         byte[] regionKey=region.getStartKey();
         byte bucket;
         if(regionKey.length<=0)
-            bucket=0;
+            regionKey = region.getEndKey();
+        if(regionKey.length<=0)
+            bucket = 1; //should never happen
         else
             bucket=regionKey[0];
-        byte[] startKey=Bytes.concat(Arrays.asList(new byte[]{bucket},Bytes.toBytes(afterTs)));
+        byte[] sk = new byte[startKey.length+1];
+        sk[0] = bucket;
+        System.arraycopy(startKey,0,sk,1,startKey.length);
+        startKey = sk;
+
+        byte[] ek = new byte[stopKey.length+1];
+        ek[0] = bucket;
+        System.arraycopy(stopKey,0,ek,1,stopKey.length);
+        stopKey = ek;
+
         if(Bytes.startComparator.compare(region.getStartKey(),startKey)>0)
             startKey=region.getStartKey();
-        byte[] stopKey=Bytes.concat(Arrays.asList(new byte[]{bucket},Bytes.toBytes(beforeTs+1)));
         if(Bytes.endComparator.compare(region.getEndKey(),stopKey)<0)
             stopKey=region.getEndKey();
         Scan scan=new Scan(startKey,stopKey);
@@ -387,6 +396,7 @@ public class RegionTxnStore implements TxnPartition{
                 currentResults=new ArrayList<>(10);
             boolean shouldContinue;
             do{
+//                currentResults.clear();
                 shouldContinue=regionScanner.next(currentResults);
                 if(currentResults.size()<=0) return false;
 
