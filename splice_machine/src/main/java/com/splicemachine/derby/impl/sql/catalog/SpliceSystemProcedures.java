@@ -200,17 +200,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(getWriteOutputInfo);
 
         			/*
-        			 * Procedure get task info for region servers
-        			 */
-                    Procedure getRegionServerTaskInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_TASK_INFO")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build();
-                    procedures.add(getRegionServerTaskInfo);
-
-        			/*
         			 * Procedure get stats info for region servers
         			 */
                     Procedure getRegionServerStatsInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_STATS_INFO")
