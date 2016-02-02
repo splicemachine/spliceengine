@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import org.apache.log4j.Logger;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Properties;
