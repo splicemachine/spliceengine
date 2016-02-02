@@ -1,8 +1,3 @@
-/**
- * SpliceOutputFormat which performs writing to Splice
- * @author Yanan Jian
- * Created on: 08/14/14
- */
 package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
@@ -14,7 +9,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
