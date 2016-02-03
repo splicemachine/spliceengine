@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
+
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -73,6 +74,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetails) {
+        return values();
+    }
+
+    @Override
     public DataSet<K> keys() {
         return new ControlDataSet<>(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, K>() {
             @Nullable
@@ -103,7 +109,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
         return reduceByKey(function2);
     }
     

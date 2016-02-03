@@ -59,13 +59,6 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
     }
 
     @Test
-    public void testFold() throws StandardException {
-        DataSet<ExecRow> ds = getTenRowsTwoDuplicateRecordsDataSet();
-        ExecRow execRow = ds.fold(null, new FoldFunction());
-        Assert.assertEquals("summation did not work on execRow",47,execRow.getColumn(1).getInt());
-    }
-
-    @Test
     public void testIndex() throws Exception {
         DataSet<ExecRow> ds = getTenRowsTwoDuplicateRecordsDataSet();
         PairDataSet<RowLocation,ExecRow> pairDataSet = ds.index(new IndexPairFunction());

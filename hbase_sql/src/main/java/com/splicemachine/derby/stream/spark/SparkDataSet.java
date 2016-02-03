@@ -89,17 +89,6 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
-        return rdd.fold(zeroValue,new SparkSpliceFunctionWrapper2<>(function2));
-    }
-
-    @Override
-    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2, boolean isLast) {
-        rdd.setName(planIfLast(function2, isLast));
-        return rdd.fold(zeroValue, new SparkSpliceFunctionWrapper2<>(function2));
-    }
-    
-    @Override
     public <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function) {
        return new SparkPairDataSet<>(rdd.mapToPair(new SparkSplittingFunction<>(function)), function.getSparkName());
     }
@@ -142,7 +131,19 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f, String name) {
         return new SparkPairDataSet<>(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), name);
     }
-    
+
+    @Override
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(
+            SpliceFunction<Op, V, K> f, String name, boolean pushScope, String scopeDetail) {
+
+        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        try {
+            return new SparkPairDataSet(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), name != null ? name : f.getSparkName());
+        } finally {
+            if (pushScope) f.operationContext.popScope();
+        }
+    }
+
     @Override
     public long count() {
         return rdd.count();

@@ -62,18 +62,34 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
+    public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+        if (pushScope) context.pushScopeForOp(scopeDetail);
+        try {
+            return new SparkDataSet<V>(rdd.values(), name != null ? name : SparkConstants.RDD_NAME_GET_VALUES);
+        } finally {
+            if (pushScope) context.popScope();
+        }
+    }
+
+    @Override
     public DataSet<K> keys(){
         return new SparkDataSet<>(rdd.keys());
     }
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op, V, V, V> function2){
-        return new SparkPairDataSet<>(rdd.reduceByKey(new SparkSpliceFunctionWrapper2<>(function2)),function2.getSparkName());
-    }
+        return reduceByKey(function2, false, false, null);    }
 
     @Override
-    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op, V, V, V> function2,boolean isLast){
-        return new SparkPairDataSet<>(rdd.reduceByKey(new SparkSpliceFunctionWrapper2<>(function2)),planIfLast(function2,isLast));
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(
+        SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
+
+        if (pushScope) function2.operationContext.pushScopeForOp(scopeDetail);
+        try {
+            return new SparkPairDataSet<>(rdd.reduceByKey(new SparkSpliceFunctionWrapper2<>(function2)), planIfLast(function2, isLast));
+        } finally {
+            if (pushScope) function2.operationContext.popScope();
+        }
     }
 
     @Override

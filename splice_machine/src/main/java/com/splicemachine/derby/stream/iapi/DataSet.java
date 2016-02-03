@@ -43,13 +43,6 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
     /**
-     * Iterate over all values and produce a single value.
-     */
-    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
-    
-    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2, boolean isLast);
-    
-    /**
      * Applies function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
      */
@@ -69,6 +62,8 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name);
+
+    <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name, boolean pushScope, String scopeDetail);
 
     /**
      * Returns a localiterator for computation.
