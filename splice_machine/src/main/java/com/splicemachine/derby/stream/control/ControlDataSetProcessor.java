@@ -107,20 +107,6 @@ public class ControlDataSetProcessor implements DataSetProcessor{
        };
     }
 
-    //    @Override
-//    public <V> DataSet<V> getHTableScanner(HTableScannerBuilder hTableBuilder, String tableName) throws StandardException {
-//        TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-//                txnSupplier, ignoreSupplier,
-//                dataStore, transactory);
-//
-//        hTableBuilder
-//                .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),hTableBuilder.getScan()))
-//                .region(localRegion)
-//                .metricFactory(Metrics.noOpMetricFactory());
-//        DirectScannerIterator tableScannerIterator = new DirectScannerIterator(hTableBuilder);
-//        return new ControlDataSet<>(tableScannerIterator);
-//    }
-
     @Override
     public <V> DataSet<V> getEmpty(){
         return new ControlDataSet<>(Collections.<V>emptyList());

@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
@@ -39,7 +40,9 @@ public class ActivationHolder implements Externalizable {
     public ActivationHolder(Activation activation) {
         this.activation = activation;
         addSubOperations(operationsMap, (SpliceOperation) activation.getResultSet());
-        operationsList.add((SpliceOperation) activation.getResultSet());
+        if(activation.getResultSet()!=null){
+            operationsList.add((SpliceOperation) activation.getResultSet());
+        }
 
         for (Field field : activation.getClass().getDeclaredFields()) {
             if(!field.getType().isAssignableFrom(SpliceOperation.class)) continue; //ignore qualifiers
@@ -115,6 +118,11 @@ public class ActivationHolder implements Externalizable {
             impl = new SpliceTransactionResourceImpl();
             prepared =  impl.marshallTransaction(txn);
             activation = soi.getActivation(this, impl.getLcc());
+
+            SpliceOperationContext context = SpliceOperationContext.newContext(activation);
+            for(SpliceOperation so: operationsList){
+                 so.init(context);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

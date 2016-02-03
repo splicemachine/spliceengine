@@ -123,6 +123,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         if(isOp){
             broadcastedActivation = (BroadcastedActivation)in.readObject();
             op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
+            activation=broadcastedActivation.getActivationHolder().getActivation();
         }
         rowsRead=(Accumulator)in.readObject();
         rowsFiltered=(Accumulator)in.readObject();
@@ -131,23 +132,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         rowsJoinedRight=(Accumulator<Integer>)in.readObject();
         rowsProduced=(Accumulator<Integer>)in.readObject();
         badRecordsAccumulable=(Accumulable<List<String>, String>)in.readObject();
-        boolean prepared=false;
-        try{
-            impl=new SpliceTransactionResourceImpl();
-            prepared=impl.marshallTransaction(broadcastedActivation.getActivationHolder().getTxn());
-            if(isOp){
-                activation=broadcastedActivation.getActivationHolder().getActivation();
-                context=SpliceOperationContext.newContext(activation);
-                op.init(context);
-            }
-            readExternalInContext(in);
-        }catch(Exception e){
-            SpliceLogUtils.logAndThrowRuntime(LOG,e);
-        }finally{
-            if(prepared){
-                impl.popContextManager();
-            }
-        }
         int len=in.readInt();
         if(len>0){
             operationUUID=new byte[len];

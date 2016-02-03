@@ -355,6 +355,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CachedOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CallStatementOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ExplainOperation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);
