@@ -1,12 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations.iapi;
 
-import com.splicemachine.derby.serialization.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+
 import java.io.Externalizable;
 
 /**
@@ -29,8 +28,6 @@ public interface DMLWriteInfo extends Externalizable {
 
     long getConglomerateId();
 
-		SpliceObserverInstructions buildInstructions(SpliceOperation operation);
-
-		ResultDescription getResultDescription();
+    ResultDescription getResultDescription();
 
 }

@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.serialization.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
@@ -60,12 +58,7 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
         return ((WriteCursorConstantOperation)getConstantAction()).getConglomerateId();
     }
 
-		@Override
-    public SpliceObserverInstructions buildInstructions(SpliceOperation operation) {
-        return SpliceObserverInstructions.create(activation,operation);
-    }
-
-		@Override
+    @Override
 		public ResultDescription getResultDescription() {
 				return activation.getResultDescription();
 		}

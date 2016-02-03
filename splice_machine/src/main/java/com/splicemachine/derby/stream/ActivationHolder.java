@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Class used to serialize (and reference) the operation tree and the activation for Spark. It references
+ * operations by resultSetNumber, it only serializes the roots (resultSet, subqueries, etc.) and maintains
+ * references consistent when they reference the same operation from different fields in the activation.
+ *
  * Created by dgomezferro on 1/14/16.
  */
 public class ActivationHolder implements Externalizable {

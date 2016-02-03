@@ -132,6 +132,6 @@ public interface DataSetProcessor {
     void setPermissive();
     void setFailBadRecordCount(int failBadRecordCount);
 
-    void clearOperationContext();
+    void clearBroadcastedOperation();
 
 }

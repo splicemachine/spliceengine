@@ -72,12 +72,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     protected SparkOperationContext(Activation activation){
         this.op=null;
         this.activation=activation;
-        try{
-            TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
-            Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
-        }catch(StandardException se){
-            throw new RuntimeException(se);
-        }
         this.rowsRead=SpliceSpark.getContext().accumulator(0,"rows read");
         this.rowsFiltered=SpliceSpark.getContext().accumulator(0,"rows filtered");
         this.rowsWritten=SpliceSpark.getContext().accumulator(0,"rows written");
