@@ -16,6 +16,7 @@ message AlterStats {
 message DropIndex {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
+        optional UUID tableUUID = 3;
 }
 
 message DropIndexTrigger {

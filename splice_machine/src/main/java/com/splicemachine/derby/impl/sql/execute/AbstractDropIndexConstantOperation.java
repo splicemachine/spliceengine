@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
@@ -109,7 +110,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
             t=uTxn.getParentTxnView();
         }
         final TxnView userTxn=uTxn;
-        DDLMessage.DDLChange change=ProtoUtil.createDropIndex(indexConglomId,tableConglomId,userTxn.getTxnId());
+        DDLMessage.DDLChange change=ProtoUtil.createDropIndex(indexConglomId,tableConglomId,userTxn.getTxnId(),(BasicUUID)tableId);
         dropIndexTrigger(tableConglomId,indexConglomId,userTxn);
         String changeId=DDLUtils.notifyMetadataChange(change);
         userTxnManager.prepareDataDictionaryChange(changeId);

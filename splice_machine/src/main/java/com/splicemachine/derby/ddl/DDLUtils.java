@@ -2,10 +2,9 @@ package com.splicemachine.derby.ddl;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -27,7 +26,6 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.storage.DataScan;
@@ -373,60 +371,38 @@ public class DDLUtils {
         }
     }
 
-    public static void preCreateIndex(DDLMessage.DDLChange change,DataDictionary dd,DependencyManager dm) throws StandardException{
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"preCreateIndex with change=%s",change);
+    public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        preIndex(change, dd, dm, DependencyManager.CREATE_INDEX, change.getTentativeIndex().getTable().getTableUuid());
+    }
+
+    public static void preDropIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        preIndex(change, dd, dm, DependencyManager.DROP_INDEX, change.getDropIndex().getTableUUID());
+    }
+
+    private static void preIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, int action, DerbyMessage.UUID uuid) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preIndex with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean initializedTxn = false;
-            try{
+            try {
                 initializedTxn = transactionResource.marshallTransaction(txn);
-
-                //get the table descriptor for the base table, and invalidate it's caches
-                DDLMessage.Table t = change.getTentativeIndex().getTable();
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(t.getTableUuid()));
-                if(td==null) // Table Descriptor transaction never committed
+                transactionResource.prepareContextManager();
+                transactionResource.marshallTransaction(txn);
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
+                if (td == null) // Table Descriptor transaction never committed
                     return;
                 flushCachesBasedOnTableDescriptor(td,dd);
-                dm.invalidateFor(td,DependencyManager.CREATE_INDEX,transactionResource.getLcc());
-            }finally{
-                if(initializedTxn)
+                dm.invalidateFor(td, action, transactionResource.getLcc());
+            } finally {
+                if (initializedTxn)
                     transactionResource.close();
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
-
     }
-
-    public static void preDropIndex(DDLMessage.DDLChange change,DataDictionary dd,DependencyManager dm) throws StandardException{
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"preCreateIndex with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            boolean initializedTxn = false;
-            try{
-                initializedTxn = transactionResource.marshallTransaction(txn);
-
-                //get the table descriptor for the base table, and invalidate it's caches
-                DDLMessage.Table t = change.getTentativeIndex().getTable();
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(t.getTableUuid()));
-                if(td==null) // Table Descriptor transaction never committed
-                    return;
-                flushCachesBasedOnTableDescriptor(td,dd);
-                dm.invalidateFor(td,DependencyManager.DROP_INDEX,transactionResource.getLcc());
-            }finally{
-                if(initializedTxn)
-                    transactionResource.close();
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
-
-    }
-
 
     private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
         DataDictionaryCache cache = dd.getDataDictionaryCache();

@@ -123,7 +123,9 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             }catch(StandardException|IOException e){
                 SpliceLogUtils.error(LOG,"Unable to set up index management for table "+conglomId+", aborting",e);
             }finally{
-                transactionResource.resetContextManager();
+                // TODO (wjkmerge): double check that pop is better than reset here
+                // transactionResource.resetContextManager();
+                transactionResource.popContextManager();
             }
         }catch(SQLException e){
             SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing"+
