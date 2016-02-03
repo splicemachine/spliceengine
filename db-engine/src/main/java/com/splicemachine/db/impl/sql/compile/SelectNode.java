@@ -961,7 +961,7 @@ public class SelectNode extends ResultSetNode{
 			 *		is as expected.
 			 */
 
-            if(isDistinct && orderByList!=null && orderByList.allAscending()){
+//            if(isDistinct && orderByList!=null && orderByList.allAscending()){
 				/* Order by list currently restricted to columns in select
 				 * list, so we will always eliminate the order by here.
 				 */
@@ -976,14 +976,14 @@ public class SelectNode extends ResultSetNode{
 				 * match the order by list and generate the PRN above us to
 				 * preserve the expected order.
 				 */
-                newTop=genProjectRestrictForReordering();
-                orderByList.resetToSourceRCs();
-                resultColumns=orderByList.reorderRCL(resultColumns);
-                newTop.getResultColumns().removeOrderByColumns();
-                orderByList=null;
+//                newTop=genProjectRestrictForReordering();
+//                orderByList.resetToSourceRCs();
+//                resultColumns=orderByList.reorderRCL(resultColumns);
+//                newTop.getResultColumns().removeOrderByColumns();
+//                orderByList=null;
 //				}
-                orderByAndDistinctMerged=true;
-            }
+//                orderByAndDistinctMerged=true;
+//            }
         }
 
 		/*
