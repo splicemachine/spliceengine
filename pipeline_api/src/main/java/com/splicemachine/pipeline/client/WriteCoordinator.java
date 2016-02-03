@@ -153,7 +153,7 @@ public class WriteCoordinator {
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn,
                                                    PreFlushHook flushHook, WriteConfiguration writeConfiguration) {
         monitor.outstandingBuffers.incrementAndGet();
-        return new MonitoredPipingCallBuffer(partition, txn, synchronousWriter, flushHook, writeConfiguration, monitor, false);
+        return new MonitoredPipingCallBuffer(partition, txn, asynchronousWriter, flushHook, writeConfiguration, monitor, false);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, final int maxEntries) {
