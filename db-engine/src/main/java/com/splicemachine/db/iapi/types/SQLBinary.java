@@ -179,7 +179,12 @@ abstract class SQLBinary
 		isNull = evaluateNull();
 	}
 
-	/**
+    @Override
+    public void setValue(String value) throws StandardException {
+        setValue(value==null?null:com.splicemachine.db.iapi.util.StringUtil.fromHexString(value,0,value.length()));
+    }
+
+    /**
 	 * Used by JDBC -- string should not contain
 	 * SQL92 formatting.
 	 *
