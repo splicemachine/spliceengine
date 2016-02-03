@@ -58,6 +58,8 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         heapConglom = in.readLong();
         formatIds = ArrayUtil.readIntArray(in);
         columnOrdering = ArrayUtil.readIntArray(in);
+        if(columnOrdering==null)
+            columnOrdering = new int[]{};
         pkCols = ArrayUtil.readIntArray(in);
         pkColumns = (FormatableBitSet) in.readObject();
         heapList = (FormatableBitSet) in.readObject();

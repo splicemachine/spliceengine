@@ -330,7 +330,7 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_INDEX:
                     case DROP_TABLE:
                     case CREATE_TABLE:
-                        getDataDictionary().getDataDictionaryCache().clearTableCache();
+//                        getDataDictionary().getDataDictionaryCache().clearTableCache();
                         break;
                     case CREATE_SCHEMA:
                     case DROP_SCHEMA:

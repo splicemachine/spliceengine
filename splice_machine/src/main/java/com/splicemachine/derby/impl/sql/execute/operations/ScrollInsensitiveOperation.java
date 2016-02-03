@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -146,9 +147,8 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	public List<SpliceOperation> getSubOperations() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getSubOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add((SpliceOperation) source);
-		return operations;
+        if(source==null) return Collections.emptyList();
+        else return Collections.singletonList(source);
 	}
 
 	@Override

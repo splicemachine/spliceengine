@@ -35,6 +35,7 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
     private String tableVersion;
     private ExecRow execRowDefinition;
     private FormatableBitSet heapList;
+    private transient TxnView txn;
 
     public SparkUpdateDataSetWriter(JavaPairRDD<K, V> rdd,
                                     OperationContext operationContext,
@@ -71,18 +72,18 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public void setTxn(TxnView childTxn){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        this.txn = childTxn;
     }
 
     @Override
     public TableWriter getTableWriter() throws StandardException{
         return new UpdatePipelineWriter(heapConglom,formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
-                operationContext.getTxn(), execRowDefinition,heapList,operationContext);
+                txn, execRowDefinition,heapList,operationContext);
     }
 
     @Override
     public TxnView getTxn(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return txn;
     }
 
     @Override

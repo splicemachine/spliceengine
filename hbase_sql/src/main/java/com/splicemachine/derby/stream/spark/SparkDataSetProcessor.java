@@ -92,7 +92,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
-        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
         rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
         return new SparkDataSet<>(rdd1);
     }

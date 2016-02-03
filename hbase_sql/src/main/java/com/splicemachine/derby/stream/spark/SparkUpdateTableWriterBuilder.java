@@ -23,7 +23,10 @@ import java.util.Collections;
  *         Date: 1/25/16
  */
 public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder{
-    private JavaPairRDD<K,V> rdd;
+    private transient JavaPairRDD<K,V> rdd;
+
+    public SparkUpdateTableWriterBuilder(){
+    }
 
     public SparkUpdateTableWriterBuilder(JavaPairRDD<K, V> rdd){
         this.rdd=rdd;

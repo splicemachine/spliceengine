@@ -586,11 +586,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public boolean canUseCache() throws StandardException {
+    public boolean canUseCache(TransactionController xactMgr) throws StandardException {
         DDLDriver driver=DDLDriver.driver();
         if(driver==null) return false;
         DDLWatcher ddlWatcher=driver.ddlWatcher();
-        return ddlWatcher.canUseCache((TransactionManager)getTransactionCompile());
+        if(xactMgr==null)
+            xactMgr = getTransactionCompile();
+        return ddlWatcher.canUseCache((TransactionManager)xactMgr);
     }
 
     @Override

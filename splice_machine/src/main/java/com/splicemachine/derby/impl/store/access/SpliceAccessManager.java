@@ -157,13 +157,13 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     Conglomerate conglomCacheFind(TransactionManager xact_mgr,long conglomid) throws StandardException {
         Conglomerate conglomerate = null;
         if (database!=null && database.getDataDictionary() !=null) {
-            conglomerate = database.getDataDictionary().getDataDictionaryCache().conglomerateCacheFind(conglomid);
+            conglomerate = database.getDataDictionary().getDataDictionaryCache().conglomerateCacheFind(xact_mgr,conglomid);
         }
         if (conglomerate != null)
             return conglomerate;
         conglomerate = getFactoryFromConglomId(conglomid).readConglomerate(xact_mgr, new ContainerKey(0, conglomid));
         if (conglomerate!=null && database!=null && database.getDataDictionary() !=null)
-            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate);
+            database.getDataDictionary().getDataDictionaryCache().conglomerateCacheAdd(conglomid,conglomerate,xact_mgr);
         return conglomerate;
     }
 
