@@ -6,7 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
-import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.ActivationHolder;import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -30,7 +30,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         long rowsJoinedRight;
         long rowsProduced;
         List<String> badRecords;
-        public SpliceObserverInstructions soi;
+        public ActivationHolder activationHolder;
         public SpliceTransactionResourceImpl impl;
         public Activation activation;
         public SpliceOperationContext context;
@@ -67,17 +67,16 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
 
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
-            if (soi == null)
-                soi = SpliceObserverInstructions.create(op.getActivation(), op);
-            out.writeObject(soi);
+            if(activationHolder==null)
+                activationHolder = new ActivationHolder(activation);
+            out.writeObject(activationHolder);
             out.writeObject(op);
             SIDriver.driver().getOperationFactory().writeTxn(txn, out);
        }
 
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//            SpliceSpark.setupSpliceStaticComponents();
-            soi = (SpliceObserverInstructions) in.readObject();
+            activationHolder = (ActivationHolder)in.readObject();
             op = (Op) in.readObject();
             txn = SIDriver.driver().getOperationFactory().readTxn(in);
             boolean prepared = false;
@@ -85,7 +84,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
                 impl = new SpliceTransactionResourceImpl();
 
                 prepared = impl.marshallTransaction(txn);
-                activation = soi.getActivation(impl.getLcc());
+                activation = activationHolder.getActivation();
                 context = SpliceOperationContext.newContext(activation);
                 op.init(context);
                 readExternalInContext(in);
@@ -116,15 +115,6 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
     public Activation getActivation() {
         return op.getActivation();
-    }
-
-    @Override
-    public TxnView getTxn() {
-        try {
-            return op.getCurrentTransaction();
-        } catch (StandardException se) {
-            throw new RuntimeException(se);
-        }
     }
 
 

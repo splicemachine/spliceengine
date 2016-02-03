@@ -448,6 +448,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
             String jobName=userId+" <"+txnId+">";
             dsp.setJobGroup(jobName,sql);
+            dsp.clearOperationContext();
             this.locatedRowIterator=getDataSet(dsp).toLocalIterator();
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy.
             throw Exceptions.parseException(e);

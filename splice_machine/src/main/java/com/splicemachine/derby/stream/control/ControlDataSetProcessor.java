@@ -275,4 +275,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         this.failBadRecordCount=failBadRecordCount;
     }
 
+    @Override
+    public void clearOperationContext() {
+        // do nothing
+    }
 }

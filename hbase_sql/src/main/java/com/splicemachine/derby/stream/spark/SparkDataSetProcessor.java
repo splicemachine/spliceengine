@@ -106,7 +106,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
-        OperationContext<Op> operationContext =new SparkOperationContext<>(spliceOperation);
+        setupActivationHolder(spliceOperation.getActivation());
+        OperationContext<Op> operationContext =new SparkOperationContext<Op>(spliceOperation,context.get());
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive();
@@ -115,8 +116,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return operationContext;
     }
 
+    private void setupActivationHolder(Activation activation){
+        if(context.get()==null){
+            context.set(new BroadcastedActivation(activation));
+        }
+    }
+
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
+        setupActivationHolder(activation);
         return new SparkOperationContext<>(activation);
     }
 
@@ -168,7 +176,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 "size=" + contentSummary.spaceConsumed() + ", " +
                 "files=" + contentSummary.fileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
-            return new SparkDataSet<String>(rdd, SparkConstants.RDD_NAME_READ_TEXT_FILE);
+            return new SparkDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {
@@ -199,5 +207,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public void setFailBadRecordCount(int failBadRecordCount) {
         this.failBadRecordCount = failBadRecordCount;
+    }
+
+    private ThreadLocal<BroadcastedActivation> context = new ThreadLocal<>();
+
+    @Override
+    public void clearOperationContext(){
+        context.remove();
     }
 }

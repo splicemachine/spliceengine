@@ -30,7 +30,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Derb
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.ActivationHolder;import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.kvpair.KVPair;
@@ -354,6 +354,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CachedOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CallStatementOperation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);
@@ -635,5 +636,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                 return map;
             }
         });
+
+        instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER);
     }
 }
