@@ -2,6 +2,7 @@ package com.splicemachine.compactions;
 
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
+import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -46,8 +47,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         for (StoreFile sf : request.getFiles()) {
             files.add(sf.getPath().toString());
         }
-        List<String> sPaths = SpliceSpark.getContext().parallelize(files, 1).mapPartitions(
-                new SparkCompactionFunction(smallestReadPoint,store.getTableName().getNamespace(),store.getTableName().getQualifier(),store.getRegionInfo(),store.getFamily().getName())).collect();
+        SparkFlatMapFunction f = new SparkFlatMapFunction(
+            new SparkCompactionFunction(smallestReadPoint, store.getTableName().getNamespace(), store.getTableName().getQualifier(), store.getRegionInfo(), store.getFamily().getName()));
+        List<String> sPaths = SpliceSpark.getContext().parallelize(files, 1).mapPartitions(f).collect();
         System.out.println("Paths Returned -> " + sPaths);
         this.progress.complete();
 
