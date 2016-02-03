@@ -124,22 +124,4 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
         }
     }
 
-    public static class FoldFunction extends SpliceFunction2<SpliceOperation,ExecRow,ExecRow,ExecRow> {
-
-        public FoldFunction() {
-
-        }
-
-        @Override
-        public ExecRow call(ExecRow execRow, ExecRow execRow2) throws Exception {
-            if (execRow==null)
-                return execRow2;
-            if (execRow2 ==null)
-                return execRow;
-            ExecRow returnRow = execRow.getClone();
-            returnRow.getColumn(1).setValue(execRow.getColumn(1).getInt()+execRow2.getColumn(1).getInt());
-            return returnRow;
-        }
-    }
-
 }
