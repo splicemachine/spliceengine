@@ -14,6 +14,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.jdbc.HiveDriver;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -34,7 +35,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 @Ignore
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
-    private static String driverName = "org.apache.hadoop.hive.jdbc.HiveDriver";
+    private static String driverName = HiveDriver.class.getCanonicalName();
     static {
         try {
             Class.forName(driverName);
@@ -196,7 +197,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @Test
     public void testCompositePK() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE A " +
                 "(COL1 INT, COL2 INT, COL3 INT) " +
@@ -430,7 +431,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @Test
     public void testInsertValues() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE G " +
                 "(COL1 INT, COL2 INT, COL3 INT) " +
