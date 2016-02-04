@@ -143,7 +143,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
-
+            dd.startWriting(lcc);
                     /* Invalidate dependencies remotely. */
 
             TransactionController tc = lcc.getTransactionExecute();
@@ -236,9 +236,9 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<TableDescriptor> tds = Collections.singletonList(tableDesc);
             authorize(tds);
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
+            dd.startWriting(conn.getLanguageConnection());
             ExecRow outputRow = buildOutputTemplateRow();
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
-            tc.elevate("statistics");
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
