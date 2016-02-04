@@ -129,7 +129,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 		// need them to be at this level in order to find out which of them
 		// is the equijoin predicate that is required by hash join.
 		if ((predList != null) &&
-			!getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin())
+				getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType().isAllowsJoinPredicatePushdown())
 		{
 			for (int i = predList.size() - 1; i >= 0; i--)
 				if (pushOptPredicate(predList.getOptPredicate(i)))

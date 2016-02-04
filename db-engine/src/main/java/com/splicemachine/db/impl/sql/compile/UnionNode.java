@@ -218,7 +218,7 @@ public class UnionNode extends SetOperatorNode{
         // need the predicates to be at this level in order to find
         // out if one of them is an equijoin predicate that can be used
         // for the hash join.
-        if((predList!=null) && !getCurrentAccessPath().getJoinStrategy().isHashJoin()){
+        if((predList!=null) && getCurrentAccessPath().getJoinStrategy().getJoinStrategyType().isAllowsJoinPredicatePushdown()) {
             for(int i=predList.size()-1;i>=0;i--){
                 if(pushOptPredicate(predList.getOptPredicate(i)))
                     predList.removeOptPredicate(i);
