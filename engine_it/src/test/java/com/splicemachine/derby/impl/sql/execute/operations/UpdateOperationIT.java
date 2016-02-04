@@ -133,14 +133,17 @@ public class UpdateOperationIT {
 
     @Test
     public void testUpdate() throws Exception {
-        int updated = methodWatcher.getStatement().executeUpdate("update LOCATION set addr='240' where num=100");
-        assertEquals("Incorrect num rows updated!", 1, updated);
-        ResultSet rs = methodWatcher.executeQuery("select * from LOCATION where num = 100");
-        assertEquals("" +
-                        "NUM |ADDR | ZIP  |\n" +
-                        "-------------------\n" +
-                        " 100 | 240 |94114 |",
-                TestUtils.FormattedResult.ResultFactory.toString(rs));
+        try(Statement s=methodWatcher.getStatement()){
+            int updated=s.executeUpdate("update LOCATION set addr='240' where num=100");
+            assertEquals("Incorrect num rows updated!",1,updated);
+            try(ResultSet rs=s.executeQuery("select * from LOCATION where num = 100")){
+                assertEquals(""+
+                                "NUM |ADDR | ZIP  |\n"+
+                                "-------------------\n"+
+                                " 100 | 240 |94114 |",
+                        TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
     }
 
     @Test

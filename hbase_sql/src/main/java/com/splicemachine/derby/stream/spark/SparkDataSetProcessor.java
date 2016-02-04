@@ -72,7 +72,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException{
-        return new SparkScanSetBuilder<>(this,tableName);
+        return new SparkScanSetBuilder<>(this,tableName,spliceOperation);
     }
 
     @Override
@@ -211,7 +211,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
 
-    private ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
+    private transient ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
 
     private void setupBroadcastedActivation(Activation activation){
         if(broadcastedActivation.get()==null){

@@ -120,7 +120,6 @@ public class ProtoUtil {
         SpliceConglomerate sc = (SpliceConglomerate)((SpliceTransactionManager)lcc.getTransactionExecute()).findConglomerate(conglomerate);
         return Table.newBuilder()
                 .setConglomerate(conglomerate)
-                .setTableId(transferDerbyUUID((BasicUUID) td.getUUID()))
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
                 .setTableVersion(DataDictionaryUtils.getTableVersion(lcc,td.getUUID()))

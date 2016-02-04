@@ -112,5 +112,10 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     public void setFailBadRecordCount(int failBadRecordCount){
         delegate.setFailBadRecordCount(failBadRecordCount);
     }
+
+    @Override
+    public void clearBroadcastedOperation(){
+        //no-op
+    }
 }
 

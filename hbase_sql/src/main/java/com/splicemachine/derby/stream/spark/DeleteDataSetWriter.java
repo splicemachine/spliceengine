@@ -57,8 +57,6 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public TxnView getTxn(){
-        if(txnView==null)
-            return operationContext.getTxn();
         return txnView;
     }
 

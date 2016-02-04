@@ -114,9 +114,8 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public TableWriter getTableWriter() throws StandardException{
-        TxnView txnView = txn==null? opContext.getTxn(): txn;
         return new InsertPipelineWriter(pkCols,tableVersion,execRowDefinition,autoIncRowArray,sequences,heapConglom,
-                txnView,opContext,isUpsert);
+                txn,opContext,isUpsert);
     }
 
     @Override

@@ -141,7 +141,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void reset(){
-        impl.resetContextManager();
+//        impl.resetContextManager();
     }
 
     @Override

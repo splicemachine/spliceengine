@@ -11,6 +11,7 @@ import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 
 import java.util.Collections;
@@ -44,7 +45,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
             valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(Exception e){
-            throw StandardException.plainWrapException(e);
+            throw Exceptions.parseException(e);
         }finally{
             try{
                 if(pipelineWriter!=null)

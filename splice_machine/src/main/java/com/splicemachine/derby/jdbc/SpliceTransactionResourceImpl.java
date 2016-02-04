@@ -60,17 +60,14 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
 
-        ContextManager ctxM=csf.getCurrentContextManager();
-        if(ctxM!=null){
-            LanguageConnectionContext possibleLcc=(LanguageConnectionContext)ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
-//            if(txn.descendsFrom(((SpliceTransactionManager)possibleLcc.getTransactionExecute()).getActiveStateTxn())){
-            cm=ctxM;
-            cm.setActiveThread();
-            generateLcc=false;
-            lcc=possibleLcc;
-            return false;
-//            }
-        }
+//        ContextManager ctxM=csf.getCurrentContextManager();
+//        if(ctxM!=null){
+//            cm=ctxM;
+////            cm.setActiveThread();
+//            generateLcc=false;
+//            lcc=(LanguageConnectionContext)ctxM.getContext(LanguageConnectionContext.CONTEXT_ID);
+//            return false;
+//        }
         cm=csf.newContextManager(); // Needed
         cm.setActiveThread();
         csf.setCurrentContextManager(cm);
@@ -81,11 +78,10 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
     public void close(){
         if(generateLcc){
-//            while(!cm.isEmpty()){
-//                cm.popContext();
-//            }
+            while(!cm.isEmpty()){
+                cm.popContext();
+            }
             csf.resetCurrentContextManager(cm);
-//            csf.forceRemoveContext(cm);
         }
     }
 
@@ -93,21 +89,5 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         return lcc;
     }
 
-    public void resetContextManager(){
-        if(generateLcc)
-            csf.forceRemoveContext(cm);
-    }
-
-    public void prepareContextManager(){
-        if(!generateLcc) return;
-
-        cm.setActiveThread();
-        csf.setCurrentContextManager(cm);
-    }
-
-    public void popContextManager(){
-        if(generateLcc)
-            csf.resetCurrentContextManager(cm);
-    }
 }
 

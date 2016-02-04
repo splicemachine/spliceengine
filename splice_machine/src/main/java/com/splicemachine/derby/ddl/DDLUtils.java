@@ -388,8 +388,6 @@ public class DDLUtils {
             boolean initializedTxn = false;
             try {
                 initializedTxn = transactionResource.marshallTransaction(txn);
-                transactionResource.prepareContextManager();
-                transactionResource.marshallTransaction(txn);
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
                 if (td == null) // Table Descriptor transaction never committed
                     return;
