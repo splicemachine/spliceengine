@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -56,7 +57,8 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         sd.drop(lcc, activation);
-        DDLUtils.notifyMetadataChangeAndWait(ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName));
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
 }
