@@ -68,12 +68,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        char lockGranularity,
                                                        boolean onCommitDeleteRows,
                                                        boolean onRollbackDeleteRows,
-                                                       String insertStatement){
-        SpliceLogUtils.trace(LOG,"getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
-                schemaName,tableName,Arrays.toString(columnInfos),Arrays.toString(constantActions));
+                                                       String withDataQueryString) {
+        SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
+            schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
-                constantActions,properties,lockGranularity,
-                onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
+            constantActions,properties,lockGranularity,
+            onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString);
     }
 
 

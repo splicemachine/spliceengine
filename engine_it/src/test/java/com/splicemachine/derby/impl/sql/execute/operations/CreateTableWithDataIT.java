@@ -1,9 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -143,6 +150,92 @@ public class CreateTableWithDataIT{
     public void testCreateTableWithNoDataDerivedDecimal() throws Exception{
         try(Statement s = conn.createStatement()){
             s.executeUpdate(String.format("create table %s.t5 as select (d * (1 - d)) as volume from %s with no data",spliceSchemaWatcher.schemaName,decimalTable));
+            s.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t5");
         }
     }
+    @SuppressWarnings("unchecked")
+    @Test
+    public void createTableWithViewJoins() throws Exception {
+        // DB-4170: create table with data didn't work with more than one join (the view defn is executed)
+        String nameTable = "names";
+        String nameTableRef = spliceSchemaWatcher.schemaName + "." + nameTable;
+        String nameTableDef = "(id int, fname varchar(10), lname varchar(10))";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, nameTable);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate(format("create table %s %s", nameTableRef, nameTableDef))
+                .withInsert(format("insert into %s values (?,?,?)", nameTableRef))
+                .withRows(rows(
+                        row(20, "Joe", "Blow"),
+                        row(70, "Fred", "Ziffle"),
+                        row(60, "Floyd", "Jones"),
+                        row(40, "Janice", "Jones")
+                ))
+                .create();
+
+        String empTable = "emptab";
+        String empTableRef = spliceSchemaWatcher.schemaName + "." + empTable;
+        String empTableDef = "(empnum int, dept int, salary int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, empTable);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate(format("create table %s %s", empTableRef, empTableDef))
+                .withInsert(format("insert into %s values (?,?,?)", empTableRef))
+                .withRows(rows(
+                        row(20, 1, 75000),
+                        row(70, 3, 76000),
+                        row(60, 2, 78000),
+                        row(40, 2, 52000)
+                ))
+                .create();
+
+        String ssnTable = "ssn";
+        String ssnTableRef = spliceSchemaWatcher.schemaName + "." + ssnTable;
+        String ssnTableDef = "(id int, ssn int)";
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, ssnTable);
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate(format("create table %s %s", ssnTableRef, ssnTableDef))
+                .withInsert(format("insert into %s values (?,?)", ssnTableRef))
+                .withRows(rows(
+                        row(20, 11199222),
+                        row(70, 33366777),
+                        row(60, 88844777),
+                        row(40, 22200555)
+                ))
+                .create();
+
+        String viewName = "empsal";
+        String viewRef = spliceSchemaWatcher.schemaName + "." + viewName;
+        String viewDef = format("create view %s as select distinct " +
+                        "A.ID, A.LNAME, A.FNAME, " +
+                        "B.DEPT, B.SALARY, " +
+                        "C.SSN " +
+                        "FROM %s A " +
+                        "LEFT OUTER JOIN %s B ON A.ID = B.EMPNUM " +
+                        "LEFT OUTER JOIN %s C ON A.ID = C.ID ", viewRef, nameTableRef, empTableRef,
+                ssnTableRef);
+
+        methodWatcher.execute(viewDef);
+
+        String depsalTable = "depsal";
+        String depsalTableRef = spliceSchemaWatcher.schemaName + "." + depsalTable;
+        String depsalTableDef = format("create table %s as " +
+                "select dept, salary, ssn from %s with data", depsalTableRef, viewRef);
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, depsalTable);
+
+        methodWatcher.executeUpdate(depsalTableDef);
+
+        String sqlText = format("select * from %s", depsalTableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected = "DEPT |SALARY |   SSN   |\n" +
+                "------------------------\n" +
+                "  1  | 75000 |11199222 |\n" +
+                "  2  | 52000 |22200555 |\n" +
+                "  2  | 78000 |88844777 |\n" +
+                "  3  | 76000 |33366777 |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+    }
 }
+
