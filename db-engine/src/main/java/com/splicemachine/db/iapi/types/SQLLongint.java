@@ -321,7 +321,7 @@ public final class SQLLongint
 		else
 		{
 		    try {
-		        value = Long.valueOf(theValue.trim()).longValue();
+		        value = Long.parseLong(theValue.trim());
 			} catch (NumberFormatException nfe) {
 			    throw invalidFormat();
 			}
