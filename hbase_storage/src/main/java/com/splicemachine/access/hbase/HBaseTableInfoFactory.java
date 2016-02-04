@@ -29,6 +29,11 @@ public class HBaseTableInfoFactory implements STableInfoFactory<TableName> {
         return TableName.valueOf(namespaceBytes,name);
     }
 
+    @Override
+    public TableName parseTableInfo(String namespacePlusTable) {
+        return TableName.valueOf(namespacePlusTable);
+    }
+
     public static HBaseTableInfoFactory getInstance(SConfiguration configuration){
         HBaseTableInfoFactory htif = INSTANCE;
         if(htif==null){
