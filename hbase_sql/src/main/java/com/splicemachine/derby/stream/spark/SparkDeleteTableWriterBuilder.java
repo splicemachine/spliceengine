@@ -16,7 +16,10 @@ import org.apache.spark.api.java.JavaPairRDD;
  *         Date: 1/25/16
  */
 public class SparkDeleteTableWriterBuilder<K,V> extends DeleteTableWriterBuilder{
-    private JavaPairRDD<K,V> rdd;
+    private transient JavaPairRDD<K,V> rdd;
+
+    public SparkDeleteTableWriterBuilder(){
+    }
 
     public SparkDeleteTableWriterBuilder(JavaPairRDD<K, V> rdd){
         this.rdd=rdd;

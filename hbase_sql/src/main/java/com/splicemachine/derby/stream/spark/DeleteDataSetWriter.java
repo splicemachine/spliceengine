@@ -51,7 +51,7 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
     @Override
     public TableWriter getTableWriter() throws StandardException{
         TxnView txn=txnView;
-        long conglom = Bytes.toLong(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable());
+        long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
         return new DeletePipelineWriter(txn,conglom,operationContext);
     }
 

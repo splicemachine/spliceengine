@@ -82,29 +82,34 @@ public class UpdateOperationIT {
     /*regression test for DB-2204*/
     @Test
     public void testUpdateDoubleIndexFieldWorks() throws Exception {
-        methodWatcher.executeUpdate("create table dc (dc decimal(10,2))");
-        methodWatcher.executeUpdate("insert into dc values (10)");
 
         TestConnection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
 
-        Statement s = conn.createStatement();
-        s.execute("create index didx on dc (dc)");
-        s.execute("create unique index duniq on dc (dc)");
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table dc (dc decimal(10,2))");
+            s.executeUpdate("insert into dc values (10)");
+        }
+        conn.commit();
 
-        int updated = s.executeUpdate("update dc set dc = dc+1.1");
+        try(Statement s = conn.createStatement()){
+            s.execute("create index didx on dc (dc)");
+            s.execute("create unique index duniq on dc (dc)");
 
-        //make base table and index have expected number of rows
-        assertEquals("Incorrect number of reported updates!", 1, updated);
-        assertEquals(1L, methodWatcher.query("select count(*) from dc"));
-        assertEquals(1L, methodWatcher.query("select count(*) from dc --SPLICE-PROPERTIES index=didx"));
-        assertEquals(1L, methodWatcher.query("select count(*) from dc --SPLICE-PROPERTIES index=duniq"));
+            int updated=s.executeUpdate("update dc set dc = dc+1.1");
+            //make base table and index have expected number of rows
+            assertEquals("Incorrect number of reported updates!",1,updated);
 
-        //make sure that the update worked
-        BigDecimal expected = new BigDecimal("11.10");
-        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc"));
-        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=didx"));
-        assertEquals("Incorrect value returned!", expected, methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=duniq"));
+            assertEquals(1L,conn.count(s,"select * from dc"));
+            assertEquals(1L,conn.count(s,"select * from dc --SPLICE-PROPERTIES index=didx"));
+            assertEquals(1L,conn.count(s,"select * from dc --SPLICE-PROPERTIES index=duniq"));
+
+            //make sure that the update worked
+            BigDecimal expected=new BigDecimal("11.10");
+            assertEquals("Incorrect value returned!",expected,methodWatcher.query("select dc from dc"));
+            assertEquals("Incorrect value returned!",expected,methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=didx"));
+            assertEquals("Incorrect value returned!",expected,methodWatcher.query("select dc from dc --SPLICE-PROPERTIES index=duniq"));
+        }
     }
 
     /*regression test for Bug 889*/
