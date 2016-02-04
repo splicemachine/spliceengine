@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -44,6 +45,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     public void setConf(Configuration conf) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf conf=%s",conf);
+        this.conf = conf;
         String tableName = conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME);
         String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
         String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
@@ -97,18 +99,17 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
         }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "finishingSetConf");
-        this.conf = conf;
     }
 
     public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
             InterruptedException {
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+            SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(TableInputFormat.INPUT_TABLE));
         rr = new SMRecordReaderImpl(config);
         if(table == null){
             org.apache.hadoop.hbase.TableName tableInfo=HBaseTableInfoFactory
                     .getInstance(HConfiguration.INSTANCE)
-                    .getTableInfo(config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+                    .getTableInfo(config.get(TableInputFormat.INPUT_TABLE));
             table=new HTable(HBaseConfiguration.create(config),tableInfo);
         }
         rr.setHTable(table);

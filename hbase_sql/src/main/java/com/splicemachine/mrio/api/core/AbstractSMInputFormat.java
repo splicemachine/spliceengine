@@ -85,6 +85,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
      */
     protected void setHTable(Table table) {
         this.table = table;
+        conf.set(TableInputFormat.INPUT_TABLE, table.getName().getNameAsString());
     }
 
     @Override

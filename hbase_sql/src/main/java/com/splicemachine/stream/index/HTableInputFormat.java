@@ -117,7 +117,12 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         TableInputFormat tableInputFormat = new TableInputFormat();
-        conf.set(TableInputFormat.INPUT_TABLE,"splice:"+conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        // TODO (wjkmerge): see if this line would have worked also.
+        // Commit 3244d21 changed it to the factory call but maybe unnecessary.
+        // conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE))
+        String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
+        TableName hTableName = HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(conglomerate);
+        conf.set(TableInputFormat.INPUT_TABLE, hTableName.getNameAsString());
         tableInputFormat.setConf(conf);
         try {
             IndexScanSetBuilder isb=HTableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
