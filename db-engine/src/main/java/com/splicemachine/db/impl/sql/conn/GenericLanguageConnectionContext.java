@@ -2603,7 +2603,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public StatementContext getStatementContext(){
-        return (StatementContext)getContextManager().getContext(ContextId.LANG_STATEMENT);
+        StatementContext sCtx = statementContexts[0];
+        if(sCtx==null)
+            sCtx = (StatementContext)getContextManager().getContext(ContextId.LANG_STATEMENT);
+        return sCtx;
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
@@ -76,7 +77,7 @@ public class DataDictionaryCache {
     public TableDescriptor nameTdCacheFind(TableKey tableKey) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheFind " + tableKey);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return nameTdCache.getIfPresent(tableKey);
     }
@@ -84,7 +85,7 @@ public class DataDictionaryCache {
     public void nameTdCacheAdd(TableKey tableKey, TableDescriptor td) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheAdd " + tableKey + " : " + td);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         nameTdCache.put(tableKey,td);
     }
@@ -100,7 +101,7 @@ public class DataDictionaryCache {
     public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("oidTdCacheFind " + tableID);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         TableDescriptor td =  oidTdCache.getIfPresent(tableID);
         if (td!=null) // bind in previous command might have set
@@ -111,7 +112,7 @@ public class DataDictionaryCache {
     public void oidTdCacheAdd(UUID tableID, TableDescriptor td) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("oidTdCacheAdd " + tableID + " : " + td);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         oidTdCache.put(tableID,td);
     }
@@ -128,7 +129,7 @@ public class DataDictionaryCache {
     public List<PartitionStatisticsDescriptor> partitionStatisticsCacheFind(Long conglomID) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("partitionStatisticsCacheFind " + conglomID);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return partitionStatisticsCache.getIfPresent(conglomID);
     }
@@ -136,7 +137,7 @@ public class DataDictionaryCache {
     public void partitionStatisticsCacheAdd(Long conglomID, List<PartitionStatisticsDescriptor> list) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("partitionStatisticsCacheAdd " + conglomID);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         partitionStatisticsCache.put(conglomID, list);
     }
@@ -152,7 +153,7 @@ public class DataDictionaryCache {
     public PermissionsDescriptor permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheFind " + desc);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return permissionsCache.getIfPresent(desc);
     }
@@ -182,7 +183,7 @@ public class DataDictionaryCache {
     public void storedPreparedStatementCacheAdd(SPSDescriptor desc) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheAdd " + desc);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         storedPreparedStatementCache.put(desc.getUUID(), desc);
     }
@@ -190,25 +191,34 @@ public class DataDictionaryCache {
     public SPSDescriptor storedPreparedStatementCacheFind(UUID uuid) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheFind " + uuid);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return storedPreparedStatementCache.getIfPresent(uuid);
     }
 
-    public Conglomerate conglomerateCacheFind(Long conglomId) throws StandardException {
+
+    public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(xactMgr))
             return null;
         return conglomerateCache.getIfPresent(conglomId);
     }
 
-    public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate) throws StandardException {
+    public Conglomerate conglomerateCacheFind(Long conglomId) throws StandardException {
+        return conglomerateCacheFind(null,conglomId);
+    }
+
+    public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheAdd " + conglomId + " : " + conglomerate);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(xactMgr))
             return;
         conglomerateCache.put(conglomId,conglomerate);
+    }
+
+    public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate) throws StandardException {
+        conglomerateCacheAdd(conglomId, conglomerate,null);
     }
 
     public void conglomerateCacheRemove(Long conglomId) throws StandardException {
@@ -221,7 +231,7 @@ public class DataDictionaryCache {
     public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheFind " + schemaName);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return schemaCache.getIfPresent(schemaName);
     }
@@ -229,7 +239,7 @@ public class DataDictionaryCache {
     public void schemaCacheAdd(String schemaName, SchemaDescriptor descriptor) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheAdd " + schemaName + " : " + descriptor);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         schemaCache.put(schemaName,descriptor);
     }
@@ -255,7 +265,7 @@ public class DataDictionaryCache {
     public SequenceUpdater sequenceGeneratorCacheFind(String uuid) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("sequenceGeneratorCacheFind " + uuid);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return sequenceGeneratorCache.getIfPresent(uuid);
     }
@@ -301,7 +311,7 @@ public class DataDictionaryCache {
     public void statementCacheAdd(GenericStatement gs, GenericStorablePreparedStatement gsp) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheAdd " + gs);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         statementCache.put(gs,gsp);
     }
@@ -309,7 +319,7 @@ public class DataDictionaryCache {
     public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("statementCacheFind " + gs);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return statementCache.getIfPresent(gs);
     }
@@ -317,7 +327,7 @@ public class DataDictionaryCache {
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheAdd " + roleName);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         roleCache.put(roleName,optional);
     }
@@ -325,7 +335,7 @@ public class DataDictionaryCache {
     public Optional<RoleGrantDescriptor> roleCacheFind(String roleName) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheFind " + roleName);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return null;
         return roleCache.getIfPresent(roleName);
     }
