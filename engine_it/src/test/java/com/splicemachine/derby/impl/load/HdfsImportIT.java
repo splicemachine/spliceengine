@@ -204,7 +204,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @BeforeClass
     public static void beforeClass() throws Exception {
         createDataSet();
-        BADDIR = ImportTestUtils.createBadLogDirectory(spliceSchemaWatcher.schemaName);
+        BADDIR = SpliceUnitTest.createBadLogDirectory(spliceSchemaWatcher.schemaName);
         assertNotNull(BADDIR);
     }
 
