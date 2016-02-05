@@ -1,21 +1,12 @@
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;

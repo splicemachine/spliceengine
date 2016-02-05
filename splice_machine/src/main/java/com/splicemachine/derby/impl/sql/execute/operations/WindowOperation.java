@@ -99,7 +99,6 @@ public class WindowOperation extends SpliceBaseOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "init called");
-//        context.setCacheBlocks(false);
         super.init(context);
         if (source != null) {
             source.init(context);
