@@ -3,7 +3,6 @@ package com.splicemachine.stream.output;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.si.api.txn.TxnView;
@@ -21,7 +20,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
     private static Logger LOG = Logger.getLogger(SMOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;
-    protected TxnView parentTxn;
+    //protected TxnView parentTxn;
     public SMOutputFormat() {
         super();
     }
@@ -44,7 +43,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
             if (childTxn == null)
                 throw new IOException("child transaction lookup failed");
             dsWriter.setTxn(outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID()));
-            return new SMRecordWriter(dsWriter.getTableWriter());
+            return new SMRecordWriter(dsWriter.getTableWriter(), outputCommitter);
         } catch (Exception e) {
             throw new IOException(e);
         }
