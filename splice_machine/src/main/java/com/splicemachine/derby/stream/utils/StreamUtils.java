@@ -3,9 +3,6 @@ package com.splicemachine.derby.stream.utils;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
