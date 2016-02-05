@@ -301,6 +301,18 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_TABLE:
                         DDLUtils.preDropTable(change,dataDictionary,dependencyManager);
                         break;
+                    case ALTER_TABLE:
+                        DDLUtils.preAlterTable(change,dataDictionary,dependencyManager);
+                        break;
+                    case RENAME_TABLE:
+                        DDLUtils.preRenameTable(change,dataDictionary,dependencyManager);
+                        break;
+                    case RENAME_INDEX:
+                        DDLUtils.preRenameIndex(change,dataDictionary,dependencyManager);
+                        break;
+                    case RENAME_COLUMN:
+                        DDLUtils.preRenameColumn(change,dataDictionary,dependencyManager);
+                        break;
                     case DROP_SCHEMA:
                         DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
                         break;

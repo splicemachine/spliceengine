@@ -1,5 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
+import org.apache.log4j.Logger;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -18,9 +27,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -136,6 +142,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          */
         //TODO -sf- do we need to invalidate twice?
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+
+        TransactionController tc = lcc.getTransactionExecute();
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
 
         int numRows = manageColumnInfo(activation);
         // adjust dependencies on user defined types
@@ -260,6 +273,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         int colNumber = tableDescriptor.getNumberOfColumns()+1;
         // Add the column to the conglomerate.(Column ids in store are 0-based)
         tc.addColumnToConglomerate(tableDescriptor.getHeapConglomerateId(), colNumber, storableDV, colInfo.dataType.getCollationType());
+
+
 
 
         // Generate a UUID for the default, if one exists and there is no default id yet.
@@ -1382,101 +1397,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 }
             }
         }
-    }
-
-    private DDLChange performColumnDrop(Activation activation,
-                                   TableDescriptor tableDescriptor,
-                                   LanguageConnectionContext lcc, TransactionController tc,
-                                   int droppedColumnPosition,
-                                   String columnName) throws StandardException {
-        final long oldCongNum = tableDescriptor.getHeapConglomerateId();
-        ConglomerateController compressHeapCC =
-                tc.openConglomerate(
-                        tableDescriptor.getHeapConglomerateId(),
-                        false,
-                        TransactionController.OPENMODE_FORUPDATE,
-                        TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_SERIALIZABLE);
-
-
-        // Get the properties on the old heap
-        Properties properties = new Properties();
-        compressHeapCC.getInternalTablePropertySet(properties);
-        compressHeapCC.close();
-
-        // Create an array to put base row template
-
-
-        // Get an array of RowLocation template
-        // must be a drop column, thus the number of columns in the
-        // new template row and the collation template is one less.
-        ExecRow emptyHeapRow  = tableDescriptor.getEmptyExecRow();
-        int[]   collation_ids = tableDescriptor.getColumnCollationIds();
-        ExecRow newRow = activation.getExecutionFactory().getValueRow(emptyHeapRow.nColumns() - 1);
-
-        int[] new_collation_ids = new int[collation_ids.length - 1];
-
-        for (int i = 0; i < newRow.nColumns(); i++) {
-            newRow.setColumn(
-                    i + 1,
-                    i < droppedColumnPosition - 1 ?
-                            emptyHeapRow.getColumn(i + 1) :
-                            emptyHeapRow.getColumn(i + 1 + 1));
-
-            new_collation_ids[i] =
-                    collation_ids[
-                            (i < droppedColumnPosition - 1) ? i : (i + 1)];
-        }
-
-        // calculate column order for new table
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-        int[] oldColumnOrder = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        int[] newColumnOrder = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrder, droppedColumnPosition);
-        ColumnOrdering[] columnOrdering = null;
-        if (newColumnOrder != null && newColumnOrder.length > 0) {
-            columnOrdering = new IndexColumnOrder[newColumnOrder.length];
-            for (int i = 0; i < newColumnOrder.length; ++i) {
-                columnOrdering[i] = new IndexColumnOrder(newColumnOrder[i]);
-            }
-        }
-        // Create a new table -- use createConglomerate() to avoid confusing calls to createAndLoad()
-        long newHeapConglom = tc.createConglomerate("heap", newRow.getRowArray(),
-                                                    columnOrdering, new_collation_ids,
-                                                    properties, TransactionController.IS_DEFAULT);
-
-
-        // Update all indexes
-        if (compressIRGs.length > 0) {
-            updateAllIndexes(activation, newHeapConglom, tableDescriptor,tc);
-        }
-
-        // Start a tentative txn to demarcate the DDL change
-        Txn tentativeTransaction;
-        try {
-            TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
-            tentativeTransaction =
-                lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
-        } catch (IOException e) {
-            LOG.error("Couldn't start transaction for tentative Drop Column operation");
-            throw Exceptions.parseException(e);
-        }
-
-        ColumnInfo[] allColumnInfo = tableDescriptor.getColumnInfo();
-        DDLChange ddlChange = ProtoUtil.createTentativeDropColumn(tentativeTransaction.getTxnId(),newHeapConglom,tableDescriptor.getHeapConglomerateId(),
-                oldColumnOrder,newColumnOrder,allColumnInfo,droppedColumnPosition,lcc,(BasicUUID) tableId);
-        try {
-            DDLUtils.notifyMetadataChange(ddlChange);
-
-            //wait for all past txns to complete
-            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn(" + columnName + ")");
-
-            // Read from old conglomerate, transform each row and write to new conglomerate.
-            transformAndWriteToNewConglomerate(activation, parentTxn, ddlChange, oldCongNum,newHeapConglom,populateTxn.getBeginTimestamp());
-            populateTxn.commit();
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        return ddlChange;
     }
 
     private int getSemiRowCount(TransactionController tc, TableDescriptor td) {
