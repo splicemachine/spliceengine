@@ -120,7 +120,10 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public TxnView getTxn(){
-        return txn;
+        if(txn==null)
+            return opContext.getTxn();
+        else
+            return txn;
     }
 
     @Override

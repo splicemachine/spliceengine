@@ -83,7 +83,10 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public TxnView getTxn(){
-        return txn;
+        if(txn==null)
+            return operationContext.getTxn();
+        else
+            return txn;
     }
 
     @Override

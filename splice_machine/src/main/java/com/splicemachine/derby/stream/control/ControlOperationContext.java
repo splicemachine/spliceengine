@@ -189,6 +189,11 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
+    public TxnView getTxn(){
+        return txn;
+    }
+
+    @Override
     public void recordBadRecord(String badRecord) {
         numberBadRecords++;
         badRecords.add(badRecord);

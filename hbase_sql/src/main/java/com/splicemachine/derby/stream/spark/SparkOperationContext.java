@@ -217,6 +217,11 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
+    public TxnView getTxn(){
+        return broadcastedActivation.getActivationHolder().getTxn();
+    }
+
+    @Override
     public void recordBadRecord(String badRecord){
         numberBadRecords++;
         badRecordsAccumulable.add(badRecord);

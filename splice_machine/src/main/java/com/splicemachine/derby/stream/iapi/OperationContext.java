@@ -63,4 +63,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void pushScopeForOp(Scope scope);
     void pushScopeForOp(String scope);
     void popScope();
+
+    TxnView getTxn();
 }
