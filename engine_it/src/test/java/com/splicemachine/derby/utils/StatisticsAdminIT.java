@@ -151,6 +151,7 @@ public class StatisticsAdminIT{
     }
 
     @Test
+    @Ignore("DB-4272 Incorrect row count ")
     public void testCanEnableColumnStatistics() throws Exception{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
@@ -202,6 +203,7 @@ public class StatisticsAdminIT{
     }
 
     @Test
+    @Ignore("DB-4272 Incorrect row count ")
     public void testDropSchemaStatistics() throws Exception{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);

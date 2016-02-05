@@ -62,8 +62,11 @@ public class RegionDataScanner implements DataScanner{
         internalList.clear();
         readTimer.startTiming();
         delegate.next(internalList);
-        readTimer.stopTiming();
-        collectMetrics(internalList);
+        if(internalList.size()>0){
+            readTimer.tick(1);
+            collectMetrics(internalList);
+        }else
+            readTimer.stopTiming();
 
         return Lists.transform(internalList,transform);
     }
@@ -72,7 +75,7 @@ public class RegionDataScanner implements DataScanner{
     @Override public TimeView getReadTime(){ return readTimer.getTime(); }
     @Override public long getBytesOutput(){ return outputBytesCounter.getTotal(); }
     @Override public long getRowsFiltered(){ return filteredRowCounter.getTotal(); }
-    @Override public long getRowsVisited(){ return visitedRowCounter.getTotal(); }
+    @Override public long getRowsVisited(){ return readTimer.getNumEvents(); }
 
     @Override public void close() throws IOException{ delegate.close(); }
 
@@ -80,6 +83,11 @@ public class RegionDataScanner implements DataScanner{
     /* *********************************************************************************************************/
     /*private helper methods*/
     private void collectMetrics(List<Cell> internalList){
-        //TODO -sf- implement!
+        if(outputBytesCounter.isActive()){
+            for(int i=0;i<internalList.size();i++){
+                Cell c = internalList.get(i);
+                outputBytesCounter.add(c.getRowLength()+c.getQualifierLength()+c.getFamilyLength()+c.getValueLength());
+            }
+        }
     }
 }
