@@ -125,11 +125,11 @@ public class SpliceDatabase extends BasicDatabase{
      * <p/>
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
-    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname) throws StandardException{
+    public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user,String drdaID,String dbname, CompilerContext.DataSetProcessorType type) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,drdaID,dbname,type);
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);

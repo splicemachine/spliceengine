@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -71,7 +72,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         cm=csf.newContextManager(); // Needed
         cm.setActiveThread();
         csf.setCurrentContextManager(cm);
-        lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname);
+        lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
         return true;
     }
 
