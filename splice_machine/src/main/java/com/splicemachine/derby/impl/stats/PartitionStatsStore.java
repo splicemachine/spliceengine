@@ -127,6 +127,9 @@ public class PartitionStatsStore {
     }
 
     private static int getPartitions(byte[] table, List<Partition> partitions) throws StandardException {
+        // TODO (wjkmerge): fetch from cache. commit 0e55e62 did this by calling tableFactory.getRegions
+        // but that cache would need to be migrated elsewhere or else this method would need to fetch
+        // a list of HRegionLocations as returned by tableFactory.getRegions.
         try (PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin()){
             Iterable<? extends Partition> partitions1=admin.allPartitions(Bytes.toString(table));
             for(Partition p:partitions1)
