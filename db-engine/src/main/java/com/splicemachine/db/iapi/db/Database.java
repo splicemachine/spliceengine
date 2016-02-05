@@ -100,7 +100,7 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 * and at the system level.
 	 *
 	 * @return	The authentication service handle for the database
-	 * @exception Standard Derby exception policy
+	 * @exception StandardException Derby exception policy
 	 */
 	public AuthenticationService getAuthenticationService()
 		throws StandardException;
