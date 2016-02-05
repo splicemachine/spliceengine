@@ -5,6 +5,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.pipeline.Exceptions;
@@ -152,8 +153,8 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
                     outputTemplate.setColumn(index+1,next.getRow().getColumn(indexCols[index]+1));
                 }
             }
-            sourceRows.add(new LocatedRow((RowLocation)next.getRow().getColumn(next.getRow().nColumns()),
-                    outputTemplate.getClone()));
+            HBaseRowLocation rl=(HBaseRowLocation)next.getRow().getColumn(next.getRow().nColumns());
+            sourceRows.add(new LocatedRow(HBaseRowLocation.deepClone(rl), outputTemplate.getClone()));
         }
         if(sourceRows.size()>0){
             //submit to the background thread

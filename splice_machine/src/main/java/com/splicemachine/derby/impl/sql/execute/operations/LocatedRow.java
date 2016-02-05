@@ -4,6 +4,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -80,8 +82,14 @@ public class LocatedRow implements KeyableRow, Externalizable {
         return row.compareTo(ints,execRow);
     }
 
-    public LocatedRow getClone() throws CloneNotSupportedException {
+    public LocatedRow getClone() {
         return new LocatedRow(getRowLocation(),getRow());
+    }
+
+    public LocatedRow getClone(boolean materialized){
+        return materialized?
+                new LocatedRow(HBaseRowLocation.deepClone((HBaseRowLocation)getRowLocation()),getRow().getClone()):
+                getClone();
     }
 
     @Override
