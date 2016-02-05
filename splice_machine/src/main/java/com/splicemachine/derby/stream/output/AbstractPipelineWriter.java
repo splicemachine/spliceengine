@@ -65,8 +65,10 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     public void close() throws StandardException {
         try {
             TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
+            if (writeBuffer != null) {
+                writeBuffer.flushBuffer();
+                writeBuffer.close();
+            }
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
