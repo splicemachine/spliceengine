@@ -17,6 +17,7 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.api.txn.TxnView;
+import org.apache.commons.io.FileUtils;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
 
@@ -152,7 +153,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
-                "size=" + contentSummary.spaceConsumed() + ", " +
+                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
                 "files=" + contentSummary.fileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class,HConfiguration.INSTANCE.unwrapDelegate()));
@@ -176,7 +177,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" +path+ ", " +
-                "size=" + contentSummary.spaceConsumed() + ", " +
+                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
                 "files=" + contentSummary.fileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             return new SparkDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
