@@ -153,7 +153,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
-                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
+                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.spaceConsumed()) + ", " +
                 "files=" + contentSummary.fileCount());
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class,HConfiguration.INSTANCE.unwrapDelegate()));
@@ -177,7 +177,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" +path+ ", " +
-                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()) + ", " +
+                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.spaceConsumed()) + ", " +
                 "files=" + contentSummary.fileCount() + "}");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             return new SparkDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
