@@ -45,7 +45,7 @@ public class SQLConfiguration{
     private static final int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
 
     public static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
-    private static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 10*1000*1000;
+    private static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 1*1000*1000;
 
     public static final String CONTROL_SIDE_ROWCOUNT_THRESHOLD = "splice.dataset.control.rowCountThreshold";
     private static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 100000;
