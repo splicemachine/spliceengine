@@ -54,7 +54,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
         //filter out and report bad records
         IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
         @SuppressWarnings("MismatchedReadAndWriteOfArray") Object[] fRows = failedRows.values;
-        boolean ignore = result.getNotRunRows().size()<=0;
+        boolean ignore = result.getNotRunRows().size()<=0 && result.getFailedRows().size()<=0;
         List<KVPair> kvPairList = request.mutationsList();
         for(IntObjectCursor<WriteResult> resultCursor:failedRows) {
             WriteResult value = resultCursor.value;
