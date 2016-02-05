@@ -70,6 +70,7 @@ public class HBaseSITestEnv implements SITestEnv{
             startCluster(conf);
             SIEnvironment hEnv=loadSIEnvironment();
             try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
+                // TODO (wjk): use default namespace constant instead of 'splice'?
                 hBaseAdmin.createNamespace(NamespaceDescriptor.create("splice").build());
                 addTxnTable(hBaseAdmin);
             }
