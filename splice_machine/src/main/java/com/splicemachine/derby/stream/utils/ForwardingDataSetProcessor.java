@@ -44,8 +44,8 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> singleRowDataSet(V value,SpliceOperation op,boolean isLast){
-        return delegate.singleRowDataSet(value,op,isLast);
+    public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
+        return delegate.singleRowDataSet(value, caller);
     }
 
     @Override

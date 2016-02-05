@@ -8,6 +8,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -97,5 +98,4 @@ public class MiscOperation extends NoRowsOperation {
             valueRow.setColumn(1,new SQLInteger((int) activation.getRowsSeen()));
             return dsp.singleRowDataSet(new LocatedRow(valueRow));
         }
-
 }

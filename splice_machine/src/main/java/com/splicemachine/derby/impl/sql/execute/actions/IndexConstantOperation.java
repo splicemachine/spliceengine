@@ -4,13 +4,11 @@ import com.google.common.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.KVPairFunction;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.DataSetWriter;
-import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
@@ -95,8 +93,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         Txn childTxn;
         try {
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
-            dsp.setup(activation,this.toString(),"admin");
-//            StreamUtils.setupSparkJob(dsp, activation, this.toString(), "admin");
+            dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             IndexScanSetBuilder<KVPair> indexBuilder=dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
             DataSet<KVPair> dataSet =indexBuilder

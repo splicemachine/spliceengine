@@ -101,16 +101,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value) {
-        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
-        rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
-        return new SparkDataSet<>(rdd1);
+        return singleRowDataSet(value, "Finalize Result");
     }
 
     @Override
-    public <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast) {
-        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
-        rdd1.setName(isLast ? op.getPrettyExplainPlan() : SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
-        return new SparkDataSet<>(rdd1);
+    public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
+        String scope = null;
+        if (caller instanceof String)
+            scope = (String)caller;
+        else if (caller instanceof SpliceOperation)
+            scope = ((SpliceOperation)caller).getSparkStageName();
+        else
+            scope = "Finalize Result";
+
+        SpliceSpark.pushScope(scope);
+        try {
+            JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+            rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
+            return new SparkDataSet(rdd1);
+        } finally {
+            SpliceSpark.popScope();
+        }
     }
 
     @Override

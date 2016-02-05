@@ -37,7 +37,7 @@ public interface DataSetProcessor {
      */
     <V> DataSet<V> singleRowDataSet(V value);
 
-    <V> DataSet<V> singleRowDataSet(V value, SpliceOperation op, boolean isLast);
+    <V> DataSet<V> singleRowDataSet(V value, Object caller);
     
     /**
      * Create a dataset from a provided Iterable.
