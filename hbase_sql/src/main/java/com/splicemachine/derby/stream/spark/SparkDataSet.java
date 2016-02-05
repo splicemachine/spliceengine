@@ -167,6 +167,17 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation> DataSet< V> filter(
+        SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
+        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        try {
+            return new SparkDataSet(rdd.filter(f), planIfLast(f, isLast));
+        } finally {
+            if (pushScope) f.operationContext.popScope();
+        }
+    }
+
+    @Override
     public DataSet< V> intersect(DataSet< V> dataSet) {
         return new SparkDataSet<>(rdd.intersection(((SparkDataSet<V>) dataSet).rdd));
     }

@@ -93,7 +93,9 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
      * @param f
      * @return
      */
-    <Op extends SpliceOperation> DataSet<V> filter (SplicePredicateFunction<Op,V> f);
+    <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f);
+
+    <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail);
 
     /**
      *

@@ -294,9 +294,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .lookupBatchSize(indexBatchSize);
         }
         OperationContext context = dsp.createOperationContext(this);
-       return source.getDataSet(dsp).
-               mapPartitions(new IndexToBaseRowFlatMapFunction(context,readerBuilder))
-                .filter(new IndexToBaseRowFilterPredicateFunction(context));
+        return source.getDataSet(dsp)
+            .mapPartitions(new IndexToBaseRowFlatMapFunction(context,readerBuilder), false, true, "Fetch Base Rows")
+            .filter(new IndexToBaseRowFilterPredicateFunction(context), true, true, "Apply Filter");
     }
 
     private FormatableBitSet getMainTableAccessedKeyColumns() throws StandardException {
@@ -437,6 +437,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     }
 
     public String getSparkStageName() {
-        return "Index Lookup";
+        return "Index Base Row Lookup";
     }
 }
