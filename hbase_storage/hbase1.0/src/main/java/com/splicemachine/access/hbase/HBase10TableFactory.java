@@ -14,6 +14,8 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,6 +34,7 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
     private String namespace;
     private byte[] namespaceBytes;
     private HBaseTableInfoFactory tableInfoFactory;
+    private Cache<TableName, List<HRegionLocation>> regionCache = CacheBuilder.newBuilder().maximumSize(100).build();
 
     //must be no-args to support the TableFactoryService
     public HBase10TableFactory(){ }
@@ -74,10 +77,27 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
         return new H10PartitionAdmin(connection.getAdmin(),splitSleepIntervalMs,timeKeeper,tableInfoFactory);
     }
 
-    public List<HRegionLocation> getRegions(String tableName,boolean refresh) throws IOException, ExecutionException, InterruptedException{
-        if(refresh)
-            clearRegionCache(TableName.valueOf(namespace,tableName));
-        return connection.getRegionLocator(TableName.valueOf(namespace,tableName)).getAllRegionLocations();
+    // TODO (wjkmerge): review whether the following two methods from master_dataset are needed any more
+
+    public List<HRegionLocation> getRegions(byte[] tableName, boolean refresh) throws IOException, ExecutionException, InterruptedException {
+        return getRegions(tableInfoFactory.getTableInfo(tableName),refresh);
+    }
+
+    public List<HRegionLocation> getRegions(TableName tableName,boolean refresh) throws IOException, ExecutionException, InterruptedException{
+        List<HRegionLocation> regionLocations;
+        if (!refresh) {
+             regionLocations = regionCache.getIfPresent(tableName);
+             if (regionLocations==null) {
+                     regionLocations = connection.getRegionLocator(tableName).getAllRegionLocations();
+                      regionCache.put(tableName,regionLocations);
+             }
+             return regionLocations;
+        }
+        clearRegionCache(tableName);
+        regionCache.invalidate(tableName);
+        regionLocations = connection.getRegionLocator(tableName).getAllRegionLocations();
+        regionCache.put(tableName,regionLocations);
+        return regionLocations;
     }
 
     public void clearRegionCache(TableName tableName){
