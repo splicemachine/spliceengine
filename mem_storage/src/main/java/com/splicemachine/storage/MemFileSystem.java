@@ -52,6 +52,7 @@ public class MemFileSystem extends DistributedFileSystem{
         return new PathInfo(p);
     }
 
+
     /*delegate methods*/
     @Override
     public String getScheme(){
@@ -106,6 +107,20 @@ public class MemFileSystem extends DistributedFileSystem{
     @Override
     public DirectoryStream<Path> newDirectoryStream(Path dir,DirectoryStream.Filter<? super Path> filter) throws IOException{
         return localDelegate.newDirectoryStream(dir,filter);
+    }
+
+
+    @Override
+    public boolean createDirectory(Path dir,boolean errorIfExists) throws IOException{
+        try{
+            localDelegate.createDirectory(dir);
+            return true;
+        }catch(FileAlreadyExistsException fafe){
+            if(errorIfExists || !Files.isDirectory(dir)){
+                throw fafe;
+            }
+            return false;
+        }
     }
 
     @Override

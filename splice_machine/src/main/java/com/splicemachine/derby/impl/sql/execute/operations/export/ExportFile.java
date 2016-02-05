@@ -50,8 +50,7 @@ class ExportFile {
     public boolean createDirectory() {
         try {
             Path directoryPath = fileSystem.getPath(exportParams.getDirectory());
-            fileSystem.createDirectory(directoryPath);
-            return true;
+            return fileSystem.createDirectory(directoryPath,false);
         } catch (IOException e) {
             return false;
         }

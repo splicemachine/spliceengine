@@ -3,10 +3,13 @@ package com.splicemachine.storage;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
@@ -51,6 +54,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
         return new HFileInfo(f,contentSummary);
     }
 
+
     @Override
     public String getScheme(){
         return fs.getScheme();
@@ -82,8 +86,30 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public OutputStream newOutputStream(Path path,OpenOption... options) throws IOException{
+        return fs.create(toHPath(path));
+    }
+
+    @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        org.apache.hadoop.fs.Path f=toHPath(dir);
+        try{
+            FileStatus fileStatus=fs.getFileStatus(f);
+            throw new FileAlreadyExistsException(dir.toString());
+        }catch(FileNotFoundException fnfe){
+            fs.mkdirs(f);
+        }
+    }
+
+    @Override
+    public boolean createDirectory(Path path,boolean errorIfExists) throws IOException{
+        org.apache.hadoop.fs.Path f=toHPath(path);
+        try{
+            FileStatus fileStatus=fs.getFileStatus(f);
+            return !errorIfExists && fileStatus.isDirectory();
+        }catch(FileNotFoundException fnfe){
+            return fs.mkdirs(f);
+        }
     }
 
     @Override
