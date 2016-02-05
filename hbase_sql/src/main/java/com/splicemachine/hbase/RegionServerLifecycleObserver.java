@@ -30,6 +30,8 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
 
+    public static volatile boolean isHbaseJVM = false;
+
     private DatabaseLifecycleManager lifecycleManager;
 
     /**
@@ -37,6 +39,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
      */
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
+        isHbaseJVM= true;
         lifecycleManager = startEngine(e);
     }
 

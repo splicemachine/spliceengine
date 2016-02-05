@@ -3,17 +3,15 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -107,9 +105,10 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(TableInputFormat.INPUT_TABLE));
         rr = new SMRecordReaderImpl(config);
         if(table == null){
-            org.apache.hadoop.hbase.TableName tableInfo=HBaseTableInfoFactory
-                    .getInstance(HConfiguration.INSTANCE)
-                    .getTableInfo(config.get(TableInputFormat.INPUT_TABLE));
+            TableName tableInfo = TableName.valueOf(config.get(TableInputFormat.INPUT_TABLE));
+//            org.apache.hadoop.hbase.TableName tableInfo=HBaseTableInfoFactory
+//                    .getInstance(HConfiguration.INSTANCE)
+//                    .getTableInfo(config.get(TableInputFormat.INPUT_TABLE));
             table=new HTable(HBaseConfiguration.create(config),tableInfo);
         }
         rr.setHTable(table);

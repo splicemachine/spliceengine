@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;

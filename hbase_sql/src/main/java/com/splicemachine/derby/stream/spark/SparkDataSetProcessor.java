@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
@@ -50,6 +51,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         String jobName = userId + " <" + txnId + ">";
         setJobGroup(jobName,sql);
         setSchedulerPool(schedulerPool);
+    }
+
+    @Override
+    public boolean allowsExecution(){
+        if(Thread.currentThread().getName().contains("DRDAConn")) return true; //we are on the derby execution thread
+        else if(Thread.currentThread().getName().contains("Executor task launch worker")) return false; //we are definitely in spark
+        else return RegionServerLifecycleObserver.isHbaseJVM; //we can run in spark as long as are in the HBase JVM
     }
 
     private static TxnView getCurrentTransaction(Activation activation) throws StandardException {

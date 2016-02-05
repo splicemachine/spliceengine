@@ -35,6 +35,14 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
     public DataSetProcessor chooseProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
         double estimatedCost;
         double estimatedRowCount;
+        if(!distributedDataSetProcessor.allowsExecution()){
+            /*
+             * We can't run in distributed mode because of something that the engine decided that,
+             * for whatever reason, it's not available at the moment, so we have to use
+             * the local processor instead
+             */
+            return localProcessor;
+        }
         if(activation==null|| activation.getResultSet()==null){
            if(op==null){
                /*

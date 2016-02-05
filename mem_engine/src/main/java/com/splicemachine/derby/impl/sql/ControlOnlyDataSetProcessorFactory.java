@@ -56,5 +56,10 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         public void setup(Activation activation,String description,String schedulerPool) throws StandardException{
             //no-op
         }
+
+        @Override
+        public boolean allowsExecution(){
+            return true;
+        }
     }
 }
