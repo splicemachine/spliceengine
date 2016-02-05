@@ -7,6 +7,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.util.HFileArchiveUtil;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.mockito.Mockito.*;
@@ -22,6 +23,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Created by jyuan on 3/20/15.
  */
+@Ignore("To be turned on as backup feature is implemented")
 public class IncrementalBackupTest {
 
     protected static File backupDir;
