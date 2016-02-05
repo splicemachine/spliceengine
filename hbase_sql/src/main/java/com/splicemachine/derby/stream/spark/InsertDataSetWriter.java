@@ -17,7 +17,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
-import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
@@ -85,6 +84,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 List<String> badRecords=opContext.getBadRecords();
                 if(badRecords.size()>0){
                     // System.out.println("badRecords -> " + badRecords);
+                    opContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
                     appendToEach(badRecords, System.lineSeparator());
                     DataSet dataSet=new ControlDataSet<>(badRecords);
                     Path path=null;
@@ -92,15 +92,11 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                         FileSystem fileSystem=FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
                         path=generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
                         dataSet.saveAsTextFile().directory(path.toString()).build().write();
+                        fileSystem.close();
+                        opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
                     }
-                    if(insertOperation.failBadRecordCount==0)
-                        throw new RuntimeException(badRecords.get(0));
-                    if(badRecords.size()>insertOperation.failBadRecordCount)
-                        throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
                 }
             }
-
-            valueRow.setColumn(1,new SQLInteger((int)opContext.getRecordsWritten()));
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(IOException ioe){
             throw Exceptions.parseException(ioe);
