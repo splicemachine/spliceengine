@@ -45,10 +45,10 @@ public class SQLConfiguration{
     private static final int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
 
     public static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
-    private static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 10*1000*1000*1000d; // based on a TPCC1000 run on an 8 node cluster
+    private static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 10*1000*1000;
 
     public static final String CONTROL_SIDE_ROWCOUNT_THRESHOLD = "splice.dataset.control.rowCountThreshold";
-    private static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 1E10;
+    private static final double DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD = 100000;
 
     //debug options
     /**
