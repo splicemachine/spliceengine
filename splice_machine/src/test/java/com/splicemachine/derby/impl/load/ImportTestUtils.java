@@ -1,16 +1,9 @@
 package com.splicemachine.derby.impl.load;
 
-import static org.junit.Assert.assertTrue;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.homeless.TestUtils;
-
 import org.junit.Assert;
-
-import java.io.File;
 import java.sql.SQLException;
 import java.util.Comparator;
 
@@ -51,20 +44,7 @@ public class ImportTestUtils {
         return buf.toString();
     }
 
-    public static File createBadLogDirectory(String schemaName) {
-        File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
-        if (badImportLogDirectory.exists()) {
-            //noinspection ConstantConditions
-            for (File file : badImportLogDirectory.listFiles()) {
-                assertTrue("Couldn't create "+file,file.delete());
-            }
-            assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.delete());
-        }
-        assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.mkdirs());
-        assertTrue("Failed to create "+badImportLogDirectory,badImportLogDirectory.exists());
-        return badImportLogDirectory;
-    }
-
+    // Method createBadLogDirectory moved to engine_it module for proper dependency
 
     private static class ExecRowComparator implements Comparator<ExecRow> {
         private final int colNumber;

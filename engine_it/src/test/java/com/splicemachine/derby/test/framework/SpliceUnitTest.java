@@ -1,5 +1,6 @@
 package com.splicemachine.derby.test.framework;
 
+import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,6 +17,8 @@ import org.junit.Assert;
 import org.junit.runner.Description;
 
 import com.splicemachine.utils.Pair;
+
+import static org.junit.Assert.assertTrue;
 
 public class SpliceUnitTest {
 
@@ -204,5 +207,18 @@ public class SpliceUnitTest {
         Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(2));
     }
 
+    public static File createBadLogDirectory(String schemaName) {
+        File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
+        if (badImportLogDirectory.exists()) {
+            //noinspection ConstantConditions
+            for (File file : badImportLogDirectory.listFiles()) {
+                assertTrue("Couldn't create "+file,file.delete());
+            }
+            assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.delete());
+        }
+        assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.mkdirs());
+        assertTrue("Failed to create "+badImportLogDirectory,badImportLogDirectory.exists());
+        return badImportLogDirectory;
+    }
 
 }
