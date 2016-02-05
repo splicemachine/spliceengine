@@ -8,7 +8,6 @@ import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -86,6 +85,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 List<String> badRecords=opContext.getBadRecords();
                 if(badRecords.size()>0){
                     // System.out.println("badRecords -> " + badRecords);
+                    appendToEach(badRecords, System.lineSeparator());
                     DataSet dataSet=new ControlDataSet<>(badRecords);
                     Path path=null;
                     if(insertOperation.statusDirectory!=null && !insertOperation.statusDirectory.equals("NULL")){
@@ -95,7 +95,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     }
                     if(insertOperation.failBadRecordCount==0)
                         throw new RuntimeException(badRecords.get(0));
-                    if(badRecords.size()>=insertOperation.failBadRecordCount)
+                    if(badRecords.size()>insertOperation.failBadRecordCount)
                         throw new RuntimeException(ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(path==null?"--No Output File Provided--":path.toString()));
                 }
             }
@@ -104,6 +104,17 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(IOException ioe){
             throw Exceptions.parseException(ioe);
+        }
+    }
+
+    private static void appendToEach(List<String> strings, String appendString) {
+        if (strings != null && ! strings.isEmpty()) {
+            for (int i=0; i<strings.size(); i++) {
+                String ith = strings.get(i);
+                if (ith != null && ith.length() > 0) {
+                    strings.set(i, ith + appendString);
+                }
+            }
         }
     }
 

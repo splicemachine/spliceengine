@@ -1245,11 +1245,9 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
     }
 
-    @Test @Ignore("DB-4344")
+    @Test
     public void testCheckContstraintLoad() throws Exception {
-        // FIXME: JC - off by 1 error for maxErrors. Bad records file has no linebreaks. Bad dir path is upper-cased
-        // somewhere
-        long maxBadRecords = 3;
+        long maxBadRecords = 2;
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                                                                          "'%s'," +  // schema name
                                                                          "'%s'," +  // table name
