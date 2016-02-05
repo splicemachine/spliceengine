@@ -14,6 +14,7 @@ import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeDropPKConstraintDesc;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.dvd.*;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
@@ -353,6 +354,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(CachedOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CallStatementOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ExplainOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ExportOperation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);

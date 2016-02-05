@@ -3,10 +3,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 import java.sql.ResultSet;
 
 import com.splicemachine.test.SerialTest;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -27,6 +24,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  *		 Created on: 9/25/14
  */
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class SqlJJarIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = SqlJJarIT.class.getSimpleName().toUpperCase();

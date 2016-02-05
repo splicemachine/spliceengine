@@ -6,10 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -27,6 +24,7 @@ import java.util.*;
  *         Date: 7/28/14
  */
 @RunWith(Parameterized.class)
+@Ignore("DB-4272")
 public class ThreeTableEquiJoinIT {
 
     @Parameterized.Parameters

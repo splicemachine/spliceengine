@@ -6,6 +6,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -20,6 +21,7 @@ import java.util.Arrays;
  */
 //@Ignore("-sf- This can take forever, and it doesn't really test anything. Until it does, leave it ignored")
 @Category(SerialTest.class)
+@Ignore("DB-4272")
 public class VacuumIT {
 		private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		@ClassRule

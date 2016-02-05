@@ -25,6 +25,7 @@ import java.sql.Statement;
  *         Date: 12/8/14
  */
 @Category({Transactions.class})
+@Ignore("DB-4272")
 public class QueryTimeoutIT extends SpliceUnitTest {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(QueryTimeoutIT.class.getSimpleName());
 
