@@ -28,10 +28,7 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScri
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -564,6 +561,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private void elevateTxnForDictionaryOperations(LanguageConnectionContext lcc) throws StandardException{
         BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)lcc.getTransactionExecute()).getRawTransaction();
+        if (rawTransaction instanceof SpliceTransactionView) // Already serde
+            return;
         assert rawTransaction instanceof SpliceTransaction:
                 "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
         /*
