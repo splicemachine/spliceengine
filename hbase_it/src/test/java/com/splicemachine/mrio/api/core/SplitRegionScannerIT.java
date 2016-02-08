@@ -23,6 +23,7 @@ import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 
 @Ignore("Breaks stuff")
 public class SplitRegionScannerIT extends BaseMRIOTest {
+    // TODO (wjkmerge): verify commit c8ccfb9 to see if this IT is fixable. if not, purge it.
     private static final Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SplitRegionScannerIT.class.getSimpleName());	
