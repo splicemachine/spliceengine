@@ -70,7 +70,7 @@ public class IndexController extends SpliceController{
 			 *		 Unfortunately, this information is not available here and would need to be passed down from
 			 *		 DataDictionaryImpl through TabInfoImpl.  Something worth looking into in the future.
 			 */
-            TxnView txn=((SpliceTransaction)trans).getTxn();
+            TxnView txn=trans.getTxnInformation();
             DataGet get=opFactory.newDataGet(txn,rowKey,null);
             DataResult result=htable.get(get,null);
             if(result==null||result.size()<=0){
