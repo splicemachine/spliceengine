@@ -57,7 +57,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     public Pair<Long, Long>[] defaultAutoIncrementValues;
     public InsertNode.InsertMode insertMode;
     public String statusDirectory;
-    public int failBadRecordCount;
+    private int failBadRecordCount;
 
 
     @Override
@@ -82,7 +82,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
-        this.failBadRecordCount=failBadRecordCount;
+        this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
         try{
             init(SpliceOperationContext.newContext(activation));
         }catch(IOException ioe){
@@ -129,6 +129,14 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             throw Exceptions.parseException(e);
         }
 
+    }
+
+    public boolean isPermissive() {
+        return this.failBadRecordCount == -1;
+    }
+
+    public boolean isAboveFailThreshold(long numberOfErrors) {
+        return this.failBadRecordCount >= 0 && numberOfErrors > this.failBadRecordCount;
     }
 
     @Override
@@ -206,10 +214,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(statusDirectory!=null)
             out.writeUTF(statusDirectory);
         out.writeInt(failBadRecordCount);
-    }
-
-    public boolean isImport(){
-        return failBadRecordCount!=-1;
     }
 
     @Override

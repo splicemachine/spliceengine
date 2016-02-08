@@ -24,7 +24,7 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     long getRecordsFiltered();
     long getRecordsWritten();
 
-    void recordBadRecord(String badRecord);
+    void recordBadRecord(String badRecord, Exception exception);
     boolean isPermissive();
     void setPermissive();
     void setFailBadRecordCount(int failBadRecordCount);

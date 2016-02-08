@@ -1774,7 +1774,8 @@ public enum ErrorState {
     LOB_DATA_FILE_NOT_FOUND("XIE0P.S"),
     LOB_DATA_FILE_NULL("XIE0Q.S"),
     UNEXPECTED_IMPORT_ERROR("XIE0R.S"),
-    DATA_FILE_EXISTS		("XIE0S.S"),
+    UNEXPECTED_IMPORT_CSV_ERROR("XIE11.S"),
+    DATA_FILE_EXISTS("XIE0S.S"),
     LOB_DATA_FILE_EXISTS("XIE0T.S"),
 
 
@@ -1981,5 +1982,24 @@ public enum ErrorState {
 
         StandardException se = (StandardException)t;
         return se.getSqlState().equals(sqlState);
+    }
+
+    // Group 1 contains one or more digits anchored to beginning of line to first non-digit char. This is the sql state ID.
+    // Throw away any non-digits up to and including the first space. eg; "(20001).S.180.4 "
+    // Group 2 contains the rest of the line. This is the error message.
+    private static final Pattern badRecordPattern = Pattern.compile("^(\\d+)[^ ]* (.*)");
+    public static StandardException fromBadRecord(String badRecord) {
+        StandardException exception;
+        Matcher badRecordMatcher = badRecordPattern.matcher(badRecord);
+        if (badRecordMatcher.find()) {
+            String errorState = badRecordMatcher.group(1);
+            String errorMsg = badRecordMatcher.group(2);
+            exception = StandardException.newException(errorState, errorMsg);
+        } else {
+            // if no sql state ID, then it's just an error msg
+            exception = ErrorState.UNEXPECTED_IMPORT_CSV_ERROR.newException(badRecord);
+        }
+
+        return exception;
     }
 }

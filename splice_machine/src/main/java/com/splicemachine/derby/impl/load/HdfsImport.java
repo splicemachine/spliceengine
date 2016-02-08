@@ -116,9 +116,9 @@ public class HdfsImport {
      * @param badRecordsAllowed The number of rejected (bad) records that are tolerated before the import fails. If this
      *                          count of rejected records is reached, the import check terminates.
      *                          <ul>
-     *                          <li>If you specify 0 as the value of this parameter, all record import failures are tolerated and logged.</li>
-     *                          <li>If you specify 1 as the value of this parameter, the import will fail if even one record is bad.</li>
-     *                          </ul>
+     *                          <li>If you specify -1 as the value of this parameter, all record import failures are tolerated and logged.</li>
+     *                          <li>If you specify 0 as the value of this parameter, the import will fail if even one record is bad.</li>
+ *                              </ul>
      * @param badRecordDirectory The directory in which status information is logged. Splice Machine logs status
      *                           information to the [import_file_name].bad file in this directory.
      * @param oneLineRecords whether each line in the import file contains one complete record or records span lines.
@@ -230,8 +230,8 @@ public class HdfsImport {
      * @param badRecordsAllowed The number of rejected (bad) records that are tolerated before the import fails. If this
      *                          count of rejected records is reached, the import check terminates.
      *                          <ul>
-     *                          <li>If you specify 0 as the value of this parameter, all record import failures are tolerated and logged.</li>
-     *                          <li>If you specify 1 as the value of this parameter, the import will fail if even one record is bad.</li>
+     *                          <li>If you specify -1 as the value of this parameter, all record import failures are tolerated and logged.</li>
+     *                          <li>If you specify 0 as the value of this parameter, the import will fail if even one record is bad.</li>
      *                          </ul>
      * @param badRecordDirectory The directory in which status information is logged. Splice Machine logs status
      *                           information to the [import_file_name].bad file in this directory.

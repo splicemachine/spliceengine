@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import java.io.*;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -81,7 +82,7 @@ import java.util.Iterator;
                                         }
                                     } catch (Exception e) {
                                         if (operationContext.isPermissive()) {
-                                            operationContext.recordBadRecord("\n" + e.getLocalizedMessage());
+                                            operationContext.recordBadRecord(e.getLocalizedMessage(), e);
                                         } else
                                             throw StandardException.plainWrapException(e);
                                     }

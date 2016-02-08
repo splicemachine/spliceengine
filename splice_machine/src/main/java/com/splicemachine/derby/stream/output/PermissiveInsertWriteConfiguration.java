@@ -63,7 +63,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
                 if (operationContext.isFailed())
                     ignore = true;
                 try {
-                    operationContext.recordBadRecord(errorRow(pairDecoder.decode(kvPairList.get(rowNum)).toString(), value));
+                    operationContext.recordBadRecord(errorRow(pairDecoder.decode(kvPairList.get(rowNum)).toString(), value), null);
                 } catch (Exception e) {
                     ignore = true;
                 }

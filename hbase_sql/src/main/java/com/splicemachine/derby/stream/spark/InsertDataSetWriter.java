@@ -4,7 +4,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -18,6 +17,7 @@ import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
@@ -80,20 +80,26 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
             }
             ValueRow valueRow=new ValueRow(1);
             InsertOperation insertOperation=((InsertOperation)opContext.getOperation());
-            if(insertOperation!=null && insertOperation.isImport()){
-                List<String> badRecords=opContext.getBadRecords();
-                if(badRecords.size()>0){
-                    // System.out.println("badRecords -> " + badRecords);
-                    opContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
+            if(insertOperation!=null) {
+                List<String> badRecords = opContext.getBadRecords();
+                opContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
+                if (badRecords.size() > 0) {
                     appendToEach(badRecords, System.lineSeparator());
-                    DataSet dataSet=new ControlDataSet<>(badRecords);
-                    Path path=null;
-                    if(insertOperation.statusDirectory!=null && !insertOperation.statusDirectory.equals("NULL")){
-                        FileSystem fileSystem=FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
-                        path=generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
+                    DataSet dataSet = new ControlDataSet<>(badRecords);
+                    Path path = null;
+                    if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
+                        FileSystem fileSystem = FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
+                        path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
                         dataSet.saveAsTextFile().directory(path.toString()).build().write();
                         fileSystem.close();
                         opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
+                    }
+                    if (insertOperation.isAboveFailThreshold(badRecords.size())) {
+                        if (badRecords.size() == 1) {
+                            throw ErrorState.fromBadRecord(badRecords.get(0));
+                        }
+                        throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(
+                                path == null ? "--No Output File Provided--" : path.toString());
                     }
                 }
             }

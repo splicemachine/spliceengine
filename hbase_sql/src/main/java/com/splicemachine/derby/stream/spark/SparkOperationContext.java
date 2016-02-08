@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -12,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.Accumulator;
 
+import java.sql.SQLException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -223,13 +225,20 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     }
 
     @Override
-    public void recordBadRecord(String badRecord){
+    public void recordBadRecord(String badRecord, Exception e) {
         numberBadRecords++;
-        badRecordsAccumulable.add(badRecord);
-        if(numberBadRecords>=this.failBadRecordCount)
+        String errorState = "";
+        if (e != null) {
+            if (e instanceof SQLException) {
+                errorState = ((SQLException)e).getSQLState();
+            } else if (e instanceof StandardException) {
+                errorState = ((StandardException)e).getSQLState();
+            }
+        }
+        badRecordsAccumulable.add(errorState + " " + badRecord);
+        if (numberBadRecords>= this.failBadRecordCount)
             failed=true;
     }
-
 
     @Override
     public List<String> getBadRecords(){

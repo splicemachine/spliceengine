@@ -15,6 +15,7 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.SpliceDateFunctions;
 import org.supercsv.prefs.CsvPreference;
 import java.io.*;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -124,7 +125,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             return new LocatedRow(returnRow);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
-               operationContext.recordBadRecord("\n" + e.getLocalizedMessage() + "\n" + values + "\n");
+               operationContext.recordBadRecord(e.getLocalizedMessage() + values, e);
                 return null;
             }
             throw e; // Not Permissive of errors

@@ -36,7 +36,7 @@ public class FileFunction extends AbstractFileFunction<String>{
             return lr==null?Collections.<LocatedRow>emptyList():Collections.singletonList(lr);
         }catch(Exception e){
             if(operationContext.isPermissive()){
-                operationContext.recordBadRecord("\n"+e.getLocalizedMessage()+"\n");
+                operationContext.recordBadRecord(e.getLocalizedMessage(), e);
                 return Collections.emptyList();
             }
             throw StandardException.plainWrapException(e);

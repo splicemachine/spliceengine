@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -194,10 +195,18 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public void recordBadRecord(String badRecord) {
+    public void recordBadRecord(String badRecord, Exception e) {
         numberBadRecords++;
-        badRecords.add(badRecord);
-        if (numberBadRecords>= this.failBadRecordCount)
+        String errorState = "";
+        if (e != null) {
+            if (e instanceof SQLException) {
+                errorState = ((SQLException)e).getSQLState();
+            } else if (e instanceof StandardException) {
+                errorState = ((StandardException)e).getSQLState();
+            }
+        }
+        badRecords.add(errorState + " " + badRecord);
+        if (numberBadRecords> this.failBadRecordCount)
             failed=true;
     }
 

@@ -75,7 +75,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
-            if(insertOperation!=null && insertOperation.failBadRecordCount!=0)
+            if(insertOperation!=null && insertOperation.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
                             operationContext,
                             encoder.getDecoder(execRowDefinition));
@@ -102,7 +102,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                 operationContext.recordWrite();
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {
-                    operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString());
+                    operationContext.recordBadRecord(e.getLocalizedMessage() + execRow.toString(), e);
                 return;
             }
             throw Exceptions.parseException(e);
