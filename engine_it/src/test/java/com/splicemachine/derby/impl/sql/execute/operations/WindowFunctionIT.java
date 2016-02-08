@@ -2338,7 +2338,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         .create();
 
         String sqlText = format("select empno, salary, deptno, first_value(empno) over(partition by deptno order by " +
-                                    "salary asc rows unbounded preceding) as first_value from " +
+                                    "salary asc, empno rows unbounded preceding) as first_value from " +
                                     "%s order by empno asc", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
@@ -2532,8 +2532,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .create();
 
         String sqlText = format("select empno, salary, deptno, " +
-                                    "LAG(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC) NEXT_LOWER_SAL from " +
-                                    "%s order by deptno, SALARY DESC", tableRef);
+                                    "LAG(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC, empno) NEXT_LOWER_SAL from " +
+                                    "%s order by deptno, SALARY DESC, empno", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
         String expected =
