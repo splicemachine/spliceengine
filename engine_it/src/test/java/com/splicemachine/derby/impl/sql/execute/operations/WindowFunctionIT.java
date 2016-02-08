@@ -2485,7 +2485,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .create();
 
         String sqlText = format("select empno, salary, deptno, " +
-                                    "LEAD(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC) NEXT_LOWER_SAL from " +
+                                    "LEAD(SALARY) OVER (PARTITION BY DEPTNO ORDER BY SALARY DESC, EMPNO) NEXT_LOWER_SAL from " +
                                     "%s order by deptno, SALARY DESC", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with PostgreSQL App
