@@ -1,6 +1,8 @@
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -8,6 +10,7 @@ import java.util.List;
 /**
  * Created by jleach on 8/8/15.
  */
+@Category(ArchitectureIndependent.class)
 public class ScanCostFunctionTest {
     private static List<SelectivityHolder>[] baseOnly = new List[10];
     private static List<SelectivityHolder>[] baseAndBaseFilter = new List[10];

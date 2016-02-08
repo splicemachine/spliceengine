@@ -16,6 +16,7 @@ import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.*;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.storage.CellType;
@@ -28,6 +29,7 @@ import com.splicemachine.utils.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -41,6 +43,7 @@ import static org.mockito.Mockito.*;
  * @author Scott Fines
  *         Date: 6/23/14
  */
+@Category(ArchitectureSpecific.class)
 public class SimpleTxnFilterTest{
 
     private ClientTxnLifecycleManager txnLifecycleManager;

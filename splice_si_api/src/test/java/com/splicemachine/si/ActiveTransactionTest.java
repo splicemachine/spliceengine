@@ -7,11 +7,13 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.timestamp.api.TimestampSource;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,6 +25,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 8/21/14
  */
+@Category(ArchitectureSpecific.class)
 public class ActiveTransactionTest{
 
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1216");

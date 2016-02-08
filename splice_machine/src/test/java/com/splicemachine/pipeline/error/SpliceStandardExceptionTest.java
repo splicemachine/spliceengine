@@ -1,11 +1,14 @@
 package com.splicemachine.pipeline.error;
 
 import com.splicemachine.pipeline.SpliceStandardException;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 
+@Category(ArchitectureIndependent.class)
 public class SpliceStandardExceptionTest {
 	@Test 
 	public void instanceTest() {

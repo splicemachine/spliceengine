@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.J2SEDataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,9 +16,12 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import com.splicemachine.db.iapi.types.SQLDate;
+import org.junit.experimental.categories.Category;
+
 /**
 * Created by yifu on 6/24/14.
 */
+@Category(ArchitectureIndependent.class)
 public class setFromTest {
     protected static J2SEDataValueFactory dvf = new J2SEDataValueFactory();
 

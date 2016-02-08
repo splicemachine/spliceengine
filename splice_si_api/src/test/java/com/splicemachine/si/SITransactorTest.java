@@ -4,17 +4,14 @@ import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
-import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
-import com.splicemachine.si.testenv.SITestEnv;
-import com.splicemachine.si.testenv.SITestEnvironment;
-import com.splicemachine.si.testenv.TestTransactionSetup;
-import com.splicemachine.si.testenv.TransactorTestUtility;
+import com.splicemachine.si.testenv.*;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
@@ -24,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unchecked")
+@Category(ArchitectureSpecific.class)
 public class SITransactorTest {
     @Rule public ExpectedException error = ExpectedException.none();
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");

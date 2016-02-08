@@ -252,7 +252,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             txnView = new DDLTxnView(txn,demarcationPoint);
         }
 
-        SIFilterFactory siFilterFactory = null;
+        SIFilterFactory siFilterFactory;
         try {
             final TxnFilter txnFilter = region.unpackedFilter(txnView);
 

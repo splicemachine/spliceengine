@@ -2,7 +2,10 @@ package com.splicemachine.si.impl;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.primitives.ByteComparator;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.OperationFactory;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 
@@ -58,7 +61,20 @@ public class MOperationFactory implements OperationFactory{
 
     @Override
     public DataCell newCell(byte[] key,byte[] family,byte[] qualifier,long timestamp,byte[] value){
-        return new MCell(key,family,qualifier,timestamp,value,CellType.USER_DATA);
+        CellType c;
+        ByteComparator byteComparator=Bytes.basicByteComparator();
+        if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,qualifier)){
+           c = CellType.COMMIT_TIMESTAMP;
+        }else if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,qualifier)){
+            if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,value))
+                c =CellType.ANTI_TOMBSTONE;
+            else c =CellType.TOMBSTONE;
+        }else if(byteComparator.equals(SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,qualifier))
+            c = CellType.FOREIGN_KEY_COUNTER;
+        else if(byteComparator.equals(SIConstants.PACKED_COLUMN_BYTES,qualifier))
+            c = CellType.USER_DATA;
+        else c = CellType.OTHER;
+        return new MCell(key,family,qualifier,timestamp,value,c);
     }
 
     @Override

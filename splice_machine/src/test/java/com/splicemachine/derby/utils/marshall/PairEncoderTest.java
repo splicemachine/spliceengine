@@ -11,9 +11,11 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -25,6 +27,7 @@ import java.util.Random;
  *         Date: 11/15/13
  */
 @RunWith(Parameterized.class)
+@Category(ArchitectureIndependent.class)
 public class PairEncoderTest{
     private static final int numRandomValues=1;
 

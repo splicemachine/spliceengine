@@ -1,9 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import java.io.IOException;
+
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category(ArchitectureIndependent.class)
 public class AbstractSequenceTest {
 	@Test
 	public void singleThreaded100BlockSingleIncrementTestWithRollover() throws Exception {

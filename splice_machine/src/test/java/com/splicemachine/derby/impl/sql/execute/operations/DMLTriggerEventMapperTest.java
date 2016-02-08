@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static org.junit.Assert.assertEquals;
 
+@Category(ArchitectureIndependent.class)
 public class DMLTriggerEventMapperTest {
 
     @Test

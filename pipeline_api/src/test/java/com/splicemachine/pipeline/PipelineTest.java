@@ -18,12 +18,14 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.WriteConflict;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Date: 12/23/15
  */
+@Category(ArchitectureSpecific.class)
 public class PipelineTest{
     private static final String DESTINATION_TABLE=Long.toString(1232);
     private static final byte[] DESTINATION_TABLE_BYTES=Bytes.toBytes(DESTINATION_TABLE);

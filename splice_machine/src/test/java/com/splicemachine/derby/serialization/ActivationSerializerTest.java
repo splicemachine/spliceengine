@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -13,11 +14,13 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * @author Scott Fines
  *         Created on: 10/9/13
  */
+@Category(ArchitectureIndependent.class)
 public class ActivationSerializerTest {
     private static final KryoPool kp = new KryoPool(1);
     static{

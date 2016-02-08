@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category(ArchitectureIndependent.class)
 public class SpliceUDAVarianceTest {
     @Test
     public void varianceSmallDataset() {
@@ -19,9 +22,9 @@ public class SpliceUDAVarianceTest {
     public void testNumericalAccuracy() {
         SpliceStddevSamp<Double> stddevSamp;
         for (Double constant : new double[]{0, 1E4, 1E6, 1E8, 1E10, 1E12}) {
-            Double constantPlus0 = new Double(constant + 0);
-            Double constantPlus1 = new Double(constant + 1);
-            stddevSamp = new SpliceStddevSamp<Double>();
+            double constantPlus0 =constant+0;
+            double constantPlus1 =constant+1;
+            stddevSamp =new SpliceStddevSamp<>();
             for (int i = 0; i < 10000000; ++i) {
                 stddevSamp.accumulate(constantPlus0);
                 stddevSamp.accumulate(constantPlus1);
@@ -35,9 +38,9 @@ public class SpliceUDAVarianceTest {
     public void testNumericalAccuracyStableVariance() {
         SpliceUDAStableVariance<Double> variance;
         for (Double constant : new double[]{0, 1E4, 1E6, 1E8, 1E10, 1E12}) {
-            Double constantPlus0 = new Double(constant + 0);
-            Double constantPlus1 = new Double(constant + 1);
-            variance = new SpliceUDAStableVariance<Double>();
+            double constantPlus0 =constant+0;
+            double constantPlus1 =constant+1;
+            variance =new SpliceUDAStableVariance<>();
             for (int i = 0; i < 10000000; ++i) {
                 variance.accumulate(constantPlus0);
                 variance.accumulate(constantPlus1);

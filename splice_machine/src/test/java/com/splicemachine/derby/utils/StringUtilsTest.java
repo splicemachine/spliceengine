@@ -1,13 +1,16 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.impl.ast.StringUtils;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * @author Scott Fines
  *         Created: 2/1/13 10:03 AM
  */
+@Category(ArchitectureIndependent.class)
 public class StringUtilsTest {
 	@Test
 	public void testStrip() throws Exception {

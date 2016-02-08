@@ -7,9 +7,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.*;
 
@@ -22,7 +25,7 @@ public class SparkValueRowSerializerTest {
     @BeforeClass
     public static void setup() {
         kryo = new Kryo();
-     //   new SpliceSparkKryoRegistrator().registerClasses(kryo);
+        new SpliceSparkKryoRegistrator().registerClasses(kryo);
     }
 
     @Test

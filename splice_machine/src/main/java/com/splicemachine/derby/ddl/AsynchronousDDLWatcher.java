@@ -4,11 +4,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.filter.TransactionReadController;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Collection;
@@ -46,11 +45,16 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
                                   Clock clock,
                                   SConfiguration config,
                                   DDLWatchChecker ddlWatchChecker,
-                                  SqlExceptionFactory exceptionFactory){
+                                  SqlExceptionFactory exceptionFactory,
+                                  TxnSupplier txnSupplier){
         long maxDdlWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
         this.refreshWaitMs = config.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL);
         this.checker = ddlWatchChecker;
-        this.refresher = new DDLWatchRefresher(checker,txnController,clock,exceptionFactory,maxDdlWait);
+        this.refresher = new DDLWatchRefresher(checker,
+                txnController,
+                clock,
+                exceptionFactory,
+                maxDdlWait,txnSupplier );
     }
 
     @Override

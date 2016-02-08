@@ -6,16 +6,19 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.SQLDouble;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * @author Scott Fines
  *         Created on: 10/9/13
  */
+@Category(ArchitectureIndependent.class)
 public class LazyNumberDataValueDescriptorTest{
     private static final KryoPool kp=new KryoPool(1);
 

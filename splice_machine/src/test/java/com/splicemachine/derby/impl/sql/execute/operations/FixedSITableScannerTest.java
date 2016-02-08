@@ -8,26 +8,34 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.SIFilter;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
+import com.splicemachine.si.testenv.SITestDataEnv;
+import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +45,16 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  *         Date: 4/9/14
  */
+@Category(ArchitectureSpecific.class)
 public class FixedSITableScannerTest{
+
+    private OperationFactory opFactory;
+
+    @Before
+    public void setUp() throws Exception{
+        SITestDataEnv testDataEnv =SITestEnvironment.loadTestDataEnvironment();
+        opFactory = testDataEnv.getBaseOperationFactory();
+    }
 
     @Test
     public void testScansBackSkipsSecondPrimaryKey() throws Exception{
@@ -243,76 +260,86 @@ public class FixedSITableScannerTest{
             rowDecodingMap=rowEncodingMap;
         }
 
-        throw new UnsupportedOperationException("IMPLEMENT");
-//        EntryDataHash hash=new EntryDataHash(rowEncodingMap,null,serializers);
-//        hash.setRow(row);
-//        byte[] value=hash.encode();
-//        final DataCell dataKv=new KeyValue(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,1l,value);
-//        final DataCell siKv=new KeyValue(key,SIConstants.DEFAULT_FAMILY_BYTES,
-//                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,1l,SIConstants.EMPTY_BYTE_ARRAY);
-//        final boolean[] returned=new boolean[]{false};
-//
-//        DataScanner scanner=mock(DataScanner.class);
-//        Answer<Boolean> rowReturnAnswer=new Answer<Boolean>(){
-//
-//            @Override
-//            public Boolean answer(InvocationOnMock invocation) throws Throwable{
-//                Assert.assertFalse("Attempted to call next() twice!",returned[0]);
-//
-//                @SuppressWarnings("unchecked") List<KeyValue> kvs=(List<KeyValue>)invocation.getArguments()[0];
-//                kvs.add(siKv);
-//                kvs.add(dataKv);
-//                returned[0]=true;
-//                return false;
-//            }
-//        };
-//        //noinspection unchecked
+        EntryDataHash hash=new EntryDataHash(rowEncodingMap,null,serializers);
+        hash.setRow(row);
+        byte[] value=hash.encode();
+        final DataCell dataKv=opFactory.newCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,1l,value);
+        final DataCell siKv=opFactory.newCell(key,SIConstants.DEFAULT_FAMILY_BYTES,
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,1l,SIConstants.EMPTY_BYTE_ARRAY);
+        final boolean[] returned=new boolean[]{false};
+
+        DataScanner scanner=mock(DataScanner.class);
+        Answer<List<DataCell>> rowReturnAnswer=new Answer<List<DataCell>>(){
+
+            @Override
+            public List<DataCell> answer(InvocationOnMock invocation) throws Throwable{
+                Assert.assertFalse("Attempted to call next() twice!",returned[0]);
+
+                @SuppressWarnings("unchecked") List<DataCell> kvs=Arrays.asList(siKv,dataKv);
+                returned[0]=true;
+                return kvs;
+            }
+        };
+        //noinspection unchecked
+        when(scanner.next(anyInt())).thenAnswer(rowReturnAnswer);
 //        when(scanner.internalNextRaw(any(List.class))).thenAnswer(rowReturnAnswer);
-//        //noinspection unchecked
+        //noinspection unchecked
 //        when(scanner.next(any(List.class))).thenAnswer(rowReturnAnswer);
-//
-//        Scan scan=mock(Scan.class);
-//        TableScannerBuilder builder=new TableScannerBuilder()
-//                .scan(scan)
-//                .scanner(scanner)
-//                .tableVersion("2.0")
-//                .rowDecodingMap(rowDecodingMap)
-//                .filterFactory(
-//                        new SIFilterFactory(){
-//                            @Override
-//                            public SIFilter newFilter(EntryPredicateFilter predicateFilter,
-//                                                      EntryDecoder rowEntryDecoder,
-//                                                      EntryAccumulator accumulator,
-//                                                      boolean isCountStar) throws IOException{
-//                                return new MockFilter(accumulator,rowEntryDecoder,predicateFilter,isCountStar);
-//                            }
-//                        });
-//
-//        if(correct!=null){
-//            ExecRow returnedRow=new ValueRow(correct.length);
-//            returnedRow.setRowArray(correct);
-//            builder=builder.template(returnedRow.getNewNullRow());
-//        }else
-//            builder=builder.template(row.getNewNullRow());
-//
-//        if(keyColumnOrder!=null){
-//            FormatableBitSet accessedKeyCols=new FormatableBitSet(2);
-//            for(int i=0;i<keyColumnOrder.length;i++){
-//                if(keyDecodingMap[i]>=0)
-//                    accessedKeyCols.set(i);
-//            }
-//            builder=builder
-//                    .keyColumnEncodingOrder(keyColumnOrder)
-//                    .keyColumnTypes(keyColumnTypes)
-//                    .keyColumnSortOrder(keySortOrder)
-//                    .keyDecodingMap(keyDecodingMap)
-//                    .accessedKeyColumns(accessedKeyCols);
-//        }
-//        SITableScanner tableScanner=builder.build();
-//
-//        ExecRow next=tableScanner.next();
-//        if(correct==null)
-//            correct=row.getRowArray();
-//        Assert.assertArrayEquals("Incorrect scan decoding!",correct,next.getRowArray());
+
+        DataScan scan=opFactory.newScan();
+        ScanSetBuilder builder=new TableScannerBuilder(){
+            @Override
+            public DataSet buildDataSet() throws StandardException{
+                throw new UnsupportedOperationException("improper access path for test");
+            }
+        }
+                .scan(scan)
+                .scanner(scanner)
+                .tableVersion("2.0")
+                .rowDecodingMap(rowDecodingMap);
+        builder = ((TableScannerBuilder)builder)
+                .filterFactory(
+                        new SIFilterFactory(){
+                            @Override
+                            public SIFilter newFilter(EntryPredicateFilter predicateFilter,
+                                                      EntryDecoder rowEntryDecoder,
+                                                      EntryAccumulator accumulator,
+                                                      boolean isCountStar) throws IOException{
+                                return new MockFilter(accumulator,rowEntryDecoder,predicateFilter,isCountStar);
+                            }
+                        });
+
+        if(correct!=null){
+            ExecRow returnedRow=new ValueRow(correct.length);
+            returnedRow.setRowArray(correct);
+            builder=builder.template(returnedRow.getNewNullRow());
+        }else
+            builder=builder.template(row.getNewNullRow());
+
+        if(keyColumnOrder!=null){
+            FormatableBitSet accessedKeyCols=new FormatableBitSet(2);
+            for(int i=0;i<keyColumnOrder.length;i++){
+                if(keyDecodingMap[i]>=0)
+                    accessedKeyCols.set(i);
+            }
+            builder=builder
+                    .keyColumnEncodingOrder(keyColumnOrder)
+                    .keyColumnTypes(keyColumnTypes)
+                    .keyColumnSortOrder(keySortOrder)
+                    .keyDecodingMap(keyDecodingMap)
+                    .accessedKeyColumns(accessedKeyCols);
+        }
+        SITableScanner tableScanner=((TableScannerBuilder)builder).build();
+        Assert.assertNotNull("Missing table scanner!",tableScanner);
+
+        try{
+            ExecRow next=tableScanner.next();
+            if(correct==null)
+                correct=row.getRowArray();
+            Assert.assertArrayEquals("Incorrect scan decoding!",correct,next.getRowArray());
+        }catch(Throwable t ){
+            t.printStackTrace();
+            throw t;
+        }
     }
 }

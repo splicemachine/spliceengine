@@ -2,10 +2,12 @@ package com.splicemachine.derby.utils;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.CountAggregator;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.ByteArrayOutputStream;
 
@@ -13,6 +15,7 @@ import java.io.ByteArrayOutputStream;
  * @author Scott Fines
  *         Created on: 8/15/13
  */
+@Category(ArchitectureIndependent.class)
 public class SerializationComparison {
 
     @Test

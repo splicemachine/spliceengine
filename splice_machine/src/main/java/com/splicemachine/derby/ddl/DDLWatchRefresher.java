@@ -6,9 +6,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
+import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -35,13 +38,15 @@ public class DDLWatchRefresher{
     private final long maxDdlWaitMs;
     private final AtomicInteger currChangeCount= new AtomicInteger(0);
     private final SqlExceptionFactory exceptionFactory;
+    private final TxnSupplier txnSupplier;
 
 
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
                              TransactionReadController txnController,
                              Clock clock,
                              SqlExceptionFactory exceptionFactory,
-                             long maxDdlWaitMs){
+                             long maxDdlWaitMs,
+                             TxnSupplier txnSupplier){
         this.clock=clock;
         this.txController = txnController;
         this.maxDdlWaitMs=maxDdlWaitMs;
@@ -51,6 +56,7 @@ public class DDLWatchRefresher{
         this.tentativeDDLS=new ConcurrentHashMap<>();
         this.watchChecker=watchChecker;
         this.exceptionFactory =exceptionFactory;
+        this.txnSupplier = txnSupplier;
         ddlDemarcationPoint = new AtomicReference<>();
     }
 
@@ -78,6 +84,8 @@ public class DDLWatchRefresher{
         for(String changeId : ongoingDDLChangeIds){
             if(!seenDDLChanges.contains(changeId)){
                 DDLChange change=watchChecker.getChange(changeId);
+                //inform the server of the first time we see this change
+                changeTimeouts.put(change.getChangeId(),clock.currentTimeMillis());
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG,"New change with id=%s, and change=%s",changeId,change);
                 try {
@@ -178,7 +186,7 @@ public class DDLWatchRefresher{
 
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
         try {
-            TxnView txn = DDLUtils.getLazyTransaction(ddlChange.getTxnId());
+            TxnView txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
             assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {

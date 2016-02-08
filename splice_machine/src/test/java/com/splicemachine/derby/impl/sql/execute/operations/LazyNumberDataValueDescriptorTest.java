@@ -4,9 +4,12 @@ import com.splicemachine.derby.impl.sql.execute.dvd.LazyDouble;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLDouble;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category(ArchitectureIndependent.class)
 public class LazyNumberDataValueDescriptorTest {
 
     @Test

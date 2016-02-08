@@ -3,10 +3,10 @@ package com.splicemachine.derby.ddl;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.si.api.filter.TransactionReadController;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -18,22 +18,28 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @author Scott Fines
  *         Date: 1/15/16
  */
-public class SynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
-    private static final Logger LOG = Logger.getLogger(AsynchronousDDLWatcher.class);
+public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
+    private static final Logger LOG=Logger.getLogger(AsynchronousDDLWatcher.class);
 
 
-    private final Set<DDLListener> ddlListeners =new CopyOnWriteArraySet<>();
+    private final Set<DDLListener> ddlListeners=new CopyOnWriteArraySet<>();
     private final DDLWatchChecker checker;
     private final DDLWatchRefresher refresher;
 
     public SynchronousDDLWatcher(TransactionReadController txnController,
-                                  Clock clock,
-                                  SConfiguration config,
+                                 Clock clock,
+                                 SConfiguration config,
                                  SqlExceptionFactory exceptionFactory,
-                                  DDLWatchChecker ddlWatchChecker){
-        long maxDdlWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
-        this.checker = ddlWatchChecker;
-        this.refresher = new DDLWatchRefresher(checker,txnController,clock,exceptionFactory,maxDdlWait);
+                                 DDLWatchChecker ddlWatchChecker,
+                                 TxnSupplier txnSupplier){
+        long maxDdlWait=config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
+        this.checker=ddlWatchChecker;
+        this.refresher=new DDLWatchRefresher(checker,
+                txnController,
+                clock,
+                exceptionFactory,
+                maxDdlWait,
+                txnSupplier);
     }
 
     @Override

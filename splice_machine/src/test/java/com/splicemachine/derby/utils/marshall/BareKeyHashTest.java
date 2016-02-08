@@ -8,12 +8,14 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.mock;
  *         Date: 11/15/13
  */
 @RunWith(Parameterized.class)
+@Category(ArchitectureIndependent.class)
 public class BareKeyHashTest {
 		private static final int numRandomValues=1;
 		private static final KryoPool kryoPool = mock(KryoPool.class);

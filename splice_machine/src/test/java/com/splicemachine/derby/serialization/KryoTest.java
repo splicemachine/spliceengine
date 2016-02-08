@@ -16,6 +16,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,11 +29,13 @@ import com.splicemachine.utils.CachedByteSlice;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.junit.experimental.categories.Category;
 
 /**
  * @author Jeff Cunningham
  *         Date: 11/13/13
  */
+@Category(ArchitectureIndependent.class)
 public class KryoTest  {
 
     private static final KryoPool kryoPool = new KryoPool(1);

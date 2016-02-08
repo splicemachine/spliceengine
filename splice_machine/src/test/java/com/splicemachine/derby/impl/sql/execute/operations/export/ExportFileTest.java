@@ -1,22 +1,26 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.si.impl.TestingFileSystem;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
+import com.splicemachine.si.testenv.SITestDataEnv;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 
 import static org.junit.Assert.*;
 
+@Category(ArchitectureIndependent.class)
 public class ExportFileTest {
-
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -27,12 +31,14 @@ public class ExportFileTest {
 //        SpliceConstants.config.set("fs.default.name", "file:///");
     }
 
+    private DistributedFileSystem dfs = new TestingFileSystem(FileSystems.getDefault().provider());
+
     @Test
     public void getOutputStream_createsStreamConnectedToExpectedFile() throws IOException {
 
         // given
         ExportParams exportParams = ExportParams.withDirectory(temporaryFolder.getRoot().getAbsolutePath());
-        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
+        ExportFile exportFile = new ExportFile(exportParams, testTaskId(),dfs);
         final byte[] EXPECTED_CONTENT = ("splice for the win" + RandomStringUtils.randomAlphanumeric(1000)).getBytes("utf-8");
 
         // when
@@ -48,7 +54,7 @@ public class ExportFileTest {
 
     @Test
     public void buildFilenameFromTaskId() throws IOException {
-        ExportFile streamSetup = new ExportFile(new ExportParams(), testTaskId());
+        ExportFile streamSetup = new ExportFile(new ExportParams(), testTaskId(),dfs);
         byte[] taskId = testTaskId();
         assertEquals("export_82010203042A060708.csv", streamSetup.buildFilenameFromTaskId(taskId));
     }
@@ -57,7 +63,7 @@ public class ExportFileTest {
     public void delete() throws IOException {
         // given
         ExportParams exportParams = ExportParams.withDirectory(temporaryFolder.getRoot().getAbsolutePath());
-        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
+        ExportFile exportFile = new ExportFile(exportParams, testTaskId(),dfs);
 
         exportFile.getOutputStream();
         assertTrue("export file should exist in temp dir", temporaryFolder.getRoot().list().length > 0);
@@ -73,7 +79,7 @@ public class ExportFileTest {
     public void createDirectory() throws IOException {
         String testDir = temporaryFolder.getRoot().getAbsolutePath() + "/" + RandomStringUtils.randomAlphabetic(9);
         ExportParams exportParams = ExportParams.withDirectory(testDir);
-        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
+        ExportFile exportFile = new ExportFile(exportParams, testTaskId(),dfs);
 
         assertTrue(exportFile.createDirectory());
 
@@ -85,7 +91,7 @@ public class ExportFileTest {
     public void createDirectory_returnsFalseWhenCannotCreate() throws IOException {
         String testDir = "/noPermissionToCreateFolderInRoot";
         ExportParams exportParams = ExportParams.withDirectory(testDir);
-        ExportFile exportFile = new ExportFile(exportParams, testTaskId());
+        ExportFile exportFile = new ExportFile(exportParams, testTaskId(),dfs);
 
         assertFalse(exportFile.createDirectory());
 

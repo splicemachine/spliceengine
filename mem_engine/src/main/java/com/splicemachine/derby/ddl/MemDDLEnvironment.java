@@ -53,7 +53,8 @@ public class MemDDLEnvironment implements DDLEnvironment{
                         driver.getClock(),
                         driver.getConfiguration(),
                 EngineDriver.driver().getExceptionFactory(),
-                ddlWatchChecker);
+                ddlWatchChecker,
+                driver.getTxnSupplier());
 
         DDLCommunicator communicator = new DirectCommunicator(changeStore);
         this.ddlController = new AsynchronousDDLController(communicator,new ReentrantLockFactory(false),

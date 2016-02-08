@@ -1,8 +1,10 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.GregorianCalendar;
 
@@ -12,6 +14,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by dmustafin on 5/7/15.
  */
+@Category(ArchitectureIndependent.class)
 public class SQLDateTest {
 
     private static final int GREGORIAN_YEAR = 1582;

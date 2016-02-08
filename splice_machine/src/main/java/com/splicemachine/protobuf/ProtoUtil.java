@@ -311,10 +311,11 @@ public class ProtoUtil {
                 ).build();
     }
 
-    public static DDLChange createNoOpDDLChange(long txnId, String changeId) {
+    public static DDLChange createNoOpDDLChange(long txnId,String changeId,DDLChangeType changeType) {
         return DDLChange.newBuilder()
                 .setTxnId(txnId)
                 .setChangeId(changeId)
+                .setDdlChangeType(changeType)
                 .build();
     }
 

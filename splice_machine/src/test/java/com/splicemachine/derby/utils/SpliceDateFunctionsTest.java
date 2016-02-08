@@ -1,7 +1,9 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.sql.Date;
@@ -15,6 +17,7 @@ import java.util.Calendar;
 import static com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE;
 import static org.junit.Assert.*;
 
+@Category(ArchitectureIndependent.class)
 public class SpliceDateFunctionsTest {
 
     private static final DateFormat DF = new SimpleDateFormat("yyyy/MM/dd");

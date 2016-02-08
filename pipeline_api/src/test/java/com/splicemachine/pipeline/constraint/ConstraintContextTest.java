@@ -1,9 +1,12 @@
 package com.splicemachine.pipeline.constraint;
 
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static org.junit.Assert.assertArrayEquals;
 
+@Category(ArchitectureIndependent.class)
 public class ConstraintContextTest {
 
     @Test

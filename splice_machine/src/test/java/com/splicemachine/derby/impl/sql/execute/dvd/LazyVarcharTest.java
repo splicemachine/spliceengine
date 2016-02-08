@@ -12,10 +12,12 @@ import com.splicemachine.derby.utils.marshall.dvd.StringDescriptorSerializer;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -28,6 +30,7 @@ import java.sql.Types;
  *         Created on: 10/9/13
  */
 @RunWith(Theories.class)
+@Category(ArchitectureIndependent.class)
 public class LazyVarcharTest{
     private static final DescriptorSerializer serializer=
             new LazyDescriptorSerializer(StringDescriptorSerializer.INSTANCE_FACTORY.newInstance(),"2.0");

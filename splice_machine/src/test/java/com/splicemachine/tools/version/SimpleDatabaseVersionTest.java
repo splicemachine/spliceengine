@@ -2,12 +2,15 @@ package com.splicemachine.tools.version;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Map;
 
 import static org.junit.Assert.*;
 
+@Category(ArchitectureIndependent.class)
 public class SimpleDatabaseVersionTest{
 
     @Test

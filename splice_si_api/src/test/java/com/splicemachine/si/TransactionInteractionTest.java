@@ -2,19 +2,14 @@ package com.splicemachine.si;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
-import com.splicemachine.si.testenv.SITestEnv;
-import com.splicemachine.si.testenv.SITestEnvironment;
-import com.splicemachine.si.testenv.TestTransactionSetup;
-import com.splicemachine.si.testenv.TransactorTestUtility;
-import org.hamcrest.core.IsInstanceOf;
+import com.splicemachine.si.testenv.*;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
@@ -36,6 +31,7 @@ import java.util.List;
  * @author Scott Fines
  * Date: 8/21/14
  */
+@Category(ArchitectureSpecific.class)
 public class TransactionInteractionTest {
     @Rule public ExpectedException error = ExpectedException.none();
     private static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");

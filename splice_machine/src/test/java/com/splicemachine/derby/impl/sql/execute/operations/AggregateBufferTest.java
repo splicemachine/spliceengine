@@ -20,9 +20,11 @@ import com.splicemachine.db.impl.sql.execute.CountAggregator;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,6 +36,7 @@ import static org.mockito.Mockito.*;
  * @author Scott Fines
  * Created on: 11/1/13
  */
+@Category(ArchitectureIndependent.class)
 public class AggregateBufferTest {
 
     @Test

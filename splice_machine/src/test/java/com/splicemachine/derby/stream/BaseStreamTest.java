@@ -6,6 +6,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
+import org.junit.experimental.categories.Category;
 import scala.Tuple2;
 
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.List;
 /**
  * Created by jleach on 4/15/15.
  */
+@Category(ArchitectureIndependent.class)
 public class BaseStreamTest {
     public static List<ExecRow> tenRowsTwoDuplicateRecords;
     public static List<Tuple2<ExecRow,ExecRow>> tenRows;

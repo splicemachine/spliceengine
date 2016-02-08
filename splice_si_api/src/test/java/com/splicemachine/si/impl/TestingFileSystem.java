@@ -1,5 +1,6 @@
-package com.splicemachine.storage;
+package com.splicemachine.si.impl;
 
+import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 
@@ -20,13 +21,15 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 /**
+ * A convenient Local file system for use in testing code without needing to resort to an architecture
+ * specific file system during testing.
  * @author Scott Fines
  *         Date: 1/18/16
  */
-public class MemFileSystem extends DistributedFileSystem{
+public class TestingFileSystem extends DistributedFileSystem{
     private final FileSystemProvider localDelegate;
 
-    public MemFileSystem(FileSystemProvider localDelegate){
+    public TestingFileSystem(FileSystemProvider localDelegate){
         this.localDelegate=localDelegate;
     }
 
@@ -86,7 +89,20 @@ public class MemFileSystem extends DistributedFileSystem{
 
     @Override
     public OutputStream newOutputStream(Path path,OpenOption... options) throws IOException{
-        return localDelegate.newOutputStream(path,options);
+        if(options.length==1){
+            if(options[0] instanceof DistributedFileOpenOption){
+                return localDelegate.newOutputStream(path,((DistributedFileOpenOption)options[0]).standardOption());
+            }else
+                return localDelegate.newOutputStream(path,options);
+        }
+        OpenOption [] directOptions = new OpenOption[options.length];
+        for(int i=0;i<directOptions.length;i++){
+            if(options[i] instanceof DistributedFileOpenOption){
+                directOptions[i]=((DistributedFileOpenOption)options[i]).standardOption();
+            }else
+                directOptions[i]=options[i];
+        }
+        return localDelegate.newOutputStream(path,directOptions);
     }
 
     @Override
@@ -118,7 +134,9 @@ public class MemFileSystem extends DistributedFileSystem{
         }catch(FileAlreadyExistsException fafe){
             if(!errorIfExists)
                 return Files.isDirectory(dir);
-            else throw fafe;
+            else{
+                throw fafe;
+            }
         }
     }
 
@@ -280,3 +298,4 @@ public class MemFileSystem extends DistributedFileSystem{
         }
     }
 }
+

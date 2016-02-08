@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -18,11 +20,15 @@ class ExportPermissionCheck {
     private ExportParams exportParams;
     private ExportFile testFile;
 
-    ExportPermissionCheck(ExportParams exportParams) throws IOException {
+    ExportPermissionCheck(ExportParams exportParams,DistributedFileSystem dfs) throws IOException {
         this.exportParams = exportParams;
         byte[] testFileTaskId = new byte[16];
         new Random().nextBytes(testFileTaskId);
-        testFile = new ExportFile(exportParams, testFileTaskId);
+        testFile = new ExportFile(exportParams, testFileTaskId,dfs);
+    }
+
+    ExportPermissionCheck(ExportParams exportParams) throws IOException {
+        this(exportParams,SIDriver.driver().fileSystem());
     }
 
     void verify() throws IOException, StandardException {

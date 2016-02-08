@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.storage.ByteEntryAccumulator;
@@ -19,6 +20,7 @@ import com.splicemachine.uuid.Snowflake;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 
 /**
@@ -27,6 +29,7 @@ import org.junit.Test;
  * @author Scott Fines
  *         Created on: 10/2/13
  */
+@Category(ArchitectureSpecific.class)
 public class SpecificRowMarshallerTest{
     private TxnOperationFactory factory;
 

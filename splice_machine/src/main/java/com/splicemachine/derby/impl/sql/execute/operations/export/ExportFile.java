@@ -5,10 +5,8 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;

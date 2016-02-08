@@ -1,16 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.si.impl.TestingFileSystem;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 
 import static org.junit.Assert.assertEquals;
 
+@Category(ArchitectureIndependent.class)
 public class ExportPermissionCheckTest {
 
     @Rule
@@ -18,6 +24,7 @@ public class ExportPermissionCheckTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    private DistributedFileSystem dfs = new TestingFileSystem(FileSystems.getDefault().provider());
     @BeforeClass
     public static void setupConfig() {
         // necessary for mapr
@@ -27,7 +34,7 @@ public class ExportPermissionCheckTest {
     @Test
     public void verify() throws IOException, StandardException {
         ExportParams exportParams = ExportParams.withDirectory(temporaryFolder.getRoot().getAbsolutePath());
-        ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams);
+        ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams,dfs);
 
         // No exception, we can write to the temp folder
         permissionCheck.verify();
@@ -40,7 +47,7 @@ public class ExportPermissionCheckTest {
         expectedException.expectMessage("Invalid parameter 'cannot create export directory'='/ExportPermissionCheckTest'.");
 
         ExportParams exportParams = ExportParams.withDirectory("/ExportPermissionCheckTest");
-        ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams);
+        ExportPermissionCheck permissionCheck = new ExportPermissionCheck(exportParams,dfs);
         permissionCheck.verify();
     }
 

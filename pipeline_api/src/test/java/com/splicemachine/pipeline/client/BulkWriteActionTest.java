@@ -6,8 +6,10 @@ import java.util.concurrent.ExecutionException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.config.DefaultWriteConfiguration;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static org.mockito.Mockito.mock;
 
@@ -16,6 +18,7 @@ import static org.mockito.Mockito.mock;
  * @author Scott Fines
  * Date: 1/31/14
  */
+@Category(ArchitectureIndependent.class)
 public class BulkWriteActionTest {
 	public static final String FOO_SERVERNAME="example.org,1234,1212121212";
 

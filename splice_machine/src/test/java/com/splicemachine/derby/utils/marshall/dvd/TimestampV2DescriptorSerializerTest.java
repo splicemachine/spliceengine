@@ -3,8 +3,10 @@ package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Timestamp;
 import java.util.GregorianCalendar;
@@ -16,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by dmustafin on 5/13/15.
  */
+@Category(ArchitectureIndependent.class)
 public class TimestampV2DescriptorSerializerTest {
 
     private static final long NANOS_IN_HOUR = 1000 * 1000 * 1000 * 60 * 60;

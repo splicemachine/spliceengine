@@ -3,8 +3,10 @@ package com.splicemachine.si.impl.store;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.impl.txn.WritableTxn;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  *         Date: 7/2/14
  */
+@Category(ArchitectureIndependent.class)
 public class ActiveTxnCacheTest{
     @Test
     public void testCachingWorks() throws Exception{

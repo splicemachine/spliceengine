@@ -6,11 +6,13 @@ import com.splicemachine.db.iapi.types.SQLDouble;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyDouble;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyTimestamp;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyNumberDataValueDescriptor;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Timestamp;
 
@@ -20,6 +22,7 @@ import java.sql.Timestamp;
  * @author Jeff Cunningham
  *         Date: 2/13/15
  */
+@Category(ArchitectureIndependent.class)
 public class LazyTimestampTest{
 
     @Test

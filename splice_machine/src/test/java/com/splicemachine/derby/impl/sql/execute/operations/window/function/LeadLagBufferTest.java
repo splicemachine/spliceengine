@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +15,7 @@ import static org.junit.Assert.assertNotNull;
 /**
  * Test for {@link com.splicemachine.derby.impl.sql.execute.operations.window.function.LeadLagFunction.LeadLagBuffer}
  */
+@Category(ArchitectureIndependent.class)
 public class LeadLagBufferTest {
 
     @SuppressWarnings("FieldCanBeLocal")

@@ -3,9 +3,12 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.dvd.LazyStringDataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category(ArchitectureIndependent.class)
 public class LazyDataValueFactoryTest {
 
     private final DataValueFactory lfac = new LazyDataValueFactory();
