@@ -30,21 +30,9 @@ public class ImportTestUtils {
         }
     }
 
-    public static String printMsgSQLState(String testName, SQLException e) {
-        // useful for debugging import errors
-        StringBuilder buf =new StringBuilder(testName);
-        buf.append("\n");
-        int i =1;
-        SQLException child = e;
-        while (child != null) {
-            buf.append(i++).append(" ").append(child.getSQLState()).append(" ")
-               .append(child.getLocalizedMessage()).append("\n");
-            child = child.getNextException();
-        }
-        return buf.toString();
-    }
+    // Method printMsgSQLState moved to SpliceUnitTest in engine_it module for proper dependency
 
-    // Method createBadLogDirectory moved to engine_it module for proper dependency
+    // Method createBadLogDirectory moved to pliceUnitTest engine_it module for proper dependency
 
     private static class ExecRowComparator implements Comparator<ExecRow> {
         private final int colNumber;

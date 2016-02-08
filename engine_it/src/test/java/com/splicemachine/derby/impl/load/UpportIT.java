@@ -7,7 +7,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.pipeline.exception.ErrorState;
 
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -89,7 +88,7 @@ public class UpportIT extends SpliceUnitTest {
             statement.execute();
             Assert.fail("Did not thow exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", ErrorState.LANG_NULL_INTO_NON_NULL.getSqlState(),se.getSQLState());
+            Assert.assertEquals("Incorrect SQL State!", "23502", se.getSQLState());
         }
     }
 
@@ -107,7 +106,7 @@ public class UpportIT extends SpliceUnitTest {
             statement.execute();
             Assert.fail("Did not thow exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", ErrorState.LANG_NULL_INTO_NON_NULL.getSqlState(),se.getSQLState());
+            Assert.assertEquals("Incorrect SQL State!", "23502", se.getSQLState());
         }
     }
 
@@ -124,7 +123,7 @@ public class UpportIT extends SpliceUnitTest {
             statement.execute();
             Assert.fail("Did not thow exception");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect SQL State!", ErrorState.UPSERT_NO_PRIMARY_KEYS.getSqlState(),se.getSQLState());
+            Assert.assertEquals("Incorrect SQL State!", "SE018", se.getSQLState());
         }
     }
 

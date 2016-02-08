@@ -17,7 +17,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.pipeline.exception.ErrorState;
 
 /**
  * Tests for checking proper error conditions hold for Importing.
@@ -52,7 +51,7 @@ public class ImportErrorIT extends SpliceUnitTest {
      */
     private static final String TABLE = "errorTable";
 
-    private final String SE009 = ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.getSqlState();
+    private final String SE009 = "SE009"; // bad dependency: ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.getSqlState();
 
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date not null,g time not null, h timestamp not null)");
@@ -71,7 +70,7 @@ public class ImportErrorIT extends SpliceUnitTest {
     private static File BADDIR;
     @BeforeClass
     public static void beforeClass() throws Exception {
-        BADDIR = ImportTestUtils.createBadLogDirectory(schema.schemaName);
+        BADDIR = SpliceUnitTest.createBadLogDirectory(schema.schemaName);
     }
 
     @Test
@@ -144,7 +143,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("long_int.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertALongIntoAnIntegerField",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertALongIntoAnIntegerField",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
@@ -160,7 +159,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("float_int.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertAFloatIntoAnIntegerField",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAFloatIntoAnIntegerField",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
@@ -176,7 +175,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("double_long.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertADoubleIntoALongField",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertADoubleIntoALongField",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
@@ -192,7 +191,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("double_float.csv", new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertADoubleIntoAFloatField",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertADoubleIntoAFloatField",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "22003", se.getSQLState());
 
@@ -208,7 +207,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("bad_date.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertAPoorlyFormattedDate",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAPoorlyFormattedDate",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
@@ -224,7 +223,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("bad_time.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertAPoorlyFormattedTime",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAPoorlyFormattedTime",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
@@ -240,7 +239,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("null_date.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertNullDateIntoDateField",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertNullDateIntoDateField",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
@@ -284,7 +283,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         runImportTest("bad_timestamp.csv",new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
-                System.err.println(ImportTestUtils.printMsgSQLState("testCannotInsertAPoorlyFormatedTimestamp",se));
+                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertAPoorlyFormatedTimestamp",se));
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 

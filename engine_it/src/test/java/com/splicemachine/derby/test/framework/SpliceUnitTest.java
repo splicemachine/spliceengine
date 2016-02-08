@@ -207,6 +207,20 @@ public class SpliceUnitTest {
         Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(2));
     }
 
+    public static String printMsgSQLState(String testName, SQLException e) {
+        // useful for debugging import errors
+        StringBuilder buf =new StringBuilder(testName);
+        buf.append("\n");
+        int i =1;
+        SQLException child = e;
+        while (child != null) {
+            buf.append(i++).append(" ").append(child.getSQLState()).append(" ")
+                    .append(child.getLocalizedMessage()).append("\n");
+            child = child.getNextException();
+        }
+        return buf.toString();
+    }
+
     public static File createBadLogDirectory(String schemaName) {
         File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
         if (badImportLogDirectory.exists()) {
