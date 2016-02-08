@@ -26,12 +26,6 @@ import java.util.*;
  *         Date: 12/28/15
  */
 public class BackupObserver implements CompactionObserver,SplitObserver{
-    /**
-     * Log component specific to compaction related code, so that this functionality
-     * can be logged in isolation without having to also see the rest of the logging
-     * from this class. To see additional temp table compaction logging,
-     * also use log component: com.splicemachine.derby.client.temp.TempTable.
-     */
     private static final Logger LOG_COMPACT = Logger.getLogger(SpliceIndexObserver.class.getName() + ".Compaction");
     private static final Logger LOG_SPLIT = Logger.getLogger(SpliceIndexObserver.class.getName() + ".Split");
     @Override
