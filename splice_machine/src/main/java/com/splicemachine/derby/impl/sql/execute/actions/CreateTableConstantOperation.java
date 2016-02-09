@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -220,6 +220,12 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
             td.setUUID(dd.getUUIDFactory().createUUID());
         }
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
 
         // Save the TableDescriptor off in the Activation

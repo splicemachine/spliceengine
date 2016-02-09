@@ -51,6 +51,7 @@ public class ProtoUtil {
                 .build();
     }
 
+
     public static DDLChange createTrigger(long txnId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setCreateTrigger(CreateTrigger.newBuilder()
                 .setTableId(transferDerbyUUID(basicUUID)))
