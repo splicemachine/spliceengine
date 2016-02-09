@@ -47,7 +47,7 @@
         <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
-            <scope>test</scope>
+            <!--<scope>test</scope>-->
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -76,7 +76,149 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+                    <execution>
+                        <id>integration-tests-serial</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <!--<groups>com.splicemachine.test.SerialTest</groups>-->
+                            <excludedGroups>${excluded.categories}</excludedGroups>
+                            <argLine>-Xmx3g</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
+                                </exclude>
+                            </excludes>
+                            <runOrder>alphabetical</runOrder>
+                        </configuration>
+                    </execution>
+
+                    <!--<execution>-->
+                    <!--<id>integration-tests-parallel</id>-->
+                    <!--<goals>-->
+                    <!--<goal>integration-test</goal>-->
+                    <!--<goal>verify</goal>-->
+                    <!--</goals>-->
+                    <!--<configuration>-->
+                    <!--<excludedGroups>com.splicemachine.test.SerialTest, ${excluded.categories}</excludedGroups>-->
+                    <!--<skipTests>${skip.integration.tests}</skipTests>-->
+                    <!--<parallel>classes</parallel>-->
+                    <!--<threadCount>1</threadCount>-->
+                    <!--<perCoreThreadCount>false</perCoreThreadCount>-->
+                    <!--<argLine>-Xmx3g</argLine>-->
+                    <!--<redirectTestOutputToFile>true</redirectTestOutputToFile>-->
+                    <!--<includes>-->
+                    <!--<include>**/*IT.java</include>-->
+                    <!--</includes>-->
+                    <!--<excludes>-->
+                    <!--&lt;!&ndash; Skip all unit tests &ndash;&gt;-->
+                    <!--<exclude>**/*Test.java</exclude>-->
+                    <!--</excludes>-->
+                    <!--<runOrder>alphabetical</runOrder>-->
+                    <!--</configuration>-->
+                    <!--</execution>-->
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>mem</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>env</name>
+                    <value>mem</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mem</envClassifier>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>mem_engine</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>splice_machine</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>############# Start MemDatabase #############</id>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <target name="StartMemDatabase">
+                                        <property name="classpath" refid="maven.compile.classpath"/>
+                                        <property name="classpath.test" refid="maven.test.classpath"/>
+
+                                        <java classname="com.splicemachine.derby.lifecycle.MemDatabase"
+                                              classpath="${classpath}"
+                                              dir="${basedir}/target"
+                                              fork="true"
+                                              spawn="true">
+                                            <sysproperty key="log4j.configuration"
+                                                         value="file://${basedir}/src/test/resources/log4j-file.properties"/>
+                                        </java>
+
+                                        <java classname="com.splicemachine.test.SpliceTestPlatformWait"
+                                              classpath="${classpath.test}"
+                                              spawn="false">
+                                            <arg value="localhost"/>
+                                            <arg value="1527"/>
+                                        </java>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <id>############# Stop MemDatabase #############</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>jps | grep MemDatabase | tee /dev/tty | cut -d ' ' -f 1 | xargs kill
+                                        </argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

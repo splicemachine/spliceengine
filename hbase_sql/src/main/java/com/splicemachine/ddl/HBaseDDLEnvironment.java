@@ -47,12 +47,14 @@ public class HBaseDDLEnvironment implements DDLEnvironment{
         LockFactory lf = new ReentrantLockFactory(false);
         Clock clock= SIDriver.driver().getClock();
         this.ddlController = new AsynchronousDDLController(communicator,lf,clock,config);
-        TransactionReadController txnController=SIDriver.driver().readController();
+        SIDriver driver=SIDriver.driver();
+        TransactionReadController txnController=driver.readController();
         this.watcher = new AsynchronousDDLWatcher(txnController,
                 clock,
                 config,
                 new ZooKeeperDDLWatchChecker(zkClient),
-                exceptionFactory );
+                exceptionFactory,
+                driver.getTxnSupplier());
         this.watcher.start();
         this.config = config;
 

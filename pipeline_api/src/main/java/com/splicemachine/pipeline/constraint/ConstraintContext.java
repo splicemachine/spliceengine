@@ -2,7 +2,8 @@ package com.splicemachine.pipeline.constraint;
 
 import com.splicemachine.ddl.DDLMessage.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -55,12 +56,12 @@ public class ConstraintContext implements Externalizable {
 
     /* Copy but with specified argument inserted at specified index */
     public ConstraintContext withInsertedMessage(int index, String newMessage) {
-        return new ConstraintContext((String[]) ArrayUtils.add(messageArgs, index, newMessage));
+        return new ConstraintContext((String[]) ArrayUtils.add(messageArgs,index,newMessage));
     }
 
     /* Copy but with specified argument removed */
     public ConstraintContext withoutMessage(int index) {
-        return new ConstraintContext((String[]) ArrayUtils.remove(messageArgs, index));
+        return new ConstraintContext((String[]) ArrayUtils.remove(messageArgs,index));
     }
 
     /* Copy but with specified argument set at specified index */

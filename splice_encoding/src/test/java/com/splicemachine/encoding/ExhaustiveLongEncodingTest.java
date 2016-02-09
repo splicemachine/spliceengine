@@ -46,35 +46,35 @@ public class ExhaustiveLongEncodingTest{
         return dataPoints.toArray();
     }
 
-    @DataPoints public static long[] powersOf3(){
-        LongArrayList dataPoints = new LongArrayList(100);
-        long l = 1l;
-        while(l>0){
-            dataPoints.add(l);
-            dataPoints.add(-l);
-            dataPoints.add(5*l);
-            dataPoints.add(-5*l);
-            dataPoints.add(7*l);
-            dataPoints.add(-7*l);
-            l*=3;
-        }
+//    @DataPoints public static long[] powersOf3(){
+//        LongArrayList dataPoints = new LongArrayList(100);
+//        long l = 1l;
+//        while(l>0){
+//            dataPoints.add(l);
+//            dataPoints.add(-l);
+//            dataPoints.add(5*l);
+//            dataPoints.add(-5*l);
+//            dataPoints.add(7*l);
+//            dataPoints.add(-7*l);
+//            l*=3;
+//        }
+//
+//        return dataPoints.toArray();
+//    }
 
-        return dataPoints.toArray();
-    }
-
-    @DataPoints public static long[] powersOf5(){
-        LongArrayList dataPoints = new LongArrayList(100);
-        long l = 1l;
-        while(l>0){
-            dataPoints.add(l);
-            dataPoints.add(-l);
-            dataPoints.add(7*l);
-            dataPoints.add(-7*l);
-            l*=5;
-        }
-
-        return dataPoints.toArray();
-    }
+//    @DataPoints public static long[] powersOf5(){
+//        LongArrayList dataPoints = new LongArrayList(100);
+//        long l = 1l;
+//        while(l>0){
+//            dataPoints.add(l);
+//            dataPoints.add(-l);
+//            dataPoints.add(7*l);
+//            dataPoints.add(-7*l);
+//            l*=5;
+//        }
+//
+//        return dataPoints.toArray();
+//    }
 
     @DataPoints public static long[] powersOf7(){
         LongArrayList dataPoints = new LongArrayList(100);

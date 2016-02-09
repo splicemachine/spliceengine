@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <artifactId>assembly</artifactId>
+    <name>${project.artifactId}</name>
+    <description>Assembly module for SpliceMachine</description>
+    <scm>
+        <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
+        <developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
+        <url>https://github.com/splicemachine/spliceengine</url>
+    </scm>
+    <parent>
+        <groupId>com.splicemachine</groupId>
+        <artifactId>splice-maven-parent</artifactId>
+        <version>1.1.1</version>
+    </parent>
+    <repositories>
+        <repository>
+            <id>splicemachine</id>
+            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
+        </repository>
+    </repositories>
+
+    <!--
+    The Shade plugin creates an uber-jar based on the profile which is set. Each profile
+    determines a different dependency chain, which is uber-included.
+
+    TODO -sf- can we change how we shade based on different profiles? Do we need to?
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!--<version>2.4.3</version>-->
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>**</include>
+                                </includes>
+                            </artifactSet>
+                            <finalName>spliceengine-${envClassifier}-complete-${project.version}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>mem</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>env</name>
+                    <value>mem</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mem</envClassifier>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>mem_engine</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>cdh5.4.8</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.4.8</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>cdh5.4.8</envClassifier>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>hbase_engine-${envClassifier}</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+</project>

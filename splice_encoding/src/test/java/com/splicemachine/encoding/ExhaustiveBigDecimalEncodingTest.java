@@ -46,7 +46,7 @@ public class ExhaustiveBigDecimalEncodingTest{
         List<BigDecimal> dataPoints = new ArrayList<>(100);
         BigDecimal l = BigDecimal.ONE;
         BigDecimal d = BigDecimal.ONE;
-        for(int i=0;i<50;i++){ //the first 100 powers of 2
+        for(int i=0;i<20;i++){ //the first 100 powers of 2
             BigDecimal n = l;
             dataPoints.add(n);
             n = n.negate();

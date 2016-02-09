@@ -5,7 +5,7 @@ import com.splicemachine.si.impl.TestingFileSystem;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;

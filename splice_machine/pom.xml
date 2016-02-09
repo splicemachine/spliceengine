@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
     <artifactId>splice_machine</artifactId>
@@ -45,6 +46,12 @@
         <dependency>
             <groupId>com.splicemachine.db-project</groupId>
             <artifactId>db-client</artifactId>
+        </dependency>
+
+        <!-- for Ij access-->
+        <dependency>
+            <groupId>com.splicemachine.db-project</groupId>
+            <artifactId>db-tools-ij</artifactId>
         </dependency>
 
         <dependency>
@@ -109,35 +116,59 @@
                     </execution>
                 </executions>
             </plugin>
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-surefire-plugin</artifactId>
-							<version>2.19.1</version>
-                            <!--
-								-sf- We skip the tests in this module because all of our tests require an architecture
-								to run, and those architectures are contained further down the line. The poms for
-								those architectures should include a mechanism for running these tests there (using the
-								dependenciesToScan feature of the surefire plugin), rather than expecting tests
-								to run here.
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>ij</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>ij.connection.splice</key>
+                            <value>jdbc:splice://localhost:${ij.connection.port}/splicedb;user=splice;password=admin
+                            </value>
+                        </systemProperty>
+                    </systemProperties>
+                    <mainClass>com.splicemachine.db.tools.ij</mainClass>
+                    <includeProjectDependencies>true</includeProjectDependencies>
+                    <executable>maven</executable>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <!--
+                    -sf- We skip the tests in this module because all of our tests require an architecture
+                    to run, and those architectures are contained further down the line. The poms for
+                    those architectures should include a mechanism for running these tests there (using the
+                    dependenciesToScan feature of the surefire plugin), rather than expecting tests
+                    to run here.
 
-								To add these tests to your architecture, add the following to the pom for your storage module:
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>${Your Surefire Version}</version>
-						<configuration>
-							<dependenciesToScan>
-								<dependency>com.splicemachine:splice_si_api</dependency>
-							</dependenciesToScan>
-							<excludesGroup>com.splicemachine.si.testenv.ArchitectureIndependent</excludesGroup>
-						</configuration>
-					</plugin>
+                    To add these tests to your architecture, add the following to the pom for your storage module:
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>${Your Surefire Version}</version>
+            <configuration>
+                <dependenciesToScan>
+                    <dependency>com.splicemachine:splice_si_api</dependency>
+                </dependenciesToScan>
+                <excludesGroup>com.splicemachine.si.testenv.ArchitectureIndependent</excludesGroup>
+            </configuration>
+        </plugin>
 
-							-->
-							<configuration>
-                                <excludedGroups>com.splicemachine.si.testenv.ArchitectureSpecific</excludedGroups>
-							</configuration>
-						</plugin>
+                -->
+                <configuration>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureSpecific</excludedGroups>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -21,7 +21,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.Externalizable;
 import java.io.IOException;

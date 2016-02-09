@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.WordUtils;
+import org.apache.commons.lang3.text.WordUtils;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;

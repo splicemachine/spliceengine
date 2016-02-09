@@ -36,7 +36,7 @@
         <dependency> <groupId>com.lmax</groupId> <artifactId>disruptor</artifactId> </dependency>
         <dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
         <dependency> <groupId>com.splicemachine</groupId> <artifactId>stats</artifactId> </dependency>
-        <dependency> <groupId>com.google.code.findbugs</groupId> <artifactId>jsr305</artifactId> </dependency>
+				<!--        <dependency> <groupId>com.google.code.findbugs</groupId> <artifactId>jsr305</artifactId> </dependency> -->
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
             <artifactId>concurrentlinkedhashmap-lru</artifactId>
@@ -45,6 +45,9 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>annotations</artifactId>
             <version>3.0.1</version>
+						<exclusions>
+										<exclusion> <groupId>net.jcip</groupId> <artifactId>jcip-annotations</artifactId></exclusion>
+						</exclusions>
         </dependency>
     </dependencies>
 

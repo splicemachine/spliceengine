@@ -23,30 +23,7 @@
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
     </repositories>
-    <modules>
-        <!-- core modules-->
-        <module>splice_encoding</module>
-        <module>splice_protocol</module>
-        <module>splice_timestamp_api</module>
-        <module>splice_si_api</module>
-        <module>pipeline_api</module>
-        <module>splice_access_api</module>
-        <module>splice_machine</module>
-        <module>engine_it</module>
 
-        <!-- memory architecture-->
-        <module>mem_engine</module>
-        <module>mem_storage</module>
-        <module>mem_pipeline</module>
-
-        <!-- hbase arch-->
-        <module>hbase_storage</module>
-        <module>hbase_pipeline</module>
-        <module>hbase_ddl</module>
-        <module>hbase_sql</module>
-        <module>hbase_it</module>
-
-    </modules>
     <properties>
         <derby.version>2.0.0.k2_refactor-SNAPSHOT</derby.version>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest,
@@ -58,7 +35,15 @@
         <skip.integration.tests>true</skip.integration.tests>
         <obfuscate.si/>
         <obfuscate.si.tag/>
+        <ij.connection.port>1527</ij.connection.port>
     </properties>
+
+		<distributionManagement>
+			<site>
+				<id>SpliceMachine</id>
+				<url>file://${basedir}/target/site</url>
+			</site>
+		</distributionManagement>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -336,6 +321,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -393,10 +379,12 @@
                         <showDeprecation>true</showDeprecation>
                     </configuration>
                 </plugin>
+
+
             </plugins>
         </pluginManagement>
-        <plugins>
 
+        <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
@@ -414,6 +402,91 @@
                     <doUpdate>false</doUpdate>
                 </configuration>
             </plugin>
+        </plugins>
+
+    </build>
+    <profiles>
+        <profile>
+            <id>core</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>env</name>
+                    <value>mem</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mem</envClassifier>
+            </properties>
+            <modules>
+                <module>splice_encoding</module>
+                <module>splice_protocol</module>
+                <module>splice_timestamp_api</module>
+                <module>splice_si_api</module>
+                <module>pipeline_api</module>
+                <module>splice_access_api</module>
+                <module>splice_machine</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>mem</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>env</name>
+                    <value>mem</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mem</envClassifier>
+            </properties>
+            <modules>
+                <module>mem_storage</module>
+                <module>mem_pipeline</module>
+                <module>mem_engine</module>
+                <module>engine_it</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.4.8</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.4.8</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>cdh5.4.8</envClassifier>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>engine_it</module>
+            </modules>
+        </profile>
+    </profiles>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>checkstyle</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
+<!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -424,9 +497,13 @@
                         <include>**/*Test.java</include>
                     </includes>
                     <excludes>
+-->
                         <!-- Skip ITs -->
+<!--
                         <exclude>**/*IT.java</exclude>
+-->
                         <!-- Skip Window function UIs temporarily - DB-1765 -->
+<!--
                         <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
                     </excludes>
                     <runOrder>alphabetical</runOrder>
@@ -436,7 +513,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
+-->
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+<!--
                     <execution>
                         <id>integration-tests-serial</id>
                         <goals>
@@ -453,13 +532,17 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
+-->
                                 <!-- Skip all unit tests -->
+<!--
                                 <exclude>**/*Test.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
+-->
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
+<!--
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -480,13 +563,17 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <excludes>
+-->
                                 <!-- Skip all unit tests -->
+<!--
                                 <exclude>**/*Test.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
+-->
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: FINAL -->
+<!--
                     <execution>
                         <id>integration-tests-final</id>
                         <goals>
@@ -503,13 +590,17 @@
                                 <include>**/*FINALIT.java</include>
                             </includes>
                             <excludes>
+-->
                                 <!-- Skip all unit tests -->
+<!--
                                 <exclude>**/*Test.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
+-->
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
+<!--
                     <execution>
                         <id>integration-tests-backup</id>
                         <goals>
@@ -526,7 +617,9 @@
                                 <include>**/*RestoreIT.java</include>
                             </includes>
                             <excludes>
+-->
                                 <!-- Skip all unit tests -->
+<!--
                                 <exclude>**/*Test.java</exclude>
                             </excludes>
                         </configuration>
@@ -534,7 +627,6 @@
                 </executions>
             </plugin>
         </plugins>
-    </build>
     <profiles>
         <profile>
             <id>staticanalysis</id>
@@ -544,6 +636,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-checkstyle-plugin</artifactId>
                         <configuration>
+-->
                             <!-- defaults for checkstyle:checkstyle
                             <includeResources>true</includeResources>
                             <includeTestResources>true</includeTestResources>
@@ -578,6 +671,7 @@
                             <useFile></useFile>
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             -->
+<!--
                             <linkXRef>false</linkXRef>
                         </configuration>
                         <executions>
@@ -594,6 +688,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-pmd-plugin</artifactId>
                         <configuration>
+-->
                             <!-- defaults for pmd:pmd
                             <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
                             <targetDirectory>${project.build.directory}</targetDirectory>
@@ -643,7 +738,7 @@
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
                             -->
-
+<!--
                             <includeTests>true</includeTests>
                             <linkXRef>false</linkXRef>
                             <excludeRoots>
@@ -666,6 +761,7 @@
                         <artifactId>findbugs-maven-plugin</artifactId>
                         <configuration>
                             <excludeFilterFile>${basedir}/../../findbugs-exclude.xml</excludeFilterFile>
+-->
                             <!-- defaults for findbugs:findbugs
                             <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
                             <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
@@ -701,6 +797,7 @@
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
                             -->
+<!--
                         </configuration>
                         <executions>
                             <execution>
@@ -723,7 +820,7 @@
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>cobertura-maven-plugin</artifactId>
                         <configuration>
-
+-->
                             <!-- defaults for cobertura:check
                             <check>
                                 <branchRate>85</branchRate>
@@ -780,7 +877,7 @@
                             <quiet>false</quiet>
                             <skip>false</skip>
                             -->
-
+<!--
                             <check>
                                 <haltOnFailure>false</haltOnFailure>
                             </check>
@@ -838,4 +935,5 @@
             </properties>
         </profile>
     </profiles>
+		-->
 </project>
