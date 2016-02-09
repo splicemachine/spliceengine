@@ -53,11 +53,14 @@ message DropSchema {
         required string schemaName = 3;
 }
 
-
 message DropTable {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
         optional UUID tableId = 3;
+}
+
+message DropRole {
+        optional string roleName = 1;
 }
 
 message TentativeFK {
@@ -183,6 +186,7 @@ enum DDLChangeType {
     ALTER_TABLE = 24;
     CREATE_TRIGGER = 25;
     DROP_TRIGGER = 26;
+    DROP_ROLE = 27;
 }
 
 message DDLChange {
@@ -207,4 +211,5 @@ message DDLChange {
     optional RenameIndex renameIndex = 19;
     optional CreateTrigger createTrigger = 20;
     optional DropTrigger dropTrigger = 21;
+    optional DropRole dropRole = 22;
 }

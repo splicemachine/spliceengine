@@ -592,7 +592,7 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preAlterTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            // ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             // transactionResource.prepareContextManager();
             transactionResource.marshallTransaction(txn);
@@ -608,4 +608,9 @@ public class DDLUtils {
         }
     }
 
+    public static void preDropRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropRole with change=%s",change);
+        dd.getDataDictionaryCache().roleCacheRemove(change.getDropRole().getRoleName());
+    }
 }

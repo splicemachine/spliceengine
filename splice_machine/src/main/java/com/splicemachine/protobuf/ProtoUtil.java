@@ -304,7 +304,12 @@ public class ProtoUtil {
                 .build();
     }
 
-
+    public static DDLChange createDropRole(long txnId, String roleName) {
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.DROP_ROLE)
+                .setTxnId(txnId)
+                .setDropRole(DropRole.newBuilder().setRoleName(roleName).build())
+                .build();
+        }
 
 }
 

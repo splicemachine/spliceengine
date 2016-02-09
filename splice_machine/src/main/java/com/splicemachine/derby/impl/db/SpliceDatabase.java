@@ -322,6 +322,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_SCHEMA:
                         DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
                         break;
+                    case DROP_ROLE:
+                        DDLUtils.preDropRole(change,dataDictionary,dependencyManager);
+                        break;
                     case ALTER_STATS:
                         DDLUtils.preAlterStats(change,dataDictionary,dependencyManager);
                         break;
