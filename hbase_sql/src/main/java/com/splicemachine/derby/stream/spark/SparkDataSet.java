@@ -113,7 +113,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public Iterator<V> toLocalIterator() {
-        return rdd.toLocaliterator();
+        return rdd.toLocalIterator();
     }
 
     @SuppressWarnings("rawtypes")
