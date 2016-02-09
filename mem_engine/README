@@ -1,0 +1,17 @@
+Booting the Server
+===
+
+to boot a MemDatabase instance (i.e. for rapid testing), issue the command:
+
+mvn exec:java
+
+
+Running the ITs against the In-memory architecture
+===
+The configuration for running the MemDatabase in the context of running ITs
+resides in engine_it. Essentially, from the top level(one directory up from this)
+issue the command
+
+mvn install -Pmem
+
+to build,test, and install the in-memory architecture in a single fell swoop

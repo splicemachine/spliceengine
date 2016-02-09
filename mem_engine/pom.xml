@@ -124,11 +124,11 @@
                         <goals>
                             <goal>java</goal>
                         </goals>
-                        <configuration>
-                            <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
