@@ -244,80 +244,12 @@ public class SpliceAdminIT {
     }
 
     @Test
-    public void testGetRegionServerTaskInfo() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()", rs);
-        System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
     public void testGetRegionServerStatsInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()");
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
         System.out.println(fr.toString());
         Assert.assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
-    public void testGetWorkerTierMaxTasks() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
-        cs.setInt(1,25);
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(25)", rs);
-        System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
-    public void testGlobalGetMaxTasks() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()");
-        ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()", rs);
-        System.out.println(fr.toString());
-        Assert.assertTrue(fr.size()>=1);
-        DbUtils.closeQuietly(rs);
-    }
-
-    @Test
-    public void testSetMaxTasks() throws Exception {
-        int origMax = -1;
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
-        cs.setInt(1,25);
-        ResultSet rs = cs.executeQuery();
-        while (rs.next()) {
-            origMax = rs.getInt(2);
-        }
-        Assert.assertNotEquals(-1,origMax);
-
-        try {
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?,?)");
-            cs.setInt(1,25);
-            cs.setInt(2, origMax+1);
-            cs.execute();
-
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
-            cs.setInt(1,25);
-            rs = cs.executeQuery();
-            int currentMax = -1;
-            while (rs.next()) {
-                currentMax = rs.getInt(2);
-            }
-            Assert.assertNotEquals(-1,currentMax);
-            Assert.assertEquals(origMax+1,currentMax);
-        } finally {
-            // reset to orig value
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?,?)");
-            cs.setInt(1,25);
-            cs.setInt(2, origMax);
-            cs.execute();
-        }
-
         DbUtils.closeQuietly(rs);
     }
 
