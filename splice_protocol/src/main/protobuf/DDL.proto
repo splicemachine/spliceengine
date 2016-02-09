@@ -26,6 +26,21 @@ message CreateTrigger {
         required UUID tableId = 1;
 }
 
+message CreateTable {
+}
+
+message CreateSchema {
+}
+
+message CreateAlias {
+}
+
+message DropAlias {
+    required string schemaName = 1;
+    required string aliasName = 2;
+    required string namespace = 3;
+}
+
 message DropTrigger {
         required UUID tableId = 1;
         required UUID triggerId = 2;
@@ -247,6 +262,8 @@ enum DDLChangeType {
     DROP_ROLE = 27;
     TRUNCATE_TABLE = 28;
     REVOKE_PRIVILEGE = 29;
+    CREATE_ALIAS = 30;
+    DROP_ALIAS = 31;
 }
 
 message DDLChange {
@@ -274,4 +291,8 @@ message DDLChange {
     optional DropRole dropRole = 22;
     optional TruncateTable truncateTable = 23;
     optional RevokePrivilege revokePrivilege = 24;
+    optional CreateTable createTable = 25;
+    optional CreateSchema createSchema = 26;
+    optional CreateAlias createAlias = 27;
+    optional DropAlias dropAlias = 28;
 }

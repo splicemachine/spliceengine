@@ -24,6 +24,7 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
+import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.ErrorState;
@@ -529,6 +530,26 @@ public class DDLUtils {
             throw StandardException.plainWrapException(e);
         }
     }
+
+    public static void preDropAlias(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropAlias with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DDLMessage.DropAlias dropAlias = change.getDropAlias();
+            AliasDescriptor ad = dd.getAliasDescriptor(dropAlias.getSchemaName(), dropAlias.getAliasName(), dropAlias.getNamespace().charAt(0));
+            if (ad==null) // Table Descriptor transaction never committed
+                return;
+            DropAliasConstantOperation.invalidate(ad,dm,transactionResource.getLcc());
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
 
     public static void preCreateTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())

@@ -15,6 +15,7 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -81,6 +82,33 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setTxnId(txnId).setDropTable(DropTable.newBuilder()
                 .setTableId(transferDerbyUUID(basicUUID)))
                 .setDdlChangeType(DDLChangeType.DROP_TABLE)
+                .build();
+    }
+
+    public static DDLChange createTable(long txnId) {
+        return DDLChange.newBuilder().setTxnId(txnId)
+                .setDdlChangeType(DDLChangeType.CREATE_TABLE)
+                .build();
+    }
+
+    public static DDLChange createSchema(long txnId) {
+        return DDLChange.newBuilder().setTxnId(txnId)
+                .setDdlChangeType(DDLChangeType.CREATE_SCHEMA)
+                .build();
+    }
+
+    public static DDLChange createAlias(long txnId) {
+        return DDLChange.newBuilder().setTxnId(txnId)
+                .setDdlChangeType(DDLChangeType.CREATE_ALIAS)
+                .build();
+    }
+
+    public static DDLChange dropAlias(long txnId, String schemaName, String aliasName, String namespace) {
+        return DDLChange.newBuilder().setTxnId(txnId).setDropAlias((DropAlias.newBuilder()
+                .setSchemaName(schemaName)
+                .setAliasName(aliasName)
+                .setNamespace(namespace)))
+                .setDdlChangeType(DDLChangeType.DROP_ALIAS)
                 .build();
     }
 

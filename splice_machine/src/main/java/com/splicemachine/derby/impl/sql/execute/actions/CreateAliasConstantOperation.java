@@ -15,6 +15,10 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -159,7 +163,12 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 		
 		SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
-		//
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlias(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+
+        //
 		// Create a new alias descriptor with aliasID filled in.
 		// 
 		UUID aliasID = dd.getUUIDFactory().createUUID();
