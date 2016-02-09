@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.db.catalog.UUID;
@@ -16,6 +19,8 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.protobuf.ProtoUtil;
+
 import java.util.Properties;
 
 /**
@@ -168,6 +173,10 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
+        // Invalidate cache
+        DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+
         // Update the DataDictionary
         // Get the ConglomerateDescriptor for the heap
         long oldHeapConglom = td.getHeapConglomerateId();
@@ -180,8 +189,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE, lcc);
 
-        // Drop the old conglomerate
-//        cleanUp(); TODO JL FIX
     }
 
     @Override

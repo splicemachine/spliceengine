@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
@@ -448,7 +449,7 @@ public class DDLUtils {
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
             if (td==null) // Table Descriptor transaction never committed
                 return;
-            flushCachesBasedOnTableDescriptor(td,dd);
+            flushCachesBasedOnTableDescriptor(td, dd);
             dm.invalidateFor(td, DependencyManager.RENAME, transactionResource.getLcc());
     		/* look for foreign key dependency on the table. If found any,
 	    	use dependency manager to pass the rename action to the
@@ -521,7 +522,7 @@ public class DDLUtils {
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
             if (td==null) // Table Descriptor transaction never committed
                     return;
-            flushCachesBasedOnTableDescriptor(td,dd);
+            flushCachesBasedOnTableDescriptor(td, dd);
             dm.invalidateFor(td, DependencyManager.RENAME_INDEX, transactionResource.getLcc());
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -611,6 +612,46 @@ public class DDLUtils {
     public static void preDropRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropRole with change=%s",change);
-        dd.getDataDictionaryCache().roleCacheRemove(change.getDropRole().getRoleName());
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            String roleName = change.getDropRole().getRoleName();
+            RoleClosureIterator rci =
+                    dd.createRoleClosureIterator
+                            (transactionResource.getLcc().getTransactionCompile(),
+                                    roleName, false);
+
+            String role;
+            while ((role = rci.next()) != null) {
+                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role);
+                if (r!=null) {
+                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, transactionResource.getLcc());
+                }
+            }
+
+            dd.getDataDictionaryCache().roleCacheRemove(change.getDropRole().getRoleName());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preTruncateTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preTruncateTable with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            //transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            BasicUUID uuid = ProtoUtil.getDerbyUUID(change.getTruncateTable().getTableId());
+            TableDescriptor td = dd.getTableDescriptor(uuid);
+            flushCachesBasedOnTableDescriptor(td,dd);
+            dm.invalidateFor(td, DependencyManager.TRUNCATE_TABLE, transactionResource.getLcc());
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 }

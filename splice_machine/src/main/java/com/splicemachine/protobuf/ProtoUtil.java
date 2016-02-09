@@ -3,11 +3,9 @@ package com.splicemachine.protobuf;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Booleans;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -16,14 +14,12 @@ import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.primitives.BooleanArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
@@ -309,8 +305,14 @@ public class ProtoUtil {
                 .setTxnId(txnId)
                 .setDropRole(DropRole.newBuilder().setRoleName(roleName).build())
                 .build();
-        }
+    }
 
+    public static DDLChange createTruncateTable(long txnId, BasicUUID basicUUID) {
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.TRUNCATE_TABLE)
+                .setTxnId(txnId)
+                .setTruncateTable(TruncateTable.newBuilder().setTableId(transferDerbyUUID(basicUUID)).build())
+                .build();
+    }
 }
 
 
