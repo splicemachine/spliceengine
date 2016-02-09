@@ -176,8 +176,8 @@ public class StaticMethodCallNode extends MethodCallNode {
                                         SubqueryList subqueryList,
                                         List<AggregateNode> aggregateVector) throws StandardException {
 		// for a function we can get called recursively
-		if (alreadyBound)
-			return this;
+		/*if (alreadyBound)
+			return this;*/
 
 
 		bindParameters(fromList, subqueryList, aggregateVector);
@@ -292,7 +292,6 @@ public class StaticMethodCallNode extends MethodCallNode {
 		resolveMethodCall(javaClassName, true);
 
 
-		alreadyBound = true;
 		if (isPrivilegeCollectionRequired())
 			getCompilerContext().addRequiredRoutinePriv(ad);
 
@@ -310,6 +309,8 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 			if ( returnType != null && !returnType.isRowMultiSet() && !returnType.isUserDefinedType() )
 			{
+				if (alreadyBound) return this;
+                alreadyBound = true;
 				TypeId returnTypeId = TypeId.getBuiltInTypeId(returnType.getJDBCTypeId());
 
 				if (returnTypeId.variableLength()) {
