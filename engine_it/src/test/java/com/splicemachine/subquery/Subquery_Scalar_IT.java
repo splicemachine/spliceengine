@@ -14,6 +14,7 @@ import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test scalar subqueries -- subqueries that return a single row and single column.  Can appear anywhere an
@@ -342,6 +343,29 @@ public class Subquery_Scalar_IT {
         assertFalse("Rows incorrectly returned!", rs.next());
     }
 
+
+    //DB-4398
+    @Test
+    public void testHashJoinWithNestedQuery() throws Exception {
+        String query = "explain \n" +
+                "SELECT COUNT(*) FROM t1 a1 \n" +
+                "WHERE EXISTS \n" +
+                "  (SELECT 1 FROM (SELECT a3.k FROM t1 a3 \n" +
+                "    LEFT JOIN (SELECT a4.k, MAX(a4.l) AS col FROM t2 a4 WHERE EXISTS \n" +
+                "      (SELECT 1 FROM t1 a5 WHERE a5.k = a4.k AND EXISTS \n" +
+                "         (SELECT 1 FROM (SELECT a7.k FROM t1 a7  UNION ALL \n" +
+                "            SELECT a8.k FROM t1 a8 ) AS a6 \n" +
+                "            WHERE a6.k = a5.k)) GROUP BY a4.k) \n" +
+                "      AS a9 ON a3.k=a9.k\n" +
+                "      ) AS a2 \n" +
+                "    WHERE a2.k = a1.k)";
+        ResultSet rs = methodWatcher.executeQuery(query);
+        int count = 0;
+        while(rs.next()) {
+            count++;
+        }
+        assertTrue("Rows incorrectly returned!", count > 0);
+    }
 
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
