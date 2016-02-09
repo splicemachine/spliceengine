@@ -27,13 +27,14 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.rdd.NewHadoopPartition;
-import org.apache.tools.ant.taskdefs.Exec;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -158,22 +159,33 @@ public class MergeJoinOperation extends JoinOperation {
     private ExecRow getStartKey(ExecRow firstLeft) throws StandardException {
         ExecRow firstHashValue = getKeyRow(firstLeft, leftHashKeys);
         ExecIndexRow startPosition = rightResultSet.getStartPosition();
-        int size = startPosition != null ? startPosition.nColumns():0;
-        int len = 1;
-        int col = rightHashKeys[0];
-        while(len <rightHashKeys.length && col+1 == rightHashKeys[len])
-            col = rightHashKeys[len++];
-        size += len;
+        int nCols = startPosition != null ? startPosition.nColumns():0;
 
-        ExecRow v = new ValueRow(size);
+        // Find valid hash column values to narrow down right scan. The valid hash columns must:
+        // 1) not be used as a start key for inner table scan
+        // 2) be consecutive
+        LinkedList<Pair<Integer, Integer>> hashColumnIndexList = new LinkedList<>();
+        for (int i = 0; i < rightHashKeys.length; ++i) {
+            if(rightHashKeys[i] > nCols-1) {
+                if (hashColumnIndexList.isEmpty() || hashColumnIndexList.getLast().getValue() == rightHashKeys[i]-1) {
+                    hashColumnIndexList.add(new ImmutablePair<Integer, Integer>(i, rightHashKeys[i]));
+                }
+                else {
+                    break;
+                }
+            }
+        }
+
+        ExecRow v = new ValueRow(nCols+hashColumnIndexList.size());
         if (startPosition != null) {
             for (int i = 1; i <= startPosition.nColumns(); ++i) {
                 v.setColumn(i, startPosition.getColumn(i));
             }
         }
-        int offset = startPosition!=null?startPosition.nColumns():0;
-        for (int i = 1; i <= len; ++i) {
-            v.setColumn(offset+i, firstHashValue.getColumn(i));
+        for (int i = 0; i < hashColumnIndexList.size(); ++i) {
+            Pair<Integer, Integer> hashColumnIndex = hashColumnIndexList.get(i);
+            int index = hashColumnIndex.getKey();
+            v.setColumn(nCols+i+1, firstHashValue.getColumn(index+1));
         }
         return v;
     }

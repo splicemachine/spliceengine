@@ -298,6 +298,13 @@ public class MergeJoinIT extends SpliceUnitTest {
                 .withRows(rows(
                         row(1, 0, 1, 200)))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table tab3 (a int, b varchar(10), c int, d int, primary key(a, b, c))")
+                .withInsert("insert into tab3 values(?,?,?,?)")
+                .withRows(rows(
+                        row(1, "1", 0, 200)))
+                .create();
     }
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
@@ -508,6 +515,21 @@ public class MergeJoinIT extends SpliceUnitTest {
                 "tab1 --splice-properties index=tabi\n" +
                 ", tab2 --splice-properties joinStrategy=MERGE\n" +
                 "where tab1.a=tab2.a and tab2.b=0 and tab1.b=tab2.c";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        int count = 0;
+        while (rs.next()) {
+            count++;
+        }
+        Assert.assertEquals(1, count);
+    }
+
+    @Test
+    public void testRightTableScanStartKey3() throws Exception {
+        String sql = "select *\n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "tab1 --splice-properties index=tabi\n" +
+                ", tab3 --splice-properties joinStrategy=MERGE\n" +
+                "where tab1.a=1 and tab3.a=1 and tab1.a=tab3.a";
         ResultSet rs = methodWatcher.executeQuery(sql);
         int count = 0;
         while (rs.next()) {
