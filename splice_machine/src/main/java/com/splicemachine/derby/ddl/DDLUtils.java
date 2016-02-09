@@ -615,7 +615,7 @@ public class DDLUtils {
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
+            //transactionResource.prepareContextManager();
             transactionResource.marshallTransaction(txn);
             String roleName = change.getDropRole().getRoleName();
             RoleClosureIterator rci =
