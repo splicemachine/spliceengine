@@ -67,6 +67,60 @@ message TruncateTable {
         optional UUID tableId = 1;
 }
 
+message RevokeTablePrivilege {
+        required UUID tableId = 1;
+        required string selectPerm = 2;
+        required string deletePerm = 3;
+        required string insertPerm = 4;
+        required string updatePerm = 5;
+        required string referencesPerm = 6;
+        required string triggerPerm = 7;
+        required string grantor = 8;
+        required string grantee = 9;
+        required UUID permObjectId = 10;
+}
+
+message RevokeColumnPrivilege {
+        required UUID tableId = 1;
+        required string type = 2;
+        required bytes columns = 3;
+        required string grantor = 4;
+        required string grantee = 5;
+        required UUID permObjectId = 6;
+}
+
+message RevokeRoutinePrivilege {
+        required UUID rountineId = 1;
+        required string grantor = 2;
+        required string grantee = 3;
+        required UUID permObjectId = 4;
+}
+
+message RevokeGenericPrivilege {
+        required UUID id = 1;
+        required string objectType = 2;
+        required UUID permObjectId = 3;
+        required string permission = 4;
+        required string grantor = 5;
+        required string grantee = 6;
+        required bool grantable = 7;
+        required bool restrict = 8;
+}
+
+message RevokePrivilege {
+        enum Type {
+            REVOKE_TABLE_PRIVILEGE = 0;
+            REVOKE_COLUMN_PRIVILEGE = 1;
+            REVOKE_ROUTINE_PRIVILEGE = 2;
+            REVOKE_GENERIC_PRIVILEGE = 3;
+        }
+        required Type type = 1;
+        optional RevokeTablePrivilege revokeTablePrivilege = 2;
+        optional RevokeColumnPrivilege revokeColumnPrivilege = 3;
+        optional RevokeRoutinePrivilege revokeRoutinePrivilege = 4;
+        optional RevokeGenericPrivilege revokeGenericPrivilege = 5;
+}
+
 message TentativeFK {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
@@ -192,6 +246,7 @@ enum DDLChangeType {
     DROP_TRIGGER = 26;
     DROP_ROLE = 27;
     TRUNCATE_TABLE = 28;
+    REVOKE_PRIVILEGE = 29;
 }
 
 message DDLChange {
@@ -218,4 +273,5 @@ message DDLChange {
     optional DropTrigger dropTrigger = 21;
     optional DropRole dropRole = 22;
     optional TruncateTable truncateTable = 23;
+    optional RevokePrivilege revokePrivilege = 24;
 }

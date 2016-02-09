@@ -4,14 +4,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage.*;
@@ -172,7 +170,7 @@ public class ProtoUtil {
                                                        TableDescriptor td, IndexDescriptor indexDescriptor) throws StandardException {
         SpliceLogUtils.trace(LOG, "create Tentative Index {baseConglomerate=%d, indexConglomerate=%d");
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
-                .setIndex(createIndex(indexConglomerate,indexDescriptor))
+                .setIndex(createIndex(indexConglomerate, indexDescriptor))
                 .setTable(createTable(baseConglomerate,td,lcc))
                 .build())
                 .setTxnId(txnId)
@@ -312,6 +310,85 @@ public class ProtoUtil {
                 .setTxnId(txnId)
                 .setTruncateTable(TruncateTable.newBuilder().setTableId(transferDerbyUUID(basicUUID)).build())
                 .build();
+    }
+
+    public static DDLChange createRevokeTablePrivilege(long txnId, TablePermsDescriptor permissionsDescriptor) {
+        RevokeTablePrivilege revokeTablePrivilege = RevokeTablePrivilege.newBuilder()
+                .setTableId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getTableUUID()))
+                .setSelectPerm(permissionsDescriptor.getSelectPriv())
+                .setDeletePerm(permissionsDescriptor.getDeletePriv())
+                .setInsertPerm(permissionsDescriptor.getInsertPriv())
+                .setUpdatePerm(permissionsDescriptor.getUpdatePriv())
+                .setReferencesPerm(permissionsDescriptor.getReferencesPriv())
+                .setTriggerPerm(permissionsDescriptor.getTriggerPriv())
+                .setGrantor(permissionsDescriptor.getGrantor())
+                .setGrantee(permissionsDescriptor.getGrantee())
+                .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()))
+                .build();
+        RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
+                .setType(RevokePrivilege.Type.REVOKE_TABLE_PRIVILEGE)
+                .setRevokeTablePrivilege(revokeTablePrivilege)
+                .build();
+
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
+                .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
+    }
+
+    public static DDLChange createRevokeColumnPrivilege(long txnId, ColPermsDescriptor permissionsDescriptor) {
+
+        RevokeColumnPrivilege revokeColumnPrivilege = RevokeColumnPrivilege.newBuilder()
+                .setTableId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getTableUUID()))
+                .setType(permissionsDescriptor.getType())
+                .setGrantee(permissionsDescriptor.getGrantee())
+                .setGrantor(permissionsDescriptor.getGrantor())
+                .setColumns(ByteString.copyFrom(permissionsDescriptor.getColumns().getByteArray()))
+                .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()))
+                .build();
+
+        RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
+                .setType(RevokePrivilege.Type.REVOKE_COLUMN_PRIVILEGE)
+                .setRevokeColumnPrivilege(revokeColumnPrivilege)
+                .build();
+
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
+                .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
+    }
+
+    public static DDLChange createRevokeRoutinePrivilege(long txnId, RoutinePermsDescriptor permissionsDescriptor) {
+
+        RevokeRoutinePrivilege revokeRoutinePrivilege = RevokeRoutinePrivilege.newBuilder()
+                .setRountineId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getRoutineUUID()))
+                .setGrantee(permissionsDescriptor.getGrantee())
+                .setGrantor(permissionsDescriptor.getGrantor())
+                .setPermObjectId(transferDerbyUUID((BasicUUID)permissionsDescriptor.getUUID()))
+                .build();
+
+        RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
+                .setType(RevokePrivilege.Type.REVOKE_ROUTINE_PRIVILEGE)
+                .setRevokeRoutinePrivilege(revokeRoutinePrivilege)
+                .build();
+
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
+                .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
+    }
+
+    public static DDLChange createRevokeGenericPrivilege(long txnId, PermDescriptor permissionsDescriptor, boolean restrict) {
+        RevokeGenericPrivilege revokeGenericPrivilege = RevokeGenericPrivilege.newBuilder()
+                .setId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getPermObjectId()))
+                .setObjectType(permissionsDescriptor.getObjectType())
+                .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getPermObjectId()))
+                .setGrantor(permissionsDescriptor.getGrantor())
+                .setGrantee(permissionsDescriptor.getGrantee())
+                .setGrantable(permissionsDescriptor.isGrantable())
+                .setRestrict(restrict)
+                .build();
+
+        RevokePrivilege revokePrivilege = RevokePrivilege.newBuilder()
+                .setType(RevokePrivilege.Type.REVOKE_GENERIC_PRIVILEGE)
+                .setRevokeGenericPrivilege(revokeGenericPrivilege)
+                .build();
+        return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
+                .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
     }
 }
 

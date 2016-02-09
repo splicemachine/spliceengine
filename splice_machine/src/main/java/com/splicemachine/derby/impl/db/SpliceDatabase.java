@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.db;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
@@ -22,20 +21,15 @@ import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.ddl.DDLMessage.DDLChangeType;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import javax.security.auth.login.Configuration;
@@ -76,7 +70,7 @@ public class SpliceDatabase extends BasicDatabase{
     public LanguageConnectionContext setupConnection(ContextManager cm,String user,String drdaID,String dbname,CompilerContext.DataSetProcessorType dspt)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname,dspt);
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, drdaID, dbname, dspt);
 
         // If you add a visitor, be careful of ordering.
 
@@ -94,7 +88,7 @@ public class SpliceDatabase extends BasicDatabase{
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
-        lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses,afterBindVisitors,afterOptVisitors));
+        lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
 
         return lctx;
     }
@@ -116,7 +110,7 @@ public class SpliceDatabase extends BasicDatabase{
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
         ef.newExecutionContext(cm);
-        lctx.initializeSplice(sessionUserName,defaultSchemaDescriptor);
+        lctx.initializeSplice(sessionUserName, defaultSchemaDescriptor);
         return lctx;
     }
 
@@ -256,7 +250,7 @@ public class SpliceDatabase extends BasicDatabase{
 
     @Override
     protected void bootValidation(boolean create,Properties startParams) throws StandardException{
-        SpliceLogUtils.trace(LOG,"bootValidation create %s, startParams %s",create,startParams);
+        SpliceLogUtils.trace(LOG, "bootValidation create %s, startParams %s", create, startParams);
         pf=(PropertyFactory)Monitor.bootServiceModule(create,this,com.splicemachine.db.iapi.reference.Module.PropertyFactory,startParams);
     }
 
@@ -327,6 +321,9 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case TRUNCATE_TABLE:
                         DDLUtils.preTruncateTable(change,dataDictionary,dependencyManager);
+                        break;
+                    case REVOKE_PRIVILEGE:
+                        DDLUtils.preRevokePrivilege(change,dataDictionary,dependencyManager);
                         break;
                     case ALTER_STATS:
                         DDLUtils.preAlterStats(change,dataDictionary,dependencyManager);
