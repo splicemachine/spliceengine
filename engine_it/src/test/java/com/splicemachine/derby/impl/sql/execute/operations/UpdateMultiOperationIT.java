@@ -24,7 +24,7 @@ import java.sql.ResultSet;
  */
 public class UpdateMultiOperationIT{
 
-    private static final String SCHEMA = UpdateOperationIT.class.getSimpleName().toUpperCase();
+    private static final String SCHEMA = UpdateMultiOperationIT.class.getSimpleName().toUpperCase();
 
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
