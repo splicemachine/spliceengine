@@ -17,10 +17,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-/**
- * 
- *
- */
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
 	protected  boolean cascadeDelete;
@@ -36,15 +32,17 @@ public class DeleteOperation extends DMLWriteOperation {
 	}
 
 	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion) throws StandardException {
+                           double optimizerEstimatedCost, String tableVersion) throws StandardException, IOException {
 		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        init(SpliceOperationContext.newContext(activation));
 		recordConstructorTime();
 	}
 
 	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost, String tableVersion) throws StandardException {
+                           double optimizerEstimatedCost, String tableVersion) throws StandardException, IOException {
 		super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
-		recordConstructorTime();
+		init(SpliceOperationContext.newContext(activation));
+        recordConstructorTime();
 	}
 
 	@Override

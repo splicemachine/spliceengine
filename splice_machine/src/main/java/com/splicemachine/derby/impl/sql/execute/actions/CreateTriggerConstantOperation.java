@@ -15,7 +15,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -219,10 +224,6 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         /* Lock the table for DDL.  Otherwise during our execution, the table
          * might be changed, even dropped.  Beetle 4269
          */
-        // XXX - TODO NO LOCK lockTableForDDL(tc, triggerTable.getHeapConglomerateId(), true);
-        /* get triggerTable again for correctness, in case it's changed before
-         * the lock is aquired
-         */
         triggerTable = dd.getTableDescriptor(triggerTableId);
         if (triggerTable == null) {
             throw StandardException.newException(
@@ -239,6 +240,10 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         ** after creating them.
         */
         dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
         /*
         ** Lets get our trigger id up front, we'll use it when

@@ -8,6 +8,8 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 
+import java.io.IOException;
+
 /**
  * Delete the rows from the specified  base table and executes delete/update
  * on dependent tables depending on the referential actions specified.
@@ -24,7 +26,7 @@ import com.splicemachine.db.impl.sql.execute.FKInfo;
 @Deprecated
 public class DeleteCascadeOperation extends DeleteOperation
 {
-
+    // TODO (wjk): permanently purge this if the class javadoc is correct
 	public ResultSet[] dependentResultSets;
 	private int noDependents =0;
 	private CursorResultSet parentSource;
@@ -47,7 +49,7 @@ public class DeleteCascadeOperation extends DeleteOperation
 		ResultSet[]			dependentResultSets,
 		String  	        resultSetId
 	)
-		throws StandardException
+		throws StandardException, IOException
     {
 
 		super(source,

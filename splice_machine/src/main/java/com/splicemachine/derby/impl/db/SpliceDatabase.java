@@ -307,6 +307,12 @@ public class SpliceDatabase extends BasicDatabase{
                     case RENAME_TABLE:
                         DDLUtils.preRenameTable(change,dataDictionary,dependencyManager);
                         break;
+                    case CREATE_TRIGGER:
+                        DDLUtils.preCreateTrigger(change,dataDictionary,dependencyManager);
+                        break;
+                    case DROP_TRIGGER:
+                        DDLUtils.preDropTrigger(change,dataDictionary,dependencyManager);
+                        break;
                     case RENAME_INDEX:
                         DDLUtils.preRenameIndex(change,dataDictionary,dependencyManager);
                         break;

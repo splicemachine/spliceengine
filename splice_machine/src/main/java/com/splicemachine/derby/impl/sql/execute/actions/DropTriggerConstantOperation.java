@@ -14,6 +14,11 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a
@@ -63,8 +68,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 		dd.startWriting(lcc);
 
 		TableDescriptor td = dd.getTableDescriptor(tableId);
-		if (td == null)
-		{
+		if (td == null) {
 			throw StandardException.newException(
 								SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
 								tableId.toString());
@@ -86,8 +90,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 		*/
 		triggerd = dd.getTriggerDescriptor(triggerName, sd);
 
-		if (triggerd == null)
-		{
+		if (triggerd == null) {
 			throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
 					(sd.getSchemaName() + "." + triggerName));
 		}
@@ -98,7 +101,38 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 		** cursor referencing a table/trigger that the user is attempting to
 		** drop.) If no one objects, then invalidate any dependent objects.
 		*/
-        triggerd.drop(lcc);
+
+        DependencyManager dm = dd.getDependencyManager();
+        dm.invalidateFor(triggerd, DependencyManager.DROP_TRIGGER, lcc);
+
+        // Drop the spses
+        SPSDescriptor spsd = dd.getSPSDescriptor(triggerd.getActionId());
+        dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, lcc);
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.dropTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                (BasicUUID) this.tableId, (BasicUUID) triggerd.getUUID(),
+                (BasicUUID) triggerd.getActionId());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+        dm.clearDependencies(lcc, triggerd);
+        dm.clearDependencies(lcc, spsd);
+
+        // Drop the trigger
+        dd.dropTriggerDescriptor(triggerd, tc);
+
+        // there shouldn't be any dependencies, but in case there are, lets clear them
+        dd.dropSPSDescriptor(spsd, tc);
+        // Remove all TECs from trigger stack. They will need to be rebuilt.
+        lcc.popAllTriggerExecutionContexts();
+
+        if (triggerd.getWhenClauseId() != null) {
+            spsd = dd.getSPSDescriptor(triggerd.getWhenClauseId());
+            dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, lcc);
+            dm.clearDependencies(lcc, spsd);
+            dd.dropSPSDescriptor(spsd, tc);
+        }
+
 	}
 
 	public String toString()

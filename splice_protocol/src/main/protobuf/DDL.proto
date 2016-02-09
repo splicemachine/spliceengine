@@ -22,6 +22,16 @@ message RenameIndex{
         required UUID tableId = 1;
 }
 
+message CreateTrigger {
+        required UUID tableId = 1;
+}
+
+message DropTrigger {
+        required UUID tableId = 1;
+        required UUID triggerId = 2;
+        required UUID spsDescriptorUUID = 3;
+}
+
 message AlterStats {
         repeated UUID tableId = 1;
 }
@@ -171,6 +181,8 @@ enum DDLChangeType {
     RENAME_COLUMN = 22;
     RENAME_INDEX = 23;
     ALTER_TABLE = 24;
+    CREATE_TRIGGER = 25;
+    DROP_TRIGGER = 26;
 }
 
 message DDLChange {
@@ -193,4 +205,6 @@ message DDLChange {
     optional RenameTable renameTable = 17;
     optional RenameColumn renameColumn = 18;
     optional RenameIndex renameIndex = 19;
+    optional CreateTrigger createTrigger = 20;
+    optional DropTrigger dropTrigger = 21;
 }

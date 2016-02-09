@@ -528,6 +528,65 @@ public class DDLUtils {
         }
     }
 
+    public static void preCreateTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preCreateTrigger with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            //transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DerbyMessage.UUID uuuid = change.getCreateTrigger().getTableId();
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            if (td==null)
+                return;
+            dm.invalidateFor(td, DependencyManager.CREATE_TRIGGER, transactionResource.getLcc());
+            flushCachesBasedOnTableDescriptor(td, dd);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preDropTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropTrigger with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            //transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DerbyMessage.UUID tableuuid = change.getDropTrigger().getTableId();
+            DerbyMessage.UUID triggeruuid = change.getDropTrigger().getTriggerId();
+            SPSDescriptor spsd = dd.getSPSDescriptor(ProtoUtil.getDerbyUUID(change.getDropTrigger().getSpsDescriptorUUID()));
+
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
+            TriggerDescriptor triggerDescriptor = dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
+            if (td!=null)
+                flushCachesBasedOnTableDescriptor(td, dd);
+            if (triggerDescriptor!= null) {
+                dm.invalidateFor(triggerDescriptor, DependencyManager.DROP_TRIGGER, transactionResource.getLcc());
+//                dm.clearDependencies(transactionResource.getLcc(), triggerDescriptor);
+                if (triggerDescriptor.getWhenClauseId() != null) {
+                    SPSDescriptor whereDescriptor = dd.getSPSDescriptor(triggerDescriptor.getWhenClauseId());
+                    if (whereDescriptor != null) {
+                        dm.invalidateFor(whereDescriptor, DependencyManager.DROP_TRIGGER, transactionResource.getLcc());
+//                        dm.clearDependencies(transactionResource.getLcc(), whereDescriptor);
+                    }
+                }
+            }
+            if (spsd != null) {
+                dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, transactionResource.getLcc());
+                //               dm.clearDependencies(transactionResource.getLcc(), spsd);
+            }
+            // Remove all TECs from trigger stack. They will need to be rebuilt.
+            transactionResource.getLcc().popAllTriggerExecutionContexts();
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
     public static void preAlterTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preAlterTable with change=%s",change);

@@ -56,6 +56,22 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createTrigger(long txnId, BasicUUID basicUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setCreateTrigger(CreateTrigger.newBuilder()
+                .setTableId(transferDerbyUUID(basicUUID)))
+                .setDdlChangeType(DDLChangeType.CREATE_TRIGGER)
+                .build();
+    }
+
+    public static DDLChange dropTrigger(long txnId, BasicUUID tableUUID, BasicUUID triggerUUID, BasicUUID spsDescriptorUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setDropTrigger(DropTrigger.newBuilder()
+                .setTableId(transferDerbyUUID(tableUUID))
+                .setTriggerId(transferDerbyUUID(triggerUUID))
+                .setSpsDescriptorUUID(transferDerbyUUID(spsDescriptorUUID)))
+                .setDdlChangeType(DDLChangeType.DROP_TRIGGER)
+                .build();
+    }
+
     public static DerbyMessage.UUID transferDerbyUUID(BasicUUID basicUUID) {
         return DerbyMessage.UUID.newBuilder().setMajorId(basicUUID.majorId)
                 .setSequence(basicUUID.sequence)
