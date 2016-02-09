@@ -35,7 +35,7 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
     private static File BADDIR;
     @BeforeClass
     public static void beforeClass() throws Exception {
-        BADDIR = ImportTestUtils.createBadLogDirectory(schema.schemaName);
+        BADDIR = SpliceUnitTest.createBadLogDirectory(schema.schemaName);
     }
 
 
