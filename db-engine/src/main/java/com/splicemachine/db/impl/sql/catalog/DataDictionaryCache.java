@@ -151,7 +151,7 @@ public class DataDictionaryCache {
     public void permissionCacheAdd(PermissionsDescriptor key, PermissionsDescriptor permissions) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheAdd " + key);
-        if (!dd.canUseCache())
+        if (!dd.canUseCache(null))
             return;
         permissionsCache.put(key, permissions);
     }
