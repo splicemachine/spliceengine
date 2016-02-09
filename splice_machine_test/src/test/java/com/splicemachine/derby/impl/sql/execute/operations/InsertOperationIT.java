@@ -55,7 +55,8 @@ public class InsertOperationIT {
         classWatcher.executeUpdate("create table T5 (a int, c int,b decimal(16,10), d int)");
         classWatcher.executeUpdate("create table SAME_LENGTH (name varchar(40))");
         classWatcher.executeUpdate("create table batch_test (col1 int, col2 int, col3 int, primary key (col1))");
-
+        classWatcher.executeUpdate("create table T6 (a int)");
+        classWatcher.executeUpdate("create table T7 (name varchar(20))");
     }
 
     @Rule
@@ -348,4 +349,29 @@ public class InsertOperationIT {
         Assert.assertEquals("results returned correct",10,rs.getInt(1));
     }
 
+    @Test
+    public void testInsertFromSubselectWithCast() throws Exception {
+        Connection conn = methodWatcher.getOrCreateConnection();
+        PreparedStatement ps = conn.prepareStatement("insert into t7 values ('Jackson')");
+        ps.execute();
+        String sql = "insert into T6\n" +
+                "SELECT \n" +
+                "instr(name, 'ack') as i\n" +
+                "FROM \n" +
+                "(SELECT \n" +
+                "name\t\n" +
+                "FROM T7 \n" +
+                ") T1";
+
+        // Make sure insert works with a subselect and instr
+        ps = conn.prepareStatement(sql);
+        int count = ps.executeUpdate();
+        Assert.assertTrue(count == 1);
+
+        // verify results
+        ps = conn.prepareStatement("select * from t6");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.getInt(1) == 2);
+    }
 }
