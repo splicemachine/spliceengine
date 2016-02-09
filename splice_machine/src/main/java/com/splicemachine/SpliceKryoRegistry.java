@@ -814,6 +814,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyDecimal.class,EXTERNALIZABLE_SERIALIZER,270);
         instance.register(UDTAliasInfo.class,EXTERNALIZABLE_SERIALIZER,271);
         instance.register(UDTBase.class,EXTERNALIZABLE_SERIALIZER,272);
-        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyDate.class,EXTERNALIZABLE_SERIALIZER,273);
     }
 }
