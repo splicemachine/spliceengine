@@ -538,7 +538,7 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
+            //transactionResource.prepareContextManager();
             transactionResource.marshallTransaction(txn);
             DDLMessage.DropAlias dropAlias = change.getDropAlias();
             AliasDescriptor ad = dd.getAliasDescriptor(dropAlias.getSchemaName(), dropAlias.getAliasName(), dropAlias.getNamespace().charAt(0));
