@@ -101,6 +101,7 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
     }
 
     public void clearRegionCache(TableName tableName){
+        regionCache.invalidate(tableName);
         ((HConnection)connection).clearRegionCache(tableName);
     }
 
