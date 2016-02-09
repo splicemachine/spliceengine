@@ -14,6 +14,8 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLController;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -108,6 +110,10 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 				 * the transaction.
 				 */
         dd.startWriting(lcc);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createSchema(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
         sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
 
         /*

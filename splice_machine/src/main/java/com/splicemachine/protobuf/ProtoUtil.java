@@ -15,7 +15,6 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.sql.execute.actions.DropAliasConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
