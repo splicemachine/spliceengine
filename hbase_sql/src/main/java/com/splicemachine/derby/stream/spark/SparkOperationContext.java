@@ -25,6 +25,7 @@ import java.util.List;
  */
 public class SparkOperationContext<Op extends SpliceOperation> implements OperationContext<Op>{
     protected static Logger LOG=Logger.getLogger(SparkOperationContext.class);
+    private static final String LINE_SEP = System.lineSeparator();
     private BroadcastedActivation broadcastedActivation;
 
     public SpliceTransactionResourceImpl impl;
@@ -235,7 +236,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 errorState = ((StandardException)e).getSQLState();
             }
         }
-        badRecordsAccumulable.add(errorState + " " + badRecord);
+        badRecordsAccumulable.add(errorState + " " + badRecord+LINE_SEP);
         if (numberBadRecords>= this.failBadRecordCount)
             failed=true;
     }

@@ -24,7 +24,9 @@ import java.util.List;
  * Created by jleach on 4/17/15.
  */
 public class ControlOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
-        long rowsRead;
+    private static final String LINE_SEP = System.lineSeparator();
+
+    long rowsRead;
         long rowsFiltered;
         long rowsWritten;
         long rowsJoinedLeft;
@@ -205,7 +207,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
                 errorState = ((StandardException)e).getSQLState();
             }
         }
-        badRecords.add(errorState + " " + badRecord);
+        badRecords.add(errorState + " " + badRecord+LINE_SEP);
         if (numberBadRecords> this.failBadRecordCount)
             failed=true;
     }

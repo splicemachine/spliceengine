@@ -87,7 +87,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 List<String> badRecords = opContext.getBadRecords();
                 opContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
                 if (badRecords.size() > 0) {
-                    appendToEach(badRecords, System.lineSeparator());
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
@@ -109,17 +108,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(IOException ioe){
             throw Exceptions.parseException(ioe);
-        }
-    }
-
-    private static void appendToEach(List<String> strings, String appendString) {
-        if (strings != null && ! strings.isEmpty()) {
-            for (int i=0; i<strings.size(); i++) {
-                String ith = strings.get(i);
-                if (ith != null && ith.length() > 0) {
-                    strings.set(i, ith + appendString);
-                }
-            }
         }
     }
 

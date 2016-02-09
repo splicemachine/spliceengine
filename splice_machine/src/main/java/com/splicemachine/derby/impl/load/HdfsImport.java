@@ -372,7 +372,7 @@ public class HdfsImport {
                 quoteStringArgument(charset) +
                 " )";
             String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
-            if (insertColumnList != null && insertColumnList.toLowerCase().equals("null"))
+            if (insertColumnList != null && (insertColumnList.isEmpty() || insertColumnList.toLowerCase().equals("null")) )
                 insertColumnList = null;
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList != null ?
@@ -384,7 +384,7 @@ public class HdfsImport {
                 importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
 
             //prepare the import statement to hit any errors before locking the table
-            //execute the import operaton.
+            //execute the import operation.
             try (PreparedStatement ips = conn.prepareStatement(insertSql)) {
                 FileInfo contentSummary = ImportUtils.getImportDataSize(fileName);
                 int count = ips.executeUpdate();

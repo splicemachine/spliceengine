@@ -10,14 +10,14 @@ import com.splicemachine.derby.test.framework.TestConnection;
 
 import org.junit.*;
 import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 
-import java.io.IOException;
+import java.io.File;
 import java.sql.*;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Correctness tests around the "UPSERT_FROM_FILE" or "UPPORT" functionality.
@@ -36,35 +36,38 @@ public class UpportIT extends SpliceUnitTest {
             new SpliceTableWatcher("no_pk",schema.schemaName,"(a int, b int)");
 
     private static TestConnection conn;
+    private static File BADDIR;
 
     @ClassRule public static TestRule chain = RuleChain.outerRule(schema)
             .around(nullableBTable)
             .around(occupiedTable)
             .around(no_pk);
     private static int size;
-    private static TestFileGenerator fullTestFile;
+    private static SpliceUnitTest.TestFileGenerator fullTestFile;
     private static List<int[]> correctFullData;
-    private static TestFileGenerator partialTestFile;
+    private static SpliceUnitTest.TestFileGenerator partialTestFile;
     private static List<int[]> correctPartialData;
-    private static TestFileGenerator fullTestFileWithDuplicates;
-
-    @Rule
-    public TemporaryFolder baddir = new TemporaryFolder();
+    private static SpliceUnitTest.TestFileGenerator fullTestFileWithDuplicates;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
         conn = createConnection();
         conn.setAutoCommit(false); //we use auto-commit off to avoid test contamination
 
+        BADDIR = createBadLogDirectory(schema.schemaName);
+        assertNotNull(BADDIR);
+        File IMPORTDIR = createImportFileDirectory(schema.schemaName);
+        assertNotNull(IMPORTDIR);
+
         size = 5;
         correctFullData = Lists.newArrayListWithExpectedSize(size);
-        fullTestFile= generateFullRow("full", size, correctFullData,false);
+        fullTestFile = generateFullRow(IMPORTDIR, "full", size, correctFullData, false);
 
         List<int[]> correctFullDataWithDuplicates = Lists.newArrayListWithExpectedSize(size); //thrown away
-        fullTestFileWithDuplicates= generateFullRow("fullWithDuplicates", size, correctFullDataWithDuplicates,true);
+        fullTestFileWithDuplicates = generateFullRow(IMPORTDIR, "fullWithDuplicates", size, correctFullDataWithDuplicates, true);
 
         correctPartialData = Lists.newArrayListWithExpectedSize(size);
-        partialTestFile= generatePartialRow("partial", size, correctPartialData);
+        partialTestFile = generatePartialRow(IMPORTDIR, "partial", size, correctPartialData);
     }
 
     @AfterClass public static void tearDownClass() throws Exception { conn.close(); }
@@ -81,8 +84,8 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,occupiedTable.tableName);
         statement.setString(3,"a");
-        statement.setString(4,fullTestFile.fileName());
-        statement.setString(5,baddir.newFolder().getCanonicalPath());
+        statement.setString(4,fullTestFile.getFilePath());
+        statement.setString(5,BADDIR.getCanonicalPath());
 
         try{
             statement.execute();
@@ -99,8 +102,8 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2, nullableBTable.tableName);
         statement.setString(3,"b");
-        statement.setString(4,fullTestFile.fileName());
-        statement.setString(5,baddir.newFolder().getCanonicalPath());
+        statement.setString(4,fullTestFile.getFilePath());
+        statement.setString(5,BADDIR.getCanonicalPath());
 
         try{
             statement.execute();
@@ -116,8 +119,8 @@ public class UpportIT extends SpliceUnitTest {
                 conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,null,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,no_pk.tableName);
-        statement.setString(3,fullTestFile.fileName());
-        statement.setString(4,baddir.newFolder().getCanonicalPath());
+        statement.setString(3,fullTestFile.getFilePath());
+        statement.setString(4,BADDIR.getCanonicalPath());
 
         try{
             statement.execute();
@@ -143,8 +146,8 @@ public class UpportIT extends SpliceUnitTest {
                 conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,null,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,occupiedTable.tableName);
-        statement.setString(3,fullTestFile.fileName());
-        statement.setString(4,baddir.newFolder().getCanonicalPath());
+        statement.setString(3,fullTestFile.getFilePath());
+        statement.setString(4,BADDIR.getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -185,8 +188,8 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,"a");
-        statement.setString(4, partialTestFile.fileName());
-        statement.setString(5,baddir.newFolder().getCanonicalPath());
+        statement.setString(4,partialTestFile.getFilePath());
+        statement.setString(5,BADDIR.getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -216,8 +219,8 @@ public class UpportIT extends SpliceUnitTest {
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
         statement.setString(3,"a");
-        statement.setString(4,partialTestFile.fileName());
-        statement.setString(5,baddir.newFolder().getCanonicalPath());
+        statement.setString(4,partialTestFile.getFilePath());
+        statement.setString(5,BADDIR.getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -246,8 +249,8 @@ public class UpportIT extends SpliceUnitTest {
                 conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,null,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
-        statement.setString(3,fullTestFile.fileName());
-        statement.setString(4,baddir.newFolder().getCanonicalPath());
+        statement.setString(3,fullTestFile.getFilePath());
+        statement.setString(4,BADDIR.getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -277,8 +280,8 @@ public class UpportIT extends SpliceUnitTest {
                 conn.prepareCall("call SYSCS_UTIL.UPSERT_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,0,?,null,null)");
         statement.setString(1,schema.schemaName);
         statement.setString(2,nullableBTable.tableName);
-        statement.setString(3, fullTestFileWithDuplicates.fileName());
-        statement.setString(4,baddir.newFolder().getCanonicalPath());
+        statement.setString(3,fullTestFileWithDuplicates.getFilePath());
+        statement.setString(4,BADDIR.getCanonicalPath());
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
@@ -312,41 +315,6 @@ public class UpportIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect value for column A!",corr[0],actual[0]);
             Assert.assertEquals("Incorrect value for column B!",corr[1],actual[1]);
         }
-    }
-
-    private static TestFileGenerator generatePartialRow(String name,int size, List<int[]> fileData) throws IOException {
-        TestFileGenerator generator = new TestFileGenerator(name);
-        try{
-            for(int i=0;i<size;i++){
-                int[] row = {i,0}; //0 is the value sql chooses for null entries
-                fileData.add(row);
-                generator.row(row);
-            }
-        }finally{
-            generator.close();
-        }
-        return generator;
-    }
-
-    private static TestFileGenerator generateFullRow(String name,int size,
-                                                     List<int[]> fileData,
-                                                     boolean duplicateLast) throws IOException {
-        TestFileGenerator generator = new TestFileGenerator(name);
-        try{
-            for(int i=0;i<size;i++){
-                int[] row = {i, 2 * i};
-                fileData.add(row);
-                generator.row(row);
-            }
-            if(duplicateLast){
-                int[] row = {size-1,2*(size-1)};
-                fileData.add(row);
-                generator.row(row);
-            }
-        }finally{
-            generator.close();
-        }
-        return generator;
     }
 
     private static TestConnection createConnection() throws Exception {

@@ -3,20 +3,22 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.List;
+import org.supercsv.prefs.CsvPreference;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.SpliceDateFunctions;
-import org.supercsv.prefs.CsvPreference;
-import java.io.*;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Created by jleach on 10/30/15.
@@ -100,6 +102,9 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             for (int i = 1; i <= returnRow.nColumns(); i++) {
                 DataValueDescriptor dvd = returnRow.getColumn(i);
                 int type = dvd.getTypeFormatId();
+                if (values.size() <= i-1) {
+                    throw StandardException.newException(SQLState.COLUMN_NUMBER_MISMATCH, execRow.nColumns(), values.size());
+                }
                 String value = values.get(i - 1);
                 if (value != null && (value.equals("null") || value.equals("NULL") || value.isEmpty()))
                     value = null;

@@ -303,4 +303,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public ExecIndexRow getStartPosition() throws StandardException {
 		return source.getStartPosition();
 	}
+
+    @Override
+    public String getVTIFileName() {
+        return getSubOperations().get(0).getVTIFileName();
+    }
 }

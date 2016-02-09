@@ -1,6 +1,6 @@
 package com.splicemachine.derby.test.framework;
 
-import java.io.File;
+import java.io.*;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Joiner;
 import org.junit.Assert;
 import org.junit.runner.Description;
 
@@ -233,6 +233,105 @@ public class SpliceUnitTest {
         assertTrue("Couldn't create "+badImportLogDirectory,badImportLogDirectory.mkdirs());
         assertTrue("Failed to create "+badImportLogDirectory,badImportLogDirectory.exists());
         return badImportLogDirectory;
+    }
+
+    public static File createImportFileDirectory(String schemaName) {
+        File importFileDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/import_data/"+schemaName);
+        if (importFileDirectory.exists()) {
+            //noinspection ConstantConditions
+            for (File file : importFileDirectory.listFiles()) {
+                assertTrue("Couldn't create "+file,file.delete());
+            }
+            assertTrue("Couldn't create "+importFileDirectory,importFileDirectory.delete());
+        }
+        assertTrue("Couldn't create "+importFileDirectory,importFileDirectory.mkdirs());
+        assertTrue("Failed to create "+importFileDirectory,importFileDirectory.exists());
+        return importFileDirectory;
+    }
+
+
+    public static SpliceUnitTest.TestFileGenerator generatePartialRow(File directory, String fileName, int size,
+                                                                       List<int[]> fileData) throws IOException {
+        SpliceUnitTest.TestFileGenerator generator = new SpliceUnitTest.TestFileGenerator(directory, fileName);
+        try {
+            for (int i = 0; i < size; i++) {
+                int[] row = {i, 0}; //0 is the value sql chooses for null entries
+                fileData.add(row);
+                generator.row(row);
+            }
+        } finally {
+            generator.close();
+        }
+        return generator;
+    }
+
+    public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
+                                                                    List<int[]> fileData,
+                                                                    boolean duplicateLast) throws IOException {
+        SpliceUnitTest.TestFileGenerator generator = new SpliceUnitTest.TestFileGenerator(directory, fileName);
+        try {
+            for (int i = 0; i < size; i++) {
+                int[] row = {i, 2 * i};
+                fileData.add(row);
+                generator.row(row);
+            }
+            if (duplicateLast) {
+                int[] row = {size - 1, 2 * (size - 1)};
+                fileData.add(row);
+                generator.row(row);
+            }
+        } finally {
+            generator.close();
+        }
+        return generator;
+    }
+
+    /**
+     * System to generate fake data points into a file. This way we can write out quick,
+     * well known files without storing a bunch of extras anywhere.
+     *
+     * @author Scott Fines
+     *         Date: 10/20/14
+     */
+    public static class TestFileGenerator implements Closeable {
+        private final String fileName;
+        private final File file;
+        private BufferedWriter writer;
+        private final Joiner joiner;
+
+        public TestFileGenerator(File directory, String fileName) throws IOException {
+            this.fileName = fileName+".csv";
+            this.file = new File(directory, this.fileName);
+            this.writer =  new BufferedWriter(new FileWriter(file));
+            this.joiner = Joiner.on(",");
+        }
+
+        public TestFileGenerator row(String[] row) throws IOException {
+            String line = joiner.join(row)+"\n";
+            writer.write(line);
+            return this;
+        }
+
+        public TestFileGenerator row(int[] row) throws IOException {
+            String[] copy = new String[row.length];
+            for(int i=0;i<row.length;i++){
+                copy[i] = Integer.toString(row[i]);
+            }
+            return row(copy);
+        }
+
+        public String getFileName(){
+            return this.fileName;
+        }
+
+        public String getFilePath() throws IOException {
+            return file.getCanonicalPath();
+        }
+
+        @Override
+        public void close() throws IOException {
+            writer.close();
+        }
     }
 
 }

@@ -1,16 +1,20 @@
 package com.splicemachine.derby.impl.load;
 
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static com.splicemachine.derby.impl.load.ImportTestUtils.assertBadFileContainsError;
+import static com.splicemachine.derby.impl.load.ImportTestUtils.createBadLogDirectory;
+import static com.splicemachine.derby.impl.load.ImportTestUtils.createImportFileDirectory;
+import static com.splicemachine.derby.impl.load.ImportTestUtils.printBadFile;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.sql.SQLException;
 
-import com.google.common.collect.Lists;
-import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -20,46 +24,479 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test_dao.TableDAO;
 
 /**
- * Created by yifu on 6/13/14.
+ * Test importing a file into a table with default or generated column values.
+ * <p/>
+ * Here are the main rules and their implications for default and generated column values we're testing for import:
+ * <ol>
+ *     <li>If not all columns are represented in CSV, then a column reference list must be provided to the import
+ *     procedure.</li>
+ *     <li>If all columns are represented in CSV, then a column reference list is not required.</li>
+ *     <li>Empty columns, including String columns where the value in the CSV has zero length, are always considered to
+ *     represent null.</li>
+ * </ol>
+ * See also http://docstest.splicemachine.com/Search.html#search-import
+ * <p/>
+ * The test flow is:
+ * <ol>
+ *     <li>Create CSV file, row by row, using one column by which to order the verification query so results can be
+ *     compared deterministically and write the file</li>
+ *     <li>Create expected results including default values with which to compare to the ordered query results</li>
+ *     <li>Run the import optionally specifying a column insertion list</li>
+ *     <li>Execute "select *" on the table ordering the results by the chosen order by column. <b>NOTE</b>: an
+ *     alternative query can be specified to verify results if need be. Just make sure to change expected results to
+ *     fit.</li>
+ *     <li>Compare actual query results with the supplied expected results</li>
+ * </ol>
+ * Notes:
+ * <uL>
+ *     <li>The table is created using the same name as the CSV file with the schema definition given in the test.</li>
+ *     <li>A SQL Error Code can be specified for test imports that expect an exception be thrown.</li>
+ *     <li>You can create a new test by simply copying an existing one. Be sure to change the CSV file name, which
+ *     changes the table name. Document your test as to what it's testing.</li>
+ *     <li><b>NOTE</b>: If the import procedure is not given <i>any</i> columns in the column list argument, HdfsImport
+ *     can only assume the CSV file contains <i>all</i> column values and will create a column list containing <i>all</i>
+ *     table columns.  This is particularly troubling with default and generated columns where the CSV may not
+ *     contain all columns, or something may get inserted that was unintended, or you might get an error for attempting
+ *     to insert a value in a <i>GENERATED ALWAYS</i> column. <b>When you are importing into a table with default or
+ *     generated values, you should always supply a column list (see rule number one above).</b></li>
+ * </uL>
  *
  */
 public class ImportDefaultValueIT {
+    public static final String UTF_8_CHAR_SET_STR = "UTF-8";
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportDefaultValueIT.class.getSimpleName().toUpperCase();
-    protected static String TABLE_1 = "A";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,
-                                                                                     spliceSchemaWatcher.schemaName,
-                                                                                     "(COL1 INT, COL2 CHAR(3)DEFAULT'abc')");
+    private static File BADDIR;
+    private static File IMPORTDIR;
+
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        BADDIR = createBadLogDirectory(spliceSchemaWatcher.schemaName);
+        assertNotNull(BADDIR);
+        IMPORTDIR = createImportFileDirectory(spliceSchemaWatcher.schemaName);
+        assertNotNull(IMPORTDIR);
+    }
 
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher1);
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).around(spliceSchemaWatcher);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Rule
     public TemporaryFolder baddir = new TemporaryFolder();
 
-    @Test @Ignore("DB-4346")
-    public void textImportDefaultValue() throws Exception{
-        //  FIXME: JC - default values problem. File's empty column is null table column
-        PrintWriter writer = new PrintWriter("/tmp/Test.txt","UTF-8");
-        writer.println(",abc");
-        writer.println("2,");
-        writer.println("3,ab");
+    @Test
+    public void allValuesNoColumnList() throws Exception {
+        String tableName = "all_values_given";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac").expected("1", "ac")
+                                                                   .toFileRow("2", "a").expected("2", "a")
+                                                                   .toFileRow("3", "ab").expected("3", "ab")
+                                                                   .toFileRow("4", "b").expected("4", "b")
+                                                                   .fill(writer);
         writer.close();
 
-        String baddirPath = baddir.newFolder().getCanonicalPath();
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "null", fileName,
+                                        map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void allValuesSomeNullNoColumnList() throws Exception {
+        // make sure we can import nulls explicitly
+        String tableName = "explicit_nulls";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac").expected("1", "ac")
+                                                                   .toFileRow("2", "NULL").expected("2", "NULL")
+                                                                   .toFileRow("3", "ab").expected("3", "ab")
+                                                                   .toFileRow("4", "NULL").expected("4", "NULL")
+                                                                   .fill(writer);
+
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "null", fileName,
+                                        map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void overrideDefaultValuesWithColumnList() throws Exception {
+        // make sure, if we spec a value for a default col, we get the overridden value
+        String tableName = "override_default_values_with_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac").expected("1", "ac")
+                                                                   .toFileRow("2", "a").expected("2", "a")
+                                                                   .toFileRow("3", "ab").expected("3", "ab")
+                                                                   .toFileRow("4", "b").expected("4", "b")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "COL1,COL2", fileName,
+                                        map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void oneColumnValuesWithColumnList() throws Exception {
+        // straight-forward import without value spec'd for default column
+        String tableName = "one_column";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1").expected("1", "abc")
+                                                                   .toFileRow("2").expected("2", "abc")
+                                                                   .toFileRow("3").expected("3", "abc")
+                                                                   .toFileRow("4").expected("4", "abc")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "COL1", fileName,
+                                        map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void commasEmptyValuesAndNoColumnList() throws Exception {
+        // make sure we get NULL for empty CSV column even when it has a default
+        String tableName = "commas_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac").expected("1", "ac")
+                                                                   .toFileRow("2", "").expected("2", "NULL")
+                                                                   .toFileRow("3", "ab").expected("3", "ab")
+                                                                   .toFileRow("4", "").expected("4", "NULL")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "null", fileName,
+                                        map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void errorNotAllColumnsInFile() throws Exception {
+        // this file has lines with uneven number of col separators. should be an error whether or not col list spec'd
+        String tableName = "not_enough_values_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac")
+                                                                   .toFileRow("2")
+                                                                   .toFileRow("3", "ab")
+                                                                   .toFileRow("4")
+                                                                   .fill(writer);
+        writer.close();
+
+        // expect exception cause there's no col list and not all cols in csv
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "null", fileName,
+                                        map, "COL1", "SE009", "XIE0A", null);
+    }
+
+    @Test
+    public void errorMissingValuesWithColumnList() throws Exception {
+        // this file has lines with uneven number of col separators. should be an error whether or not col list spec'd
+        String tableName = "not_enough_values_has_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac")
+                                                                   .toFileRow("2")
+                                                                   .toFileRow("3", "ab")
+                                                                   .toFileRow("4")
+                                                                   .fill(writer);
+        writer.close();
+
+        // CSV contains varying number of columns, should be an error
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "COL1,COL2", fileName,
+                                        map, "COL1", "SE009", "XIE0A", null);
+    }
+
+    @Test
+    public void defaultColumnInMiddleWithColumnList() throws Exception {
+        // if a default column is an interior column, a column list must be supplied
+        String tableName = "default_col_middle";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac").expected("1", "abc", "ac")
+                                                                   .toFileRow("2", "").expected("2", "abc", "NULL")
+                                                                   .toFileRow("3", "ab").expected("3", "abc", "ab")
+                                                                   .toFileRow("4", "ca").expected("4", "abc", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc', COL3 CHAR(2)", "COL1,COL3",
+                                        fileName, map, "COL1", "", null, null);
+    }
+
+    @Test @Ignore("DB-4346 - change in behavior from Lassen - empty (,,) CSV columns get NULL even when defaulted.")
+    public void defaultTimestampNoColumnList() throws Exception {
+        // FIXME:
+        // col2 is a timestamp column with default. If an empty value is given in CSV, we should see the default value
+        // in query results. This is how it worked in Lassen
+        String tableName = "default_timestamp_middle";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
+                                                                   .toFileRow("2", "2016-01-29 15:38:45", "").expected("2", "2016-01-29 15:38:45.0", "NULL")
+                                                                   .toFileRow("3", "", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
+                                                                   .toFileRow("4", "2016-01-29 15:38:45", "ca").expected("4", "2016-01-29 15:38:45.0", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 TIMESTAMP DEFAULT {ts '2011-03-17 15:52:25'}, COL3 CHAR(2)",
+                                        "null", fileName, map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void defaultTimestampMissingWithColumnList() throws Exception {
+        // col2 is a timestamp column with default. If no value is given in CSV and we supply the outer columns in
+        // the insert column list, we get correct default value for the timestamp col.
+        String tableName = "default_timestamp_middle_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
+                                                                   .toFileRow("2", "").expected("2", "2011-03-17 15:52:25.0", "NULL")
+                                                                   .toFileRow("3", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
+                                                                   .toFileRow("4", "ca").expected("4", "2011-03-17 15:52:25.0", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 TIMESTAMP DEFAULT {ts '2011-03-17 15:52:25'}, COL3 CHAR(2)",
+                                        "COL1,COL3", fileName, map, "COL1", "", null, null);
+    }
+
+    @Test @Ignore("DB-4346 - change in behavior from Lassen - empty (,,) CSV columns get NULL even when defaulted.")
+    public void defaultTimestampMissingNoColumnList() throws Exception {
+        // FIXME:
+        // col2 is a timestamp column with default. If an empty value is given in CSV, we should see the default value
+        // in query results. This is how it worked in Lassen
+        String tableName = "default_timestamp_middle_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
+                                                                   .toFileRow("2", "", "").expected("2", "2011-03-17 15:52:25.0", "NULL")
+                                                                   .toFileRow("3", "", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
+                                                                   .toFileRow("4", "", "ca").expected("4", "2011-03-17 15:52:25.0", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 TIMESTAMP DEFAULT {ts '2011-03-17 15:52:25'}, COL3 CHAR(2)",
+                                        "null", fileName, map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void errorDefaultColumnInMiddleNoColumnList() throws Exception {
+        // if a default column is an interior column, a column list must be supplied
+        String tableName = "default_col_middle_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "ac")
+                                                                   .toFileRow("2", "")
+                                                                   .toFileRow("3", "ab")
+                                                                   .toFileRow("4", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        // Exception expected - CSV has only two cols and we didn't spec a col list
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc', COL3 CHAR(2)", "null",
+                                        fileName, map, "COL1", "SE009", "XIE0A", null);
+    }
+
+    @Test
+    public void errorGeneratedAlwaysOverrideValuesColumnNoColumnList() throws Exception {
+        // make sure, if we spec a value for a generated col, we get the overridden value
+        String tableName = "generated_always_col_override_values_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "10", "ac").expected("1", "10", "ac")
+                                                                   .toFileRow("2", "20", "").expected("2", "20", "NULL")
+                                                                   .toFileRow("3", "30", "ab").expected("3", "30", "ab")
+                                                                   .toFileRow("4", "40", "ca").expected("4", "40", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        // Can't modify an "always" generated identity
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 int generated always as identity, COL3 CHAR(2)",
+                                        "null", fileName, map, "COL1", "42Z23", null, null);
+    }
+
+    @Test
+    public void errorGeneratedAlwaysEmptyColumnList() throws Exception {
+        // empty col list spec'd so should turn into all columns in table, which is an
+        // error in this case cause the file doesn't have all
+        String tableName = "generated_always_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("ac").expected("1", "ac")
+                                                                   .toFileRow("ac").expected("2", "ac")
+                                                                   .toFileRow("ac").expected("3", "ac")
+                                                                   .toFileRow("ac").expected("4", "ac")
+                                                                   .fill(writer);
+        writer.close();
+
+        // Attempt to modify identity col. Since no col list was given that defaults to ALL columns on insert.
+        // This gets thrown at statement prepare time when it sees you've specified an illegal insert column, not when
+        // actually parsing the CSV.
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 int generated always as identity, COL2 CHAR(2)",
+                                        "", fileName, map, "COL1", "42Z23", null, null);
+    }
+
+    @Test
+    public void errorGeneratedAlwaysNoColumnList() throws Exception {
+        // no col list spec'd so should turn into all columns in table, which is an
+        // error in this case cause the file doesn't have all
+        String tableName = "generated_always_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("ac").expected("1", "ac")
+                                                                   .toFileRow("ac").expected("2", "ac")
+                                                                   .toFileRow("ac").expected("3", "ac")
+                                                                   .toFileRow("ac").expected("4", "ac")
+                                                                   .fill(writer);
+        writer.close();
+
+        // Attempt to modify identity col. Since no col list was given that defaults to ALL columns on insert.
+        // This gets thrown at statement prepare time when it sees you've specified an illegal insert column, not when
+        // actually parsing the CSV.
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 int generated always as identity, COL2 CHAR(2)",
+                                        "null", fileName, map, "COL1", "42Z23", null, null);
+    }
+
+    @Test
+    public void generatedAlwaysWithColumnList() throws Exception {
+        // col list spec'd for values imported from file. Should see generated values in COL1
+        String tableName = "generated_always_with_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("ac").expected("1", "ac")
+                                                                   .toFileRow("ac").expected("2", "ac")
+                                                                   .toFileRow("ac").expected("3", "ac")
+                                                                   .toFileRow("ac").expected("4", "ac")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 int generated always as identity, COL2 CHAR(2)",
+                                        "COL2", fileName, map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void generatedByDefaultOverrideValuesColumnNoColumnList() throws Exception {
+        // test generated columns can be overridden
+        String tableName = "generated_col_override_values_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "10", "ac").expected("1", "10", "ac")
+                                                                   .toFileRow("2", "20", "").expected("2", "20", "NULL")
+                                                                   .toFileRow("3", "30", "ab").expected("3", "30", "ab")
+                                                                   .toFileRow("4", "40", "ca").expected("4", "40", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 int generated by default as identity, COL3 CHAR(2)",
+                                        "null", fileName, map, "COL1", "", null, null);
+    }
+
+    @Test
+    public void errorGeneratedByDefaultColumnNoColumnList() throws Exception {
+        // "Generated by default" column will not accept NULL value
+        String tableName = "generated_col_with_nulls_no_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("1", "", "ac").expected("1", "1", "ac")
+                                                                   .toFileRow("2", "", "").expected("2", "2", "NULL")
+                                                                   .toFileRow("3", "", "ab").expected("3", "3", "ab")
+                                                                   .toFileRow("4", "", "ca").expected("4", "4", "ca")
+                                                                   .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 int generated by default as identity, COL3 CHAR(2)",
+                                        "null", fileName, map, "COL1", "23502", null, null);
+    }
+
+    @Test
+    public void generatedByDefaultColumnWithColumnList() throws Exception {
+        // test that we get identity counter with diff inc'd value in each row
+        String tableName = "generated_col_with_col_list";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+                                                                   .toFileRow("zz", "ac").expected("1")
+                                                                   .toFileRow("yy", "").expected("2")
+                                                                   .toFileRow("xx", "ab").expected("3")
+                                                                   .toFileRow("ww", "ca").expected("4")
+                                                                   .fill(writer);
+        writer.close();
+
+        // create an alternative query and expected result to verify cause row insertion order is arbitrary and can't
+        // compare whole result set - first row may get gen'd ID 3, 2nd 1, etc.
+        String alternateQuery = String.format("select %s from %s.%s order by %s",
+                                              "COL2", spliceSchemaWatcher.schemaName, tableName, "COL2");
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 CHAR(2), COL2 int generated by default as identity, COL3 CHAR(2)",
+                                        "COL1,COL3", fileName, map, "COL2", "", null, alternateQuery);
+    }
+
+    //==============================================================================================================
+
+    private void helpTestDefaultAndGeneratedCols(String tableName, String tableDef, String colList, String fileName,
+                                                 ImportTestUtils.ResultList expectedResultList, String orderByCol, String
+                                                     sqlStateCode, String sqlStateCodeInErrorFile, String alternateQueryString)
+        throws Exception {
+
+        if (tableDef.startsWith("(")) {
+            throw new Exception("Don't enclose the create table definition in parens.");
+        }
+
+        TableDAO td = new TableDAO(methodWatcher.getOrCreateConnection());
+        td.drop(spliceSchemaWatcher.schemaName, tableName);
+
+        String controlTableDef = "("+tableDef+")";
+        methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
+            String.format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+controlTableDef);
+
         PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA(" +
                                                                          "'%s'," +  // schema name
                                                                          "'%s'," +  // table name
-                                                                         "null," +  // insert column list
+                                                                         "'%s'," +  // insert column list
                                                                          "'%s'," +  // file path
                                                                          "','," +   // column delimiter
                                                                          "null," +  // character delimiter
@@ -69,25 +506,50 @@ public class ImportDefaultValueIT {
                                                                          "%d," +    // max bad records
                                                                          "'%s'," +  // bad record dir
                                                                          "null," +  // has one line records
-                                                                         "null)",                           // char set
-                                                                            spliceSchemaWatcher.schemaName, TABLE_1,
-                                                                            "/tmp/Test.txt",
-                                                                            0, baddirPath));
-
-        ps.execute();
-        PreparedStatement s = methodWatcher.prepareStatement("select * from "+spliceSchemaWatcher.schemaName+"."+TABLE_1);
-        List<String> expected  = Arrays.asList("abc","abc","ab");
-        Collections.sort(expected);
-
-        List<String> actual = Lists.newArrayListWithExpectedSize(expected.size());
-
-        ResultSet rs = s.executeQuery();
-        while(rs.next()){
-            Assert.assertNotNull("2nd col of row with 1st col "+rs.getInt(1)+ " is null", rs.getString(2));
-            actual.add(rs.getString(2));
+                                                                         "'%s')",   // char set
+                                                                     spliceSchemaWatcher.schemaName, tableName, colList,
+                                                                     fileName, 0, BADDIR.getCanonicalPath(), UTF_8_CHAR_SET_STR));
+        try {
+            ps.execute();
+            if (sqlStateCode != null && ! sqlStateCode.isEmpty()) {
+                fail("Expected import exception: "+sqlStateCode+ " but didn't get it.  "+printBadFile(BADDIR, fileName));
+            }
+        } catch (SQLException e) {
+            if (sqlStateCode == null || sqlStateCode.isEmpty()) {
+                fail("Didn't expect exception but got: "+e.getSQLState()+" "+e.getLocalizedMessage()+".  "+
+                         printBadFile(BADDIR, fileName));
+            } else if (sqlStateCodeInErrorFile != null && ! sqlStateCodeInErrorFile.isEmpty()) {
+                assertBadFileContainsError(BADDIR, fileName, sqlStateCodeInErrorFile);
+            }
+            assertEquals("Expected different error: "+e.getLocalizedMessage()+".  "+printBadFile(BADDIR, fileName),
+                         sqlStateCode, e.getSQLState());
+            // we got the error we expected. Done.
+            return;
         }
-        Collections.sort(actual);
-        Assert.assertEquals("Incorrect results!",expected,actual);
+        String queryString = String.format("select * from %s.%s order by %s",
+                                           spliceSchemaWatcher.schemaName, tableName, orderByCol);
+        if (alternateQueryString != null && ! alternateQueryString.isEmpty()) {
+            queryString = alternateQueryString;
+        }
+
+        ResultSet rs = methodWatcher.executeQuery(queryString);
+        ImportTestUtils.ResultList actualResultList = ImportTestUtils.ResultList.create();
+        int nRows = 0;
+        int nCols = rs.getMetaData().getColumnCount();
+        while (rs.next()) {
+            ++nRows;
+            String[] actualRow = new String[nCols];
+            // skipping first col because it's the "control column"
+            for (int index =1; index<=nCols; ++index) {
+                actualRow[index-1] = (rs.getObject(index) != null ? rs.getObject(index).toString() : "NULL");
+            }
+            actualResultList.expected((String[]) actualRow);
+        }
+
+        assertEquals(String.format("Expected %d rows imported, got: %d: %s", expectedResultList.nRows(), nRows,
+                                   printBadFile(BADDIR, fileName)), expectedResultList.nRows(), nRows);
+
+        assertEquals("Results differ: ", expectedResultList.toString(), actualResultList.toString());
     }
 
 }
