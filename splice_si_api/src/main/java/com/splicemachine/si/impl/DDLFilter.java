@@ -54,7 +54,7 @@ public class DDLFilter implements Comparable<DDLFilter> {
          *
          */
         long otherTxnId = txn.getTxnId();
-        return myTransaction.getCommitTimestamp()<=otherTxnId;
+        return myTransaction.getEffectiveCommitTimestamp()<=otherTxnId;
     }
 
     public TxnView getTransaction() {
