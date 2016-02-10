@@ -51,8 +51,6 @@ public class UpportIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        conn = createConnection();
-        conn.setAutoCommit(false); //we use auto-commit off to avoid test contamination
 
         BADDIR = createBadLogDirectory(schema.schemaName);
         assertNotNull(BADDIR);
@@ -70,8 +68,25 @@ public class UpportIT extends SpliceUnitTest {
         partialTestFile = generatePartialRow(IMPORTDIR, "partial", size, correctPartialData);
     }
 
-    @AfterClass public static void tearDownClass() throws Exception { conn.close(); }
-    @After public void tearDown() throws Exception { conn.rollback(); }
+    @Before
+    public void before() throws Exception {
+        conn = createConnection();
+        conn.setAutoCommit(false);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        try {
+            conn.rollback();
+        } catch (SQLException e) {
+            // ignore
+        }
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            // ignore
+        }
+    }
 
     private static final Comparator<int[]> intArrayComparator = new Comparator<int[]>() {
         @Override public int compare(int[] o1, int[] o2) { return Ints.compare(o1[0], o2[0]); }
