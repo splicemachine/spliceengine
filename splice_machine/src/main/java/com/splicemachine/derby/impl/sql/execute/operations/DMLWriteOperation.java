@@ -277,4 +277,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
             }
         }
     }
+
+    @Override
+    public void close() throws StandardException {
+        if (triggerHandler!=null)
+            triggerHandler.cleanup();
+        super.close();
+    }
 }
