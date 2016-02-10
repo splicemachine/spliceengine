@@ -557,7 +557,7 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            transactionResource.prepareContextManager();
+            //transactionResource.prepareContextManager();
             transactionResource.marshallTransaction(txn);
             DDLMessage.DropView dropView = change.getDropView();
 
