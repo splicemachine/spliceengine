@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -66,8 +67,9 @@ public class FkJobSubmitter {
         String referencedTableName = referencedConstraint.getTableDescriptor().getName();
         TxnView activeStateTxn = transactionManager.getActiveStateTxn();
 
-        DDLChange ddlChange = ProtoUtil.createTentativeFKConstaint((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
-                referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexFormatIds, backingIndexConglomerateIds);
+        DDLChange ddlChange = ProtoUtil.createTentativeFKConstraint((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
+                referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexFormatIds, backingIndexConglomerateIds,
+                ddlChangeType.equals(DDLChangeType.DROP_FOREIGN_KEY) ? DDLMessage.DDLChangeType.DROP_FOREIGN_KEY : DDLMessage.DDLChangeType.ADD_FOREIGN_KEY);
         TransactionController tc = lcc.getTransactionExecute();
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange)); // Enroll in 2PC
     }

@@ -313,11 +313,11 @@ public class ProtoUtil {
 
     }
 
-    public static DDLChange createTentativeFKConstaint (ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor, long txnId,
+    public static DDLChange createTentativeFKConstraint(ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor, long txnId,
                                                         long baseConglomerate, String tableName, String tableVersion,
-                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId) {
+                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId, DDLChangeType changeType) {
         return DDLChange.newBuilder().setTxnId(txnId)
-                .setDdlChangeType(DDLChangeType.ADD_FOREIGN_KEY)
+                .setDdlChangeType(changeType)
                 .setTentativeFK(TentativeFK.newBuilder()
                                 .addAllBackingIndexFormatIds(Ints.asList(backingIndexFormatIds))
                                 .setBaseConglomerate(baseConglomerate)

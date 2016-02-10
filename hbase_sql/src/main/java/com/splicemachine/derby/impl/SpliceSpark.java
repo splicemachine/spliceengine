@@ -11,6 +11,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
 import com.splicemachine.derby.stream.spark.SpliceMachineSource;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
@@ -64,9 +65,15 @@ public class SpliceSpark {
         return ctx;
     }
 
+    public static synchronized boolean isRunningOnSpark() {
+        // This is temporary and is the integrated equivalent of
+        // SpliceBaseDerbyCoprocessor.runningOnSpark on master_dataset.
+        return !RegionServerLifecycleObserver.isHbaseJVM;
+    }
+
     public static synchronized void setupSpliceStaticComponents() throws IOException {
         try {
-            if (!spliceStaticComponentsSetup) {
+            if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
                 new EmbeddedDriver();
                 new SpliceAccessManager();

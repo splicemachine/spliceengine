@@ -121,7 +121,9 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         TentativeFK tentativeFKAdd = ddlChange.getTentativeFK();
         // We are configuring a write context on the PARENT base-table or unique-index.
         if (onConglomerateNumber == tentativeFKAdd.getReferencedConglomerateNumber()) {
-            parentInterceptWriteFactory.removeReferencingIndexConglomerateNumber(tentativeFKAdd.getReferencingConglomerateNumber());
+            if (parentInterceptWriteFactory != null) {
+                parentInterceptWriteFactory.removeReferencingIndexConglomerateNumber(tentativeFKAdd.getReferencingConglomerateNumber());
+            }
         }
         // We are configuring a write context on the CHILD fk backing index.
         if (onConglomerateNumber == tentativeFKAdd.getReferencingConglomerateNumber()) {

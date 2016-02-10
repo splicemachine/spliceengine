@@ -13,6 +13,7 @@ public class StreamUtils {
 
     private static final Logger LOG = Logger.getLogger(StreamUtils.class);
 
+    // TODO (wjkmerge): move this somewhere else as part of k2_refactor
     private static final Map<String, String> mapFxnNameToPrettyName =
         new ImmutableMap.Builder<String, String>()
             .put("AggregateFinisherFunction","Finish Aggregation")
