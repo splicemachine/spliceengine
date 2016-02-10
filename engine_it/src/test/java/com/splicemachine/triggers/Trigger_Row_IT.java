@@ -163,7 +163,6 @@ public class Trigger_Row_IT {
     }
 
     @Test
-    @Ignore("DB-4074")
     public void afterUpdate_sinkingTriggerAction() throws Exception {
         methodWatcher.executeUpdate("insert into RECORD values('aaa')");
 
@@ -172,7 +171,7 @@ public class Trigger_Row_IT {
         // when - update all rows
         methodWatcher.executeUpdate("update T set c = c + 1");
         // this would be 2^6 if our trigger actions executed sequentially
-        assertRecordCount("aaa", 7);
+        assertRecordCount("aaa", 64);
     }
 
     /* DB-3391: trigger would fail to fire if trigger statement was one-row delete/update on PK or unique index */
