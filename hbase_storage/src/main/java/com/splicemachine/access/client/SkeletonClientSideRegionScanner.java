@@ -196,7 +196,11 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean nextMerged(List<Cell> result, boolean recurse) throws IOException {
         boolean res;
         if (!nextResults.isEmpty()) {
-            result.addAll(nextResults);
+            // Removed AddAll in an attempt to not perform an array copy
+            // result.addAll(nextResults);
+            for (int i = 0; i<nextResults.size();i++) {
+                result.add(nextResults.get(i));
+            }
             nextResults.clear();
             res = nextResponse;
         } else {
