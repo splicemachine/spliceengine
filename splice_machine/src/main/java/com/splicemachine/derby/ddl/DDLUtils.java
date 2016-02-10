@@ -550,6 +550,27 @@ public class DDLUtils {
         }
     }
 
+    public static void preDropView(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            DDLMessage.DropView dropView = change.getDropView();
+
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()));
+            if (td==null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td, DependencyManager.DROP_VIEW, transactionResource.getLcc());
+            flushCachesBasedOnTableDescriptor(td, dd);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
 
     public static void preCreateTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())

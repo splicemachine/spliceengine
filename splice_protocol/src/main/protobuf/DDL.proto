@@ -32,6 +32,13 @@ message CreateTable {
 message CreateSchema {
 }
 
+message CreateView {
+}
+
+message DropView {
+        required UUID tableId = 1;
+}
+
 message CreateAlias {
 }
 
@@ -264,6 +271,8 @@ enum DDLChangeType {
     REVOKE_PRIVILEGE = 29;
     CREATE_ALIAS = 30;
     DROP_ALIAS = 31;
+    CREATE_VIEW = 32;
+    DROP_VIEW = 33;
 }
 
 message DDLChange {
@@ -295,4 +304,6 @@ message DDLChange {
     optional CreateSchema createSchema = 26;
     optional CreateAlias createAlias = 27;
     optional DropAlias dropAlias = 28;
+    optional CreateView createView = 29;
+    optional DropView dropView = 30;
 }

@@ -103,6 +103,13 @@ public class ProtoUtil {
                 .build();
     }
 
+    public static DDLChange createView(long txnId) {
+        return DDLChange.newBuilder().setTxnId(txnId)
+                .setDdlChangeType(DDLChangeType.CREATE_VIEW)
+                .build();
+    }
+
+
     public static DDLChange dropAlias(long txnId, String schemaName, String aliasName, String namespace) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropAlias((DropAlias.newBuilder()
                 .setSchemaName(schemaName)
@@ -111,6 +118,14 @@ public class ProtoUtil {
                 .setDdlChangeType(DDLChangeType.DROP_ALIAS)
                 .build();
     }
+
+    public static DDLChange dropView(long txnId, BasicUUID basicUUID) {
+        return DDLChange.newBuilder().setTxnId(txnId).setDropView(DropView.newBuilder()
+                .setTableId(transferDerbyUUID(basicUUID)))
+                .setDdlChangeType(DDLChangeType.DROP_VIEW)
+                .build();
+    }
+
 
     public static DDLChange createAlterTable(long txnId, BasicUUID basicUUID) {
         return DDLChange.newBuilder().setTxnId(txnId).setAlterTable(AlterTable.newBuilder()

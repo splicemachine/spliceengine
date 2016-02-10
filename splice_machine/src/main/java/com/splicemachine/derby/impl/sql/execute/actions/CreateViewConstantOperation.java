@@ -19,6 +19,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -122,6 +126,11 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
                     sd.getDescriptorType(),
                     sd.getDescriptorName());
         }
+
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createView(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
+        // Run Remotely
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
 
 		/* Create a new table descriptor.
 		 * (Pass in row locking, even though meaningless for views.)

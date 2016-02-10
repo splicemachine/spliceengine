@@ -233,7 +233,7 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
 
         // good query here, but view is gone
         try {
-            connection1.createStatement().executeQuery(String.format("select * from %s.%s", tableSchema.schemaName, VIEW_NAME_1));
+            connection1.createStatement().executeQuery(String.format("select lname from %s.%s", tableSchema.schemaName, VIEW_NAME_1));
             Assert.fail("Expected an exception but didn't get one.");
         } catch (Exception e) {
             // expected
