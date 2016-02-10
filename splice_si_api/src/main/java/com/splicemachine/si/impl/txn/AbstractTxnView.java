@@ -274,16 +274,12 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override
-		public boolean equals(Object o) {
-				if (this == o) return true;
-				if (!(o instanceof TxnView)) return false;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return txnId == ((TxnView) o).getTxnId();
+    }
 
-				TxnView that = (TxnView) o;
-
-				return txnId == that.getTxnId();
-		}
-
-		@Override public int hashCode() { return (int) (txnId ^ (txnId >>> 32)); }
+    @Override public int hashCode() { return (int) (txnId ^ (txnId >>> 32)); }
 
     /************************************************************************************************************/
     /*private helper methods*/
