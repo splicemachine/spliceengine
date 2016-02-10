@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -28,16 +30,20 @@ public class FkJobSubmitter {
     private final ReferencedKeyConstraintDescriptor referencedConstraint;
     private final ConstraintDescriptor foreignKeyConstraintDescriptor;
     private final DDLChangeType ddlChangeType;
+    private final LanguageConnectionContext lcc;
 
     public FkJobSubmitter(DataDictionary dataDictionary,
                           SpliceTransactionManager transactionManager,
                           ReferencedKeyConstraintDescriptor referencedConstraint,
-                          ConstraintDescriptor foreignKeyConstraintDescriptor, DDLChangeType ddlChangeType) {
+                          ConstraintDescriptor foreignKeyConstraintDescriptor,
+                          DDLChangeType ddlChangeType,
+                          LanguageConnectionContext lcc) {
         this.dataDictionary = dataDictionary;
         this.transactionManager = transactionManager;
         this.referencedConstraint = referencedConstraint;
         this.foreignKeyConstraintDescriptor = foreignKeyConstraintDescriptor;
         this.ddlChangeType = ddlChangeType;
+        this.lcc = lcc;
     }
 
     /**
@@ -62,8 +68,8 @@ public class FkJobSubmitter {
 
         DDLChange ddlChange = ProtoUtil.createTentativeFKConstaint((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
                 referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexFormatIds, backingIndexConglomerateIds);
-
-        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
+        TransactionController tc = lcc.getTransactionExecute();
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange)); // Enroll in 2PC
     }
 
 }

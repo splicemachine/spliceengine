@@ -105,7 +105,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) consDesc;
             TransactionController tc = lcc.getTransactionExecute();
             final ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
-            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, consDesc, DDLChangeType.DROP_FOREIGN_KEY).submit();
+            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, consDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
         }
 
 		/* If we don't need a new conglomerate then there's nothing

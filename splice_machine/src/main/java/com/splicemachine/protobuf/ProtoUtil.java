@@ -325,6 +325,8 @@ public class ProtoUtil {
                                 .setReferencedTableVersion(tableVersion)
                                 .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor))
                                 .setBackingIndexConglomerateId(backingIndexConglomerateId)
+                                .setReferencedConglomerateNumber(baseConglomerate)
+                                .setReferencingConglomerateNumber(backingIndexConglomerateId)
                 ).build();
     }
 
