@@ -186,9 +186,9 @@ public class UnionOperationIT {
     public void testUnionDistinctValues() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("values (1,2,3,4) union distinct values (5,6,7,8) union distinct values (9,10,11,12)");
         int[][] correct = new int[][]{
-                new int[]{1, 2, 3, 4},
+                new int[]{9, 10, 11, 12},
                 new int[]{5, 6, 7, 8},
-                new int[]{9, 10, 11, 12}
+                new int[]{1, 2, 3, 4}
         };
         int[][] actual = new int[correct.length][];
         int count = 0;
@@ -210,9 +210,9 @@ public class UnionOperationIT {
     public void testUnionValues() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("values (1,2,3,4) union values (5,6,7,8) union values (9,10,11,12)");
         int[][] correct = new int[][]{
-                new int[]{1, 2, 3, 4},
+                new int[]{9, 10, 11, 12},
                 new int[]{5, 6, 7, 8},
-                new int[]{9, 10, 11, 12}
+                new int[]{1, 2, 3, 4}
         };
         int[][] actual = new int[correct.length][];
         int count = 0;
@@ -232,7 +232,7 @@ public class UnionOperationIT {
     /* Regression test for DB-1026 */
     @Test
     public void testMultipleUnionValues() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select distinct * from (values 2.0,2.1,2.2,2.2) v1");
+        ResultSet rs = methodWatcher.executeQuery("select distinct * from (values 2.0,2.1,2.2,2.2) v1 order by 1");
         float[] correct = new float[]{2.0f, 2.1f, 2.2f};
         float[] actual = new float[correct.length];
         int count = 0;

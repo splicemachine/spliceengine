@@ -225,8 +225,7 @@ public class CreateTableWithDataIT{
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, depsalTable);
 
         methodWatcher.executeUpdate(depsalTableDef);
-
-        String sqlText = format("select * from %s", depsalTableRef);
+        String sqlText = format("select * from %s order by dept, salary", depsalTableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
         String expected = "DEPT |SALARY |   SSN   |\n" +

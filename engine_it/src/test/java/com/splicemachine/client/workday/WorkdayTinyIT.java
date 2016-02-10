@@ -95,14 +95,14 @@ public class WorkdayTinyIT extends SpliceUnitTest {
                     SCHEMA_NAME, OmsLogTable.TABLE_NAME);
     private static final String BUG_712_QUERY_8 =
             String.format("select count(*), sum(duration) as total_duration from %s.%s where" +
-                    " offload_count = 0 and system_user_id='39$177'",
+                            " offload_count = 0 and system_user_id='39$177'",
                     SCHEMA_NAME, OmsLogTable.TABLE_NAME);
     private static final String BUG_713_QUERY_16 =
             String.format("select distinct month(swh_date), swh_env, count(*) from %s.%s group"+
-                    " by month(swh_date), swh_env", SCHEMA_NAME, OmsLogTable.TABLE_NAME);
+                    " by month(swh_date), swh_env order by month(swh_date), swh_env", SCHEMA_NAME, OmsLogTable.TABLE_NAME);
     private static final String BUG_713_QUERY_16_ORDERBY =
             String.format("select distinct month(swh_date), swh_env, count(*) from %s.%s group"+
-                    " by month(swh_date), swh_env order by month(swh_date)", SCHEMA_NAME, OmsLogTable.TABLE_NAME);
+                    " by month(swh_date), swh_env order by month(swh_date), swh_env", SCHEMA_NAME, OmsLogTable.TABLE_NAME);
 
     @Test
     public void testBug710query33NoIndex() throws Exception {
@@ -111,7 +111,7 @@ public class WorkdayTinyIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBug713query16OrderBuy() throws Exception {
+    public void testBug713query16OrderBy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(BUG_713_QUERY_16);
         List<List<String>> noOrderByVals = serializeResultSet(rs);
         rs = methodWatcher.executeQuery(BUG_713_QUERY_16_ORDERBY);

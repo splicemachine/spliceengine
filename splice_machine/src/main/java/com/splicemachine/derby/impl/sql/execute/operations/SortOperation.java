@@ -196,6 +196,13 @@ public class SortOperation extends SpliceBaseOperation{
             operationContext.pushScopeForOp(OperationContext.Scope.DISTINCT);
             dataSet=dataSet.distinct();
             operationContext.popScope();
+            try {
+                operationContext.pushScopeForOp("Locate Rows");
+                DataSet locatedRows = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
+                return locatedRows;
+            } finally {
+                operationContext.popScope();
+            }
         }
 
         operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
