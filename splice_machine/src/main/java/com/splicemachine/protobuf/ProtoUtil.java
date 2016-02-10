@@ -171,10 +171,12 @@ public class ProtoUtil {
         }
     }
 
-    public static DDLChange createDropIndex(long indexConglomId, long tableConglomId, long txnId, BasicUUID tableUUID) {
+    public static DDLChange createDropIndex(long indexConglomId, long tableConglomId, long txnId, BasicUUID tableUUID, String schemaName, String indexName) {
         return DDLChange.newBuilder().setTxnId(txnId).setDropIndex(DropIndex.newBuilder()
                 .setBaseConglomerate(tableConglomId)
                 .setTableUUID(transferDerbyUUID(tableUUID))
+                .setSchemaName(schemaName)
+                .setIndexName(indexName)
                 .setConglomerate(indexConglomId))
                 .setDdlChangeType(DDLChangeType.DROP_INDEX)
                 .build();
@@ -331,14 +333,6 @@ public class ProtoUtil {
                 .setTxnId(txnId)
                 .setChangeId(changeId)
                 .setDdlChangeType(changeType)
-                .build();
-    }
-
-    public static DDLChange createDropIndexTrigger(long indexConglomId, long tableConglomId, long txnId) {
-        return DDLChange.newBuilder().setTxnId(txnId).setDropIndexTrigger(DropIndexTrigger.newBuilder()
-                .setBaseConglomerate(tableConglomId)
-                .setConglomerate(indexConglomId))
-                .setDdlChangeType(DDLChangeType.DROP_INDEX_TRIGGER)
                 .build();
     }
 

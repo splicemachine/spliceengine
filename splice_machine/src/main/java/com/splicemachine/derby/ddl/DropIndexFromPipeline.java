@@ -11,11 +11,10 @@ public class DropIndexFromPipeline implements DDLAction {
 
     @Override
     public void accept(DDLMessage.DDLChange change) {
-        if (change.getDdlChangeType() != DDLMessage.DDLChangeType.DROP_INDEX_TRIGGER)
+        if (change.getDdlChangeType() != DDLMessage.DDLChangeType.DROP_INDEX)
             return;
 
         long baseConglomId = change.getDropIndex().getBaseConglomerate();
-
         ContextFactoryLoader cfl = PipelineDriver.driver().getContextFactoryLoader(baseConglomId);
         try {
             cfl.ddlChange(change);

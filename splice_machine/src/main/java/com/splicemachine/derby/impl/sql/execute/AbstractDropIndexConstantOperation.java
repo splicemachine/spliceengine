@@ -91,47 +91,56 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
          * a write pipeline filter. This filter will allow transactions which begin
          * before the USER transaction commits to continue writing to the index, while
          * transactions which occur after the commit will not.
-         *
          */
+
         //drop the conglomerate in a child transaction
-        drop(cd,td,dd,lcc);
-        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute());
+        DependencyManager dm = dd.getDependencyManager();
+
+        invalidate(cd,dm,lcc); // invalidate locally for error handling
+        // Remote Notification
+        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc);
+        // Physical DD Drop
+        drop(cd, td, dd, lcc);
     }
 
-    private void dropIndex(TableDescriptor td,ConglomerateDescriptor conglomerateDescriptor,
-                           SpliceTransactionManager userTxnManager) throws StandardException{
-        final long tableConglomId=td.getHeapConglomerateId();
-        final long indexConglomId=conglomerateDescriptor.getConglomerateNumber();
-        TxnView uTxn=userTxnManager.getRawTransaction().getActiveStateTxn();
+    private void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
+                           SpliceTransactionManager userTxnManager, LanguageConnectionContext lcc) throws StandardException {
+        final long tableConglomId = td.getHeapConglomerateId();
+        final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
+        TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
         //get the top-most transaction, that's the actual user transaction
-        TxnView t=uTxn;
-        while(t.getTxnId()!=Txn.ROOT_TRANSACTION.getTxnId()){
-            uTxn=t;
-            t=uTxn.getParentTxnView();
+        TransactionController tc = lcc.getTransactionExecute();
+        TxnView t = uTxn;
+        while(t.getTxnId()!= Txn.ROOT_TRANSACTION.getTxnId()){
+            uTxn = t;
+            t = uTxn.getParentTxnView();
         }
-        final TxnView userTxn=uTxn;
-        DDLMessage.DDLChange change=ProtoUtil.createDropIndex(indexConglomId,tableConglomId,userTxn.getTxnId(),(BasicUUID)tableId);
-        dropIndexTrigger(tableConglomId,indexConglomId,userTxn);
-        String changeId=DDLUtils.notifyMetadataChange(change);
-        userTxnManager.prepareDataDictionaryChange(changeId);
+        final TxnView userTxn = uTxn;
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
-
-    public abstract void dropIndexTrigger(final long tableConglomId,final long indexConglomId,final TxnView userTxn) throws StandardException;
 
     private void drop(ConglomerateDescriptor cd,
                       TableDescriptor td,
                       DataDictionary dd,
-                      LanguageConnectionContext lcc) throws StandardException{
+                      LanguageConnectionContext lcc) throws StandardException {
         /*
          * Manage the metadata changes necessary to drop a table. Will execute
          * within a child transaction, and will commit that child transaction when completed.
          * If a failure for any reason occurs, this will rollback the child transaction,
          * then throw an exception
          */
-        SpliceTransactionManager userTxnManager=(SpliceTransactionManager)lcc.getTransactionExecute();
-        DependencyManager dm=dd.getDependencyManager();
-        dm.invalidateFor(cd,DependencyManager.DROP_INDEX,lcc);
+        SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
+        DependencyManager dm = dd.getDependencyManager();
         dd.dropConglomerateDescriptor(cd,userTxnManager);
         td.removeConglomerateDescriptor(cd);
+    }
+
+    public String getScopeName() {
+        return String.format("Drop Index %s", fullIndexName);
+    }
+
+    public static void invalidate(ConglomerateDescriptor cd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException {
+        dm.invalidateFor(cd,DependencyManager.DROP_INDEX, lcc);
     }
 }

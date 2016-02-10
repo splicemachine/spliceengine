@@ -185,9 +185,8 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     indexFactories.replace(IndexFactory.create(ddlChange));
                 }
                 break;
-            case DROP_INDEX_TRIGGER:
+            case DROP_INDEX:
                 if(ddlChange.getDropIndex().getBaseConglomerate()!=conglomId) break;
-
                 TxnView txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
                 long indexConglomId=ddlChange.getDropIndex().getConglomerate();
                 synchronized(indexFactories){

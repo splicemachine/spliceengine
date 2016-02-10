@@ -59,14 +59,11 @@ message AlterStats {
 }
 
 message DropIndex {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
-        optional UUID tableUUID = 3;
-}
-
-message DropIndexTrigger {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        required int64 baseConglomerate = 1;
+        required int64 conglomerate = 2;
+        required UUID tableUUID = 3;
+        required string schemaName = 4;
+        required string indexName = 5;
 }
 
 message DropSchema {
@@ -257,22 +254,21 @@ enum DDLChangeType {
     ALTER_STATS = 15;
     ENTER_RESTORE_MODE = 16;
     DICTIONARY_UPDATE = 17;
-    CREATE_TABLE = 18;
-    CREATE_SCHEMA = 19;
-    DROP_INDEX_TRIGGER = 20;
-    RENAME_TABLE = 21;
-    RENAME_COLUMN = 22;
-    RENAME_INDEX = 23;
-    ALTER_TABLE = 24;
-    CREATE_TRIGGER = 25;
-    DROP_TRIGGER = 26;
-    DROP_ROLE = 27;
-    TRUNCATE_TABLE = 28;
-    REVOKE_PRIVILEGE = 29;
-    CREATE_ALIAS = 30;
-    DROP_ALIAS = 31;
-    CREATE_VIEW = 32;
-    DROP_VIEW = 33;
+    RENAME_TABLE = 18;
+    RENAME_COLUMN = 19;
+    RENAME_INDEX = 20;
+    ALTER_TABLE = 21;
+    CREATE_TRIGGER = 22;
+    DROP_TRIGGER = 23;
+    DROP_ROLE = 24;
+    TRUNCATE_TABLE = 25;
+    REVOKE_PRIVILEGE = 26;
+    CREATE_TABLE = 27;
+    CREATE_SCHEMA = 28;
+    CREATE_ALIAS = 29;
+    DROP_ALIAS = 30;
+    CREATE_VIEW = 31;
+    DROP_VIEW = 32;
 }
 
 message DDLChange {
@@ -291,19 +287,18 @@ message DDLChange {
     optional TentativeDropPKConstraint tentativeDropPKConstraint = 13;
     optional TentativeIndex tentativeIndex = 14;
     optional TentativeDropConstraint tentativeDropConstraint = 15;
-    optional DropIndexTrigger dropIndexTrigger = 16;
-    optional RenameTable renameTable = 17;
-    optional RenameColumn renameColumn = 18;
-    optional RenameIndex renameIndex = 19;
-    optional CreateTrigger createTrigger = 20;
-    optional DropTrigger dropTrigger = 21;
-    optional DropRole dropRole = 22;
-    optional TruncateTable truncateTable = 23;
-    optional RevokePrivilege revokePrivilege = 24;
-    optional CreateTable createTable = 25;
-    optional CreateSchema createSchema = 26;
-    optional CreateAlias createAlias = 27;
-    optional DropAlias dropAlias = 28;
-    optional CreateView createView = 29;
-    optional DropView dropView = 30;
+    optional RenameTable renameTable = 16;
+    optional RenameColumn renameColumn = 17;
+    optional RenameIndex renameIndex = 18;
+    optional CreateTrigger createTrigger = 19;
+    optional DropTrigger dropTrigger = 20;
+    optional DropRole dropRole = 21;
+    optional TruncateTable truncateTable = 22;
+    optional RevokePrivilege revokePrivilege = 23;
+    optional CreateTable createTable = 24;
+    optional CreateSchema createSchema = 25;
+    optional CreateAlias createAlias = 26;
+    optional DropAlias dropAlias = 27;
+    optional CreateView createView = 28;
+    optional DropView dropView = 29;
 }

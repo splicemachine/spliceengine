@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.si.api.txn.TxnView;
 
 /**
  * @author Scott Fines
@@ -28,8 +26,4 @@ public class HBaseDropIndexConstantOperation extends AbstractDropIndexConstantOp
         super(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId);
     }
 
-    @Override
-    public void dropIndexTrigger(long tableConglomId,long indexConglomId,TxnView userTxn) throws StandardException{
-        //no-op, since we use the DDLChange even to remove the index from the CFL
-    }
 }

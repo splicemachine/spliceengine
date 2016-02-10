@@ -387,7 +387,28 @@ public class DDLUtils {
     }
 
     public static void preDropIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
-        preIndex(change, dd, dm, DependencyManager.DROP_INDEX, change.getDropIndex().getTableUUID());
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropIndex with change=%s",change);
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+            //transactionResource.prepareContextManager();
+            transactionResource.marshallTransaction(txn);
+            TransactionController tc = transactionResource.getLcc().getTransactionExecute();
+            DDLMessage.DropIndex dropIndex =  change.getDropIndex();
+            SchemaDescriptor sd = dd.getSchemaDescriptor(dropIndex.getSchemaName(),tc,true);
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
+            if (td!=null) { // Table Descriptor transaction never committed
+                flushCachesBasedOnTableDescriptor(td, dd);
+                dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
+            }
+            if (cd!=null) {
+                dm.invalidateFor(cd, DependencyManager.DROP_INDEX, transactionResource.getLcc());
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 
     private static void preIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, int action, DerbyMessage.UUID uuid) throws StandardException {
