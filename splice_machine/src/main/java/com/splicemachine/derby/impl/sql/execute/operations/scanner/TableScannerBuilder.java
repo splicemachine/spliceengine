@@ -350,7 +350,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     }
                 }
             }
-            SIDriver.driver().getOperationFactory().writeScan(scan,out);
+            writeScan(out);
 //            out.writeUTF(SpliceTableMapReduceUtil.convertScanToString(scan));
             out.writeBoolean(rowColumnMap!=null);
             if(rowColumnMap!=null){
@@ -360,7 +360,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     out.writeInt(rowColumnMap[i]);
                 }
             }
-            SIDriver.driver().getOperationFactory().writeTxn(txn,out);
+            writeTxn(out);
             ArrayUtil.writeIntArray(out,keyColumnEncodingOrder);
             out.writeBoolean(keyColumnSortOrder!=null);
             if(keyColumnSortOrder!=null){
@@ -402,6 +402,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         }
     }
 
+    protected void writeTxn(ObjectOutput out) throws IOException{
+        SIDriver.driver().getOperationFactory().writeTxn(txn,out);
+    }
+
+    protected void writeScan(ObjectOutput out) throws IOException{
+        SIDriver.driver().getOperationFactory().writeScan(scan,out);
+    }
+
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException{
@@ -423,14 +431,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     }
                 }
             }
-            scan=SIDriver.driver().getOperationFactory().readScan(in);
+            scan=readScan(in);
             if(in.readBoolean()){
                 rowColumnMap=new int[in.readInt()];
                 for(int i=0;i<rowColumnMap.length;++i){
                     rowColumnMap[i]=in.readInt();
                 }
             }
-            txn=SIDriver.driver().getOperationFactory().readTxn(in);
+            txn=readTxn(in);
             keyColumnEncodingOrder=ArrayUtil.readIntArray(in);
             if(in.readBoolean()){
                 keyColumnSortOrder=ArrayUtil.readBooleanArray(in);
@@ -464,6 +472,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         }catch(StandardException e){
             throw new IOException(e.getCause());
         }
+    }
+
+    protected TxnView readTxn(ObjectInput in) throws IOException{
+        return SIDriver.driver().getOperationFactory().readTxn(in);
+    }
+
+    protected DataScan readScan(ObjectInput in) throws IOException{
+        return SIDriver.driver().getOperationFactory().readScan(in);
     }
 
     @Override

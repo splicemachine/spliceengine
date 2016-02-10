@@ -68,7 +68,7 @@ public class RegionTxnStore implements TxnPartition{
     public TxnMessage.Txn getTransaction(long txnId) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getTransaction txnId=%d",txnId);
-        Get get=new Get(TxnUtils.getRowKey(txnId));
+        Get get=new Get(getRowKey(txnId));
         Result result=region.get(get);
         if(result==null||result.isEmpty())
             return null; //no transaction
@@ -79,7 +79,7 @@ public class RegionTxnStore implements TxnPartition{
     public void addDestinationTable(long txnId,byte[] destinationTable) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"addDestinationTable txnId=%d, desinationTable",txnId,destinationTable);
-        Get get=new Get(TxnUtils.getRowKey(txnId));
+        Get get=new Get(getRowKey(txnId));
         byte[] destTableQualifier=V2TxnDecoder.DESTINATION_TABLE_QUALIFIER_BYTES;
         get.addColumn(FAMILY,destTableQualifier);
         /*
@@ -106,11 +106,15 @@ public class RegionTxnStore implements TxnPartition{
         region.put(put);
     }
 
+    protected byte[] getRowKey(long txnId){
+        return TxnUtils.getRowKey(txnId);
+    }
+
     @Override
     public boolean keepAlive(long txnId) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"keepAlive txnId=%d",txnId);
-        byte[] rowKey=TxnUtils.getRowKey(txnId);
+        byte[] rowKey=getRowKey(txnId);
         Get get=new Get(rowKey);
         get.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
         get.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
@@ -133,7 +137,7 @@ public class RegionTxnStore implements TxnPartition{
         if(adjustedState!=Txn.State.ACTIVE)
             throw new HTransactionTimeout(txnId);
 
-        Put newPut=new Put(TxnUtils.getRowKey(txnId));
+        Put newPut=new Put(getRowKey(txnId));
         newPut.add(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(currTime));
         region.put(newPut); //TODO -sf- does this work when the region is splitting?
         return true;
@@ -143,7 +147,7 @@ public class RegionTxnStore implements TxnPartition{
     public Txn.State getState(long txnId) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getState txnId=%d",txnId);
-        byte[] rowKey=TxnUtils.getRowKey(txnId);
+        byte[] rowKey=getRowKey(txnId);
         Get get=new Get(rowKey);
         get.addColumn(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES);
         get.addColumn(FAMILY,V2TxnDecoder.KEEP_ALIVE_QUALIFIER_BYTES);
@@ -169,7 +173,7 @@ public class RegionTxnStore implements TxnPartition{
     public void recordTransaction(TxnMessage.TxnInfo txn) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordTransaction txn=%s",txn);
-        Put put=newTransactionDecoder.encodeForPut(txn);
+        Put put=newTransactionDecoder.encodeForPut(txn,getRowKey(txn.getTxnId()));
         region.put(put);
     }
 
@@ -177,7 +181,7 @@ public class RegionTxnStore implements TxnPartition{
     public void recordCommit(long txnId,long commitTs) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordCommit txnId=%d, commitTs=%d",txnId,commitTs);
-        Put put=new Put(TxnUtils.getRowKey(txnId));
+        Put put=new Put(getRowKey(txnId));
         put.add(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(commitTs));
         put.add(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.COMMITTED.encode());
         region.put(put);
@@ -185,7 +189,7 @@ public class RegionTxnStore implements TxnPartition{
 
     @Override
     public void recordGlobalCommit(long txnId,long globalCommitTs) throws IOException{
-        Put put=new Put(TxnUtils.getRowKey(txnId));
+        Put put=new Put(getRowKey(txnId));
         put.add(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(globalCommitTs));
         region.put(put);
     }
@@ -194,7 +198,7 @@ public class RegionTxnStore implements TxnPartition{
     public long getCommitTimestamp(long txnId) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getCommitTimestamp txnId=%d",txnId);
-        Get get=new Get(TxnUtils.getRowKey(txnId));
+        Get get=new Get(getRowKey(txnId));
         get.addColumn(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES);
         Result result=region.get(get);
         if(result==null||result==Result.EMPTY_RESULT) return -1l; //no commit timestamp for read-only transactions
@@ -210,7 +214,7 @@ public class RegionTxnStore implements TxnPartition{
     public void recordRollback(long txnId) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordRollback txnId=%d",txnId);
-        Put put=new Put(TxnUtils.getRowKey(txnId));
+        Put put=new Put(getRowKey(txnId));
         put.add(FAMILY,V2TxnDecoder.STATE_QUALIFIER_BYTES,Txn.State.ROLLEDBACK.encode());
         put.add(FAMILY,V2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
         put.add(FAMILY,V2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
@@ -316,7 +320,7 @@ public class RegionTxnStore implements TxnPartition{
         if(regionKey.length<=0)
             regionKey = region.getEndKey();
         if(regionKey.length<=0)
-            bucket = 1; //should never happen
+            bucket = 0; //should never happen
         else
             bucket=regionKey[0];
         byte[] sk = new byte[startKey.length+1];

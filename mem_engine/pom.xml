@@ -96,7 +96,6 @@
                 <executions>
                     <execution>
                         <id>############# Start MemDatabase #############</id>
-                        <phase>pre-integration-test</phase>
                         <configuration>
                             <target name="StartMemDatabase">
                                 <property name="classpath" refid="maven.runtime.classpath"/>

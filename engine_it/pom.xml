@@ -133,6 +133,7 @@
 
     <profiles>
         <profile>
+            <!-- In-Memory database profile. Useful for quick testing-->
             <id>mem</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
@@ -219,6 +220,11 @@
                 </plugins>
             </build>
         </profile>
+        <!--End MemDatabase profile-->
+        <profile>
+            <id>cdh5.4.8</id>
+        </profile>
+        <!-- End CDH5.4.8 profile-->
     </profiles>
 
 </project>

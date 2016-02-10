@@ -405,6 +405,7 @@
         </plugins>
 
     </build>
+
     <profiles>
         <profile>
             <id>core</id>

@@ -26,6 +26,6 @@ public interface TxnDecoder {
 
     TxnMessage.Txn decode(RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
 
-	Put encodeForPut(TxnMessage.TxnInfo txn) throws IOException;
+	Put encodeForPut(TxnMessage.TxnInfo txn,byte[] rowKey) throws IOException;
 
 }

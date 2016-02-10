@@ -6,14 +6,20 @@ import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.HScan;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 public class TableScannerBuilderTest{
     protected static Scan scan=new Scan(Bytes.toBytes("1"));
@@ -25,13 +31,7 @@ public class TableScannerBuilderTest{
 
     @Test
     public void testBase64EncodingDecoding() throws IOException, StandardException{
-        ScanSetBuilder scanSetBuilder=new TableScannerBuilder(){
-            @Override
-            public DataSet buildDataSet() throws StandardException{
-                Assert.fail("build is not called!");
-                return null;
-            }
-        }
+        ScanSetBuilder scanSetBuilder=new TestBuilder()
                 .keyColumnEncodingOrder(array1)
                 .scan(new HScan(scan))
                 .transaction(txn)
@@ -48,5 +48,40 @@ public class TableScannerBuilderTest{
 
     }
 
+    private static class TestBuilder extends TableScannerBuilder{
+        public TestBuilder(){ }
+
+        @Override
+        public DataSet buildDataSet() throws StandardException{
+            Assert.fail("build is not called!");
+            return null;
+        }
+
+        @Override
+        protected void writeScan(ObjectOutput out) throws IOException{
+            Scan scan=((HScan)this.scan).unwrapDelegate();
+            byte[] bytes =ProtobufUtil.toScan(scan).toByteArray();
+            out.writeInt(bytes.length);
+            out.write(bytes);
+        }
+
+        @Override
+        protected DataScan readScan(ObjectInput in) throws IOException{
+            byte[] bytes = new byte[in.readInt()];
+            in.readFully(bytes);
+            ClientProtos.Scan scan=ClientProtos.Scan.parseFrom(bytes);
+            return new HScan(ProtobufUtil.toScan(scan));
+        }
+
+        @Override
+        protected void writeTxn(ObjectOutput out) throws IOException{
+            new SimpleTxnOperationFactory(null,null).writeTxn(txn,out);
+        }
+
+        @Override
+        protected TxnView readTxn(ObjectInput in) throws IOException{
+            return new SimpleTxnOperationFactory(null,null).readTxn(in);
+        }
+    }
 
 }

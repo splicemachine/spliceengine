@@ -12,8 +12,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("-sf- needs to be re-implemented")
 public class SnapshotUtilsTest {
 	
 	@Test

@@ -1,9 +1,11 @@
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongArrayList;
 import com.google.protobuf.ByteString;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;import com.splicemachine.impl.MockRegionUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
@@ -13,7 +15,6 @@ import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -122,7 +123,14 @@ public class RegionTxnStoreTest{
     @Test
     public void testCanGetActiveTransactions() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock){
+            @Override
+            protected byte[] getRowKey(long txnId){
+                byte[] rowKey = new byte[9];
+                Bytes.longToBytes(txnId, rowKey, 1);
+                return rowKey;
+            }
+        };
 
         TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -138,11 +146,52 @@ public class RegionTxnStoreTest{
         Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
     }
 
+    @Test
+    public void getManyActiveTransactions() throws Exception{
+        HRegion region=MockRegionUtils.getMockRegion();
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock){
+            @Override
+            protected byte[] getRowKey(long txnId){
+                byte[] rowKey = new byte[9];
+                Bytes.longToBytes(txnId, rowKey, 1);
+                return rowKey;
+            }
+        };
+
+        LongArrayList txns = new LongArrayList(6);
+        TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
+                .setBeginTs(1)
+                .setAllowsWrites(true)
+                .setIsAdditive(true)
+                .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel())
+                .setDestinationTables(ByteString.copyFrom(Bytes.toBytes("1234")));
+        store.recordTransaction(builder.setTxnId(1).build());
+        txns.add(1);
+        for(int i=0;i<4;i++){
+            TxnMessage.TxnInfo build=builder.setTxnId(i+2).build();
+            txns.add(build.getTxnId());
+            store.recordTransaction(build);
+        }
+
+        TxnMessage.TxnInfo build=builder.setTxnId(7).build();
+        txns.add(build.getTxnId());
+        store.recordTransaction(build);
+        long[] activeTxnIds=store.getActiveTxnIds(0,7,null);
+        Assert.assertEquals("Incorrect length!",txns.size(),activeTxnIds.length);
+        Assert.assertArrayEquals("Incorrect listing!",txns.toArray(),activeTxnIds);
+    }
 
     @Test
     public void testCanGetActiveTransactionsOutsideRange() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock){
+            @Override
+            protected byte[] getRowKey(long txnId){
+                byte[] rowKey = new byte[9];
+                Bytes.longToBytes(txnId, rowKey, 1);
+                return rowKey;
+            }
+        };
 
         TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -164,7 +213,14 @@ public class RegionTxnStoreTest{
     @Test
     public void testCanGetActiveTransactionsForSpecificTable() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock){
+            @Override
+            protected byte[] getRowKey(long txnId){
+                byte[] rowKey = new byte[9];
+                Bytes.longToBytes(txnId, rowKey, 1);
+                return rowKey;
+            }
+        };
 
         TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -186,7 +242,14 @@ public class RegionTxnStoreTest{
     @Test
     public void testCanGetActiveTransactionsForSpecificTableMultipleElevatedTables() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
-        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);
+        RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock){
+            @Override
+            protected byte[] getRowKey(long txnId){
+                byte[] rowKey = new byte[9];
+                Bytes.longToBytes(txnId, rowKey, 1);
+                return rowKey;
+            }
+        };
 
         TxnMessage.TxnInfo.Builder builder=TxnMessage.TxnInfo.newBuilder()
                 .setTxnId(1)
@@ -199,7 +262,7 @@ public class RegionTxnStoreTest{
                 .build();
         store.recordTransaction(info);
         store.addDestinationTable(1,Encoding.encodeBytesUnsorted(Bytes.toBytes("1234")));
-        long[] activeTxnIds=store.getActiveTxnIds(0,3,Bytes.toBytes("1234"));
+        long[] activeTxnIds=store.getActiveTxnIds(0,3,Encoding.encodeBytesUnsorted(Bytes.toBytes("1234")));
         Assert.assertEquals("Incorrect length!",1,activeTxnIds.length);
         Assert.assertArrayEquals("Incorrect listing!",new long[]{1},activeTxnIds);
     }

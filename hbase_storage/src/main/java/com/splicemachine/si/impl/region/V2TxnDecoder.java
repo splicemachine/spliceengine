@@ -182,8 +182,8 @@ public class V2TxnDecoder implements TxnDecoder{
 	 * order: c,d,e,g,k,s,t
 	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,
 	 */
-    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo) throws IOException{
-        org.apache.hadoop.hbase.client.Put put=new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnInfo.getTxnId()));
+    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo,byte[] rowKey) throws IOException{
+        org.apache.hadoop.hbase.client.Put put=new org.apache.hadoop.hbase.client.Put(rowKey);
         MultiFieldEncoder metaFieldEncoder=MultiFieldEncoder.create(5);
         metaFieldEncoder.encodeNext(txnInfo.getBeginTs()).encodeNext(txnInfo.getParentTxnid());
 

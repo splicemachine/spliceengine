@@ -13,6 +13,15 @@
         <groupId>com.splicemachine</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
+    <properties>
+        <!--Skip server startup-->
+        <server.skip.start>skipServerStart</server.skip.start>
+        <!--Ant task to run shell scripts-->
+        <shell.command>/bin/bash</shell.command>
+        <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
+        <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
+    </properties>
+
 
     <dependencies>
         <dependency>
@@ -58,9 +67,18 @@
             <artifactId>hbase-client</artifactId>
             <version>${hbase.version}</version>
             <exclusions>
-                <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> </exclusion>
-                <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-log4j12</artifactId> </exclusion>
-                <exclusion> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-core</artifactId> </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-core</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -68,21 +86,66 @@
             <artifactId>hbase-server</artifactId>
             <version>${hbase.version}</version>
             <exclusions>
-                <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> </exclusion>
-                <exclusion> <groupId>org.slf4j</groupId> <artifactId>slf4j-log4j12</artifactId> </exclusion>
-                <exclusion> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-core</artifactId> </exclusion>
-                <exclusion> <groupId>org.mortbay.jetty</groupId> <artifactId>jetty</artifactId> </exclusion>
-                <exclusion> <groupId>org.mortbay.jetty</groupId> <artifactId>jetty-util</artifactId> </exclusion>
-                <exclusion> <groupId>org.mortbay.jetty</groupId> <artifactId>jetty-sslengine</artifactId> </exclusion>
-                <exclusion> <groupId>org.mortbay.jetty</groupId> <artifactId>servlet-api-2.5</artifactId> </exclusion>
-                <exclusion> <groupId>org.mortbay.jetty</groupId> <artifactId>jsp-2.1</artifactId> </exclusion>
-                <exclusion> <groupId>org.mortbay.jetty</groupId> <artifactId>jsp-api-2.1</artifactId> </exclusion>
-                <exclusion> <groupId>tomcat</groupId> <artifactId>jasper-compiler</artifactId> </exclusion>
-                <exclusion> <groupId>tomcat</groupId> <artifactId>jasper-runtime</artifactId> </exclusion>
-                <exclusion> <groupId>org.apache.hbase</groupId> <artifactId>hbase-prefix-tree</artifactId> </exclusion>
-                <exclusion> <groupId>com.sun.jersey</groupId> <artifactId>jersey-core</artifactId> </exclusion>
-                <exclusion> <groupId>com.sun.jersey</groupId> <artifactId>jersey-server</artifactId> </exclusion>
-                <exclusion> <groupId>com.sun.jersey</groupId> <artifactId>jersey-json</artifactId> </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jetty</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jetty-util</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jetty-sslengine</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>servlet-api-2.5</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jsp-2.1</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jsp-api-2.1</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-compiler</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-prefix-tree</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-json</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -172,6 +235,12 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>1.1.0-${envClassifier}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-yarn-client</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -265,128 +334,422 @@
                 </resources>
             </build>
         </profile>
+        <profile>
+            <id>spliceZoo</id>
+            <activation>
+                <property>
+                    <name>zoo</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}/hbase</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.directory}/zookeeper</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument> -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties </argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms1g</argument>
+                                <argument>-XX:MaxPermSize=256M</argument>
+                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
+                                <argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
+                                <argument>2181</argument>
+                                <argument>${project.build.directory}/zookeeper</argument>
+                                <argument>10</argument>
+                                <argument>0</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>spliceYarn</id>
+            <activation>
+                <property>
+                    <name>spliceYarn</name>
+                </property>
+            </activation>
+            <properties>
+                <nodeCount>1</nodeCount>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
+                            <includeProjectDependencies>false</includeProjectDependencies>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <executableDependency>
+                                <groupId>com.splicemachine.yarn</groupId>
+                                <artifactId>yarn-test-server</artifactId>
+                            </executableDependency>
+                            <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
+                            <arguments>
+                                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
+                                <argument>${project.build.directory}/classes</argument>
+                                <argument>${nodeCount}</argument>
+                            </arguments>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.splicemachine.yarn</groupId>
+                                <artifactId>yarn-test-server</artifactId>
+                                <version>2.0.0-SNAPSHOT</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
 
+        <profile>
+            <id>spliceClusterMember</id>
+            <activation>
+                <property>
+                    <name>spliceClusterMember</name>
+                </property>
+            </activation>
+            <properties>
+                <memberNumber>1</memberNumber>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xmn128m</argument>
+                                <argument>-XX:+UseConcMarkSweepGC</argument>
+                                <argument>-XX:+UseParNewGC</argument>
+                                <argument>-XX:NewSize=128m</argument>
+                                <argument>-XX:MaxNewSize=128m</argument>
+                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+                                <argument>-XX:MaxGCPauseMillis=100</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
+                                <argument>-XX:MaxPermSize=256M</argument>
+                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
+                                <argument>${project.build.directory}/hbase</argument>
+                                <argument>${memberNumber}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>spliceFast</id>
+            <activation>
+                <property>
+                    <name>spliceFast</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <!-- <argument>-verbose:gc</argument> -->
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Xdebug</argument>
+                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+                                <argument>-Dsplice.authentication=NATIVE</argument>
+                                <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
+                                <argument>-Xmx8g</argument>
+                                <argument>-Xms1g</argument>
+                                <!-- Spark Sys props -->
+                                <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
+                                <!--								<argument>-Dsplice.spark.broadcast.factory=org.apache.spark.broadcast.HttpBroadcastFactory</argument> -->
+                                <argument>-Dsplice.spark.driver.host=localhost</argument>
+                                <argument>-Dsplice.spark.driver.cores=1</argument>
+                                <argument>
+                                    -Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
+                                </argument>
+                                <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
+                                <argument>-Dsplice.spark.driver.memory=1g</argument>
+                                <argument>-Dsplice.spark.enabled=true</argument>
+                                <!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
+                                <!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
+                                <argument>-Dsplice.spark.executor.cores=4</argument>
+                                <argument>
+                                    -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
+                                </argument>
+                                <argument>-Dsplice.spark.executor.instances=2</argument>
+                                <argument>-Dsplice.spark.executor.memory=2g</argument>
+                                <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
+                                <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>
+                                <argument>
+                                    -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator
+                                </argument>
+                                <argument>-Dsplice.spark.kryoserializer.buffer.max=512m</argument>
+                                <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
+                                <argument>-Dsplice.spark.locality.wait=60s</argument>
+                                <argument>-Dsplice.spark.logConf=true</argument>
+                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>
+                                    -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
+                                </argument>
+                                <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
+                                <argument>-Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer
+                                </argument>
+                                <argument>-Dsplice.spark.shuffle.compress=false</argument>
+
+                                <argument>-Dsplice.spark.executor.extraJavaOptions=-XX:MaxPermSize=128m
+                                    -Dhbase.rootdir=${project.build.directory}/hbase
+                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
+                                </argument>
+                                <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
+                                <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
+                                <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
+                                <argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
+                                <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
+                                <!-- CMS Garbage Collection -->
+                                <argument>-Xmn128m</argument>
+                                <argument>-XX:+UseConcMarkSweepGC</argument>
+                                <argument>-XX:+UseParNewGC</argument>
+                                <argument>-XX:NewSize=128m</argument>
+                                <argument>-XX:MaxNewSize=128m</argument>
+                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
+                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
+                                <argument>-XX:MaxGCPauseMillis=100</argument>
+                                <argument>-XX:MaxPermSize=256M</argument>
+                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
+                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>-enableassertions</argument>
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+                                <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
+                                <argument>-Dderby.language.updateSystemProcs=false</argument>
+                                <!-- Setting the logStatementText option to true enables logging of all statements. -->
+                                <argument>-Dderby.language.logStatementText=false</argument>
+                                <argument>-Dderby.infolog.append=true</argument>
+                                <argument>com.splicemachine.test.SpliceTestPlatform</argument>
+                                <argument>file://${project.build.directory}/hbase</argument>
+                                <argument>60000</argument>
+                                <argument>60010</argument>
+                                <argument>60020</argument>
+                                <argument>60030</argument>
+                                <argument>1527</argument>
+                                <argument>${failTasksRandomly}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <!--<profile>-->
-            <!--<id>cdh5.5.1</id>-->
-            <!--<activation>-->
-                <!--<property>-->
-                    <!--<name>env</name>-->
-                    <!--<value>cdh5.5.1</value>-->
-                <!--</property>-->
-            <!--</activation>-->
-            <!--<properties>-->
-                <!--<envClassifier>cdh5.5.1</envClassifier>-->
-                <!--&lt;!&ndash; platform component versions &ndash;&gt;-->
-                <!--<hadoop.version>2.6.0-cdh5.5.1</hadoop.version>-->
-                <!--<hbase.version>1.0.0-cdh5.5.1-splice1.5.1-SNAPSHOT</hbase.version>-->
-                <!--<hive.version>1.1.0-cdh5.5.1</hive.version>-->
-                <!--<zookeeper.version>3.4.5-cdh5.5.1</zookeeper.version>-->
-                <!--<spark.version>1.5.0</spark.version>-->
-                <!--<spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.1</spark-assembly-id>-->
-            <!--</properties>-->
-            <!--<build>-->
-                <!--<plugins>-->
-                    <!--<plugin>-->
-                        <!--<groupId>org.codehaus.mojo</groupId>-->
-                        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
-                        <!--<version>1.9.1</version>-->
-                        <!--<executions>-->
-                            <!--<execution>-->
-                                <!--<id>add-platform-source</id>-->
-                                <!--<phase>generate-sources</phase>-->
-                                <!--<goals>-->
-                                    <!--<goal>add-source</goal>-->
-                                <!--</goals>-->
-                                <!--<configuration>-->
-                                    <!--<sources>-->
-                                        <!--<source>cdh5.5.1/src/main/java</source>-->
-                                        <!--<source>hbase1.0/src/main/java</source>-->
-                                    <!--</sources>-->
-                                <!--</configuration>-->
-                            <!--</execution>-->
-                            <!--<execution>-->
-                                <!--<id>add-platform-test-source</id>-->
-                                <!--<phase>generate-sources</phase>-->
-                                <!--<goals>-->
-                                    <!--<goal>add-test-source</goal>-->
-                                <!--</goals>-->
-                                <!--<configuration>-->
-                                    <!--<sources>-->
-                                        <!--<source>cdh5.5.1/src/test/java</source>-->
-                                        <!--<source>hbase1.0/src/test/java</source>-->
-                                    <!--</sources>-->
-                                <!--</configuration>-->
-                            <!--</execution>-->
-                        <!--</executions>-->
-                    <!--</plugin>-->
-                <!--</plugins>-->
-                <!--<resources>-->
-                    <!--<resource>-->
-                        <!--<directory>hbase1.0/src/main/resources</directory>-->
-                    <!--</resource>-->
-                <!--</resources>-->
-            <!--</build>-->
+        <!--<id>cdh5.5.1</id>-->
+        <!--<activation>-->
+        <!--<property>-->
+        <!--<name>env</name>-->
+        <!--<value>cdh5.5.1</value>-->
+        <!--</property>-->
+        <!--</activation>-->
+        <!--<properties>-->
+        <!--<envClassifier>cdh5.5.1</envClassifier>-->
+        <!--&lt;!&ndash; platform component versions &ndash;&gt;-->
+        <!--<hadoop.version>2.6.0-cdh5.5.1</hadoop.version>-->
+        <!--<hbase.version>1.0.0-cdh5.5.1-splice1.5.1-SNAPSHOT</hbase.version>-->
+        <!--<hive.version>1.1.0-cdh5.5.1</hive.version>-->
+        <!--<zookeeper.version>3.4.5-cdh5.5.1</zookeeper.version>-->
+        <!--<spark.version>1.5.0</spark.version>-->
+        <!--<spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.1</spark-assembly-id>-->
+        <!--</properties>-->
+        <!--<build>-->
+        <!--<plugins>-->
+        <!--<plugin>-->
+        <!--<groupId>org.codehaus.mojo</groupId>-->
+        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
+        <!--<version>1.9.1</version>-->
+        <!--<executions>-->
+        <!--<execution>-->
+        <!--<id>add-platform-source</id>-->
+        <!--<phase>generate-sources</phase>-->
+        <!--<goals>-->
+        <!--<goal>add-source</goal>-->
+        <!--</goals>-->
+        <!--<configuration>-->
+        <!--<sources>-->
+        <!--<source>cdh5.5.1/src/main/java</source>-->
+        <!--<source>hbase1.0/src/main/java</source>-->
+        <!--</sources>-->
+        <!--</configuration>-->
+        <!--</execution>-->
+        <!--<execution>-->
+        <!--<id>add-platform-test-source</id>-->
+        <!--<phase>generate-sources</phase>-->
+        <!--<goals>-->
+        <!--<goal>add-test-source</goal>-->
+        <!--</goals>-->
+        <!--<configuration>-->
+        <!--<sources>-->
+        <!--<source>cdh5.5.1/src/test/java</source>-->
+        <!--<source>hbase1.0/src/test/java</source>-->
+        <!--</sources>-->
+        <!--</configuration>-->
+        <!--</execution>-->
+        <!--</executions>-->
+        <!--</plugin>-->
+        <!--</plugins>-->
+        <!--<resources>-->
+        <!--<resource>-->
+        <!--<directory>hbase1.0/src/main/resources</directory>-->
+        <!--</resource>-->
+        <!--</resources>-->
+        <!--</build>-->
         <!--</profile>-->
 
         <!--<profile>-->
-            <!--<id>mapr5.0.0</id>-->
-            <!--<activation>-->
-                <!--<property>-->
-                    <!--<name>env</name>-->
-                    <!--<value>mapr5.0.0</value>-->
-                <!--</property>-->
-            <!--</activation>-->
-            <!--<properties>-->
-                <!--<envClassifier>mapr5.0.0</envClassifier>-->
-                <!--&lt;!&ndash; platform component versions &ndash;&gt;-->
-                <!--<hadoop.version>2.7.0-mapr-1506</hadoop.version>-->
-                <!--<hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>-->
-                <!--<hive.version>0.13.0-mapr-1504-protobuf250</hive.version>-->
-                <!--<zookeeper.version>3.4.5-mapr-1503</zookeeper.version>-->
-                <!--<maprfs.version>5.0.0-mapr</maprfs.version>-->
-                <!--<spark.version>1.5.0</spark.version>-->
-                <!--<spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>-->
-            <!--</properties>-->
-            <!--<build>-->
-                <!--<plugins>-->
-                    <!--<plugin>-->
-                        <!--<groupId>org.codehaus.mojo</groupId>-->
-                        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
-                        <!--<version>1.9.1</version>-->
-                        <!--<executions>-->
-                            <!--<execution>-->
-                                <!--<id>add-platform-source</id>-->
-                                <!--<phase>generate-sources</phase>-->
-                                <!--<goals>-->
-                                    <!--<goal>add-source</goal>-->
-                                <!--</goals>-->
-                                <!--<configuration>-->
-                                    <!--<sources>-->
-                                        <!--<source>hbase0.98/src/main/java</source>-->
-                                    <!--</sources>-->
-                                <!--</configuration>-->
-                            <!--</execution>-->
-                            <!--<execution>-->
-                                <!--<id>add-platform-test-source</id>-->
-                                <!--<phase>generate-sources</phase>-->
-                                <!--<goals>-->
-                                    <!--<goal>add-test-source</goal>-->
-                                <!--</goals>-->
-                                <!--<configuration>-->
-                                    <!--<sources>-->
-                                        <!--<source>hbase0.98/src/test/java</source>-->
-                                    <!--</sources>-->
-                                <!--</configuration>-->
-                            <!--</execution>-->
-                        <!--</executions>-->
-                    <!--</plugin>-->
-                <!--</plugins>-->
-                <!--<resources>-->
-                    <!--<resource>-->
-                        <!--<directory>hbase0.98/src/main/resources</directory>-->
-                    <!--</resource>-->
-                <!--</resources>-->
-            <!--</build>-->
+        <!--<id>mapr5.0.0</id>-->
+        <!--<activation>-->
+        <!--<property>-->
+        <!--<name>env</name>-->
+        <!--<value>mapr5.0.0</value>-->
+        <!--</property>-->
+        <!--</activation>-->
+        <!--<properties>-->
+        <!--<envClassifier>mapr5.0.0</envClassifier>-->
+        <!--&lt;!&ndash; platform component versions &ndash;&gt;-->
+        <!--<hadoop.version>2.7.0-mapr-1506</hadoop.version>-->
+        <!--<hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>-->
+        <!--<hive.version>0.13.0-mapr-1504-protobuf250</hive.version>-->
+        <!--<zookeeper.version>3.4.5-mapr-1503</zookeeper.version>-->
+        <!--<maprfs.version>5.0.0-mapr</maprfs.version>-->
+        <!--<spark.version>1.5.0</spark.version>-->
+        <!--<spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>-->
+        <!--</properties>-->
+        <!--<build>-->
+        <!--<plugins>-->
+        <!--<plugin>-->
+        <!--<groupId>org.codehaus.mojo</groupId>-->
+        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
+        <!--<version>1.9.1</version>-->
+        <!--<executions>-->
+        <!--<execution>-->
+        <!--<id>add-platform-source</id>-->
+        <!--<phase>generate-sources</phase>-->
+        <!--<goals>-->
+        <!--<goal>add-source</goal>-->
+        <!--</goals>-->
+        <!--<configuration>-->
+        <!--<sources>-->
+        <!--<source>hbase0.98/src/main/java</source>-->
+        <!--</sources>-->
+        <!--</configuration>-->
+        <!--</execution>-->
+        <!--<execution>-->
+        <!--<id>add-platform-test-source</id>-->
+        <!--<phase>generate-sources</phase>-->
+        <!--<goals>-->
+        <!--<goal>add-test-source</goal>-->
+        <!--</goals>-->
+        <!--<configuration>-->
+        <!--<sources>-->
+        <!--<source>hbase0.98/src/test/java</source>-->
+        <!--</sources>-->
+        <!--</configuration>-->
+        <!--</execution>-->
+        <!--</executions>-->
+        <!--</plugin>-->
+        <!--</plugins>-->
+        <!--<resources>-->
+        <!--<resource>-->
+        <!--<directory>hbase0.98/src/main/resources</directory>-->
+        <!--</resource>-->
+        <!--</resources>-->
+        <!--</build>-->
         <!--</profile>-->
     </profiles>
 
