@@ -490,6 +490,29 @@ public class ImportDefaultValueIT {
                 "null", fileName, map, "COL1", "", null, null);
     }
 
+    @Test
+    public void importNullIntoDefaultNullCol() throws Exception {
+        // DB-3940: can import a NULL value into a DEFAULT NULL column
+        String tableName = "import_null_into_default_null";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
+                .toFileRow("1", "1", "1.0", "a", "1").expected("1", "1", "1.000", "a", "1")
+                .toFileRow("2", "1", "", "a", "1").expected("2", "1", "NULL", "a", "1")
+                .toFileRow("3", "1", "1.0", "", "1").expected("3", "1", "1.000", "NULL", "1")
+                .toFileRow("4", "1", "1.0", "", "1").expected("4", "1", "1.000", "NULL", "1")
+                .toFileRow("5", "1", "1.0", "a", "1").expected("5", "1", "1.000", "a", "1")
+                .toFileRow("6", "1", "1.0", "a", "").expected("6", "1", "1.000", "a", "NULL")
+                .toFileRow("7", "1", "1.0", "", "1").expected("7", "1", "1.000", "NULL", "1")
+                .toFileRow("8", "1", "1.0", "a", "1").expected("8", "1", "1.000", "a", "1")
+                .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL0 INT, col1 integer, col2 numeric(12,3) default NULL, col3 char(3), col4 integer",
+                "null", fileName, map, "COL0", "", null, null);
+    }
+
     //==============================================================================================================
 
     private void helpTestDefaultAndGeneratedCols(String tableName, String tableDef, String colList, String fileName,
