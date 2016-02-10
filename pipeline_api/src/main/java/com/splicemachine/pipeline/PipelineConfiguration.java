@@ -12,7 +12,7 @@ public class PipelineConfiguration{
     public static final String THREAD_POOL_STATUS_LOCATION = "com.splicemachine.writer.async:type=ThreadPoolStatus";
 
     public static final String MAX_BUFFER_ENTRIES= "splice.client.write.buffer.maxentries";
-    public static final int DEFAULT_MAX_BUFFER_ENTRIES = 5000;
+    public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
 
     public static final String MAX_BUFFER_HEAP_SIZE = "splice.client.write.buffer";
     public static final long DEFAULT_WRITE_BUFFER_SIZE = 3*1024*1024;
@@ -82,10 +82,10 @@ public class PipelineConfiguration{
      *
      * This parameter may be adjusted in real time using JMX.
      *
-     * Default is 20.
+     * Default is 5.
      */
     public static final String MAX_WRITER_THREADS= "splice.writer.maxThreads";
-    public static final int DEFAULT_MAX_WRITER_THREADS= 20;
+    public static final int DEFAULT_MAX_WRITER_THREADS= 5;
 
     /**
      * The number of write threads to allow to remain alive even when the maximum number of threads
@@ -94,10 +94,10 @@ public class PipelineConfiguration{
      * given point in time. * This generally does not require adjustment, unless thread-management is
      * problematic.
      *
-     * Default is 5.
+     * Default is 2.
      */
     public static final String CORE_WRITER_THREADS= "splice.writer.coreThreads";
-    public static final int DEFAULT_WRITE_THREADS_CORE = 5;
+    public static final int DEFAULT_WRITE_THREADS_CORE = 2;
 
     /**
      * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
