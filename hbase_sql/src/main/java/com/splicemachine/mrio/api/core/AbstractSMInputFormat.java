@@ -56,10 +56,8 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             throw new IOException(e);
         }
         List<InputSplit> splits = tableInputFormat.getSplits(context);
-        String oneSplitPerRegion = conf.get(MRConstants.ONE_SPLIT_PER_REGION);
-        if (oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0) {
+        if (oneSplitPerRegion(conf))
             return toSMSplits(splits);
-        }
         if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "getSplits " + splits);
             for (InputSplit split: splits) {
@@ -69,6 +67,19 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         SubregionSplitter splitter = new HBaseSubregionSplitter();
         List<InputSplit> results = splitter.getSubSplits(table, splits);
         return results;
+    }
+
+    /**
+     * One Split Per Region is used in the case where we are computing statistics on the table.
+     *
+     * @param configuration
+     * @return
+     */
+    public static boolean oneSplitPerRegion( Configuration configuration) {
+        String oneSplitPerRegion = configuration.get(MRConstants.ONE_SPLIT_PER_REGION);
+        if (oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0)
+                return true;
+        return false;
     }
 
     /**

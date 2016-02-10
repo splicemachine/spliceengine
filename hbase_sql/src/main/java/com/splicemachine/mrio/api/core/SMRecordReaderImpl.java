@@ -44,7 +44,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	protected TableScannerBuilder builder;
 	protected RowLocation rowLocation;
 	private List<AutoCloseable> closeables = new ArrayList<>();
-	
+    private boolean statisticsRun = false;
+
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
 	}	
@@ -71,7 +72,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			DataScan scan = builder.getScan();
 			scan.startKey(tSplit.getStartRow()).stopKey(tSplit.getEndRow());
             this.scan = ((HScan)scan).unwrapDelegate();
-			restart(tSplit.getStartRow());
+            // TODO (wjk): this seems weird (added with DB-4483)
+            this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
+            restart(tSplit.getStartRow());
 		} catch (StandardException e) {
 			throw new IOException(e);
 		}
@@ -160,7 +163,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
             builder.region(region)
                     .template(template)
                     .scan(new HScan(scan))
-                    .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,Metrics.basicMetricFactory()));
+                    .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()));
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
 			siTableScanner = builder.build();
