@@ -1,9 +1,5 @@
 package com.splicemachine.derby.impl.load;
 
-import static com.splicemachine.derby.impl.load.ImportTestUtils.assertBadFileContainsError;
-import static com.splicemachine.derby.impl.load.ImportTestUtils.createBadLogDirectory;
-import static com.splicemachine.derby.impl.load.ImportTestUtils.createImportFileDirectory;
-import static com.splicemachine.derby.impl.load.ImportTestUtils.printBadFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -14,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -76,9 +73,9 @@ public class ImportDefaultValueIT {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        BADDIR = createBadLogDirectory(spliceSchemaWatcher.schemaName);
+        BADDIR = SpliceUnitTest.createBadLogDirectory(spliceSchemaWatcher.schemaName);
         assertNotNull(BADDIR);
-        IMPORTDIR = createImportFileDirectory(spliceSchemaWatcher.schemaName);
+        IMPORTDIR = SpliceUnitTest.createImportFileDirectory(spliceSchemaWatcher.schemaName);
         assertNotNull(IMPORTDIR);
     }
 
@@ -96,7 +93,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "ac")
                                                                    .toFileRow("2", "a").expected("2", "a")
                                                                    .toFileRow("3", "ab").expected("3", "ab")
@@ -115,7 +112,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "ac")
                                                                    .toFileRow("2", "NULL").expected("2", "NULL")
                                                                    .toFileRow("3", "ab").expected("3", "ab")
@@ -135,7 +132,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "ac")
                                                                    .toFileRow("2", "a").expected("2", "a")
                                                                    .toFileRow("3", "ab").expected("3", "ab")
@@ -154,7 +151,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1").expected("1", "abc")
                                                                    .toFileRow("2").expected("2", "abc")
                                                                    .toFileRow("3").expected("3", "abc")
@@ -173,7 +170,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "ac")
                                                                    .toFileRow("2", "").expected("2", "NULL")
                                                                    .toFileRow("3", "ab").expected("3", "ab")
@@ -192,7 +189,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac")
                                                                    .toFileRow("2")
                                                                    .toFileRow("3", "ab")
@@ -212,7 +209,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac")
                                                                    .toFileRow("2")
                                                                    .toFileRow("3", "ab")
@@ -232,7 +229,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "abc", "ac")
                                                                    .toFileRow("2", "").expected("2", "abc", "NULL")
                                                                    .toFileRow("3", "ab").expected("3", "abc", "ab")
@@ -253,7 +250,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
                                                                    .toFileRow("2", "2016-01-29 15:38:45", "").expected("2", "2016-01-29 15:38:45.0", "NULL")
                                                                    .toFileRow("3", "", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
@@ -273,7 +270,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
                                                                    .toFileRow("2", "").expected("2", "2011-03-17 15:52:25.0", "NULL")
                                                                    .toFileRow("3", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
@@ -294,7 +291,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "", "ac").expected("1", "2011-03-17 15:52:25.0", "ac")
                                                                    .toFileRow("2", "", "").expected("2", "2011-03-17 15:52:25.0", "NULL")
                                                                    .toFileRow("3", "", "ab").expected("3", "2011-03-17 15:52:25.0", "ab")
@@ -313,7 +310,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "ac")
                                                                    .toFileRow("2", "")
                                                                    .toFileRow("3", "ab")
@@ -333,7 +330,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "10", "ac").expected("1", "10", "ac")
                                                                    .toFileRow("2", "20", "").expected("2", "20", "NULL")
                                                                    .toFileRow("3", "30", "ab").expected("3", "30", "ab")
@@ -355,7 +352,7 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("ac").expected("1", "ac")
                                                                    .toFileRow("ac").expected("2", "ac")
                                                                    .toFileRow("ac").expected("3", "ac")
@@ -379,7 +376,7 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("ac").expected("1", "ac")
                                                                    .toFileRow("ac").expected("2", "ac")
                                                                    .toFileRow("ac").expected("3", "ac")
@@ -402,7 +399,7 @@ public class ImportDefaultValueIT {
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("ac").expected("1", "ac")
                                                                    .toFileRow("ac").expected("2", "ac")
                                                                    .toFileRow("ac").expected("3", "ac")
@@ -421,7 +418,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "10", "ac").expected("1", "10", "ac")
                                                                    .toFileRow("2", "20", "").expected("2", "20", "NULL")
                                                                    .toFileRow("3", "30", "ab").expected("3", "30", "ab")
@@ -440,7 +437,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("1", "", "ac").expected("1", "1", "ac")
                                                                    .toFileRow("2", "", "").expected("2", "2", "NULL")
                                                                    .toFileRow("3", "", "ab").expected("3", "3", "ab")
@@ -459,7 +456,7 @@ public class ImportDefaultValueIT {
         String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
         PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
 
-        ImportTestUtils.ResultList map = ImportTestUtils.ResultList.create()
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
                                                                    .toFileRow("zz", "ac").expected("1")
                                                                    .toFileRow("yy", "").expected("2")
                                                                    .toFileRow("xx", "ab").expected("3")
@@ -475,10 +472,28 @@ public class ImportDefaultValueIT {
                                         "COL1,COL3", fileName, map, "COL2", "", null, alternateQuery);
     }
 
+    @Test
+    public void importSpacesForNotNullVarcharCols() throws Exception {
+        // DB-4002: import column with only spaces imports as null
+        String tableName = "import_spaces_in_non_null_varchar";
+        String fileName = IMPORTDIR.getCanonicalPath()+"/"+tableName+".csv";
+        PrintWriter writer = new PrintWriter(fileName, UTF_8_CHAR_SET_STR);
+
+        SpliceUnitTest.ResultList map = SpliceUnitTest.ResultList.create()
+                .toFileRow("1", "\"    \"", "jean", "driggers").expected("1", "    ", "jean", "driggers")
+                .toFileRow("2", "erin", "\"    \"", "driggers").expected("2", "erin", "    ", "driggers")
+                .toFileRow("3", "erin", "jean", "\"    \"").expected("3", "erin", "jean", "    ")
+                .fill(writer);
+        writer.close();
+
+        helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, firstName varchar(20) NOT NULL, middleName varchar(20) NOT NULL default '', lastName varchar(20) NOT NULL default 'test'",
+                "null", fileName, map, "COL1", "", null, null);
+    }
+
     //==============================================================================================================
 
     private void helpTestDefaultAndGeneratedCols(String tableName, String tableDef, String colList, String fileName,
-                                                 ImportTestUtils.ResultList expectedResultList, String orderByCol, String
+                                                 SpliceUnitTest.ResultList expectedResultList, String orderByCol, String
                                                      sqlStateCode, String sqlStateCodeInErrorFile, String alternateQueryString)
         throws Exception {
 
@@ -499,7 +514,7 @@ public class ImportDefaultValueIT {
                                                                          "'%s'," +  // insert column list
                                                                          "'%s'," +  // file path
                                                                          "','," +   // column delimiter
-                                                                         "null," +  // character delimiter
+                                                                         "'\"'," +  // character delimiter
                                                                          "null," +  // timestamp format
                                                                          "null," +  // date format
                                                                          "null," +  // time format
@@ -512,16 +527,16 @@ public class ImportDefaultValueIT {
         try {
             ps.execute();
             if (sqlStateCode != null && ! sqlStateCode.isEmpty()) {
-                fail("Expected import exception: "+sqlStateCode+ " but didn't get it.  "+printBadFile(BADDIR, fileName));
+                fail("Expected import exception: "+sqlStateCode+ " but didn't get it.  "+SpliceUnitTest.printBadFile(BADDIR, fileName));
             }
         } catch (SQLException e) {
             if (sqlStateCode == null || sqlStateCode.isEmpty()) {
                 fail("Didn't expect exception but got: "+e.getSQLState()+" "+e.getLocalizedMessage()+".  "+
-                         printBadFile(BADDIR, fileName));
+                        SpliceUnitTest.printBadFile(BADDIR, fileName));
             } else if (sqlStateCodeInErrorFile != null && ! sqlStateCodeInErrorFile.isEmpty()) {
-                assertBadFileContainsError(BADDIR, fileName, sqlStateCodeInErrorFile);
+                SpliceUnitTest.assertBadFileContainsError(BADDIR, fileName, sqlStateCodeInErrorFile);
             }
-            assertEquals("Expected different error: "+e.getLocalizedMessage()+".  "+printBadFile(BADDIR, fileName),
+            assertEquals("Expected different error: "+e.getLocalizedMessage()+".  "+SpliceUnitTest.printBadFile(BADDIR, fileName),
                          sqlStateCode, e.getSQLState());
             // we got the error we expected. Done.
             return;
@@ -533,7 +548,7 @@ public class ImportDefaultValueIT {
         }
 
         ResultSet rs = methodWatcher.executeQuery(queryString);
-        ImportTestUtils.ResultList actualResultList = ImportTestUtils.ResultList.create();
+        SpliceUnitTest.ResultList actualResultList = SpliceUnitTest.ResultList.create();
         int nRows = 0;
         int nCols = rs.getMetaData().getColumnCount();
         while (rs.next()) {
@@ -547,7 +562,7 @@ public class ImportDefaultValueIT {
         }
 
         assertEquals(String.format("Expected %d rows imported, got: %d: %s", expectedResultList.nRows(), nRows,
-                                   printBadFile(BADDIR, fileName)), expectedResultList.nRows(), nRows);
+                SpliceUnitTest.printBadFile(BADDIR, fileName)), expectedResultList.nRows(), nRows);
 
         assertEquals("Results differ: ", expectedResultList.toString(), actualResultList.toString());
     }

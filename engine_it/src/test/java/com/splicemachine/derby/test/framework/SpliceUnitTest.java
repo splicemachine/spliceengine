@@ -1,14 +1,15 @@
 package com.splicemachine.derby.test.framework;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,8 +20,12 @@ import org.junit.runner.Description;
 import com.splicemachine.utils.Pair;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class SpliceUnitTest {
+
+    // TODO (wjkmerge): ImportTestUtils code was moved here but belongs in an import-specific place
+    // in engine-it module.
 
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
 
@@ -244,9 +249,54 @@ public class SpliceUnitTest {
             }
             assertTrue("Couldn't create "+importFileDirectory,importFileDirectory.delete());
         }
-        assertTrue("Couldn't create "+importFileDirectory,importFileDirectory.mkdirs());
+        assertTrue("Couldn't create " + importFileDirectory, importFileDirectory.mkdirs());
         assertTrue("Failed to create "+importFileDirectory,importFileDirectory.exists());
         return importFileDirectory;
+    }
+
+    public static void assertBadFileContainsError(File directory, String errorFile, String errorCode) throws IOException {
+        printBadFile(directory, errorFile, errorCode);
+    }
+
+    public static String printBadFile(File directory, String fileName) throws IOException {
+        return printBadFile(directory, fileName, null);
+    }
+
+    public static String printBadFile(File directory, String fileName, String errorCode) throws IOException {
+        // look for file in the "baddir" directory with same name as import file ending in ".bad"
+        Path path = Paths.get(fileName);
+        File badFile = new File(directory, path.getFileName() + ".bad");
+        if (badFile.exists()) {
+//            System.err.println(badFile.getAbsolutePath());
+            List<String> badLines = Files.readAllLines(badFile.toPath(), Charset.defaultCharset());
+            if (errorCode != null && ! errorCode.isEmpty()) {
+                // make sure at least one error entry contains the errorCode
+                boolean found = false;
+                for (String line : badLines) {
+                    if (line.startsWith(errorCode)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (! found ) {
+                    fail("Didn't find expected SQLState '"+errorCode+"' in bad file: "+badFile.getCanonicalPath());
+                }
+            }
+            return "Error file contents: "+badLines.toString();
+        }
+        return "File does not exist: "+badFile.getCanonicalPath();
+    }
+
+    public static String printImportFile(File directory, String fileName) throws IOException {
+        File file = new File(directory, fileName);
+        if (file.exists()) {
+            List<String> badLines = new ArrayList<>();
+            for(String line : Files.readAllLines(file.toPath(), Charset.defaultCharset())) {
+                badLines.add("{" + line + "}");
+            }
+            return "File contents: "+badLines.toString();
+        }
+        return "File does not exist: "+file.getCanonicalPath();
     }
 
 
@@ -334,4 +384,46 @@ public class SpliceUnitTest {
         }
     }
 
+    public static class ResultList {
+        private List<List<String>> resultList = new ArrayList<>();
+        private List<List<String>> expectedList = new ArrayList<>();
+
+        public static ResultList create() {
+            return new ResultList();
+        }
+
+        public ResultList toFileRow(String... values) {
+            if (values != null && values.length > 0) {
+                resultList.add(Arrays.asList(values));
+            }
+            return this;
+        }
+
+        public ResultList expected(String... values) {
+            if (values != null && values.length > 0) {
+                expectedList.add(Arrays.asList(values));
+            }
+            return this;
+        }
+
+        public ResultList fill(PrintWriter pw) {
+            for (List<String> row : resultList) {
+                pw.println(Joiner.on(",").join((row)));
+            }
+            return this;
+        }
+
+        public int nRows() {
+            return resultList.size();
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buf = new StringBuilder();
+            for (List<String> row : expectedList) {
+                buf.append(row.toString()).append("\n");
+            }
+            return buf.toString();
+        }
+    }
 }
