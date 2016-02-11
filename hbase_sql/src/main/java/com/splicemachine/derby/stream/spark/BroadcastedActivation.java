@@ -4,10 +4,8 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
 import org.apache.spark.broadcast.Broadcast;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
+import java.util.Arrays;
 
 /**
  * Encapsulates and ActivationHolder and the Broadcast Spark object used to transfer it to all servers.
@@ -16,8 +14,10 @@ import java.io.ObjectOutput;
  * Created by dgomezferro on 1/14/16.
  */
 public class BroadcastedActivation implements Externalizable {
+    private static ThreadLocal<ActivationHolderAndBytes> activationHolderTL =new ThreadLocal<>();
+    private byte[] serializedValue;
     private ActivationHolder activationHolder;
-    private Broadcast<ActivationHolder> bcast;
+    private Broadcast<byte[]> bcast;
 
     public BroadcastedActivation() {
 
@@ -25,7 +25,8 @@ public class BroadcastedActivation implements Externalizable {
 
     public BroadcastedActivation (Activation activation) {
         this.activationHolder = new ActivationHolder(activation);
-        this.bcast = SpliceSpark.getContext().broadcast(activationHolder);
+        this.serializedValue = writeActivationHolder();
+        this.bcast = SpliceSpark.getContext().broadcast(serializedValue);
     }
 
     @Override
@@ -35,11 +36,47 @@ public class BroadcastedActivation implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        bcast = (Broadcast<ActivationHolder>) in.readObject();
-        activationHolder = bcast.getValue();
+        bcast = (Broadcast<byte[]>) in.readObject();
+        serializedValue = bcast.getValue();
+        ActivationHolderAndBytes ah= activationHolderTL.get();
+        if(ah==null || !Arrays.equals(ah.bytes,serializedValue)){
+            ah = readActivationHolder();
+            activationHolderTL.set(ah);
+        }
+
+        activationHolder = ah.activationHolder;
     }
 
     public ActivationHolder getActivationHolder() {
         return activationHolder;
+    }
+
+    private byte[] writeActivationHolder(){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try(ObjectOutputStream oos = new ObjectOutputStream(baos)){
+            oos.writeObject(activationHolder);
+        }catch(IOException e){
+            throw new RuntimeException(e);
+        }
+        return baos.toByteArray();
+    }
+
+    private ActivationHolderAndBytes readActivationHolder(){
+        ByteArrayInputStream bais = new ByteArrayInputStream(serializedValue);
+        try(ObjectInputStream ois = new ObjectInputStream(bais)){
+            return new ActivationHolderAndBytes((ActivationHolder)ois.readObject(),serializedValue);
+        }catch(ClassNotFoundException | IOException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class ActivationHolderAndBytes {
+        ActivationHolder activationHolder;
+        byte[] bytes;
+
+        public ActivationHolderAndBytes(ActivationHolder activationHolder,byte[] bytes){
+            this.activationHolder=activationHolder;
+            this.bytes=bytes;
+        }
     }
 }

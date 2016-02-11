@@ -36,6 +36,7 @@ public class ActivationHolder implements Externalizable {
     private Activation activation;
     private SpliceObserverInstructions soi;
     private TxnView txn;
+    private boolean initialized=false;
 
     public ActivationHolder() {
 
@@ -43,6 +44,7 @@ public class ActivationHolder implements Externalizable {
 
     public ActivationHolder(Activation activation) {
         this.activation = activation;
+        this.initialized = true;
         addSubOperations(operationsMap, (SpliceOperation) activation.getResultSet());
         if(activation.getResultSet()!=null){
             operationsList.add((SpliceOperation) activation.getResultSet());
@@ -68,7 +70,6 @@ public class ActivationHolder implements Externalizable {
                 throw new RuntimeException(e);
             }
         }
-        soi = SpliceObserverInstructions.create(this);
         txn = getTransaction(activation);
     }
 
@@ -93,6 +94,7 @@ public class ActivationHolder implements Externalizable {
     }
 
     public Activation getActivation() {
+        init();
         return activation;
     }
 
@@ -101,10 +103,41 @@ public class ActivationHolder implements Externalizable {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public synchronized void writeExternal(ObjectOutput out) throws IOException {
+        if(soi==null){
+            soi = SpliceObserverInstructions.create(this);
+        }
         out.writeObject(operationsList);
         out.writeObject(soi);
         SIDriver.driver().getOperationFactory().writeTxn(txn,out);
+    }
+
+    public void init(){
+        init(txn);
+    }
+
+    public synchronized void init(TxnView txn){
+        if(initialized)
+            return;
+        initialized = true;
+        SpliceTransactionResourceImpl impl = null;
+        boolean prepared = false;
+        try {
+            impl = new SpliceTransactionResourceImpl();
+            prepared =  impl.marshallTransaction(txn);
+            activation = soi.getActivation(this, impl.getLcc());
+
+            SpliceOperationContext context = SpliceOperationContext.newContext(activation);
+            for(SpliceOperation so: operationsList){
+                so.init(context);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (prepared) {
+                impl.close();
+            }
+        }
     }
 
     @Override
@@ -116,24 +149,6 @@ public class ActivationHolder implements Externalizable {
         }
         soi = (SpliceObserverInstructions) in.readObject();
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
-        SpliceTransactionResourceImpl impl = null;
-        boolean prepared = false;
-        try {
-            impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txn);
-            activation = soi.getActivation(this, impl.getLcc());
-
-            SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-            for(SpliceOperation so: operationsList){
-                 so.init(context);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (prepared) {
-                impl.close();
-            }
-        }
     }
 
     public void setActivation(Activation activation) {
