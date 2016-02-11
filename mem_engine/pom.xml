@@ -160,9 +160,6 @@
                         <goals>
                             <goal>java</goal>
                         </goals>
-                        <configuration>
-                            <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
-                        </configuration>
                     </execution>
                     <execution>
                         <!-- executable for turning off memdatabase after ITs have run-->
@@ -181,6 +178,9 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
+                </configuration>
             </plugin>
             <plugin>
                 <!--Boot the database as part of the pre-integration test process-->
