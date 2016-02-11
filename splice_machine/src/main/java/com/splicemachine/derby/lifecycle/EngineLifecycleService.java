@@ -61,7 +61,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
     @Override
     public void start() throws Exception{
-//        System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
         loadManifest();
 
         startup.distributedStart();

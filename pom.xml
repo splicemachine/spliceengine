@@ -445,7 +445,6 @@
                 <module>mem_storage</module>
                 <module>mem_pipeline</module>
                 <module>mem_engine</module>
-                <module>engine_it</module>
             </modules>
         </profile>
         <profile>
@@ -463,7 +462,6 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
-                <module>engine_it</module>
             </modules>
         </profile>
     </profiles>

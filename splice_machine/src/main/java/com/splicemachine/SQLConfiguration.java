@@ -60,7 +60,7 @@ public class SQLConfiguration{
      * Defaults to false (off)
      */
     public static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
-    private static final boolean DEFAULT_DUMP_CLASS_FILE=true;
+    private static final boolean DEFAULT_DUMP_CLASS_FILE=false;
 
     public static final String DEBUG_DUMP_BIND_TREE = "splice.debug.compile.dumpBindTree";
     private static final boolean DEFAULT_DUMP_BIND_TREE=false;
