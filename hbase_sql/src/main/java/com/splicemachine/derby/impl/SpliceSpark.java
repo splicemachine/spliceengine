@@ -5,20 +5,43 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
+import com.google.common.base.Function;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.SameThreadExecutorService;
+import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
+import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.derby.stream.spark.SpliceMachineSource;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.PipelineLoadService;
+import com.splicemachine.pipeline.ContextFactoryDriverService;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
+import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
+import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import com.google.common.base.Splitter;
 import org.apache.spark.rdd.RDDOperationScope;
 import scala.Tuple2;
+
+import javax.annotation.Nullable;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
@@ -76,19 +99,30 @@ public class SpliceSpark {
         try {
             if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
-                new EmbeddedDriver();
-                new SpliceAccessManager();
-//                SpliceDriver driver = SpliceDriver.driver();
-//                if (!driver.isStarted()) {
-//                    driver.start(); // TODO might cause NPEs....
-//                }
-                EngineDriver driver = EngineDriver.driver();
-                assert driver!=null: "Not booted yet!";
-//                if(driver!=null){
-//                    driver.loadUUIDGenerator(1); // Need to get Spark Port? TODO JL
-//                }
-//                if (driver.getUUIDGenerator() == null) {
-//                }
+
+                //boot SI components
+                HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
+                SIDriver driver = env.getSIDriver();
+
+                //make sure the configuration is correct
+                SConfiguration config=driver.getConfiguration();
+                config.addDefaults(SQLConfiguration.defaults);
+                //boot derby components
+                new EngineLifecycleService(new DistributedDerbyStartup(){
+                    @Override public void distributedStart() throws IOException{ }
+                    @Override public void markBootFinished() throws IOException{ }
+                    @Override public boolean connectAsFirstTime(){ return false; }
+                },config).start();
+
+                EngineDriver engineDriver = EngineDriver.driver();
+                assert engineDriver!=null: "Not booted yet!";
+
+                //boot the pipeline components
+                final Clock clock = driver.getClock();
+                ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
+                HBasePipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
+                PipelineDriver.loadDriver(pipelineEnv);
+
                 spliceStaticComponentsSetup = true;
                 SpliceMachineSource.register();
             }

@@ -101,14 +101,15 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
 
     public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
             InterruptedException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,config.get(TableInputFormat.INPUT_TABLE));
-        rr = new SMRecordReaderImpl(config);
+        config.addResource(conf);
+            SpliceLogUtils.info(LOG, "getRecorderReader with table=%s, inputTable=%s," +
+                    "conglomerate=%s",
+                    table,
+                    config.get(TableInputFormat.INPUT_TABLE),
+                    config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        rr = new SMRecordReaderImpl(conf);
         if(table == null){
             TableName tableInfo = TableName.valueOf(config.get(TableInputFormat.INPUT_TABLE));
-//            org.apache.hadoop.hbase.TableName tableInfo=HBaseTableInfoFactory
-//                    .getInstance(HConfiguration.INSTANCE)
-//                    .getTableInfo(config.get(TableInputFormat.INPUT_TABLE));
             table=new HTable(HBaseConfiguration.create(config),tableInfo);
         }
         rr.setHTable(table);
@@ -123,8 +124,8 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     public RecordReader<RowLocation, ExecRow> createRecordReader(
             InputSplit split, TaskAttemptContext context) throws IOException,
             InterruptedException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "createRecordReader for split=%s, context %s",split,context);
+//        if (LOG.isDebugEnabled())
+            SpliceLogUtils.info(LOG, "createRecordReader for split=%s, context %s",split,context);
         if (rr != null)
             return rr;
         return getRecordReader(split,context.getConfiguration());

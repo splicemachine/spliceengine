@@ -5,6 +5,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.hbase.ReadOnlyHTableDescriptor;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -78,6 +79,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         }
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
+        SpliceSpark.setupSpliceStaticComponents();
     }
 
     @Override

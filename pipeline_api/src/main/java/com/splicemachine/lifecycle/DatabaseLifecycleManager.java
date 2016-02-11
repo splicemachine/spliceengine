@@ -45,7 +45,7 @@ public class DatabaseLifecycleManager{
     private final CopyOnWriteArrayList<DatabaseLifecycleService> generalServices= new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<DatabaseLifecycleService> networkServices= new CopyOnWriteArrayList<>();
 
-    private final Executor lifecycleExecutor =Executors.newSingleThreadExecutor();
+    private final Executor lifecycleExecutor;
     private volatile MBeanServer jmxServer;
 
     public static DatabaseLifecycleManager manager(){
@@ -58,6 +58,14 @@ public class DatabaseLifecycleManager{
             }
         }
         return dlm;
+    }
+
+    public DatabaseLifecycleManager(){
+       this(Executors.newSingleThreadExecutor());
+    }
+
+    public DatabaseLifecycleManager(Executor lifecycleExecutor){
+        this.lifecycleExecutor = lifecycleExecutor;
     }
 
     public void start(){
