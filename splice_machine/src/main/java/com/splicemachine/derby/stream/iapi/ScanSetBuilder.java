@@ -60,6 +60,9 @@ public interface ScanSetBuilder<V>{
 
     DataSet<V> buildDataSet() throws StandardException;
 
+    // TODO (wjkmerge): might be able to do better than Object but for now this is port from master_dataset
+    DataSet<V> buildDataSet(Object caller) throws StandardException;
+
     ScanSetBuilder<V> activation(Activation activation);
 
     String base64Encode() throws IOException, StandardException;

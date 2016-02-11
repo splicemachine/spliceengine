@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.stats.StatisticsScanner;
@@ -522,5 +523,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     public int[] getExecRowTypeFormatIds(){
         return execRowTypeFormatIds;
+    }
+
+    public DataSet<V> buildDataSet(Object caller) throws StandardException {
+        return buildDataSet(null);
     }
 }

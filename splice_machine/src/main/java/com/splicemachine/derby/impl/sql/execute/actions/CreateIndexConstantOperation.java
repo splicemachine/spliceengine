@@ -754,7 +754,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                                           TransactionController tc,
                                           TableDescriptor td,
                                           long indexConglomId,
-                                          long heapConglomerateId,
+                                          long heapConglomerateId, // TODO (wjkmerge) needed now that below we pull it from TD?
                                           IndexDescriptor indexDescriptor) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases
@@ -772,7 +772,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         String changeId = DDLUtils.notifyMetadataChange(ddlChange);
         tc.prepareDataDictionaryChange(changeId);
         Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
-        populateIndex(activation, indexTransaction,tentativeTransaction.getCommitTimestamp(),ddlChange.getTentativeIndex());
+        populateIndex(activation, indexTransaction, tentativeTransaction.getCommitTimestamp(), ddlChange.getTentativeIndex(), td);
         indexTransaction.commit();
     }
 

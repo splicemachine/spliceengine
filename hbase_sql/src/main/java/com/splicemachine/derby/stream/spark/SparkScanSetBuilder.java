@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -40,7 +41,20 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
     }
 
     @Override
-    public DataSet<V> buildDataSet() throws StandardException{
+    public DataSet<V> buildDataSet() throws StandardException {
+        return buildDataSet(null);
+    }
+
+    @Override
+    public DataSet<V> buildDataSet(Object caller) throws StandardException {
+        // TODO (wjkmerge): change Object to ScopeNamed
+        // Object 'caller' was a very specific case in master_dataset.
+        // but this code is more generic.
+        if (caller instanceof ScopeNamed) {
+            caller = ((ScopeNamed)caller).getScopeName();
+        }
+
+        // This code correlated somewhat to SparkDataSetProcessor.getHTableScanner from master_dataset.
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);

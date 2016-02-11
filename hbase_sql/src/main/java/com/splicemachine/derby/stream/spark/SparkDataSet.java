@@ -112,15 +112,11 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), function.getSparkName());
-    }
-
-    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
-        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), name);
+        return map(function, null, false, false, null);
     }
 
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
-        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), planIfLast(function, isLast));
+        return map(function, null, isLast, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

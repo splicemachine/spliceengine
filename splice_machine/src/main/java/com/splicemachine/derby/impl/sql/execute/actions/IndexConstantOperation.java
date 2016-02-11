@@ -20,6 +20,8 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 
@@ -78,12 +80,11 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-
-
     protected void populateIndex(Activation activation,
                                  Txn indexTransaction,
                                  long demarcationPoint,
-                                 DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
+                                 DDLMessage.TentativeIndex tentativeIndex,
+                                 TableDescriptor td) throws StandardException {
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 		/*
 		 * Backfill the index with any existing data.
@@ -95,20 +96,22 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
             dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-            IndexScanSetBuilder<KVPair> indexBuilder=dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
-            DataSet<KVPair> dataSet =indexBuilder
-                    .indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
-                    .transaction(indexTransaction)
-                    .demarcationPoint(demarcationPoint)
-                    .scan(DDLUtils.createFullScan()).buildDataSet();
-
-            PairDataSet dsToWrite=dataSet.map(new IndexTransformFunction(tentativeIndex)).index(new KVPairFunction());
-            DataSetWriter writer=dsToWrite.directWriteData()
-                    .destConglomerate(tentativeIndex.getIndex().getConglomerate())
-                    .txn(childTxn)
-                    .build();
-
-            DataSet<LocatedRow> result = writer.write();
+            IndexScanSetBuilder<KVPair> indexBuilder = dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
+            DataSet<KVPair> dataSet = indexBuilder
+				.indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
+				.transaction(indexTransaction)
+				.demarcationPoint(demarcationPoint)
+				.scan(DDLUtils.createFullScan())
+				.buildDataSet();
+			String scope = this.getScopeName();
+            PairDataSet dsToWrite = dataSet
+				.map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
+				.index(new KVPairFunction(), false, true, scope + ": Populate Index");
+			DataSetWriter writer = dsToWrite.directWriteData()
+				.destConglomerate(tentativeIndex.getIndex().getConglomerate())
+				.txn(childTxn)
+				.build();
+            DataSet<LocatedRow> result = writer.write(); // TODO (wjkmerge): do something with result?
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -117,6 +120,16 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
         return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());
+    }
+    
+    public String getScopeName() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(StringUtils.join(
+            StringUtils.splitByCharacterTypeCamelCase(
+                this.getClass().getSimpleName().
+                replace("Operation", "").replace("Constant", "")), " "));
+        sb.append(" ").append(indexName);
+        return sb.toString();
     }
 
 }

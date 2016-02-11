@@ -102,6 +102,7 @@ public class ControlDataSet<V> implements DataSet<V> {
         return new ControlDataSet<U>(Iterables.transform(iterable, function));
     }
 
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
         return map(function);
     }
@@ -276,7 +277,6 @@ public class ControlDataSet<V> implements DataSet<V> {
     public Iterator<V> iterator() {
         return this.toLocalIterator();
     }
-
 
     @Override
     public void setAttribute(String name, String value) {

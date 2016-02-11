@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.actions.DDLConstantOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.Exceptions;
@@ -9,6 +11,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -92,10 +95,27 @@ public class MiscOperation extends NoRowsOperation {
         @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             setup();
+
             activation.getConstantAction().executeConstantAction(activation);
 
             ValueRow valueRow = new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger((int) activation.getRowsSeen()));
-            return dsp.singleRowDataSet(new LocatedRow(valueRow));
+            valueRow.setColumn(1, new SQLInteger((int) activation.getRowsSeen()));
+
+            // For DDL statements, use ControlDataSetProcessor even if
+            // SparkDataSetProcessor was passed in as the 'dsp' argument
+            // for the main operation logic. Avoid unnecessary spark job
+            // in the UI.
+
+            if (activation.getConstantAction() instanceof DDLConstantOperation) {
+                DataSetProcessor control = EngineDriver.driver().processorFactory().localProcessor(activation, null);
+                return control.singleRowDataSet(new LocatedRow(valueRow));
+                // return StreamUtils.getControlDataSetProcessor().singleRowDataSet(new LocatedRow(valueRow));
+            } else {
+                String name = StringUtils.join(
+                    StringUtils.splitByCharacterTypeCamelCase(
+                        activation.getConstantAction().getClass().getSimpleName().
+                        replace("Operation", "").replace("Constant", "")), ' ');
+                return dsp.singleRowDataSet(new LocatedRow(valueRow), name);
+            }
         }
 }
