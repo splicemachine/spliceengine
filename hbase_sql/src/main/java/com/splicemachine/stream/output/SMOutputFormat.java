@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -38,12 +39,12 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
     @Override
     public RecordWriter getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
-            DataSetWriter dsWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
+            DataSetWriterBuilder dsWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
                 throw new IOException("child transaction lookup failed");
-            dsWriter.setTxn(outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID()));
-            return new SMRecordWriter(dsWriter.getTableWriter(), outputCommitter);
+            dsWriter.txn(outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID()));
+            return new SMRecordWriter(dsWriter.buildTableWriter(), outputCommitter);
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -61,7 +62,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
             SpliceLogUtils.debug(LOG,"getOutputCommitter for taskAttemptContext=%s",taskAttemptContext);
         try {
             if (outputCommitter == null) {
-                DataSetWriter tableWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
+                DataSetWriterBuilder tableWriter = TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
                 outputCommitter = new SpliceOutputCommitter(tableWriter.getTxn(),tableWriter.getDestinationTable());
             }
             return outputCommitter;

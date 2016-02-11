@@ -1,8 +1,12 @@
 package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.TableWriter;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
@@ -38,6 +42,22 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder skipIndex(boolean skipIndex){
         throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public TxnView getTxn(){
+        return txn;
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        return Bytes.toBytes(Long.toString(heapConglom));
+    }
+
+    @Override
+    public TableWriter buildTableWriter() throws StandardException{
+        long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
+        return new DeletePipelineWriter(txn,conglom,operationContext);
     }
 
     @Override

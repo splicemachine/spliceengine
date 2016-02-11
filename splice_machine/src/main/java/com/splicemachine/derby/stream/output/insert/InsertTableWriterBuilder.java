@@ -6,10 +6,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.lang3.SerializationUtils;
@@ -95,6 +97,24 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     @Override
     public DataSetWriterBuilder skipIndex(boolean skipIndex){
         throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
+    public TxnView getTxn(){
+        return txn;
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        return Bytes.toBytes(Long.toString(heapConglom));
+    }
+
+    @Override
+    public TableWriter buildTableWriter() throws StandardException{
+        return new InsertPipelineWriter(pkCols,
+                tableVersion,
+                execRowDefinition,autoIncrementRowLocationArray,spliceSequences,heapConglom,
+                txn,operationContext,isUpsert);
     }
 
     @Override

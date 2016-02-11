@@ -3,6 +3,7 @@ package com.splicemachine.stream.index;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.kvpair.KVPair;
@@ -65,6 +66,7 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
         if (tableScannerAsString == null)
             throw new IOException("splice scan info was not serialized to task, failing");
         try {
+            SpliceSpark.setupSpliceStaticComponents();
             builder =(TableScannerBuilder)HTableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);

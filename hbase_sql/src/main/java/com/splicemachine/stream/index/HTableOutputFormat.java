@@ -1,8 +1,7 @@
 package com.splicemachine.stream.index;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.stream.iapi.TableWriter;
-import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.stream.output.SpliceOutputCommitter;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
@@ -41,12 +40,12 @@ public class HTableOutputFormat extends OutputFormat<byte[],KVPair> implements C
     @Override
     public RecordWriter getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         try {
-            DataSetWriter tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
+            DataSetWriterBuilder tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
             TxnView childTxn = outputCommitter.getChildTransaction(taskAttemptContext.getTaskAttemptID());
             if (childTxn == null)
                 throw new IOException("child transaction lookup failed");
-            tableWriter.setTxn(childTxn);
-            return new HTableRecordWriter(tableWriter.getTableWriter());
+            tableWriter.txn(childTxn);
+            return new HTableRecordWriter(tableWriter.buildTableWriter());
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -64,7 +63,7 @@ public class HTableOutputFormat extends OutputFormat<byte[],KVPair> implements C
             SpliceLogUtils.debug(LOG, "getOutputCommitter for taskAttemptContext=%s", taskAttemptContext);
         try {
             if (outputCommitter == null) {
-                DataSetWriter tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
+                DataSetWriterBuilder tableWriter =TableWriterUtils.deserializeTableWriter(taskAttemptContext.getConfiguration());
                 outputCommitter = new SpliceOutputCommitter(tableWriter.getTxn(),tableWriter.getDestinationTable());
             }
             return outputCommitter;

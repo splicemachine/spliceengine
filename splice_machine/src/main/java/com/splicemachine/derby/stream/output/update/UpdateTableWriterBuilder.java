@@ -5,9 +5,11 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.codec.binary.Base64;
@@ -121,6 +123,22 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         assert formatIds != null :"Format ids cannot be null";
         this.formatIds = formatIds;
         return this;
+    }
+
+    @Override
+    public TxnView getTxn(){
+        return txn;
+    }
+
+    @Override
+    public byte[] getDestinationTable(){
+        return Bytes.toBytes(Long.toString(heapConglom));
+    }
+
+    @Override
+    public TableWriter buildTableWriter() throws StandardException{
+        return new UpdatePipelineWriter(heapConglom,formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
+                txn, execRowDefinition,heapList,operationContext);
     }
 
     public long getHeapConglom() {

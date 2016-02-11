@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.utils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.TableWriter.Type;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
@@ -39,7 +40,7 @@ public class TableWriterUtils {
     }
 
 
-    public static DataSetWriter deserializeTableWriter(Configuration conf) throws IOException, StandardException {
+    public static DataSetWriterBuilder deserializeTableWriter(Configuration conf) throws IOException, StandardException {
         String typeString = conf.get(MRConstants.TABLE_WRITER_TYPE);
         if (typeString == null)
             throw new IOException("Table Writer Type Missing");
@@ -49,13 +50,13 @@ public class TableWriterUtils {
             throw new IOException("record Writer Failed");
         switch (type) {
             case INSERT:
-                return InsertTableWriterBuilder.getInsertTableWriterBuilderFromBase64String(base64).build();
+                return InsertTableWriterBuilder.getInsertTableWriterBuilderFromBase64String(base64);
             case UPDATE:
-                return UpdateTableWriterBuilder.getUpdateTableWriterBuilderFromBase64String(base64).build();
+                return UpdateTableWriterBuilder.getUpdateTableWriterBuilderFromBase64String(base64);
             case DELETE:
-                return DeleteTableWriterBuilder.getDeleteTableWriterBuilderFromBase64String(base64).build();
+                return DeleteTableWriterBuilder.getDeleteTableWriterBuilderFromBase64String(base64);
             case INDEX:
-                return DirectTableWriterBuilder.decodeBase64(base64).build();
+                return DirectTableWriterBuilder.decodeBase64(base64);
             default:
                 throw new IOException("Type Incorrect");
         }

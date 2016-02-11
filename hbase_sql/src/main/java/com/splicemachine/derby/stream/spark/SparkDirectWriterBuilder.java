@@ -10,7 +10,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.stream.index.HTableOutputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 

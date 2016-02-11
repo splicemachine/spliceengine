@@ -2,7 +2,7 @@ package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.si.api.txn.TxnView;
 
 /**
@@ -20,4 +20,10 @@ public interface DataSetWriterBuilder{
     DataSetWriterBuilder operationContext(OperationContext operationContext);
 
     DataSetWriterBuilder skipIndex(boolean skipIndex);
+
+    TxnView getTxn();
+
+    byte[] getDestinationTable();
+
+    TableWriter buildTableWriter() throws StandardException;
 }
