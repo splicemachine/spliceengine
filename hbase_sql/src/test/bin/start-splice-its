@@ -12,7 +12,7 @@ YARNLOG="${ROOT_DIR}"/yarn_it.log
 SPLICELOG="${ROOT_DIR}"/splice_it.log
 
 CHAOS="false"
-PROFILE="cloudera-cdh4.5.0"  # default hbase platform profile
+PROFILE="cdh5.4.8"  # default hbase platform profile
 
 usage() {
     # $1 is an error, if any
