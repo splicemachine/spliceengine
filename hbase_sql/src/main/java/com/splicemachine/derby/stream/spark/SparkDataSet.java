@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -97,7 +98,18 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast) {
         return new SparkPairDataSet<>(rdd.mapToPair(new SparkSplittingFunction<>(function)), planIfLast(function, isLast));
     }
-    
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(function, pushScope, scopeDetail);
+        try {
+            return new SparkPairDataSet(rdd.mapToPair(new SparkSplittingFunction<>(function)), planIfLast(function, isLast));
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
+    }
+
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
         return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), function.getSparkName());
@@ -111,18 +123,22 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), planIfLast(function, isLast));
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(function, pushScope, scopeDetail);
+        try {
+            return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)), (name != null ? name : planIfLast(function, isLast)));
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
+    }
+
     @Override
     public Iterator<V> toLocalIterator() {
         return rdd.toLocalIterator();
     }
 
-    @SuppressWarnings("rawtypes")
-    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
-        if (!isLast) return f.getSparkName();
-        String plan = f.getOperation().getPrettyExplainPlan();
-        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
-    }
-    
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
         return new SparkPairDataSet<>(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), f.getSparkName());
@@ -132,6 +148,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkPairDataSet<>(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), name);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(
             SpliceFunction<Op, V, K> f, String name, boolean pushScope, String scopeDetail) {
@@ -151,21 +168,28 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        return union(dataSet, SparkConstants.RDD_NAME_UNION);
+        return union(dataSet, SparkConstants.RDD_NAME_UNION, false, null);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name) {
-        JavaRDD<V> union=rdd.union(((SparkDataSet<V>)dataSet).rdd);
-        union.setName(name);
-        return new SparkDataSet<>(union);
+    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(null, pushScope, scopeDetail);
+        try {
+            JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
+            rdd1.setName(name != null ? name : SparkConstants.RDD_NAME_UNION);
+            return new SparkDataSet<>(rdd1);
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
     }
-    
+
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
         return new SparkDataSet<>(rdd.filter(new SparkSpliceFunctionWrapper<>(f)), f.getSparkName());
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(
         SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
@@ -347,4 +371,21 @@ public class SparkDataSet<V> implements DataSet<V> {
             return null;
         return attributes.get(name);
     }
+
+    private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function != null && function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    private String planIfLast(AbstractSpliceFunction f, boolean isLast) {
+        if (!isLast) return f.getSparkName();
+        String plan = f.getOperation().getPrettyExplainPlan();
+        return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
+    }
+
 }

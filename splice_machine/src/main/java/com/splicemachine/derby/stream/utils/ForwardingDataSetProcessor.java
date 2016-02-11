@@ -54,6 +54,11 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    public <V> DataSet<V> createDataSet(Iterable<V> value, String name) {
+        return delegate.createDataSet(value);
+    }
+
+    @Override
     public <K,V> PairDataSet<K, V> singleRowPairDataSet(K key,V value){
         return delegate.singleRowPairDataSet(key,value);
     }

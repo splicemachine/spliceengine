@@ -7,10 +7,9 @@ import com.splicemachine.db.iapi.sql.Activation;
 import java.io.InputStream;
 
 /**
+ * Higher level constructs for getting datasets and manipulating the processing mechanisms.
  *
- * Higher Level Constructs for getting Datasets and manipulating the processsing mechanisms.
- *
- * Created by jleach on 4/13/15.
+ * @author jleach
  */
 public interface DataSetProcessor {
 
@@ -18,118 +17,75 @@ public interface DataSetProcessor {
 
     <Op extends SpliceOperation, V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException;
 
-    /**
-     * Get an empty dataset
-     *
-     * @param <V>
-     * @return
-     */
     <V> DataSet<V> getEmpty();
 
     <V> DataSet<V> getEmpty(String name);
 
     /**
-     * Generate a single row dataset from a value.
-     *
-     * @param value
-     * @param <V>
-     * @return
+     * Generates a single row dataset from a value.
      */
     <V> DataSet<V> singleRowDataSet(V value);
 
     <V> DataSet<V> singleRowDataSet(V value, Object caller);
     
     /**
-     * Create a dataset from a provided Iterable.
-     *
-     * @param value
-     * @param <V>
-     * @return
+     * Creates a dataset from a provided Iterable.
      */
     <V> DataSet<V> createDataSet(Iterable<V> value);
 
+    <V> DataSet<V> createDataSet(Iterable<V> value, String name);
+
     /**
-     *
-     * Create a single row PairDataSet
-     * @param key
-     * @param value
-     * @param <K>
-     * @param <V>
-     * @return
+     * Creates a single row PairDataSet
      */
     <K,V> PairDataSet<K, V> singleRowPairDataSet(K key, V value);
 
     /**
+     * Creates an operation context for executing a function.
      *
-     * Create an operation context for executing a function.
-     *
-     * @param spliceOperation
-     * @param <Op>
-     * @return
      */
     <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation);
 
     /**
-     *
-     * Create an operation context based only on the supplied activation
-     *
-     * @param activation
-     * @param <Op>
-     * @return
+     * Creates an operation context based only on the supplied activation
      */
     <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation);
 
     /**
-     *
-     * Set the job group for execution.
-     * @param jobName
-     * @param jobDescription
+     * Sets the job group for execution.
      */
     void setJobGroup(String jobName, String jobDescription);
 
     /**
-     * Read a whole text file from path.
-     *
-     * @param path
-     * @return
+     * Reads a whole text file from path.
      */
     PairDataSet<String,InputStream> readWholeTextFile(String path);
 
     PairDataSet<String,InputStream> readWholeTextFile(String path, SpliceOperation op);
 
     /**
-     *
-     * Read a text file that will be split in blocks when splittable compression algorithms are
+     * Reads a text file that will be split in blocks when splittable compression algorithms are
      * utilized.
-     *
-     * @param path
-     * @return
      */
     DataSet<String> readTextFile(String path);
 
     DataSet<String> readTextFile(String path, SpliceOperation op);
     
     /**
-     * Get an empty PairDataSet
-     *
-     * @param <K>
-     * @param <V>
-     * @return
+     * Gets an empty PairDataSet
      */
     <K,V> PairDataSet<K, V> getEmptyPair();
 
     /**
-     * Set the scheduler pool for execution (if appropriate)
-     *
-     * @param pool
+     * Sets the scheduler pool for execution (if appropriate)
      */
     void setSchedulerPool(String pool);
 
     /**
-     *
-     * Set whether failures are swallowed vs. being thrown up the stack.
+     * Sets whether failures are swallowed vs. being thrown up the stack.
      */
     void setPermissive();
+
     void setFailBadRecordCount(int failBadRecordCount);
 
     void clearBroadcastedOperation();

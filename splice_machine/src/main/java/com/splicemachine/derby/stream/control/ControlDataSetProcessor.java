@@ -223,6 +223,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    public <V> DataSet<V> createDataSet(Iterable<V> value, String name) {
+        return new ControlDataSet<>(value);
+    }
+
+    @Override
     public void setSchedulerPool(String pool){
         // no op
     }

@@ -209,6 +209,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public <V> DataSet< V> createDataSet(Iterable<V> value, String name) {
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Lists.newArrayList(value));
+        rdd1.setName(name);
+        return new SparkDataSet(rdd1);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
         return new SparkPairDataSet<>(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));

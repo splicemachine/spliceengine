@@ -91,21 +91,26 @@ public class ControlDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, boolean isLast) {
         return index(function);
     }
-    
+
+    @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail) {
+        return index(function);
+    }
+
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
         return new ControlDataSet<U>(Iterables.transform(iterable, function));
     }
 
-    @Override
-    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name) {
-        return map(function);
-    }
-
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) {
         return map(function);
     }
-    
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail) {
+        return map(function);
+    }
+
     @Override
     public Iterator<V> toLocalIterator() {
         return iterable.iterator();
@@ -143,7 +148,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet< V> union(DataSet< V> dataSet, String name) {
+    public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
         return union(dataSet);
     }
 
