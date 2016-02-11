@@ -169,8 +169,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     public int modifiedRowCount(){
         try{
             int modifiedRowCount=0;
-            while(locatedRowIterator.hasNext())
-                modifiedRowCount+=locatedRowIterator.next().getRow().getColumn(1).getInt();
+            while(locatedRowIterator.hasNext()){
+                LocatedRow next=locatedRowIterator.next();
+                modifiedRowCount+=next.getRow().getColumn(1).getInt();
+            }
             return modifiedRowCount;
         }catch(StandardException se){
             throw new RuntimeException(se);

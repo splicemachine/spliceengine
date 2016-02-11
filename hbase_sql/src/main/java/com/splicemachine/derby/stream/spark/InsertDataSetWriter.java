@@ -4,6 +4,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
@@ -82,6 +83,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 opContext.getOperation().fireAfterStatementTriggers();
             }
             ValueRow valueRow=new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger((int)opContext.getRecordsWritten()));
             InsertOperation insertOperation=((InsertOperation)opContext.getOperation());
             if(insertOperation!=null) {
                 List<String> badRecords = opContext.getBadRecords();
