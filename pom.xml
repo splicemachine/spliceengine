@@ -464,6 +464,19 @@
                 <module>hbase_sql</module>
             </modules>
         </profile>
+
+        <profile>
+            <id>assemble</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>assemble</value>
+                </property>
+            </activation>
+            <modules>
+                <module>assembly</module>
+            </modules>
+        </profile>
     </profiles>
 
     <reporting>
