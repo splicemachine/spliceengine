@@ -138,6 +138,10 @@ To open an ij prompt:
 * `cd splice_machine`
 * `mvn exec:java`
 
+#Constructing an Uber jar
+To build an uber jar for your architecture:
+`mvn install -P${your architecture profiles},assemble`
+
 ##### Other notes:
 * All dependencies will be pulled from splice nexus repo (http://nexus.splicemachine.com/nexus/).
 * There is no requirement to build any other packages to build splice.
