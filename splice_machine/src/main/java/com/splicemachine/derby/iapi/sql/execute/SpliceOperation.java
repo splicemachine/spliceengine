@@ -19,12 +19,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 
 /**
- * 
  * Interface for Parallel Operations in the Splice Machine.
- *
- *
  */
-
 public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet {
 
     RowLocation getCurrentRowLocation();
@@ -39,7 +35,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     void setOperationContext(OperationContext operationContext);
 
-    String getSparkStageName();
+    String getScopeName();
     
     String getPrettyExplainPlan();
     

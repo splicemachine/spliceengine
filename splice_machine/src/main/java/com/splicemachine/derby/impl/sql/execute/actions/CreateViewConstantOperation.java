@@ -189,4 +189,8 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 
 		dd.addDescriptor(vd, sd, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc);
 	}
+
+	public String getScopeName() {
+		return String.format("Create View %s", tableName);
+	}
 }

@@ -61,4 +61,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
     }
 
+    public String getScopeName() {
+        return String.format("Drop Schema %s", schemaName);
+    }
 }

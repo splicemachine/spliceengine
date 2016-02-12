@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.IndexTableScannerBuilder;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -58,8 +59,8 @@ public class SparkIndexScanBuilder<V> extends IndexTableScannerBuilder<V>{
             scope = (String)caller;
         else if (caller instanceof IndexConstantOperation)
             scope = ((IndexConstantOperation)caller).getScopeName();
-        else if (caller instanceof SpliceOperation)
-            scope = ((SpliceOperation)caller).getSparkStageName();
+        else if (caller instanceof ScopeNamed)
+            scope = ((ScopeNamed)caller).getScopeName();
         else if (caller instanceof ConstantAction)
             scope = "Scan Table";
 

@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
@@ -40,8 +41,8 @@ import java.util.*;
  * all DDL actions.
  *
  */
-public abstract class DDLConstantOperation implements ConstantAction {
-private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
+public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed  {
+	private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
     /**
 	 * Get the schema descriptor for the schemaid.
@@ -932,5 +933,12 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     protected boolean waitsForConcurrentTransactions() {
         return false;
     }
+
+	public String getScopeName() {
+		return StringUtils.join(
+			StringUtils.splitByCharacterTypeCamelCase(
+				this.getClass().getSimpleName().
+					replace("ConstantOperation", "")), ' ');
+	}
 }
 

@@ -385,6 +385,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         return ddg.newConglomerateDescriptor(conglomId, null, false, null, false, null, td.getUUID(), sd.getUUID());
     }
 
+    public String getScopeName() {
+        return String.format("Create Table %s", tableName);
+    }
 
 }
 

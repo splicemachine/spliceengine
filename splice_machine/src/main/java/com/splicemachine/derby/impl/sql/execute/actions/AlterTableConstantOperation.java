@@ -1099,6 +1099,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         childTxn.commit();
     }
 
+
+    public String getScopeName() {
+        return String.format("Alter Table %s", tableName);
+    }
+
     // Create a table writer to wrte KVPairs to new conglomerate, skipping index writing.
 //    private PipelineWriterBuilder createTableWriterBuilder(TxnView txn, long heapConglom) {
 //        PipelineWriterBuilder tableWriterBuilder = new PipelineWriterBuilder()
@@ -1109,5 +1114,4 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 //        return tableWriterBuilder;
 //
 //    }
-
 }

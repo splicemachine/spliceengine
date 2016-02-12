@@ -66,7 +66,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkDataSet<U>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)), planIfLast(f, isLast));
         } finally {
@@ -149,7 +149,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(
             SpliceFunction<Op, V, K> f, String name, boolean pushScope, String scopeDetail) {
 
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet(rdd.keyBy(new SparkSpliceFunctionWrapper<>(f)), name != null ? name : f.getSparkName());
         } finally {
@@ -189,7 +189,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation> DataSet< V> filter(
         SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
-        if (pushScope) f.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(f, pushScope, scopeDetail);
         try {
             return new SparkDataSet(rdd.filter(new SparkSpliceFunctionWrapper<>(f)), planIfLast(f, isLast));
         } finally {
@@ -333,7 +333,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
-        if (pushScope) context.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(null, pushScope, scopeDetail);
         try {
             JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
             rdd1.setName(String.format("Coalesce %d partitions", numPartitions));

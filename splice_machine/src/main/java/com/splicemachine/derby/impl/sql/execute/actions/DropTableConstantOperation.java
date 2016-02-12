@@ -244,4 +244,8 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         }
     }
 
+    public String getScopeName() {
+        return String.format("Drop Table %s", fullTableName);
+    }
+
 }

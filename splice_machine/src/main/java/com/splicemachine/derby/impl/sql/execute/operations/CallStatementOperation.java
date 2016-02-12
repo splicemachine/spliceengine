@@ -160,7 +160,7 @@ public class CallStatementOperation extends NoRowsOperation {
         return "CallStatement";
     }
 
-    public String getSparkStageName() {
+    public String getScopeName() {
         return "Call Procedure";
     }
     

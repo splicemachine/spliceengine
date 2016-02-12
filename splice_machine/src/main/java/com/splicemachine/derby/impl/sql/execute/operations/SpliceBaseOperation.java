@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -42,7 +43,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable{
+public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
@@ -423,14 +424,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return info;
     }
 
-    private String sparkStageName=null;
+    private String scopeName=null;
 
-    public String getSparkStageName(){
-        if(sparkStageName==null){
+    public String getScopeName() {
+        if(scopeName==null){
             String[] words=this.getClass().getSimpleName().replace("Operation","").split("(?=[A-Z])");
-            sparkStageName=StringUtils.join(words," ");
+            scopeName=StringUtils.join(words," ");
         }
-        return sparkStageName;
+        return scopeName;
     }
 
     public DataSet<LocatedRow> getDataSet() throws StandardException{

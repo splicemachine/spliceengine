@@ -436,7 +436,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         return mergeRestriction;
     }
 
-    public String getSparkStageName() {
+    public String getScopeName() {
         return "Index Base Row Lookup";
     }
 }

@@ -425,4 +425,8 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 		strbuf.append("\n");
 		return strbuf.toString();
 	}
+
+	public String getScopeName() {
+		return String.format("Create Constraint %s (Table %s)", constraintName, tableName);
+	}
 }

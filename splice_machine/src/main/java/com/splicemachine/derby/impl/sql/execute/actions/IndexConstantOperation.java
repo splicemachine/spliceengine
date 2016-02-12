@@ -121,15 +121,9 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
         return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());
     }
-    
-    public String getScopeName() {
-        StringBuffer sb = new StringBuffer();
-        sb.append(StringUtils.join(
-            StringUtils.splitByCharacterTypeCamelCase(
-                this.getClass().getSimpleName().
-                replace("Operation", "").replace("Constant", "")), " "));
-        sb.append(" ").append(indexName);
-        return sb.toString();
-    }
+
+	public String getScopeName() {
+		return String.format("%s %s", super.getScopeName(), indexName);
+	}
 
 }

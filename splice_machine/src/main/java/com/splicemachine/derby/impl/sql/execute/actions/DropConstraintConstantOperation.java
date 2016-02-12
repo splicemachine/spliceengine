@@ -251,4 +251,8 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
         return -1;
     }
 
+	public String getScopeName() {
+		return String.format("Drop Constraint %s (Table %s)", constraintName, tableName);
+	}
+
 }

@@ -167,4 +167,8 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 		}
 		return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
 	}
+
+	public String getScopeName() {
+		return String.format("Create Table %s", tableName);
+	}
 }

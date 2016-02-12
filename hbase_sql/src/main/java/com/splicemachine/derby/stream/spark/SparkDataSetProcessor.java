@@ -12,6 +12,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
@@ -27,7 +28,6 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 
-
 /**
  * Spark-based DataSetProcessor.
  *
@@ -38,9 +38,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private boolean permissive;
 
     public SparkDataSetProcessor() {
-
     }
-
 
     @Override
     public void setup(Activation activation,String description,String schedulerPool) throws StandardException{
@@ -109,8 +107,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         String scope;
         if (caller instanceof String)
             scope = (String)caller;
-        else if (caller instanceof SpliceOperation)
-            scope = ((SpliceOperation)caller).getSparkStageName();
+        else if (caller instanceof ScopeNamed)
+            scope = ((SpliceOperation)caller).getScopeName();
         else
             scope = "Finalize Result";
 
@@ -161,7 +159,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             FileInfo contentSummary = ImportUtils.getImportDataSize(path);
-            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+            SpliceSpark.pushScope((op != null ? op.getScopeName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" + String.format(path) + ", " +
                     "size=" + FileUtils.byteCountToDisplaySize(contentSummary.spaceConsumed()) + ", " +
@@ -185,7 +183,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             FileInfo contentSummary = ImportUtils.getImportDataSize(path);
-            SpliceSpark.pushScope((op != null ? op.getSparkStageName() + ": " : "") +
+            SpliceSpark.pushScope((op != null ? op.getScopeName() + ": " : "") +
                 SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
                 "{file=" +path+ ", " +
                     "size=" + FileUtils.byteCountToDisplaySize(contentSummary.spaceConsumed()) + ", " +
@@ -238,7 +236,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public void clearBroadcastedOperation(){
         broadcastedActivation.remove();
     }
-
 
     private transient ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
 
