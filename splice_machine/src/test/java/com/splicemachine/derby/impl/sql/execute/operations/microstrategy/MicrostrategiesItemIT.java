@@ -38,9 +38,6 @@ public class MicrostrategiesItemIT extends SpliceUnitTest {
      */
     @Test
     public void testOrderBySorts() throws Exception{
-        String userDir = System.getProperty("user.dir");
-        if(!userDir.endsWith("splice_machine"))
-            userDir = userDir+"/splice_machine/";
         PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,1,null,true,null)");
         ps.setString(1,CLASS_NAME);
         ps.setString(2,TABLE_NAME);
