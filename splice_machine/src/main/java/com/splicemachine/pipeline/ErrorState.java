@@ -1987,7 +1987,7 @@ public enum ErrorState {
     // Group 1 contains one or more digits anchored to beginning of line to first non-digit char. This is the sql state ID.
     // Throw away any non-digits up to and including the first space. eg; "(20001).S.180.4 "
     // Group 2 contains the rest of the line. This is the error message.
-    private static final Pattern badRecordPattern = Pattern.compile("^(\\d+)[^ ]* (.*)");
+    private static final Pattern badRecordPattern = Pattern.compile("^([^ ]+)* (.*)");
     public static StandardException fromBadRecord(String badRecord) {
         StandardException exception;
         Matcher badRecordMatcher = badRecordPattern.matcher(badRecord);

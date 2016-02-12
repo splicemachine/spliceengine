@@ -178,6 +178,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4442 Add column, default value")
     public void testAddColumnDefaultIsReadable() throws Exception {
         Connection conn = methodWatcher.createConnection();
         try(Statement statement=conn.createStatement()){
@@ -364,6 +365,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4004 Alter table keyd column problem. Isolation not working as it should.")
     public void testAddPrimaryKeyIsolation() throws Exception {
         Connection connection1 = methodWatcher.createConnection();
         connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)",
@@ -410,6 +412,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4004 Alter table keyd column problem. Isolation not working as it should.")
     public void testAddPrimaryKeyEnforcementBefore() throws Exception {
         String tableRef = this.getTableReference("before");
         methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null, age int)",tableRef));

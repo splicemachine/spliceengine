@@ -98,6 +98,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testDropUniqueConstraint() throws Exception {
         String tableName = "testDropUniqueConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -137,6 +138,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testRollbackDropUniqueConstraint() throws Exception {
         String tableName = "testRollbackDropUniqueConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -195,6 +197,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testDropPrimaryKey() throws Exception {
         String tableName = "testDropPrimaryKey".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -256,6 +259,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testRollbackDropPrimaryKey() throws Exception {
         String tableName = "testRollbackDropPrimaryKey".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -314,6 +318,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testDropUniqueConstraintCreatedWith() throws Exception {
         String tableName = "testDropUniqueConstraintCreatedWith".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -350,6 +355,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testDropUniqueConstraintTableHasPK() throws Exception {
         String tableName = "testDropUniqueConstraintTableHasPK".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -397,6 +403,7 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4004: Adding/dropping keyed columns not working")
     public void testDropUniqueConstraintTableHasTwo() throws Exception {
         String tableName = "testDropUniqueConstraintTableHasTwo".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
