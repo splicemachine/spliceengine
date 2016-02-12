@@ -39,6 +39,7 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
         private final ContextFactoryLoader delegate;
         private final long conglomId;
         private final AtomicInteger refCount = new AtomicInteger(0);
+        private volatile boolean loaded;
 
         public CountingFactoryLoader(long conglomId,ContextFactoryLoader delegate){
             this.delegate=delegate;
@@ -58,7 +59,9 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
 
         @Override
         public void load(TxnView txn) throws IOException, InterruptedException{
+            if(loaded) return; //no need to load twice
             delegate.load(txn);
+            loaded=true;
         }
 
         @Override
@@ -83,6 +86,7 @@ public abstract class ReferenceCountingFactoryDriver implements ContextFactoryDr
 
         @Override
         public void ddlChange(DDLMessage.DDLChange ddlChange){
+            if(!loaded) return; //ignore changes that occur before we have a chance to load them
             delegate.ddlChange(ddlChange);
         }
     }

@@ -114,8 +114,6 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                         startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
                     }
                 }
-                //register listener
-                DDLDriver.driver().ddlWatcher().registerDDLListener(ddlListener);
             }catch(SQLException e){
                 SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing"+
                         "off so that other writes can try again",e);
