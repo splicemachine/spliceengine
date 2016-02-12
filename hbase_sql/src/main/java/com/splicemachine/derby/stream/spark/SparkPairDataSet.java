@@ -39,13 +39,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
         if(rdd!=null && rddName!=null) this.rdd.setName(rddName);
     }
 
-    @SuppressWarnings("rawtypes")
-    private String planIfLast(AbstractSpliceFunction f,boolean isLast){
-        if(!isLast) return f.getSparkName();
-        String plan=f.getOperation().getPrettyExplainPlan();
-        return (plan!=null && !plan.isEmpty()?plan:f.getSparkName());
-    }
-
     @Override
     public DataSet<V> values(){
         return values(SparkConstants.RDD_NAME_GET_VALUES);
@@ -99,23 +92,29 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public PairDataSet<K, V> sortByKey(Comparator<K> comparator){
-        return new SparkPairDataSet<>(rdd.sortByKey(comparator));
+        return sortByKey(comparator, "Sort By Key");
     }
 
-    public PairDataSet<K, V> sortByKey(Comparator<K> comparator,String name){
-        return new SparkPairDataSet<>(rdd.sortByKey(comparator),name);
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public PairDataSet< K, V> sortByKey(Comparator<K> comparator, String name) {
+        JavaPairRDD rdd2 = rdd.sortByKey(comparator);
+        rdd2.setName(name);
+        // RDDUtils.setAncestorRDDNames(rdd2, 2, new String[]{"tbd", "tbd"}, new String[] {"MapPartitionsRDD", "MapPartitionsRDD"});
+        return new SparkPairDataSet<>(rdd2);
     }
 
     @Override
-    public PairDataSet<K, Iterable<V>> groupByKey(){
+    public PairDataSet<K, Iterable<V>> groupByKey() {
         return groupByKey("Group By Key");
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public PairDataSet<K, Iterable<V>> groupByKey(String name){
-        JavaPairRDD<K, Iterable<V>> rdd1=rdd.groupByKey();
+    public PairDataSet<K, Iterable<V>> groupByKey(String name) {
+        JavaPairRDD rdd1 = rdd.groupByKey();
         rdd1.setName(name);
-        RDDUtils.setAncestorRDDNames(rdd1,1,new String[]{"Shuffle Data"});
+        RDDUtils.setAncestorRDDNames(rdd1, 1, new String[]{"Shuffle Data"}, null);
         return new SparkPairDataSet<>(rdd1);
     }
 
@@ -138,7 +137,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet,String name){
         JavaPairRDD<K, Tuple2<V, W>> rdd1=rdd.join(((SparkPairDataSet<K, W>)rightDataSet).rdd);
         rdd1.setName(name);
-        RDDUtils.setAncestorRDDNames(rdd1,2,new String[]{"Map Left to Right","Coalesce"});
+        RDDUtils.setAncestorRDDNames(rdd1,2,new String[]{"Map Left to Right","Coalesce"}, null);
         return new SparkPairDataSet<>(rdd1);
     }
 
@@ -220,4 +219,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     public DataSetWriterBuilder directWriteData() throws StandardException{
         return new SparkDirectWriterBuilder<>(rdd);
     }
+
+    @SuppressWarnings("rawtypes")
+    private String planIfLast(AbstractSpliceFunction f,boolean isLast){
+        if(!isLast) return f.getSparkName();
+        String plan = (f.getOperation() != null ? f.getOperation().getPrettyExplainPlan() : null);
+        return (plan!=null && !plan.isEmpty()?plan:f.getSparkName());
+    }
+
 }

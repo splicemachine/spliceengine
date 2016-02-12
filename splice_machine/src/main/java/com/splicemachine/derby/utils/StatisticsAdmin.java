@@ -144,7 +144,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             LanguageConnectionContext lcc = conn.getLanguageConnection();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
-                    /* Invalidate dependencies remotely. */
+
+            /* Invalidate dependencies remotely. */
 
             TransactionController tc = lcc.getTransactionExecute();
 
@@ -175,10 +176,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     dataSet = collectTableStatistics(td, txn, conn);
                     first = false;
                 } else
-                    dataSet = dataSet.union(collectTableStatistics(td, txn, conn));
+                    dataSet = dataSet.union(collectTableStatistics(td, txn, conn), null, true, "Union");
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(dataSet,dd,transactionExecute,display));
+            displayTableStatistics(dataSet,dd,transactionExecute,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);

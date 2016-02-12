@@ -90,28 +90,33 @@ public class RDDUtils {
     public static Iterable<LocatedRow> toSparkRowsIterable(Iterable<ExecRow> execRows) {
         return new SparkRowsIterable(execRows);
     }
-    
+
     @SuppressWarnings("rawtypes")
-    public static void setAncestorRDDNames(JavaPairRDD rdd, int levels, String[] names) {
+    public static void setAncestorRDDNames(JavaPairRDD rdd, int levels, String[] newNames, String[] checkNames) {
         assert levels > 0;
-        setAncestorRDDNames(rdd.rdd(), levels, names);
+        setAncestorRDDNames(rdd.rdd(), levels, newNames, checkNames);
     }
 
     @SuppressWarnings("rawtypes")
-    public static void setAncestorRDDNames(JavaRDD rdd, int levels, String[] names) {
+    public static void setAncestorRDDNames(JavaRDD rdd, int levels, String[] newNames, String[] checkNames) {
         assert levels > 0;
-        setAncestorRDDNames(rdd.rdd(), levels, names);
+        setAncestorRDDNames(rdd.rdd(), levels, newNames, checkNames);
     }
 
     @SuppressWarnings("rawtypes")
     // TODO (wjk): remove this when we have a better way to change name of RDDs implicitly created within spark
-    private static void setAncestorRDDNames(org.apache.spark.rdd.RDD rdd, int levels, String[] names) {
+    private static void setAncestorRDDNames(org.apache.spark.rdd.RDD rdd, int levels, String[] newNames, String[] checkNames) {
         assert levels > 0;
         org.apache.spark.rdd.RDD currentRDD = rdd;
         for (int i = 0; i < levels && currentRDD != null; i++) {
             org.apache.spark.rdd.RDD rddAnc =
                 ((org.apache.spark.Dependency)currentRDD.dependencies().head()).rdd();
-            if (rddAnc != null) rddAnc.setName(names[i]);
+            if (rddAnc != null) {
+                if (checkNames == null || checkNames[i] == null)
+                    rddAnc.setName(newNames[i]);
+                else if (rddAnc.name().equals(checkNames[i]))
+                    rddAnc.setName(newNames[i]);
+            }
             currentRDD = rddAnc;
         }
     }
