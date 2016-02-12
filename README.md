@@ -93,7 +93,7 @@ against a fresh memory-database.
 HBase is further separated into subprofiles, indicating the specific hbase distribution of interest. To build
 hbase against a specific distribution:
 
-`mvn install -P${hbaseDistribution}`
+`mvn install -P${hbaseDistribution} -Dspark-prepare`
 
 where `${hbaseDistribution}` is the name of the distribution that you want to build and test against. This will
 run all unit _and_ integration tests(we will be separating those out better in the near-term)
