@@ -77,6 +77,8 @@
                 <artifactId>db-tools-ij</artifactId>
                 <version>${derby.version}</version>
             </dependency>
+
+
             <!-- third party dependencies -->
             <dependency>
                 <groupId>ant-contrib</groupId>

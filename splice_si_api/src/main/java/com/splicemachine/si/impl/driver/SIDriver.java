@@ -33,12 +33,14 @@ import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.GreenLight;
 
 public class SIDriver {
-    private static SIDriver INSTANCE;
+    private static volatile SIDriver INSTANCE;
 
     public static SIDriver driver(){ return INSTANCE;}
 
-    public static void loadDriver(SIEnvironment env){
-        INSTANCE = new SIDriver(env);
+    public static SIDriver loadDriver(SIEnvironment env){
+        SIDriver siDriver=new SIDriver(env);
+        INSTANCE =siDriver;
+        return siDriver;
     }
 
     private final SITransactionReadController readController;

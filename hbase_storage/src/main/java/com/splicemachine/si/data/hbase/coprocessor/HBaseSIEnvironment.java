@@ -58,6 +58,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final Clock clock;
     private final DistributedFileSystem fileSystem;
 
+    private SIDriver siDriver;
+
     public static HBaseSIEnvironment loadEnvironment(Clock clock,RecoverableZooKeeper rzk) throws IOException{
         HBaseSIEnvironment env = INSTANCE;
         if(env==null){
@@ -65,7 +67,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
                 env = INSTANCE;
                 if(env==null){
                     env = INSTANCE = new HBaseSIEnvironment(rzk,clock);
-                    SIDriver.loadDriver(INSTANCE);
+                    env.siDriver=SIDriver.loadDriver(INSTANCE);
                 }
             }
         }
@@ -181,7 +183,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     @Override
     public SIDriver getSIDriver(){
-        return SIDriver.driver();
+        return siDriver;
     }
 
     @Override
