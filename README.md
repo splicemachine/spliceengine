@@ -115,7 +115,7 @@ To run an in-memory database which you can issue SQL against:
 To run an Hbase database:
 * build hbase for your profile
 * `cd hbase_sql`
-* `src/test/bin/start-splice-its`
+* `src/test/bin/start-splice-its -p ${PROFILE}`
 
 Run `./src/test/bin/start-splice-its -h` for options:
 
@@ -132,6 +132,9 @@ Where:
 
 -sf- there may be a different script which is preferable and which would be carried over from master_dataset. If you
 have trouble finding it or using it, let me know.
+
+-sf- Note that you MUST specify an HBase profile in order for start-splice-its to properly startup. Otherwise, 
+problems will arise
 
 ##IJ
 To open an ij prompt:

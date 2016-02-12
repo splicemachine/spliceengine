@@ -32,7 +32,7 @@ _kill_em_all () {
 export -f _kill_em_all
 
 START_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh5.4.1"  # default hbase platform profile
+DEFAULT_PROFILE="cdh5.4.8"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 
 BUILD="1"
@@ -80,6 +80,8 @@ while getopts "chp:s:bd:" flag ; do
         #echo "-> [$OPTARG] "
           if [[ "$OPTARG" ==  "c41" ]]; then
             PROFILE="cdh5.4.1"
+          elif [[ "$OPTARG" ==  "c48" ]]; then
+            PROFILE="cdh5.4.8"
           elif [[ "$OPTARG" == "c51" ]]; then
             PROFILE="cdh5.5.1"
           elif [[ "$OPTARG" == "h24" ]]; then
@@ -112,19 +114,19 @@ done
 
 SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
 
-# TODO: we can only run YARN in cdh5.4.1 currently
+# TODO: we can only run YARN in cdh5.4.8 currently
 if [[ ${PROFILE} != ${DEFAULT_PROFILE} ]]; then
   usage "Can only run YARN with ${DEFAULT_PROFILE}"
   exit 1;
 fi
 
 # Wrong profile specified or wrong location
-if [[ ! -e "${START_DIR}" || ${START_DIR} != *"${PROFILE}"* ]]; then
-  usage "Can't find the profile you expect to run. You asked for \"${PROFILE}\" but I got: \"${START_DIR}\""
-  exit 1;
-fi
+#if [[ ! -e "${START_DIR}" || ${START_DIR} != *"${PROFILE}"* ]]; then
+#  usage "Can't find the profile you expect to run. You asked for \"${PROFILE}\" but I got: \"${START_DIR}\""
+#  exit 1;
+#fi
 
-pushd ${START_DIR} > /dev/null
+#pushd ${START_DIR} > /dev/null
 
 #=============================================================================
 # Run...
@@ -132,30 +134,31 @@ pushd ${START_DIR} > /dev/null
 _kill_em_all 9
 
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
-echo "   ${START_DIR}"
+#echo "   ${START_DIR}"
 
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
-  pushd "${START_DIR}/.." > /dev/null
-  (mvn clean install -DskipTests -Dspark-prepare)
-  popd > /dev/null
+#  pushd "${START_DIR}/.." > /dev/null
+#  (mvn clean install -DskipTests -Dspark-prepare)
+	mvn clean install -P${PROFILE} -DskipTests -Dspark-prepare > /dev/null
+#  popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
-  echo "   ${START_DIR}"
+#  echo "   ${START_DIR}"
 fi
   
 ZOO_LOG="zoo.log"  
 echo "Starting Zoo. Log file is ${ZOO_LOG}"
-(mvn exec:exec -PspliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+(mvn exec:exec -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
 sleep 30
   
 YARN_LOG="yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(mvn exec:java -PspliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(mvn exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
 
 SPLICE_LOG="splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
-(mvn exec:exec -PspliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+(mvn exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 sleep 30
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -163,8 +166,8 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     REGION_SVR_LOG="spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (mvn exec:exec -PspliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    (mvn exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
   done
 fi
-popd > /dev/null
+#popd > /dev/null
 

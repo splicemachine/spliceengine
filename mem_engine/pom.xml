@@ -81,6 +81,9 @@
         </dependency>
     </dependencies>
 
+    <properties>
+        <skipTests>${maven.skip.tests}</skipTests>
+    </properties>
     <build>
         <plugins>
             <plugin>
@@ -169,6 +172,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
+                            <skip>${skipTests}</skip>
                             <executable>bash</executable>
                             <arguments>
                                 <argument>-c</argument>
@@ -191,6 +195,7 @@
                         <id>############# Start MemDatabase #############</id>
                         <phase>pre-integration-test</phase>
                         <configuration>
+                            <skip>${skipTests}</skip>
                             <target name="StartMemDatabase">
                                 <property name="classpath" refid="maven.compile.classpath"/>
                                 <property name="classpath.test" refid="maven.test.classpath"/>

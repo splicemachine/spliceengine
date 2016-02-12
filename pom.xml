@@ -56,14 +56,15 @@
                 <artifactId>stats</artifactId>
                 <version>1.0.1-SNAPSHOT</version>
             </dependency>
+
             <dependency>
                 <groupId>com.splicemachine.db-project</groupId>
-                <artifactId>db-drda</artifactId>
+                <artifactId>db-engine</artifactId>
                 <version>${derby.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.splicemachine.db-project</groupId>
-                <artifactId>db-engine</artifactId>
+                <artifactId>db-drda</artifactId>
                 <version>${derby.version}</version>
             </dependency>
             <dependency>

@@ -20,6 +20,8 @@
         <shell.command>/bin/bash</shell.command>
         <start.script>${project.basedir}/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/src/test/bin/stop-splice-its</stop.script>
+        <skipTests>${maven.skip.tests}</skipTests>
+        <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
     </properties>
 
 
@@ -180,6 +182,26 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <!--This used to be confinded to the spark-prepare profile, but is now done always by default
+                 To disable, use skipSparkPrepare on the command line
+                 -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.dep.copy}</skip>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -243,6 +265,7 @@
                         <id>############### start-splice-its ###############</id>
                         <phase>pre-integration-test</phase>
                         <configuration>
+                            <skip>${skipTests}</skip>
                             <target name="StartSpliceServer" unless="${server.skip.start}">
                                 <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
                                 <if>
@@ -265,6 +288,7 @@
                                 </if>
 
                                 <property name="classpath.test" refid="maven.test.classpath"/>
+                                <!--suppress MavenModelInspection -->
                                 <java classname="com.splicemachine.test.SpliceTestPlatformWait"
                                       classpath="${classpath.test}"
                                       spawn="false">
@@ -281,6 +305,7 @@
                         <id>############### stop-splice-its ###############</id>
                         <phase>post-integration-test</phase>
                         <configuration>
+                            <skip>${skipTests}</skip>
                             <target name="StopSpliceServer" unless="${server.skip.start}">
                                 <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                     <arg value="${stop.script}"/>
@@ -470,32 +495,16 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>spark-prepare</id>
-            <activation>
-                <property>
-                    <name>spark-prepare</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
-                        <executions>
-                            <execution>
-                                <id>copy</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
+        <!--<profile>-->
+            <!--<id>spark-prepare</id>-->
+            <!--<activation>-->
+                <!--<property>-->
+                    <!--<name>spark-prepare</name>-->
+                <!--</property>-->
+            <!--</activation>-->
+            <!--<build>-->
+            <!--</build>-->
+        <!--</profile>-->
         <profile>
             <id>spliceYarn</id>
             <activation>
