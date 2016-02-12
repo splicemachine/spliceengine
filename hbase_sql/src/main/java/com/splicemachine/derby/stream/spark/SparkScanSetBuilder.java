@@ -65,6 +65,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         } catch (IOException ioe) {
             throw StandardException.unexpectedUserException(ioe);
         }
+
+        // TODO (wjkmerge): push scope like we did in SparkDataProcessor.getTableScanner.
+        // TODO (wjkmerge): grep for newAPIHadoopRDD and find other cases too
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                 RowLocation.class, ExecRow.class);
 

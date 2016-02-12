@@ -32,7 +32,9 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Created by jleach on 4/13/15.
+ * Local control side DataSetProcessor.
+ *
+ * @author jleach
  */
 public class ControlDataSetProcessor implements DataSetProcessor{
     private int failBadRecordCount=-1;

@@ -19,6 +19,7 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
 
@@ -31,11 +32,13 @@ import java.util.Collections;
 /**
  * Spark-based DataSetProcessor.
  *
- * Created by jleach on 4/13/15.
+ * @author jleach
  */
 public class SparkDataSetProcessor implements DistributedDataSetProcessor, Serializable {
     private int failBadRecordCount = -1;
     private boolean permissive;
+
+    private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
     public SparkDataSetProcessor() {
     }
@@ -65,6 +68,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
     }
 
+    // TODO (wjkmerge): purge if no longer needed
     private String getDisplayableTableName(SpliceOperation spliceOperation, String conglomId) {
         String displayableTableName;
         if (spliceOperation instanceof ScanOperation) {
@@ -143,6 +147,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public void setJobGroup(String jobName, String jobDescription) {
+        if (LOG.isTraceEnabled())
+            LOG.trace(String.format("setJobGroup(): jobName=%s, jobDescription=%s", jobName, jobDescription));
         SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
     }
 

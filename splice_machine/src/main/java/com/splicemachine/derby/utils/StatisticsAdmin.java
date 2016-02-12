@@ -25,6 +25,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -307,22 +308,21 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static DataSet<ExecRow> collectTableStatistics(TableDescriptor table,
-                                                         TxnView txn,
-                                                         EmbedConnection conn) throws StandardException, ExecutionException {
+                                                           TxnView txn,
+                                                           EmbedConnection conn) throws StandardException, ExecutionException {
 
        return collectBaseTableStatistics(table, txn, conn);
     }
 
     private static DataSet collectBaseTableStatistics(TableDescriptor table,
-                                                             TxnView txn,
-                                                             EmbedConnection conn) throws StandardException, ExecutionException {
+                                                      TxnView txn,
+                                                      EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
-        DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();//StreamUtils.sparkDataSetProcessor;
-        dsp.setup(activation,"collection table statistics","admin");
-//        StreamUtils.setupSparkJob(dsp, activation, "collecting table statistics", "admin");
+        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+        dsp.setup(activation, "Collect Table Statistics", "admin");
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId)).activation(activation);
-        return  createTableScanner(ssb,conn,table,txn);
+        return createTableScanner(ssb,conn,table,txn);
     }
 
     private static DataScan createScan (TxnView txn) {
@@ -413,7 +413,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .accessedKeyColumns(collectedKeyColumns)
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
-                .columnPositionMap(columnPositionMap).buildDataSet();
+                .columnPositionMap(columnPositionMap)
+                .buildDataSet("Collect Table Statistics");
+
+        // TODO (wjkmerge): might use this instead of String
+        // new ScopeNamed() {
+        //     public String getScopeName() {
+        //         return "Collect Table Statistics";
+        //     }
+        // }
     }
 
     private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows) throws

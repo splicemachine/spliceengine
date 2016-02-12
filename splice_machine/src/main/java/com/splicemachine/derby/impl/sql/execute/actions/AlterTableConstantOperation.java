@@ -1074,27 +1074,29 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                                       long demarcationPoint) throws IOException, StandardException {
 
         Txn childTxn = beginChildTransaction(parentTxn, ddlChange.getTxnId());
-        // create a scanner to scan old conglomerate
 
         DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setup(activation,this.toString(),"admin");
+
+        // Create a scanner to scan old conglomerate
 
         DataSet<KVPair> dataSet = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
                 .activation(activation)
                 .scan(DDLUtils.createFullScan())
                 .transaction(childTxn)
                 .demarcationPoint(demarcationPoint)
-                .buildDataSet();
+                .buildDataSet(this);
 
 
-        //Create table writer for new conglomerate
-//        PipelineWriterBuilder tableWriter = createTableWriterBuilder(childTxn, destConglom);
+        // Write new conglomerate
 
-        PairDataSet<LocatedRow,KVPair> ds=dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction());
+        PairDataSet<LocatedRow,KVPair> ds = dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction());
         DataSet<LocatedRow> result = ds.directWriteData()
                 .txn(childTxn)
                 .destConglomerate(destConglom)
                 .skipIndex(true).build().write();
+
+        // TODO (wjkmerge): check 'result' data set?
 
         childTxn.commit();
     }
@@ -1104,14 +1106,4 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         return String.format("Alter Table %s", tableName);
     }
 
-    // Create a table writer to wrte KVPairs to new conglomerate, skipping index writing.
-//    private PipelineWriterBuilder createTableWriterBuilder(TxnView txn, long heapConglom) {
-//        PipelineWriterBuilder tableWriterBuilder = new PipelineWriterBuilder()
-//                .txn(txn)
-//                .skipIndex(true)
-//                .heapConglom(heapConglom);
-//
-//        return tableWriterBuilder;
-//
-//    }
 }

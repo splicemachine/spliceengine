@@ -1095,13 +1095,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     @Override
     public NoPutResultSet getCallStatementResultSet(GeneratedMethod methodCall,
                                                     Activation activation,
-                                                    String origClassName,
-                                                    String origMethodName) throws StandardException {
+                                                    String origProcClassName,
+                                                    String origProcMethodName) throws StandardException {
         SpliceLogUtils.trace(LOG, "getCallStatementResultSet");
         try {
             CallStatementOperation top = new CallStatementOperation(methodCall, activation);
             top.markAsTopResultSet();
-            // top.setOrigMethod(origClassName, origMethodName);
+            top.setOrigMethod(origProcClassName, origProcMethodName);
             return top;
         } catch(Exception e) {
             throw Exceptions.parseException(e);

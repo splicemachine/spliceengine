@@ -78,6 +78,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         // On master_dataset, we did so in ControlPairDataSet.insertData the origin of this code.
         // Also check similar update/delete codepaths.
         try{
+            // TODO (wjkmerge): scope?
             rdd.saveAsNewAPIHadoopDataset(config);
             if(opContext.getOperation()!=null){
                 opContext.getOperation().fireAfterStatementTriggers();

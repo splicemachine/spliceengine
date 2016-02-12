@@ -48,6 +48,7 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
+        // TODO (wjkmerge): push scope?
         rdd.saveAsNewAPIHadoopDataset(conf);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLInteger(0));

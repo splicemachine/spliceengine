@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -24,7 +25,9 @@ public class CallStatementOperation extends NoRowsOperation {
     private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
 	private String methodName;
 	private SpliceMethod<Object> methodCall;
-    protected static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
+	String origClassName = null;
+	String origMethodName = null;
+	protected static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
 	public String getName() {
@@ -38,10 +41,23 @@ public class CallStatementOperation extends NoRowsOperation {
 		recordConstructorTime();
 	}
 
+	public void setOrigMethod(String origClassName, String origMethodName) {
+		// These are the real java class and method name of the stored procedure,
+		// not the activation. For example, if this is an import action, the class
+		// would be HdfsImport and the method would be IMPORT_DATA.
+		// These are for reference only, not to be used in any reflection.
+		this.origClassName = origClassName;
+		this.origMethodName = origMethodName;
+	}
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
 		methodName = in.readUTF();
+		if (in.readBoolean())
+			origClassName = in.readUTF();
+		if (in.readBoolean())
+			origMethodName = in.readUTF();
 	}
 
 	@Override
@@ -54,8 +70,13 @@ public class CallStatementOperation extends NoRowsOperation {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		super.writeExternal(out);
 		out.writeUTF(methodName);
+		out.writeBoolean(origClassName != null);
+		if (origClassName != null)
+			out.writeUTF(origClassName);
+		out.writeBoolean(origMethodName != null);
+		if (origMethodName != null)
+			out.writeUTF(origMethodName);
 	}
-
 	@Override
 	public int[] getRootAccessedCols(long tableNumber) {
 		return null;
@@ -91,9 +112,10 @@ public class CallStatementOperation extends NoRowsOperation {
 			activation.getLanguageConnectionContext().getStatementContext());
 		if (!isOpen)
 			return;
-        if (1!=2)
+        if (1!=2) // TODO (wjk): do we need the code below this?
             return;
 
+        /*
 		ResultSet[][] dynamicResults = activation.getDynamicResults();
 		if (dynamicResults != null) {
 
@@ -147,6 +169,7 @@ public class CallStatementOperation extends NoRowsOperation {
 		} catch (Exception e) {
 			SpliceLogUtils.error(LOG, e);
 		}
+        */
 
     }
 
@@ -163,25 +186,44 @@ public class CallStatementOperation extends NoRowsOperation {
     public String getScopeName() {
         return "Call Procedure";
     }
-    
-    @Override
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
-        
-        call();
-        
-        registerCloseable(new AutoCloseable() {
-            @Override
-            public void close() throws Exception {
-                this.close();
-            }
-        });
-        
-        operationContext.pushScope();
-        try {
-            return dsp.getEmpty();
-        } finally {
-            operationContext.popScope();
-        }
-    }
+
+	protected boolean isPushScope() {
+		// TODO (wjk): find a better way than this
+		//
+		// We need an API to call to see if the stored proc logic we are invoking
+		// handles it's own spark job/scope management, such as import, so we can
+		// avoid creating unnecessary job in the spark UI.
+		if (origClassName != null && origClassName.contains("HdfsImport") &&
+			origMethodName != null && origMethodName.contains("IMPORT_DATA")) {
+			return false;
+		}
+		return true;
+	}
+
+	@Override
+	public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+		OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
+
+		call();
+
+		registerCloseable(new AutoCloseable() {
+			@Override
+			public void close() throws Exception {
+				this.close(); // TODO (wjk): do we ever get here?
+			}
+		});
+
+		boolean pushScope = isPushScope();
+
+		if (pushScope) operationContext.pushScope();
+		try {
+			if (pushScope) {
+				return dsp.getEmpty();
+			} else {
+				return EngineDriver.driver().processorFactory().localProcessor(activation, null).getEmpty();
+			}
+		} finally {
+			if (pushScope) operationContext.popScope();
+		}
+	}
 }

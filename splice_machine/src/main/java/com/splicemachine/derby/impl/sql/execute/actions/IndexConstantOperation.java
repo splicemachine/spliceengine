@@ -80,7 +80,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		this.indexName = indexName;
 	}
 
-    protected void populateIndex(Activation activation,
+	@SuppressWarnings("unchecked")
+	protected void populateIndex(Activation activation,
                                  Txn indexTransaction,
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex,
@@ -93,6 +94,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		 */
         Txn childTxn;
         try {
+			// TODO (wjkmerge): figure out where we need a scope: buildDataSet() or build() or write()
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
             dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
@@ -102,7 +104,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				.transaction(indexTransaction)
 				.demarcationPoint(demarcationPoint)
 				.scan(DDLUtils.createFullScan())
-				.buildDataSet();
+				.buildDataSet(this);
 			String scope = this.getScopeName();
             PairDataSet dsToWrite = dataSet
 				.map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
