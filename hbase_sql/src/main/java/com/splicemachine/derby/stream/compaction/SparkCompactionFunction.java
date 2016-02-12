@@ -10,6 +10,7 @@ import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.hbase.ReadOnlyHTableDescriptor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,6 +22,8 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.log4j.Logger;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -28,6 +31,7 @@ import java.io.ObjectOutput;
 import java.util.*;
 
 public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<String>,String> implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
     private long smallestReadPoint;
     private byte[] namespace;
     private byte[] tableName;
@@ -82,11 +86,11 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         SpliceSpark.setupSpliceStaticComponents();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Iterable<String> call(Iterator<String> files) throws Exception {
 
-        ArrayList<StoreFile> readersToClose = new ArrayList();
-
+        ArrayList<StoreFile> readersToClose = new ArrayList<StoreFile>();
         SConfiguration siConf = SIDriver.driver().getConfiguration();
         Configuration conf = ((HConfiguration)siConf).unwrapDelegate();
         TableName tn = TableName.valueOf(namespace, tableName);
@@ -99,22 +103,43 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         HTableDescriptor htd = table.getTableDescriptor();
         HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyHTableDescriptor(htd), null, null, null);
         Store store = region.getStore(storeColumn);
+
         while (files.hasNext()) {
-            readersToClose.add(new StoreFile(fs,new Path(files.next()),
-                conf,store.getCacheConfig(),store.getFamily().getBloomFilterType()));
+            readersToClose.add(
+                new StoreFile(
+                    fs,
+                    new Path(files.next()),
+                    conf,
+                    store.getCacheConfig(),
+                    store.getFamily().getBloomFilterType()
+                )
+            );
         }
-        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf,store,smallestReadPoint);
+
+        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         List<Path> paths = sdc.sparkCompact(new CompactionRequest(readersToClose));
-        for (Path path: paths) {
-            System.out.println("Path -> " + path);
+
+        if (LOG.isTraceEnabled()) {
+            StringBuilder sb = new StringBuilder(100);
+            sb.append(String.format("Result %d paths: ", paths.size()));
+            for (Path path: paths) {
+                sb.append(String.format("\nPath: %s", path));
+            }
+            SpliceLogUtils.trace(LOG, sb.toString());
         }
-        return (paths == null || paths.isEmpty())?Collections.EMPTY_LIST:Collections.singletonList(paths.get(0).toString());
+
+        return (paths == null || paths.isEmpty()) ?
+            Collections.EMPTY_LIST:
+            Collections.singletonList(paths.get(0).toString());
     }
 
 
     // TODO (wjk): is this code ever used?
-    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners,
-                                            ScanType scanType, long smallestReadPoint, long earliestPutTs) throws IOException {
+    protected InternalScanner createScanner(Store store,
+                                            List<StoreFileScanner> scanners,
+                                            ScanType scanType,
+                                            long smallestReadPoint,
+                                            long earliestPutTs) throws IOException {
         Scan scan = new Scan();
         scan.setMaxVersions(store.getFamily().getMaxVersions());
         return new StoreScanner(store, store.getScanInfo(), scan, scanners,

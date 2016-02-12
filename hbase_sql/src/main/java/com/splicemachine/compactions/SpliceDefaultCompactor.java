@@ -1,9 +1,15 @@
 package com.splicemachine.compactions;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
@@ -17,6 +23,8 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
@@ -27,19 +35,36 @@ import java.util.List;
 public class SpliceDefaultCompactor extends DefaultCompactor {
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
+    private String conglomId = null;
+    private String tableDisplayName = null;
+    private String indexDisplayName = null;
+
+    // TODO (wjkmerge): put these somewhere else - in master_dataset they were in SpliceConstants
+    private static final String TABLE_DISPLAY_NAME_ATTR = "tableDisplayName";
+    private static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
 
     public SpliceDefaultCompactor(final Configuration conf, final Store store) {
         super(conf, store);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"init with store=%s",store.toString());
+        
+        conglomId = this.store.getTableName().getQualifierAsString();
+        tableDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(TABLE_DISPLAY_NAME_ATTR);
+        indexDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(INDEX_DISPLAY_NAME_ATTR);
+
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", ((HStore)this.store).getHRegion());
+        }
     }
 
     public SpliceDefaultCompactor(final Configuration conf, final Store store, long smallestReadPoint) {
-        this(conf,store);
+        this(conf, store);
         this.smallestReadPoint = smallestReadPoint;
     }
+
     @Override
     public List<Path> compact(CompactionRequest request) throws IOException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
+
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
@@ -47,10 +72,30 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         for (StoreFile sf : request.getFiles()) {
             files.add(sf.getPath().toString());
         }
-        SparkFlatMapFunction f = new SparkFlatMapFunction(
-            new SparkCompactionFunction(smallestReadPoint, store.getTableName().getNamespace(), store.getTableName().getQualifier(), store.getRegionInfo(), store.getFamily().getName()));
-        List<String> sPaths = SpliceSpark.getContext().parallelize(files, 1).mapPartitions(f).collect();
-        System.out.println("Paths Returned -> " + sPaths);
+
+        initializeJob(request);
+        
+        String scope = getScope(request);
+
+        SpliceSpark.pushScope(scope + ": Parallelize");
+        JavaRDD rdd1 = SpliceSpark.getContext().parallelize(files, 1);
+        rdd1.setName("Distribute Compaction Load");
+        SpliceSpark.popScope();
+        
+        SpliceFlatMapFunction function = getCompactionFunction();
+            
+        SpliceSpark.pushScope(scope + ": Compact files");
+        JavaRDD rdd2 = rdd1.mapPartitions(new SparkFlatMapFunction<>(function));
+        rdd2.setName(getJobDetails(request));
+        SpliceSpark.popScope();
+
+        SpliceSpark.pushScope("Compaction");
+        List<String> sPaths = rdd2.collect();
+        SpliceSpark.popScope();
+
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+
         this.progress.complete();
 
         List<Path> paths = new ArrayList();
@@ -60,9 +105,85 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
+    protected void initializeJob(CompactionRequest request) {
+        String jobGroup = getJobGroup();
+        String jobDescription = getJobDescription(request);
+        String poolName = getPoolName();
+        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+        dsp.setJobGroup(jobGroup, jobDescription);
+        dsp.setSchedulerPool(poolName);
+    }
+    
+    protected SpliceFlatMapFunction getCompactionFunction() {
+        return new SparkCompactionFunction(
+            smallestReadPoint,
+            store.getTableName().getNamespace(),
+            store.getTableName().getQualifier(),
+            store.getRegionInfo(),
+            store.getFamily().getName());
+    }
+    
+    protected String getScope(CompactionRequest request) {
+        return String.format("%s Compaction: %s",
+            getMajorMinorLabel(request),
+            getTableInfoLabel(", "));
+    }
+
+    protected String getJobDescription(CompactionRequest request) {
+        int size = request.getFiles().size();
+        return String.format("%s Compaction: %s, %d %s",
+            getMajorMinorLabel(request),
+            getTableInfoLabel(", "),
+            size,
+            (size > 1 ? "Files" : "File"));
+    }
+    
+    protected String getMajorMinorLabel(CompactionRequest request) {
+        return request.isMajor() ? "Major" : "Minor";
+    }
+    
+    protected String getTableInfoLabel(String delim) {
+        StringBuffer sb = new StringBuffer();
+        if (indexDisplayName != null) {
+            sb.append(String.format("Index=%s", indexDisplayName));
+            sb.append(delim);
+        } else if (tableDisplayName != null) {
+            sb.append(String.format("Table=%s", tableDisplayName));
+            sb.append(delim);
+        } 
+        sb.append(String.format("Conglomerate=%s", conglomId));
+        return sb.toString();
+    }
+    
+    protected String getJobGroup() {
+        // TODO (wjk): need a better unique job group id - use getUniqueKey temporarily
+        // String userId = context.sc().sparkUser();
+        return SpliceUtils.getUniqueKey().toString();
+    }
+    
+    private static String delim = ",\n";
+    private String jobDetails = null;
+    protected String getJobDetails(CompactionRequest request) {
+        if (jobDetails == null) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(getTableInfoLabel(delim));
+            sb.append(delim).append(String.format("Region Name=%s", this.store.getRegionInfo().getRegionNameAsString()));
+            sb.append(delim).append(String.format("Region Id=%d", this.store.getRegionInfo().getRegionId()));
+            sb.append(delim).append(String.format("File Count=%d", request.getFiles().size()));
+            sb.append(delim).append(String.format("Total File Size=%s", FileUtils.byteCountToDisplaySize(request.getSize())));
+            sb.append(delim).append(String.format("Type=%s", getMajorMinorLabel(request)));
+            jobDetails = sb.toString();
+        }
+        return jobDetails;
+    }
+    
+    protected String getPoolName() {
+        return "compaction";
+    }
+    
     public List<Path> sparkCompact(CompactionRequest request) throws IOException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"compact compactionRequest=%s",request);
+            SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
 
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
@@ -92,7 +213,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         try {
             InternalScanner scanner = null;
             try {
-        /* Include deletes, unless we are doing a compaction of all files */
+                /* Include deletes, unless we are doing a compaction of all files */
                 ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
                         : ScanType.COMPACT_DROP_DELETES;
                 scanner = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners);
@@ -129,7 +250,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             }
         } catch (IOException ioe) {
             e = ioe;
-            // Throw the exception
             throw ioe;
         }
         finally {
@@ -172,8 +292,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     @Override
     public CompactionProgress getProgress() {
-//        if (LOG.isTraceEnabled())
-//            SpliceLogUtils.trace(LOG,"getProgress");
         return super.getProgress();
     }
 

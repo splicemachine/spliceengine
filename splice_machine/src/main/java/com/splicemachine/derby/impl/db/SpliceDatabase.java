@@ -371,7 +371,7 @@ public class SpliceDatabase extends BasicDatabase{
 
             @Override
             public void changeFailed(String changeId){
-                System.out.println("Change failed "+ changeId);
+                LOG.warn("Change failed "+ changeId);
             }
         });
     }

@@ -61,6 +61,7 @@ public class StreamUtils {
             .put("ScalarAggregateFunction", "Aggregate Scalar Values")
             .put("ScrollInsensitiveFunction", "Set and Count Current Located Row")
             .put("SetCurrentLocatedRowFunction", "Set Current Located Row")
+            .put("SparkCompactionFunction", "Compact Files")
             .put("StreamFileFunction", "Parse CSV File")
             .put("SubtractByKeyBroadcastJoinFunction", "Subtract by Key for Broadcast Join")
             .put("TableScanTupleFunction", "Deserialize Key-Values")
