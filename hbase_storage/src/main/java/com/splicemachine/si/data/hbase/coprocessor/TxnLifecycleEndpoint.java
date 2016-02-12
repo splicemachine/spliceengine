@@ -64,6 +64,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         if(table.equals(TableType.TRANSACTION_TABLE)){
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
+            assert driver!=null:"SIDriver Cannot be null";
             long txnKeepAliveInterval = configuration.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL);
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),

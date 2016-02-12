@@ -216,7 +216,8 @@ public class HBaseSITestEnv implements SITestEnv{
     private SIEnvironment loadSIEnvironment() throws IOException{
         HBaseSIEnvironment siEnv=new HBaseSIEnvironment(new ConcurrentTimestampSource(),clock);
         HBaseSIEnvironment.setEnvironment(siEnv);
-        SIDriver.loadDriver(siEnv);
+        SIDriver driver = SIDriver.loadDriver(siEnv);
+        siEnv.setSIDriver(driver);
         return siEnv;
     }
 

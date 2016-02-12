@@ -221,4 +221,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
         return opFactory;
     }
 
+    public void setSIDriver(SIDriver siDriver) {
+        this.siDriver = siDriver;
+    }
+
 }
