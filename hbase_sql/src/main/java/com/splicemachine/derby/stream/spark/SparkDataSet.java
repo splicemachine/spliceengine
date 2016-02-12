@@ -312,6 +312,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
 //    @Override
+    // TODO (wjkmerge): permanently delete this if not needed
     public void saveAsTextFile(String path) {
         rdd.saveAsTextFile(path);
     }

@@ -5,6 +5,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
@@ -77,7 +78,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(
         SpliceFunction2<Op,V, V, V> function2, boolean isLast, boolean pushScope, String scopeDetail) {
 
-        if (pushScope) function2.operationContext.pushScopeForOp(scopeDetail);
+        pushScopeIfNeeded(function2, pushScope, scopeDetail);
         try {
             return new SparkPairDataSet<>(rdd.reduceByKey(new SparkSpliceFunctionWrapper2<>(function2)), planIfLast(function2, isLast));
         } finally {
@@ -218,6 +219,15 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     @Override
     public DataSetWriterBuilder directWriteData() throws StandardException{
         return new SparkDirectWriterBuilder<>(rdd);
+    }
+
+    private void pushScopeIfNeeded(AbstractSpliceFunction function, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (function != null && function.operationContext != null)
+                function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
     }
 
     @SuppressWarnings("rawtypes")
