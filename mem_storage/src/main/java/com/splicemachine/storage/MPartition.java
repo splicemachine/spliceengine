@@ -37,6 +37,7 @@ public class MPartition implements Partition{
     private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
     private AtomicLong writes=new AtomicLong(0l);
     private AtomicLong reads=new AtomicLong(0l);
+    private AtomicLong sequenceGen = new AtomicLong(0l);
 
     public MPartition(String tableName,String partitionName){
         this.partitionName=partitionName;
@@ -77,7 +78,8 @@ public class MPartition implements Partition{
                 return Bytes.equals(dataCell.keyArray(),dataCell.keyOffset(),dataCell.keyLength(),key,0,key.length);
             }
         });
-        try(SetScanner ss=new SetScanner(data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
+        long curSeq = sequenceGen.get();
+        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn==null) return null;
 
@@ -132,7 +134,9 @@ public class MPartition implements Partition{
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
         NavigableSet<DataCell> dataCells=getAscendingScanSet(scan);
         Iterator<DataCell> iter = scan.isDescendingScan()? dataCells.descendingIterator(): dataCells.iterator();
-        return new SetScanner(iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this,metricFactory);
+
+        long curSeq = sequenceGen.get();
+        return new SetScanner(curSeq,iter,scan.lowVersion(),scan.highVersion(),scan.getFilter(),this,metricFactory);
     }
 
 
@@ -410,6 +414,7 @@ public class MPartition implements Partition{
     }
 
     private void put(MPut mPut) throws IOException{
+        long seq = sequenceGen.incrementAndGet();
         Lock lock=getRowLock(mPut.key(),0,mPut.key().length);
         lock.lock();
         try{
@@ -418,7 +423,9 @@ public class MPartition implements Partition{
                 if(memstore.contains(dc)){
                     memstore.remove(dc);
                 }
-                memstore.add(dc.getClone());
+                DataCell clone=dc.getClone();
+                ((MCell)clone).sequence(seq);
+                memstore.add(clone);
             }
         }finally{
             lock.unlock();

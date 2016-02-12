@@ -17,6 +17,7 @@ import java.util.List;
  *         Date: 12/16/15
  */
 class SetScanner implements DataScanner{
+    private final long sequenceCutoffPoint;
     private final Iterator<DataCell> dataCells;
     private final long lowVersion;
     private final long highVersion;
@@ -31,12 +32,14 @@ class SetScanner implements DataScanner{
     private List<DataCell> currentRow;
     private DataCell last;
 
-    public SetScanner(Iterator<DataCell> dataCells,
+    public SetScanner(long sequenceCutoffPoint,
+            Iterator<DataCell> dataCells,
                       long lowVersion,
                       long highVersion,
                       DataFilter filter,
                       Partition partition,
                       MetricFactory metricFactory){
+        this.sequenceCutoffPoint=sequenceCutoffPoint;
         this.dataCells=dataCells;
         this.lowVersion=lowVersion;
         this.highVersion=highVersion;
@@ -87,41 +90,45 @@ class SetScanner implements DataScanner{
             n = dataCells.next();
         }
         while(currentRow.size()<limit && n!=null){
-            if(currentLength==0){
-                currentKey=n.keyArray();
-                currentOffset=n.keyOffset();
-                currentLength=n.keyLength();
-            }else if(!Bytes.equals(currentKey,currentOffset,currentLength,n.keyArray(),n.keyOffset(),n.keyLength())){
-                if(currentRow.size()>0){
-                    last=n;
-                    return true;
-                }else{
-                    filter.reset(); //we've moved to a new row
+            if(((MCell)n).getSequence()<=sequenceCutoffPoint){
+                //skip data which was written after we started the scanner
+                if(currentLength==0){
                     currentKey=n.keyArray();
                     currentOffset=n.keyOffset();
                     currentLength=n.keyLength();
+                }else if(!Bytes.equals(currentKey,currentOffset,currentLength,n.keyArray(),n.keyOffset(),n.keyLength())){
+                    if(currentRow.size()>0){
+                        last=n;
+                        return true;
+                    }else{
+                        filter.reset(); //we've moved to a new row
+                        currentKey=n.keyArray();
+                        currentOffset=n.keyOffset();
+                        currentLength=n.keyLength();
+                    }
+                }
+                switch(accept(n)){
+                    case NEXT_ROW:
+                        filterCounter.increment();
+                        n=advanceRow();
+                        continue;
+                    case NEXT_COL:
+                        n=advanceColumn(n);
+                        continue;
+                    case SKIP:
+                        break;
+                    case INCLUDE:
+                        currentRow.add(n);
+                        break;
+                    case INCLUDE_AND_NEXT_COL:
+                        currentRow.add(n);
+                        n=advanceColumn(n);
+                        continue;
+                    case SEEK:
+                        throw new UnsupportedOperationException("SEEK Not supported by in-memory store");
                 }
             }
-            switch(accept(n)){
-                case NEXT_ROW:
-                    filterCounter.increment();
-                    n=advanceRow();
-                    continue;
-                case NEXT_COL:
-                    n=advanceColumn(n);
-                    continue;
-                case SKIP:
-                    break;
-                case INCLUDE:
-                    currentRow.add(n);
-                    break;
-                case INCLUDE_AND_NEXT_COL:
-                    currentRow.add(n);
-                    n=advanceColumn(n);
-                    continue;
-                case SEEK:
-                    throw new UnsupportedOperationException("SEEK Not supported by in-memory store");
-            }
+
             if(dataCells.hasNext())
                 n=dataCells.next();
             else n=null;

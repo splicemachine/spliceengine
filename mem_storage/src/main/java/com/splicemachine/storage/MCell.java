@@ -21,6 +21,7 @@ public class MCell implements DataCell{
     private byte[] qualifier;
     private CellType cellType;
     private long version;
+    private long sequenceCounter;
 
     public MCell(){
     }
@@ -202,5 +203,13 @@ public class MCell implements DataCell{
     @Override
     public int qualifierOffset(){
         return 0;
+    }
+
+    public void sequence(long sequence){
+       this.sequenceCounter = sequence;
+    }
+
+    public long getSequence(){
+        return sequenceCounter;
     }
 }
