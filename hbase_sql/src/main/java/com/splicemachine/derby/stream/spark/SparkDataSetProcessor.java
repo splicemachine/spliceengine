@@ -106,7 +106,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
-        String scope = null;
+        String scope;
         if (caller instanceof String)
             scope = (String)caller;
         else if (caller instanceof SpliceOperation)
@@ -116,9 +116,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
         SpliceSpark.pushScope(scope);
         try {
-            JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value), 1);
+            JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
             rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
-            return new SparkDataSet(rdd1);
+            return new SparkDataSet<>(rdd1);
         } finally {
             SpliceSpark.popScope();
         }

@@ -317,7 +317,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public ExportDataSetWriterBuilder<String> saveAsTextFile(){
+    public ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext){
         return new SparkExportDataSetWriter.Builder<>(rdd);
     }
 

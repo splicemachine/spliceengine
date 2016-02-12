@@ -233,9 +233,9 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public ExportDataSetWriterBuilder saveAsTextFile() {
+    public ExportDataSetWriterBuilder saveAsTextFile(OperationContext operationContext) {
         return writeToDisk()
-                .exportFunction(new SpliceFunction2<SpliceOperation,OutputStream,Iterator<String>,Integer>(){
+                .exportFunction(new SpliceFunction2<SpliceOperation,OutputStream,Iterator<String>,Integer>(operationContext){
                     @Override public void writeExternal(ObjectOutput out) throws IOException{ super.writeExternal(out); }
                     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{ super.readExternal(in); }
                     @Override public SpliceOperation getOperation(){ return super.getOperation(); }

@@ -26,10 +26,10 @@ import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Scanner;
+import java.io.SequenceInputStream;
+import java.nio.file.*;
+import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Created by jleach on 4/13/15.
@@ -136,6 +136,10 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation){
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
+        if(permissive){
+            operationContext.setPermissive();
+            operationContext.setFailBadRecordCount(failBadRecordCount);
+        }
         return operationContext;
     }
 
@@ -151,38 +155,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String s,SpliceOperation op){
         SIDriver driver = SIDriver.driver();
-        DistributedFileSystem fssf = driver.fileSystem();
-        try(InputStream is = fssf.newInputStream(fssf.getPath(s),StandardOpenOption.READ)){
-            //TODO -sf- this almost certainly closes the InputStream too early...
+        try{
+            InputStream is = getFileStream(s);
             return singleRowPairDataSet(s,is);
         }catch(IOException e){
             throw new RuntimeException(e);
         }
-//        Path path=new Path(s);
-//        InputStream rawStream=null;
-//        try{
-//            CompressionCodecFactory factory=new CompressionCodecFactory(SpliceConstants.config);
-//            CompressionCodec codec=factory.getCodec(path);
-//            FileSystem fs=FileSystem.get(SpliceConstants.config);
-//            FSDataInputStream fileIn=fs.open(path);
-//            InputStream value;
-//            if(codec!=null){
-//                value=codec.createInputStream(fileIn);
-//            }else{
-//                value=fileIn;
-//            }
-//            return singleRowPairDataSet(s,value);
-//        }catch(IOException e){
-//            throw new RuntimeException(e);
-//        }finally{
-//            if(rawStream!=null){
-//                try{
-//                    rawStream.close();
-//                }catch(IOException e){
-//                    // ignore
-//                }
-//            }
-//        }
     }
 
     @Override
@@ -193,18 +171,19 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public DataSet<String> readTextFile(String s){
         try{
-            DistributedFileSystem dfs=SIDriver.driver().fileSystem();
-            final InputStream value = dfs.newInputStream(dfs.getPath(s),StandardOpenOption.READ);
+            final InputStream is =getFileStream(s);
             return new ControlDataSet<>(new Iterable<String>(){
                 @Override
                 public Iterator<String> iterator(){
-                    return new TextFileIterator(value);
+                    return new TextFileIterator(is);
                 }
             });
         }catch(IOException e){
             throw new RuntimeException(e);
         }
     }
+
+
 
     @Override
     public DataSet<String> readTextFile(String s,SpliceOperation op){
@@ -269,5 +248,39 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public void clearBroadcastedOperation() {
         // do nothing
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private InputStream newInputStream(DistributedFileSystem dfs,Path p,OpenOption... options) throws IOException{
+        InputStream value = dfs.newInputStream(p,options);
+        if(p.getFileName().toString().endsWith("gz")){
+            //need to open up a decompressing inputStream
+            value = new GZIPInputStream(value);
+        }
+        return value;
+    }
+
+    private InputStream getFileStream(String s) throws IOException{
+        DistributedFileSystem dfs=SIDriver.driver().fileSystem();
+        InputStream value;
+        if(dfs.getInfo(s).isDirectory()){
+            //we need to open a Stream against each file in the directory
+            InputStream inputStream = null;
+            boolean sequenced = false;
+            try(DirectoryStream<Path> stream =Files.newDirectoryStream(dfs.getPath(s))){
+                for(Path p:stream){
+                    if(inputStream==null){
+                        inputStream = newInputStream(dfs,p,StandardOpenOption.READ);
+                    }else {
+                        inputStream = new SequenceInputStream(inputStream,newInputStream(dfs,p,StandardOpenOption.READ));
+                    }
+                }
+            }
+            value = inputStream;
+        }else{
+            value = newInputStream(dfs,dfs.getPath(s),StandardOpenOption.READ);
+        }
+        return value;
     }
 }

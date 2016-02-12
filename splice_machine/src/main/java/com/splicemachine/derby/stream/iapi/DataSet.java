@@ -101,7 +101,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     ExportDataSetWriterBuilder writeToDisk();
 
-    ExportDataSetWriterBuilder<String> saveAsTextFile();
+    ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext);
 
     void persist();
 

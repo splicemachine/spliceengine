@@ -19,6 +19,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.Iterator;
@@ -46,32 +47,39 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     public DataSet<LocatedRow> write() throws StandardException{
         Integer count;
         String extension = ".csv";
-        ExportOperation op = (ExportOperation) exportFunction.getOperation();
-        boolean isCompressed = op.getExportParams().isCompression();
-        if (isCompressed) {
-            extension += ".gz";
-        }
-//        OutputStream fileOut = null;
-        final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
-        try(OutputStream fileOut =dfs.newOutputStream(dfs.getPath(path,"/part-r-00000"+extension), StandardOpenOption.CREATE)) {
-//            Path file = new Path(path);
-//            FileSystem fs = file.getFileSystem(SpliceConstants.config);
-//            fs.mkdirs(file);
-//            fileOut = fs.create(new Path(path + "/part-r-00000" + extension), false);
-            OutputStream toWrite = fileOut;
-            if (isCompressed) {
-                toWrite = new GZIPOutputStream(fileOut);
+        SpliceOperation operation=exportFunction.getOperation();
+        boolean isCompressed = path.endsWith(".gz");
+        if(!isCompressed && operation instanceof ExportOperation){
+            ExportOperation op=(ExportOperation)exportFunction.getOperation();
+            isCompressed=op.getExportParams().isCompression();
+            if(isCompressed){
+                extension+=".gz";
             }
-            count = exportFunction.call(toWrite, dataSet.toLocalIterator());
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
+        try{
+            final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
+            Path outputPath;
+            boolean isDir;
+            if(dfs.getInfo(path).isDirectory()){
+                outputPath = dfs.getPath(path,"/part-r-00000"+extension);
+                isDir= true;
+            }else {
+                outputPath = dfs.getPath(path);
+                isDir = false;
+            }
 
-        File success = new File(path + "/_SUCCESS");
-        try {
-            success.createNewFile();
-        } catch (IOException e) {
+            try(OutputStream fileOut =dfs.newOutputStream(outputPath, StandardOpenOption.CREATE)){
+                OutputStream toWrite=fileOut;
+                if(isCompressed){
+                    toWrite=new GZIPOutputStream(fileOut);
+                }
+                count=exportFunction.call(toWrite,dataSet.toLocalIterator());
+            }
+            if(isDir){
+                File success=new File(path+"/_SUCCESS");
+                success.createNewFile();
+            }
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 

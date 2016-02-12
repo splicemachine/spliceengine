@@ -208,7 +208,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             }
         }
         badRecords.add(errorState + " " + badRecord+LINE_SEP);
-        if (numberBadRecords> this.failBadRecordCount)
+        if (failBadRecordCount>=0 && numberBadRecords> this.failBadRecordCount)
             failed=true;
     }
 

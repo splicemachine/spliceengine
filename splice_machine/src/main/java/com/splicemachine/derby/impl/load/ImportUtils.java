@@ -67,7 +67,7 @@ public class ImportUtils{
             throw Exceptions.parseException(e);
         }
 
-        if(checkDirectory &&info.isDirectory()){
+        if(checkDirectory &&!info.isDirectory()){
             throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(path);
         }
         if(!info.isWritable()){
