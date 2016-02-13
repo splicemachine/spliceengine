@@ -43,6 +43,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
         return this;
     }
 
+    @Override
+    public PartitionCreator withDisplayNames(String[] displayNames){
+        // TODO (wjkmerge): should this be no op or populate values like HPartitionCreator?
+        return this;
+    }
+
     public Partition create() throws IOException{
         Partition p =baseCreator.create(); //create the base table
         long cId;

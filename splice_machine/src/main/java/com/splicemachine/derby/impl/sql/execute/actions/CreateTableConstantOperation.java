@@ -5,6 +5,7 @@ import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -192,7 +193,12 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          */
         dd.startWriting(lcc);
 
-		/* create the conglomerate to hold the table's rows
+        // Put displayable table name into properties, which will ultimately be persisted
+        // in the HTableDescriptor for convenient fetching where DataDictionary not available.
+        properties = new Properties();
+        properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
+
+        /* create the conglomerate to hold the table's rows
 		 * RESOLVE - If we ever have a conglomerate creator
 		 * that lets us specify the conglomerate number then
 		 * we will need to handle it here.

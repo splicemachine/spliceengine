@@ -134,4 +134,7 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
         dm.invalidateFor(ad, invalidationType, lcc);
     }
 
+    public String getScopeName() {
+        return String.format("Drop Alias %s", aliasName);
+    }
 }

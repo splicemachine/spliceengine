@@ -219,4 +219,8 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
     public String toString() {
         return "TRUNCATE TABLE " + tableName;
     }
+
+    public String getScopeName() {
+        return String.format("Truncate Table %s", tableName);
+    }
 }

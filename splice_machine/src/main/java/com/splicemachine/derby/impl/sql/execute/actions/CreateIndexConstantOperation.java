@@ -10,6 +10,7 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.Exceptions;
@@ -517,6 +518,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             /* now that we got indexTemplateRow, done for sharing index */
             if (shareExisting) // Sharing leaves...
                 return;
+
+            // Put displayable table/index names into properties, which will ultimately be persisted
+            // in the HTableDescriptor for convenient fetching where DataDictionary not available.
+            indexProperties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
+            indexProperties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, this.indexName);
 
             /* For non-unique indexes, we order by all columns + the RID.
              * For unique indexes, we just order by the columns.

@@ -12,6 +12,8 @@ public interface PartitionCreator{
 
     PartitionCreator withName(String name);
 
+    PartitionCreator withDisplayNames(String[] displayNames);
+
     PartitionCreator withCoprocessor(String coprocessor) throws IOException;
 
     Partition create() throws IOException;

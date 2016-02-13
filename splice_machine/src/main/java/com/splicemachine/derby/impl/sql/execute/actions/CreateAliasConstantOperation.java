@@ -298,4 +298,8 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 
         adjustUDTDependencies( lcc, dd, ads, true );
 	}
+
+	public String getScopeName() {
+		return String.format("Create Alias %s", aliasName);
+	}
 }

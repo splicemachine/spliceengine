@@ -9,6 +9,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -61,6 +62,12 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withCoprocessor(String coprocessor) throws IOException{
+            //no-op
+            return this;
+        }
+
+        @Override
+        public PartitionCreator withDisplayNames(String[] displayNames){
             //no-op
             return this;
         }

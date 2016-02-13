@@ -74,4 +74,11 @@ public class SIConstants {
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
     public static final int DEFAULT_CACHE_SIZE=1<<10;
+
+    // Name of property to use for caching full display name of table and index.
+    // Generic but ultimately used in hbase where we want these to be available
+    // in HTableDescriptor.
+
+    public static final String TABLE_DISPLAY_NAME_ATTR = "tableDisplayName";
+    public static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
 }

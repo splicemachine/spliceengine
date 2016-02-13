@@ -192,7 +192,11 @@ public class ConglomerateUtils  {
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(long conglomId, Conglomerate conglomerate, Txn txn) throws StandardException {
-        createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate),txn);
+        createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate), txn, null, null);
+    }
+
+    public static void createConglomerate(long conglomId, Conglomerate conglomerate, Txn txn, String tableDisplayName, String indexDisplayName) throws StandardException {
+        createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate), txn, tableDisplayName, indexDisplayName);
     }
 
     /**
@@ -201,7 +205,8 @@ public class ConglomerateUtils  {
      * @param tableName the name of the table
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(String tableName, long conglomId, byte[] conglomData, Txn txn) throws StandardException {
+    public static void createConglomerate(
+        String tableName, long conglomId, byte[] conglomData, Txn txn, String tableDisplayName, String indexDisplayName) throws StandardException {
         SpliceLogUtils.debug(LOG, "creating Hbase table for conglom {%s} with data {%s}", tableName, conglomData);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
@@ -210,7 +215,7 @@ public class ConglomerateUtils  {
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
         try(PartitionAdmin admin = tableFactory.getAdmin()){
-            admin.newPartition().withName(tableName).create();
+            admin.newPartition().withName(tableName).withDisplayNames(new String[] {tableDisplayName, indexDisplayName}).create();
             try(Partition table = tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
                 DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
                 BitSet fields=new BitSet();

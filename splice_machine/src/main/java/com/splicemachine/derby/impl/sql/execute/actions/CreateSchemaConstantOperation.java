@@ -153,4 +153,8 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
         String currentDDLChangeId=ddlController.notifyMetadataChange(change);
         tc.prepareDataDictionaryChange(currentDDLChangeId);
     }
+
+    public String getScopeName() {
+        return String.format("Create Schema %s", schemaName);
+    }
 }

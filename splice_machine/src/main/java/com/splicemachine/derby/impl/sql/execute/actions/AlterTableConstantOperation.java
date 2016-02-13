@@ -1101,7 +1101,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         childTxn.commit();
     }
 
-
     public String getScopeName() {
         return String.format("Alter Table %s", tableName);
     }

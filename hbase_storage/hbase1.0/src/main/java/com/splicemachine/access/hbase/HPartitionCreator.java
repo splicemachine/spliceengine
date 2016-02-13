@@ -2,6 +2,7 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -33,6 +34,13 @@ public class HPartitionCreator implements PartitionCreator{
     @Override
     public PartitionCreator withName(String name){
         descriptor = new HTableDescriptor(tableInfoFactory.getTableInfo(name));
+        return this;
+    }
+
+    @Override
+    public PartitionCreator withDisplayNames(String[] displayNames){
+        descriptor.setValue(SIConstants.TABLE_DISPLAY_NAME_ATTR, displayNames[0] != null ? displayNames[0] : descriptor.getNameAsString());
+        descriptor.setValue(SIConstants.INDEX_DISPLAY_NAME_ATTR, displayNames[1]);
         return this;
     }
 

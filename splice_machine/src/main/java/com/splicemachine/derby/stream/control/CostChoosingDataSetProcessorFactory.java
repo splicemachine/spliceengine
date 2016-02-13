@@ -7,6 +7,8 @@ import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -20,6 +22,8 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
 
     private final double localCostThreshold;
     private final double localRowCountThreshold;
+
+    private static final Logger LOG = Logger.getLogger(CostChoosingDataSetProcessorFactory.class);
 
     public CostChoosingDataSetProcessorFactory(DistributedDataSetProcessor distributedDataSetProcessor,
                                                DataSetProcessor localProcessor,
@@ -41,6 +45,8 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
              * for whatever reason, it's not available at the moment, so we have to use
              * the local processor instead
              */
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor for op %s", op.getName());
             return localProcessor;
         }
         if(activation==null|| activation.getResultSet()==null){
@@ -50,6 +56,8 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
                 * to play it safe and assume that it will be very expensive and require the
                 * distributed engine.
                 */
+               if (LOG.isTraceEnabled())
+                   SpliceLogUtils.trace(LOG, "chooseProcessor(): distributedDataSetProcessor for null op");
                return distributedDataSetProcessor;
            }else{
                estimatedCost = op.getEstimatedCost();
@@ -59,16 +67,27 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
             estimatedCost = ((SpliceOperation)activation.getResultSet()).getEstimatedCost();
             estimatedRowCount= ((SpliceOperation)activation.getResultSet()).getEstimatedRowCount();
         }
-        return (estimatedCost > localCostThreshold || estimatedRowCount > localRowCountThreshold) ?distributedDataSetProcessor:localProcessor;
+        if(estimatedCost>localCostThreshold||estimatedRowCount>localRowCountThreshold){
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "chooseProcessor(): distributedDataSetProcessor based on cost for op %s", op);
+            return distributedDataSetProcessor;
+        }else{
+            SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor based on cost for op %s", op);
+            return localProcessor;
+        }
     }
 
     @Override
     public DataSetProcessor localProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "localProcessor(): localProcessor provided for op %s", op);
         return localProcessor;
     }
 
     @Override
     public DistributedDataSetProcessor distributedProcessor(){
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "distributedProcessor(): distributedDataSetProcessor provided");
         return distributedDataSetProcessor;
     }
 }

@@ -7,6 +7,7 @@ import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkFlatMapFunction;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.commons.io.FileUtils;
@@ -39,9 +40,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private String tableDisplayName = null;
     private String indexDisplayName = null;
 
-    // TODO (wjkmerge): put these somewhere else - in master_dataset they were in SpliceConstants
-    private static final String TABLE_DISPLAY_NAME_ATTR = "tableDisplayName";
-    private static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
+    private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
+    private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
 
     public SpliceDefaultCompactor(final Configuration conf, final Store store) {
         super(conf, store);

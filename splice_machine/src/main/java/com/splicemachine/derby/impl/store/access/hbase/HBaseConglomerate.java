@@ -28,6 +28,7 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -72,7 +73,12 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 tmpFlag,
                 opFactory,
                 partitionFactory);
-        ConglomerateUtils.createConglomerate(containerId,this,((SpliceTransaction)rawtran).getTxn());
+        ConglomerateUtils.createConglomerate(
+            containerId,
+            this,
+            ((SpliceTransaction)rawtran).getTxn(),
+            properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
+            properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR));
     }
 
     @Override

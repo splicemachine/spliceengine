@@ -18,6 +18,7 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
@@ -51,6 +52,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         sql = (sql == null) ? description : sql;
         String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         String jobName = userId + " <" + txnId + ">";
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "setup(): jobName = %s", jobName);
         setJobGroup(jobName,sql);
         setSchedulerPool(schedulerPool);
     }

@@ -9,6 +9,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.utils.ForwardingDataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -23,6 +25,8 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
     private final ControlDataSetProcessor cdsp;
     private final DistributedWrapper dist;
 
+    private static final Logger LOG = Logger.getLogger(ControlOnlyDataSetProcessorFactory.class);
+
     public ControlOnlyDataSetProcessorFactory(){
         final SIDriver driver=SIDriver.driver();
         cdsp = new ControlDataSetProcessor(driver.getTxnSupplier(),
@@ -34,16 +38,22 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
 
     @Override
     public DataSetProcessor chooseProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "chooseProcessor(): ControlDataSetProcessor provided for op %s", op);
         return cdsp;
     }
 
     @Override
     public DataSetProcessor localProcessor(@Nullable Activation activation,@Nullable SpliceOperation op){
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "localProcessor(): ControlDataSetProcessor provided for op %s", op);
         return cdsp;
     }
 
     @Override
     public DistributedDataSetProcessor distributedProcessor(){
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "distributedProcessor(): DistributedWrapper provided");
         return dist;
     }
 
@@ -54,6 +64,8 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
 
         @Override
         public void setup(Activation activation,String description,String schedulerPool) throws StandardException{
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "DistributedWrapper#setup()");
             //no-op
         }
 
