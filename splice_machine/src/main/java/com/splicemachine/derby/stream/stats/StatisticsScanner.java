@@ -55,7 +55,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data>{
 //        MeasuredRegionScanner regionScanner = getRegionScanner();
 //        HRegionInfo r = regionScanner.getRegionInfo();
 //        conglomId = r.getTable().getQualifierAsString();
-        regionId = region.getTableName();
+        regionId = region.getRegionName();
         collector=new StatisticsCollector(txn,template,columnPositionMap,fieldLengths,this);
     }
 
