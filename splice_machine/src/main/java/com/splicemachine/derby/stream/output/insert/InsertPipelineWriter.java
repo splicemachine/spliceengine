@@ -152,10 +152,12 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     @Override
     public void close() throws StandardException{
         super.close();
-        try{
-            table.close();
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
+        if(table!=null){
+            try{
+                table.close();
+            }catch(IOException e){
+                throw Exceptions.parseException(e);
+            }
         }
     }
 
