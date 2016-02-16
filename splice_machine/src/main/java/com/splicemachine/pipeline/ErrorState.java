@@ -2,6 +2,7 @@ package com.splicemachine.pipeline;
 
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineTooBusy;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
@@ -9,12 +10,13 @@ import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
-import com.splicemachine.db.iapi.error.StandardException;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.file.NoSuchFileException;
 import java.util.concurrent.CancellationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1746,16 +1748,22 @@ public enum ErrorState {
     DATA_FILE_NOT_FOUND("XIE04.S"){
         @Override
         public StandardException newException(Throwable rootCause) {
-            if(!(rootCause instanceof FileNotFoundException)){
+            if(rootCause instanceof NoSuchFileException){
+                NoSuchFileException nsfe = (NoSuchFileException)rootCause;
+                return StandardException.newException(getSqlState(),nsfe.getFile());
+            } else if(rootCause instanceof FileNotFoundException){
+                FileNotFoundException fnfe = (FileNotFoundException)rootCause;
+                return StandardException.newException(getSqlState(),fnfe.getMessage());
+            }else{
                 return super.newException(rootCause);
             }
-            FileNotFoundException fnfe = (FileNotFoundException)rootCause;
-            return StandardException.newException(getSqlState(),fnfe.getMessage());
         }
 
         @Override
         public boolean accepts(Throwable t) {
-            return t instanceof FileNotFoundException || super.accepts(t);
+            return t instanceof NoSuchFileException ||
+                    t instanceof FileNotFoundException ||
+                    super.accepts(t);
         }
     },
     DATA_FILE_NULL("XIE05.S"),
@@ -1989,17 +1997,16 @@ public enum ErrorState {
     // Group 2 contains the rest of the line. This is the error message.
     private static final Pattern badRecordPattern = Pattern.compile("^([^ ]+)* (.*)");
     public static StandardException fromBadRecord(String badRecord) {
-        StandardException exception;
+        ErrorState state = ErrorState.UNEXPECTED_IMPORT_CSV_ERROR;
+        String errorMsg= badRecord;
         Matcher badRecordMatcher = badRecordPattern.matcher(badRecord);
         if (badRecordMatcher.find()) {
             String errorState = badRecordMatcher.group(1);
-            String errorMsg = badRecordMatcher.group(2);
-            exception = StandardException.newException(errorState, errorMsg);
-        } else {
-            // if no sql state ID, then it's just an error msg
-            exception = ErrorState.UNEXPECTED_IMPORT_CSV_ERROR.newException(badRecord);
+            errorMsg = badRecordMatcher.group(2);
+            if(errorState!=null)
+                state = ErrorState.stateFor(errorState);
         }
 
-        return exception;
+        return state.newException(errorMsg);
     }
 }

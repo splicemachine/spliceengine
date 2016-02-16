@@ -97,12 +97,9 @@ public class ImportErrorIT extends SpliceUnitTest {
                 Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
 
                 //se.getMessage() can return message either with a period or without a period.  So we check for each.
-                String correctErrorMessage = String.format("Data file not found: File %s does not exist",location);
-                String correctErrorMessage1 = String.format("Data file not found: File %s does not exist.",location);
+                String prefix = String.format("Data file not found: %s",location);
                 String retval = se.getMessage();
-                Assert.assertTrue("Incorrect error message! location={" + location + "}, retval={" + retval + "}",
-                        retval.equals(correctErrorMessage)||retval.equals(correctErrorMessage1));
-//                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+                Assert.assertTrue("Incorrect error message! correct: <"+prefix+">, Actual <"+retval,retval.startsWith(prefix));
             }
         });
 
@@ -116,7 +113,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
 
-                String correctErrorMessage = "Column 'A'  cannot accept a NULL value.";
+                String correctErrorMessage = "Column 'A' cannot accept a NULL value.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -206,7 +203,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
 
-                String correctErrorMessage = "Error parsing datetime";
+                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect";
                 assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
             }
         });
@@ -221,7 +218,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
 
-                String correctErrorMessage = "Error parsing datetime";
+                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect";
                 assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
             }
         });
@@ -234,9 +231,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             public void check(String table, String location, SQLException se) {
 //                System.err.println(SpliceUnitTest.printMsgSQLState("testCannotInsertNullDateIntoDateField",se));
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
 
-                String correctErrorMessage = "Error parsing datetime";
+                String correctErrorMessage = "Column 'F' cannot accept a NULL value.";
                 assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
             }
         });
@@ -250,7 +247,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
 
-                String correctErrorMessage = "Column 'G'  cannot accept a NULL value.";
+                String correctErrorMessage = "Column 'G' cannot accept a NULL value.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -264,7 +261,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "23502", se.getSQLState());
 
-                String correctErrorMessage = "Column 'H'  cannot accept a NULL value.";
+                String correctErrorMessage = "Column 'H' cannot accept a NULL value.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -279,7 +276,7 @@ public class ImportErrorIT extends SpliceUnitTest {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
 
-                String correctErrorMessage = "Error parsing datetime";
+                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect";
                 assertThat("Incorrect error message!", se.getMessage(), containsString(correctErrorMessage));
             }
         });

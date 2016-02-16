@@ -705,7 +705,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         OperationUtils.generateLeftOperationStack(this,operations);
     }
 
-    protected List<SpliceOperation> getOperationStack(){
+    public List<SpliceOperation> getOperationStack(){
         if(leftOperationStack==null){
             leftOperationStack=new LinkedList<>();
             generateLeftOperationStack(leftOperationStack);

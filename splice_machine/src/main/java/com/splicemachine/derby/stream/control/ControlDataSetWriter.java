@@ -22,6 +22,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -60,10 +61,11 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                  * at the context for the lower operation (i.e. in an import), so we need to collect those errors
                  * directly.
                  */
-                List<SpliceOperation> ops =insertOperation.getSubOperations();
+                List<SpliceOperation> ops =insertOperation.getOperationStack();
                 for(SpliceOperation op:ops){
                     if(op==insertOperation) continue;
                     badRecords.addAll(op.getOperationContext().getBadRecords());
+
                 }
                 operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
                 if(badRecords.size()>0){
