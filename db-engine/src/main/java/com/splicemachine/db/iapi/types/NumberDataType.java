@@ -476,12 +476,10 @@ public abstract class NumberDataType extends DataType
 	*/
     public static float normalizeREAL(float v) throws StandardException
 	{
-        if (Float.isNaN(v) || Float.isInfinite(v) )
-        /* Remove DB2 Check on Float DB- ||
+        if (Float.isNaN(v) || Float.isInfinite(v) ||
              ((v < Limits.DB2_SMALLEST_REAL) || (v > Limits.DB2_LARGEST_REAL)) ||
              ((v > 0) && (v < Limits.DB2_SMALLEST_POSITIVE_REAL)) ||
              ((v < 0) && (v > Limits.DB2_LARGEST_NEGATIVE_REAL)) )
-             */
         {
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.REAL_NAME);
         }

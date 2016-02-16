@@ -21,3 +21,4 @@ generated
 jars
 changenumber.properties
 *.log
+out

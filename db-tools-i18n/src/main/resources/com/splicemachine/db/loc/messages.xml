@@ -865,7 +865,7 @@ Guide.
 
             <msg>
                 <name>23502</name>
-                <text>Column '{0}'  cannot accept a NULL value.</text>
+                <text>Column '{0}' cannot accept a NULL value.</text>
                 <arg>columnName</arg>
             </msg>
 
