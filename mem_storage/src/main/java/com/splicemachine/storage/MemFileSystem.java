@@ -234,7 +234,7 @@ public class MemFileSystem extends DistributedFileSystem{
 
         @Override
         public long fileCount(){
-            if(!isDirectory()) return 0l;
+            if(!isDirectory()) return 1l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
                 for (Path ignored : directoryStream) {

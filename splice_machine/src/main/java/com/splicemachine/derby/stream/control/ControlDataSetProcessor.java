@@ -156,7 +156,6 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String s,SpliceOperation op){
-        SIDriver driver = SIDriver.driver();
         try{
             InputStream is = getFileStream(s);
             return singleRowPairDataSet(s,is);
@@ -171,18 +170,18 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public DataSet<String> readTextFile(String s){
-        try{
-            final InputStream is =getFileStream(s);
-            return new ControlDataSet<>(new Iterable<String>(){
-                @Override
-                public Iterator<String> iterator(){
+    public DataSet<String> readTextFile(final String s){
+        return new ControlDataSet<>(new Iterable<String>(){
+            @Override
+            public Iterator<String> iterator(){
+                try{
+                    InputStream is=getFileStream(s);
                     return new TextFileIterator(is);
+                }catch(IOException e){
+                    throw new RuntimeException(e);
                 }
-            });
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
+            }
+        });
     }
 
 

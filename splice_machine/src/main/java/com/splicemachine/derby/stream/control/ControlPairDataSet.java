@@ -55,8 +55,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public DataSet<V> values() {
         return new ControlDataSet<>(FluentIterable.from(source).transform(new Function<Tuple2<K,V>, V>() {
-            @Nullable
-            @Override
+            @Nullable @Override
             public V apply(@Nullable Tuple2<K,V>t) {
                 return t._2();
             }
@@ -92,16 +91,16 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
         Multimap<K,V> newMap = multimapFromIterable(source);
-        return new ControlPairDataSet<K,V>(entryToTuple(Multimaps.forMap(Maps.transformValues(newMap.asMap(), new Function<Collection<V>, V>() {
+        return new ControlPairDataSet<>(entryToTuple(Multimaps.forMap(Maps.transformValues(newMap.asMap(),new Function<Collection<V>, V>(){
             @Override
-            public V apply(@Nullable Collection<V> vs) {
-                try {
-                    V returnValue = null;
-                    for (V v : vs) {
-                        returnValue = function2.call(returnValue, v);
+            public V apply(@Nullable Collection<V> vs){
+                try{
+                    V returnValue=null;
+                    for(V v : vs){
+                        returnValue=function2.call(returnValue,v);
                     }
                     return returnValue;
-                } catch (Exception e) {
+                }catch(Exception e){
                     throw new RuntimeException(e);
                 }
             }
