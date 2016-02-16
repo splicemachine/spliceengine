@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Class utilized to serialize the Splice Operation onto the scan for hbase.  It attaches the
+ * Class utilized to serialize the Activation and related elments for Spark.  It attaches the
  * GenericStorablePreparedStatement and the Top Operation.
  *
  * @author johnleach
