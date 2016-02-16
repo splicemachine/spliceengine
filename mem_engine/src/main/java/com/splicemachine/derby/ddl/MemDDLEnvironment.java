@@ -113,6 +113,10 @@ public class MemDDLEnvironment implements DDLEnvironment{
             errorChanges.remove(changeId);
             changesInFlight.remove(changeId);
         }
+
+        public void kill(String key){
+            remove(key);
+        }
     }
 
     private class DirectWatcher implements DDLWatchChecker{
@@ -145,7 +149,7 @@ public class MemDDLEnvironment implements DDLEnvironment{
 
         @Override
         public void killDDLTransaction(String key){
-            throw new UnsupportedOperationException("IMPLEMENT");
+            changeStore.kill(key);
         }
     }
 

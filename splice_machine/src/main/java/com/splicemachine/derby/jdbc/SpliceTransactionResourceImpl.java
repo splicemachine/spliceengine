@@ -30,6 +30,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
     private boolean generateLcc=true;
+    private ContextManager oldCm;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this("jdbc:splice:"+SQLConfiguration.SPLICE_DB+";create=true",new Properties());
@@ -61,7 +62,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"marshallTransaction with transactionID %s",txn);
 
-//        ContextManager ctxM=csf.getCurrentContextManager();
+        oldCm=csf.getCurrentContextManager();
 //        if(ctxM!=null){
 //            cm=ctxM;
 ////            cm.setActiveThread();
@@ -83,6 +84,10 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                 cm.popContext();
             }
             csf.resetCurrentContextManager(cm);
+            if(oldCm!=null){
+                oldCm.setActiveThread();
+                csf.setCurrentContextManager(oldCm);
+            }
         }
     }
 
