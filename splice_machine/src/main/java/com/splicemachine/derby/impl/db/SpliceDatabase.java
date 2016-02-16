@@ -45,14 +45,20 @@ public class SpliceDatabase extends BasicDatabase{
         Configuration.setConfiguration(null);
         SConfiguration config = SIDriver.driver().getConfiguration();
       //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        if(config.getBoolean(SQLConfiguration.DEBUG_LOG_STATEMENT_CONTEXT))
+        if(config.getBoolean(SQLConfiguration.DEBUG_LOG_STATEMENT_CONTEXT)){
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
-        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_CLASS_FILE))
+        }
+        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_CLASS_FILE)){
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");
-        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_BIND_TREE))
+        }if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_BIND_TREE)){
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpBindTree");
-        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_OPTIMIZED_TREE))
+        }if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_OPTIMIZED_TREE)){
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpOptimizedTree");
+        }
 
         configureAuthentication();
 
