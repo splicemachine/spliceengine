@@ -206,6 +206,7 @@ public class HConfiguration implements SConfiguration{
         public boolean hasLongDefault(String key){
             switch(key){
                 case StorageConfiguration.REGION_MAX_FILE_SIZE:
+                case REGION_LOAD_UPDATE_INTERVAL:
                     return true;
                 default:
                     return false;
@@ -217,6 +218,8 @@ public class HConfiguration implements SConfiguration{
             switch(key){
                 case StorageConfiguration.REGION_MAX_FILE_SIZE:
                     return configuration.getLong(StorageConfiguration.REGION_MAX_FILE_SIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
+                case REGION_LOAD_UPDATE_INTERVAL:
+                    return configuration.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
                 default:
                     throw new IllegalArgumentException("No hbase default for key '"+key+"'");
             }

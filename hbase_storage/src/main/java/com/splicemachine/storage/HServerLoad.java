@@ -59,6 +59,6 @@ public class HServerLoad implements PartitionServerLoad{
             PartitionLoad pl = new HPartitionLoad(name,rl.getStorefileSizeMB(),rl.getMemStoreSizeMB(),rl.getStorefileIndexSizeMB());
             loads.add(pl);
         }
-        return null;
+        return loads;
     }
 }

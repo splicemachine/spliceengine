@@ -6,6 +6,7 @@ import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
@@ -146,7 +147,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                     regionLoads.get(tableName).put(pLoad.getPartitionName(),pLoad);
                 }
             }
-        }catch(IOException e){
+        }catch(Exception e){
             SpliceLogUtils.error(LOG,"Unable to fetch region load info",e);
         }
         return Collections.unmodifiableMap(regionLoads);
@@ -206,7 +207,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
     public Collection<PartitionLoad> tableLoad(String tableName){
         Map<String, Map<String, PartitionLoad>> regionLoadMap=cache.get();
         if(regionLoadMap==null) return Collections.emptyList();
-        Map<String, PartitionLoad> partitionLoadMap=regionLoadMap.get(tableName);
+        Map<String, PartitionLoad> partitionLoadMap=regionLoadMap.get(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString());
         if(partitionLoadMap==null) return Collections.emptyList();
         return partitionLoadMap.values();
     }

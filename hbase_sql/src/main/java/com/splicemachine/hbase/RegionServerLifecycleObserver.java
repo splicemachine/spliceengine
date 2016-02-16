@@ -46,6 +46,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     @Override
     public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
         lifecycleManager.shutdown();
+        HBaseRegionLoads.INSTANCE.stopWatching();
     }
 
     /* ****************************************************************************************************************/
@@ -66,6 +67,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
         config.addDefaults(SQLConfiguration.defaults);
 
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
+        HBaseRegionLoads.INSTANCE.startWatching();
         //register the engine boot service
         try{
             HBaseConnectionFactory connFactory = HBaseConnectionFactory.getInstance(driver.getConfiguration());
