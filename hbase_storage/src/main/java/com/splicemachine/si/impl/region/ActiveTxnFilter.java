@@ -118,29 +118,27 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     @Override public void write(DataOutput out) throws IOException{ }
     @Override public void readFields(DataInput in) throws IOException{ }
 
-    /* TODO (wjkmerge) - uncomment if this is still needed
-    @Override
-    public byte[] toByteArray() throws IOException {
-        SpliceMessage.ActiveTxnFilterMessage.Builder builder = SpliceMessage.ActiveTxnFilterMessage.newBuilder();
-        builder.setAfterTs(afterTs);
-        builder.setBeforeTs(beforeTs);
-        if (destinationTable != null) {
-            builder.setDestinationTable(SpliceZeroCopyByteString.wrap(destinationTable));
-        }
-        return builder.build().toByteArray();
-    }
-
-    public static ActiveTxnFilter parseFrom(byte[] bytes) throws DeserializationException {
-        SpliceMessage.ActiveTxnFilterMessage proto;
-        try {
-            proto = SpliceMessage.ActiveTxnFilterMessage.parseFrom(bytes);
-        } catch (InvalidProtocolBufferException e) {
-            throw new DeserializationException(e);
-        }
-
-        return new ActiveTxnFilter(proto.getBeforeTs(), proto.getAfterTs(), proto.getDestinationTable().toByteArray());
-    }
-    */
+//    @Override
+//    public byte[] toByteArray() throws IOException {
+//        SpliceMessage.ActiveTxnFilterMessage.Builder builder = SpliceMessage.ActiveTxnFilterMessage.newBuilder();
+//        builder.setAfterTs(afterTs);
+//        builder.setBeforeTs(beforeTs);
+//        if (destinationTable != null) {
+//            builder.setDestinationTable(SpliceZeroCopyByteString.wrap(destinationTable));
+//        }
+//        return builder.build().toByteArray();
+//    }
+//
+//    public static ActiveTxnFilter parseFrom(byte[] bytes) throws DeserializationException {
+//        SpliceMessage.ActiveTxnFilterMessage proto;
+//        try {
+//            proto = SpliceMessage.ActiveTxnFilterMessage.parseFrom(bytes);
+//        } catch (InvalidProtocolBufferException e) {
+//            throw new DeserializationException(e);
+//        }
+//
+//        return new ActiveTxnFilter(proto.getBeforeTs(), proto.getAfterTs(), proto.getDestinationTable().toByteArray());
+//    }
 
     /* ****************************************************************************************************************/
     /*private helper methods*/

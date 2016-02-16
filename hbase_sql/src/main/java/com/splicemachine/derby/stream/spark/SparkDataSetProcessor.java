@@ -46,7 +46,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public void setup(Activation activation,String description,String schedulerPool) throws StandardException{
-        // TODO (wjk): this is mostly a copy/paste from SpliceBaseOperation.openCore() - consolidate?
         String sql = activation.getPreparedStatement().getSource();
         long txnId = getCurrentTransaction(activation).getTxnId();
         sql = (sql == null) ? description : sql;
@@ -69,19 +68,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
         Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
         return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
-    }
-
-    // TODO (wjkmerge): purge if no longer needed
-    private String getDisplayableTableName(SpliceOperation spliceOperation, String conglomId) {
-        String displayableTableName;
-        if (spliceOperation instanceof ScanOperation) {
-            displayableTableName = ((ScanOperation)spliceOperation).getDisplayableTableName();
-            if (displayableTableName == null || displayableTableName.isEmpty())
-                displayableTableName = conglomId;
-        } else {
-            displayableTableName = conglomId;
-        }
-        return displayableTableName;
     }
 
     @Override

@@ -416,7 +416,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .columnPositionMap(columnPositionMap)
                 .buildDataSet("Collect Table Statistics");
 
-        // TODO (wjkmerge): might use this instead of String
         // new ScopeNamed() {
         //     public String getScopeName() {
         //         return "Collect Table Statistics";

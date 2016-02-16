@@ -169,7 +169,6 @@ public class CoprocessorTxnStore implements TxnStore {
 
     @Override
     public List<TxnView> getActiveTransactions(final long minTxnid,final long maxTxnId,final byte[] activeTable) throws IOException{
-        // TODO (wjkmerge): add the push/pop scope from SparkDataSetProcessor.getTxnTableScanner
         TxnMessage.ActiveTxnRequest.Builder requestBuilder=TxnMessage.ActiveTxnRequest
                 .newBuilder().setStartTxnId(minTxnid).setEndTxnId(maxTxnId);
         if(activeTable!=null)

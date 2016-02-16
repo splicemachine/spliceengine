@@ -58,10 +58,8 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> demarcationPoint(long demarcationPoint);
 
-    // TODO (wjkmerge): find all callers to see if they should pass in a scope
     DataSet<V> buildDataSet() throws StandardException;
 
-    // TODO (wjkmerge): might be able to do better than Object but for now this is port from master_dataset
     DataSet<V> buildDataSet(Object caller) throws StandardException;
 
     ScanSetBuilder<V> activation(Activation activation);

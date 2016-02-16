@@ -70,7 +70,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         try {
             return new SparkDataSet<U>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)), planIfLast(f, isLast));
         } finally {
-            if (pushScope) SpliceSpark.popScope(); // TODO (wjkmerge): add a popScopeIfNeeded
+            if (pushScope) SpliceSpark.popScope();
         }
     }
 
@@ -312,7 +312,6 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
 //    @Override
-    // TODO (wjkmerge): permanently delete this if not needed
     public void saveAsTextFile(String path) {
         rdd.saveAsTextFile(path);
     }

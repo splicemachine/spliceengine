@@ -1096,8 +1096,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                 .destConglomerate(destConglom)
                 .skipIndex(true).build().write();
 
-        // TODO (wjkmerge): check 'result' data set?
-
         childTxn.commit();
     }
 

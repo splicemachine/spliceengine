@@ -32,7 +32,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     List<String> getBadRecords();
     byte[] getOperationUUID();
 
-    // TODO (wjkmerge): consolidate scott's Scope enum with walt's ScopeName strings
     enum Scope{
         READ_TEXT_FILE("Read File From Disk"),
         PARSE_FILE("Parse File"),

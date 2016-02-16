@@ -760,7 +760,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                                           TransactionController tc,
                                           TableDescriptor td,
                                           long indexConglomId,
-                                          long heapConglomerateId, // TODO (wjkmerge) needed now that below we pull it from TD?
+                                          long heapConglomerateId,
                                           IndexDescriptor indexDescriptor) throws StandardException, IOException {
         /*
          * Manages the Create and Populate index phases

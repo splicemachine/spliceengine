@@ -205,8 +205,6 @@ public class SortOperation extends SpliceBaseOperation{
             }
         }
 
-        // TODO (wjkmerge): consolidate scott's Scope enum with walt's ScopeName strings
-
         operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
         KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
         PairDataSet pair=dataSet.keyBy(f);

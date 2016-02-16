@@ -47,9 +47,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
 
     @Override
     public DataSet<V> buildDataSet(Object caller) throws StandardException {
-        // TODO (wjkmerge): change Object to ScopeNamed
-        // Object 'caller' was a very specific case in master_dataset.
-        // but this code is more generic.
         if (caller instanceof ScopeNamed) {
             caller = ((ScopeNamed)caller).getScopeName();
         }
@@ -66,8 +63,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             throw StandardException.unexpectedUserException(ioe);
         }
 
-        // TODO (wjkmerge): push scope like we did in SparkDataProcessor.getTableScanner.
-        // TODO (wjkmerge): grep for newAPIHadoopRDD and find other cases too
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                 RowLocation.class, ExecRow.class);
 

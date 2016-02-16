@@ -86,7 +86,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex,
                                  TableDescriptor td) throws StandardException {
-        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        // String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 		/*
 		 * Backfill the index with any existing data.
 		 *
@@ -94,7 +94,6 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		 */
         Txn childTxn;
         try {
-			// TODO (wjkmerge): figure out where we need a scope: buildDataSet() or build() or write()
             DistributedDataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
             dsp.setup(activation,this.toString(),"admin"); // this replaces StreamUtils.setupSparkJob
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
@@ -113,7 +112,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				.destConglomerate(tentativeIndex.getIndex().getConglomerate())
 				.txn(childTxn)
 				.build();
-            DataSet<LocatedRow> result = writer.write(); // TODO (wjkmerge): do something with result?
+            DataSet<LocatedRow> result = writer.write();
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

@@ -74,11 +74,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
 
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
-        // TODO (wjkmerge): do we need to create/commit/rollback a child transaction here?
-        // On master_dataset, we did so in ControlPairDataSet.insertData the origin of this code.
-        // Also check similar update/delete codepaths.
         try{
-            // TODO (wjkmerge): scope?
             rdd.saveAsNewAPIHadoopDataset(config);
             if(opContext.getOperation()!=null){
                 opContext.getOperation().fireAfterStatementTriggers();

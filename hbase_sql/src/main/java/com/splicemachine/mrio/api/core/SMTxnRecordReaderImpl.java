@@ -71,8 +71,6 @@ public class SMTxnRecordReaderImpl extends RecordReader<RowLocation,  TxnMessage
 	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {
         if (true) throw new UnsupportedOperationException();
 
-        // TODO (wjkmerge) - uncomment and fix if this is still being used.
-
 //		if (LOG.isDebugEnabled())
 //			SpliceLogUtils.debug(LOG, "init");
 //        long afterTs = config.getLong(MRConstants.SPLICE_TXN_MIN_TIMESTAMP, Long.MAX_VALUE);
@@ -130,7 +128,6 @@ public class SMTxnRecordReaderImpl extends RecordReader<RowLocation,  TxnMessage
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
-        // TODO (wjkmerge) - uncomment and fix if this is still being used.
         if (true) throw new UnsupportedOperationException();
         return false;
 //        if (iterator.hasNext()) {

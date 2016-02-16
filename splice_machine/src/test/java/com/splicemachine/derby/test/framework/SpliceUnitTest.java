@@ -24,9 +24,6 @@ import static org.junit.Assert.fail;
 
 public class SpliceUnitTest {
 
-    // TODO (wjkmerge): ImportTestUtils code was moved here but belongs in an import-specific place
-    // in engine-it module.
-
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
 
 	public String getSchemaName() {
