@@ -229,7 +229,24 @@ public class MPartition implements Partition{
 
     @Override
     public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
-        throw new UnsupportedOperationException("IMPLEMENT");
+        DataCell s=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+
+        NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
+        List<DataCell> results=new ArrayList<>(dataCells.size());
+        DataCell lastResult=null;
+        for(DataCell dc : dataCells){
+            if(lastResult==null){
+                results.add(dc);
+                lastResult=dc;
+            }else if(!dc.matchesQualifier(lastResult.family(),lastResult.qualifier())){
+                results.add(dc);
+                lastResult=dc;
+            }
+        }
+        if(results.size()<=0)
+            results.add(new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,Bytes.toBytes(0l),CellType.FOREIGN_KEY_COUNTER));
+        return new MResult(results);
     }
 
     @Override

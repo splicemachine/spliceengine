@@ -13,6 +13,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
+import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
@@ -121,9 +122,25 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
         Lock rowLock=region.getRowLock(rowKey,0,rowKey.length);
         rowLock.lock();
         try{
-            DataGet dg = opFactory.newDataGet(txnView,rowKey,null); //TODO -sf- add a pass through for a previous get?
+            //TODO -sf- dg,result, and simpleTxnFilter can all be cached to reduce churn during large FK check batches
+            DataGet dg = opFactory.newDataGet(txnView,rowKey,null);
             DataResult result=region.get(dg,null);
+            //needs to be transactional
             if(result!=null && result.size()>0){
+                SimpleTxnFilter simpleTxnFilter=new SimpleTxnFilter(getTableName(),txnView,NoOpReadResolver.INSTANCE,txnSupplier,ignoreTxnCacheSupplier);
+                int cellCount = result.size();
+                for(DataCell dc:result){
+                    DataFilter.ReturnCode returnCode=simpleTxnFilter.filterCell(dc);
+                    switch(returnCode){
+                        case NEXT_ROW:
+                            return false; //the entire row is filtered
+                        case SKIP:
+                        case NEXT_COL:
+                            cellCount--;
+                            break;
+                    }
+                }
+                if(cellCount<=0) return false;
                 transactor.updateCounterColumn(region,txnView,rowKey);
                 return true;
             }

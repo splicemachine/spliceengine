@@ -52,6 +52,7 @@ public class DirectPipelineExceptionFactory extends MExceptionFactory implements
 
     @Override
     public Throwable processPipelineException(Throwable t){
+        t = Throwables.getRootCause(t);
         if(t instanceof ConstraintViolation)
             return t;
         else if(t instanceof MWrongPartition)

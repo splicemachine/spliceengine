@@ -50,12 +50,16 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
     public void addFactories(PipelineWriteContext context,boolean keepState,int expectedWrites) throws IOException{
         if(hasChildCheck()){
             getChildCheckWriteFactory().addTo(context,false,expectedWrites);
+            List<ForeignKeyChildInterceptWriteFactory> childInterceptWriteFactories=getChildInterceptWriteFactories();
+            for(ForeignKeyChildInterceptWriteFactory fkFactory:childInterceptWriteFactories){
+               fkFactory.addTo(context,false,expectedWrites);
+            }
         }
-        if(hasParentIntercept())
-            getParentCheckWriteFactory().addTo(context,false,expectedWrites);
 
-        if(hasParentCheck())
+        if(hasParentCheck()){
             getParentCheckWriteFactory().addTo(context,false,expectedWrites);
+            getParentInterceptWriteFactory().addTo(context,false,expectedWrites);
+        }
     }
 
     @Override
@@ -178,10 +182,6 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
     public boolean hasChildCheck() {
         return childCheckWriteFactory != null;
-    }
-
-    public boolean hasParentIntercept() {
-        return parentInterceptWriteFactory != null;
     }
 
     public boolean hasParentCheck() {

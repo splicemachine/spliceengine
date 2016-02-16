@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.mem;
 
 import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class ConstraintViolation extends IOException{
         }
     }
 
-    public static class FkViolation extends ConstraintViolation{
+    public static class FkViolation extends ConstraintViolation implements ForeignKeyViolation{
         public FkViolation(){ }
 
         public FkViolation(String message){

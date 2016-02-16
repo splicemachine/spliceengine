@@ -84,7 +84,8 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         } catch (Exception e) {
             violationProcessor.failWrite(e, ctx);
         }finally{
-            destPartition.close();
+            if(destPartition!=null)
+                destPartition.close();
         }
     }
 

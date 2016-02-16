@@ -1,21 +1,19 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.encoding.TestType;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import java.util.Arrays;
-import com.carrotsearch.hppc.BitSet;
+
 import java.util.Collection;
 import java.util.Random;
-import static org.mockito.Mockito.mock;
 
 /**
  * @author Scott Fines
@@ -24,7 +22,6 @@ import static org.mockito.Mockito.mock;
 @SuppressWarnings("StatementWithEmptyBody")
 @RunWith(Parameterized.class)
 public class SparseEntryAccumulatorTest {
-    private static final KryoPool kryoPool = mock(KryoPool.class);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -50,7 +47,6 @@ public class SparseEntryAccumulatorTest {
 
     @Test
     public void testMissingColumnsWorks() throws Exception {
-        System.out.println(Arrays.toString(dataTypes));
         Random random = new Random(0l);
         int missingField = random.nextInt(dataTypes.length);
         BitSet fields  = new BitSet(dataTypes.length);
@@ -115,7 +111,6 @@ public class SparseEntryAccumulatorTest {
 
     @Test
     public void testCanAccumulateColumns() throws Exception {
-//        System.out.println(Arrays.toString(dataTypes));
         Random random = new Random(0l);
         BitSet fields  = new BitSet(dataTypes.length);
         fields.set(0,dataTypes.length);

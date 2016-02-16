@@ -2,6 +2,7 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -237,19 +238,20 @@ public class ForeignKey_Check_IT {
     @Test
     public void doubleValue_singleColumn() throws Exception {
 
-        new TableCreator(connection())
+        TestConnection connection=connection();
+        new TableCreator(connection)
                 .withCreate("create table P (a double primary key, b int)")
                 .withInsert("insert into P values(?,?)")
                 .withRows(rows(row(1.1, 1), row(0.0, 2), row(2.2, 2), row(3.9, 3), row(4.5, 3))).create();
 
-        new TableCreator(connection())
+        new TableCreator(connection)
                 .withCreate("create table C (a double, b int, CONSTRAINT fk1 FOREIGN KEY (a) REFERENCES P(a))")
                 .withInsert("insert into C values(?,?)")
                 .withRows(rows(row(1.1, 200), row(0.0, 200), row(2.2, 200), row(3.9, 200)))
                 .create();
 
-        assertEquals(5L, methodWatcher.query("select count(*) from P"));
-        assertEquals(4L, methodWatcher.query("select count(*) from C"));
+        assertEquals(5L,connection.count("select * from P"));
+        assertEquals(4L, connection.count("select * from C"));
 
         assertQueryFail("insert into C values (1.100001, 1.0)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
         assertQueryFail("insert into C values (0.000001, 4.0)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
@@ -683,8 +685,8 @@ public class ForeignKey_Check_IT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    private Connection connection() throws Exception {
-        Connection connection = methodWatcher.getOrCreateConnection();
+    private TestConnection connection() throws Exception {
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
         return connection;
     }

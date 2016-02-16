@@ -639,6 +639,13 @@ public enum ErrorState {
         public boolean accepts(Throwable t) {
             return super.accepts(t) || t instanceof ForeignKeyViolation;
         }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            ForeignKeyViolation fkV = (ForeignKeyViolation)rootCause;
+            ConstraintContext context=fkV.getContext();
+            return StandardException.newException(getSqlState(),context.getMessages());
+        }
     },
     LANG_CHECK_CONSTRAINT_VIOLATED( "23513"),
 
