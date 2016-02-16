@@ -206,7 +206,7 @@ public class DataDictionaryCache {
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
-        if (!dd.canUseCache(xactMgr))
+        if (!dd.canUseCache(xactMgr) && conglomId>1408)
             return null;
         return conglomerateCache.getIfPresent(conglomId);
     }
