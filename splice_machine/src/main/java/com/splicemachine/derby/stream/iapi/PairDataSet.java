@@ -49,11 +49,6 @@ public interface PairDataSet<K,V> {
     InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
     UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
     DataSetWriterBuilder directWriteData() throws StandardException;
-    // TODO (wjkmerge): purge the following 4 methods
-//    DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) throws StandardException;
-//    DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) throws StandardException;
-//    DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) throws StandardException;
-//    DataSet<V> writeKVPair(HTableWriterBuilder builder);
     String toString();
 
 }
