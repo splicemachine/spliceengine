@@ -45,7 +45,7 @@ public class PipelinePartitionCreator implements PartitionCreator{
 
     @Override
     public PartitionCreator withDisplayNames(String[] displayNames){
-        // TODO (wjkmerge): should this be no op or populate values like HPartitionCreator?
+        baseCreator = baseCreator.withDisplayNames(displayNames);
         return this;
     }
 
