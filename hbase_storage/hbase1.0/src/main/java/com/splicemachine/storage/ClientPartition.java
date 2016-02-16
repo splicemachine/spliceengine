@@ -110,12 +110,11 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     @Override
     public List<Partition> subPartitions(){
-        try(Admin admin=connection.getAdmin()){
-            //TODO -sf- does this cache region information?
-            List<HRegionInfo> tableRegions=admin.getTableRegions(tableName);
-            List<Partition> partitions=new ArrayList<>(tableRegions.size());
-            for(HRegionInfo info : tableRegions){
-                partitions.add(new RangedClientPartition(connection,tableName,table,info,new LazyPartitionServer(connection,info,tableName),clock));
+        try {
+            List<HRegionLocation> tableLocations=connection.getRegionLocator(tableName).getAllRegionLocations();
+            List<Partition> partitions=new ArrayList<>(tableLocations.size());
+            for(HRegionLocation location : tableLocations){
+                partitions.add(new RangedClientPartition(connection,tableName,table,location.getRegionInfo(),new LazyPartitionServer(connection,location.getRegionInfo(),tableName),clock));
             }
             return partitions;
         }catch(IOException e){
