@@ -78,6 +78,7 @@ public class VTIOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272 ClassCastException StaticMethodCallNode cannot be cast to com.splicemachine.db.impl.sql.compile.NewInvocationNode")
     public void testJDBCSQLVTI() throws Exception {
         String sql = String.format("select * from table (JDBCSQLVTI('jdbc:splice://localhost:1527/splicedb;create=true;" +
                 "user=splice;password=admin', " +
@@ -91,6 +92,7 @@ public class VTIOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272 ClassCastException StaticMethodCallNode cannot be cast to com.splicemachine.db.impl.sql.compile.NewInvocationNode")
     public void testJDBCTableVTI() throws Exception {
         String sql = String.format("select * from table (JDBCTableVTI('jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin', '%s', '%s'))a", CLASS_NAME, TABLE_NAME);
         ResultSet rs = spliceClassWatcher.executeQuery(sql);

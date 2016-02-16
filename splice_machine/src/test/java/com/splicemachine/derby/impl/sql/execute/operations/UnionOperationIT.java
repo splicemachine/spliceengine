@@ -23,6 +23,18 @@ public class UnionOperationIT {
     private static final String CLASS_NAME = UnionOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
+    private static final Comparator<int[]> intArrayComparator= new Comparator<int[]>(){
+        @Override
+        public int compare(int[] o1,int[] o2){
+            int compare;
+            for(int i=0;i<Math.min(o1.length,o2.length);i++){
+                compare = Integer.compare(o1[i],o2[i]);
+                if(compare!=0) return compare;
+            }
+            return 0;
+        }
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(new SpliceSchemaWatcher(CLASS_NAME))
@@ -190,6 +202,7 @@ public class UnionOperationIT {
                 new int[]{5, 6, 7, 8},
                 new int[]{1, 2, 3, 4}
         };
+        Arrays.sort(correct,intArrayComparator);
         int[][] actual = new int[correct.length][];
         int count = 0;
         while (rs.next()) {
@@ -200,6 +213,7 @@ public class UnionOperationIT {
             actual[count] = new int[]{first, second, third, fourth};
             count++;
         }
+        Arrays.sort(actual,intArrayComparator);
         for (int i = 0; i < correct.length; i++) {
             assertArrayEquals("Incorrect value!", correct[i], actual[i]);
         }
@@ -210,10 +224,11 @@ public class UnionOperationIT {
     public void testUnionValues() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("values (1,2,3,4) union values (5,6,7,8) union values (9,10,11,12)");
         int[][] correct = new int[][]{
-                new int[]{9, 10, 11, 12},
+                new int[]{1, 2, 3, 4},
                 new int[]{5, 6, 7, 8},
-                new int[]{1, 2, 3, 4}
+                new int[]{9, 10, 11, 12}
         };
+        Arrays.sort(correct,intArrayComparator);
         int[][] actual = new int[correct.length][];
         int count = 0;
         while (rs.next()) {
@@ -224,6 +239,7 @@ public class UnionOperationIT {
             actual[count] = new int[]{first, second, third, fourth};
             count++;
         }
+        Arrays.sort(actual,intArrayComparator);
         for (int i = 0; i < correct.length; i++) {
             assertArrayEquals("Incorrect value!", correct[i], actual[i]);
         }
