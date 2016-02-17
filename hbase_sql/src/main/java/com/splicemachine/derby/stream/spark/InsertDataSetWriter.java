@@ -92,7 +92,6 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                         FileSystem fileSystem = FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
                         path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
                         dataSet.saveAsTextFile(opContext).directory(path.toString()).build().write();
-                        fileSystem.close();
                         opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
                     }
                     if (insertOperation.isAboveFailThreshold(badRecords.size())) {
