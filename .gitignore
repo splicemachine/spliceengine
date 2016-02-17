@@ -14,7 +14,6 @@
 *.rej
 *.run.xml
 **/*.log.*
-**/test_data/bad_import/*
 
 clean.sh
 
