@@ -15,11 +15,8 @@ public class DropIndexFromPipeline implements DDLAction {
             return;
 
         long baseConglomId = change.getDropIndex().getBaseConglomerate();
-        ContextFactoryLoader cfl = PipelineDriver.driver().getContextFactoryLoader(baseConglomId);
-        try {
+        try(ContextFactoryLoader cfl=PipelineDriver.driver().getContextFactoryLoader(baseConglomId)){
             cfl.ddlChange(change);
-        } finally {
-            cfl.close();
         }
     }
 }

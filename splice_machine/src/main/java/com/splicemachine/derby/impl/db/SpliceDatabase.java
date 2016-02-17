@@ -35,10 +35,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 import javax.security.auth.login.Configuration;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpliceDatabase extends BasicDatabase{
 
     private static Logger LOG=Logger.getLogger(SpliceDatabase.class);
+    private AtomicBoolean registered = new AtomicBoolean(false);
 
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
@@ -264,6 +266,7 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     public void registerDDL(){
+        if(!registered.compareAndSet(false,true)) return; //only allow one registration
         DDLDriver.driver().ddlWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
             @Override
             public void startGlobalChange(){
