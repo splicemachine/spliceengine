@@ -107,7 +107,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     @Override
     public boolean checkAndPut(byte[] key,byte[] family,byte[] qualifier,byte[] expectedValue,DataPut put) throws IOException{
-        return false;
+        return table.checkAndPut(key,family,qualifier,expectedValue,((HPut)put).unwrapDelegate());
     }
 
     @Override
