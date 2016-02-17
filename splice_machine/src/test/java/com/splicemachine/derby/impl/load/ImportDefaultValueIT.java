@@ -199,7 +199,7 @@ public class ImportDefaultValueIT {
 
         // expect exception cause there's no col list and not all cols in csv
         helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "null", fileName,
-                                        map, "COL1", "XIE0A", "XIE0A", null);
+                                        map, "COL1", "SE009", "XIE0A", null);
     }
 
     @Test
@@ -219,7 +219,7 @@ public class ImportDefaultValueIT {
 
         // CSV contains varying number of columns, should be an error
         helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc'", "COL1,COL2", fileName,
-                                        map, "COL1", "XIE0A", "XIE0A", null);
+                                        map, "COL1", "SE009", "XIE0A", null);
     }
 
     @Test
@@ -320,7 +320,7 @@ public class ImportDefaultValueIT {
 
         // Exception expected - CSV has only two cols and we didn't spec a col list
         helpTestDefaultAndGeneratedCols(tableName, "COL1 INT, COL2 CHAR(3)DEFAULT'abc', COL3 CHAR(2)", "null",
-                                        fileName, map, "COL1", "XIE0A", "XIE0A", null);
+                                        fileName, map, "COL1", "SE009", "XIE0A", null);
     }
 
     @Test

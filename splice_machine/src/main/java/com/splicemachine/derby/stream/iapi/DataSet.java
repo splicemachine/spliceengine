@@ -109,4 +109,5 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     String getAttribute(String name);
 
+    void saveAsTextFile(String path);
 }

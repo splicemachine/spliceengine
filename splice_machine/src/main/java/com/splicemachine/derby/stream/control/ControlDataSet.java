@@ -4,6 +4,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
+import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
@@ -12,6 +14,9 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.si.impl.driver.SIDriver;
+
+import com.google.common.io.Closeables;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -19,6 +24,11 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
@@ -231,6 +241,33 @@ public class ControlDataSet<V> implements DataSet<V> {
     public ExportDataSetWriterBuilder writeToDisk(){
         return new ControlExportDataSetWriter.Builder<>(this);
     }
+
+
+    @Override
+    public void saveAsTextFile(String path) {
+        OutputStream fileOut = null;
+        try {
+            DistributedFileSystem dfs = SIDriver.driver().fileSystem();
+            Path file = dfs.getPath(path);
+            fileOut = Files.newOutputStream(file);
+            Iterator iterator = iterable.iterator();
+            while (iterator.hasNext()) {
+                fileOut.write(iterator.next().toString().getBytes());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (fileOut !=null) {
+                try {
+                    Closeables.close(fileOut, true);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+    }
+
 
     @Override
     public ExportDataSetWriterBuilder saveAsTextFile(OperationContext operationContext) {

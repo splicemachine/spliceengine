@@ -90,16 +90,15 @@ public class ImportErrorIT extends SpliceUnitTest {
 
     @Test
     public void testCannotFindFile() throws Exception {
-        runImportTest("file_doesnt_exist.csv",new ErrorCheck() {
+        final String fileName = "file_doesnt_exist.csv";
+        runImportTest(fileName,new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
                 Assert.assertEquals("Incorrect sql state!","XIE04",se.getSQLState());
-
-                //se.getMessage() can return message either with a period or without a period.  So we check for each.
-                String prefix = String.format("Data file not found: %s",location);
                 String retval = se.getMessage();
-                Assert.assertTrue("Incorrect error message! correct: <"+prefix+">, Actual <"+retval,retval.startsWith(prefix));
+                Assert.assertTrue("Incorrect error message! correct: Expected error to contain <"+
+                                      fileName+">, Error: <"+retval+">",retval.contains(fileName));
             }
         });
 
