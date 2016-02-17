@@ -87,6 +87,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4272 DB-4440 Intermittent failures; expected IndexScan[TS_LOW_CARDINALITY_IX_1 got IndexScan[TS_LOW_CARDINALITY_IX_5")
     public void testCoveringIndexScan() throws Exception {
         rowContainsQuery(3,"explain select c1 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_1",methodWatcher);
         rowContainsQuery(3,"explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
