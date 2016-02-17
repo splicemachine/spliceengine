@@ -1,6 +1,5 @@
 package com.splicemachine.storage;
 
-import java.util.Map;
 import java.util.Set;
 
 /**

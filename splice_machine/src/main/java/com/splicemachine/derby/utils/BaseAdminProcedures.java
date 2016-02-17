@@ -61,7 +61,7 @@ public abstract class BaseAdminProcedures {
 	    throw new IllegalArgumentException(String.format("Required argument %s is null.", value));	
 	}
 	
-    protected static interface JMXServerOperation {
+    protected interface JMXServerOperation {
         void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException;
     }
 
@@ -74,24 +74,6 @@ public abstract class BaseAdminProcedures {
      */
     protected static List<Pair<String, JMXConnector>> getConnections(Collection<PartitionServer> serverNames) throws IOException {
     	return JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
-    }
-
-    /**
-     * Execute (or "operate") the JMX operation on the region servers using the specified JMX connections.
-     *
-     * @param operation
-     * @param connections
-     *
-     * @throws SQLException
-     */
-    protected static void operateWithExistingConnections(JMXServerOperation operation, List<Pair<String, JMXConnector>> connections) throws SQLException {
-    	if (operation == null) throwNullArgError("operation");
-    	if (connections == null) throwNullArgError("connections");
-        try {
-            operation.operate(connections);
-        } catch (MalformedObjectNameException | IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
     }
 
     /**

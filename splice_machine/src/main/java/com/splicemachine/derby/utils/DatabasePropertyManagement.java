@@ -22,7 +22,7 @@ public interface DatabasePropertyManagement {
 	 *
 	 * @throws SQLException
 	 */
-	public String getDatabaseProperty(String key) throws SQLException;
+	String getDatabaseProperty(String key) throws SQLException;
 
 	/**
 	 * Set the value of a database property.
@@ -32,5 +32,5 @@ public interface DatabasePropertyManagement {
 	 *
 	 * @throws SQLException
 	 */
-	public void setDatabaseProperty(String key, String value) throws SQLException;
+	void setDatabaseProperty(String key,String value) throws SQLException;
 }

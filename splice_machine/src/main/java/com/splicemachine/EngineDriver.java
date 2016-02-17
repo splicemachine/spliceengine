@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -33,6 +34,7 @@ public class EngineDriver{
     private final DataSetProcessorFactory processorFactory;
     private final PropertyManager propertyManager;
     private final SqlExceptionFactory exceptionFactory;
+    private final DatabaseAdministrator dbAdmin;
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
@@ -52,6 +54,7 @@ public class EngineDriver{
         this.processorFactory = environment.getProcessorFactory();
         this.propertyManager = environment.getPropertyManager();
         this.exceptionFactory = environment.exceptionFactory();
+        this.dbAdmin = environment.databaseAdministrator();
         this.sequencePool=CachedResourcePool.Builder.<SpliceSequence, SequenceKey>newBuilder()
                 .expireAfterAccess(1,TimeUnit.MINUTES)
                 .generator(new ResourcePool.Generator<SpliceSequence, SequenceKey>(){
@@ -66,6 +69,10 @@ public class EngineDriver{
                     }
                 }).build();
 
+    }
+
+    public DatabaseAdministrator dbAdministrator(){
+        return dbAdmin;
     }
 
     public UUIDGenerator newUUIDGenerator(int blockSize){

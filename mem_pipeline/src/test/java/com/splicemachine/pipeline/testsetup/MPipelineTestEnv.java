@@ -71,7 +71,7 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
                 getTableFactory());
         Monitor monitor = new Monitor(Long.MAX_VALUE,Integer.MAX_VALUE,0,10l,Integer.MAX_VALUE);
         writeCoordinator = new WriteCoordinator(writer,writer,monitor,getTableFactory(),
-                DirectPipelineExceptionFactory.INSTANCE);
+                DirectPipelineExceptionFactory.INSTANCE,null);
         bwf.setWriteCoordinator(writeCoordinator);
     }
 

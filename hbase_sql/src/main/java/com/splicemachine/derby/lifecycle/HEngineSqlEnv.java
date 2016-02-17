@@ -14,6 +14,8 @@ import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.control.CostChoosingDataSetProcessorFactory;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.management.DatabaseAdministrator;
+import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 
@@ -31,6 +33,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private PartitionLoadWatcher loadWatcher;
     private DataSetProcessorFactory processorFactory;
     private SqlExceptionFactory exceptionFactory;
+    private DatabaseAdministrator dbAdmin;
 
     @Override
     public void initialize(SConfiguration config,
@@ -46,6 +49,12 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
                 driver.getOperationFactory());
         this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
+        this.dbAdmin = new JmxDatabaseAdminstrator();
+    }
+
+    @Override
+    public DatabaseAdministrator databaseAdministrator(){
+        return dbAdmin;
     }
 
     @Override

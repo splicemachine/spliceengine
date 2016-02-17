@@ -70,12 +70,6 @@ public class PipelineDriver{
         this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl);
         channelFactory.setWriter(pipelineWriter);
         channelFactory.setPipeline(writePipelineFactory);
-//        CoprocessorWriterFactory writerFactory=new CoprocessorWriterFactory(pipelineWriter,
-//                writePipelineFactory,
-//                compressor,
-//                partitionInfoCache,
-//                pef,
-//                channelFactory);
         try{
             this.writeCoordinator=WriteCoordinator.create(config,channelFactory,pef,partitionFactory);
             pipelineWriter.setWriteCoordinator(writeCoordinator);

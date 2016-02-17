@@ -38,6 +38,7 @@ public class WriteCoordinator {
     private final Monitor monitor;
     private final WriteConfiguration defaultWriteConfiguration;
     private final PartitionFactory partitionFactory;
+    private final MonitoredThreadPool writerPool;
 
     public static WriteCoordinator create(SConfiguration config,
                                           BulkWriterFactory writerFactory,
@@ -57,19 +58,21 @@ public class WriteCoordinator {
         int maxFlushesPerRegion = config.getInt(PipelineConfiguration.WRITE_MAX_FLUSHES_PER_REGION);
         Monitor monitor = new Monitor(maxBufferHeapSize, maxEntries, numRetries, pause, maxFlushesPerRegion);
 
-        return new WriteCoordinator(writer, syncWriter, monitor,partitionFactory,exceptionFactory);
+        return new WriteCoordinator(writer, syncWriter, monitor,partitionFactory,exceptionFactory,writerPool);
     }
 
     public WriteCoordinator(Writer asynchronousWriter,
                              Writer synchronousWriter,
                              Monitor monitor,
                              PartitionFactory partitionFactory,
-                             PipelineExceptionFactory pipelineExceptionFactory) {
+                             PipelineExceptionFactory pipelineExceptionFactory,
+                            MonitoredThreadPool writerPool) {
         this.asynchronousWriter = asynchronousWriter;
         this.synchronousWriter = synchronousWriter;
         this.monitor = monitor;
         this.defaultWriteConfiguration = new DefaultWriteConfiguration(monitor,pipelineExceptionFactory);
         this.partitionFactory = partitionFactory;
+        this.writerPool = writerPool;
     }
 
     /**
@@ -82,11 +85,18 @@ public class WriteCoordinator {
         synchronousWriter.registerJMX(mbs);
     }
 
-    public void start() {
-    }
+    public void start() { }
 
     public void shutdown() {
         asynchronousWriter.stopWrites();
+    }
+
+    public void setMaxAsyncThreads(int count){
+        writerPool.setMaxThreadCount(count);
+    }
+
+    public int getMaxAsyncThreads(){
+        return writerPool.getMaxThreadCount();
     }
 
     public WriteConfiguration defaultWriteConfiguration() {

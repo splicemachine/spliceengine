@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.uuid.Snowflake;
 
 import java.sql.Connection;
@@ -34,4 +35,6 @@ public interface SqlEnvironment{
     void initialize(SConfiguration config,Snowflake snowflake,Connection internalConnection,DatabaseVersion spliceVersion);
 
     SqlExceptionFactory exceptionFactory();
+
+    DatabaseAdministrator databaseAdministrator();
 }

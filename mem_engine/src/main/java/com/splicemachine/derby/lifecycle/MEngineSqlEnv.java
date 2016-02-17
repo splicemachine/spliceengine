@@ -8,6 +8,8 @@ import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.impl.sql.*;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.management.DatabaseAdministrator;
+import com.splicemachine.management.DirectDatabaseAdministrator;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 
@@ -23,6 +25,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     private PartitionLoadWatcher partitionLoadWatcher;
     private DataSetProcessorFactory dspFactory;
     private SqlExceptionFactory exceptionFactory;
+    private DatabaseAdministrator dbAdmin;
 
     @Override
     public void initialize(SConfiguration config,
@@ -34,11 +37,17 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
         this.partitionLoadWatcher = new DirectPartitionLoadWatcher();
         this.dspFactory = new ControlOnlyDataSetProcessorFactory();
         this.exceptionFactory = new MSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
+        this.dbAdmin = new DirectDatabaseAdministrator();
     }
 
     @Override
     public SqlExceptionFactory exceptionFactory(){
         return exceptionFactory;
+    }
+
+    @Override
+    public DatabaseAdministrator databaseAdministrator(){
+        return dbAdmin;
     }
 
     @Override
