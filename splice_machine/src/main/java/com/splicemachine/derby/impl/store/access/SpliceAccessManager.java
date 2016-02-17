@@ -68,8 +68,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return(system_default_locking_policy);
     }
 
-
-
     PropertyConglomerate getTransactionalProperties() {
         return xactProperties;
     }
@@ -379,6 +377,16 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
          */
         SpliceTransactionManagerContext rtc = (SpliceTransactionManagerContext)cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
         if(rtc==null){
+            /*
+             * Don't marshall the transaction if we already have that transaction in our current thread context
+             */
+            SpliceTransactionManagerContext otherRtc = (SpliceTransactionManagerContext)ContextService.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
+            if(otherRtc!=null){
+                TxnView txnInformation=otherRtc.getTransactionManager().getRawTransaction().getTxnInformation();
+                if(txn.equals(txnInformation)){
+                    return otherRtc.getTransactionManager();
+                }
+            }
             /*
              * We don't have a transaction for this context, so push our known transaction down
              */

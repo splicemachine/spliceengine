@@ -71,9 +71,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 //            return false;
 //        }
         cm=csf.newContextManager(); // Needed
-        cm.setActiveThread();
-        csf.setCurrentContextManager(cm);
         lcc=database.generateLanguageConnectionContext(txn,cm,username,drdaID,dbname, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL);
+//        cm.setActiveThread();
+//        csf.setCurrentContextManager(cm);
         return true;
     }
 
