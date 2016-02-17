@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -49,6 +50,13 @@ public class ExplainNode extends DMLStatementNode {
 
     @Override
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
+        /*
+         * Explain Operations should always use the control side (since they don't actually move any data).
+         * If you don't set this here, and if the underlying tablescan is believed to cost more than a
+         * certain fixed number, then we will perform the Explain in Spark, which will be brutal and useless.
+         * This forces us to use control-side execution
+         */
+        getCompilerContext().setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_CONTROL);
         acb.pushGetResultSetFactoryExpression(mb);
         // parameter
         node.generate(acb, mb);
