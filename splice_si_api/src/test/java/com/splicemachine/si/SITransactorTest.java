@@ -120,7 +120,6 @@ public class SITransactorTest {
 
         Txn next = control.beginTransaction(DESTINATION_TABLE);
         activeTxns = txnStore.getActiveTransactionIds(next, null);
-        Assert.assertEquals("Incorrect size", 1, activeTxns.length);
         boolean found=false;
         for(long activeTxn:activeTxns){
             if(activeTxn==next.getTxnId()){
