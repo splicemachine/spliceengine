@@ -18,7 +18,7 @@ import java.util.*;
  */
 public class HRegionUtil extends BaseHRegionUtil{
     private static final Logger LOG=Logger.getLogger(HRegionUtil.class);
-
+    private static long splitBlockSize = HConfiguration.INSTANCE.getLong(StorageConfiguration.SPLIT_BLOCK_SIZE);
     public static void lockStore(Store store){
         ((HStore)store).lock.readLock().lock();
     }
@@ -57,7 +57,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                         SpliceLogUtils.trace(LOG, "block %d, with blockCounter=%d",i,blockCounter);
                     byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
                     if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) { // Do not include cutpoints out of bounds
-                        if (blockCounter >= HConfiguration.INSTANCE.getLong(StorageConfiguration.SPLIT_BLOCK_SIZE)) {
+                        if (blockCounter >= splitBlockSize) {
                             lastOffset = fileReader.getRootBlockOffset(i);
                             blockCounter = 0;
                             cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
