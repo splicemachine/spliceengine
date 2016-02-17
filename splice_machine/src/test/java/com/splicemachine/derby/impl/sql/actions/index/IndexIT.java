@@ -442,7 +442,7 @@ public class IndexIT extends SpliceUnitTest{
 
     @Test
     public void testSysPropIndexEqualNull() throws Exception{
-        // todo Test for DB-1636
+        // todo Test for DB-1636 and DB-857
         String indexName="IA";
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,A_TABLE_NAME,indexName,"(i)",false);
         methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5",SCHEMA_NAME,A_TABLE_NAME));
@@ -456,19 +456,27 @@ public class IndexIT extends SpliceUnitTest{
         Assert.assertEquals(5,rs.getInt(1));
 
         // Test for DB-857 - trunc'ing table did not update index
-        System.out.println("Truncating table");
         methodWatcher.executeUpdate(String.format("truncate table %s.%s",SCHEMA_NAME,A_TABLE_NAME));
-        System.out.println("Inserting values");
-        methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5",SCHEMA_NAME,A_TABLE_NAME));
+        methodWatcher.executeUpdate(String.format("insert into %s.%s values 6,7,8,9,10,11", SCHEMA_NAME,A_TABLE_NAME));
 
-        System.out.println("Select count(*)");
-        rs=methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME,indexName));
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(5,rs.getInt(1));
-        System.out.println("Select count(*) [2]");
-        rs=methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=NULL",SCHEMA_NAME,A_TABLE_NAME));
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(5,rs.getInt(1));
+        // query base table directly
+        String sqlText = String.format("select * from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME, "NULL");
+        rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "I |\n" +
+                "----\n" +
+                " 6 |\n" +
+                " 7 |\n" +
+                " 8 |\n" +
+                " 9 |\n" +
+                "10 |\n" +
+                "11 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        // query using index
+        sqlText = String.format("select * from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME, indexName);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
     }
 
     /* DB-3699: Tests a plan with a join over two index scans of compound indexes */
@@ -692,6 +700,6 @@ public class IndexIT extends SpliceUnitTest{
         // check for total cost
         double cost1=SpliceUnitTest.parseTotalCost(arr1.get(1));
         double cost2=SpliceUnitTest.parseTotalCost(arr2.get(1));
-        assertTrue("Cost #1 must be bigger than cost #2",Double.compare(cost1,cost2)>=0);
+        assertTrue("Cost #1 must be bigger than cost #2", Double.compare(cost1, cost2) > 0);
     }
 }

@@ -4,13 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.pipeline.ErrorState;
 
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -441,6 +441,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-4004: Alter table keyed column. java.io.NotSerializableException: com.splicemachine.derby.impl.sql.execute.actions.AlterTableConstantOperation")
     public void testAddPrimaryKeyEnforcementAfter() throws Exception {
         String tableRef = this.getTableReference("after");
         methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null, age int)",tableRef));
@@ -479,14 +480,14 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
                                                            tableRef));
 
         // Prints the index (unique constraint) info
-        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+//        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
+//        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+//        System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(String.format("insert into %s values ('Bob',20,1)", tableRef));
         methodWatcher.getStatement().execute(String.format("insert into %s values ('Mary',22,2)",tableRef));
 
-        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s",tableRef));
+        ResultSet rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s",tableRef));
         while (rs.next()) {
             Assert.assertNotNull("ID is null", rs.getObject("id"));
         }
@@ -501,15 +502,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         try {
             conn.createStatement().execute("alter table testAlterTableXml add column x xml");
         } catch (SQLException se) {
-            /*
-             * The ErrorState.NOT_IMPLEMENTED ends with a .S, which won't be printed in the
-             * error message, so we need to be sure that we strip it if it ends that way
-             */
-            String sqlState=SQLState.NOT_IMPLEMENTED;
-            int dotIdx = sqlState.indexOf(".");
-            if(dotIdx>0)
-                sqlState = sqlState.substring(0,dotIdx);
-            Assert.assertEquals(sqlState,se.getSQLState());
+            Assert.assertEquals(TestUtils.trimSQLState(ErrorState.NOT_IMPLEMENTED.getSqlState()),se.getSQLState());
             throw se;
         } finally {
             conn.rollback();

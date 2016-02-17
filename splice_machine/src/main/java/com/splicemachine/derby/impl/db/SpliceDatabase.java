@@ -356,6 +356,7 @@ public class SpliceDatabase extends BasicDatabase{
                 ddlActions.add(new DropIndexFromPipeline());
                 ddlActions.add(new AddForeignKeyToPipeline());
                 ddlActions.add(new DropForeignKeyFromPipeline());
+                ddlActions.add(new AddUniqueConstraintToPipeline());
                 for (DDLAction action : ddlActions) {
                     action.accept(change);
                 }

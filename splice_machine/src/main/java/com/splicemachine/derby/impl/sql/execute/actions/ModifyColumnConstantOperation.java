@@ -3,12 +3,9 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -25,38 +22,33 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import com.splicemachine.ddl.DDLMessage.DDLChange;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -91,72 +83,16 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     @Override
     protected void executeConstantActionBody(Activation activation) throws StandardException {
 
-        // Save references to the main structures we need.
+        // Do all the DDL data dictionary prep work for ALTER_TABLE. This will suffice since we're doing in-place DDL changes.
+        prepareDataDictionary(activation);
 
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        DataDictionary dd = lcc.getDataDictionary();
-        DependencyManager dm = dd.getDependencyManager();
-        /*
-        ** Inform the data dictionary that we are about to write to it.
-        ** There are several calls to data dictionary "get" methods here
-        ** that might be done in "read" mode in the data dictionary, but
-        ** it seemed safer to do this whole operation in "write" mode.
-        **
-        ** We tell the data dictionary we're done writing at the end of
-        ** the transaction.
-        */
-        dd.startWriting(lcc);
-
-        // now do the real work
-
-        // get an exclusive lock of the heap, to avoid deadlock on rows of
-        // SYSCOLUMNS etc datadictionary tables and phantom table
-        // descriptor, in which case table shape could be changed by a
-        // concurrent thread doing add/drop column.
-
-        // older version (or at target) has to get td first, potential deadlock
-        TableDescriptor td = getTableDescriptor(lcc);
-
-        dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
-
-        // Cache the TableDescriptor in the Activation
-        // Since it will be changing (adding/dropping columns, etc) during the life of this method,
-        // we'll have to refresh it from time to time.
-        // Any method that changes artifacts of the TableDescriptor should update the DataDictionary
-        // and refetch the TableDescriptor and refresh the Activation with the new copy.
-        activation.setDDLTableDescriptor(td);
-
-		/*
-		** If the schema descriptor is null, then we must have just read
-        ** ourselves in.  So we will get the corresponding schema descriptor
-        ** from the data dictionary.
-        */
-        if (sd == null) {
-            sd = getAndCheckSchemaDescriptor(dd, schemaId, "ALTER TABLE");
-        }
-
-        /* Prepare all dependents to invalidate.  (This is their chance
-         * to say that they can't be invalidated.  For example, an open
-         * cursor referencing a table/view that the user is attempting to
-         * alter.) If no one objects, then invalidate any dependent objects.
-         */
-        //TODO -sf- do we need to invalidate twice?
-        dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
-
-        TransactionController tc = lcc.getTransactionExecute();
-
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
-
-        int numRows = manageColumnInfo(activation);
+        executeColumnModificationAction(activation);
         // adjust dependencies on user defined types
         adjustUDTDependencies(activation, columnInfo, false );
-        executeConstraintActions(activation, numRows);
+        executeConstraintActions(activation);
     }
 
-    private int manageColumnInfo(Activation activation) throws StandardException{
+    private int executeColumnModificationAction(Activation activation) throws StandardException{
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
@@ -252,14 +188,23 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
         ColumnInfo colInfo = columnInfo[infoIndex];
-        ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
 
         // Drop the table
+        try {
         dd.dropTableDescriptor(tableDescriptor,sd,tc);
+        } catch (StandardException e) {
+            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
+                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("AddColumn("+tableDescriptor.getQualifiedName()+"."+colInfo.name+")",
+                                                                      e.getMessage());
+            }
+            throw e;
+        }
         // Change the table name of the table descriptor
         tableDescriptor.setColumnSequence(tableDescriptor.getColumnSequence()+1);
         // add the table descriptor with new name
         dd.addDescriptor(tableDescriptor,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+
+        ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
 
          /* We need to verify that the table does not have an existing
          * column with the same name before we try to add the new
@@ -270,6 +215,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     colInfo.name,tableDescriptor.getDescriptorType(),tableDescriptor.getQualifiedName());
         }
         DataValueDescriptor storableDV = colInfo.defaultValue != null?colInfo.defaultValue:colInfo.dataType.getNull();
+        int storageNumber = tableDescriptor.getColumnSequence();
         int colNumber = tableDescriptor.getNumberOfColumns()+1;
         // Add the column to the conglomerate.(Column ids in store are 0-based)
         tc.addColumnToConglomerate(tableDescriptor.getHeapConglomerateId(), colNumber, storableDV, colInfo.dataType.getCollationType());
@@ -283,8 +229,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             defaultUUID = dd.getUUIDFactory().createUUID();
         }
 
-        LOG.warn("Still need to update td");
-        int storageNumber = tableDescriptor.getColumnSequence();
         // Add the column to syscolumns.
         // Column ids in system tables are 1-based
         columnDescriptor =  new ColumnDescriptor(colInfo.name,
@@ -309,6 +253,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             updateNewAutoincrementColumn(lcc,tableDescriptor,colInfo);
         }
 
+        // Update the new column to its default, if it has a non-null default
+        if (columnDescriptor.hasNonNullDefault()) {
+            updateNewColumnToDefault(columnDescriptor, tableDescriptor, lcc);
+        }
+
         //
         // Add dependencies. These can arise if a generated column depends
         // on a user created function.
@@ -324,34 +273,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // granted on that new column.
         //
         dd.updateSYSCOLPERMSforAddColumnToUserTable(tableDescriptor.getUUID(), tc);
-    }
 
-
-    private static boolean columnHasPrimaryKeyConstraint(String columnName, ConstantAction[] actions) {
-        if (actions != null && actions.length > 0) {
-            for (ConstantAction action : actions) {
-                if (action instanceof CreateConstraintConstantOperation) {
-                    int constraintType = ((CreateConstraintConstantOperation) action).getConstraintType();
-                    if (constraintType == DataDictionary.PRIMARYKEY_CONSTRAINT) {
-                        if (contains(((CreateConstraintConstantOperation) action).columnNames, columnName)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private static boolean contains(String[] columnNames, String columnName) {
-        if (columnNames != null) {
-            for (String aColumnName : columnNames) {
-                if (columnName.equals(aColumnName)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        // refresh the activation's TableDescriptor now that we've modified it
+        activation.setDDLTableDescriptor(tableDescriptor);
     }
 
     // TODO: JC - figure out how to make this work without executing update on old table first
@@ -417,6 +341,37 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
     }
 
+    /**
+     * Update a new column with its default.
+     * We could do the scan ourself here, but
+     * instead we get a nested connection and
+     * issue the appropriate update statement.
+     *
+     * @param columnDescriptor  catalog descriptor for the column
+     *
+     * @exception StandardException if update to default fails
+     */
+    private void updateNewColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
+        throws StandardException {
+        DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
+        String  columnName = columnDescriptor.getColumnName();
+        String  defaultText;
+
+        if ( defaultInfo.isGeneratedColumn() ) { defaultText = "default"; }
+        else { defaultText = columnDescriptor.getDefaultInfo().getDefaultText(); }
+
+		/* Need to use delimited identifiers for all object names
+		 * to ensure correctness.
+		 */
+        String updateStmt = "UPDATE " +
+            IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
+            " SET " + IdUtil.normalToDelimited(columnName) + "=" +
+            defaultText;
+
+
+        executeUpdate(lcc, updateStmt);
+    }
+
     private void modifyColumnDefault(LanguageConnectionContext lcc, DataDictionary dd,TableDescriptor td,int ix) throws StandardException {
         ColumnInfo colInfo = columnInfo[ix];
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(colInfo.name);
@@ -449,8 +404,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         /* Get a ColumnDescriptor reflecting the new default */
         columnDescriptor = new ColumnDescriptor(
                 colInfo.name,
-                columnPosition,
                 ix,
+                columnPosition,
                 colInfo.dataType,
                 colInfo.defaultValue,
                 colInfo.defaultInfo,
@@ -761,6 +716,16 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,tableDescriptor.getQualifiedName());
         }
 
+        try {
+            tc.dropColumnFromConglomerate(tableDescriptor.getHeapConglomerateId(), columnDescriptor.getPosition());
+        } catch (StandardException e) {
+            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
+                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn("+tableDescriptor.getQualifiedName()+"."+columnName+")",
+                                                                      e.getMessage());
+            }
+            throw e;
+        }
+
         int size = tableDescriptor.getColumnDescriptorList().size();
         int droppedColumnPosition = columnDescriptor.getPosition();
 
@@ -869,40 +834,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // list in case we were called recursively in order to cascade-drop a
         // dependent generated column.
         tab_cdl.remove( tableDescriptor.getColumnDescriptor( columnName ) );
-
-        /*
-        ** Inform the data dictionary that we are about to write to it.
-        ** There are several calls to data dictionary "get" methods here
-        ** that might be done in "read" mode in the data dictionary, but
-        ** it seemed safer to do this whole operation in "write" mode.
-        **
-        ** We tell the data dictionary we're done writing at the end of
-        ** the transaction.
-        */
-//        DataDictionary dd = lcc.getDataDictionary();
-//        dd.startWriting(lcc);
-
-        // Update the DataDictionary
-        // Get the ConglomerateDescriptor for the heap
-        long oldHeapConglom = tableDescriptor.getHeapConglomerateId();
-        ConglomerateDescriptor cd =
-            tableDescriptor.getConglomerateDescriptor(oldHeapConglom);
-
-        /*
-        // Update sys.sysconglomerates with new conglomerate #
-        dd.updateConglomerateDescriptor(cd, ddlChange.getTentativeDropColumn().getNewConglomId(), tc);
-
-        // Now that the updated information is available in the system tables,
-        // we should invalidate all statements that use the old conglomerates
-        dd.getDependencyManager().invalidateFor(tableDescriptor,
-                                                (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),
-                                                lcc);
-        // refresh the activation's TableDescriptor
-        activation.setDDLTableDescriptor(tableDescriptor);
-
-        //notify other servers of the change
-        DDLUtils.notifyMetadataChangeAndWait(ddlChange);
-        */
     }
 
     private List<ConstantAction> handleConstraints(Activation activation,

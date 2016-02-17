@@ -283,13 +283,15 @@ public class ProtoUtil {
                 ).build();
     }
 
-    public static DDLChange createTentativeDropConstraint (long txnId, long oldConglomId, long indexConglomId, LanguageConnectionContext lcc, BasicUUID tableId) throws StandardException {
+    public static DDLChange createTentativeDropConstraint (long txnId, long oldConglomId, long indexConglomId, ColumnInfo[] columnInfo,
+                                                           LanguageConnectionContext lcc, BasicUUID tableId) throws StandardException {
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
         return DDLChange.newBuilder().setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.DROP_CONSTRAINT)
                 .setTentativeDropConstraint(TentativeDropConstraint.newBuilder()
                                 .setTableVersion(tableVersion)
                                 .setOldConglomId(oldConglomId)
+                                .setColumnInfos(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(columnInfo)))
                                 .setIndexConglomerateId(indexConglomId)
                 ).build();
     }
@@ -305,8 +307,8 @@ public class ProtoUtil {
                                 .setOldConglomId(oldConglomId)
                                 .setIndexConglomerateId(indexConglomerateId)
                                 .setTableVersion(tableVersion)
-                                .addAllSrcColumnOrdering(Ints.asList(srcColumnOrdering))
-                                .addAllTargetColumnOrdering(Ints.asList(targetColumnOrdering))
+                       .addAllSrcColumnOrdering((srcColumnOrdering != null ? Ints.asList(srcColumnOrdering) : Ints.asList()))
+                        .addAllTargetColumnOrdering((targetColumnOrdering != null ? Ints.asList(targetColumnOrdering) : Ints.asList()))
                                 .setColumnInfos(ZeroCopyLiteralByteString.wrap(DDLUtils.serializeColumnInfoArray(columnInfo)))
                 ).build();
 

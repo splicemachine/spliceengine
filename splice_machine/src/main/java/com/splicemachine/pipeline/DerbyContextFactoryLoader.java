@@ -164,12 +164,13 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     public void ddlChange(DDLMessage.DDLChange ddlChange){
         DDLMessage.DDLChangeType ddlChangeType=ddlChange.getDdlChangeType();
         switch(ddlChangeType){
-            case DROP_COLUMN:
-            case ADD_COLUMN:
             case ADD_PRIMARY_KEY:
-            case ADD_UNIQUE_CONSTRAINT:
             case DROP_PRIMARY_KEY:
-                ddlFactories.addFactory(AlterTableWriteFactory.create(ddlChange,trc,pef));
+                // returns null if it doesn't apply to this conglomerate
+                AlterTableWriteFactory writeFactory = AlterTableWriteFactory.create(ddlChange, trc,pef);
+                if (writeFactory != null) {
+                    ddlFactories.addFactory(writeFactory);
+                }
                 break;
             case ADD_FOREIGN_KEY:
                 fkGroup.handleForeignKeyAdd(ddlChange,conglomId);

@@ -1,20 +1,44 @@
 package com.splicemachine.derby.ddl;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import com.carrotsearch.hppc.BitSet;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.PrivilegedSQLObject;
+import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TablePermsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
@@ -34,22 +58,17 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-import java.io.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import com.carrotsearch.hppc.BitSet;
 
 /**
  * Created by jleach on 11/12/15.
+ *
  */
 public class DDLUtils {
     private static final Logger LOG = Logger.getLogger(DDLUtils.class);
@@ -100,10 +119,7 @@ public class DDLUtils {
 
 
 
-    public static Txn getIndexTransaction(TransactionController tc,
-                                          Txn tentativeTransaction,
-                                          long tableConglomId,
-                                          String indexName) throws StandardException {
+    public static Txn getIndexTransaction(TransactionController tc, Txn tentativeTransaction, long tableConglomId, String indexName) throws StandardException {
         final TxnView wrapperTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         /*
@@ -324,7 +340,7 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-//            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
             boolean prepared = transactionResource.marshallTransaction(txn);
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
@@ -337,33 +353,9 @@ public class DDLUtils {
         }
     }
 
-    public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            boolean initializedTxn = false;
-            try{
-                initializedTxn = transactionResource.marshallTransaction(txn);
-
-                SchemaDescriptor sd=dd.getSchemaDescriptor(change.getDropSchema().getSchemaName(),transactionResource.getLcc().getTransactionExecute(),false);
-                if(sd==null) // Table Descriptor transaction never committed
-                    return;
-                flushCachesBasedOnSchemaDescriptor(sd,dd);
-                dm.invalidateFor(sd,DependencyManager.DROP_SCHEMA,transactionResource.getLcc());
-            }finally{
-                if(initializedTxn)
-                    transactionResource.close();
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
-    }
-
     public static void preAlterStats(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
+            SpliceLogUtils.debug(LOG,"preAlterStats with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
 //            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
@@ -380,6 +372,27 @@ public class DDLUtils {
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
+    }
+
+    public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
+        dd.getDataDictionaryCache().schemaCacheRemove(change.getDropSchema().getSchemaName());
+    }
+
+
+    private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
+        DataDictionaryCache cache = dd.getDataDictionaryCache();
+        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
+        cache.nameTdCacheRemove(tableKey);
+        cache.oidTdCacheRemove(td.getUUID());
+
+        // Remove Conglomerate Level and Statistics Caching..
+        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
+            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
+            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
+        }
+
     }
 
     public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
@@ -421,7 +434,7 @@ public class DDLUtils {
             try {
                 initializedTxn = transactionResource.marshallTransaction(txn);
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
-                if (td == null) // Table Descriptor transaction never committed
+                if (td==null) // Table Descriptor transaction never committed
                     return;
                 flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td, action, transactionResource.getLcc());
@@ -432,31 +445,6 @@ public class DDLUtils {
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
-    }
-
-    private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
-        DataDictionaryCache cache = dd.getDataDictionaryCache();
-        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
-        cache.nameTdCacheRemove(tableKey);
-        cache.oidTdCacheRemove(td.getUUID());
-        // Remove Conglomerate Level and Statistics Caching..
-        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
-            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
-            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
-        }
-    }
-
-    private static void flushCachesBasedOnSchemaDescriptor(SchemaDescriptor sd,DataDictionary dd) throws StandardException {
-        DataDictionaryCache cache = dd.getDataDictionaryCache();
-        cache.schemaCacheRemove(sd.getSchemaName());
-//        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
-//        cache.nameTdCacheRemove(tableKey);
-//        cache.oidTdCacheRemove(td.getUUID());
-//        // Remove Conglomerate Level and Statistics Caching..
-//        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
-//            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
-//            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
-//        }
     }
 
     public static void preRenameTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
@@ -504,7 +492,7 @@ public class DDLUtils {
             ColumnDescriptor columnDescriptor = td.getColumnDescriptor(change.getRenameColumn().getColumnName());
             if (columnDescriptor.isAutoincrement())
                 columnDescriptor.setAutoinc_create_or_modify_Start_Increment(
-                        ColumnDefinitionNode.CREATE_AUTOINCREMENT);
+                    ColumnDefinitionNode.CREATE_AUTOINCREMENT);
 
             int columnPosition = columnDescriptor.getPosition();
             FormatableBitSet toRename = new FormatableBitSet(td.getColumnDescriptorList().size() + 1);
@@ -523,7 +511,7 @@ public class DDLUtils {
                 for (int j = 0; j < numRefCols; j++)
                 {
                     if ((referencedColumns[j] == columnPosition) &&
-                            (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
+                        (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
                         dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, transactionResource.getLcc());
                 }
             }
@@ -544,7 +532,7 @@ public class DDLUtils {
             DerbyMessage.UUID uuuid = change.getRenameIndex().getTableId();
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
             if (td==null) // Table Descriptor transaction never committed
-                    return;
+                return;
             flushCachesBasedOnTableDescriptor(td, dd);
             dm.invalidateFor(td, DependencyManager.RENAME_INDEX, transactionResource.getLcc());
         } catch (Exception e) {
@@ -578,7 +566,7 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
+//            transactionResource.prepareContextManager();
             transactionResource.marshallTransaction(txn);
             DDLMessage.DropView dropView = change.getDropView();
 
@@ -652,6 +640,8 @@ public class DDLUtils {
         }
     }
 
+
+
     public static void preAlterTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preAlterTable with change=%s",change);
@@ -683,9 +673,9 @@ public class DDLUtils {
             transactionResource.marshallTransaction(txn);
             String roleName = change.getDropRole().getRoleName();
             RoleClosureIterator rci =
-                    dd.createRoleClosureIterator
-                            (transactionResource.getLcc().getTransactionCompile(),
-                                    roleName, false);
+                dd.createRoleClosureIterator
+                    (transactionResource.getLcc().getTransactionCompile(),
+                     roleName, false);
 
             String role;
             while ((role = rci.next()) != null) {
@@ -762,17 +752,17 @@ public class DDLUtils {
         TableDescriptor td = dd.getTableDescriptor(uuid);
 
         TablePermsDescriptor tablePermsDesc =
-                new TablePermsDescriptor(
-                        dd,
-                        revokeTablePrivilege.getGrantee(),
-                        revokeTablePrivilege.getGrantor(),
-                        uuid,
-                        revokeTablePrivilege.getSelectPerm(),
-                        revokeTablePrivilege.getDeletePerm(),
-                        revokeTablePrivilege.getInsertPerm(),
-                        revokeTablePrivilege.getUpdatePerm(),
-                        revokeTablePrivilege.getReferencesPerm(),
-                        revokeTablePrivilege.getTriggerPerm());
+            new TablePermsDescriptor(
+                dd,
+                revokeTablePrivilege.getGrantee(),
+                revokeTablePrivilege.getGrantor(),
+                uuid,
+                revokeTablePrivilege.getSelectPerm(),
+                revokeTablePrivilege.getDeletePerm(),
+                revokeTablePrivilege.getInsertPerm(),
+                revokeTablePrivilege.getUpdatePerm(),
+                revokeTablePrivilege.getReferencesPerm(),
+                revokeTablePrivilege.getTriggerPerm());
         tablePermsDesc.setUUID(objectId);
         dd.getDataDictionaryCache().permissionCacheRemove(tablePermsDesc);
         dm.invalidateFor(tablePermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);
@@ -788,13 +778,13 @@ public class DDLUtils {
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
         TableDescriptor td = dd.getTableDescriptor(uuid);
         ColPermsDescriptor colPermsDescriptor =
-                new ColPermsDescriptor(
-                        dd,
-                        revokeColumnPrivilege.getGrantee(),
-                        revokeColumnPrivilege.getGrantor(),
-                        uuid,
-                        revokeColumnPrivilege.getType(),
-                        new FormatableBitSet(revokeColumnPrivilege.getColumns().toByteArray()));
+            new ColPermsDescriptor(
+                dd,
+                revokeColumnPrivilege.getGrantee(),
+                revokeColumnPrivilege.getGrantor(),
+                uuid,
+                revokeColumnPrivilege.getType(),
+                new FormatableBitSet(revokeColumnPrivilege.getColumns().toByteArray()));
         colPermsDescriptor.setUUID(objectId);
         dd.getDataDictionaryCache().permissionCacheRemove(colPermsDescriptor);
         dm.invalidateFor(colPermsDescriptor, DependencyManager.REVOKE_PRIVILEGE, lcc);
@@ -809,11 +799,11 @@ public class DDLUtils {
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeRoutinePrivilege.getRountineId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeRoutinePrivilege.getPermObjectId());
         RoutinePermsDescriptor routinePermsDescriptor =
-                new RoutinePermsDescriptor(
-                        dd,
-                        revokeRoutinePrivilege.getGrantee(),
-                        revokeRoutinePrivilege.getGrantor(),
-                        uuid);
+            new RoutinePermsDescriptor(
+                dd,
+                revokeRoutinePrivilege.getGrantee(),
+                revokeRoutinePrivilege.getGrantor(),
+                uuid);
         routinePermsDescriptor.setUUID(objectId);
 
         dd.getDataDictionaryCache().permissionCacheRemove(routinePermsDescriptor);
@@ -833,17 +823,17 @@ public class DDLUtils {
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeGenericPrivilege.getId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeGenericPrivilege.getPermObjectId());
         PermDescriptor permDescriptor =
-                new PermDescriptor(
-                        dd,
-                        uuid,
-                        revokeGenericPrivilege.getObjectType(),
-                        objectId,
-                        revokeGenericPrivilege.getPermission(),
-                        revokeGenericPrivilege.getGrantor(),
-                        revokeGenericPrivilege.getGrantee(),
-                        revokeGenericPrivilege.getGrantable());
+            new PermDescriptor(
+                dd,
+                uuid,
+                revokeGenericPrivilege.getObjectType(),
+                objectId,
+                revokeGenericPrivilege.getPermission(),
+                revokeGenericPrivilege.getGrantor(),
+                revokeGenericPrivilege.getGrantee(),
+                revokeGenericPrivilege.getGrantable());
         int invalidationType = revokeGenericPrivilege.getRestrict() ?
-                DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
+            DependencyManager.REVOKE_PRIVILEGE_RESTRICT : DependencyManager.REVOKE_PRIVILEGE;
 
         dd.getDataDictionaryCache().permissionCacheRemove(permDescriptor);
         dm.invalidateFor(permDescriptor, invalidationType, lcc);

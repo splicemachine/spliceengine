@@ -35,15 +35,13 @@ public class AlterTableWriteFactory implements LocalWriteFactory{
                                                 TransactionReadController readController,
                                                 PipelineExceptionFactory exceptionFactory) {
         DDLMessage.DDLChangeType changeType = ddlChange.getDdlChangeType();
-        if (changeType == DDLMessage.DDLChangeType.ADD_COLUMN)
-            return new AlterTableWriteFactory(ddlChange,new TentativeAddColumnDesc(ddlChange.getTentativeAddColumn(),exceptionFactory),readController);
-        else if (changeType == DDLMessage.DDLChangeType.ADD_UNIQUE_CONSTRAINT)
-            return new AlterTableWriteFactory(ddlChange,new TentativeAddConstraintDesc(ddlChange.getTentativeAddConstraint(),exceptionFactory),readController);
-        else if (changeType == DDLMessage.DDLChangeType.DROP_PRIMARY_KEY)
-            return new AlterTableWriteFactory(ddlChange,new TentativeDropPKConstraintDesc(ddlChange.getTentativeDropPKConstraint(),exceptionFactory),readController);
-        else if (changeType == DDLMessage.DDLChangeType.DROP_COLUMN)
-            return new AlterTableWriteFactory(ddlChange,new TentativeDropColumnDesc(ddlChange.getTentativeDropColumn(),exceptionFactory),readController);
-        else {
+        // TODO: JC - DB-4004 - ADD_PRIMARY_KEY
+        if (changeType == DDLMessage.DDLChangeType.DROP_PRIMARY_KEY) {
+            return new AlterTableWriteFactory(ddlChange,
+                                              new TentativeDropPKConstraintDesc(ddlChange.getTentativeDropPKConstraint(),
+                                                                                exceptionFactory),
+                                              readController);
+        } else {
             throw new RuntimeException("Unknown DDLChangeType: "+changeType);
         }
     }

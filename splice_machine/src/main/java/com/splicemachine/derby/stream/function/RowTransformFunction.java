@@ -1,21 +1,27 @@
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.RowTransformer;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.RowTransformer;
+
 
 /**
  * Created by jyuan on 11/4/15.
+ *
  */
 public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,LocatedRow,KVPair> {
 
@@ -62,10 +68,17 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
         KeyEncoder dummyKeyEncoder = createDummyKeyEncoder();
         //rowTransformer = ((TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc()).createRowTransformer(dummyKeyEncoder);
         // JL TODO
+//        // TODO: JC - is it more expensive to recreate rowTransformer crossing a serialization boundary or serialize it?
+          // TODO: JC - figure out a way to create a row transformer (or pass one in) w/o constraint desc and exception factory
+//        rowTransformer = new TentativeAddConstraintDesc(ddlChange.getTentativeAddConstraint(),
+//                                                        HPipelineExceptionFactory.INSTANCE).createRowTransformer();
+
+
         initialized= true;
     }
 
-    private KeyEncoder createDummyKeyEncoder() {
+    @SuppressWarnings("unused")
+    private static KeyEncoder createDummyKeyEncoder() {
 
         DataHash hash = new DataHash<ExecRow>() {
             @Override
@@ -89,8 +102,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
                 // No Op
             }
         };
-        KeyEncoder    noPKKeyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, hash, NoOpPostfix.INSTANCE);
 
-        return noPKKeyEncoder;
+        return new KeyEncoder(NoOpPrefix.INSTANCE, hash, NoOpPostfix.INSTANCE);
     }
 }

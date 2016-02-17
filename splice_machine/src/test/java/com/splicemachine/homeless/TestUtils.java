@@ -169,6 +169,24 @@ public class TestUtils {
         };
     }
 
+    /**
+     * SQLState fields of SQLExceptions are used for comparing expected exceptions in tests. This is done
+     * because the error states are less likely to change than the error messages.<br/>
+     * However, SQLState constant keys sometimes have multiple components separated by '.', such as <code>X0X10.S</code>,
+     * which are stripped off at runtime.<br/>
+     * This method is used by tests to trim these "extra" components off of the keys so that they can be compared to
+     * those of the expected exceptions.
+     * @param sqlState the SQLState key to which to compare to the actual exception's, i.e.,
+     *                 <code>ErrorState.INVALID_COLUMN_NAME.getSqlState()</code>
+     * @return the SQLState string with extra components, if any, removed.
+     */
+    public static String trimSQLState(String sqlState) {
+        int indexOfDot = sqlState.indexOf('.');
+        if (indexOfDot >= 0) {
+            return sqlState.substring(0, indexOfDot);
+        }
+        return sqlState;
+    }
 
     /**
      * Calculate and return the string duration of the given start and end times (in milliseconds)

@@ -32,7 +32,6 @@ import org.junit.runner.Description;
  * Date: 6/10/13
  */
 @Category(SerialTest.class)
-@Ignore("DB-4272")
 public class ConstraintConstantOperationIT {
     private static final String SCHEMA = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
 

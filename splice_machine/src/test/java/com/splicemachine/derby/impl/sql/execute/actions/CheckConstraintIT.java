@@ -29,7 +29,6 @@ import com.splicemachine.test_dao.TableDAO;
  * @author Walt Koetke
  */
 @Category(SerialTest.class)
-@Ignore("DB-4272")
 public class CheckConstraintIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CheckConstraintIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);

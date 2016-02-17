@@ -90,7 +90,7 @@ public class SpliceSpark {
     }
 
     public static synchronized boolean isRunningOnSpark() {
-        // This is temporary and is the integrated equivalent of
+        // TODO: This is temporary and is the integrated equivalent of
         // SpliceBaseDerbyCoprocessor.runningOnSpark on master_dataset.
         return !RegionServerLifecycleObserver.isHbaseJVM;
     }

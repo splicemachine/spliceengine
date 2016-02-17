@@ -1,13 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import static org.junit.Assert.assertEquals;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.splicemachine.db.shared.common.reference.SQLState;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -16,6 +23,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
 import com.splicemachine.test_dao.TableDAO;
 
@@ -28,29 +37,30 @@ import com.splicemachine.test_dao.TableDAO;
 public class AddColumnTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(AddColumnTransactionIT.class.getSimpleName().toUpperCase());
 
-    public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
-    public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");
-    public static final SpliceTableWatcher beforeTable = new SpliceTableWatcher("C",schemaWatcher.schemaName,"(a int, b int)");
-    public static final SpliceTableWatcher afterTable = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher commitTable2 = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher commitTable3 = new SpliceTableWatcher("C",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher commitTable4 = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable2 = new SpliceTableWatcher("F",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable3 = new SpliceTableWatcher("G",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable4 = new SpliceTableWatcher("H",schemaWatcher.schemaName,"(name char(14) not null primary key, age int)");
+    public static final SpliceTableWatcher addedTable5 = new SpliceTableWatcher("I",schemaWatcher.schemaName,"(a int, b int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
-    public static final String query = "select * from " + table+" where a = ";
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
-            .around(schemaWatcher)
-            .around(table)
-            .around(commitTable)
-            .around(beforeTable)
-            .around(afterTable)
-            .around(addedTable)
-            .around(addedTable2)
-            .around(addedTable3)
-            .around(addedTable4);
+                                            .around(schemaWatcher)
+                                            .around(commitTable)
+                                            .around(commitTable2)
+                                            .around(commitTable3)
+                                            .around(commitTable4)
+                                            .around(addedTable)
+                                            .around(addedTable2)
+                                            .around(addedTable3)
+                                            .around(addedTable4)
+                                            .around(addedTable5);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -94,6 +104,7 @@ public class AddColumnTransactionIT {
         PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + commitTable + " (a,b) values (?,?)");
         preparedStatement.setInt(1,aInt);
         preparedStatement.setInt(2,bInt);
+        preparedStatement.execute();
         conn1.commit();
 
         conn1.createStatement().execute("alter table " + commitTable + " add column c int");
@@ -101,104 +112,133 @@ public class AddColumnTransactionIT {
 
         ResultSet rs = conn1.query("select * from " + commitTable);
 
+        int count = 0;
         while(rs.next()){
             rs.getInt("C");
             Assert.assertTrue("Column C is not null!",rs.wasNull());
+            count++;
         }
         rs.close();
+        assertEquals("Incorrect returned row count",1,count);
     }
 
     @Test
     public void testAddColumnWorksWithOneConnectionAndCommitDefaultValue() throws Exception {
         int aInt = 2;
         int bInt = 2;
-        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + commitTable + " (a,b) values (?,?)");
+        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + commitTable2 + " (a,b) values (?,?)");
         preparedStatement.setInt(1,aInt);
         preparedStatement.setInt(2,bInt);
+        preparedStatement.execute();
         conn1.commit();
 
-        conn1.createStatement().execute("alter table "+ commitTable+" add column d int with default 2");
+        conn1.createStatement().execute("alter table "+ commitTable2+" add column d int with default 2");
         conn1.commit();
 
-        ResultSet rs = conn1.query("select * from " + commitTable +" where a = "+aInt);
-        Assert.assertEquals("Incorrect metadata reporting!",3,rs.getMetaData().getColumnCount());
+        ResultSet rs = conn1.query("select * from " + commitTable2 +" where a = "+aInt);
+        assertEquals("Incorrect metadata reporting!",3,rs.getMetaData().getColumnCount());
 
+        int count = 0;
         while(rs.next()){
             int anInt = rs.getInt("D");
-            Assert.assertEquals("Incorrect value for column D", 2, anInt);
+            assertEquals("Incorrect value for column D", 2, anInt);
             Assert.assertTrue("Column D is null!",!rs.wasNull());
+            count++;
         }
         rs.close();
+        assertEquals("Incorrect returned row count",1,count);
     }
 
     @Test
     public void testAddColumnWorksWithOneTransaction() throws Exception {
         int aInt = 3;
         int bInt = 3;
-        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b) values (?,?)");
+        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + commitTable3 + " (a,b) values (?,?)");
         preparedStatement.setInt(1, aInt);
         preparedStatement.setInt(2, bInt);
+        preparedStatement.execute();
 
-        conn1.createStatement().execute("alter table " + commitTable + " add column e int with default 2");
+        assertEquals("Incorrect returned row count", 1, conn1.count("select * from "+ commitTable3));
 
-        ResultSet rs = conn1.query("select * from " + commitTable +" where a = "+aInt);
+        conn1.createStatement().execute("alter table " + commitTable3 + " add column e int with default 2");
 
+        ResultSet rs = conn1.query("select * from " + commitTable3 +" where a = "+aInt);
+
+        int count = 0;
         while(rs.next()){
-            int anInt = rs.getInt("E");
-            Assert.assertEquals("Incorrect value for column E",2,anInt);
-            Assert.assertTrue("Column E is null!",!rs.wasNull());
+            int eInt = rs.getInt("E");
+            assertEquals("Incorrect value for column E",2,eInt);
+            count++;
         }
         rs.close();
+        assertEquals("Incorrect returned row count",1,count);
     }
 
     @Test
     public void testAddColumnRemovedWhenRolledBack() throws Exception {
-        int aInt = 4;
-        testAddColumnWorksWithOneTransaction();
+        int aInt = 3;
+        int bInt = 3;
+        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + commitTable3 + " (a,b) values (?,?)");
+        preparedStatement.setInt(1, aInt);
+        preparedStatement.setInt(2, bInt);
+        preparedStatement.execute();
+        conn1.commit();
 
+        conn1.createStatement().execute("alter table " + commitTable3 + " add column e int with default 2");
+
+        // roll back the alter table only
         conn1.rollback();
+        // should still see the inserted row
+        assertEquals("Incorrect returned row count", 1, conn1.count("select * from "+ commitTable3));
 
-        ResultSet rs = conn1.query("select * from " + commitTable+ " where a = "+ aInt);
+        ResultSet rs = conn1.query("select * from " + commitTable3+ " where a = "+ aInt);
 
+        int count = 0;
         if(rs.next()){
             try{
                 rs.getInt("E");
                 Assert.fail("did not fail!");
             }catch(SQLException se){
-                Assert.assertEquals("Incorrect error message!", SQLState.COLUMN_NOT_FOUND,se.getSQLState());
+                assertEquals("Incorrect SQL state! "+ se.getSQLState()+":"+se.getLocalizedMessage(),
+                             TestUtils.trimSQLState(ErrorState.INVALID_COLUMN_NAME.getSqlState()),se.getSQLState());
             }
+            count++;
         }
         rs.close();
+        assertEquals("Incorrect returned row count",1,count);
     }
 
     @Test
     public void testAddColumnIgnoredByOtherTransaction() throws Exception {
         int aInt = 4;
         int bInt = 4;
-        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b) values (?,?)");
+        PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + commitTable4 + " (a,b) values (?,?)");
         preparedStatement.setInt(1,aInt);
         preparedStatement.setInt(2,bInt);
+        preparedStatement.execute();
 
-        conn1.createStatement().execute("alter table "+ commitTable+" add column f int with default 2");
+        conn1.createStatement().execute("alter table "+ commitTable4+" add column f int with default 2");
 
-        ResultSet rs = conn1.query("select * from " + commitTable +" where a = "+aInt);
+        ResultSet rs = conn1.query("select * from " + commitTable4 +" where a = "+aInt);
 
+        int count = 0;
         while(rs.next()){
             int anInt = rs.getInt("F");
-            Assert.assertEquals("Incorrect value for column f",2,anInt);
+            assertEquals("Incorrect value for column f",2,anInt);
             Assert.assertTrue("Column f is null!",!rs.wasNull());
+            count++;
         }
-
         rs.close();
+        assertEquals("Incorrect returned row count",1,count);
 
-        rs = conn2.query("select * from " + commitTable + " where a = " + aInt);
+        rs = conn2.query("select * from " + commitTable4 + " where a = " + aInt);
 
         if(rs.next()){
             try{
                 rs.getInt("F");
                 Assert.fail("did not fail!");
             }catch(SQLException se){
-                Assert.assertEquals("Incorrect error message!", SQLState.COLUMN_NOT_FOUND,se.getSQLState());
+                assertEquals("Incorrect error message!", ErrorState.COLUMN_NOT_FOUND.getSqlState(), se.getSQLState());
             }
         }
 
@@ -207,7 +247,6 @@ public class AddColumnTransactionIT {
     }
 
     @Test
-    @Ignore("DB-4272 Default column value not yet working (Expected exception due to concurrent write)")
     public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -219,24 +258,19 @@ public class AddColumnTransactionIT {
             b = conn1;
         }
 
-        int aInt = 7;
-        int bInt = 7;
-        PreparedStatement ps = b.prepareStatement("insert into " + addedTable3 + " (a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2,bInt);
+        PreparedStatement ps = b.prepareStatement("alter table "+ addedTable3+" add column d int with default 5");
         ps.execute();
 
         try{
             a.createStatement().execute("alter table "+ addedTable3+" add column c int with default 2");
             Assert.fail("Did not catch an exception!");
         }catch(SQLException se){
-            System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
-            //SE013 = ErrorState.DDL_ACTIVE_TRANSACTIONS
-            Assert.assertEquals("Incorrect error message!","SE013",se.getSQLState());
+            System.err.printf("%s:%s%n",se.getSQLState(),se.getMessage());
+            assertEquals("Incorrect error message!",ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
         }
     }
 
     @Test
-    @Ignore("DB-4272 Default column value not yet working")
     public void testAddColumnAfterInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -254,6 +288,10 @@ public class AddColumnTransactionIT {
         ps.setInt(1,aInt);ps.setInt(2,bInt);
         ps.execute();
         b.commit();
+        // a must commit before it can see b's writes
+        assertEquals("Incorrect returned row count", 0, a.count("select * from "+ addedTable));
+        a.commit();
+        assertEquals("Incorrect returned row count", 1, a.count("select * from "+ addedTable));
 
         a.createStatement().execute("alter table "+ addedTable+" add column f int not null with default 2");
         a.commit();
@@ -263,15 +301,14 @@ public class AddColumnTransactionIT {
         while(rs.next()){
             int f = rs.getInt("F");
             Assert.assertFalse("Got a null value for f!",rs.wasNull());
-            Assert.assertEquals("Incorrect default value!",2,f);
+            assertEquals("Incorrect default value!",2,f);
             count++;
         }
         rs.close();
-        Assert.assertEquals("Incorrect returned row count", 1, count);
+        assertEquals("Incorrect returned row count", 1, count);
     }
 
     @Test
-    @Ignore("DB-4272 Default column value not yet working")
     public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -288,23 +325,30 @@ public class AddColumnTransactionIT {
 
         //alter the table
         a.createStatement().execute("alter table " + addedTable2 + " add column f int not null default 2");
+        a.commit();
+
+        // Note: b has to commit to see the new column since b's txn was started before a's alter table
+        b.commit();
+        ResultSet gs = b.query(String.format("select * from %s", addedTable2));
+        Assert.assertEquals("Metadata returning incorrect column count!", 3, gs.getMetaData().getColumnCount());
+
         //now insert some data
         PreparedStatement ps = b.prepareStatement("insert into "+addedTable2+" (a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2, bInt);
+        ps.setInt(1,aInt);
+        ps.setInt(2, bInt);
         ps.execute();
         b.commit();
 
-        a.commit();
         ResultSet rs = a.query("select * from "+ addedTable2+" where a = "+ aInt);
         int count=0;
         while(rs.next()){
             int f = rs.getInt("F");
             Assert.assertFalse("Got a null value for f!",rs.wasNull());
-            Assert.assertEquals("Incorrect default value!",2,f);
+            assertEquals("Incorrect default value!",2,f);
             count++;
         }
         rs.close();
-        Assert.assertEquals("Incorrect returned row count",1,count);
+        assertEquals("Incorrect returned row count",1,count);
     }
 
     @Test
@@ -312,7 +356,8 @@ public class AddColumnTransactionIT {
         // test DB-3113: NPE when adding column to table with primary key
 
         PreparedStatement ps = conn2.prepareStatement("insert into "+addedTable4+" (name,age) values (?,?)");
-        ps.setString(1, "Ralph");ps.setInt(2, 22); ps.execute();
+        ps.setString(1, "Ralph");ps.setInt(2, 22);
+        ps.execute();
         conn2.commit();
 
         // add a column with a default
@@ -339,10 +384,10 @@ public class AddColumnTransactionIT {
         conn2.commit();
 
         long count = conn1.count("select * from " + addedTable4 + " where id = 123");
-        Assert.assertEquals("incorrect row count!", 1, count);
+        assertEquals("incorrect row count!", 1, count);
 
         count = conn1.count("select * from " + addedTable4 + " where id is not null");
-        Assert.assertEquals("incorrect row count!", 1, count);
+        assertEquals("incorrect row count!", 1, count);
 
         ps = conn2.prepareStatement("insert into "+addedTable4+" values (?,?,?,?)");
         ps.setString(1, "Terry");ps.setInt(2, 26); ps.setString(3, "777777"); ps.setInt(4, 1); ps.execute();
@@ -354,9 +399,9 @@ public class AddColumnTransactionIT {
         } catch (SQLException e) {
             Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith(
                 "The statement was aborted because it would have caused a " +
-                                                                     "duplicate key value in a unique or primary key " +
-                                                                     "constraint or unique index " +
-                                                                     "identified by 'SQL"));
+                    "duplicate key value in a unique or primary key " +
+                    "constraint or unique index " +
+                    "identified by 'SQL"));
         }
 
     }
@@ -402,7 +447,7 @@ public class AddColumnTransactionIT {
             count++;
             Assert.assertNotNull("Salary is null!",rs.getFloat(2));
         }
-        Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
+        assertEquals("Salary Cannot Be Queried after added!", 3,count);
 
         rs = s2.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
         count = 0;
@@ -410,7 +455,7 @@ public class AddColumnTransactionIT {
             count++;
             Assert.assertNotNull("Salary is null!",rs.getFloat(2));
         }
-        Assert.assertEquals("Salary Cannot Be Queried after added!", 0, count);
+        assertEquals("Salary Cannot Be Queried after added!", 0, count);
 
         // updates will not be seen by c2 until both have committed
         c1.commit();
@@ -421,7 +466,7 @@ public class AddColumnTransactionIT {
             count++;
             Assert.assertNotNull("Salary is null!",rs.getFloat(2));
         }
-        Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
+        assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
     @Test
@@ -452,18 +497,18 @@ public class AddColumnTransactionIT {
         int count = 0;
         while (rs.next()) {
             count++;
-            Assert.assertEquals("Expected id = 1", 1, rs.getInt(1));
+            assertEquals("Expected id = 1", 1, rs.getInt(1));
         }
-        Assert.assertEquals("Expected one id equal to 1", 1, count);
+        assertEquals("Expected one id equal to 1", 1, count);
 
         rs = s1.executeQuery(String.format("select * from %s where id = 1", tableRef));
         count = 0;
         while (rs.next()) {
             count++;
-            Assert.assertEquals("Expected id = 1", 1, rs.getInt(1));
-            Assert.assertEquals("Expected loc = 'MMM'", "MMM", rs.getString(2));
+            assertEquals("Expected id = 1", 1, rs.getInt(1));
+            assertEquals("Expected loc = 'MMM'", "MMM", rs.getString(2));
         }
-        Assert.assertEquals("Expected one id equal to 1", 1, count);
+        assertEquals("Expected one id equal to 1", 1, count);
     }
 
     @Test
@@ -492,9 +537,9 @@ public class AddColumnTransactionIT {
         int count = 0;
         while (rs.next()) {
             count++;
-            Assert.assertEquals("FOO col add!", 0, rs.getInt(5));
+            assertEquals("FOO col add!", 0, rs.getInt(5));
         }
-        Assert.assertEquals("Expected one employee!", 1, count);
+        assertEquals("Expected one employee!", 1, count);
 
         s1.execute(String.format("update %s set foo = 9 where emplid = 7725070", tableRef));
         c1.commit();
@@ -503,8 +548,8 @@ public class AddColumnTransactionIT {
         count = 0;
         while (rs.next()) {
             count++;
-            Assert.assertEquals("FOO update!", 9, rs.getInt(5));
+            assertEquals("FOO update!", 9, rs.getInt(5));
         }
-        Assert.assertEquals("Expected one employee!", 1, count);
+        assertEquals("Expected one employee!", 1, count);
     }
 }

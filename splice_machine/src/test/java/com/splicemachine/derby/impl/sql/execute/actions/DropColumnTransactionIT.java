@@ -5,8 +5,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.splicemachine.db.shared.common.reference.SQLState;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -18,6 +24,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.Transactions;
 
 /**
@@ -36,6 +43,7 @@ public class DropColumnTransactionIT {
     public static final SpliceTableWatcher afterTable = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher afterTable2 = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int, c int)");
     public static final SpliceTableWatcher aTable = new SpliceTableWatcher("F",schemaWatcher.schemaName,"(a int, b int, c int)");
+    public static final SpliceTableWatcher table2 = new SpliceTableWatcher("G",schemaWatcher.schemaName,"(a int, b int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -49,11 +57,21 @@ public class DropColumnTransactionIT {
             .around(afterTable)
             .around(afterTable2)
             .around(aTable)
+            .around(table2)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
                         PreparedStatement ps = classWatcher.prepareStatement("insert into "+ table+" values (?,?)");
+                        ps.setInt(1,1);
+                        ps.setInt(2,1);
+                        ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    try {
+                        PreparedStatement ps = classWatcher.prepareStatement("insert into "+ table2+" values (?,?)");
                         ps.setInt(1,1);
                         ps.setInt(2,1);
                         ps.execute();
@@ -71,7 +89,6 @@ public class DropColumnTransactionIT {
                     }
                 }
             });
-    private static final String DDL_ACTIVE_TRANSACTIONS="SE013";
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -122,22 +139,24 @@ public class DropColumnTransactionIT {
             conn1.query("select b from "+ commitTable);
             Assert.fail("Was able to find column b");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect error message returned:"+se.getMessage(), SQLState.LANG_COLUMN_NOT_FOUND,se.getSQLState());
+            Assert.assertEquals("Incorrect error message returned:"+se.getMessage(),
+                                ErrorState.LANG_COLUMN_NOT_FOUND.getSqlState(), se.getSQLState());
         }
     }
 
     @Test
     public void testDropColumnWorksWithinSingleTransaction() throws Exception {
-        conn1.createStatement().execute("alter table " + table + " drop column b");
+        conn1.createStatement().execute("alter table " + table2 + " drop column b");
 
-        ResultSet rs = conn1.query("select * from "+ table);
+        ResultSet rs = conn1.query("select * from "+ table2);
         Assert.assertEquals("Metadata returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
 
         try{
-            conn1.query("select b from "+ table);
+            conn1.query("select b from "+ table2);
             Assert.fail("Was able to find column b");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect error message returned:"+se.getMessage(), SQLState.LANG_COLUMN_NOT_FOUND,se.getSQLState());
+            Assert.assertEquals("Incorrect error message returned:"+se.getMessage(),
+                                ErrorState.LANG_COLUMN_NOT_FOUND.getSqlState(),se.getSQLState());
         }
     }
 
@@ -145,21 +164,21 @@ public class DropColumnTransactionIT {
     public void testDropColumnIsNotVisibleToOtherTransaction() throws Exception {
         testDropColumnWorksWithinSingleTransaction(); //dropped in conn1, but not in conn2
 
-        ResultSet rs = conn2.query("select * from "+ table);
+        ResultSet rs = conn2.query("select * from "+ table2);
         Assert.assertEquals("Metadata returning incorrect column count!", 2, rs.getMetaData().getColumnCount());
 
-        rs = conn2.query("select b from "+ table);
+        rs = conn2.query("select b from "+ table2);
         Assert.assertEquals("Metadata for b-only query returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
 
         //insert some data with a b field, and make sure that it's there
         int aInt = 2;
         int bInt = 2;
-        PreparedStatement preparedStatement = conn2.prepareStatement("insert into " + table + " (a,b) values (?,?)");
+        PreparedStatement preparedStatement = conn2.prepareStatement("insert into " + table2 + " (a,b) values (?,?)");
         preparedStatement.setInt(1,aInt);
         preparedStatement.setInt(2,bInt);
         preparedStatement.execute();
 
-        long count = conn2.count("select b from " + table);
+        long count = conn2.count("select b from " + table2);
         Assert.assertEquals("incorrect row count!",2,count);
     }
 
@@ -198,7 +217,6 @@ public class DropColumnTransactionIT {
     }
 
     @Test
-    @Ignore("DB-4272 Internal exception")
     public void testDropColumnAfterAddColumnWorks() throws Exception {
          /*
          * This is a test to ensure that the following sequence holds:
@@ -274,7 +292,6 @@ public class DropColumnTransactionIT {
     }
 
     @Test
-    @Ignore("DB-4272 Excpected DDL_ACTIVE_TRANSACTIONS got WRITE_WRITE_CONFLICT - correctly detected error; just wrong exception")
     public void testDropColumnFromtwoTransactionsThrowsActiveTransactions() throws Exception {
         conn1.createStatement().execute("alter table " + table + " drop column b");
         try{
@@ -282,12 +299,29 @@ public class DropColumnTransactionIT {
             Assert.fail("No write conflict detected!");
         }catch(SQLException se){
             Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
-                                DDL_ACTIVE_TRANSACTIONS,se.getSQLState());
+                                ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
         }
+
+        // conn1 sees column B dropped
+        ResultSet rs = conn1.query("select * from "+ table);
+        Assert.assertEquals("Metadata returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
+
+        // conn2 still sees column B, since conn1 has not committed
+        rs = conn2.query("select * from "+ table);
+        Assert.assertEquals("Metadata returning incorrect column count!", 2, rs.getMetaData().getColumnCount());
+
+        // new connection still sees column B, since conn1 has not committed
+        rs = classWatcher.createConnection().query("select * from "+ table);
+        Assert.assertEquals("Metadata returning incorrect column count!", 2, rs.getMetaData().getColumnCount());
+
+        conn1.commit();
+
+        // new connection does not see column B, since conn1 has committed
+        rs = classWatcher.createConnection().query("select * from "+ table);
+        Assert.assertEquals("Metadata returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
     }
 
     @Test
-    @Ignore("DB-4272 Got incorrect value after dropping inner column")
     public void testDropMiddleColumn() throws Exception {
         int aInt = 1;
         int bInt = 2;
