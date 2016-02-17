@@ -33,7 +33,6 @@ import com.splicemachine.test_dao.TableDAO;
  *         Date: 9/3/14
  */
 @Category({Transactions.class})
-@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
 public class AddColumnTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(AddColumnTransactionIT.class.getSimpleName().toUpperCase());
 
