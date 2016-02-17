@@ -20,8 +20,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -30,9 +29,12 @@ import java.util.Iterator;
  *         Date: 1/8/16
  */
 public class SparkExportDataSetWriter<V> implements DataSetWriter{
-    private final String directory;
-    private final SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction;
-    private final JavaRDD<V> rdd;
+    private String directory;
+    private SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction;
+    private JavaRDD<V> rdd;
+
+    public SparkExportDataSetWriter(){
+    }
 
     public SparkExportDataSetWriter(JavaRDD<V> rdd,
                                     String directory,
@@ -40,6 +42,20 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         this.directory=directory;
         this.rdd = rdd;
         this.exportFunction=exportFunction;
+    }
+
+//    @Override
+    public void writeExternal(ObjectOutput out) throws IOException{
+        out.writeUTF(directory);
+        out.writeObject(exportFunction);
+        out.writeObject(rdd);
+    }
+
+//    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+        directory = in.readUTF();
+        exportFunction = (SpliceFunction2)in.readObject();
+        rdd = (JavaRDD)in.readObject();
     }
 
     @Override
@@ -65,12 +81,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
 
         JavaRDD<V> cached=rdd.cache();
         int writtenRows=(int)cached.count();
-        rdd.keyBy(new org.apache.spark.api.java.function.Function<V, Object>(){
-            @Override
-            public Object call(V v) throws Exception{
-                return null;
-            }
-        }).saveAsNewAPIHadoopDataset(job.getConfiguration());
+        rdd.keyBy(new NullFunction<V>()).saveAsNewAPIHadoopDataset(job.getConfiguration());
         cached.unpersist();
 
         JavaSparkContext ctx=SpliceSpark.getContext();
@@ -125,6 +136,15 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         @Override
         public DataSetWriter build(){
             return new SparkExportDataSetWriter<>(rdd,directory,exportFunction);
+        }
+    }
+
+    public static class NullFunction<V> implements org.apache.spark.api.java.function.Function<V, Object>{
+        public NullFunction(){ }
+
+        @Override
+        public Object call(V v) throws Exception{
+            return null;
         }
     }
 }

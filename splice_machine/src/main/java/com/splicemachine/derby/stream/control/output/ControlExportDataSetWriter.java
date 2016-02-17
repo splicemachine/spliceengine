@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.control.output;
 
 import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -17,6 +18,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -60,7 +62,14 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
             final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
             Path outputPath;
             boolean isDir;
-            if(dfs.getInfo(path).isDirectory()){
+            FileInfo info;
+            try{
+                info=dfs.getInfo(path);
+            }catch(FileNotFoundException fnfe){
+                dfs.createDirectory(dfs.getPath(path),false);
+                info = dfs.getInfo(path);
+            }
+            if(info.isDirectory()){
                 outputPath = dfs.getPath(path,"/part-r-00000"+extension);
                 isDir= true;
             }else {

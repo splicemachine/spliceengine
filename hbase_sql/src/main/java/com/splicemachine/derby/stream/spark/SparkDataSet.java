@@ -252,7 +252,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         JavaRDD<V> rdd3 = rdd2.mapPartitions(new SparkFlatMapFunction<>(takeFunction));
         rdd3.setName(takeFunction.getSparkName());
         
-        return new SparkDataSet<V>(rdd3);
+        return new SparkDataSet<>(rdd3);
     }
 
     @Override
@@ -282,7 +282,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             if (isCompressed) {
                 Class<? extends CompressionCodec> codecClass =
                         getOutputCompressorClass(taskAttemptContext, GzipCodec.class);
-                codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, conf);
+                codec =ReflectionUtils.newInstance(codecClass, conf);
                 extension += ".gz";
             }
 

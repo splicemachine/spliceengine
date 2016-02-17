@@ -81,6 +81,6 @@ class ExportPermissionCheck {
 
     public void cleanup() throws IOException {
         testFile.delete();
-//        testFile.deleteDirectory();
+        testFile.deleteDirectory();
     }
 }
