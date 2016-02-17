@@ -20,7 +20,7 @@ _kill_em_all () {
    local P=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Splice. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
-   P=$(ps -ef | awk 'spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
+   P=$(ps -ef | awk '/spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Yarn. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/zoo/ && !/awk/ {print $2}')
@@ -41,14 +41,16 @@ CHAOS="false"
 MEMBERS=2
 DEBUG_PATH=""
 
+MVN='mvn -B'
+
 usage() {
     # $1 is an error, if any
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
     fi
-    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] -h[elp]"
+    echo "Usage: $0 -p [<hbase_profile>] [-s <n>] [-c] [-k] -h[elp]"
     echo "Where: "
-    echo "  -b is an optional argument specifying to NOT mvn clean install -DskipTest -Dspark-prepare first."
+    echo "  -b is an optional argument specifying to NOT ${MVN} clean install -DskipTest -Dspark-prepare first."
     echo "    The default is to build first."
     echo "  -s <n> is an optional number of additional cluster RegionServer members to start."
     echo "    The default is 1 master and 2 region servers."
@@ -58,10 +60,11 @@ usage() {
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
     echo "    c41 (cdh5.4.1), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12)."
     echo "    Default is ${DEFAULT_PROFILE}. CURRENTLY ONLY THE DEFAULT PROFILE WORKS WITH YARN!"
+    echo "  -k just KILL any and all splice processes currently running."
     echo "  -h => print this message"
 }
 
-while getopts "chp:s:bd:" flag ; do
+while getopts "chkp:s:bd:" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -78,9 +81,7 @@ while getopts "chp:s:bd:" flag ; do
         p)
         # the hbase profile
         #echo "-> [$OPTARG] "
-          if [[ "$OPTARG" ==  "c41" ]]; then
-            PROFILE="cdh5.4.1"
-          elif [[ "$OPTARG" ==  "c48" ]]; then
+          if [[ "$OPTARG" ==  "c48" ]]; then
             PROFILE="cdh5.4.8"
           elif [[ "$OPTARG" == "c51" ]]; then
             PROFILE="cdh5.5.1"
@@ -105,6 +106,11 @@ while getopts "chp:s:bd:" flag ; do
         # path to write debug file
            DEBUG_PATH=$OPTARG
         ;;
+        k)
+        # KILL current processes
+           _kill_em_all 9
+           exit 0
+        ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
             exit 1
@@ -120,11 +126,6 @@ if [[ ${PROFILE} != ${DEFAULT_PROFILE} ]]; then
   exit 1;
 fi
 
-# Wrong profile specified or wrong location
-#if [[ ! -e "${START_DIR}" || ${START_DIR} != *"${PROFILE}"* ]]; then
-#  usage "Can't find the profile you expect to run. You asked for \"${PROFILE}\" but I got: \"${START_DIR}\""
-#  exit 1;
-#fi
 
 #pushd ${START_DIR} > /dev/null
 
@@ -134,31 +135,30 @@ fi
 _kill_em_all 9
 
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
-#echo "   ${START_DIR}"
+echo "   ${START_DIR}"
 
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
 #  pushd "${START_DIR}/.." > /dev/null
-#  (mvn clean install -DskipTests -Dspark-prepare)
-	mvn clean install -P${PROFILE} -DskipTests -Dspark-prepare > /dev/null
+  (${MVN} clean install -DskipTests )
 #  popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
-#  echo "   ${START_DIR}"
+  echo "   ${START_DIR}"
 fi
   
 ZOO_LOG="zoo.log"  
 echo "Starting Zoo. Log file is ${ZOO_LOG}"
-(mvn exec:exec -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+(${MVN} exec:exec -PspliceZoo,${PROFILE} > ${ZOO_LOG} 2>&1) &    ## zookeeper
 sleep 30
   
 YARN_LOG="yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(mvn exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} exec:java -PspliceYarn,${PROFILE} > ${YARN_LOG} 2>&1) &  ## YARN
 
 SPLICE_LOG="splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
-(mvn exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+(${MVN} exec:exec -PspliceFast,${PROFILE} ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 sleep 30
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -166,7 +166,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     REGION_SVR_LOG="spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (mvn exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    (${MVN} exec:exec -PspliceClusterMember,${PROFILE} ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
   done
 fi
 #popd > /dev/null
