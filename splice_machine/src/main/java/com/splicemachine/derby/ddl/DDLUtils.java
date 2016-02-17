@@ -367,7 +367,7 @@ public class DDLUtils {
                 if (td==null) // Table Descriptor transaction never committed
                     return;
                 flushCachesBasedOnTableDescriptor(td,dd);
-                dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
+                dm.invalidateFor(td, DependencyManager.DROP_STATISTICS, transactionResource.getLcc());
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);

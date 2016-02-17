@@ -75,6 +75,5 @@ public class ViewIT {
         }finally{
             methodWatcher.prepareStatement("drop view t1_view").execute();
         }
-
     }
 }
