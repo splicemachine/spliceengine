@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -18,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 
+@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
 public class UniqueConstraintIT {
 
     private static final String SCHEMA = UniqueConstraintIT.class.getSimpleName().toUpperCase();

@@ -26,6 +26,7 @@ import java.sql.ResultSet;
  * Time: 2:03 PM
  * To change this template use File | Settings | File Templates.
  */
+@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
 public class DropColumnIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(DropColumnIT.class);
 

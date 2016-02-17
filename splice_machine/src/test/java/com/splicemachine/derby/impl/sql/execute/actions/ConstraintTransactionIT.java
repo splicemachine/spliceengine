@@ -21,6 +21,7 @@ import com.splicemachine.test_dao.TableDAO;
  * @author Jeff Cunningham
  *         Date: 5/1/15
  */
+@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
 public class ConstraintTransactionIT {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConstraintTransactionIT.class.getSimpleName().toUpperCase());
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
