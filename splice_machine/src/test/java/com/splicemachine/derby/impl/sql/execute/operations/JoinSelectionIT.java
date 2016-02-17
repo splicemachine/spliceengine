@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.Ignore;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 
 import java.sql.ResultSet;
@@ -333,8 +334,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 	        	joins.add(format("tentab%s.c1 = tentab%s.c1", i, i - 1));
 	        }
 		}
+        System.out.println("Tables created");
         String fromClause = Joiner.on(", ").join(tables); 
-        String joinCriteria = Joiner.on(" AND ").join(joins); 
+        String joinCriteria = Joiner.on(" AND ").join(joins);
 
         long start = System.currentTimeMillis();
         String query = format("EXPLAIN SELECT * FROM %s WHERE %s ", fromClause, joinCriteria);

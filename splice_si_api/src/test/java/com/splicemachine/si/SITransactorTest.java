@@ -99,19 +99,36 @@ public class SITransactorTest {
         Txn parent = control.beginTransaction(DESTINATION_TABLE);
         Txn child = control.beginChildTransaction(parent, parent.getIsolationLevel(), DESTINATION_TABLE);
         long[] activeTxns = txnStore.getActiveTransactionIds(child, null);
-        Assert.assertEquals("Incorrect size", 2, activeTxns.length);
-        Arrays.sort(activeTxns);
-        Assert.assertEquals("Incorrect transaction returned!", parent.getTxnId(), activeTxns[0]);
-        Assert.assertEquals("Incorrect transaction returned!", child.getTxnId(), activeTxns[1]);
+        boolean foundParent = false;
+        boolean foundChild = false;
+        for(long activeTxn:activeTxns){
+           if(activeTxn==parent.getTxnId())
+               foundParent = true;
+            if(activeTxn==child.getTxnId())
+                foundChild=true;
+            if(foundParent&&foundChild) break;
+        }
+        Assert.assertTrue("Missing parent txn!",foundParent);
+        Assert.assertTrue("Missing child txn!",foundChild);
 
         parent.commit();
         activeTxns = txnStore.getActiveTransactionIds(child, null);
-        Assert.assertEquals("Incorrect size", 0, activeTxns.length);
+        for(long activeTxn:activeTxns){
+            Assert.assertNotEquals("Parent txn still included!",parent.getTxnId(),activeTxn);
+            Assert.assertNotEquals("Child txn still included!",child.getTxnId(),activeTxn);
+        }
 
         Txn next = control.beginTransaction(DESTINATION_TABLE);
         activeTxns = txnStore.getActiveTransactionIds(next, null);
         Assert.assertEquals("Incorrect size", 1, activeTxns.length);
-        Assert.assertEquals("Incorrect transaction returned!", next.getTxnId(), activeTxns[0]);
+        boolean found=false;
+        for(long activeTxn:activeTxns){
+            if(activeTxn==next.getTxnId()){
+                found=true;
+                break;
+            }
+        }
+        Assert.assertTrue("Did not find new transaction!",found);
     }
 
     @Test
