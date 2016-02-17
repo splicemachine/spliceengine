@@ -17,7 +17,6 @@
 **/test_data/bad_import/*
 
 clean.sh
-*.sql
 
 
 

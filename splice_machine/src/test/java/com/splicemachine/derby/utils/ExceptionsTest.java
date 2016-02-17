@@ -33,12 +33,8 @@ public class ExceptionsTest {
     @Test
     public void testParseStandardException() throws Exception {
         StandardException se = StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SMALLINT");
-        se.printStackTrace();
-        System.out.println("Converting to IOException");
         IOException spliceDoNotRetryIOException = Exceptions.getIOException(se,pef);
-        spliceDoNotRetryIOException.printStackTrace();
 
-        System.out.println("Converting back to StandardException");
         //check that it can be turned back into a StandardException
         StandardException converted = Exceptions.parseException(spliceDoNotRetryIOException,pef,null);
         Assert.assertEquals("Error codes incorrect!",se.getErrorCode(),converted.getErrorCode());
