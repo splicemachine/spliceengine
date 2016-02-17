@@ -574,19 +574,21 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     }
 
 
-    private Object getNewInstance()
-            throws StandardException
-    {
-        NewInvocationNode   constructor = (NewInvocationNode) methodCall;
-        Class[]  paramTypeClasses = constructor.getMethodParameterClasses();
+    private Object getNewInstance() throws StandardException {
+        Class[]  paramTypeClasses = null;
+        if (isDerbyStyleTableFunction) {
+            StaticMethodCallNode constructor = (StaticMethodCallNode) methodCall;
+            paramTypeClasses = constructor.getMethodParameterClasses();
+        } else {
+            NewInvocationNode constructor = (NewInvocationNode) methodCall;
+            paramTypeClasses = constructor.getMethodParameterClasses();
+        }
         Object[] paramObjects = null;
 
-        if (paramTypeClasses != null)
-        {
+        if (paramTypeClasses != null) {
             paramObjects = new Object[paramTypeClasses.length];
 
-            for (int index = 0; index < paramTypeClasses.length; index++)
-            {
+            for (int index = 0; index < paramTypeClasses.length; index++) {
                 Class paramClass = paramTypeClasses[index];
 
                 paramObjects[index] = methodParms[index].getConstantValueAsObject();
@@ -1712,11 +1714,13 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         Class               vtiClass = lookupClass( className );
 
         try {
-            
+
             // Try to use constructor with all the args instead of the no-arg constructor,
             // so that the cost estimate can be done using these args. For example,
             // SpliceFileVTI would want to look at the file size. If for some reason
             // this doesn't work, resort to no-arg constructor like we used to.
+
+
 
             Object obj = getNewInstance();
             if (obj instanceof VTICosting) {
