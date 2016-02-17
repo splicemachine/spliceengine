@@ -757,13 +757,29 @@ public class InnerJoinIT extends SpliceUnitTest{
                 o("Betty","P1",BigDecimal.valueOf(40)),
                 o("Betty","P2",BigDecimal.valueOf(80)),
                 o("Carmen","P2",BigDecimal.valueOf(20)),
-                o("Don","P2",BigDecimal.valueOf(20)),o("Don","P4",BigDecimal.valueOf(40)),o("Don","P5",BigDecimal.valueOf(80))
+                o("Don","P2",BigDecimal.valueOf(20)),
+                o("Don","P4",BigDecimal.valueOf(40)),
+                o("Don","P5",BigDecimal.valueOf(80))
         );
-        ResultSet resultSet=methodWatcher.executeQuery("select empname,pnum,hours from staff,works where staff.empnum = works.empnum  union"+
+        ResultSet resultSet=methodWatcher.executeQuery("select empname,pnum,hours from staff,works where staff.empnum = works.empnum union"+
                 "     select empname,pnum,hours from staff,works  where not exists"+
                 "     (select hours from works) order by empname, pnum");
 
-        List result=TestUtils.resultSetToArrays(resultSet);
+        List<Object[]> result=TestUtils.resultSetToArrays(resultSet);
+        /*
+         * It turns out that the SQL as written will apply the order by clause to the underlying Union, rather
+         * than to the overall query. This will then be thrown away by the optimizer, so we end up without
+         * a required sort order. We ensure this sort order by applying a sort after the fact
+         */
+        Collections.sort(result,new Comparator<Object[]>(){
+            @Override
+            public int compare(Object[] o1,Object[] o2){
+                int compare = ((String)o1[0]).compareTo((String)o2[0]);
+                if(compare==0)
+                    compare = ((String)o1[1]).compareTo((String)o2[1]);
+                return compare;
+            }
+        });
 
         Assert.assertArrayEquals(expected.toArray(),result.toArray());
     }
@@ -797,7 +813,23 @@ public class InnerJoinIT extends SpliceUnitTest{
                 "     select empname,pnum,hours from staff,works  where not exists"+
                 "     (select hours from works where staff.empnum = works.empnum) order by empname, pnum");
 
-        List result=TestUtils.resultSetToArrays(resultSet);
+        List<Object[]> result=TestUtils.resultSetToArrays(resultSet);
+        /*
+         * It turns out that the SQL as written will apply the order by clause to the underlying Union, rather
+         * than to the overall query. This will then be thrown away by the optimizer, so we end up without
+         * a required sort order. We ensure this sort order by applying a sort after the fact
+         */
+        Collections.sort(result,new Comparator<Object[]>(){
+            @Override
+            public int compare(Object[] o1,Object[] o2){
+                int compare = ((String)o1[0]).compareTo((String)o2[0]);
+                if(compare!=0) return compare;
+                compare = ((String)o1[1]).compareTo((String)o2[1]);
+                if(compare!=0) return compare;
+                compare = ((BigDecimal)o1[2]).compareTo((BigDecimal)o2[2]);
+                return compare;
+            }
+        });
 
         Assert.assertArrayEquals(expected.toArray(),result.toArray());
     }

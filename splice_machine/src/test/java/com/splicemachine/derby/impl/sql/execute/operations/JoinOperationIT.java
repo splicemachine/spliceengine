@@ -79,6 +79,7 @@ public class JoinOperationIT {
     }
     @Test
     public void testInnerAntiJoinNoRestriction() throws Exception {
+        System.out.println(joinStrategy);
         ResultSet rs = methodWatcher.executeQuery(String.format(
                 "select count(*) from --Splice-properties joinOrder=FIXED\n" +
                         " foo where not exists (select * from foo2 --Splice-properties joinStrategy=%s\n" +

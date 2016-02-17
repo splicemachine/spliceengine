@@ -1946,10 +1946,15 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
     @Test
     public void testConstMinusAvg1ReversedJoinOrder() throws Exception {
+        /*
+         * Because the WindowFunction performs a computation, we still have unordered results coming out
+         * even though the joined fields are primary keys (and therefore sorted similarly). Thus, we add
+         *  a sort order to the query to ensure consistent query results.
+         */
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
                                            "%1$s INNER JOIN %2$s " +
-                                           "ON %2$s.ID_Dep = %1$s.ID",
+                                           "ON %2$s.ID_Dep = %1$s.ID order by 1",
                                        this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
@@ -1958,24 +1963,32 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "Diferença de Salário |\n" +
                     "----------------------\n" +
                     "     -9166.3333      |\n" +
-                    "      9333.6666      |\n" +
-                    "      -167.3333      |\n" +
                     "     -3499.6666      |\n" +
                     "     -2999.6666      |\n" +
-                    "      6499.3333      |\n" +
                     "     -2500.0000      |\n" +
                     "     -2000.0000      |\n" +
-                    "      4500.0000      |";
+                    "      -167.3333      |\n" +
+                    "      4500.0000      |\n" +
+                    "      6499.3333      |\n" +
+                    "      9333.6666      |" ;
             assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
     @Test
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
+        /*
+         * We attach an Order by clause to this query to ensure that we get back results in a consistent order,
+         * and that our string comparison is stable across platforms and inherent sort orders.
+         *
+         * Essentially, even though the join fields are both primary keys (and therefore both sorted), the WindowFunction
+         * itself destroys the sort order because it's a computation field. Therefore, we must sort to get back results
+         * consistently
+         */
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
                                            "%1$s.Nome_Dep) \"Diferença de Salário\" FROM " +
                                            "%2$s INNER JOIN %1$s " +
-                                           "ON %2$s.ID_Dep = %1$s.ID",
+                                           "ON %2$s.ID_Dep = %1$s.ID order by 1",
                                        this.getTableReference(DEPARTAMENTOS), this.getTableReference(FUNCIONARIOS));
 
         try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
@@ -1984,14 +1997,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
                     "Diferença de Salário |\n" +
                         "----------------------\n" +
                         "     -9166.3333      |\n" +
-                        "      9333.6666      |\n" +
-                        "      -167.3333      |\n" +
                         "     -3499.6666      |\n" +
                         "     -2999.6666      |\n" +
-                        "      6499.3333      |\n" +
                         "     -2500.0000      |\n" +
                         "     -2000.0000      |\n" +
-                        "      4500.0000      |";
+                        "      -167.3333      |\n" +
+                        "      4500.0000      |\n" +
+                        "      6499.3333      |\n" +
+                        "      9333.6666      |" ;
             assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
