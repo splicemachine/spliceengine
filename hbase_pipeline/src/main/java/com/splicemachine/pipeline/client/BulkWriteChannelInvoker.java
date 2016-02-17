@@ -87,7 +87,8 @@ public class BulkWriteChannelInvoker {
              * We sent it to the wrong place, so we need to resubmit it. But since we
              * pulled it from the cache, we first invalidate that cache
              */
-            partitionInfoCache.invalidate(tableName);
+            TableName tableNameObj=tableInfoFactory.getTableInfo(this.tableName);
+            partitionInfoCache.invalidate(tableNameObj);
             return true;
 	    }
         return false;
