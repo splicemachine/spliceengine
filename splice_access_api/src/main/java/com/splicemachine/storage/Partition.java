@@ -114,6 +114,8 @@ public interface Partition extends AutoCloseable{
 
     List<Partition> subPartitions();
 
+    List<Partition> subPartitions(boolean refresh);
+
     PartitionServer owningServer();
 
     List<Partition> subPartitions(byte[] startRow,byte[] stopRow);

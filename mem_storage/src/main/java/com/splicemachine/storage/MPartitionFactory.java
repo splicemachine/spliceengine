@@ -25,7 +25,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
     private final Map<String,Partition> partitionMap = new ConcurrentHashMap<>();
 
     @Override
-    public void initialize(Clock clock,SConfiguration configuration) throws IOException{
+    public void initialize(Clock clock,SConfiguration configuration,PartitionInfoCache partitionInfoCache) throws IOException{
         //no-op
     }
 

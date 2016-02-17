@@ -9,7 +9,6 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -28,15 +27,18 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     private final Table table;
     private final Connection connection;
     private final Clock clock;
+    private PartitionInfoCache partitionInfoCache;
 
     public ClientPartition(Connection connection,
                            TableName tableName,
                            Table table,
-                           Clock clock){
+                           Clock clock,
+                           PartitionInfoCache partitionInfoCache){
         this.tableName=tableName;
         this.table=table;
         this.connection=connection;
         this.clock = clock;
+        this.partitionInfoCache = partitionInfoCache;
     }
 
     @Override
@@ -110,16 +112,34 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     @Override
     public List<Partition> subPartitions(){
+        return subPartitions(false);
+    }
+
+    public List<Partition> subPartitions(boolean refresh) {
         try {
-            List<HRegionLocation> tableLocations=connection.getRegionLocator(tableName).getAllRegionLocations();
-            List<Partition> partitions=new ArrayList<>(tableLocations.size());
-            for(HRegionLocation location : tableLocations){
-                partitions.add(new RangedClientPartition(connection,tableName,table,location.getRegionInfo(),new LazyPartitionServer(connection,location.getRegionInfo(),tableName),clock));
+            List<Partition> partitions = null;
+            if (!refresh) {
+                partitions = partitionInfoCache.getIfPresent(tableName);
+                if (partitions == null) {
+                    partitions = formatPartitions(connection.getRegionLocator(tableName).getAllRegionLocations());
+                    partitionInfoCache.put(tableName, partitions);
+                }
+                return partitions;
             }
+            partitionInfoCache.invalidate(tableName);
+            partitionInfoCache.put(tableName,partitions);
             return partitions;
-        }catch(IOException e){
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private List<Partition> formatPartitions(List<HRegionLocation> tableLocations) {
+        List<Partition> partitions=new ArrayList<>(tableLocations.size());
+        for(HRegionLocation location : tableLocations){
+            partitions.add(new RangedClientPartition(connection,tableName,table,location.getRegionInfo(),new LazyPartitionServer(connection,location.getRegionInfo(),tableName),clock,partitionInfoCache));
+        }
+        return partitions;
     }
 
     @Override
@@ -189,4 +209,5 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     public Table unwrapDelegate(){
         return table;
     }
+
 }

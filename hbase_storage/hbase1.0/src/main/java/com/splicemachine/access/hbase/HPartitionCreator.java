@@ -5,12 +5,12 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
-
 import java.io.IOException;
 
 /**
@@ -23,12 +23,14 @@ public class HPartitionCreator implements PartitionCreator{
     private final HColumnDescriptor userDataFamilyDescriptor;
     private final Clock clock;
     private final HBaseTableInfoFactory tableInfoFactory;
+    private final PartitionInfoCache partitionInfoCache;
 
-    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor){
+    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor,PartitionInfoCache partitionInfoCache){
         this.connection = connection;
         this.userDataFamilyDescriptor = userDataFamilyDescriptor;
         this.tableInfoFactory = tableInfoFactory;
         this.clock = clock;
+        this.partitionInfoCache = partitionInfoCache;
     }
 
     @Override
@@ -59,6 +61,6 @@ public class HPartitionCreator implements PartitionCreator{
             admin.createTable(descriptor);
         }
         TableName tableName=descriptor.getTableName();
-        return new ClientPartition(connection,tableName,connection.getTable(tableName),clock);
+        return new ClientPartition(connection,tableName,connection.getTable(tableName),clock,partitionInfoCache);
     }
 }

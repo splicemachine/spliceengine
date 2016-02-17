@@ -49,8 +49,8 @@ public class MTxnPartitionFactory implements PartitionFactory<Object>{
     }
 
     @Override
-    public void initialize(Clock clock,SConfiguration configuration) throws IOException{
-        baseFactory.initialize(clock,configuration);
+    public void initialize(Clock clock,SConfiguration configuration,PartitionInfoCache partitionInfoCache) throws IOException{
+        baseFactory.initialize(clock,configuration,partitionInfoCache);
     }
 
     @Override

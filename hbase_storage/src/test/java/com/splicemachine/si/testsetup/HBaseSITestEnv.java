@@ -79,7 +79,7 @@ public class HBaseSITestEnv implements SITestEnv{
             this.txnStore = hEnv.txnStore();
             this.ignoreTxnSupplier = hEnv.ignoreTxnSupplier();
             this.timestampSource = hEnv.timestampSource();
-            this.tableFactory = TableFactoryService.loadTableFactory(clock,hEnv.configuration());
+            this.tableFactory = TableFactoryService.loadTableFactory(clock,hEnv.configuration(),hEnv.partitionInfoCache());
         }catch(Exception e){
             throw new RuntimeException(e);
         }

@@ -4,6 +4,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.impl.TxnNetworkLayerFactory;
+import com.splicemachine.storage.PartitionInfoCache;
 import org.apache.hadoop.hbase.TableName;
 
 import java.io.IOException;
@@ -16,14 +17,14 @@ import java.util.ServiceLoader;
  */
 public class TableFactoryService{
     @SuppressWarnings("unchecked")
-    public static PartitionFactory<TableName> loadTableFactory(Clock clock, SConfiguration configuration) throws IOException{
+    public static PartitionFactory<TableName> loadTableFactory(Clock clock, SConfiguration configuration, PartitionInfoCache partitionCache) throws IOException{
         ServiceLoader<PartitionFactory> serviceLoader = ServiceLoader.load(PartitionFactory.class);
         Iterator<PartitionFactory> iter = serviceLoader.iterator();
         if(!iter.hasNext())
             throw new IllegalStateException("No TableFactory found!");
 
         PartitionFactory stf = iter.next();
-        stf.initialize(clock,configuration);
+        stf.initialize(clock,configuration,partitionCache);
         return (PartitionFactory<TableName>)stf;
     }
 

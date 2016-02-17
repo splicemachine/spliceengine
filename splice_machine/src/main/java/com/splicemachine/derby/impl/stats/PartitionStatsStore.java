@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -11,14 +10,12 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnStatsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.storage.Partition;
-import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -127,14 +124,13 @@ public class PartitionStatsStore {
     }
 
     private static int getPartitions(byte[] table, List<Partition> partitions) throws StandardException {
-        try (PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin()){
-            Iterable<? extends Partition> partitions1=admin.allPartitions(Bytes.toString(table));
-            for(Partition p:partitions1)
-                partitions.add(p);
+
+        try {
+            partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions());
+            return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
         }
-        return partitions.size();
     }
 
     private static PartitionAverage averageKnown(String tableId,List<OverheadManagedPartitionStatistics> statistics) {

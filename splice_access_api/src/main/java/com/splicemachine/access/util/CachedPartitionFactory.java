@@ -7,6 +7,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
@@ -37,8 +38,8 @@ public abstract class CachedPartitionFactory<TableInfo> implements PartitionFact
     }
 
     @Override
-    public void initialize(Clock clock,SConfiguration configuration) throws IOException{
-       delegate.initialize(clock,configuration);
+    public void initialize(Clock clock,SConfiguration configuration, PartitionInfoCache partitionInfoCache) throws IOException{
+       delegate.initialize(clock,configuration,partitionInfoCache);
     }
 
     @Override

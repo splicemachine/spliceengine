@@ -2,6 +2,7 @@ package com.splicemachine.access.api;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
 
 import java.io.IOException;
 
@@ -11,7 +12,7 @@ import java.io.IOException;
  */
 public interface PartitionFactory<SpliceTableInfo>{
 
-    void initialize(Clock clock,SConfiguration configuration) throws IOException;
+    void initialize(Clock clock,SConfiguration configuration, PartitionInfoCache<SpliceTableInfo> partitionInfoCache) throws IOException;
 
     Partition getTable(SpliceTableInfo tableName) throws IOException;
 

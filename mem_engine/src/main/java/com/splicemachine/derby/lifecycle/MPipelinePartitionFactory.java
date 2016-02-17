@@ -5,7 +5,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.storage.Partition;
-
+import com.splicemachine.storage.PartitionInfoCache;
 import java.io.IOException;
 
 /**
@@ -19,8 +19,8 @@ public class MPipelinePartitionFactory implements PartitionFactory<Object>{
         this.baseFactory=baseFactory;
     }
 
-    public void initialize(Clock clock,SConfiguration configuration) throws IOException{
-        baseFactory.initialize(clock,configuration);
+    public void initialize(Clock clock,SConfiguration configuration,PartitionInfoCache partitionInfoCache) throws IOException{
+        baseFactory.initialize(clock,configuration,partitionInfoCache);
     }
 
     public Partition getTable(String name) throws IOException{

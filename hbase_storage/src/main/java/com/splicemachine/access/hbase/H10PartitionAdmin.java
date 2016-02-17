@@ -4,13 +4,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.LazyPartitionServer;
-import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.PartitionServer;
-import com.splicemachine.storage.RangedClientPartition;
+import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
@@ -20,7 +16,6 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
@@ -37,15 +32,19 @@ public class H10PartitionAdmin implements PartitionAdmin{
     private final long splitSleepInterval;
     private final Clock timeKeeper;
     private final HBaseTableInfoFactory tableInfoFactory;
+    private final PartitionInfoCache<TableName> partitionInfoCache;
 
     public H10PartitionAdmin(Admin admin,
                              long splitSleepInterval,
                              Clock timeKeeper,
-                             HBaseTableInfoFactory tableInfoFactory){
+                             HBaseTableInfoFactory tableInfoFactory,
+                             PartitionInfoCache<TableName> partitionInfoCache
+                             ){
         this.admin=admin;
         this.splitSleepInterval = splitSleepInterval;
         this.timeKeeper=timeKeeper;
         this.tableInfoFactory = tableInfoFactory;
+        this.partitionInfoCache = partitionInfoCache;
     }
 
     @Override
@@ -57,7 +56,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
         snapshot.setInMemory(true);
         snapshot.setBlockCacheEnabled(true);
         snapshot.setBloomFilterType(BloomType.ROW);
-        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,snapshot);
+        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,snapshot,partitionInfoCache);
     }
 
     @Override
@@ -119,7 +118,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
         Table table = connection.getTable(tn);
         for(HRegionInfo info : tableRegions){
             LazyPartitionServer owningServer=new LazyPartitionServer(connection,info,tn);
-            partitions.add(new RangedClientPartition(connection,tn,table,info,owningServer,timeKeeper));
+            partitions.add(new RangedClientPartition(connection,tn,table,info,owningServer,timeKeeper,partitionInfoCache));
         }
         return partitions;
     }

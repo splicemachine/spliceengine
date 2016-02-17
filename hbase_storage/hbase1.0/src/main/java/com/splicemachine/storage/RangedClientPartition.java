@@ -8,7 +8,6 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -25,8 +24,8 @@ public class RangedClientPartition extends ClientPartition implements Comparable
                                  Table table,
                                  HRegionInfo regionInfo,
                                  PartitionServer owningServer,
-                                 Clock clock){
-        super(connection,tableName,table,clock);
+                                 Clock clock, PartitionInfoCache partitionInfoCache){
+        super(connection,tableName,table,clock,partitionInfoCache);
         this.regionInfo=regionInfo;
         this.owningServer=owningServer;
     }

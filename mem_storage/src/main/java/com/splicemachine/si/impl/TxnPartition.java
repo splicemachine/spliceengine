@@ -241,6 +241,11 @@ public class TxnPartition implements Partition{
 
     @Override
     public List<Partition> subPartitions(){
+        return subPartitions(false);
+    }
+
+    @Override
+    public List<Partition> subPartitions(boolean refresh){
         return Collections.<Partition>singletonList(this);
     }
 
