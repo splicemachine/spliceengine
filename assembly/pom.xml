@@ -91,7 +91,7 @@
             <dependencies>
                 <dependency>
                     <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_engine-${envClassifier}</artifactId>
+                    <artifactId>hbase_sql-${envClassifier}</artifactId>
                     <version>${project.version}</version>
                 </dependency>
             </dependencies>
