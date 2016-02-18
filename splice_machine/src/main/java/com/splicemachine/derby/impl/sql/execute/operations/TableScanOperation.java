@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
@@ -51,8 +52,10 @@ public class TableScanOperation extends ScanOperation{
                               Activation activation,
                               GeneratedMethod resultRowAllocator,
                               int resultSetNumber,
-                              GeneratedMethod startKeyGetter,int startSearchOperator,
-                              GeneratedMethod stopKeyGetter,int stopSearchOperator,
+                              GeneratedMethod startKeyGetter,
+                              int startSearchOperator,
+                              GeneratedMethod stopKeyGetter,
+                              int stopSearchOperator,
                               boolean sameStartStopPosition,
                               boolean rowIdKey,
                               String qualifiersField,
@@ -69,18 +72,18 @@ public class TableScanOperation extends ScanOperation{
                               int rowsPerRead,
                               boolean oneRowScan,
                               double optimizerEstimatedRowCount,
-                              double optimizerEstimatedCost,String tableVersion) throws StandardException{
+                              double optimizerEstimatedCost,
+                              String tableVersion) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
-        // JL TODO Will need to get the isolation on the transaction
-        //System.out.println("Current Isolation Level" + activation.getLanguageConnectionContext().getCurrentIsolationLevel());
         this.isConstraint=isConstraint;
         this.rowsPerRead=rowsPerRead;
         this.tableName=Long.toString(scanInformation.getConglomerateId());
+        this.tableDisplayName = tableName;
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
@@ -165,7 +168,7 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         assert currentTemplate!=null:"Current Template Cannot Be Null";
-        dsp.createOperationContext(this);
+        // dsp.createOperationContext(this);
         return getTableScannerBuilder(dsp);
     }
 
@@ -181,6 +184,7 @@ public class TableScanOperation extends ScanOperation{
     public DataSet<LocatedRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
         return dsp.<TableScanOperation,LocatedRow>newScanSet(this,tableName)
+                .tableDisplayName(tableDisplayName)
                 .activation(activation)
                 .transaction(txn)
                 .scan(getNonSIScan())
@@ -194,7 +198,8 @@ public class TableScanOperation extends ScanOperation{
                 .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(baseColumnMap).buildDataSet();
+                .rowDecodingMap(baseColumnMap)
+                .buildDataSet(this);
     }
 
 }

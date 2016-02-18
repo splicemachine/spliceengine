@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.IndexTableScannerBuilder;
 import com.splicemachine.derby.stream.function.HTableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.stream.index.HTableInputFormat;
 import org.apache.hadoop.conf.Configuration;
@@ -37,13 +38,12 @@ public class SparkIndexScanBuilder<V> extends IndexTableScannerBuilder<V>{
 
     @Override
     public DataSet<V> buildDataSet() throws StandardException{
-        return buildDataSet(null);
+        return buildDataSet("Scan Table");
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> buildDataSet(Object caller) throws StandardException{
-        // This code correlated somewhat to SparkDataSetProcessor.getHTableScanner from master_dataset.
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
@@ -53,23 +53,15 @@ public class SparkIndexScanBuilder<V> extends IndexTableScannerBuilder<V>{
             throw StandardException.unexpectedUserException(ioe);
         }
 
-        String scope = null;
-        if (caller instanceof String)
-            scope = (String)caller;
-        else if (caller instanceof IndexConstantOperation)
-            scope = ((IndexConstantOperation)caller).getScopeName();
-        else if (caller instanceof ScopeNamed)
-            scope = ((ScopeNamed)caller).getScopeName();
-        else if (caller instanceof ConstantAction)
-            scope = "Scan Table";
-
-        SpliceSpark.pushScope(scope + ": Scan");
+        String scopePrefix = StreamUtils.getScopeString(caller);
+        SpliceSpark.pushScope(String.format("%s: Scan Base Table", scopePrefix));
         JavaPairRDD<byte[], KVPair> rawRDD = ctx.newAPIHadoopRDD(
             conf, HTableInputFormat.class, byte[].class, KVPair.class);
+        // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
 
-        SpliceSpark.pushScope(scope + ": Deserialize");
+        SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         HTableScanTupleFunction f1 = new HTableScanTupleFunction();
         Function f2 = new SparkSpliceFunctionWrapper<>(f1);
         try {

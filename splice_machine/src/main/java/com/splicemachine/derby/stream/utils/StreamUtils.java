@@ -3,6 +3,8 @@ package com.splicemachine.derby.stream.utils;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -77,5 +79,23 @@ public class StreamUtils {
         } else {
             return s;
         }
+    }
+
+    public static String getScopeString(Object obj) {
+        String scope = null;
+        if (obj instanceof String)
+            scope = (String)obj;
+        else if (obj instanceof ScopeNamed)
+            scope = ((ScopeNamed)obj).getScopeName();
+        else if (obj instanceof ConstantAction)
+            scope = StringUtils.join(
+                StringUtils.splitByCharacterTypeCamelCase(
+                    obj.getClass().getSimpleName().
+                        replace("ConstantAction", "").
+                        replace("ConstantOperation", "")),
+                ' ');
+        else
+            scope = obj.getClass().getSimpleName();
+        return scope;
     }
 }

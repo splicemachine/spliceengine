@@ -23,7 +23,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
     
     DataSet<V> distinct();
 
-    DataSet<V> distinct(String name);
+    DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
     DataSet<V> coalesce(int numPartitions, boolean shuffle);
 

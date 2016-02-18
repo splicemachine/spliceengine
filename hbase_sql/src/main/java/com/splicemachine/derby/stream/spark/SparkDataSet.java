@@ -77,16 +77,21 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct() {
-        return distinct("Remove Duplicates");
+        return distinct("Remove Duplicates", false, null, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> distinct(String name) {
-        JavaRDD rdd1 = rdd.distinct();
-        rdd1.setName(name /* MapPartitionsRDD */);
-        RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */}, null);
-        return new SparkDataSet(rdd1);
+    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+        pushScopeIfNeeded(context, pushScope, scopeDetail);
+        try {
+            JavaRDD rdd1 = rdd.distinct();
+            rdd1.setName(name /* MapPartitionsRDD */);
+            RDDUtils.setAncestorRDDNames(rdd1, 2, new String[]{"Shuffle Data" /* ShuffledRDD */, "Prepare To Find Distinct" /* MapPartitionsRDD */}, null);
+            return new SparkDataSet(rdd1);
+        } finally {
+            if (pushScope) context.popScope();
+        }
     }
 
     @Override
@@ -170,7 +175,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet< V> union(DataSet< V> dataSet, String name, boolean pushScope, String scopeDetail) {
-        pushScopeIfNeeded(null, pushScope, scopeDetail);
+        pushScopeIfNeeded((SpliceFunction)null, pushScope, scopeDetail);
         try {
             JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
             rdd1.setName(name != null ? name : SparkConstants.RDD_NAME_UNION);
@@ -333,7 +338,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
-        pushScopeIfNeeded(null, pushScope, scopeDetail);
+        pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
             JavaRDD rdd1 = rdd.coalesce(numPartitions, shuffle);
             rdd1.setName(String.format("Coalesce %d partitions", numPartitions));
@@ -372,6 +377,15 @@ public class SparkDataSet<V> implements DataSet<V> {
         if (pushScope) {
             if (function != null && function.operationContext != null)
                 function.operationContext.pushScopeForOp(scopeDetail);
+            else
+                SpliceSpark.pushScope(scopeDetail);
+        }
+    }
+
+    private void pushScopeIfNeeded(OperationContext operationContext, boolean pushScope, String scopeDetail) {
+        if (pushScope) {
+            if (operationContext != null)
+                operationContext.pushScopeForOp(scopeDetail);
             else
                 SpliceSpark.pushScope(scopeDetail);
         }

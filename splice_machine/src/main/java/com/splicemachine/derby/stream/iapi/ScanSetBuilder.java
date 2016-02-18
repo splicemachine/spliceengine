@@ -48,6 +48,8 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> indexName(String indexName);
 
+    ScanSetBuilder<V> tableDisplayName(String tableDisplayName);
+
     ScanSetBuilder<V> tableVersion(String tableVersion);
 
     ScanSetBuilder<V> fieldLengths(int[] fieldLengths);

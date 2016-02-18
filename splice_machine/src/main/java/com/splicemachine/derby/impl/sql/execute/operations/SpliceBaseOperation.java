@@ -424,14 +424,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return info;
     }
 
-    private String scopeName=null;
-
     public String getScopeName() {
-        if(scopeName==null){
-            String[] words=this.getClass().getSimpleName().replace("Operation","").split("(?=[A-Z])");
-            scopeName=StringUtils.join(words," ");
-        }
-        return scopeName;
+        return StringUtils.join(this.getClass().getSimpleName().replace("Operation","").split("(?=[A-Z])"), " ");
     }
 
     public DataSet<LocatedRow> getDataSet() throws StandardException{

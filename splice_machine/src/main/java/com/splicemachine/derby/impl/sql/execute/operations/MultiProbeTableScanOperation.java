@@ -217,6 +217,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         for (DataScan scan: scans) {
             deSiify(scan);
             DataSet<LocatedRow> ds = dsp.<MultiProbeTableScanOperation,LocatedRow>newScanSet(this,tableName)
+                    .tableDisplayName(tableDisplayName)
                     .activation(activation)
                     .transaction(txn)
                     .scan(scan)

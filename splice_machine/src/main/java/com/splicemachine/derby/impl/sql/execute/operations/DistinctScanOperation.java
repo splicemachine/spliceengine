@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -31,9 +31,8 @@ public class DistinctScanOperation extends ScanOperation {
 
 	@Override
 	public String getName() {
-				return NAME;
-		}
-
+        return NAME;
+    }
 
 	@SuppressWarnings("UnusedDeclaration")
 	public DistinctScanOperation() { }
@@ -44,7 +43,7 @@ public class DistinctScanOperation extends ScanOperation {
     private int[] keyColumns;
 
     @SuppressWarnings("UnusedParameters")
-		public DistinctScanOperation(long conglomId,
+    public DistinctScanOperation(long conglomId,
                                  StaticCompiledOpenConglomInfo scoci, Activation activation,
                                  GeneratedMethod resultRowAllocator,
                                  int resultSetNumber,
@@ -82,13 +81,14 @@ public class DistinctScanOperation extends ScanOperation {
                 tableVersion);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
+        this.tableDisplayName = tableName;
         this.indexName = indexName;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -127,7 +127,7 @@ public class DistinctScanOperation extends ScanOperation {
         return Collections.emptyList();
     }
 
-		@Override
+    @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         return currentRow;
     }
@@ -137,7 +137,7 @@ public class DistinctScanOperation extends ScanOperation {
         return null;
     }
 
-		@Override
+    @Override
     public String prettyPrint(int indentLevel) {
         return "Distinct"+super.prettyPrint(indentLevel);
     }
@@ -161,6 +161,7 @@ public class DistinctScanOperation extends ScanOperation {
         }
 
         return dsp.<DistinctScanOperation,LocatedRow>newScanSet(this,tableName)
+                .tableDisplayName(this.tableDisplayName)
                 .activation(activation)
                 .transaction(getCurrentTransaction())
                 .scan(getNonSIScan())
@@ -174,7 +175,9 @@ public class DistinctScanOperation extends ScanOperation {
                 .execRowTypeFormatIds(execRowTypeFormatIds)
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(colMap).buildDataSet().distinct();
+                .rowDecodingMap(colMap)
+                .buildDataSet(this)
+                .distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
     }
 
 }

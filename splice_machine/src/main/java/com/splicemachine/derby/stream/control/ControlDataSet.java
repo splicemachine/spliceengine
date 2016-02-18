@@ -79,7 +79,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<V> distinct(String name) {
+    public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         return distinct();
     }
 

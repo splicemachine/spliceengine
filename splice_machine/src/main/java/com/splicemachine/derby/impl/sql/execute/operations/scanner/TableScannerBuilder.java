@@ -48,6 +48,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected FormatableBitSet accessedKeys;
     protected boolean reuseRowLocation=true;
     protected String indexName;
+    protected String tableDisplayName;
     protected String tableVersion;
     protected SIFilterFactory filterFactory;
     protected boolean[] keyColumnSortOrder;
@@ -242,6 +243,12 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public ScanSetBuilder<V> indexName(String indexName){
         this.indexName=indexName;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> tableDisplayName(String tableDisplayName){
+        this.tableDisplayName=tableDisplayName;
         return this;
     }
 

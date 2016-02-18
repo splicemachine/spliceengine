@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.ExternalizableFunction;
 import org.apache.spark.api.java.function.Function;
 
@@ -37,5 +38,9 @@ public class SparkSpliceFunctionWrapper<T,R> implements Function<T,R>,Externaliz
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         this.delegate = (ExternalizableFunction<T,R>)in.readObject();
+    }
+
+    public String getPrettyFunctionName() {
+        return ((AbstractSpliceFunction)delegate).getPrettyFunctionName();
     }
 }

@@ -100,6 +100,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             IndexScanSetBuilder<KVPair> indexBuilder = dsp.newIndexScanSet(null,Long.toString(tentativeIndex.getTable().getConglomerate()));
             DataSet<KVPair> dataSet = indexBuilder
 				.indexColToMainColPosMap(Ints.toArray(tentativeIndex.getIndex().getIndexColsToMainColMapList()))
+                .tableDisplayName(tableName)
 				.transaction(indexTransaction)
 				.demarcationPoint(demarcationPoint)
 				.scan(DDLUtils.createFullScan())
@@ -118,6 +119,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
             throw Exceptions.parseException(e);
         }
     }
+
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
         return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());

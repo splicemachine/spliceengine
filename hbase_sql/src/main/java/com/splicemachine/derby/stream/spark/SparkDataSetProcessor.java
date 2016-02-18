@@ -16,6 +16,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -72,12 +73,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(Op spliceOperation,String tableName) throws StandardException{
-        return new SparkScanSetBuilder<>(this,tableName,spliceOperation);
+        return new SparkScanSetBuilder<>(this,tableName,spliceOperation); // tableName = conglomerate number
     }
 
     @Override
     public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(Op spliceOperation,String tableName) throws StandardException{
-        return new SparkIndexScanBuilder<>(tableName);
+        return new SparkIndexScanBuilder<>(tableName); // tableName = conglomerate number of base table
     }
 
     @Override
@@ -95,16 +96,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return singleRowDataSet(value, "Finalize Result");
     }
 
+    @SuppressWarnings({ "unchecked" })
     @Override
     public <V> DataSet<V> singleRowDataSet(V value, Object caller) {
-        String scope;
-        if (caller instanceof String)
-            scope = (String)caller;
-        else if (caller instanceof ScopeNamed)
-            scope = ((SpliceOperation)caller).getScopeName();
-        else
-            scope = "Finalize Result";
-
+        String scope = StreamUtils.getScopeString(caller);
         SpliceSpark.pushScope(scope);
         try {
             JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);

@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -35,33 +34,34 @@ public class LastIndexKeyOperation extends ScanOperation {
         super();
     }
 
-        public LastIndexKeyOperation (
-                    Activation activation,
-                    int resultSetNumber,
-                    GeneratedMethod resultRowAllocator,
-                    long conglomId,
-                    String tableName,
-                    String userSuppliedOptimizerOverrides,
-                    String indexName,
-                    int colRefItem,
-                    int lockMode,
-                    boolean tableLocked,
-                    int isolationLevel,
-                    double optimizerEstimatedRowCount,
-                    double optimizerEstimatedCost,
-                    String tableVersion
-            ) throws StandardException {
-        super(conglomId, activation, resultSetNumber, null, -1, null, -1,
-                true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
+    public LastIndexKeyOperation (
+        Activation activation,
+        int resultSetNumber,
+        GeneratedMethod resultRowAllocator,
+        long conglomId,
+        String tableName,
+        String userSuppliedOptimizerOverrides,
+        String indexName,
+        int colRefItem,
+        int lockMode,
+        boolean tableLocked,
+        int isolationLevel,
+        double optimizerEstimatedRowCount,
+        double optimizerEstimatedCost,
+        String tableVersion) throws StandardException {
 
-                colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
-            this.tableName = Long.toString(scanInformation.getConglomerateId());
-            this.indexName = indexName;
-				try {
-						init(SpliceOperationContext.newContext(activation));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+        super(conglomId, activation, resultSetNumber, null, -1, null, -1,
+            true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
+
+        colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion);
+        this.tableName = Long.toString(scanInformation.getConglomerateId());
+        this.tableDisplayName = tableName;
+        this.indexName = indexName;
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
         recordConstructorTime();
     }
 
@@ -107,6 +107,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> scan = dsp.<LastIndexKeyOperation,LocatedRow>newScanSet(this,tableName)
+                .tableDisplayName(tableDisplayName)
                 .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
                 .template(currentTemplate)

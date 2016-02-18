@@ -415,12 +415,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
                 .buildDataSet("Collect Table Statistics");
-
-        // new ScopeNamed() {
-        //     public String getScopeName() {
-        //         return "Collect Table Statistics";
-        //     }
-        // }
     }
 
     private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows) throws

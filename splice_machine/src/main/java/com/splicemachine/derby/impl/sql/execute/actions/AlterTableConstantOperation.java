@@ -974,6 +974,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Create a scanner to scan old conglomerate
 
         DataSet<KVPair> dataSet = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
+                .tableDisplayName(this.tableName)
                 .activation(activation)
                 .scan(DDLUtils.createFullScan())
                 .transaction(childTxn)

@@ -30,6 +30,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected boolean oneRowScan;
     protected ScanInformation<ExecRow> scanInformation;
     protected String tableName;
+    protected String tableDisplayName;
     protected String indexName;
     public boolean isConstraint;
     public boolean forUpdate;
@@ -238,28 +239,26 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return tableName.equals(String.valueOf(tableNumber));
     }
 
-    /**
-     * Returns the relational table name for the scan, e.g. LINEITEM,
-     * not the conglomerate number.
-     */
-    public String getDisplayableTableName(){
-        // TODO: purge this method. It worked on dev branch but not any more
-        return tableName;
-//		    if (scanInformation == null) return tableName; // avoid NPE
-//            try {
-//                return scanInformation.getConglomerate().getString();
-//            } catch (StandardException e) {
-//                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-//                return null;
-//    		}
-    }
-
-    public String getTableName(){
+    public String getTableName() {
         return this.tableName;
     }
 
-    public String getIndexName(){
+    public String getTableDisplayName() {
+        return this.tableDisplayName;
+    }
+
+    public String getIndexName() {
         return this.indexName;
+    }
+
+    public String getIndexDisplayName() {
+        // for now returns indexName (which is a readable string)
+        // but this hook leaves flexibility for later
+        return this.indexName;
+    }
+
+    public boolean isIndexScan() {
+        return this.indexName != null;
     }
 
     @Override
@@ -284,5 +283,22 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
     public String getTableVersion(){
         return tableVersion;
+    }
+
+    public String getScopeName() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getScopeBaseOpName());
+        if (isIndexScan()) {
+            sb.append(" Index ").append(getIndexDisplayName());
+            sb.append(" (Table ").append(getTableDisplayName()).append(")");
+        } else {
+            sb.append(" Table ").append(getTableDisplayName());
+        }
+
+        return sb.toString();
+    }
+
+    protected String getScopeBaseOpName() {
+        return super.getScopeName();
     }
 }
