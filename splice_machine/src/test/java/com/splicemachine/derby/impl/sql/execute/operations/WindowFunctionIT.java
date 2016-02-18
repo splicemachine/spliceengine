@@ -742,28 +742,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testSumRows1Preceding1Following() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding and 1 following) as sumsal from %s",
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between 1 preceding " +
+                              "and 1 following) as sumsal from %s ORDER BY empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
+            // DB-4600 - added order by to result to make comparison deterministic
             "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
                 "------------------------------\n" +
-                "  100  |  3  | 55000 |130000 |\n" +
-                "  120  |  3  | 75000 |209000 |\n" +
-                "  80   |  3  | 79000 |238000 |\n" +
+                "  10   |  1  | 50000 |102000 |\n" +
+                "  20   |  1  | 75000 |204000 |\n" +
                 "  30   |  3  | 84000 |163000 |\n" +
-                "  90   |  2  | 51000 |103000 |\n" +
                 "  40   |  2  | 52000 |155000 |\n" +
                 "  44   |  2  | 52000 |157000 |\n" +
                 "  49   |  2  | 53000 |105000 |\n" +
-                "  10   |  1  | 50000 |102000 |\n" +
                 "  50   |  1  | 52000 |154000 |\n" +
                 "  55   |  1  | 52000 |157000 |\n" +
-                "  110  |  1  | 53000 |180000 |\n" +
-                "  20   |  1  | 75000 |204000 |\n" +
+                "  60   |  1  | 78000 |154000 |\n" +
                 "  70   |  1  | 76000 |229000 |\n" +
-                "  60   |  1  | 78000 |154000 |";
+                "  80   |  3  | 79000 |238000 |\n" +
+                "  90   |  2  | 51000 |103000 |\n" +
+                "  100  |  3  | 55000 |130000 |\n" +
+                "  110  |  1  | 53000 |180000 |\n" +
+                "  120  |  3  | 75000 |209000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -835,28 +837,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "count(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) as countsal " +
-                              "from %s",
+                              "from %s order by empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
             "EMPNUM |DEPT |SALARY |COUNTSAL |\n" +
                 "--------------------------------\n" +
-                "  100  |  3  | 55000 |    4    |\n" +
-                "  120  |  3  | 75000 |    3    |\n" +
-                "  80   |  3  | 79000 |    2    |\n" +
+                "  10   |  1  | 50000 |    7    |\n" +
+                "  20   |  1  | 75000 |    3    |\n" +
                 "  30   |  3  | 84000 |    1    |\n" +
-                "  90   |  2  | 51000 |    4    |\n" +
                 "  40   |  2  | 52000 |    3    |\n" +
                 "  44   |  2  | 52000 |    2    |\n" +
                 "  49   |  2  | 53000 |    1    |\n" +
-                "  10   |  1  | 50000 |    7    |\n" +
                 "  50   |  1  | 52000 |    6    |\n" +
                 "  55   |  1  | 52000 |    5    |\n" +
-                "  110  |  1  | 53000 |    4    |\n" +
-                "  20   |  1  | 75000 |    3    |\n" +
+                "  60   |  1  | 78000 |    1    |\n" +
                 "  70   |  1  | 76000 |    2    |\n" +
-                "  60   |  1  | 78000 |    1    |";
+                "  80   |  3  | 79000 |    2    |\n" +
+                "  90   |  2  | 51000 |    4    |\n" +
+                "  100  |  3  | 55000 |    4    |\n" +
+                "  110  |  1  | 53000 |    4    |\n" +
+                "  120  |  3  | 75000 |    3    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -1020,29 +1023,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // had to add empnum to fn order by so that results would be deterministic/repeatable
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
-                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row and unbounded following) " +
-                              "from %s",
+                              "sum(salary) over (Partition by dept ORDER BY salary, empnum rows between current row " +
+                              "and unbounded following) from %s ORDER BY empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
                 "EMPNUM |DEPT |SALARY |   4   |\n" +
                     "------------------------------\n" +
-                    "  100  |  3  | 55000 |293000 |\n" +
-                    "  120  |  3  | 75000 |238000 |\n" +
-                    "  80   |  3  | 79000 |163000 |\n" +
+                    "  10   |  1  | 50000 |436000 |\n" +
+                    "  20   |  1  | 75000 |229000 |\n" +
                     "  30   |  3  | 84000 | 84000 |\n" +
-                    "  90   |  2  | 51000 |208000 |\n" +
                     "  40   |  2  | 52000 |157000 |\n" +
                     "  44   |  2  | 52000 |105000 |\n" +
                     "  49   |  2  | 53000 | 53000 |\n" +
-                    "  10   |  1  | 50000 |436000 |\n" +
                     "  50   |  1  | 52000 |386000 |\n" +
                     "  55   |  1  | 52000 |334000 |\n" +
-                    "  110  |  1  | 53000 |282000 |\n" +
-                    "  20   |  1  | 75000 |229000 |\n" +
+                    "  60   |  1  | 78000 | 78000 |\n" +
                     "  70   |  1  | 76000 |154000 |\n" +
-                    "  60   |  1  | 78000 | 78000 |";
+                    "  80   |  3  | 79000 |163000 |\n" +
+                    "  90   |  2  | 51000 |208000 |\n" +
+                    "  100  |  3  | 55000 |293000 |\n" +
+                    "  110  |  1  | 53000 |282000 |\n" +
+                    "  120  |  3  | 75000 |238000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -1236,32 +1240,33 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testRowNumberWithinPartiion() throws Exception {
+    public void testRowNumberWithinPartition() throws Exception {
         String sqlText =
             String.format("SELECT empnum, dept, salary, " +
                               "ROW_NUMBER() OVER (partition by dept ORDER BY dept, empnum, salary desc) AS RowNumber " +
-                              "FROM %s",
+                              "FROM %s ORDER BY empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
                 "EMPNUM |DEPT |SALARY | ROWNUMBER |\n" +
                     "----------------------------------\n" +
+                    "  10   |  1  | 50000 |     1     |\n" +
+                    "  20   |  1  | 75000 |     2     |\n" +
                     "  30   |  3  | 84000 |     1     |\n" +
-                    "  80   |  3  | 79000 |     2     |\n" +
-                    "  100  |  3  | 55000 |     3     |\n" +
-                    "  120  |  3  | 75000 |     4     |\n" +
                     "  40   |  2  | 52000 |     1     |\n" +
                     "  44   |  2  | 52000 |     2     |\n" +
                     "  49   |  2  | 53000 |     3     |\n" +
-                    "  90   |  2  | 51000 |     4     |\n" +
-                    "  10   |  1  | 50000 |     1     |\n" +
-                    "  20   |  1  | 75000 |     2     |\n" +
                     "  50   |  1  | 52000 |     3     |\n" +
                     "  55   |  1  | 52000 |     4     |\n" +
                     "  60   |  1  | 78000 |     5     |\n" +
                     "  70   |  1  | 76000 |     6     |\n" +
-                    "  110  |  1  | 53000 |     7     |";
+                    "  80   |  3  | 79000 |     2     |\n" +
+                    "  90   |  2  | 51000 |     4     |\n" +
+                    "  100  |  3  | 55000 |     3     |\n" +
+                    "  110  |  1  | 53000 |     7     |\n" +
+                    "  120  |  3  | 75000 |     4     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -1299,28 +1304,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testRankWithinPartition() throws Exception {
         String sqlText =
-            String.format("SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS Rank FROM %s",
+            String.format("SELECT empnum, dept, salary, RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, " +
+                              "salary desc) AS Rank FROM %s ORDER BY empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
                 "EMPNUM |DEPT |SALARY |RANK |\n" +
                     "----------------------------\n" +
+                    "  10   |  1  | 50000 |  1  |\n" +
+                    "  20   |  1  | 75000 |  2  |\n" +
                     "  30   |  3  | 84000 |  1  |\n" +
-                    "  80   |  3  | 79000 |  2  |\n" +
-                    "  100  |  3  | 55000 |  3  |\n" +
-                    "  120  |  3  | 75000 |  4  |\n" +
                     "  40   |  2  | 52000 |  1  |\n" +
                     "  44   |  2  | 52000 |  2  |\n" +
                     "  49   |  2  | 53000 |  3  |\n" +
-                    "  90   |  2  | 51000 |  4  |\n" +
-                    "  10   |  1  | 50000 |  1  |\n" +
-                    "  20   |  1  | 75000 |  2  |\n" +
                     "  50   |  1  | 52000 |  3  |\n" +
                     "  55   |  1  | 52000 |  4  |\n" +
                     "  60   |  1  | 78000 |  5  |\n" +
                     "  70   |  1  | 76000 |  6  |\n" +
-                    "  110  |  1  | 53000 |  7  |";
+                    "  80   |  3  | 79000 |  2  |\n" +
+                    "  90   |  2  | 51000 |  4  |\n" +
+                    "  100  |  3  | 55000 |  3  |\n" +
+                    "  110  |  1  | 53000 |  7  |\n" +
+                    "  120  |  3  | 75000 |  4  |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -1507,28 +1514,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testDenseRankWithPartition3OrderByCols_duplicateKey() throws Exception {
         String sqlText =
-            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s",
+            String.format("SELECT empnum, dept, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank FROM %s order by empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
                 "EMPNUM |DEPT |SALARY | DENSERANK |\n" +
                     "----------------------------------\n" +
+                    "  10   |  1  | 50000 |     1     |\n" +
+                    "  20   |  1  | 75000 |     2     |\n" +
                     "  30   |  3  | 84000 |     1     |\n" +
-                    "  80   |  3  | 79000 |     2     |\n" +
-                    "  100  |  3  | 55000 |     3     |\n" +
-                    "  120  |  3  | 75000 |     4     |\n" +
                     "  40   |  2  | 52000 |     1     |\n" +
                     "  44   |  2  | 52000 |     2     |\n" +
                     "  49   |  2  | 53000 |     3     |\n" +
-                    "  90   |  2  | 51000 |     4     |\n" +
-                    "  10   |  1  | 50000 |     1     |\n" +
-                    "  20   |  1  | 75000 |     2     |\n" +
                     "  50   |  1  | 52000 |     3     |\n" +
                     "  55   |  1  | 52000 |     4     |\n" +
                     "  60   |  1  | 78000 |     5     |\n" +
                     "  70   |  1  | 76000 |     6     |\n" +
-                    "  110  |  1  | 53000 |     7     |";
+                    "  80   |  3  | 79000 |     2     |\n" +
+                    "  90   |  2  | 51000 |     4     |\n" +
+                    "  100  |  3  | 55000 |     3     |\n" +
+                    "  110  |  1  | 53000 |     7     |\n" +
+                    "  120  |  3  | 75000 |     4     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -1566,29 +1574,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testDenseRankWithPartition3OrderByCols_KeyColMissingFromSelect() throws Exception {
         String sqlText =
-            String.format("SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, salary desc) AS DenseRank " +
-                              "FROM %s",
+            String.format("SELECT empnum, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY dept, empnum, " +
+                              "salary desc) AS DenseRank FROM %s order by empnum",
                           this.getTableReference(EMPTAB));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
                 "EMPNUM |SALARY | DENSERANK |\n" +
                     "----------------------------\n" +
+                    "  10   | 50000 |     1     |\n" +
+                    "  20   | 75000 |     2     |\n" +
                     "  30   | 84000 |     1     |\n" +
-                    "  80   | 79000 |     2     |\n" +
-                    "  100  | 55000 |     3     |\n" +
-                    "  120  | 75000 |     4     |\n" +
                     "  40   | 52000 |     1     |\n" +
                     "  44   | 52000 |     2     |\n" +
                     "  49   | 53000 |     3     |\n" +
-                    "  90   | 51000 |     4     |\n" +
-                    "  10   | 50000 |     1     |\n" +
-                    "  20   | 75000 |     2     |\n" +
                     "  50   | 52000 |     3     |\n" +
                     "  55   | 52000 |     4     |\n" +
                     "  60   | 78000 |     5     |\n" +
                     "  70   | 76000 |     6     |\n" +
-                    "  110  | 53000 |     7     |";
+                    "  80   | 79000 |     2     |\n" +
+                    "  90   | 51000 |     4     |\n" +
+                    "  100  | 55000 |     3     |\n" +
+                    "  110  | 53000 |     7     |\n" +
+                    "  120  | 75000 |     4     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2698,20 +2707,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                   ORDER BY employee_id DESC\n" +
                                     "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
                                     "Minimum_Commission\n" +
-                                    "FROM %s", tableRef);
+                                    "FROM %s order by employee_id", tableRef);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
             "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
                 "--------------------------------------------------------------\n" +
-                "     108     |     Emp H     |  Support  |         5         |\n" +
-                "     104     |     Emp D     |  Support  |         5         |\n" +
-                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     101     |     Emp A     |   Sales   |        10         |\n" +
                 "     102     |     Emp B     |    IT     |        20         |\n" +
-                "     107     |     Emp G     |   Sales   |        10         |\n" +
-                "     106     |     Emp F     |   Sales   |        10         |\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     104     |     Emp D     |  Support  |         5         |\n" +
                 "     105     |     Emp E     |   Sales   |        10         |\n" +
-                "     101     |     Emp A     |   Sales   |        10         |";
+                "     106     |     Emp F     |   Sales   |        10         |\n" +
+                "     107     |     Emp G     |   Sales   |        10         |\n" +
+                "     108     |     Emp H     |  Support  |         5         |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
 
         // RESPECT NULLS
@@ -2722,20 +2732,21 @@ public class WindowFunctionIT extends SpliceUnitTest {
                                     "                   ORDER BY employee_id DESC\n" +
                                     "                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) " +
                                     "Minimum_Commission\n" +
-                             "FROM %s", tableRef);
+                             "FROM %s order by employee_id", tableRef);
         rs = methodWatcher.executeQuery(sqlText);
         // Verified with example: http://www.techhoney.com/oracle/function/last_value-function-with-partition-by-clause-in-oracle-sql-plsql/
+        // DB-4600 - added order by to result to make comparison deterministic
         expected =
             "EMPLOYEE_ID | EMPLOYEE_NAME |DEPARTMENT |MINIMUM_COMMISSION |\n" +
                 "--------------------------------------------------------------\n" +
-                "     108     |     Emp H     |  Support  |         5         |\n" +
-                "     104     |     Emp D     |  Support  |         5         |\n" +
-                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     101     |     Emp A     |   Sales   |       NULL        |\n" +
                 "     102     |     Emp B     |    IT     |        20         |\n" +
-                "     107     |     Emp G     |   Sales   |       NULL        |\n" +
-                "     106     |     Emp F     |   Sales   |       NULL        |\n" +
+                "     103     |     Emp C     |    IT     |        20         |\n" +
+                "     104     |     Emp D     |  Support  |         5         |\n" +
                 "     105     |     Emp E     |   Sales   |       NULL        |\n" +
-                "     101     |     Emp A     |   Sales   |       NULL        |";
+                "     106     |     Emp F     |   Sales   |       NULL        |\n" +
+                "     107     |     Emp G     |   Sales   |       NULL        |\n" +
+                "     108     |     Emp H     |  Support  |         5         |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2843,27 +2854,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
     @Test
     public void testRankDate() throws Exception {
         String sqlText =
-            String.format("SELECT hiredate, dept, rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s",
+            String.format("SELECT hiredate, dept, rank() OVER (partition by dept ORDER BY hiredate) AS rankhire " +
+                              "FROM %s ORDER BY hiredate, dept",
                           this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
             "HIREDATE  |DEPT |RANKHIRE |\n" +
                 "----------------------------\n" +
+                "2010-03-20 |  1  |    1    |\n" +
+                "2010-03-20 |  1  |    1    |\n" +
                 "2010-04-12 |  3  |    1    |\n" +
                 "2010-08-09 |  3  |    2    |\n" +
-                "2012-04-03 |  3  |    3    |\n" +
-                "2013-04-24 |  3  |    4    |\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2013-06-06 |  2  |    3    |\n" +
-                "2013-12-20 |  2  |    4    |\n" +
-                "2010-03-20 |  1  |    1    |\n" +
-                "2010-03-20 |  1  |    1    |\n" +
                 "2011-05-24 |  1  |    3    |\n" +
                 "2011-10-15 |  1  |    4    |\n" +
                 "2012-04-03 |  1  |    5    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  3  |    3    |\n" +
                 "2012-11-11 |  1  |    6    |\n" +
+                "2013-04-24 |  3  |    4    |\n" +
+                "2013-06-06 |  2  |    3    |\n" +
+                "2013-12-20 |  2  |    4    |\n" +
                 "2014-03-04 |  1  |    7    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -2872,29 +2885,31 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testNullsRankDate() throws Exception {
         String sqlText =
             String.format("SELECT hiredate, dept, " +
-                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s",
+                              "rank() OVER (partition by dept ORDER BY hiredate) AS rankhire FROM %s " +
+                              "ORDER BY hiredate, dept",
                           this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
             "HIREDATE  |DEPT |RANKHIRE |\n" +
                 "----------------------------\n" +
+                "2010-03-20 |  1  |    1    |\n" +
+                "2010-03-20 |  1  |    1    |\n" +
                 "2010-04-12 |  3  |    1    |\n" +
-                "2010-08-09 |  3  |    2    |\n" +
-                "2010-08-09 |  3  |    2    |\n" +
-                "2012-04-03 |  3  |    4    |\n" +
-                "2013-04-24 |  3  |    5    |\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2012-04-03 |  2  |    1    |\n" +
-                "2013-06-06 |  2  |    3    |\n" +
-                "2013-12-20 |  2  |    4    |\n" +
-                "2010-03-20 |  1  |    1    |\n" +
-                "2010-03-20 |  1  |    1    |\n" +
                 "2010-08-09 |  1  |    3    |\n" +
+                "2010-08-09 |  3  |    2    |\n" +
+                "2010-08-09 |  3  |    2    |\n" +
                 "2011-05-24 |  1  |    4    |\n" +
                 "2011-10-15 |  1  |    5    |\n" +
                 "2012-04-03 |  1  |    6    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  2  |    1    |\n" +
+                "2012-04-03 |  3  |    4    |\n" +
                 "2012-11-11 |  1  |    7    |\n" +
+                "2013-04-24 |  3  |    5    |\n" +
+                "2013-06-06 |  2  |    3    |\n" +
+                "2013-12-20 |  2  |    4    |\n" +
                 "2014-03-04 |  1  |    8    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -2907,28 +2922,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
                               "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM %s",
+                              "FROM %s ORDER BY EMPNUM",
                           this.getTableReference(EMPTAB_HIRE_DATE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
             "EMPNUM |DEPT |SALARY | DENSERANK |RANK | ROWNUMBER |\n" +
                 "----------------------------------------------------\n" +
+                "  10   |  1  | 50000 |     7     |  7  |     7     |\n" +
+                "  20   |  1  | 75000 |     3     |  3  |     3     |\n" +
                 "  30   |  3  | 84000 |     1     |  1  |     1     |\n" +
-                "  80   |  3  | 79000 |     2     |  2  |     2     |\n" +
-                "  120  |  3  | 75000 |     3     |  3  |     3     |\n" +
-                "  100  |  3  | 55000 |     4     |  4  |     4     |\n" +
-                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
                 "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
                 "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
-                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
-                "  60   |  1  | 78000 |     1     |  1  |     1     |\n" +
-                "  70   |  1  | 76000 |     2     |  2  |     2     |\n" +
-                "  20   |  1  | 75000 |     3     |  3  |     3     |\n" +
-                "  110  |  1  | 53000 |     4     |  4  |     4     |\n" +
+                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
                 "  50   |  1  | 52000 |     5     |  5  |     5     |\n" +
                 "  55   |  1  | 52000 |     6     |  6  |     6     |\n" +
-                "  10   |  1  | 50000 |     7     |  7  |     7     |";
+                "  60   |  1  | 78000 |     1     |  1  |     1     |\n" +
+                "  70   |  1  | 76000 |     2     |  2  |     2     |\n" +
+                "  80   |  3  | 79000 |     2     |  2  |     2     |\n" +
+                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
+                "  100  |  3  | 55000 |     4     |  4  |     4     |\n" +
+                "  110  |  1  | 53000 |     4     |  4  |     4     |\n" +
+                "  120  |  3  | 75000 |     3     |  3  |     3     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2940,30 +2956,31 @@ public class WindowFunctionIT extends SpliceUnitTest {
                               "DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS DenseRank, " +
                               "RANK() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS Rank, " +
                               "ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary desc, empnum) AS RowNumber " +
-                              "FROM %s",
+                              "FROM %s ORDER BY EMPNUM",
                           this.getTableReference(EMPTAB_NULLS));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
+        // DB-4600 - added order by to result to make comparison deterministic
         String expected =
             "EMPNUM |DEPT |SALARY | DENSERANK |RANK | ROWNUMBER |\n" +
                 "----------------------------------------------------\n" +
-                "  33   |  3  | NULL  |     1     |  1  |     1     |\n" +
+                "  10   |  1  | 50000 |     8     |  8  |     8     |\n" +
+                "  20   |  1  | 75000 |     4     |  4  |     4     |\n" +
                 "  30   |  3  | 84000 |     2     |  2  |     2     |\n" +
-                "  80   |  3  | 79000 |     3     |  3  |     3     |\n" +
-                "  120  |  3  | 75000 |     4     |  4  |     4     |\n" +
-                "  100  |  3  | 55000 |     5     |  5  |     5     |\n" +
-                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
+                "  32   |  1  | NULL  |     1     |  1  |     1     |\n" +
+                "  33   |  3  | NULL  |     1     |  1  |     1     |\n" +
                 "  40   |  2  | 52000 |     2     |  2  |     2     |\n" +
                 "  44   |  2  | 52000 |     3     |  3  |     3     |\n" +
-                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
-                "  32   |  1  | NULL  |     1     |  1  |     1     |\n" +
-                "  60   |  1  | 78000 |     2     |  2  |     2     |\n" +
-                "  70   |  1  | 76000 |     3     |  3  |     3     |\n" +
-                "  20   |  1  | 75000 |     4     |  4  |     4     |\n" +
-                "  110  |  1  | 53000 |     5     |  5  |     5     |\n" +
+                "  49   |  2  | 53000 |     1     |  1  |     1     |\n" +
                 "  50   |  1  | 52000 |     6     |  6  |     6     |\n" +
                 "  55   |  1  | 52000 |     7     |  7  |     7     |\n" +
-                "  10   |  1  | 50000 |     8     |  8  |     8     |";
+                "  60   |  1  | 78000 |     2     |  2  |     2     |\n" +
+                "  70   |  1  | 76000 |     3     |  3  |     3     |\n" +
+                "  80   |  3  | 79000 |     3     |  3  |     3     |\n" +
+                "  90   |  2  | 51000 |     4     |  4  |     4     |\n" +
+                "  100  |  3  | 55000 |     5     |  5  |     5     |\n" +
+                "  110  |  1  | 53000 |     5     |  5  |     5     |\n" +
+                "  120  |  3  | 75000 |     4     |  4  |     4     |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
