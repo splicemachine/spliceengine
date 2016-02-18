@@ -893,7 +893,8 @@ public interface ResultSetFactory {
 								int isolationLevel,
 								double optimizerEstimatedRowCount,
 								double optimizerEstimatedCost,
-                                String tableVersion)
+                                String tableVersion,
+								String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1752,7 +1753,8 @@ public interface ResultSetFactory {
 		int					isolationLevel,
 		double				optimizerEstimatedRowCount,
 		double 				optimizerEstimatedCost,
-        String              tableVersion
+        String              tableVersion,
+		String              explainPlan
 	) throws StandardException;
 
 
