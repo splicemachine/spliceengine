@@ -113,6 +113,13 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public void touchFile(Path path) throws IOException{
+        if(!fs.createNewFile(toHPath(path))){
+            throw new FileAlreadyExistsException(path.toString());
+        }
+    }
+
+    @Override
     public void delete(Path path) throws IOException{
         delete(path,false);
     }

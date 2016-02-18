@@ -60,22 +60,9 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         }
         try{
             final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
-            Path outputPath;
-            boolean isDir;
-            FileInfo info;
-            try{
-                info=dfs.getInfo(path);
-            }catch(FileNotFoundException fnfe){
-                dfs.createDirectory(dfs.getPath(path),false);
-                info = dfs.getInfo(path);
-            }
-            if(info.isDirectory()){
-                outputPath = dfs.getPath(path,"/part-r-00000"+extension);
-                isDir= true;
-            }else {
-                outputPath = dfs.getPath(path);
-                isDir = false;
-            }
+            Path dir = dfs.getPath(path);
+            dfs.createDirectory(dir,false);
+            Path outputPath = dir.resolve("part-r-00000"+extension);
 
             try(OutputStream fileOut =dfs.newOutputStream(outputPath, StandardOpenOption.CREATE)){
                 OutputStream toWrite=fileOut;
@@ -84,10 +71,8 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
                 }
                 count=exportFunction.call(toWrite,dataSet.toLocalIterator());
             }
-            if(isDir){
-                File success=new File(path+"/_SUCCESS");
-                success.createNewFile();
-            }
+            Path success = dir.resolve("_SUCCESS");
+            dfs.touchFile(success);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

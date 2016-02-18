@@ -73,7 +73,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                     if(insertOperation.statusDirectory!=null && !insertOperation.statusDirectory.equals("NULL")){
                         DistributedFileSystem fileSystem=SIDriver.driver().fileSystem();
                         path=generateFileSystemPathForWrite(insertOperation.statusDirectory,fileSystem,insertOperation);
-                        dataSet.saveAsTextFile(operationContext).directory(path.toString()).build().write();
+                        dataSet.saveAsTextFile(path.toString());
                         operationContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());
                     }
                     if(insertOperation.isAboveFailThreshold(badRecords.size())){

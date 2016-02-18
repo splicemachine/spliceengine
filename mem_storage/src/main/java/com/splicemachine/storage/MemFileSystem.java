@@ -123,6 +123,11 @@ public class MemFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public void touchFile(Path path) throws IOException{
+        Files.createFile(path);
+    }
+
+    @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
         try{
             localDelegate.createDirectory(dir,attrs);

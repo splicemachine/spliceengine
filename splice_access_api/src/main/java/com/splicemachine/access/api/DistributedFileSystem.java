@@ -1,6 +1,7 @@
 package com.splicemachine.access.api;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 
@@ -27,4 +28,13 @@ public abstract class DistributedFileSystem extends FileSystemProvider{
      * @throws IOException
      */
     public abstract boolean createDirectory(Path path,boolean errorIfExists) throws IOException;
+
+    /**
+     * Create a new, empty file at the specified location.
+     *
+     * @param path the location to create the empty file at.
+     * @throws java.nio.file.FileAlreadyExistsException if the file already exists
+     * @throws IOException if something generically goes wrong.
+     */
+    public abstract void touchFile(Path path) throws IOException;
 }

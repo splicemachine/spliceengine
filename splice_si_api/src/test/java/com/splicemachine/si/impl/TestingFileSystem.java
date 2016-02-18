@@ -228,6 +228,11 @@ public class TestingFileSystem extends DistributedFileSystem{
         localDelegate.setAttribute(path,attribute,value,options);
     }
 
+    @Override
+    public void touchFile(Path path) throws IOException{
+        Files.createFile(path);
+    }
+
     private static class PathInfo implements FileInfo{
         private final Path p;
 
