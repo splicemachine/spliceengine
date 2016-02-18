@@ -578,7 +578,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>-Xdebug</argument>
-                                <argument>-XX:+UnlockCommercialFeatures</argument>
+                                <!-- <argument>-XX:+UnlockCommercialFeatures</argument> -->
                                 <argument>-XX:+FlightRecorder</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
