@@ -13,6 +13,7 @@ import java.util.List;
 public interface PartitionInfoCache<TableInfo>{
     void configure(SConfiguration configuration);
     void invalidate(TableInfo tableInfo) throws IOException;
+    void invalidate(byte[] tableName) throws IOException;
     List<Partition> getIfPresent(TableInfo tableInfo) throws IOException;
     void put(TableInfo tableInfo, List<Partition> partitions) throws IOException;
 }

@@ -29,6 +29,11 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     }
 
     @Override
+    public void invalidate(byte[] tableName) throws IOException{
+        invalidate(tableInfoFactory.getTableInfo(tableName));
+    }
+
+    @Override
     public void configure(SConfiguration configuration){
         this.config=configuration;
         this.tableInfoFactory = HBaseTableInfoFactory.getInstance(config);
