@@ -2088,7 +2088,8 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.singleScanRowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,14);
+        mb.push(printExplainInformationForActivation());
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,15);
 
     }
 
@@ -2169,8 +2170,10 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.singleScanRowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
+        mb.push(printExplainInformationForActivation());
+
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,17);
+                ClassName.NoPutResultSet,18);
     }
 
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
