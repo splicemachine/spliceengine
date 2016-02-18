@@ -621,10 +621,11 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int isolationLevel,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
-            String tableVersion) throws StandardException {
+            String tableVersion,
+            String explainPlan) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
-            return new DistinctScanOperation(
+            ScanOperation op = new DistinctScanOperation(
                     conglomId,
                     scoci,
                     activation,
@@ -642,6 +643,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion);
+            op.setExplainPlan(explainPlan);
+            return op;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1239,11 +1242,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 		int					isolationLevel,
 		double				optimizerEstimatedRowCount,
 		double 				optimizerEstimatedCost,
-        String              tableVersion
+        String              tableVersion,
+        String              explainPlan
 	) throws StandardException
 	{
 		SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
-		return new LastIndexKeyOperation(
+		ScanOperation op = new LastIndexKeyOperation(
 					activation,
 					resultSetNumber,
 					resultRowAllocator,
@@ -1257,6 +1261,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 					isolationLevel,
 					optimizerEstimatedRowCount,
 					optimizerEstimatedCost, tableVersion);
+        op.setExplainPlan(explainPlan);
+        return op;
 	}
 
     public NoPutResultSet getWindowResultSet(NoPutResultSet source,
