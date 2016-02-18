@@ -13,11 +13,9 @@ public interface BackupManager{
 
     void incrementalBackup(String directory) throws StandardException;
 
-    String getRunningBackup();
+    long getRunningBackup() throws StandardException;
 
     void restoreDatabase(String directory,long backupId)throws StandardException;
 
     void removeBackup(long backupId) throws StandardException;
-
-    Iterator<RestoreItem> listRestoreItems() throws StandardException;
 }

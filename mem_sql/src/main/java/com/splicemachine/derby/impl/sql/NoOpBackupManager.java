@@ -31,8 +31,8 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public String getRunningBackup(){
-        return null;
+    public long getRunningBackup() throws StandardException{
+        return 0;
     }
 
     @Override
@@ -43,10 +43,5 @@ public class NoOpBackupManager implements BackupManager{
     @Override
     public void removeBackup(long backupId) throws StandardException{
 
-    }
-
-    @Override
-    public Iterator<RestoreItem> listRestoreItems() throws StandardException{
-        return Collections.emptyIterator();
     }
 }

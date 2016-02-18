@@ -549,15 +549,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build());
 
                     /*
-                     * Procedure to delete backups in a time window
-                     */
-                    procedures.add(Procedure.newBuilder().name("SYSCS_DUMP_RESTORE_ITEMS")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                            .build());
-
-                    /*
                      * Procedure to get a database property on all region servers in the cluster.
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTY")

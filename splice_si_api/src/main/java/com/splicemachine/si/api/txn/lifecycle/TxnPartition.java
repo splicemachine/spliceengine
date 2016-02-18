@@ -164,4 +164,6 @@ public interface TxnPartition{
      *                     the timeout threshold
      */
     boolean keepAlive(long txnId) throws IOException;
+
+    void rollbackTransactionsAfter(long txnId) throws IOException;
 }
