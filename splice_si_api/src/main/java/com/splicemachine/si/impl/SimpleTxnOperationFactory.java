@@ -57,10 +57,10 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     @Override
     public DataGet newDataGet(TxnView txn,byte[] rowKey,DataGet previous){
         DataGet dg = operationFactory.newGet(rowKey,previous);
+        dg.returnAllVersions();
+        dg.setTimeRange(0l,Long.MAX_VALUE);
         if(txn!=null){
             encodeForReads(dg,txn,false);
-            dg.returnAllVersions();
-            dg.setTimeRange(0l,Long.MAX_VALUE);
         }else
             makeNonTransactional(dg);
 

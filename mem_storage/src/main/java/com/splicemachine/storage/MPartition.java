@@ -244,8 +244,8 @@ public class MPartition implements Partition{
                 lastResult=dc;
             }
         }
-        if(results.size()<=0)
-            results.add(new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,Bytes.toBytes(0l),CellType.FOREIGN_KEY_COUNTER));
+//        if(results.size()<=0)
+//            results.add(new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,Bytes.toBytes(0l),CellType.FOREIGN_KEY_COUNTER));
         return new MResult(results);
     }
 

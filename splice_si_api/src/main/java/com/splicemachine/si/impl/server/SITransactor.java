@@ -537,7 +537,7 @@ public class SITransactor implements Transactor{
 //        Get get = opFactory.newGet(rowKey);
 //        opFactory.addFamilyQualifierToGet(get,DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
         DataResult result=hbRegion.getFkCounter(rowKey,null);
-        long counterTransactionId=result==null?0L:result.fkCounter().valueAsLong();
+        long counterTransactionId=result==null||result.size()<=0?0L:result.fkCounter().valueAsLong();
         // Update counter value if the calling transaction started after counter value.
         if(txnView.getTxnId()>counterTransactionId){
             long offset=txnView.getTxnId()-counterTransactionId;

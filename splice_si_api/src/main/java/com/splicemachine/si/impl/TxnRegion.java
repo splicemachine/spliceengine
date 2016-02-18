@@ -123,12 +123,22 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
         rowLock.lock();
         try{
             //TODO -sf- dg,result, and simpleTxnFilter can all be cached to reduce churn during large FK check batches
-            DataGet dg = opFactory.newDataGet(txnView,rowKey,null);
+            /*
+             * We do a non-transactional lookup here, and perform the transaction resolution ourselves. This
+             * ensures that we properly perform lookups for the foreign key. In particular, we want to ensure
+             * that we get the latest and greatest foreign key counter.
+             *
+             */
+            DataGet dg = opFactory.newDataGet(null,rowKey,null);
             DataResult result=region.get(dg,null);
             //needs to be transactional
             if(result!=null && result.size()>0){
                 SimpleTxnFilter simpleTxnFilter=new SimpleTxnFilter(getTableName(),txnView,NoOpReadResolver.INSTANCE,txnSupplier,ignoreTxnCacheSupplier);
                 int cellCount = result.size();
+                if(result.fkCounter()!=null){
+                    //make sure that rows which only have an FK counter are treated as visible.
+                    cellCount++;
+                }
                 for(DataCell dc:result){
                     DataFilter.ReturnCode returnCode=simpleTxnFilter.filterCell(dc);
                     switch(returnCode){
