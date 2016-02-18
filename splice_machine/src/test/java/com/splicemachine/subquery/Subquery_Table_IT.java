@@ -1,13 +1,17 @@
 package com.splicemachine.subquery;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.*;
+import com.splicemachine.test_dao.SchemaDAO;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -25,54 +29,53 @@ public class Subquery_Table_IT {
     private static final String SCHEMA = Subquery_Table_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-
-    @ClassRule
-    public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
+    public static SpliceWatcher classWatcher = new SpliceWatcher();
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-
     @BeforeClass
     public static void createdSharedTables() throws Exception {
-        classWatcher.executeUpdate("create table T1 (k int, l int)");
-        classWatcher.executeUpdate("insert into T1 values (0,1),(0,1),(1,2),(2,3),(2,3),(3,4),(4,5),(4,5),(5,6),(6,7),(6,7),(7,8),(8,9),(8,9),(9,10)");
-
-        classWatcher.executeUpdate("create table T2 (k int, l int)");
-        classWatcher.executeUpdate("insert into T2 values (0,1),(1,2),(2,3),(3,4),(4,5),(5,6),(6,7),(7,8),(8,9),(9,10)");
-
-        classWatcher.executeUpdate("create table T3 (i int)");
-        classWatcher.executeUpdate("insert into T3 values (10),(20)");
-
-        classWatcher.executeUpdate("create table T4 (i int)");
-        classWatcher.executeUpdate("insert into T4 values (30),(40)");
-
         TestConnection conn = classWatcher.getOrCreateConnection();
-        TestUtils.executeSqlFile(conn, "test_data/employee.sql", SCHEMA);
-        TestUtils.executeSqlFile(conn, "null_int_data.sql", SCHEMA);
-        TestUtils.executeSqlFile(conn, "test_data/content.sql", SCHEMA);
+        try(Statement s = conn.createStatement()){
+            SchemaDAO schemaDAO = new SchemaDAO(conn);
+            schemaDAO.drop(SCHEMA);
 
-        TestUtils.executeSql(conn, "" +
-                "create table s (a int, b int, c int, d int, e int, f int);" +
-                "insert into s values (0,1,2,3,4,5);" +
-                "insert into s values (10,11,12,13,14,15);", SCHEMA);
+            s.executeUpdate("create schema "+SCHEMA);
+            conn.setSchema(SCHEMA.toUpperCase());
+            s.executeUpdate("create table T1 (k int, l int)");
+            s.executeUpdate("insert into T1 values (0,1),(0,1),(1,2),(2,3),(2,3),(3,4),(4,5),(4,5),(5,6),(6,7),(6,7),(7,8),(8,9),(8,9),(9,10)");
 
-        TestUtils.executeSql(conn, "" +
-                        "create table parentT ( i int, j int, k int); \n" +
-                        "create table childT ( i int, j int, k int); \n" +
-                        "insert into parentT values (1,1,1), (2,2,2), (3,3,3), (4,4,4); \n" +
-                        "insert into parentT select i+4, j+4, k+4 from parentT; \n" +
-                        "insert into parentT select i+8, j+8, k+8 from parentT; \n" +
-                        "insert into parentT select i+16, j+16, k+16 from parentT; \n" +
-                        "insert into parentT select i+32, j+32, k+32 from parentT; \n" +
-                        "insert into parentT select i+64, j+64, k+64 from parentT; \n" +
-                        "insert into parentT select i+128, j+128, k+128 from parentT; \n" +
-                        "insert into parentT select i+256, j+256, k+256 from parentT; \n" +
-                        "insert into parentT select i+512, j+512, k+512 from parentT; \n" +
-                        "insert into parentT select i+1024, j+1024, k+1024 from parentT; \n" +
-                        "insert into childT select * from parentT; \n", SCHEMA
-        );
+            s.executeUpdate("create table T2 (k int, l int)");
+            s.executeUpdate("insert into T2 values (0,1),(1,2),(2,3),(3,4),(4,5),(5,6),(6,7),(7,8),(8,9),(9,10)");
+
+            s.executeUpdate("create table T3 (i int)");
+            s.executeUpdate("insert into T3 values (10),(20)");
+
+            s.executeUpdate("create table T4 (i int)");
+            s.executeUpdate("insert into T4 values (30),(40)");
+
+            TestUtils.executeSqlFile(conn,"test_data/employee.sql",SCHEMA);
+            TestUtils.executeSqlFile(conn,"null_int_data.sql",SCHEMA);
+            TestUtils.executeSqlFile(conn,"test_data/content.sql",SCHEMA);
+
+            s.executeUpdate("create table s (a int, b int, c int, d int, e int, f int)");
+            s.executeUpdate("insert into s values (0,1,2,3,4,5)");
+            s.executeUpdate("insert into s values (10,11,12,13,14,15)");
+            s.executeUpdate("create table parentT ( i int, j int, k int)");
+            s.executeUpdate("create table childT ( i int, j int, k int)");
+            s.executeUpdate("insert into parentT values (1,1,1), (2,2,2), (3,3,3), (4,4,4)");
+            s.executeUpdate("insert into parentT select i+4, j+4, k+4 from parentT");
+            s.executeUpdate("insert into parentT select i+8, j+8, k+8 from parentT");
+            s.executeUpdate("insert into parentT select i+16, j+16, k+16 from parentT");
+            s.executeUpdate("insert into parentT select i+32, j+32, k+32 from parentT");
+            s.executeUpdate("insert into parentT select i+64, j+64, k+64 from parentT");
+            s.executeUpdate("insert into parentT select i+128, j+128, k+128 from parentT");
+            s.executeUpdate("insert into parentT select i+256, j+256, k+256 from parentT");
+            s.executeUpdate("insert into parentT select i+512, j+512, k+512 from parentT");
+            s.executeUpdate("insert into parentT select i+1024, j+1024, k+1024 from parentT");
+            s.executeUpdate("insert into childT select * from parentT");
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
