@@ -207,23 +207,10 @@ public class HBaseConnectionFactory{
                         com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME+" created");
             }
 
-            createRestoreTableIfNecessary();
             return true;
         }catch(Exception e){
             SpliceLogUtils.error(LOG,"Unable to set up HBase Tables",e);
             return false;
-        }
-    }
-
-    public void createRestoreTableIfNecessary(){
-        try(Admin admin=connection.getAdmin()){
-            if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.RESTORE_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.RESTORE_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,HConfiguration.RESTORE_TABLE_NAME+" created");
-            }
-        }catch(Exception e){
-            SpliceLogUtils.error(LOG,"Unable to set up HBase Tables",e);
         }
     }
 

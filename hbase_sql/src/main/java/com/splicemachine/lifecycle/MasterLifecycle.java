@@ -19,9 +19,7 @@ public class MasterLifecycle implements DistributedDerbyStartup{
     public void distributedStart() throws IOException{
         try{
             HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
-            if(ZkUtils.isSpliceLoaded()){
-                instance.createRestoreTableIfNecessary();
-            }else{
+            if(!ZkUtils.isSpliceLoaded()){
                 loading = true;
                 ZkUtils.refreshZookeeper();
                 instance.createSpliceHBaseTables();

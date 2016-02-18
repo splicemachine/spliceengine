@@ -98,7 +98,6 @@ public class HConfiguration implements SConfiguration{
     public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
-    public static final String RESTORE_TABLE_NAME = "SPLICE_RESTORE";
     public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
     public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
