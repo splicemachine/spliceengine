@@ -63,9 +63,8 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                  */
                 List<SpliceOperation> ops =insertOperation.getOperationStack();
                 for(SpliceOperation op:ops){
-                    if(op==insertOperation) continue;
+                    if(op==null || op==insertOperation || op.getOperationContext()==null) continue;
                     badRecords.addAll(op.getOperationContext().getBadRecords());
-
                 }
                 operationContext.getActivation().getLanguageConnectionContext().setFailedRecords(badRecords.size());
                 if(badRecords.size()>0){
