@@ -5,14 +5,13 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.readresolve.RegionSegmentContext;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.DataCell;
 
 public class UpdatingTxnFilter extends SimpleTxnFilter{
     private final RegionSegmentContext context;
 
-    public UpdatingTxnFilter(String tableName,TxnView myTxn,ReadResolver readResolver,TxnSupplier baseSupplier,IgnoreTxnCacheSupplier ignoreTxnSupplier,RegionSegmentContext context){
-        super(tableName,myTxn,readResolver,baseSupplier,ignoreTxnSupplier);
+    public UpdatingTxnFilter(String tableName,TxnView myTxn,ReadResolver readResolver,TxnSupplier baseSupplier,RegionSegmentContext context){
+        super(tableName,myTxn,readResolver,baseSupplier);
         this.context=context;
     }
 

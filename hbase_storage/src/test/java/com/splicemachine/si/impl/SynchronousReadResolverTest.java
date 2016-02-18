@@ -12,7 +12,6 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
@@ -54,7 +53,6 @@ public class SynchronousReadResolverTest {
 
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), control, false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HOperationFactory.INSTANCE,mock(PartitionFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
             @Override
@@ -78,7 +76,7 @@ public class SynchronousReadResolverTest {
 
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l, Txn.ROOT_TRANSACTION, 2l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier);
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -101,7 +99,6 @@ public class SynchronousReadResolverTest {
         final TestingTimestampSource commitTsGenerator = new TestingTimestampSource();
         final TxnStore store = new TestingTxnStore(new IncrementingClock(),commitTsGenerator,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HOperationFactory.INSTANCE,mock(PartitionFactory.class));
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
             @Override
@@ -125,7 +122,7 @@ public class SynchronousReadResolverTest {
 
         Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(3l, Txn.ROOT_TRANSACTION, 3l,
                 Txn.IsolationLevel.SNAPSHOT_ISOLATION, false, mock(TxnLifecycleManager.class),HExceptionFactory.INSTANCE);
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier);
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -150,7 +147,6 @@ public class SynchronousReadResolverTest {
         RegionPartition rp = new RegionPartition(region);
 
         TestingTimestampSource timestampSource = new TestingTimestampSource();
-        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier(HOperationFactory.INSTANCE,mock(PartitionFactory.class));
         TxnStore store = new TestingTxnStore(new IncrementingClock(),timestampSource,HExceptionFactory.INSTANCE,Long.MAX_VALUE);
         ReadResolver resolver = SynchronousReadResolver.getResolver(rp, store, new RollForwardStatus(), GreenLight.INSTANCE, false);
 
@@ -172,7 +168,7 @@ public class SynchronousReadResolverTest {
         childTxn.commit();
 
         Txn readTxn = tc.beginTransaction(); //a read-only transaction with SI semantics
-        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store, ignoreTxnCacheSupplier);
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, readTxn,resolver,store);
 
         Result result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size", 1, result.size());

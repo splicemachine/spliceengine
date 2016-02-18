@@ -7,11 +7,8 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.store.ActiveIgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
-import com.splicemachine.si.impl.txn.RolledBackTxn;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
@@ -35,7 +32,6 @@ public class SimpleTxnFilter implements TxnFilter{
     private final LongArrayList tombstonedTxnRows=new LongArrayList(1); //usually, there are very few deletes
     private final LongArrayList antiTombstonedTxnRows=new LongArrayList(1);
     private final ByteSlice rowKey=new ByteSlice();
-    private final ActiveIgnoreTxnCacheSupplier ignoreTxnCache;
     private final String tableName;
 
     /*
@@ -54,11 +50,9 @@ public class SimpleTxnFilter implements TxnFilter{
     public SimpleTxnFilter(String tableName,
                            TxnView myTxn,
                            ReadResolver readResolver,
-                           TxnSupplier baseSupplier,
-                           IgnoreTxnCacheSupplier ignoreTxnSupplier){
+                           TxnSupplier baseSupplier){
         assert readResolver!=null;
         this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier,1024); //TODO -sf- configure
-        this.ignoreTxnCache = new ActiveIgnoreTxnCacheSupplier(ignoreTxnSupplier);
         this.tableName=tableName;
         this.myTxn=myTxn;
         this.readResolver=readResolver;
@@ -257,15 +251,9 @@ public class SimpleTxnFilter implements TxnFilter{
 			 * older installations of SpliceMachine used the commit timestamp to indicate
 			 * a failure, so we have to check for it.
 			 */
-            TxnView toCache;
-            if(ignoreTxnCache.shouldIgnore(tableName,txnId)){ //-sf- can remove the isSIFail since we aren't backward compatible with Lassen anyway
-                //use the current read-resolver to remove the entry
-                doResolve(data,data.version());//dataStore.getOpFactory().getTimestamp(data));
-                toCache=new RolledBackTxn(txnId);
-            }else{
-                long commitTs=data.valueAsLong();//dataStore.getOpFactory().getValueToLong(data);
-                toCache=new CommittedTxn(txnId,commitTs);//since we don't care about the begin timestamp, just use the TxnId
-            }
+
+            long commitTs=data.valueAsLong();//dataStore.getOpFactory().getValueToLong(data);
+            TxnView toCache=new CommittedTxn(txnId,commitTs);//since we don't care about the begin timestamp, just use the TxnId
             transactionStore.cache(toCache);
             currentTxn=toCache;
         }

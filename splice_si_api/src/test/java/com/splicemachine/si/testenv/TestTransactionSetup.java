@@ -13,7 +13,6 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.server.SITransactor;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.storage.DataFilter;
@@ -56,7 +55,6 @@ public class TestTransactionSetup {
 
         txnStore = testEnv.getTxnStore();
         TxnSupplier txnSupplier=new CompletedTxnCacheSupplier(txnStore,100,16);
-        IgnoreTxnCacheSupplier ignoreTxnSupplier=testEnv.getIgnoreTxnStore();
         filterFactory = testEnv.getFilterFactory();
         lfManager.setTxnStore(txnStore);
         txnLifecycleManager = lfManager;
@@ -68,10 +66,9 @@ public class TestTransactionSetup {
         lfManager.setKeepAliveScheduler(keepAliveScheduler);
         ((ClientTxnLifecycleManager) txnLifecycleManager).setKeepAliveScheduler(keepAliveScheduler);
 
-        readController = new SITransactionReadController(txnSupplier,ignoreTxnSupplier);
+        readController = new SITransactionReadController(txnSupplier);
 
         transactor = new SITransactor(txnSupplier,
-                ignoreTxnSupplier,
                 txnOperationFactory,
                 testEnv.getBaseOperationFactory(),
                 testEnv.getOperationStatusFactory(),

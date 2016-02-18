@@ -12,7 +12,6 @@ import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.*;
@@ -49,7 +48,6 @@ public class SimpleTxnFilterTest{
     private ClientTxnLifecycleManager txnLifecycleManager;
     private TxnStore txnStore;
     private TxnSupplier txnSupplier;
-    private IgnoreTxnCacheSupplier ignoreSupplier;
     private TxnOperationFactory operationFactory;
     private ExceptionFactory exceptionFactory;
 
@@ -63,7 +61,6 @@ public class SimpleTxnFilterTest{
 
         OperationFactory operationFactory = testEnv.getBaseOperationFactory();
         TimestampSource tss = new TestingTimestampSource();
-        this.ignoreSupplier=new IgnoreTxnCacheSupplier(operationFactory,mock(PartitionFactory.class));
         this.txnStore=new TestingTxnStore(new IncrementingClock(),tss,exceptionFactory,Long.MAX_VALUE);
         this.txnSupplier = new ActiveTxnCacheSupplier(txnStore,1024);
         this.txnLifecycleManager= new ClientTxnLifecycleManager(tss,exceptionFactory);
@@ -87,7 +84,7 @@ public class SimpleTxnFilterTest{
         Assert.assertNotNull("Did not create a commit cell!",commitCell);
         Assert.assertEquals("Incorrect data type!",CellType.COMMIT_TIMESTAMP,commitCell.dataType());
 
-        SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore,ignoreSupplier);
+        SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
 
         DataFilter.ReturnCode code=filterState.filterCell(commitCell);
         Assert.assertEquals("Incorrect return code for commit keyvalue!",DataFilter.ReturnCode.SKIP,code);
@@ -111,7 +108,7 @@ public class SimpleTxnFilterTest{
 
         ReadResolver noopResolver=NoOpReadResolver.INSTANCE;
         TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,2l,2l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
-        SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore,ignoreSupplier);
+        SimpleTxnFilter filterState=new SimpleTxnFilter(null,myTxn,noopResolver,baseStore);
 
         DataCell userCell=getUserCell(rolledBack);
 
@@ -308,7 +305,7 @@ public class SimpleTxnFilterTest{
 
         final Pair<ByteSlice, Long> rolledBackTs=new Pair<>();
         ReadResolver resolver=getRollBackReadResolver(rolledBackTs);
-        SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore,ignoreSupplier);
+        SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore);
 
         DataCell testDataKv=getUserCell(rolledBackTxn);
 
@@ -329,7 +326,7 @@ public class SimpleTxnFilterTest{
 
         final Pair<ByteSlice, Pair<Long, Long>> committedTs=new Pair<>();
         ReadResolver resolver=getCommitReadResolver(committedTs,baseStore);
-        SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore,ignoreSupplier);
+        SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore);
 
         DataCell testDataKv=getUserCell(committed);
 
@@ -352,7 +349,7 @@ public class SimpleTxnFilterTest{
         Txn myTxn=new ReadOnlyTxn(readTs,readTs,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,mock(TxnLifecycleManager.class),exceptionFactory,false);
         ReadResolver resolver=getActiveReadResolver();
 
-        SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore,ignoreSupplier);
+        SimpleTxnFilter filter=new SimpleTxnFilter(null,myTxn,resolver,baseStore);
 
         DataCell testDataKv=getUserCell(active);
 

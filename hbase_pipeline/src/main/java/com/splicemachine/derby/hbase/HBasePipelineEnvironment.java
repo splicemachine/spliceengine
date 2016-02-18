@@ -28,7 +28,6 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -102,7 +101,6 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     @Override public OperationStatusFactory statusFactory(){ return delegate.statusFactory(); }
     @Override public TimestampSource timestampSource(){ return delegate.timestampSource(); }
     @Override public TxnSupplier txnSupplier(){ return delegate.txnSupplier(); }
-    @Override public IgnoreTxnCacheSupplier ignoreTxnSupplier(){ return delegate.ignoreTxnSupplier(); }
     @Override public RollForward rollForward(){ return delegate.rollForward(); }
     @Override public TxnOperationFactory operationFactory(){ return delegate.operationFactory(); }
     @Override public SIDriver getSIDriver(){ return delegate.getSIDriver(); }

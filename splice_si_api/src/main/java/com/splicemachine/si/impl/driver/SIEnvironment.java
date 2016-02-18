@@ -10,7 +10,7 @@ import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
+import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -33,8 +33,6 @@ public interface SIEnvironment{
     TimestampSource timestampSource();
 
     TxnSupplier txnSupplier();
-
-    IgnoreTxnCacheSupplier ignoreTxnSupplier();
 
     RollForward rollForward();
 

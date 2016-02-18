@@ -30,7 +30,6 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
     public ControlOnlyDataSetProcessorFactory(){
         final SIDriver driver=SIDriver.driver();
         cdsp = new ControlDataSetProcessor(driver.getTxnSupplier(),
-                driver.getIgnoreTxnSupplier(),
                 driver.getTransactor(),
                 driver.getOperationFactory());
         this.dist = new DistributedWrapper(cdsp);

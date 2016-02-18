@@ -45,8 +45,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.loadWatcher = HBaseRegionLoads.INSTANCE;
         SIDriver driver =SIDriver.driver();
         ControlDataSetProcessor cdsp = new ControlDataSetProcessor(driver.getTxnSupplier(),
-                driver.getIgnoreTxnSupplier(),driver.getTransactor(),
-                driver.getOperationFactory());
+                driver.getTransactor(), driver.getOperationFactory());
         this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();

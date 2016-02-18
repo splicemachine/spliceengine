@@ -25,7 +25,6 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.si.impl.server.SITransactor;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
@@ -52,7 +51,6 @@ public class SIDriver {
     private final OperationStatusFactory operationStatusFactory;
     private final TimestampSource timestampSource;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     private final Transactor transactor;
     private final TxnOperationFactory txnOpFactory;
     private final RollForward rollForward;
@@ -72,7 +70,6 @@ public class SIDriver {
         this.operationStatusFactory = env.statusFactory();
         this.timestampSource = env.timestampSource();
         this.txnSupplier = env.txnSupplier();
-        this.ignoreTxnSupplier = env.ignoreTxnSupplier();
         this.txnOpFactory = env.operationFactory();
         this.rollForward = env.rollForward();
         this.filterFactory = env.filterFactory();
@@ -82,7 +79,6 @@ public class SIDriver {
         //noinspection unchecked
         this.transactor = new SITransactor(
                 this.txnSupplier,
-                this.ignoreTxnSupplier,
                 this.txnOpFactory,
                 env.baseOperationFactory(),
                 this.operationStatusFactory,
@@ -91,7 +87,7 @@ public class SIDriver {
         clientTxnLifecycleManager.setTxnStore(this.txnStore);
         clientTxnLifecycleManager.setKeepAliveScheduler(env.keepAliveScheduler());
         this.lifecycleManager =clientTxnLifecycleManager;
-        readController = new SITransactionReadController(txnSupplier,ignoreTxnSupplier);
+        readController = new SITransactionReadController(txnSupplier);
         readResolver = initializedReadResolver(config,env.keyedReadResolver());
         this.fileSystem = env.fileSystem();
         this.baseOpFactory = env.baseOperationFactory();
@@ -143,10 +139,6 @@ public class SIDriver {
         return txnOpFactory;
     }
 
-    public IgnoreTxnCacheSupplier getIgnoreTxnSupplier(){
-        return ignoreTxnSupplier;
-    }
-
     public RollForward getRollForward(){
         return rollForward;
     }
@@ -171,7 +163,6 @@ public class SIDriver {
                     getRollForward(),
                     getReadResolver(basePartition),
                     getTxnSupplier(),
-                    getIgnoreTxnSupplier(),
                     getTransactor(),
                     getOperationFactory());
         }else{
@@ -179,7 +170,6 @@ public class SIDriver {
                     NoopRollForward.INSTANCE,
                     NoOpReadResolver.INSTANCE,
                     getTxnSupplier(),
-                    getIgnoreTxnSupplier(),
                     getTransactor(),
                     getOperationFactory());
         }

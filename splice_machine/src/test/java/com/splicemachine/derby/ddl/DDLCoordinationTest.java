@@ -11,7 +11,6 @@ import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
@@ -286,7 +285,7 @@ public class DDLCoordinationTest{
 
         TxnStore supplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,100l);
         supplier.recordNewTransaction(txn);
-        SITransactionReadController txnController=new SITransactionReadController(supplier,mock(IgnoreTxnCacheSupplier.class));
+        SITransactionReadController txnController=new SITransactionReadController(supplier);
         return new DDLWatchRefresher(refreshChecker,txnController,clock,ef,10l,supplier);
     }
 

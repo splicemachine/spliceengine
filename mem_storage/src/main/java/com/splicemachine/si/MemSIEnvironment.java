@@ -6,7 +6,6 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
-import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
@@ -19,7 +18,6 @@ import com.splicemachine.si.impl.data.MExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 
@@ -36,7 +34,6 @@ public class MemSIEnvironment implements SIEnvironment{
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
     private final PartitionFactory tableFactory;
-    private final IgnoreTxnCacheSupplier ignoreSupplier;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final OperationFactory opFactory = new MOperationFactory(clock);
@@ -56,8 +53,6 @@ public class MemSIEnvironment implements SIEnvironment{
         this.tableFactory = tableFactory;
         this.config=new MapConfiguration();
         config.addDefaults(SIConfigurations.defaults);
-        this.ignoreSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
-        partitionCache.configure(config);
     }
 
     @Override
@@ -93,11 +88,6 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public TxnSupplier txnSupplier(){
         return txnStore;
-    }
-
-    @Override
-    public IgnoreTxnCacheSupplier ignoreTxnSupplier(){
-        return ignoreSupplier;
     }
 
     @Override

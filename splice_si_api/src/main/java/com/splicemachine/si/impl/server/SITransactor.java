@@ -23,7 +23,6 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
@@ -53,10 +52,8 @@ public class SITransactor implements Transactor{
 
     private final TxnOperationFactory txnOperationFactory;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
 
     public SITransactor(TxnSupplier txnSupplier,
-                        IgnoreTxnCacheSupplier ignoreTxnSupplier,
                         TxnOperationFactory txnOperationFactory,
                         OperationFactory opFactory,
                         OperationStatusFactory operationStatusLib,
@@ -66,7 +63,6 @@ public class SITransactor implements Transactor{
         this.opFactory= opFactory;
         this.operationStatusLib = operationStatusLib;
         this.exceptionLib = exceptionFactory;
-        this.ignoreTxnSupplier = ignoreTxnSupplier;
     }
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -167,7 +163,7 @@ public class SITransactor implements Transactor{
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
         TxnFilter constraintState=null;
         if(constraintChecker!=null)
-            constraintState=new SimpleTxnFilter(null,txn,NoOpReadResolver.INSTANCE,txnSupplier,ignoreTxnSupplier);
+            constraintState=new SimpleTxnFilter(null,txn,NoOpReadResolver.INSTANCE,txnSupplier);
         @SuppressWarnings("unchecked") final LongOpenHashSet[] conflictingChildren=new LongOpenHashSet[mutations.size()];
         try{
             lockRows(table,mutations,lockPairs,finalStatus);

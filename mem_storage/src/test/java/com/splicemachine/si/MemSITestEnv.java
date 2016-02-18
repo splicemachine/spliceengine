@@ -11,7 +11,6 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.data.MExceptionFactory;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.storage.*;
@@ -31,7 +30,6 @@ public class MemSITestEnv implements SITestEnv{
     protected Partition personPartition;
     private final PartitionFactory tableFactory = new MPartitionFactory();
     private final OperationFactory opFactory = new MOperationFactory(clock);
-    private final IgnoreTxnCacheSupplier ignoreSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
     private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
@@ -47,7 +45,6 @@ public class MemSITestEnv implements SITestEnv{
     @Override public String getPersonTableName(){ return "person"; }
     @Override public Clock getClock(){ return clock; }
     @Override public TxnStore getTxnStore(){ return txnStore; }
-    @Override public IgnoreTxnCacheSupplier getIgnoreTxnStore(){ return ignoreSupplier; }
     @Override public TimestampSource getTimestampSource(){ return tsSource; }
 
     @Override

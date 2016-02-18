@@ -14,7 +14,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
 
@@ -33,7 +32,6 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     private final RollForward rollForward;
     private final ReadResolver readResolver;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
     private final Transactor transactor;
     private final TxnOperationFactory opFactory;
     private Partition region;
@@ -44,13 +42,11 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
                      RollForward rollForward,
                      ReadResolver readResolver,
                      TxnSupplier txnSupplier,
-                     IgnoreTxnCacheSupplier ignoreTxnCacheSupplier,
                      Transactor transactor,TxnOperationFactory opFactory){
         this.region=region;
         this.rollForward=rollForward;
         this.readResolver=readResolver;
         this.txnSupplier=txnSupplier;
-        this.ignoreTxnCacheSupplier=ignoreTxnCacheSupplier;
         this.transactor=transactor;
         this.opFactory=opFactory;
         if(region!=null){
@@ -60,7 +56,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
     @Override
     public TxnFilter unpackedFilter(TxnView txn) throws IOException{
-        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier,ignoreTxnCacheSupplier);
+        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier);
     }
 
     @Override
@@ -133,7 +129,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
             DataResult result=region.get(dg,null);
             //needs to be transactional
             if(result!=null && result.size()>0){
-                SimpleTxnFilter simpleTxnFilter=new SimpleTxnFilter(getTableName(),txnView,NoOpReadResolver.INSTANCE,txnSupplier,ignoreTxnCacheSupplier);
+                SimpleTxnFilter simpleTxnFilter=new SimpleTxnFilter(getTableName(),txnView,NoOpReadResolver.INSTANCE,txnSupplier);
                 int cellCount = result.size();
                 if(result.fkCounter()!=null){
                     //make sure that rows which only have an FK counter are treated as visible.

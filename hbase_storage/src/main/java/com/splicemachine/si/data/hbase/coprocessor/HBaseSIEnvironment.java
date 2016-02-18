@@ -23,7 +23,6 @@ import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
@@ -45,7 +44,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final PartitionFactory<TableName> partitionFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     private final TxnOperationFactory txnOpFactory;
     private final PartitionInfoCache partitionCache;
     private final KeepAliveScheduler keepAlive;
@@ -87,7 +85,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
         this.opFactory =HOperationFactory.INSTANCE;
-        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier(opFactory, partitionFactory);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
@@ -114,7 +111,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
         this.opFactory =HOperationFactory.INSTANCE;
-        this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier(opFactory, partitionFactory);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
@@ -148,11 +144,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public TxnSupplier txnSupplier(){
         return txnSupplier;
-    }
-
-    @Override
-    public IgnoreTxnCacheSupplier ignoreTxnSupplier(){
-        return ignoreTxnSupplier;
     }
 
     @Override

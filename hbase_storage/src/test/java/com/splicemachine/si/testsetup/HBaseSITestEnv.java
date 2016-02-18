@@ -23,7 +23,6 @@ import com.splicemachine.si.impl.HOperationFactory;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.testenv.SITestEnv;
 import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.storage.DataFilterFactory;
@@ -55,7 +54,6 @@ public class HBaseSITestEnv implements SITestEnv{
     private MiniHBaseCluster testCluster;
     private Clock clock;
     private TxnStore txnStore;
-    private IgnoreTxnCacheSupplier ignoreTxnSupplier;
     private TimestampSource timestampSource;
     private HBaseTestingUtility testUtility;
 
@@ -77,7 +75,6 @@ public class HBaseSITestEnv implements SITestEnv{
 
             this.clock = new IncrementingClock();
             this.txnStore = hEnv.txnStore();
-            this.ignoreTxnSupplier = hEnv.ignoreTxnSupplier();
             this.timestampSource = hEnv.timestampSource();
             this.tableFactory = TableFactoryService.loadTableFactory(clock,hEnv.configuration(),hEnv.partitionInfoCache());
         }catch(Exception e){
@@ -98,7 +95,6 @@ public class HBaseSITestEnv implements SITestEnv{
 
     @Override public Clock getClock(){ return clock; }
     @Override public TxnStore getTxnStore(){ return txnStore; }
-    @Override public IgnoreTxnCacheSupplier getIgnoreTxnStore(){ return ignoreTxnSupplier; }
     @Override public TimestampSource getTimestampSource(){ return timestampSource; }
     @Override public DataFilterFactory getFilterFactory(){ return HFilterFactory.INSTANCE; }
     @Override public PartitionFactory getTableFactory(){ return tableFactory; }

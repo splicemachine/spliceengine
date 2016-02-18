@@ -20,7 +20,6 @@ import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -45,16 +44,13 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     private static final Logger LOG=Logger.getLogger(ControlDataSetProcessor.class);
 
     private final TxnSupplier txnSupplier;
-    private final IgnoreTxnCacheSupplier ignoreSupplier;
     private final Transactor transactory;
     private final TxnOperationFactory txnOperationFactory;
 
     public ControlDataSetProcessor(TxnSupplier txnSupplier,
-                                   IgnoreTxnCacheSupplier ignoreSupplier,
                                    Transactor transactory,
                                    TxnOperationFactory txnOperationFactory){
         this.txnSupplier=txnSupplier;
-        this.ignoreSupplier=ignoreSupplier;
         this.transactory=transactory;
         this.txnOperationFactory=txnOperationFactory;
     }
@@ -68,7 +64,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                 try{
                     p =SIDriver.driver().getTableFactory().getTable(tableName);
                     TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                            txnSupplier,ignoreSupplier,transactory,txnOperationFactory);
+                            txnSupplier,transactory,txnOperationFactory);
 
                     this.region(localRegion).scanner(p.openScanner(getScan(),metricFactory)); //set the scanner
                     TableScannerIterator tableScannerIterator=new TableScannerIterator(this,spliceOperation);
@@ -94,7 +90,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                try{
                    p =SIDriver.driver().getTableFactory().getTable(tableName);
                    TxnRegion localRegion=new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,
-                           txnSupplier,ignoreSupplier,transactory,txnOperationFactory);
+                           txnSupplier,transactory,txnOperationFactory);
 
                    this.region(localRegion).scanner(p.openScanner(getScan())); //set the scanner
                    DirectScanner ds = new DirectScanner(scanner,region,txn,demarcationPoint,Metrics.noOpMetricFactory());
