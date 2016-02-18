@@ -205,11 +205,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
 
     @Override
     public Collection<PartitionLoad> tableLoad(String tableName){
-        Map<String, Map<String, PartitionLoad>> regionLoadMap=cache.get();
-        if(regionLoadMap==null) return Collections.emptyList();
-        Map<String, PartitionLoad> partitionLoadMap=regionLoadMap.get(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString());
-        if(partitionLoadMap==null) return Collections.emptyList();
-        return partitionLoadMap.values();
+        return getCachedRegionLoadsForTable(tableName);
     }
 
     public static Collection<PartitionLoad> getCachedRegionLoadsForTable(String tableName) {
@@ -219,7 +215,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                 SpliceLogUtils.debug(LOG, "This should not happen");
             return Collections.emptyList();
         }
-        Map<String, PartitionLoad> regions = loads.get(tableName);
+        Map<String, PartitionLoad> regions = loads.get(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString());
         if(regions==null || regions.isEmpty()){
             regions = getCostWhenNoCachedRegionLoadsFound(tableName);
         }
