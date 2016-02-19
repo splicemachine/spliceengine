@@ -2091,15 +2091,15 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
     public void testDB2170RankOverView() throws Exception {
         String sqlText =
             String.format("select yr, rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
-                              "hiredate from %s", this.getTableReference(YEAR_VIEW));
+                              "hiredate from %s order by yr, EMPRANK, ename", this.getTableReference(YEAR_VIEW));
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "YR | EMPRANK | ENAME | HIREDATE  |\n" +
                         "----------------------------------\n" +
+                        "80 |    1    | SMITH |1980-12-17 |\n" +
                         "81 |    1    | ALLEN |1981-02-20 |\n" +
                         "81 |    2    | WARD  |1981-02-22 |\n" +
                         "81 |    3    | JONES |1981-04-02 |\n" +
@@ -2110,10 +2110,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "81 |    8    | KING  |1981-11-17 |\n" +
                         "81 |    9    | FORD  |1981-12-03 |\n" +
                         "81 |    9    | JAMES |1981-12-03 |\n" +
-                        "83 |    1    | ADAMS |1983-01-12 |\n" +
                         "82 |    1    |MILLER |1982-01-23 |\n" +
                 "82 |    2    | SCOTT |1982-12-09 |\n" +
-                "80 |    1    | SMITH |1980-12-17 |";
+                "83 |    1    | ADAMS |1983-01-12 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2147,7 +2146,6 @@ public class WindowFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
     public void testDB2170MaxOverView() throws Exception {
         String sqlText =
             String.format("select max(hiredate) over () as maxhiredate, ename," +
