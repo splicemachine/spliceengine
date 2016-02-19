@@ -9,6 +9,7 @@ import com.splicemachine.backup.BackupHFileCleaner;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import com.splicemachine.hbase.BackupEndpointObserver;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.hbase.RegionSizeEndpoint;
 import com.splicemachine.hbase.SpliceMasterObserver;
@@ -41,7 +42,8 @@ class SpliceTestPlatformConfig {
             SpliceIndexEndpoint.class,
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
-            SIObserver.class);
+            SIObserver.class,
+            BackupEndpointObserver.class);
 
     private static final List<Class<?>> MASTER_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceMasterObserver.class);

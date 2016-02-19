@@ -25,10 +25,12 @@ public class HConfiguration implements SConfiguration{
     private static final String DEFAULT_NAMESPACE = "splice";
 
     /**
-     * Path in Zookeeper for storing ongoing backup Id
+     * Path in Zookeeper for storing ongoing backup
      */
     public static final String BACKUP_PATH = "splice.backup_node";
     public static final String DEFAULT_BACKUP_PATH = "/backup";
+    public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(0);
+    public static final byte[] BACKUP_DONE = Bytes.toBytes(1);
 
     /**
      * The Path in zookeeper for manipulating transactional information.

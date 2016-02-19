@@ -151,3 +151,15 @@ message SpliceRegionSizeResponse {
     required string encodedName = 1;
     required int64 sizeInBytes = 2;
 }
+
+service BackupCoprocessorService {
+  rpc prepareBackup(PrepareBackupRequest)
+  returns (PrepareBackupResponse);
+}
+
+message PrepareBackupRequest {
+}
+
+message PrepareBackupResponse {
+  required bool readyForBackup = 1;
+}
