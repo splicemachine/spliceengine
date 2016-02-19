@@ -50,7 +50,7 @@ public class PipelineWriter{
         boolean dependent;
         try {
             BulkWrite bw = bws.iterator().next();
-            PartitionWritePipeline pwp = writePipelineFactory.getPipeline(bw.getEncodedStringName(););
+            PartitionWritePipeline pwp = writePipelineFactory.getPipeline(bw.getEncodedStringName());
             if (pwp == null) {
                 throw new IOException(String.format(
                     "PartitionWritePipeline not found for BulkWrite %s", bw));
