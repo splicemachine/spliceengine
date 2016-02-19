@@ -146,7 +146,12 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
                             return false; //the entire row is filtered
                         case SKIP:
                         case NEXT_COL:
-                            cellCount--;
+                        case SEEK:
+                            cellCount--; //the cell is filtered
+                            break;
+                        case INCLUDE:
+                        case INCLUDE_AND_NEXT_COL: //the cell is included, so we have some data
+                        default: //do nothing
                             break;
                     }
                 }

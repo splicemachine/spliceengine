@@ -33,19 +33,9 @@
             <artifactId>splice_access_api</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.lmax</groupId>
-            <artifactId>disruptor</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>utilities</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>stats</artifactId>
-        </dependency>
-        <!--        <dependency> <groupId>com.google.code.findbugs</groupId> <artifactId>jsr305</artifactId> </dependency> -->
+        <dependency> <groupId>com.lmax</groupId> <artifactId>disruptor</artifactId> </dependency>
+        <dependency> <groupId>com.splicemachine</groupId> <artifactId>utilities</artifactId> </dependency>
+        <dependency> <groupId>com.splicemachine</groupId> <artifactId>stats</artifactId> </dependency>
         <dependency>
             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
             <artifactId>concurrentlinkedhashmap-lru</artifactId>
@@ -99,11 +89,27 @@
                         </configuration>
                     </plugin>
 
-                            -->
-                <configuration>
-                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureSpecific</excludedGroups>
-                </configuration>
-            </plugin>
+							-->
+							<configuration>
+                                <excludedGroups>com.splicemachine.si.testenv.ArchitectureSpecific</excludedGroups>
+							</configuration>
+						</plugin>
+						<plugin>
+							<groupId>org.codehaus.mojo</groupId>
+							<artifactId>findbugs-maven-plugin</artifactId>
+							<executions>
+								<execution>
+									<id>fb-check</id>
+									<phase>process-test-resources</phase>
+									<goals>
+													<goal>check</goal>
+									</goals>
+									<configuration>
+													<onlyAnalyze>com.splicemachine.-</onlyAnalyze>
+									</configuration>
+								</execution>
+							</executions>
+						</plugin>
         </plugins>
     </build>
 </project>
