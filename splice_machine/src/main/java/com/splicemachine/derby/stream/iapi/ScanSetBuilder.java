@@ -60,6 +60,8 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> demarcationPoint(long demarcationPoint);
 
+    ScanSetBuilder<V> oneSplitPerRegion(boolean oneSplitPerRegion);
+
     DataSet<V> buildDataSet() throws StandardException;
 
     DataSet<V> buildDataSet(Object caller) throws StandardException;

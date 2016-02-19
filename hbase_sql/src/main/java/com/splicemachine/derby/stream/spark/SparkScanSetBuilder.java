@@ -53,7 +53,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
-        conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
+        if (oneSplitPerRegion) {
+            conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
+        }
         try {
             conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());
         } catch (IOException ioe) {

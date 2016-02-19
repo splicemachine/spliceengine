@@ -24,7 +24,7 @@ public class StreamPartitionUtils {
                     return allRegionLocations; //we are asking for everything
             }
             List<HRegionLocation> inRange = new ArrayList<>(allRegionLocations.size());
-            if(startRow==null){
+            if(startRow==null||startRow.length<=0){
                 //we only need to check if the start of the region occurs before the end of the range
                 for(HRegionLocation loc : allRegionLocations){
                     HRegionInfo regionInfo=loc.getRegionInfo();
@@ -33,7 +33,7 @@ public class StreamPartitionUtils {
                         inRange.add(loc);
                     }
                 }
-            }else if(stopRow==null){
+            }else if(stopRow==null||stopRow.length<=0){
                 //we only need to check that the end of the region occurs after the start key
                 for(HRegionLocation loc:allRegionLocations){
                     byte[] stop = loc.getRegionInfo().getEndKey();
@@ -56,7 +56,7 @@ public class StreamPartitionUtils {
                             //still overlap if startRow < stop
                             inRange.add(loc);
                         }
-                    }else if(stop==null){
+                    }else if(stop==null||stop.length<=0){
                         if(Bytes.compareTo(start,stopRow)<0)
                             inRange.add(loc);
                     }else{

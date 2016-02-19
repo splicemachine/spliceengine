@@ -59,6 +59,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] columnPositionMap;
     protected long baseTableConglomId=-1l;
     protected long demarcationPoint=-1;
+    protected boolean oneSplitPerRegion=false;
     protected Activation activation;
     protected MetricFactory metricFactory =Metrics.noOpMetricFactory();
 
@@ -289,6 +290,11 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public ScanSetBuilder<V> demarcationPoint(long demarcationPoint){
         this.demarcationPoint=demarcationPoint;
+        return this;
+    }
+
+    public ScanSetBuilder<V> oneSplitPerRegion(boolean oneSplitPerRegion){
+        this.oneSplitPerRegion=oneSplitPerRegion;
         return this;
     }
 

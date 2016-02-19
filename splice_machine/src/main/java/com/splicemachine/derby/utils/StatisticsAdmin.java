@@ -414,6 +414,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
+                .oneSplitPerRegion(true)
                 .buildDataSet("Collect Table Statistics");
     }
 

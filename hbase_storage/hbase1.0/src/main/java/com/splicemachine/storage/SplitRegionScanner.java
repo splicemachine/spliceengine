@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -220,7 +221,12 @@ public class SplitRegionScanner implements RegionScanner {
         try(RegionLocator regionLocator=connection.getRegionLocator(htable.getName())){
             List<HRegionLocation> allRegionLocations=regionLocator.getAllRegionLocations();
             if(allRegionLocations.size()<=1) return allRegionLocations; //only one region in the table. Should always be 1 or more
-            Collections.sort(allRegionLocations); //make sure that we are sorted--we probably are, but let's be safe
+            Collections.sort(allRegionLocations, new Comparator<HRegionLocation>() {
+                @Override
+                public int compare(HRegionLocation r1, HRegionLocation r2) {
+                    return r1.getRegionInfo().compareTo(r2.getRegionInfo());
+                }
+            }); //make sure that we are sorted--we probably are, but let's be safe
             byte[] start = scan.getStartRow();
             byte[] stop = scan.getStopRow();
             if(start==null||start.length<=0){
@@ -285,9 +291,7 @@ public class SplitRegionScanner implements RegionScanner {
                     }else if(regionEnd==null||regionEnd.length<=0){
                         if(Bytes.compareTo(regionStart,stop)<0)
                             inRange.add(location);
-                    }else if(Bytes.compareTo(regionStart,stop)<0){
-                        inRange.add(location);
-                    }else if(Bytes.compareTo(start,regionEnd)<0){
+                    }else if(Bytes.compareTo(regionStart,stop)<0 && Bytes.compareTo(start,regionEnd)<0){
                         inRange.add(location);
                     }
                 }
