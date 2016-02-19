@@ -49,7 +49,13 @@ public class PipelineWriter{
         // Determine whether or not this write is dependent or independent.  Dependent writes are writes to a table with indexes.
         boolean dependent;
         try {
-            dependent = writePipelineFactory.getPipeline(bws.iterator().next().getEncodedStringName()).isDependent(bulkWrites.getTxn());
+            BulkWrite bw = bws.iterator().next();
+            PartitionWritePipeline pwp = writePipelineFactory.getPipeline(bw.getEncodedStringName(););
+            if (pwp == null) {
+                throw new IOException(String.format(
+                    "PartitionWritePipeline not found for BulkWrite %s", bw));
+            }
+            dependent = pwp.isDependent(bulkWrites.getTxn());
         } catch (InterruptedException e1) {
             throw new IOException(e1);
         }
