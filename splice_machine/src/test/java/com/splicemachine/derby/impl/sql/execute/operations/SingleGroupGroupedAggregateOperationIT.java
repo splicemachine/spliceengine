@@ -121,11 +121,9 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Ignoring to see if this is why Jenkins is having problems")
     public void testRepeatedGroupedCount() throws Exception {
         /* Regression test for Bug 306 */
         for(int i=0;i<1000;i++){
-            System.out.println(i);
             testGroupedCountOperation();
         }
     }
@@ -188,7 +186,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test(timeout=20000)
-    @Ignore("DB-2622 - ignoring to try and get clean builds on Jenkins")
+//    @Ignore("DB-2622 - ignoring to try and get clean builds on Jenkins")
     public void testGroupBySubselects() throws Exception {
         /*Regression test for DB-2014*/
         String query = String.format(
