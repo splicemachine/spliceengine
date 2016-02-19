@@ -10,7 +10,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -32,30 +31,17 @@ public class TempTableHBaseIT{
             "(004,'Warren','Buffet')",
             "(005,'Tom','Jones')");
 
-    private static final List<String> empPrivVals = Arrays.asList(
-            "(001,'04/08/1900','555-123-4567')",
-            "(002,'02/20/1999','555-123-4577')",
-            "(003,'11/31/2001','555-123-4587')",
-            "(004,'06/05/1985','555-123-4597')",
-            "(005,'09/19/1968','555-123-4507')");
-
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-
     private static final String SIMPLE_TEMP_TABLE = "SIMPLE_TEMP_TABLE";
     private static String simpleDef = "(id int, fname varchar(8), lname varchar(10))";
-
-    private static final String CONSTRAINT_TEMP_TABLE = "CONSTRAINT_TEMP_TABLE";
     private static String constraintTableDef = "(id int not null primary key, fname varchar(8) not null, lname varchar(10) not null)";
-
     private static final String EMP_PRIV_TABLE = "EMP_PRIV";
     private static String ePrivDef = "(id int not null primary key, dob varchar(10) not null, ssn varchar(12) not null)";
     private static SpliceTableWatcher empPrivTable = new SpliceTableWatcher(EMP_PRIV_TABLE,CLASS_NAME, ePrivDef);
 
     private static final String CONSTRAINT_TEMP_TABLE1 = "CONSTRAINT_TEMP_TABLE1";
     private static SpliceTableWatcher constraintTable1 = new SpliceTableWatcher(CONSTRAINT_TEMP_TABLE1,CLASS_NAME, constraintTableDef);
-    private static final String EMP_NAME_PRIV_VIEW = "EMP_VIEW";
     private static String viewFormat = "(id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id";
-    private static String viewDef = String.format(viewFormat, constraintTable1.toString(), empPrivTable.toString());
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -82,10 +68,9 @@ public class TempTableHBaseIT{
                     SpliceUnitTest.loadTable(statement,tableSchema.schemaName+"."+SIMPLE_TEMP_TABLE,empNameVals);
                 }
             });
-            connection.commit();
             tempConglomID = TestUtils.lookupConglomerateNumber(tableSchema.schemaName,SIMPLE_TEMP_TABLE,methodWatcher);
-            hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
-            Assert.assertTrue("HBase temp table ["+tempConglomID+"] does not exist.", hbaseTempExists);
+            connection.commit();
+
         }  finally {
             methodWatcher.closeAll();
         }
@@ -95,7 +80,7 @@ public class TempTableHBaseIT{
             Thread.sleep(1000);
             hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
         }
-        Assert.assertFalse("HBase temp table ["+tempConglomID+"] still exists.",hbaseTempExists);
-        System.out.println("HBase Table check took: "+TestUtils.getDuration(start, System.currentTimeMillis()));
+        hBaseAdmin.close();
+        Assert.assertFalse("HBase temp table [" + tempConglomID + "] still exists.", hbaseTempExists);
     }
 }
