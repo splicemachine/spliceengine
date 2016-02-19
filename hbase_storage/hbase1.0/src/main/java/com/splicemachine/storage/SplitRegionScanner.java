@@ -2,11 +2,7 @@ package com.splicemachine.storage;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
@@ -15,7 +11,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -47,9 +42,10 @@ public class SplitRegionScanner implements RegionScanner {
                               Table table,
                               Connection connection,
                               Clock clock,
-                              List<HRegionLocation> locations) throws IOException {
+                              Partition partition) throws IOException {
+        List<Partition> partitions = getPartitionsInRange(partition,scan);
 		if (LOG.isDebugEnabled()) {
-			SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,locations=%s",scan,table,locations.size(),locations);
+			SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,partitions=%s", scan, table, partitions.size(), partitions);
 		}
 		this.scan = scan;
 		this.htable = table;
@@ -58,12 +54,12 @@ public class SplitRegionScanner implements RegionScanner {
 		while (hasAdditionalScanners) {
 			try {
                 //noinspection ForLoopReplaceableByForEach
-                for (int i = 0; i< locations.size(); i++) {
+                for (int i = 0; i< partitions.size(); i++) {
 					Scan newScan = new Scan(scan);
 				    byte[] startRow = scan.getStartRow();
 				    byte[] stopRow = scan.getStopRow();
-				    byte[] regionStartKey = locations.get(i).getRegionInfo().getStartKey();
-				    byte[] regionStopKey = locations.get(i).getRegionInfo().getEndKey();
+				    byte[] regionStartKey = partitions.get(i).getStartKey();
+				    byte[] regionStopKey = partitions.get(i).getEndKey();
 				    // determine if the given start an stop key fall into the region
 				    if ((startRow.length == 0 || regionStopKey.length == 0 ||
 				          Bytes.compareTo(startRow, regionStopKey) < 0) && (stopRow.length == 0 ||
@@ -75,7 +71,7 @@ public class SplitRegionScanner implements RegionScanner {
 				    	  newScan.setStartRow(splitStart);
 				    	  newScan.setStopRow(splitStop);
 				    	  SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey=%s, endKey=%s",splitStart,splitStop);
-				    	  createAndRegisterClientSideRegionScanner(table,newScan);
+				    	  createAndRegisterClientSideRegionScanner(table,newScan,partitions.get(i));
 				    }
 				 }
 				 hasAdditionalScanners = false;
@@ -84,7 +80,7 @@ public class SplitRegionScanner implements RegionScanner {
                 if (!rethrow) {
                     hasAdditionalScanners = true;
                     regionScanners.clear();
-                    locations = getRegionsInRange(scan);
+                    partitions = getPartitionsInRange(partition, scan);
                     close();
                 }
                 else
@@ -155,7 +151,7 @@ public class SplitRegionScanner implements RegionScanner {
 		return region;
 	}
 
-	void createAndRegisterClientSideRegionScanner(Table table, Scan newScan) throws IOException {
+	void createAndRegisterClientSideRegionScanner(Table table, Scan newScan, Partition partition) throws IOException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s",table,newScan, table.getConfiguration());
 		Configuration conf = table.getConfiguration();
@@ -168,7 +164,7 @@ public class SplitRegionScanner implements RegionScanner {
 							FSUtils.getCurrentFileSystem(conf),
 							FSUtils.getRootDir(conf),
 							table.getTableDescriptor(),
-							getRegionInfo(newScan),
+                            ((RangedClientPartition) partition).getRegionInfo(),
 							newScan);
 			this.region = skeletonClientSideRegionScanner.getRegion();
 			registerRegionScanner(skeletonClientSideRegionScanner);
@@ -176,13 +172,6 @@ public class SplitRegionScanner implements RegionScanner {
 			throw new IOException(e);
 		}
 	}
-
-    private HRegionInfo getRegionInfo(Scan newScan) throws IOException{
-        List<HRegionLocation> containedRegions = getRegionsInRange(newScan);
-        assert containedRegions.size()==1: "Programmer error: too many regions contain this scan!";
-        return containedRegions.get(0).getRegionInfo();
-    }
-
 
     @Override
     public boolean isFilterDone() throws IOException {
@@ -214,92 +203,6 @@ public class SplitRegionScanner implements RegionScanner {
         return this.nextInternal(result);
     }
 
-
-    /* ***************************************************************************************************************/
-    /*private helper classes*/
-    private List<HRegionLocation> getRegionsInRange(Scan scan) throws IOException {
-        try(RegionLocator regionLocator=connection.getRegionLocator(htable.getName())){
-            List<HRegionLocation> allRegionLocations=regionLocator.getAllRegionLocations();
-            if(allRegionLocations.size()<=1) return allRegionLocations; //only one region in the table. Should always be 1 or more
-            Collections.sort(allRegionLocations, new Comparator<HRegionLocation>() {
-                @Override
-                public int compare(HRegionLocation r1, HRegionLocation r2) {
-                    return r1.getRegionInfo().compareTo(r2.getRegionInfo());
-                }
-            }); //make sure that we are sorted--we probably are, but let's be safe
-            byte[] start = scan.getStartRow();
-            byte[] stop = scan.getStopRow();
-            if(start==null||start.length<=0){
-                if(stop==null||stop.length<=0) return allRegionLocations; //the scan asks for everything
-                /*
-                 * The start key is null, meaning that we want all the initial regions,
-                 * but the stop key is not empty, so we want to stop at some point. Thus, we want to find
-                 * all the regions which overlap the range (-Inf,stop). Generally, this is all the regions
-                 * whose regionStart <= stop.
-                 */
-                List<HRegionLocation> inRange = new ArrayList<>(allRegionLocations.size());
-                for(HRegionLocation location:allRegionLocations){
-                    byte[] regionStart = location.getRegionInfo().getStartKey();
-                    if(regionStart==null||regionStart.length<=0)
-                        inRange.add(location);
-                    else if(Bytes.compareTo(regionStart,stop)<0){
-                        //this region starts before the stop, so it's contained
-                        inRange.add(location);
-                    }else{
-                        //this is the first region not contained. All subsequence regions are also not contained, so we can stop
-                        break;
-                    }
-                }
-                return inRange;
-            }else if(stop==null||stop.length<=0){
-                /*
-                 * The start key is not null, but the stop key is, so we want all regions which overlap
-                 * the range [start,Inf). This is all the regions whose regionStop>start (==start is excluded,
-                 * since regionStop is NOT in the region).
-                 */
-                List<HRegionLocation> inRange = new ArrayList<>(allRegionLocations.size());
-                for(HRegionLocation location:allRegionLocations){
-                    byte[] regionEnd = location.getRegionInfo().getEndKey();
-                    if(regionEnd==null||regionEnd.length<=0){
-                        /*
-                         * This is the last region in the table: Either  start is contained in this location
-                         * or it is contained in a region before this. Therefore, this region is automatically
-                         * included.
-                         */
-                        inRange.add(location);
-                    }else if(Bytes.compareTo(start,regionEnd)<0){
-                        inRange.add(location); //the region end is after start, so we are interested
-                    }
-                }
-                return inRange;
-            }else if(Bytes.equals(start,stop)){
-                /*
-                 * Since we are exclusive on the end key during scans, this scan won't return anything; thus,
-                 * no region owns it, and we can safely return an empty collection here
-                 */
-                return Collections.emptyList();
-            }else{
-                List<HRegionLocation> inRange = new ArrayList<>(allRegionLocations.size());
-                for(HRegionLocation location:allRegionLocations){
-                    byte[] regionStart = location.getRegionInfo().getStartKey();
-                    byte[] regionEnd = location.getRegionInfo().getEndKey();
-                    if(regionStart==null||regionStart.length<=0){
-                        //we don't need to check regionEnd because there are always more than 1 region, so regionEnd!=null
-                        if(Bytes.compareTo(start,regionEnd)<0){
-                            inRange.add(location);
-                        }
-                    }else if(regionEnd==null||regionEnd.length<=0){
-                        if(Bytes.compareTo(regionStart,stop)<0)
-                            inRange.add(location);
-                    }else if(Bytes.compareTo(regionStart,stop)<0 && Bytes.compareTo(start,regionEnd)<0){
-                        inRange.add(location);
-                    }
-                }
-                return inRange;
-            }
-        }
-    }
-
     private boolean shouldRethrowException(Exception e) {
 
         // recreate region scanners if the exception was throw due to a region split. In that case, the
@@ -328,4 +231,20 @@ public class SplitRegionScanner implements RegionScanner {
 
         return rethrow;
     }
+
+    public List<Partition> getPartitionsInRange(Partition partition, Scan scan) {
+        List<Partition> partitions = null;
+        boolean refresh = false;
+        while (true) {
+            partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(),refresh);
+            if (partitions==null|| partitions.isEmpty()) {
+                refresh = true;
+                continue;
+            } else {
+                break;
+            }
+        }
+        return partitions;
+    }
+
 }

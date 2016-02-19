@@ -2,19 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.framework.SpliceHBaseUtils;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -61,12 +59,15 @@ public class SplitRegionRowCountOperationIT{
                 .withRows(rows(tableBRows)).create();
 
         // Important: we need at least three splits (four regions) for good/realistic tests of RowCountOperation.
-        SpliceHBaseUtils.splitTable("A",SCHEMA,4);
-        SpliceHBaseUtils.splitTable("A",SCHEMA,8);
-        SpliceHBaseUtils.splitTable("A",SCHEMA,12);
 
+
+        CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.SYSCS_SPLIT_TABLE(?,?,?)");
+        callableStatement.setString(1,SCHEMA);
+        callableStatement.setString(2,"A");
+        callableStatement.setInt(3,12);
+        callableStatement.execute();
+        Thread.sleep(2000); // Wait for splits to occur
         conn.collectStats(spliceSchemaWatcher.schemaName,"A");
-
     }
 
     @Rule

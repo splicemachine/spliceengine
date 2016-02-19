@@ -29,6 +29,7 @@ import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.GreenLight;
 
@@ -61,6 +62,7 @@ public class SIDriver {
     private final AsyncReadResolver readResolver;
     private final DistributedFileSystem fileSystem;
     private final OperationFactory baseOpFactory;
+    private final PartitionInfoCache partitionInfoCache;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -75,6 +77,7 @@ public class SIDriver {
         this.rollForward = env.rollForward();
         this.filterFactory = env.filterFactory();
         this.clock = env.systemClock();
+        this.partitionInfoCache = env.partitionInfoCache();
 
         //noinspection unchecked
         this.transactor = new SITransactor(
@@ -125,6 +128,8 @@ public class SIDriver {
     public OperationStatusFactory getOperationStatusLib() {
         return operationStatusFactory;
     }
+
+    public PartitionInfoCache getPartitionInfoCache() { return partitionInfoCache; }
 
     public TimestampSource getTimestampSource() {
         return timestampSource;

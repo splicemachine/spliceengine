@@ -1,14 +1,22 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.Function;
+import com.google.common.base.*;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.protobuf.Service;
+import com.splicemachine.access.hbase.HServer;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.storage.util.PartitionInRangePredicate;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -34,6 +42,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                            Table table,
                            Clock clock,
                            PartitionInfoCache partitionInfoCache){
+        assert tableName!=null:"Passed in tableName is null";
         this.tableName=tableName;
         this.table=table;
         this.connection=connection;
@@ -121,12 +130,15 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             if (!refresh) {
                 partitions = partitionInfoCache.getIfPresent(tableName);
                 if (partitions == null) {
-                    partitions = formatPartitions(connection.getRegionLocator(tableName).getAllRegionLocations());
+                    partitions = formatPartitions(getAllRegionLocations());
+                    assert partitions!=null:"partitions are null";
                     partitionInfoCache.put(tableName, partitions);
                 }
                 return partitions;
             }
+            partitions = formatPartitions(getAllRegionLocations());
             partitionInfoCache.invalidate(tableName);
+            assert partitions!=null:"partitions are null";
             partitionInfoCache.put(tableName,partitions);
             return partitions;
         } catch (IOException e) {
@@ -146,10 +158,14 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     public PartitionServer owningServer(){
         throw new UnsupportedOperationException("A Table is not owned by a single server, but by the cluster as a whole");
     }
+    @Override
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow) {
+        return subPartitions(startRow,stopRow,false);
+    }
 
     @Override
-    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
-        return null;
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow, boolean refresh) {
+        return ImmutableList.copyOf(Iterables.filter(subPartitions(refresh),new PartitionInRangePredicate(startRow,stopRow)));
     }
 
     @Override
@@ -208,6 +224,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     public Table unwrapDelegate(){
         return table;
+    }
+
+
+    private List<HRegionLocation> getAllRegionLocations() throws IOException {
+        try(RegionLocator regionLocator=connection.getRegionLocator(tableName)){
+            return regionLocator.getAllRegionLocations();
+        }
     }
 
 }

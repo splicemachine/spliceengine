@@ -16,6 +16,7 @@ import java.util.List;
  */
 public class StreamPartitionUtils {
 
+    /*
     public static List<HRegionLocation> getRegionsInRange(Connection connection,TableName tableName,byte[] startRow,byte[] stopRow) throws IOException{
         try(RegionLocator regionLocator=connection.getRegionLocator(tableName)){
             List<HRegionLocation> allRegionLocations=regionLocator.getAllRegionLocations();
@@ -71,4 +72,5 @@ public class StreamPartitionUtils {
             return inRange;
         }
     }
+    */
 }

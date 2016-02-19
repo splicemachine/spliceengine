@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.utils.ConglomerateUtils;
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertTrue;
  */
 @Category(SlowTest.class)
 @Ignore
-public class TableScanOperation_LargeRegionCount_IT {
+public class TableScanOperation_LargeRegionCount_IT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = TableScanOperation_LargeRegionCount_IT.class.getSimpleName().toUpperCase();
     @ClassRule

@@ -111,7 +111,7 @@ public class PartitionStatsStore {
          * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
          */
 
-    public static GlobalStatistics emptyStats(String tableId,List<Partition> partitions){
+    public static GlobalStatistics emptyStats(String tableId,List<Partition> partitions) throws StandardException {
         return RegionLoadStatistics.getParameterStatistics(tableId,partitions);
     }
 
@@ -123,10 +123,23 @@ public class PartitionStatsStore {
         }
     }
 
-    private static int getPartitions(byte[] table, List<Partition> partitions) throws StandardException {
+    public static int getPartitions(byte[] table, List<Partition> partitions) throws StandardException {
 
         try {
             partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions());
+            return partitions.size();
+        } catch (Exception ioe) {
+            throw StandardException.plainWrapException(ioe);
+        }
+    }
+
+    public static int getPartitions(String table, List<Partition> partitions) throws StandardException {
+        return getPartitions(table,partitions,false);
+    }
+
+    public static int getPartitions(String table, List<Partition> partitions, boolean refresh) throws StandardException {
+        try {
+            partitions.addAll(SIDriver.driver().getTableFactory().getTable(table).subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);

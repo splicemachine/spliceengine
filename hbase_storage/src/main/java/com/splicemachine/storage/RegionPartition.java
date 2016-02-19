@@ -296,6 +296,11 @@ public class RegionPartition implements Partition{
 
     @Override
     public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
+        return subPartitions(startRow,stopRow,false);
+    }
+
+    @Override
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow, boolean refresh){
         if(!region.getRegionInfo().containsRange(startRow,stopRow))
             throw new IllegalArgumentException("A RegionPartition cannot be broken into a range that it does not contain!");
         //TODO -sf- convert to a list of subranges?

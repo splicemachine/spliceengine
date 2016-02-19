@@ -9,14 +9,9 @@ import com.splicemachine.derby.stream.iterator.DirectScanner;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.HScan;
-import com.splicemachine.storage.RegionDataScanner;
-import com.splicemachine.storage.RegionPartition;
-import com.splicemachine.storage.SplitRegionScanner;
-import com.splicemachine.stream.utils.StreamPartitionUtils;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
@@ -27,7 +22,6 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 /**
@@ -38,11 +32,8 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
     protected Table htable;
     protected HRegion hregion;
     protected Configuration config;
-//    protected MeasuredRegionScanner mrs;
     protected DirectScanner directScanner;
-//    protected long txnId;
     protected Scan scan;
-//    protected SMSQLUtil sqlUtil = null;
     protected KVPair currentRow;
     protected TableScannerBuilder builder;
     protected byte[] rowKey;
@@ -140,11 +131,12 @@ public class HTableRecordReader extends RecordReader<byte[], KVPair>{
             SIDriver driver=SIDriver.driver();
             HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(driver.getConfiguration());
             Clock clock = driver.getClock();
+            Partition clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
             SplitRegionScanner srs = new SplitRegionScanner(scan,
                     htable,
                     instance.getConnection(),
                     clock,
-                    StreamPartitionUtils.getRegionsInRange(instance.getConnection(),htable.getName(),scan.getStartRow(),scan.getStopRow()));
+                    clientPartition);
             this.hregion = srs.getRegion();
 
             long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());

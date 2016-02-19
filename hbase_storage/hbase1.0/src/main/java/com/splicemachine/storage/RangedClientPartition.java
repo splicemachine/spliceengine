@@ -57,37 +57,30 @@ public class RangedClientPartition extends ClientPartition implements Comparable
 
     @Override
     public boolean containsRow(byte[] row,int offset,int length){
-        ByteComparator bc =Bytes.basicByteComparator();
-        byte[] start = getStartKey();
-        byte[] end = getEndKey();
-        if(start==null || start.length<=0){
-            if(end==null||end.length<=0) return true;
-            else return bc.compare(row,offset,length,end,0,end.length)<0;
-        }else if(end==null||end.length<=0) {
-            return bc.compare(start,0,start.length,row,offset,length)<=0;
-        }else{
-            int compare = bc.compare(row,offset,length,start,0,start.length);
-            if(compare<0) return false; //row is before start key
-            compare = bc.compare(row,offset,length,end,0,end.length);
-            return compare <0; //otherwise we are after the end key
-        }
+        byte[] startKey = getStartKey();
+        byte[] endKey = getEndKey();
+        return org.apache.hadoop.hbase.util.Bytes.compareTo(row, offset,length, startKey,0,startKey.length) >= 0 &&
+                (org.apache.hadoop.hbase.util.Bytes.compareTo(row, offset,length, endKey,0,endKey.length) < 0 ||
+                        org.apache.hadoop.hbase.util.Bytes.equals(endKey, HConstants.EMPTY_BYTE_ARRAY));
     }
 
     @Override
     public boolean overlapsRange(byte[] start,int startOff,int startLen,byte[] stop,int stopOff,int stopLen){
         byte[] regionStart = getStartKey();
         byte[] regionEnd = getEndKey();
-        ByteComparator bc = Bytes.basicByteComparator();
-        if(startLen<=0){
-            if(stopLen<=0) return true; //the passed in range contains us entirely, because it's everything anyway
-            else return bc.compare(regionStart,0,regionStart.length,stop,stopOff,stopLen)<0;
+        if(startLen<=0){ // BEGIN
+            if(stopLen<=0)
+                return true; // BEGIN-END //the passed in range contains us entirely, because it's everything anyway
+            else
+                return org.apache.hadoop.hbase.util.Bytes.compareTo(regionStart,0,regionStart.length,stop,stopOff,stopLen)<0;
         }else if(stopLen<=0){
-            return bc.compare(start,startOff,startLen,regionEnd,0,regionEnd.length)<0;
+            return Bytes.equals(regionEnd,HConstants.EMPTY_END_ROW) || org.apache.hadoop.hbase.util.Bytes.compareTo(start,startOff,startLen,regionEnd,0,regionEnd.length)<0;
         }else{
-            int compare = bc.compare(regionStart,0,regionStart.length,stop,stopOff,stopLen);
+            int compare = org.apache.hadoop.hbase.util.Bytes.compareTo(regionStart, 0, regionStart.length, stop, stopOff, stopLen);
             if(compare>=0) return false; //stop happens before the region start
-            compare =  bc.compare(start,startOff,startLen,regionEnd,0,regionEnd.length);
-            if(compare>=0) return false; //start happens after the start
+            compare = org.apache.hadoop.hbase.util.Bytes.compareTo(start, startOff, startLen, regionEnd, 0, regionEnd.length);
+            if(compare>=0 && !Bytes.equals(regionEnd,HConstants.EMPTY_END_ROW))
+                return false; //start happens after the region end
             return true;
         }
     }
@@ -106,12 +99,7 @@ public class RangedClientPartition extends ClientPartition implements Comparable
 
     @Override
     public boolean overlapsRange(byte[] start,byte[] stop){
-        if(start==null||start.length<=0){
-            if(stop==null||stop.length<=0) return true;
-            else return overlapsRange(HConstants.EMPTY_START_ROW,0,0,stop,0,stop.length);
-        }else if(stop==null||stop.length<=0)
-            return overlapsRange(start,0,start.length,HConstants.EMPTY_END_ROW,0,0);
-        else return overlapsRange(start,0,start.length,stop,0,stop.length);
+        return overlapsRange(start,0,start.length,stop,0,stop.length);
     }
 
     @Override
@@ -132,5 +120,9 @@ public class RangedClientPartition extends ClientPartition implements Comparable
     @Override
     public int hashCode(){
         return regionInfo.hashCode();
+    }
+
+    public HRegionInfo getRegionInfo() {
+        return regionInfo;
     }
 }

@@ -28,7 +28,7 @@ public class DirectPartitionLoadWatcher implements PartitionLoadWatcher{
     }
 
     @Override
-    public Collection<PartitionLoad> tableLoad(String tableName){
+    public Collection<PartitionLoad> tableLoad(String tableName, boolean refresh){
         return Collections.<PartitionLoad>singletonList(new MPartitionLoad(tableName));
     }
 }

@@ -150,7 +150,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
         }catch(Exception e){
             SpliceLogUtils.error(LOG,"Unable to fetch region load info",e);
         }
-        return Collections.unmodifiableMap(regionLoads);
+        return regionLoads;
     }
 
     // Lookups
@@ -204,7 +204,15 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
     }
 
     @Override
-    public Collection<PartitionLoad> tableLoad(String tableName){
+    public Collection<PartitionLoad> tableLoad(String tableName, boolean refresh){
+        if (refresh) {
+            Map<String, Map<String, PartitionLoad>> loads = cache.get();
+            Map<String, PartitionLoad> regions = getCostWhenNoCachedRegionLoadsFound(tableName);
+            loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
+                    regions
+            );
+            return regions.values();
+        }
         return getCachedRegionLoadsForTable(tableName);
     }
 
@@ -218,6 +226,9 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
         Map<String, PartitionLoad> regions = loads.get(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString());
         if(regions==null || regions.isEmpty()){
             regions = getCostWhenNoCachedRegionLoadsFound(tableName);
+            loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
+                    regions
+            );
         }
         return regions.values();
     }

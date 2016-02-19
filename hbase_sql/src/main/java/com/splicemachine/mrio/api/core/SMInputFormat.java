@@ -2,7 +2,6 @@ package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.sql.SQLException;
-
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;

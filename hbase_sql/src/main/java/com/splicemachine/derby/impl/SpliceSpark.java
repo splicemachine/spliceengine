@@ -2,46 +2,31 @@ package com.splicemachine.derby.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executor;
-
-import com.google.common.base.Function;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.db.jdbc.EmbeddedDriver;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.derby.stream.spark.SpliceMachineSource;
+import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.lifecycle.PipelineLoadService;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
 import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
-import com.google.common.base.Splitter;
 import org.apache.spark.rdd.RDDOperationScope;
 import scala.Tuple2;
-
-import javax.annotation.Nullable;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
@@ -54,18 +39,6 @@ public class SpliceSpark {
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
-
-
-    private static String[] getJarFiles(String file) {
-        if (file == null || file.isEmpty())
-            return new String[0];
-        List<String> jars = new ArrayList<String>();
-        for (String name : file.split(":")) {
-            File dir = new File(name);
-            getJarFiles(jars, dir);
-        }
-        return jars.toArray(new String[0]);
-    }
 
     private static void getJarFiles(List<String> files, File file) {
         if (file.isDirectory()) {
@@ -122,6 +95,7 @@ public class SpliceSpark {
                 ContextFactoryDriver cfDriver =ContextFactoryDriverService.loadDriver();
                 HBasePipelineEnvironment pipelineEnv=HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
+                HBaseRegionLoads.INSTANCE.startWatching();
 
                 spliceStaticComponentsSetup = true;
                 SpliceMachineSource.register();

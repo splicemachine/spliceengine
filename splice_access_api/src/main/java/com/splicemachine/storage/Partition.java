@@ -120,6 +120,8 @@ public interface Partition extends AutoCloseable{
 
     List<Partition> subPartitions(byte[] startRow,byte[] stopRow);
 
+    List<Partition> subPartitions(byte[] startRow,byte[] stopRow, boolean refresh);
+
     PartitionLoad getLoad() throws IOException;
 
     /**

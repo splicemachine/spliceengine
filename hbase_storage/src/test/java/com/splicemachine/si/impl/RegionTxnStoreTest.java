@@ -268,11 +268,6 @@ public class RegionTxnStoreTest{
     }
 
     @Test
-    public void home(){
-        System.out.println("--"+Bytes.toBytes("g").length);
-    }
-
-    @Test
     public void testGetActiveTransactionsFiltersOutRolledbackTxns() throws Exception{
         HRegion region=MockRegionUtils.getMockRegion();
         RegionTxnStore store=new RegionTxnStore(region,txnSupplier,getTransactionResolver(),Long.MAX_VALUE,clock);

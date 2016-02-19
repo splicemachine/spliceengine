@@ -14,5 +14,5 @@ public interface PartitionLoadWatcher{
 
     void stopWatching();
 
-    Collection<PartitionLoad> tableLoad(String tableName);
+    Collection<PartitionLoad> tableLoad(String tableName, boolean refresh);
 }

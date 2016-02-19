@@ -39,13 +39,9 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
                 SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor for op %s", op==null?"null":op.getName());
             return localProcessor;
         }
-        if(activation==null|| activation.getResultSet()==null){
-            /*
-             * We don't really know how expensive the operation is going to be, so we have
-             * to play it safe and assume that it will be very expensive and require the
-             * distributed engine.
-             */
-            return distributedDataSetProcessor;
+        if(activation==null|| activation.getResultSet()==null){ // Materialize ResultSet if Possible Execution Path!!
+            // JL_TODO Fix Materialize ResultSet if Possible: Should go away!!!
+            return localProcessor;
         }else{
             switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
                 case FORCED_CONTROL:
@@ -55,7 +51,9 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
                 default:
                     break;
             }
-            return ((BaseActivation)activation).useSpark()?distributedDataSetProcessor:localProcessor;
+            if (((BaseActivation)activation).useSpark())
+                return distributedDataSetProcessor;
+            return localProcessor;
         }
     }
 

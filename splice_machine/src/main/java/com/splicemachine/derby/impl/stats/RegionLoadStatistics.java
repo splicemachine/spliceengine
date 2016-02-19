@@ -2,11 +2,11 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.StorageConfiguration;
-
 import java.util.*;
 
 /**
@@ -14,23 +14,29 @@ import java.util.*;
  *         Date: 6/8/15
  */
 public class RegionLoadStatistics{
-    public static GlobalStatistics getParameterStatistics(String table, List<Partition> partitions){
+    public static GlobalStatistics getParameterStatistics(String table, List<Partition> partitions) throws StandardException{
         SConfiguration config =EngineDriver.driver().getConfiguration();
 
-        Collection<PartitionLoad> cachedRegionLoadsForTable=EngineDriver.driver().partitionLoadWatcher().tableLoad(table);
-        Map<String,PartitionLoad> regionIdToLoadMap = new HashMap<>(cachedRegionLoadsForTable.size());
-        for(PartitionLoad load:cachedRegionLoadsForTable){
-            String regionName=load.getPartitionName();
-//            regionName = regionName.substring(regionName.indexOf(".")+1,regionName.length()-1);
-            regionIdToLoadMap.put(regionName,load);
+        // Splits can cause us to think we do not have region load information for plan parsing, big problemo
+        Map<String, PartitionLoad> regionIdToLoadMap = null;
+        Collection<PartitionLoad> cachedRegionLoadsForTable = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
+        while (true) {
+            regionIdToLoadMap = new HashMap<>(cachedRegionLoadsForTable.size());
+            for (PartitionLoad load : cachedRegionLoadsForTable)
+                regionIdToLoadMap.put(load.getPartitionName(), load);
+            if (partitions.size() == cachedRegionLoadsForTable.size())
+                break;
+            partitions.clear();
+            PartitionStatsStore.getPartitions(table, partitions,true); // Refresh the partitions
+            cachedRegionLoadsForTable = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,true); // Refresh the region loads
         }
 
         List<OverheadManagedPartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
         for(Partition partition:partitions){
             double rowSizeRatio = 1.0d;
             long heapSize;
-
-            PartitionLoad regionLoad=regionIdToLoadMap.get(partition.getName());
+            String partitionName = partition.getName();
+            PartitionLoad regionLoad=regionIdToLoadMap.get(partitionName);
             long partitionMaxFileSize=config.getLong(StorageConfiguration.REGION_MAX_FILE_SIZE);
             if(regionLoad==null){
                 heapSize =partitionMaxFileSize;
