@@ -106,9 +106,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     protected void initializeJob(CompactionRequest request) {
-        String jobGroup = getJobGroup();
+        String jobGroup = getJobGroup(request);
         String jobDescription = getJobDescription(request);
         String poolName = getPoolName();
+        // TODO: we can get NPE here during system startup
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setJobGroup(jobGroup, jobDescription);
         dsp.setSchedulerPool(poolName);
@@ -143,7 +144,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
     
     protected String getTableInfoLabel(String delim) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (indexDisplayName != null) {
             sb.append(String.format("Index=%s", indexDisplayName));
             sb.append(delim);
@@ -155,17 +156,16 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return sb.toString();
     }
     
-    protected String getJobGroup() {
-        // TODO (wjk): need a better unique job group id - use getUniqueKey temporarily
-        // String userId = context.sc().sparkUser();
-        return SpliceUtils.getUniqueKey().toString();
+    protected String getJobGroup(CompactionRequest request) {
+        // TODO: we can probably do better than this for unique job group
+        return Long.toString(request.getSelectionTime());
     }
     
     private static String delim = ",\n";
     private String jobDetails = null;
     protected String getJobDetails(CompactionRequest request) {
         if (jobDetails == null) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append(getTableInfoLabel(delim));
             sb.append(delim).append(String.format("Region Name=%s", this.store.getRegionInfo().getRegionNameAsString()));
             sb.append(delim).append(String.format("Region Id=%d", this.store.getRegionInfo().getRegionId()));
