@@ -3176,10 +3176,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         int index;
         int colsAdded=0;
         int size=size();
+        FormatableBitSet newReferencedCols=new FormatableBitSet(getMaxStoragePosition());
 
-        // TODO (wjkmerge) - verify whether getMaxStoragePosition() is preferable
-        // FormatableBitSet newReferencedCols=new FormatableBitSet(getMaxStoragePosition());
-        FormatableBitSet newReferencedCols=new FormatableBitSet(size);
 		/*
 		** For an updatable cursor, we need
 		** all columns.
@@ -3188,12 +3186,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             if(always){
 				/* Set all bits in the bit map */
                 for(index=0;index<size;index++){
-                    // TODO (wjkmerge) - verify whether this if/else is preferable
-//                    if (isIndex)
-//                        newReferencedCols.set(index);
-//                    else
-//                        newReferencedCols.set(this.getResultColumn(index).getStoragePosition()-1);
+                    if (isIndex)
                     newReferencedCols.set(index);
+                    else
+                        newReferencedCols.set(this.getResultColumn(index).getStoragePosition()-1);
                 }
 
                 return newReferencedCols;
@@ -3211,27 +3207,20 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 if(onlyBCNs && !(oldCol.getExpression() instanceof BaseColumnNode)){
                     continue;
                 }
-                // TODO (wjkmerge) - verify whether this if/else is preferable
-//                if (isIndex) {
-//                    newReferencedCols.set(index);
-//                    colsAdded++;
-//                }
-//                else {
-//                    newReferencedCols.set(oldCol.getStoragePosition()-1);
-//                }
+                if (isIndex) {
                 newReferencedCols.set(index);
                 colsAdded++;
+            }
+                else {
+                    newReferencedCols.set(oldCol.getStoragePosition()-1);
+                }
             }
         }
 
 		/* Return the FormatableBitSet if not all RCs are referenced or if
 		 * the caller always wants the FormatableBitSet returned.
 		 */
-        if(colsAdded!=index || always){
             return newReferencedCols;
-        }else{
-            return null;
-        }
     }
 
     /**
