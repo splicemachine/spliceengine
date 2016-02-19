@@ -256,10 +256,15 @@ public class TxnPartition implements Partition{
 
     @Override
     public List<Partition> subPartitions(byte[] startRow,byte[] stopRow){
+        return subPartitions(startRow,stopRow,false);
+    }
+    @Override
+    public List<Partition> subPartitions(byte[] startRow, byte[] stopRow, boolean refresh) {
         if(!containsRow(startRow)||!containsRow(stopRow))
             throw new UnsupportedOperationException("Cannot get subpartitions of a range that it does not own!");
         return Collections.<Partition>singletonList(this);
     }
+
 
     @Override
     public PartitionLoad getLoad() throws IOException{

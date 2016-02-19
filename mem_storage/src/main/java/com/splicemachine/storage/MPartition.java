@@ -368,6 +368,12 @@ public class MPartition implements Partition{
     }
 
     @Override
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow, boolean refresh){
+        return subPartitions(); //we own everything
+    }
+
+
+    @Override
     public PartitionLoad getLoad() throws IOException{
         return new MPartitionLoad(getName());
     }
