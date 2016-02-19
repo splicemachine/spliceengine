@@ -231,7 +231,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
-                    .rowDecodingMap(baseColumnMap).buildDataSet(this);
+                    .rowDecodingMap(baseColumnMap)
+                    .buildDataSet(this);
             dataSet = dataSet.union(ds);
         }
         return dataSet;

@@ -64,7 +64,9 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
         rdd.saveAsNewAPIHadoopDataset(conf); //actually does the writing
-        operationContext.getOperation().fireAfterStatementTriggers();
+        if (operationContext.getOperation() != null) {
+            operationContext.getOperation().fireAfterStatementTriggers();
+        }
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
         return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));

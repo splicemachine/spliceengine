@@ -216,6 +216,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeInt(failBadRecordCount);
     }
 
+    @SuppressWarnings({ "unchecked" })
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         if(statusDirectory!=null){
@@ -230,8 +231,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
         TxnView txn=getCurrentTransaction();
 
+        operationContext.pushScope();
         try{
-            operationContext.pushScope();
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             PairDataSet dataSet=set.index(new InsertPairFunction(operationContext),true);

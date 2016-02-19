@@ -29,6 +29,7 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
     public SparkInsertTableWriterBuilder(){
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public DataSetWriter build() throws StandardException{
         if(operationContext.getOperation()!=null){

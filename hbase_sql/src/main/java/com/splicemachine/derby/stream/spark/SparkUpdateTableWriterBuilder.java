@@ -35,7 +35,9 @@ public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder
     @Override
     public DataSetWriter build() throws StandardException{
         try{
-            operationContext.getOperation().fireBeforeStatementTriggers();
+            if (operationContext.getOperation() != null) {
+                operationContext.getOperation().fireBeforeStatementTriggers();
+            }
             Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
             TableWriterUtils.serializeUpdateTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);

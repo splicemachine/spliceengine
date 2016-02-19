@@ -120,7 +120,8 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(baseColumnMap).buildDataSet();
+                .rowDecodingMap(baseColumnMap)
+                .buildDataSet(this);
 
         OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
         return scan.take(new TakeFunction<SpliceOperation, LocatedRow>(operationContext,1))

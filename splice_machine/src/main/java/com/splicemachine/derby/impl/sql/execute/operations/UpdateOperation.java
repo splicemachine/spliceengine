@@ -189,6 +189,7 @@ public class UpdateOperation extends DMLWriteOperation{
         return "Update{destTable="+heapConglom+",source="+source+"}";
     }
 
+    @SuppressWarnings({ "unchecked" })
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         DataSet set=source.getDataSet(dsp);
@@ -196,8 +197,8 @@ public class UpdateOperation extends DMLWriteOperation{
         TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
+        operationContext.pushScope();
         try{
-            operationContext.pushScope();
             PairDataSet toWrite=set.index(new InsertPairFunction(operationContext),true);
             DataSetWriter writer=toWrite.updateData(operationContext)
                     .execRowDefinition(execRow)
@@ -212,7 +213,6 @@ public class UpdateOperation extends DMLWriteOperation{
                     .operationContext(operationContext)
                     .txn(txn)
                     .build();
-
             return writer.write();
         }finally{
             operationContext.popScope();

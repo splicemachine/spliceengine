@@ -205,7 +205,4 @@ public class SpliceSpark {
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
         SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
     }
-
-
-
 }

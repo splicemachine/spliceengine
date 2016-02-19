@@ -6,6 +6,7 @@ import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -52,7 +53,7 @@ public class DeleteOperation extends DMLWriteOperation {
 		heapConglom = writeInfo.getConglomerateId();
 	}
 
-		@Override
+    @Override
 	public String toString() {
 		return "Delete{destTable="+heapConglom+",source=" + source + "}";
 	}
@@ -62,17 +63,19 @@ public class DeleteOperation extends DMLWriteOperation {
         return "Delete"+super.prettyPrint(indentLevel);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public  DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(dsp);
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
+		operationContext.pushScope();
         try {
-            operationContext.pushScope();
-			DataSetWriterBuilder dataSetWriterBuilder=set.index(new InsertPairFunction(operationContext),true).deleteData(operationContext)
-					.destConglomerate(heapConglom)
-					.txn(txn)
-					.operationContext(operationContext);
+            PairDataSet toWrite = set.index(new InsertPairFunction(operationContext),true);
+			DataSetWriterBuilder dataSetWriterBuilder = toWrite.deleteData(operationContext)
+                .destConglomerate(heapConglom)
+                .operationContext(operationContext)
+				.txn(txn);
 			return dataSetWriterBuilder.build().write();
         } finally {
             operationContext.popScope();

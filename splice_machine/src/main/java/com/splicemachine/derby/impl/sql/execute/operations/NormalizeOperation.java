@@ -265,15 +265,17 @@ public class NormalizeOperation extends SpliceBaseOperation{
                 .append(indent).append("numCols:").append(numCols)
                 .append(indent).append("startCol:").append(startCol)
                 .append(indent).append("erdNumber:").append(erdNumber)
-                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
+                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
                 .toString();
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
         DataSet<LocatedRow> sourceSet=source.getDataSet(dsp);
         OperationContext operationContext=dsp.createOperationContext(this);
+        operationContext.pushScope();
         try{
-            operationContext.pushScope();
             return sourceSet.map(new NormalizeFunction(operationContext),true);
         }finally{
             operationContext.popScope();
@@ -284,6 +286,5 @@ public class NormalizeOperation extends SpliceBaseOperation{
     public String getVTIFileName(){
         return getSubOperations().get(0).getVTIFileName();
     }
-
 
 }
