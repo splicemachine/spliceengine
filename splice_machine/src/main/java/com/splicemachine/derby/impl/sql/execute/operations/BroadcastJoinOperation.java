@@ -200,12 +200,12 @@ public class BroadcastJoinOperation extends JoinOperation{
             }
         }
 
-        result = result.map(new CountProducedFunction(operationContext), /*isLast=*/false);
+        result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);
 
         // Clever but hacky way to put the explain plan in an RDD node in UI
         // without taking up the name of a legitimate RDD.
         // Remove this later if we hate it, which I already do.
-        result = result.map(new EmptyFunction(operationContext), /*isLast=*/true);
+        // result = result.map(new EmptyFunction(operationContext), /*isLast=*/true);
 
         operationContext.popScope();
 

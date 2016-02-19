@@ -3,8 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.function.EmptyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -112,7 +114,7 @@ public class CallStatementOperation extends NoRowsOperation {
 			activation.getLanguageConnectionContext().getStatementContext());
 		if (!isOpen)
 			return;
-        if (1!=2) // TODO (wjk): do we need the code below this?
+        if (1!=2)
             return;
 
         /*
@@ -187,43 +189,25 @@ public class CallStatementOperation extends NoRowsOperation {
         return "Call Procedure";
     }
 
-	protected boolean isPushScope() {
-		// TODO (wjk): find a better way than this
-		//
-		// We need an API to call to see if the stored proc logic we are invoking
-		// handles it's own spark job/scope management, such as import, so we can
-		// avoid creating unnecessary job in the spark UI.
-		if (origClassName != null && origClassName.contains("HdfsImport") &&
-			origMethodName != null && origMethodName.contains("IMPORT_DATA")) {
-			return false;
-		}
-		return true;
-	}
-
 	@Override
 	public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
 		OperationContext<CallStatementOperation> operationContext = dsp.createOperationContext(this);
 
-		call();
+        call();
 
-		registerCloseable(new AutoCloseable() {
-			@Override
-			public void close() throws Exception {
-				this.close(); // TODO (wjk): do we ever get here?
-			}
-		});
+//		registerCloseable(new AutoCloseable() {
+//			@Override
+//			public void close() throws Exception {
+//				this.close();
+//			}
+//		});
 
-		boolean pushScope = isPushScope();
-
-		if (pushScope) operationContext.pushScope();
-		try {
-			if (pushScope) {
-				return dsp.getEmpty();
-			} else {
-				return EngineDriver.driver().processorFactory().localProcessor(activation, null).getEmpty();
-			}
-		} finally {
-			if (pushScope) operationContext.popScope();
-		}
+        operationContext.pushScope();
+        try {
+            // return EngineDriver.driver().processorFactory().localProcessor(activation, null).getEmpty();
+            return dsp.getEmpty();
+        } finally {
+            operationContext.popScope();
+        }
 	}
 }
