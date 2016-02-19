@@ -10,7 +10,6 @@ import java.sql.SQLException;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
@@ -89,8 +88,8 @@ public class ClusterDDLTestIT {
     }
 
     @Test
-    @Ignore("DB-4596: alter table cleanup")
-    public void addDropColumnOnTwoRegionServers() throws Exception {
+    public void addAndDropColumnOnTwoRegionServers() throws Exception {
+        // DB-4596: alter table cache invalidation. Moved DDLUtils.flushCachesBasedOnTableDescriptor(TableDescriptor) to derby BasicDependencyManager.
         Connection conn1 = dataSource.getConnection("localhost", 1527);
         Connection conn2 = dataSource.getConnection("localhost", 1528);
 

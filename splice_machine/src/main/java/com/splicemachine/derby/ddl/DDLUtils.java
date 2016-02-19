@@ -347,7 +347,6 @@ public class DDLUtils {
                 TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
                 if(td==null) // Table Descriptor transaction never committed
                     return;
-                flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td,DependencyManager.DROP_TABLE,transactionResource.getLcc());
             }finally{
                if(prepared)
@@ -372,7 +371,6 @@ public class DDLUtils {
                     TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
                     if(td==null) // Table Descriptor transaction never committed
                         return;
-                    flushCachesBasedOnTableDescriptor(td,dd);
                     dm.invalidateFor(td,DependencyManager.DROP_STATISTICS,transactionResource.getLcc());
                 }
             }finally{
@@ -388,21 +386,6 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
         dd.getDataDictionaryCache().schemaCacheRemove(change.getDropSchema().getSchemaName());
-    }
-
-
-    private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
-        DataDictionaryCache cache = dd.getDataDictionaryCache();
-        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(),td.getName());
-        cache.nameTdCacheRemove(tableKey);
-        cache.oidTdCacheRemove(td.getUUID());
-
-        // Remove Conglomerate Level and Statistics Caching..
-        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
-            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
-            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
-        }
-
     }
 
     public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
@@ -423,7 +406,6 @@ public class DDLUtils {
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
             if (td!=null) { // Table Descriptor transaction never committed
-                flushCachesBasedOnTableDescriptor(td, dd);
                 dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
             }
             if (cd!=null) {
@@ -446,7 +428,6 @@ public class DDLUtils {
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
                 if (td==null) // Table Descriptor transaction never committed
                     return;
-                flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td, action, transactionResource.getLcc());
             } finally {
                 if (initializedTxn)
@@ -470,7 +451,6 @@ public class DDLUtils {
                 TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
                 if(td==null) // Table Descriptor transaction never committed
                     return;
-                flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
     		/* look for foreign key dependency on the table. If found any,
 	    	use dependency manager to pass the rename action to the
@@ -512,7 +492,6 @@ public class DDLUtils {
                 FormatableBitSet toRename=new FormatableBitSet(td.getColumnDescriptorList().size()+1);
                 toRename.set(columnPosition);
                 td.setReferencedColumnMap(toRename);
-                flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
 
                 //look for foreign key dependency on the column.
@@ -549,7 +528,6 @@ public class DDLUtils {
                 TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
                 if(td==null) // Table Descriptor transaction never committed
                     return;
-                flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td,DependencyManager.RENAME_INDEX,transactionResource.getLcc());
             }finally{
                 if(prepared)
@@ -598,7 +576,6 @@ public class DDLUtils {
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td,DependencyManager.DROP_VIEW,transactionResource.getLcc());
-                flushCachesBasedOnTableDescriptor(td,dd);
             }finally{
                 if(prepared)
                     transactionResource.close();
@@ -623,7 +600,6 @@ public class DDLUtils {
                 if(td==null)
                     return;
                 dm.invalidateFor(td,DependencyManager.CREATE_TRIGGER,transactionResource.getLcc());
-                flushCachesBasedOnTableDescriptor(td,dd);
             }finally{
                 if(prepared)
                     transactionResource.close();
@@ -649,7 +625,6 @@ public class DDLUtils {
                 TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
                 TriggerDescriptor triggerDescriptor=dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
                 if(td!=null)
-                    flushCachesBasedOnTableDescriptor(td,dd);
                 if(triggerDescriptor!=null){
                     dm.invalidateFor(triggerDescriptor,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
 //                dm.clearDependencies(transactionResource.getLcc(), triggerDescriptor);
@@ -691,7 +666,6 @@ public class DDLUtils {
                 TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
                 if (td==null) // Table Descriptor transaction never committed
                     return;
-                flushCachesBasedOnTableDescriptor(td,dd);
                 dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
             }
         } catch (Exception e) {
@@ -740,7 +714,6 @@ public class DDLUtils {
             transactionResource.marshallTransaction(txn);
             BasicUUID uuid = ProtoUtil.getDerbyUUID(change.getTruncateTable().getTableId());
             TableDescriptor td = dd.getTableDescriptor(uuid);
-            flushCachesBasedOnTableDescriptor(td,dd);
             dm.invalidateFor(td, DependencyManager.TRUNCATE_TABLE, transactionResource.getLcc());
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
