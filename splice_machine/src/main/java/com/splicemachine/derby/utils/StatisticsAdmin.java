@@ -134,7 +134,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     @SuppressWarnings("unused")
     public static void COLLECT_SCHEMA_STATISTICS(String schema, boolean staleOnly, ResultSet[] outputResults) throws
         SQLException {
-        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
         List<ExecRow> rows = Lists.newArrayList();
         try {
             if (schema == null)
