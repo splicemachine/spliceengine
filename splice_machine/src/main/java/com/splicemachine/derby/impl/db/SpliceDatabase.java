@@ -368,11 +368,11 @@ public class SpliceDatabase extends BasicDatabase{
             @Override
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
                 switch(change.getDdlChangeType()){
-                    case CREATE_INDEX:
+//                    case CREATE_INDEX:
                     case DROP_INDEX:
                     case DROP_TABLE:
-                    case CREATE_TABLE:
-//                        getDataDictionary().getDataDictionaryCache().clearTableCache();
+//                    case CREATE_TABLE:
+                        getDataDictionary().getDataDictionaryCache().emptyStatementCache();
                         break;
                     case CREATE_SCHEMA:
                     case DROP_SCHEMA:

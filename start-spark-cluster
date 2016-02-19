@@ -26,14 +26,16 @@ _kill_em_all () {
    P=$(ps -ef | awk '/zoo/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Zoo. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
-   P=$(ps -ef | awk '/exec:exec -Dsplice/ && !/awk/ {print $2}')
-   [[ -n $P ]] && echo "Found something. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+   P=$(ps -ef | awk '/exec:java/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found IN MEMORY. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 }
 export -f _kill_em_all
 
-START_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DEFAULT_PROFILE="cdh5.4.8"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
+IN_MEM_PROFILE="IN_MEM"
+RUN_DIR="${BASE_DIR}/hbase_sql"
 
 BUILD="1"
 CHAOS="false"
@@ -58,7 +60,7 @@ usage() {
     echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
     echo "        grep 'task fail' <hbase_profile>/splice_machine_test/splice-derby.log"
     echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
-    echo "    c41 (cdh5.4.1), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12)."
+    echo "    mem (in mem), c41 (cdh5.4.8), c51 (cdh5.5.1), h24 (hdp2.2.4), h30 (hdp2.3.0), m4 (mapr0.98.4), m12 (mapr0.98.12)."
     echo "    Default is ${DEFAULT_PROFILE}. CURRENTLY ONLY THE DEFAULT PROFILE WORKS WITH YARN!"
     echo "  -k just KILL any and all splice processes currently running."
     echo "  -h => print this message"
@@ -85,6 +87,8 @@ while getopts "chkp:s:bd:" flag ; do
             PROFILE="cdh5.4.8"
           elif [[ "$OPTARG" == "c51" ]]; then
             PROFILE="cdh5.5.1"
+          elif [[ "$OPTARG" == "mem" ]]; then
+            PROFILE=${IN_MEM_PROFILE}
           elif [[ "$OPTARG" == "h24" ]]; then
             PROFILE="hdp2.2.4"
           elif [[ "$OPTARG" == "h30" ]]; then
@@ -121,53 +125,63 @@ done
 SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
 
 # TODO: we can only run YARN in cdh5.4.8 currently
-if [[ ${PROFILE} != ${DEFAULT_PROFILE} ]]; then
+if [[ ${PROFILE} != ${IN_MEM_PROFILE} && ${PROFILE} != ${DEFAULT_PROFILE} ]]; then
   usage "Can only run YARN with ${DEFAULT_PROFILE}"
   exit 1;
 fi
-
-
-#pushd ${START_DIR} > /dev/null
 
 #=============================================================================
 # Run...
 #=============================================================================
 _kill_em_all 9
 
+if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
+  RUN_DIR="${BASE_DIR}/mem_engine"
+fi
+
 echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
-echo "   ${START_DIR}"
+echo "   ${RUN_DIR}"
 
 if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
-#  pushd "${START_DIR}/.." > /dev/null
-  (${MVN} clean install -DskipTests )
-#  popd > /dev/null
+  pushd "${BASE_DIR}" > /dev/null
+  (${MVN} clean install -Pcore,${PROFILE} -DskipTests )
+  popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
-  echo "   ${START_DIR}"
+  echo "   ${RUN_DIR}"
 fi
-  
-ZOO_LOG="zoo.log"  
-echo "Starting Zoo. Log file is ${ZOO_LOG}"
-(${MVN} exec:exec -PspliceZoo,${PROFILE} > ${ZOO_LOG} 2>&1) &    ## zookeeper
-sleep 30
-  
-YARN_LOG="yarn.log"
-echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:java -PspliceYarn,${PROFILE} > ${YARN_LOG} 2>&1) &  ## YARN
 
-SPLICE_LOG="splice.log"
+pushd "${RUN_DIR}" > /dev/null
+
+# Run IN MEMORY
+if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
+    echo "Starting MEM. Log file is the splice-derby.log<n> in ${RUN_DIR}"
+  (${MVN} exec:java > /dev/null 2>&1) &    ## IN MEMORY
+  exit 0;
+fi
+
+ZOO_LOG="${RUN_DIR}/zoo.log"
+echo "Starting Zoo. Log file is ${ZOO_LOG}"
+(${MVN} exec:exec -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+sleep 65
+  
+YARN_LOG="${RUN_DIR}/yarn.log"
+echo "Starting YARN. Log file is ${YARN_LOG}"
+(${MVN} exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+
+SPLICE_LOG="${RUN_DIR}/splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
-(${MVN} exec:exec -PspliceFast,${PROFILE} ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+(${MVN} exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 sleep 30
 
 if [[ ${MEMBERS} -gt 0 ]]; then
   for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
-    REGION_SVR_LOG="spliceRegionSvr$(($MEMBER +1)).log"
+    REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (${MVN} exec:exec -PspliceClusterMember,${PROFILE} ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
   done
 fi
-#popd > /dev/null
+popd > /dev/null
 

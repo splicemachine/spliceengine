@@ -227,11 +227,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             td.setUUID(dd.getUUIDFactory().createUUID());
         }
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
-
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
 
         // Save the TableDescriptor off in the Activation
