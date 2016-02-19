@@ -3,6 +3,8 @@ package com.splicemachine.storage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.base.Throwables;
 import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
@@ -37,6 +39,7 @@ public class SplitRegionScanner implements RegionScanner {
     private Connection connection;
 	protected List<Cell> holderResults = new ArrayList<>();
 	protected boolean holderReturn;
+    private Clock clock;
 
     public SplitRegionScanner(Scan scan,
                               Table table,
@@ -50,6 +53,7 @@ public class SplitRegionScanner implements RegionScanner {
 		this.scan = scan;
 		this.htable = table;
         this.connection = connection;
+        this.clock = clock;
 		boolean hasAdditionalScanners = true;
 		while (hasAdditionalScanners) {
 			try {
@@ -223,17 +227,16 @@ public class SplitRegionScanner implements RegionScanner {
         if (!rethrow) {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "exception logged creating split region scanner %s", StringUtils.stringifyException(e));
-            try {
-                Thread.sleep(200);
-            } catch (Exception ex) {
-            }
+            try{
+                clock.sleep(200l,TimeUnit.MILLISECONDS);
+            }catch(InterruptedException ignored){ }
         }
 
         return rethrow;
     }
 
     public List<Partition> getPartitionsInRange(Partition partition, Scan scan) {
-        List<Partition> partitions = null;
+        List<Partition> partitions;
         boolean refresh = false;
         while (true) {
             partitions = partition.subPartitions(scan.getStartRow(), scan.getStopRow(),refresh);

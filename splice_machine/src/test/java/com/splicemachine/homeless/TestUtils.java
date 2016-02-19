@@ -3,11 +3,7 @@ package com.splicemachine.homeless;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 import com.google.common.collect.Lists;
@@ -22,6 +18,37 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 public class TestUtils {
 
+    public static long baseTableConglomerateId(Connection conn, String schema, String table) throws SQLException{
+        /*
+         * This is a needlessly-complicated and annoying way of doing this,
+	     * because *when it was written*, the metadata information was kind of all messed up
+	     * and doing a join between systables and sysconglomerates resulted in an error. When you are
+	     * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
+	     * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
+	     * some ugly-ass code. Good luck to you.
+	     *
+	     */
+        try(PreparedStatement ps = conn.prepareStatement("select c.conglomeratenumber from "+
+                "sys.systables t, sys.sysconglomerates c,sys.sysschemas s "+
+                "where t.tableid = c.tableid "+
+                "and s.schemaid = t.schemaid "+
+                "and c.isindex = false "+
+                "and t.tablename = ? "+
+                "and s.schemaname = ?")){
+            ps.setString(1,table);
+            ps.setString(2,schema);
+            try(ResultSet rs=ps.executeQuery()){
+                if(rs.next()){
+                    long aLong=rs.getLong(1);
+                    if(rs.next())
+                        throw new IllegalStateException("More than one non-index conglomerate was found for table "+schema+"."+table+"!");
+                    return aLong;
+                }else{
+                    throw new IllegalStateException("No conglomerate found for table "+schema+"."+table);
+                }
+            }
+        }
+    }
 
     public static void executeSql(Connection connection, String sqlStatements, String schema) {
         try {
@@ -61,7 +88,7 @@ public class TestUtils {
 
     private static List<Map> resultSetToOrderedMaps(ResultSet rs) throws SQLException{
 
-        List<Map> results = new ArrayList<Map>();
+        List<Map> results =new ArrayList<>();
 
         while(rs.next()){
             results.add(resultSetToOrderedMap(rs));
@@ -71,7 +98,7 @@ public class TestUtils {
     }
 
     private static Map<String, Object> resultSetToOrderedMap(ResultSet rs) throws SQLException {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        Map<String, Object> result =new LinkedHashMap<>();
         ResultSetMetaData rsmd = rs.getMetaData();
         int cols = rsmd.getColumnCount();
 
@@ -84,7 +111,7 @@ public class TestUtils {
 
     public static List<Map> resultSetToMaps(ResultSet rs) throws SQLException{
 
-        List<Map> results = new ArrayList<Map>();
+        List<Map> results =new ArrayList<>();
         BasicRowProcessor brp = new BasicRowProcessor();
 
         while(rs.next()){
@@ -95,7 +122,7 @@ public class TestUtils {
     }
 
     public static List<Object[]> resultSetToArrays(ResultSet rs) throws SQLException {
-        List<Object[]> results = new ArrayList<Object[]>();
+        List<Object[]> results =new ArrayList<>();
         BasicRowProcessor brp = new BasicRowProcessor();
 
         while (rs.next()){
