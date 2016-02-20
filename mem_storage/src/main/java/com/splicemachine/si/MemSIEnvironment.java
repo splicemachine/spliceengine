@@ -42,6 +42,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final OperationFactory opFactory = new MOperationFactory(clock);
     private final TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
     private final KeepAliveScheduler kaScheduler = new ManualKeepAliveScheduler(txnStore);
+    private final MPartitionCache partitionCache = new MPartitionCache();
     private final SConfiguration config;
 
     private transient SIDriver siDriver;
@@ -56,6 +57,7 @@ public class MemSIEnvironment implements SIEnvironment{
         this.config=new MapConfiguration();
         config.addDefaults(SIConfigurations.defaults);
         this.ignoreSupplier = new IgnoreTxnCacheSupplier(opFactory,tableFactory);
+        partitionCache.configure(config);
     }
 
     @Override
@@ -117,7 +119,7 @@ public class MemSIEnvironment implements SIEnvironment{
 
     @Override
     public PartitionInfoCache partitionInfoCache(){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        return partitionCache;
     }
 
     @Override
