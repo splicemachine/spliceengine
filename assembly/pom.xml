@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <version>2.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -23,7 +22,6 @@
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
     </repositories>
-
     <!--
     The Shade plugin creates an uber-jar based on the profile which is set. Each profile
     determines a different dependency chain, which is uber-included.
@@ -83,20 +81,20 @@
                             </filters>
                             <artifactSet>
                                 <includes>
-                                   <include>com.carrotsearch:hppc</include>
-                                   <include>com.esotericsoftware.kryo:kryo</include>
-                                   <include>com.google.code.gson:gson</include>
-                                   <include>com.google.protobuf:protobuf-java</include>
-                                   <include>com.lmax:disruptor</include>
-                                   <include>de.javakaffee:kryo-serializers</include>
-                                   <include>net.sf.ehcache:ehcache-core</include>
-                                   <include>net.sf.opencsv:opencsv</include>
-                                   <include>net.sf.supercsv:super-csv</include>
-                                   <include>org.apache.lucene:lucene-core</include>
-                                   <include>org.apache.spark</include>
-                                   <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
-                                   <include>com.splicemachine.db-project:*</include>
-                                   <include>com.splicemachine:*</include>
+                                    <include>com.carrotsearch:hppc</include>
+                                    <include>com.esotericsoftware.kryo:kryo</include>
+                                    <include>com.google.code.gson:gson</include>
+                                    <include>com.google.protobuf:protobuf-java</include>
+                                    <include>com.lmax:disruptor</include>
+                                    <include>de.javakaffee:kryo-serializers</include>
+                                    <include>net.sf.ehcache:ehcache-core</include>
+                                    <include>net.sf.opencsv:opencsv</include>
+                                    <include>net.sf.supercsv:super-csv</include>
+                                    <include>org.apache.lucene:lucene-core</include>
+                                    <include>org.apache.spark</include>
+                                    <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
+                                    <include>com.splicemachine.db-project:*</include>
+                                    <include>com.splicemachine:*</include>
                                 </includes>
                             </artifactSet>
                             <finalName>spliceengine-${envClassifier}-complete-${project.version}</finalName>
@@ -106,7 +104,6 @@
             </plugin>
         </plugins>
     </build>
-
     <profiles>
         <profile>
             <id>mem</id>
