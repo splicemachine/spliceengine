@@ -835,6 +835,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     		.ownerClass(SpliceAdmin.class.getCanonicalName())
                     		.sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                     		.build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_OWNER")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
                 }
 
             } // End iteration through map keys (schema UUIDs)

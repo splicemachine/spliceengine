@@ -1,12 +1,18 @@
 package com.splicemachine.derby.security;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUserWatcher;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
+import java.util.Properties;
+
+import static org.junit.Assert.fail;
 
 public class AuthenticationIT {
 
@@ -65,4 +71,15 @@ public class AuthenticationIT {
     }
 
 
+    //DB-4618
+    @Test
+    public void invalidDbname() throws SQLException {
+        String url = "jdbc:splice://localhost:1527/anotherdb;user=user;password=passwd";
+        try {
+            DriverManager.getConnection(url, new Properties());
+            fail("Expected authentication failure");
+        } catch (SQLNonTransientConnectionException e) {
+            Assert.assertTrue(e.getSQLState().compareTo("08004")==0);
+        }
+    }
 }
