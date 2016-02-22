@@ -17,18 +17,6 @@
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
     </repositories>
-    <!--
-    <properties>
-        <splice.jar.basename>${project.artifactId}-${project.version}-${envClassifier}_complete.jar</splice.jar.basename>
-        <splice.jar>${project.build.directory}/${splice.jar.basename}</splice.jar>
-    </properties>
--->
-    <!--
-    The Shade plugin creates an uber-jar based on the profile which is set. Each profile
-    determines a different dependency chain, which is uber-included.
-
-    TODO -sf- can we change how we shade based on different profiles? Do we need to?
-    -->
     <build>
         <plugins>
             <plugin>
@@ -89,31 +77,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <file>${project.artifactId}-${project.version}-${envClassifier}_complete.jar</file>
-                    <repositoryId>splicemachine</repositoryId>
-                    <url>http://nexus.splicemachine.com/nexus/content/repositories/releases/</url>
-                    <groupId>${groupId}</groupId>
-                    <artifactId>${project.artifactId}-${project.version}</artifactId>
-                    <classifier>${envClassifier}_complete</classifier>
-                    <version>${project.version}</version>
-                    <packaging>jar</packaging>
-                    <generatePom>true</generatePom>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>deploy-file</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-			-->
         </plugins>
     </build>
     <profiles>
