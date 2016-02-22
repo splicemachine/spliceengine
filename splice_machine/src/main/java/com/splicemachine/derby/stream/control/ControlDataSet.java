@@ -6,6 +6,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 
+import com.google.common.util.concurrent.Futures;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -32,6 +33,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Future;
 
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 
@@ -54,6 +56,13 @@ public class ControlDataSet<V> implements DataSet<V> {
         List<V> rows =new ArrayList<>();
         for(V anIterable : iterable) rows.add(anIterable);
         return rows;
+    }
+
+    @Override
+    public Future<List<V>> collectAsync() {
+        List<V> rows =new ArrayList<>();
+        for(V anIterable : iterable) rows.add(anIterable);
+        return Futures.immediateFuture(rows);
     }
 
     @Override

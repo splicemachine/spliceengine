@@ -3,10 +3,10 @@ package com.splicemachine.derby.stream.iapi;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
-
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Future;
 
 /**
  * Stream of data acting on a single type of values.
@@ -14,6 +14,8 @@ import java.util.List;
 public interface DataSet<V> extends Iterable<V>, Serializable {
 
     List<V> collect();
+
+    Future<List<V>> collectAsync();
 
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 

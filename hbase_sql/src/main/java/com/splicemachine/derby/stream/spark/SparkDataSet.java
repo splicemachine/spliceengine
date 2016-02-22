@@ -27,6 +27,7 @@ import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -52,6 +53,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public List<V> collect() {
         return rdd.collect();
+    }
+
+    @Override
+    public Future<List<V>> collectAsync() {
+        return rdd.collectAsync();
     }
 
     @Override

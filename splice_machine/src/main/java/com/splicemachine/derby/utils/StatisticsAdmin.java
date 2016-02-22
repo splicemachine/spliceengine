@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -24,14 +26,10 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.control.ControlDataSet;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
@@ -46,10 +44,11 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
+import javax.annotation.Nullable;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 
 /**
@@ -150,7 +149,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             TransactionController tc = lcc.getTransactionExecute();
 
-
             SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
@@ -167,20 +165,16 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
-            boolean first = true;
             DataSet<ExecRow> dataSet = null;
 
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
+            List<Future<List<LocatedRow>>> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                if (first) {
-                    dataSet = collectTableStatistics(td, txn, conn);
-                    first = false;
-                } else
-                    dataSet = dataSet.union(collectTableStatistics(td, txn, conn), null, true, "Union");
+                    futures.add(collectTableStatistics(td, txn, conn).collectAsync());
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-            displayTableStatistics(dataSet,dd,transactionExecute,display));
+            displayTableStatistics(futures,dd,transactionExecute,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -247,9 +241,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(collectTableStatistics(tableDesc, txn, conn),dd,tc,display));
+                    displayTableStatistics(Lists.newArrayList(collectTableStatistics(tableDesc, txn, conn).collectAsync()),dd,tc,display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
-
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (ExecutionException e) {
@@ -307,14 +300,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private static DataSet<ExecRow> collectTableStatistics(TableDescriptor table,
+    private static DataSet<LocatedRow> collectTableStatistics(TableDescriptor table,
                                                            TxnView txn,
                                                            EmbedConnection conn) throws StandardException, ExecutionException {
 
        return collectBaseTableStatistics(table, txn, conn);
     }
 
-    private static DataSet collectBaseTableStatistics(TableDescriptor table,
+    private static DataSet<LocatedRow> collectBaseTableStatistics(TableDescriptor table,
                                                       TxnView txn,
                                                       EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
@@ -337,7 +330,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return conglomerate.getFormat_ids();
     }
 
-    private static DataSet createTableScanner(ScanSetBuilder builder,
+    private static DataSet<LocatedRow> createTableScanner(ScanSetBuilder builder,
                                               EmbedConnection conn,
                                               TableDescriptor table,
                                               TxnView txn) throws StandardException{
@@ -587,20 +580,28 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
 
-    public static Iterable displayTableStatistics(final DataSet dataSet, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
-        return new ControlDataSet(dataSet).flatMap(new SpliceFlatMapFunction<SpliceOperation,LocatedRow,ExecRow>() {
+    public static Iterable displayTableStatistics(List<Future<List<LocatedRow>>> futures, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
+        return FluentIterable.from(futures).transformAndConcat(new Function<Future<List<LocatedRow>>, Iterable<ExecRow>>() {
+            @Nullable
             @Override
-            public Iterable<ExecRow> call(LocatedRow locatedRow) throws Exception {
-                ExecRow execRow = locatedRow.getRow();
-                if (locatedRow.getRow().nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                    dataDictionary.addColumnStatistics(execRow,tc);
-                    return Collections.emptyList();
-                } else {
-                    dataDictionary.addTableStatistics(execRow, tc);
-                    Pair<String,String> pair = displayPair.get(execRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
-                    return Collections.singletonList(generateOutputRow(pair.getFirst(),pair.getSecond(),execRow));
+            public Iterable<ExecRow> apply(@Nullable Future<List<LocatedRow>> input) {
+                try {
+                    List<LocatedRow> rows = input.get();
+                    List<ExecRow> outputList = new ArrayList();
+                    for (LocatedRow locatedRow: rows) {
+                        ExecRow row = locatedRow.getRow();
+                        if (row.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
+                            dataDictionary.addColumnStatistics(row,tc);
+                        } else {
+                            dataDictionary.addTableStatistics(row, tc);
+                            Pair<String,String> pair = displayPair.get(row.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
+                            outputList.add(generateOutputRow(pair.getFirst(),pair.getSecond(),row));
+                        }
+                    }
+                    return outputList;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
-
             }
         });
     }
