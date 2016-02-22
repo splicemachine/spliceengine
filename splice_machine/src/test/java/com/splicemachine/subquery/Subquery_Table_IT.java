@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
  * Test table subqueries -- subqueries that can return multiple rows and columns.  These can appear only in FROM,
  * IN, ALL, ANY, or EXISTS parts of the enclosing query.
  */
-@Ignore("DB-4628")
 public class Subquery_Table_IT {
 
     private static final String SCHEMA = Subquery_Table_IT.class.getSimpleName();
