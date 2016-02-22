@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
-    <artifactId>assembly</artifactId>
+    <artifactId>splice_machine-assembly</artifactId>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
     <description>Assembly module for SpliceMachine</description>
@@ -92,7 +92,9 @@
                                     <include>com.splicemachine:*</include>
                                 </includes>
                             </artifactSet>
-                            <finalName>spliceengine-${envClassifier}-complete-${project.version}</finalName>
+                            <finalName>${project.artifactId}-${project.version}-${envClassifier}</finalName>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>complete</shadedClassifierName>
                         </configuration>
                     </execution>
                 </executions>
