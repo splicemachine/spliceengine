@@ -21,6 +21,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.Partition;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
@@ -212,10 +213,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         // no op
     }
 
-    private class TextFileIterator implements Iterator<String>{
+    private static class TextFileIterator implements Iterator<String>{
 
         Scanner scanner;
 
+        @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING",justification = "-sf- I don't know why this is a problem")
         public TextFileIterator(InputStream inputStream){
             this.scanner=new Scanner(inputStream);
         }

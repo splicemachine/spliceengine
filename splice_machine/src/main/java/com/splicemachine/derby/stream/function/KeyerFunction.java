@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -17,6 +18,7 @@ public class KeyerFunction<T extends KeyableRow> extends SpliceFunction<SpliceOp
     public KeyerFunction() {
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public KeyerFunction(OperationContext<SpliceOperation> operationContext, int[] keyColumns) {
         super(operationContext);
         this.keyColumns = keyColumns;

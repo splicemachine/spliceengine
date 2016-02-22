@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnStatsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -42,7 +43,7 @@ public class PartitionStatsStore {
 
 
     public static OverheadManagedTableStatistics getStatistics(long conglomerateId, TransactionController tc) throws StandardException {
-        byte[] table = Long.toString(conglomerateId).getBytes();
+        byte[] table = Bytes.toBytes(Long.toString(conglomerateId));
         List<Partition> partitions = new ArrayList<>();
         getPartitions(table, partitions);
         List<String> partitionNames =Lists.transform(partitions,partitionNameTransform);

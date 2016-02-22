@@ -21,6 +21,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 
@@ -104,6 +105,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> execRowTypeFormatIds(int[] execRowTypeFormatIds){
         assert execRowTypeFormatIds!=null:"Null ExecRow formatIDs are not allowed!";
         this.execRowTypeFormatIds=execRowTypeFormatIds;
@@ -131,6 +133,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
      * @return a Builder with the rowDecodingMap set.
      */
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> rowDecodingMap(int[] rowDecodingMap){
         assert rowDecodingMap!=null:"Null column maps are not allowed";
         this.rowColumnMap=rowDecodingMap;
@@ -162,6 +165,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
      * @return a Builder with the keyColumnEncodingOrder set
      */
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> keyColumnEncodingOrder(int[] keyColumnEncodingOrder){
         this.keyColumnEncodingOrder=keyColumnEncodingOrder;
         return this;
@@ -177,6 +181,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
      * @return a builder with keyColumnSortOrder set
      */
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> keyColumnSortOrder(boolean[] keyColumnSortOrder){
         this.keyColumnSortOrder=keyColumnSortOrder;
         return this;
@@ -191,6 +196,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
      * @return a Builder with the key column types set
      */
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> keyColumnTypes(int[] keyColumnTypes){
         this.keyColumnTypes=keyColumnTypes;
         return this;
@@ -209,6 +215,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
      * @return a Builder with the key decoding map set.
      */
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> keyDecodingMap(int[] keyDecodingMap){
         this.keyDecodingMap=keyDecodingMap;
         return this;
@@ -270,12 +277,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> fieldLengths(int[] fieldLengths){
         this.fieldLengths=fieldLengths;
         return this;
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ScanSetBuilder<V> columnPositionMap(int[] columnPositionMap){
         this.columnPositionMap=columnPositionMap;
         return this;

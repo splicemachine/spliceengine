@@ -16,6 +16,7 @@ import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -165,6 +166,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         return columnOrdering;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void setColumnOrdering(int[] columnOrdering){
         this.columnOrdering=columnOrdering;
     }

@@ -9,6 +9,8 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -72,6 +74,7 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	 *  @param positionedUpdate	is this a positioned update
 	 *  @param singleRowSource		Whether or not source is a single row source
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	UpdateConstantOperation(long conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
                                 int[] pkColumns,
@@ -93,7 +96,7 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 								boolean positionedUpdate,
 								boolean singleRowSource) {
 		super(conglomId, heapSCOCI, pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames, 
-			deferred, (Properties) null, targetUUID, lockMode, fkInfo, triggerInfo, emptyHeapRow, 
+			deferred,null, targetUUID, lockMode, fkInfo, triggerInfo, emptyHeapRow,
 			baseRowReadList, baseRowReadMap, streamStorableHeapColIds, singleRowSource);
 		this.changedColumnIds = changedColumnIds;
 		this.positionedUpdate = positionedUpdate;

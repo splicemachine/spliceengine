@@ -23,6 +23,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -69,7 +70,8 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 	 *  @param providerInfo Information on all the Providers
 	 *  @param compSchemaId 	Compilation Schema Id
 	 */
-	public CreateViewConstantOperation(String schemaName, String tableName, int tableType, String viewText, 
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+	public CreateViewConstantOperation(String schemaName, String tableName, int tableType, String viewText,
 			int checkOption, ColumnInfo[] columnInfo, ProviderInfo[] providerInfo, UUID compSchemaId) {
 		SpliceLogUtils.trace(LOG, "CreateViewConstantOperation for %s.%s with view creation text {%s}",schemaName, tableName, viewText);
 		this.schemaName = schemaName;

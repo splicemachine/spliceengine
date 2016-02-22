@@ -23,6 +23,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public int rowsUpdated=0;
     protected OperationContext operationContext;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdatePipelineWriter(long heapConglom,int[] formatIds,int[] columnOrdering,
                                 int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{

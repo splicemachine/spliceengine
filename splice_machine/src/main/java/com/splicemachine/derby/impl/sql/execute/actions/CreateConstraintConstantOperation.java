@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -68,6 +69,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 	 *	@param otherConstraint 	information about the constraint that this references
 	 *  @param providerInfo Information on all the Providers
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public CreateConstraintConstantOperation(
 		               String	constraintName,
 					   int		constraintType,

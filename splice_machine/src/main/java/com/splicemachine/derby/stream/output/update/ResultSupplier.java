@@ -7,6 +7,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  *
@@ -32,6 +33,7 @@ public class ResultSupplier{
         this.heapConglom = heapConglom;
     }
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public void setLocation(byte[] location){
         this.location = location;
         this.result = null;

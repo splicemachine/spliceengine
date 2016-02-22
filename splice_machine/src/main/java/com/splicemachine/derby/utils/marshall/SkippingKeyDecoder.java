@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -65,6 +66,7 @@ public class SkippingKeyDecoder implements KeyHashDecoder{
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void set(byte[] bytes,int hashOffset,int length){
         this.bytes=bytes;
         this.offset=hashOffset;

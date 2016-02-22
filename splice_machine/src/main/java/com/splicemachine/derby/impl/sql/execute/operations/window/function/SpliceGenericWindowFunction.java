@@ -13,6 +13,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Base class for all window functions. Contains frame "chucking" mechanism for
@@ -163,6 +164,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
             return previous;
         }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
         public void setPrevious(DataValueDescriptor[] previousValues) {
             this.previous = previousValues;
         }

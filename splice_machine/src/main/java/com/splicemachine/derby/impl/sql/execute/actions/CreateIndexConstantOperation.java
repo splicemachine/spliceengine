@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -195,6 +196,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
      *                                      associated with the index.
      */
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateIndexConstantOperation(
             boolean         forCreateTable,
             boolean			unique,

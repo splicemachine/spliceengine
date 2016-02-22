@@ -20,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -145,6 +146,7 @@ public class SpliceObserverInstructions implements Externalizable{
 
         }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
         public ActivationContext(ParameterValueSet pvs,
                                  boolean statementAtomic,boolean statementReadOnly,
                                  String stmtText,boolean stmtRollBackParentContext,long stmtTimeout,

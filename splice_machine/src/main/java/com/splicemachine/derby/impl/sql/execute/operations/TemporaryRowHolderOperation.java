@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 import com.splicemachine.derby.impl.sql.execute.TemporaryRowHolderImpl;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
 * A result set to scan temporary row holders.  Ultimately, this
@@ -118,8 +119,8 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
 	 *
 	 * @param rowArray the row array
 	 */
-	public void reset(ExecRow[]	rowArray)
-	{
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+	public void reset(ExecRow[]	rowArray) {
 		this.rowArray = rowArray;
 		this.numRowsOut = 0;
 		isOpen = false;

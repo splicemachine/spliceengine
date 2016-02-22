@@ -75,7 +75,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                          String indexNameForStatistics) {
         super(sd, tableName, tableId,
                 columnInfo, constraintActions,
-                lockGranularity, behavior, indexNameForStatistics);
+                behavior, indexNameForStatistics);
     }
 
     @Override protected boolean waitsForConcurrentTransactions() { return true; }

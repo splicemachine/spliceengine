@@ -11,6 +11,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.ObjectOutput;
@@ -58,6 +59,7 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
 	 *  @param numColumns	Number of columns to read.
 	 *  @param singleRowSource		Whether or not source is a single row source
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	DeleteConstantOperation(
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
@@ -83,8 +85,8 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
                 pkColumns,
 			   irgs, indexCIDS, indexSCOCIs,
 			   null, // index names not needed for delete.
-			   deferred, 
-			   (Properties) null,
+			   deferred,
+				null,
 			   targetUUID,
 			   lockMode,
 			   fkInfo,

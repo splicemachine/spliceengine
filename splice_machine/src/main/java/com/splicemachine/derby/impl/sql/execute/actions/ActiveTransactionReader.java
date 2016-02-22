@@ -4,6 +4,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -16,6 +17,7 @@ public class ActiveTransactionReader {
     private final long maxTxnId;
     private final byte[] writeTable;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ActiveTransactionReader(long minTxnId, long maxTxnId, byte[] writeTable){
         this.minTxnId = minTxnId;
         this.maxTxnId = maxTxnId;

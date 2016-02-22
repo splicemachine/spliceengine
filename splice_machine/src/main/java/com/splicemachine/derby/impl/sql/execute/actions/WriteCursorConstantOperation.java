@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 /**
@@ -94,6 +95,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
      *  @param streamStorableHeapColIds Null for non rep. (0 based)
 	 *  @param singleRowSource		Whether or not source is a single row source
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	WriteCursorConstantOperation(
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,

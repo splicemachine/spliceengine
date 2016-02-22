@@ -5,6 +5,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.impl.jdbc.Util;
@@ -124,7 +125,7 @@ public class TableSplit{
                 pos = Encoding.encode(Integer.parseInt(split));
             }catch(NumberFormatException nfe){
                 //not an integer, so assume you know what you're doing.
-                pos = Encoding.encode(split.getBytes());
+                pos = Encoding.encode(Bytes.toBytes(split));
             }
             sps.add(pos);
         }

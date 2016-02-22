@@ -4,6 +4,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.ddl.DDLConfiguration;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.Stream;
@@ -874,7 +875,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         if (!waitsForConcurrentTransactions()) {
             return -1l;
         }
-        byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
+        byte[] conglomBytes = Bytes.toBytes(Long.toString(tableConglomId));
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
 		SConfiguration config =EngineDriver.driver().getConfiguration();

@@ -3,6 +3,8 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.*;
 import java.util.Comparator;
 
@@ -17,6 +19,8 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
     public RowComparator() {
         nullsOrderedLow = true;
     }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public RowComparator(boolean[] descColumns, boolean nullsOrderedLow) {
         this.descColumns = descColumns;
         this.nullsOrderedLow = nullsOrderedLow;
@@ -44,6 +48,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
     }
 
     @Override
+    @SuppressFBWarnings(value = "RV_NEGATING_RESULT_OF_COMPARETO",justification = "Intentional")
     public int compare(ExecRow o1, ExecRow o2) {
         DataValueDescriptor[] a1 = o1.getRowArray();
         DataValueDescriptor[] a2 = o2.getRowArray();
@@ -59,7 +64,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
             if (result != 0) {
                 if (nullsOrderedLow && (c1.isNull() || c2.isNull()))
                     return result; // nulls go first independently of descColumns
-                return descColumns==null ||descColumns[i] ? result : -result;
+                return (descColumns==null ||descColumns[i]) ? result : -result;
             }
         }
         return 0;

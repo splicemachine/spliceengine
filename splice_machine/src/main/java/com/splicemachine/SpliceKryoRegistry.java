@@ -284,9 +284,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
             @Override
             protected void readValue(Kryo kryo,Input input,SQLBit dvd) throws StandardException{
-                byte[] data=new byte[input.readInt()];
+                int size=input.readInt();
+                byte[] data=new byte[size];
                 //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                int bytesRead=input.read(data);
+                assert bytesRead == size: "Did not read entire data point!";
                 dvd.setValue(data);
             }
         },33);
@@ -300,9 +302,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
             @Override
             protected void readValue(Kryo kryo,Input input,SQLVarbit dvd) throws StandardException{
-                byte[] data=new byte[input.readInt()];
-                //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                int size=input.readInt();
+                byte[] data=new byte[size];
+                int read=input.read(data);
+                assert read== size: "Did not read entire data";
                 dvd.setValue(data);
             }
         },34);
@@ -316,9 +319,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
             @Override
             protected void readValue(Kryo kryo,Input input,SQLLongVarbit dvd) throws StandardException{
-                byte[] data=new byte[input.readInt()];
-                //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                int size=input.readInt();
+                byte[] data=new byte[size];
+                int read=input.read(data);
+                assert read==size: "Did not read entire data";
                 dvd.setValue(data);
             }
         },35);
@@ -544,9 +548,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
             @Override
             protected void readValue(Kryo kryo,Input input,SQLBlob dvd) throws StandardException{
-                byte[] data=new byte[input.readInt()];
-                //noinspection ResultOfMethodCallIgnored
-                input.read(data);
+                int size=input.readInt();
+                byte[] data=new byte[size];
+                int read = input.read(data);
+                assert read==size: "Did not read entire data line!";
                 dvd.setValue(data);
             }
         },132);
@@ -800,7 +805,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerInfo.class,EXTERNALIZABLE_SERIALIZER,253);
         instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER,254);
         instance.register(GenericPreparedStatement.class,EXTERNALIZABLE_SERIALIZER,255);
-        instance.register(TentativeDropPKConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,256);
+//        instance.register(TentativeDropPKConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,256);
         instance.register(TriggerExecutionStack.class,EXTERNALIZABLE_SERIALIZER,257);
         instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER,258);
         instance.register(BatchOnceOperation.class,EXTERNALIZABLE_SERIALIZER,261);

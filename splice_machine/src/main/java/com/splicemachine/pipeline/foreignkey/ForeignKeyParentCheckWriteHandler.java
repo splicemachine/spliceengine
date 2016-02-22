@@ -12,6 +12,8 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler{
     private final MultiFieldDecoder multiFieldDecoder;
     private final TypeProvider typeProvider;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public ForeignKeyParentCheckWriteHandler(TransactionalRegion transactionalRegion, int[] formatIds, String parentTableVersion) {
         this.transactionalRegion = transactionalRegion;
         this.formatIds = formatIds;

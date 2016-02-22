@@ -40,6 +40,8 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     public AbstractFileFunction() {
 
     }
+
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public AbstractFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
                         String dateTimeFormat, String timestampFormat, OperationContext operationContext) {
         super(operationContext);

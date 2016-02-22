@@ -22,6 +22,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -56,11 +57,13 @@ public class IndexRowReaderBuilder implements Externalizable{
     private int[] mainTableKeyColumnTypes;
     private TxnView txn;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder indexColumns(int[] indexCols){
         this.indexCols=indexCols;
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds){
         this.execRowTypeFormatIds=execRowTypeFormatIds;
         return this;
@@ -107,26 +110,31 @@ public class IndexRowReaderBuilder implements Externalizable{
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder mainTableRowDecodingMap(int[] mainTableRowDecodingMap){
         this.mainTableRowDecodingMap=mainTableRowDecodingMap;
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder mainTableKeyColumnEncodingOrder(int[] mainTableKeyColumnEncodingOrder){
         this.mainTableKeyColumnEncodingOrder=mainTableKeyColumnEncodingOrder;
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder mainTableKeyColumnTypes(int[] mainTableKeyColumnTypes){
         this.mainTableKeyColumnTypes=mainTableKeyColumnTypes;
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder mainTableKeyColumnSortOrder(boolean[] mainTableKeyColumnSortOrder){
         this.mainTableKeyColumnSortOrder=mainTableKeyColumnSortOrder;
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder mainTableKeyDecodingMap(int[] mainTableKeyDecodingMap){
         this.mainTableKeyDecodingMap=mainTableKeyDecodingMap;
         return this;

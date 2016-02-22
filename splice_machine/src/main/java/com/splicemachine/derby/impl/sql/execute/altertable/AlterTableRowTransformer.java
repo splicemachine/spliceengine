@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.RowTransformer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Used by alter table write interceptors to map rows written in src table to new
@@ -30,6 +31,7 @@ public class AlterTableRowTransformer implements RowTransformer{
     private final int[] columnMapping;
     private final int copyLen;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public AlterTableRowTransformer(ExecRow srcRow,
                                     int[] columnMapping,
                                     ExecRow templateRow,

@@ -8,6 +8,7 @@ import com.splicemachine.pipeline.RowTransformer;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.pipeline.client.WriteCoordinator;
@@ -27,6 +28,7 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
 
     private RecordingCallBuffer<KVPair> recordingCallBuffer;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public AlterTableInterceptWriteHandler(RowTransformer rowTransformer, byte[] newTableName) {
         this.writeCoordinator = PipelineDriver.driver().writeCoordinator();
         this.rowTransformer = rowTransformer;

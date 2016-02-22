@@ -47,7 +47,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                           char lockGranularity,
                                           int behavior,
                                           String indexNameForStatistics) {
-        super(sd,tableName,tableId,null,null,lockGranularity,behavior,indexNameForStatistics);
+        super(sd,tableName,tableId,null,null,behavior,indexNameForStatistics);
     }
 
 

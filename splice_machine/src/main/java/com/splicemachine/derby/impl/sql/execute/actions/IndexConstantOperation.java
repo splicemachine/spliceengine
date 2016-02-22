@@ -10,6 +10,7 @@ import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -124,7 +125,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 
     protected Txn beginChildTransaction(TxnView parentTxn, long indexConglomId) throws IOException{
         TxnLifecycleManager tc = SIDriver.driver().lifecycleManager();
-        return tc.beginChildTransaction(parentTxn,Long.toString(indexConglomId).getBytes());
+        return tc.beginChildTransaction(parentTxn,Bytes.toBytes(Long.toString(indexConglomId)));
     }
 
 	public String getScopeName() {

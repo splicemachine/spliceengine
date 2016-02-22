@@ -21,6 +21,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -89,6 +90,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
      * @param oldReferencingName            old referencing table name, if any, that appears in REFERENCING clause
      * @param newReferencingName            new referencing table name, if any, that appears in REFERENCING clause
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateTriggerConstantOperation(
             String triggerSchemaName,
             String triggerName,

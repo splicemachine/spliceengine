@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -29,6 +30,7 @@ public class PkDataHash implements DataHash<ExecRow> {
     private DataValueDescriptor[] kdvds;
     private DescriptorSerializer[] serializers;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public PkDataHash(int[] keyColumns, DataValueDescriptor[] kdvds,String tableVersion) {
         this.keyColumns = keyColumns;
         this.kdvds = kdvds;

@@ -139,7 +139,6 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         }else{
             return new AlterTableConstantOperation(sd,tableName,tableId,
                     columnInfo,constraintActions,
-                    lockGranularity,
                     behavior,
                     indexNameForStatistics);
         }

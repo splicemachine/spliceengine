@@ -11,6 +11,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -24,6 +25,7 @@ public class PkRowHash extends EntryDataHash{
     private final FormatableBitSet finalHeapList;
     private final int[] colPositionMap;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public PkRowHash(int[] keyColumns,
                      boolean[] keySortOrder,
                      FormatableBitSet finalHeapList,

@@ -8,6 +8,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,6 +34,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected int[] sortColumns;
     private boolean initialized;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public static WindowFrameBuffer createFrameBuffer(
                                                       WindowAggregator[] aggregators,
                                                       Iterator<ExecRow> source,
@@ -51,6 +54,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         }
     }
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public BaseFrameBuffer (WindowAggregator[] aggregators,
                             PeekingIterator<ExecRow> source,
                             FrameDefinition frameDefinition,

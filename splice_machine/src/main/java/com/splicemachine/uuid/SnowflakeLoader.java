@@ -41,7 +41,7 @@ public class SnowflakeLoader{
 
         //get this machine's IP address
         byte[] localAddress=Bytes.concat(Arrays.asList(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port)));
-        byte[] counterNameRow=SIConstants.MACHINE_ID_COUNTER.getBytes();
+        byte[] counterNameRow=Bytes.toBytes(SIConstants.MACHINE_ID_COUNTER);
         try(Partition sequenceTable = tableFactory.getTable(OperationConfiguration.SEQUENCE_TABLE_NAME)){
             DataScan scan = opFactory.newDataScan(null)
                     .batchCells(100)
@@ -106,7 +106,7 @@ public class SnowflakeLoader{
     }
 
     public synchronized void unload() throws Exception{
-        byte[] counterNameRow=SIConstants.MACHINE_ID_COUNTER.getBytes();
+        byte[] counterNameRow=Bytes.toBytes(SIConstants.MACHINE_ID_COUNTER);
         SIDriver driver=SIDriver.driver();
         try(Partition table = driver.getTableFactory().getTable(OperationConfiguration.SEQUENCE_TABLE_NAME)){
             DataPut put=driver.getOperationFactory().newDataPut(null,counterNameRow);

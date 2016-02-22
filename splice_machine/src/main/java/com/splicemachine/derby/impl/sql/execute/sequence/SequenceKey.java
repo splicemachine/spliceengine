@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.tools.ResourcePool;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Arrays;
 
@@ -16,6 +17,7 @@ public class SequenceKey implements ResourcePool.Key{
     protected long autoIncStart;
     protected long autoIncrement;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public SequenceKey(
             byte[] sysColumnsRow,
             long blockAllocationSize,

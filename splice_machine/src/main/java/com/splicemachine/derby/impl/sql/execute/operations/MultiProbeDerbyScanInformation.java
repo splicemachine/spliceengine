@@ -11,6 +11,8 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.storage.DataScan;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -26,6 +28,8 @@ import java.util.List;
 public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     private DataValueDescriptor[] probeValues;
     private DataValueDescriptor probeValue;
+
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MultiProbeDerbyScanInformation(String resultRowAllocatorMethodName,
                                           String startKeyGetterMethodName,
                                           String stopKeyGetterMethodName,

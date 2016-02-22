@@ -14,8 +14,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
  */
 @SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
-public class IndexRow extends ValueRow implements ExecIndexRow
-{
+public class IndexRow extends ValueRow implements ExecIndexRow {
 	///////////////////////////////////////////////////////////////////////
 	//
 	//	STATE
@@ -31,7 +30,10 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 	//
 	///////////////////////////////////////////////////////////////////////
 
-	public IndexRow(int ncols) {
+
+    public IndexRow(){ }
+
+    public IndexRow(int ncols) {
 		 super(ncols);
 		 orderedNulls = new boolean[ncols];	/* Initializes elements to false */
 	}

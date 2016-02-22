@@ -11,6 +11,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.client.WriteCoordinator;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 
 import java.util.concurrent.Callable;
@@ -31,7 +32,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     public AbstractPipelineWriter(TxnView txn,long heapConglom) {
         this.txn = txn;
         this.heapConglom = heapConglom;
-        destinationTable = Long.toString(heapConglom).getBytes();
+        destinationTable = Bytes.toBytes(Long.toString(heapConglom));
     }
 
     @Override

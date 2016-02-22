@@ -15,6 +15,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import com.google.common.io.Closeables;
@@ -253,7 +254,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             fileOut = Files.newOutputStream(file);
             Iterator iterator = iterable.iterator();
             while (iterator.hasNext()) {
-                fileOut.write(iterator.next().toString().getBytes());
+                fileOut.write(Bytes.toBytes(iterator.next().toString()));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -288,7 +289,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                     public Integer call(OutputStream os,Iterator<String> iterator) throws Exception{
                         int size = 0;
                         while(iterator.hasNext()){
-                           os.write(iterator.next().getBytes());
+                           os.write(Bytes.toBytes(iterator.next()));
                             size++;
                         }
                         return size;

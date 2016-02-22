@@ -12,6 +12,7 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import java.io.Externalizable;
@@ -105,6 +106,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdateDataSetWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
         assert execRowTypeFormatIds != null :"execRowTypeFormatIds Cannot Be null!";
         this.execRowTypeFormatIds = execRowTypeFormatIds;
@@ -119,6 +121,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdateDataSetWriterBuilder formatIds(int[] formatIds) {
         assert formatIds != null :"Format ids cannot be null";
         this.formatIds = formatIds;
@@ -146,12 +149,14 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdateDataSetWriterBuilder columnOrdering(int[] columnOrdering) {
         this.columnOrdering = columnOrdering;
         return this;
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdateDataSetWriterBuilder pkCols(int[] pkCols) {
         this.pkCols = pkCols;
         return this;

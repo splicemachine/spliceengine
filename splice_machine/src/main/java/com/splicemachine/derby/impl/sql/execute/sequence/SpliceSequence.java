@@ -6,6 +6,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -13,7 +14,7 @@ import java.io.ObjectOutput;
 
 public class SpliceSequence extends AbstractSequence{
     protected byte[] sysColumnsRow;
-    protected static final byte[] autoIncrementValueQualifier=Encoding.encode(7);
+    static final byte[] autoIncrementValueQualifier=Encoding.encode(7);
     private PartitionFactory partitionFactory;
     private TxnOperationFactory opFactory;
 
@@ -21,6 +22,7 @@ public class SpliceSequence extends AbstractSequence{
         super();
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public SpliceSequence(long blockAllocationSize,byte[] sysColumnsRow,
                           long startingValue,
                           long incrementSteps,
@@ -74,7 +76,9 @@ public class SpliceSequence extends AbstractSequence{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
-        sysColumnsRow=new byte[in.readInt()];
-        in.read(sysColumnsRow);
+        int size=in.readInt();
+        sysColumnsRow=new byte[size];
+        int read=in.read(sysColumnsRow);
+        assert read==size: "Did not read entire byte array!";
     }
 }

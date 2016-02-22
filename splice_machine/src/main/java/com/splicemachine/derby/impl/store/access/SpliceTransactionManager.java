@@ -1675,7 +1675,7 @@ public class SpliceTransactionManager implements XATransactionController,
         assert tableName !=null : "Programmer error: cannot elevate a transaction without specifying a label";
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before elevate: txn=%s, tableName=%s, nestedTxnStack=\n%s", getRawTransaction(), tableName, getNestedTransactionStackString());
-        ((SpliceTransaction)rawtran).elevate(tableName.getBytes());
+        ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(tableName));
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "After elevate: txn=%s, nestedTxnStack=\n%s", getRawTransaction(), getNestedTransactionStackString());
     }

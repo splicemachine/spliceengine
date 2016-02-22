@@ -26,7 +26,7 @@ import com.splicemachine.primitives.Bytes;
 /**
  * Tentative constraint descriptor. Serves for both add and drop constraint currently.
  */
-public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor, Externalizable {
+public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor {
     private String tableVersion;
     private long newConglomId;
     private long oldConglomId;
@@ -89,7 +89,8 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
         return builder;
     }
 
-    @Override
+    //Todo -sf- we can remove this once we are comfortable not making it externalizable
+//    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(tableVersion);
         out.writeLong(newConglomId);
@@ -102,7 +103,7 @@ public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor imple
         }
     }
 
-    @Override
+//    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         tableVersion = (String) in.readObject();
         newConglomId = in.readLong();

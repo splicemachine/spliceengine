@@ -32,6 +32,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -469,6 +470,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         return ascDescInfo;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void setAscDescInfo(boolean[] ascDescInfo){
         this.ascDescInfo=ascDescInfo;
     }

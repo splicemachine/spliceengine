@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -25,6 +26,7 @@ public class PredicateBuilder{
 
     private ObjectArrayList<Predicate> predicates=ObjectArrayList.newInstance();
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public PredicateBuilder(int[] keyEncodingMap,
                             boolean[] keyColumnSortOrder,
                             int[] columnTypes,

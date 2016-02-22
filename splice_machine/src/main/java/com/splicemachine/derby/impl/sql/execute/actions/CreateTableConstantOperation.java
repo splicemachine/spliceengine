@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,6 +55,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
      * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
      * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateTableConstantOperation(
             String			schemaName,
             String			tableName,

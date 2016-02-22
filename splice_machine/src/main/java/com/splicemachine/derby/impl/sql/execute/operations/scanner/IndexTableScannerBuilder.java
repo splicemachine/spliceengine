@@ -9,6 +9,7 @@ import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -22,6 +23,7 @@ public abstract class IndexTableScannerBuilder<V> extends TableScannerBuilder<V>
     protected int[] indexColToMainColPosMap;
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexScanSetBuilder<V> indexColToMainColPosMap(int[] colPosMap){
         this.indexColToMainColPosMap = colPosMap;
         return this;

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -99,17 +100,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
      * @param tableId            UUID of table
      * @param columnInfo          Information on all the columns in the table.
      * @param constraintActions  ConstraintConstantAction[] for constraints
-     * @param lockGranularity      The lock granularity.
      * @param behavior            drop behavior for dropping column
      * @param indexNameForStatistics  Will name the index whose statistics
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public AlterTableConstantOperation(
             SchemaDescriptor sd,
             String tableName,
             UUID tableId,
             ColumnInfo[] columnInfo,
             ConstantAction[] constraintActions,
-            char lockGranularity,
             int behavior,
             String indexNameForStatistics) {
         super(tableId);
@@ -910,7 +910,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
          * We have an additional waiting transaction that we use to ensure that all elements
          * which commit after the demarcation point are committed BEFORE the populate part.
          */
-        byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+        byte[] tableBytes = Bytes.toBytes(Long.toString(tableConglomId));
         Txn waitTxn;
         try{
             waitTxn =

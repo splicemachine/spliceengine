@@ -14,6 +14,7 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.SerializationUtils;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -37,6 +38,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected boolean isUpsert;
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertTableWriterBuilder pkCols(int[] pkCols) {
         this.pkCols = pkCols;
         return this;
@@ -53,6 +55,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertTableWriterBuilder sequences(SpliceSequence[] spliceSequences) {
         this.spliceSequences = spliceSequences;
         return this;
@@ -77,12 +80,14 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertDataSetWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
         this.execRowTypeFormatIds = execRowTypeFormatIds;
         return this;
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertDataSetWriterBuilder autoIncrementRowLocationArray(RowLocation[] autoIncrementRowLocationArray) {
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         return this;

@@ -10,6 +10,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.catalog.UUID;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -84,6 +86,7 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 	 *  @param autoincRowLocation Array of rowlocations of autoincrement values
 	 * 							  in SYSCOLUMNS for each ai column.
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	InsertConstantOperation(TableDescriptor tableDescriptor,
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
@@ -104,7 +107,7 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 								RowLocation[]		autoincRowLocation) {
 		super(conglomId, heapSCOCI, pkColumns, irgs, indexCIDS,  indexSCOCIs, indexNames,
 			  deferred, targetProperties, targetUUID, lockMode, fkInfo,	 triggerInfo,
-			  (ExecRow)null, null, null, streamStorableHeapColIds, singleRowSource );
+				null, null, null, streamStorableHeapColIds, singleRowSource );
 		this.indexedCols = indexedCols;
 		this.autoincRowLocation = autoincRowLocation;
 		this.schemaName = tableDescriptor.getSchemaName();

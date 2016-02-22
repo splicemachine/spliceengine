@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.sql.depend.ProviderList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.depend.BasicDependencyManager;
+import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -97,7 +98,7 @@ public class SpliceDependencyManager extends BasicDependencyManager {
       assert usrTxn instanceof SpliceTransaction: "Programmer error: cannot elevate a non-SpliceTransaction";
       SpliceTransaction txn = (SpliceTransaction)usrTxn;
       if(!txn.allowsWrites())
-          txn.elevate(copyTo.getObjectName().getBytes());
+          txn.elevate(Bytes.toBytes(copyTo.getObjectName()));
       super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
   }
 

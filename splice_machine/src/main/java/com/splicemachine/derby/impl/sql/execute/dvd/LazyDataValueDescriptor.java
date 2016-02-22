@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
@@ -79,6 +80,7 @@ public abstract class LazyDataValueDescriptor extends NullValueData implements D
 
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void initForDeserialization(String tableVersion,
                                        DescriptorSerializer serializer,
                                        byte[] bytes,int offset,int length,boolean desc){

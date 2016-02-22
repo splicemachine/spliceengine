@@ -14,6 +14,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSetMetaData;
@@ -56,6 +58,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     }
 
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex) {
         this(fileName, characterDelimiter, columnDelimiter);
         this.columnIndex = columnIndex;

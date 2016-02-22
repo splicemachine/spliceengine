@@ -18,6 +18,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import com.splicemachine.storage.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ public class StatisticsCollector {
     private ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors;
     private int[] fieldLengths;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public StatisticsCollector(TxnView txn,
                                ExecRow template,
                                int[] columnPositionMap,

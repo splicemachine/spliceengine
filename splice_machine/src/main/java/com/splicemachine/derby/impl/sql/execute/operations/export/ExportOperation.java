@@ -17,6 +17,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.*;
 import java.util.Collections;
@@ -45,6 +46,7 @@ public class ExportOperation extends SpliceBaseOperation {
     public ExportOperation() {
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ExportOperation(SpliceOperation source,
                            ResultColumnDescriptor[] sourceColumnDescriptors,
                            Activation activation,

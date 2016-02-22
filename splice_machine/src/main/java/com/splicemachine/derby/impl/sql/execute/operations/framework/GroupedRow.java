@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class wraps a grouping key and an ExecRow
@@ -15,11 +16,13 @@ public class GroupedRow {
 
     public GroupedRow() { }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public GroupedRow(ExecRow row, byte[] groupingKey){
         this.row = row;
         this.groupingKey = groupingKey;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public GroupedRow(ExecRow row, byte[] groupingKey, boolean isDistinct){
         this.row = row;
         this.groupingKey = groupingKey;
@@ -46,10 +49,12 @@ public class GroupedRow {
         this.row = row;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public byte[] getGroupingKey() {
         return groupingKey;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void setGroupingKey(byte[] groupingKey) {
         this.groupingKey = groupingKey;
     }

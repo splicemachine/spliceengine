@@ -24,6 +24,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -141,7 +142,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     }
 
     public byte[] getDestinationTable(){
-        return Long.toString(heapConglom).getBytes();
+        return Bytes.toBytes(Long.toString(heapConglom));
     }
 
     @Override

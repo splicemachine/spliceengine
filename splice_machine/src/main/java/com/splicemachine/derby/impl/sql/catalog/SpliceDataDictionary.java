@@ -30,6 +30,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.access.api.DatabaseVersion;
@@ -351,7 +352,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(create){
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
             SpliceTransactionManager txnManager=(SpliceTransactionManager)af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-            ((SpliceTransaction)txnManager.getRawTransaction()).elevate("boot".getBytes());
+            ((SpliceTransaction)txnManager.getRawTransaction()).elevate(Bytes.toBytes("boot"));
             if(spliceSoftwareVersion!=null){
                 txnManager.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             }
@@ -581,7 +582,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(rawTransaction.allowsWrites())
             return;
         SpliceTransaction txn=(SpliceTransaction)rawTransaction;
-        txn.elevate("dictionary".getBytes());
+        txn.elevate(Bytes.toBytes("dictionary"));
     }
 
     @Override

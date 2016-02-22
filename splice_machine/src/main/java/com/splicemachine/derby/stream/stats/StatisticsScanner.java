@@ -14,6 +14,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ public class StatisticsScanner<Data> extends SITableScanner<Data>{
     private StatisticsCollector collector;
     SimpleOverheadManagedPartitionStatistics statistics;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public StatisticsScanner(long conglomId,
                              DataScanner scanner,
                              final TransactionalRegion region,

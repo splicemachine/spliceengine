@@ -65,6 +65,7 @@ public class SpliceScan implements ScanManager, LazyScan{
             LOG.trace("Instantiate Splice Scan for conglomerate ");
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public SpliceScan(OpenSpliceConglomerate spliceConglomerate,
                       FormatableBitSet scanColumnList,
                       DataValueDescriptor[] startKeyValue,
@@ -250,6 +251,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         destRowLocation.setValue(this.currentResult.key());
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException{
         try{
             if(destRow!=null){
@@ -324,6 +326,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         //	return 0;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void reopenScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
                            Qualifier[][] qualifier,
                            DataValueDescriptor[] stopKeyValue,int stopSearchOperator) throws StandardException{
@@ -343,6 +346,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         }
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void reopenScanByRowLocation(RowLocation startRowLocation,Qualifier[][] qualifier) throws StandardException{
         SpliceLogUtils.trace(LOG,"reopenScanByRowLocation %s  for qualifier ",startRowLocation,qualifier);
         this.qualifier=qualifier;

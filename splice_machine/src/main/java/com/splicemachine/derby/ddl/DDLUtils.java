@@ -126,7 +126,7 @@ public class DDLUtils {
          * We have an additional waiting transaction that we use to ensure that all elements
          * which commit after the demarcation point are committed BEFORE the populate part.
          */
-        byte[] tableBytes = Long.toString(tableConglomId).getBytes();
+        byte[] tableBytes = Bytes.toBytes(Long.toString(tableConglomId));
         TxnLifecycleManager tlm = SIDriver.driver().lifecycleManager();
         Txn waitTxn;
         try{
@@ -191,7 +191,7 @@ public class DDLUtils {
      * @throws IOException
      */
     public static long waitForConcurrentTransactions(Txn maximum, TxnView userTxn,long tableConglomId) throws IOException {
-        byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
+        byte[] conglomBytes = Bytes.toBytes(Long.toString(tableConglomId));
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
         SConfiguration config = SIDriver.driver().getConfiguration();
@@ -638,35 +638,39 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropTrigger with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DerbyMessage.UUID tableuuid = change.getDropTrigger().getTableId();
-            DerbyMessage.UUID triggeruuid = change.getDropTrigger().getTriggerId();
-            SPSDescriptor spsd = dd.getSPSDescriptor(ProtoUtil.getDerbyUUID(change.getDropTrigger().getSpsDescriptorUUID()));
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                DerbyMessage.UUID tableuuid=change.getDropTrigger().getTableId();
+                DerbyMessage.UUID triggeruuid=change.getDropTrigger().getTriggerId();
+                SPSDescriptor spsd=dd.getSPSDescriptor(ProtoUtil.getDerbyUUID(change.getDropTrigger().getSpsDescriptorUUID()));
 
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
-            TriggerDescriptor triggerDescriptor = dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
-            if (td!=null)
-                flushCachesBasedOnTableDescriptor(td, dd);
-            if (triggerDescriptor!= null) {
-                dm.invalidateFor(triggerDescriptor, DependencyManager.DROP_TRIGGER, transactionResource.getLcc());
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
+                TriggerDescriptor triggerDescriptor=dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
+                if(td!=null)
+                    flushCachesBasedOnTableDescriptor(td,dd);
+                if(triggerDescriptor!=null){
+                    dm.invalidateFor(triggerDescriptor,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
 //                dm.clearDependencies(transactionResource.getLcc(), triggerDescriptor);
-                if (triggerDescriptor.getWhenClauseId() != null) {
-                    SPSDescriptor whereDescriptor = dd.getSPSDescriptor(triggerDescriptor.getWhenClauseId());
-                    if (whereDescriptor != null) {
-                        dm.invalidateFor(whereDescriptor, DependencyManager.DROP_TRIGGER, transactionResource.getLcc());
+                    if(triggerDescriptor.getWhenClauseId()!=null){
+                        SPSDescriptor whereDescriptor=dd.getSPSDescriptor(triggerDescriptor.getWhenClauseId());
+                        if(whereDescriptor!=null){
+                            dm.invalidateFor(whereDescriptor,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
 //                        dm.clearDependencies(transactionResource.getLcc(), whereDescriptor);
+                        }
                     }
                 }
+                if(spsd!=null){
+                    dm.invalidateFor(spsd,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
+                    //               dm.clearDependencies(transactionResource.getLcc(), spsd);
+                }
+                // Remove all TECs from trigger stack. They will need to be rebuilt.
+                transactionResource.getLcc().popAllTriggerExecutionContexts();
+            }finally{
+                if(prepared)
+                    transactionResource.close();
             }
-            if (spsd != null) {
-                dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, transactionResource.getLcc());
-                //               dm.clearDependencies(transactionResource.getLcc(), spsd);
-            }
-            // Remove all TECs from trigger stack. They will need to be rebuilt.
-            transactionResource.getLcc().popAllTriggerExecutionContexts();
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }

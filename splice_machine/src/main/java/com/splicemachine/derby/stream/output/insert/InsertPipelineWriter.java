@@ -18,10 +18,12 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.IntArrays;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -42,6 +44,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected boolean isUpsert;
     private Partition table;
 
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertPipelineWriter(int[] pkCols,
                                 String tableVersion,
                                 ExecRow execRowDefinition,
@@ -59,7 +62,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
         this.operationContext = operationContext;
-        this.destinationTable = Long.toString(heapConglom).getBytes();
+        this.destinationTable = Bytes.toBytes(Long.toString(heapConglom));
         this.isUpsert = isUpsert;
         this.dataType = isUpsert?KVPair.Type.UPSERT:KVPair.Type.INSERT;
         if (operationContext!=null)

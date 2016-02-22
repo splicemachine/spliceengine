@@ -14,6 +14,7 @@ import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -30,6 +31,7 @@ import java.util.Map;
  *
  * Created by dgomezferro on 1/14/16.
  */
+@NotThreadSafe
 public class ActivationHolder implements Externalizable {
     private Map<Integer, SpliceOperation> operationsMap = Maps.newHashMap();
     private List<SpliceOperation> operationsList = new ArrayList<>();

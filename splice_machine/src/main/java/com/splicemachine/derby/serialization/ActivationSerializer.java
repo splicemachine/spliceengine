@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.IndexRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.*;
 import java.lang.reflect.Array;
@@ -273,6 +274,7 @@ public class ActivationSerializer {
         @Deprecated
         public ArrayFieldStorage() { }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
         public ArrayFieldStorage(Class arrayType,FieldStorage[] fields) {
             this.data = fields;
             this.arrayType = arrayType.isArray()?arrayType.getComponentType(): arrayType;
@@ -406,7 +408,8 @@ public class ActivationSerializer {
                     // This is a UDT or UDA and was not serialized by Kryo
                     int len = in.readInt();
                     byte[] bytes = new byte[len];
-                    in.read(bytes, 0, len);
+                    int read =in.read(bytes, 0, len);
+                    assert read==len:"Did not read entire length!";
                     ByteArrayInputStream input = new ByteArrayInputStream(bytes);
                     UDTInputStream inputStream = new UDTInputStream(input, classFactory);
                     dvd = (DataValueDescriptor)inputStream.readObject();

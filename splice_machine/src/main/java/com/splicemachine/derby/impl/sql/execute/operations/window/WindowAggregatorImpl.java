@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.types.UserDataValue;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Container and caching mechanism for window functions and their information container.
@@ -98,6 +99,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
      * @param inputColumnIds the 1-based column IDs in the exec row to accept as function arguments
      * @param resultColumnId the 1-based column ID in the exec row in which to place the function result
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public WindowAggregatorImpl(WindowFunction cachedAggregator,
                                 int functionColumnId,
                                 int[] inputColumnIds,

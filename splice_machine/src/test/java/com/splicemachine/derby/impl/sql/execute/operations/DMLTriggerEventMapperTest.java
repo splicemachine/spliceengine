@@ -12,7 +12,6 @@ public class DMLTriggerEventMapperTest {
 
     @Test
     public void testGetBeforeEvent() throws Exception {
-        assertEquals(TriggerEvent.BEFORE_DELETE, DMLTriggerEventMapper.getBeforeEvent(DeleteCascadeOperation.class));
         assertEquals(TriggerEvent.BEFORE_DELETE, DMLTriggerEventMapper.getBeforeEvent(DeleteOperation.class));
 
         assertEquals(TriggerEvent.BEFORE_INSERT, DMLTriggerEventMapper.getBeforeEvent(InsertOperation.class));
@@ -21,7 +20,6 @@ public class DMLTriggerEventMapperTest {
 
     @Test
     public void testGetAfterEvent() throws Exception {
-        assertEquals(TriggerEvent.AFTER_DELETE, DMLTriggerEventMapper.getAfterEvent(DeleteCascadeOperation.class));
         assertEquals(TriggerEvent.AFTER_DELETE, DMLTriggerEventMapper.getAfterEvent(DeleteOperation.class));
 
         assertEquals(TriggerEvent.AFTER_INSERT, DMLTriggerEventMapper.getAfterEvent(InsertOperation.class));

@@ -1,20 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.stream.function.EmptyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
@@ -22,8 +17,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
+@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Not actually serialized")
 public class CallStatementOperation extends NoRowsOperation {
     private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
 	private String methodName;
@@ -40,7 +35,7 @@ public class CallStatementOperation extends NoRowsOperation {
 	public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
 		super(a);
 		methodName = (methodCall!= null) ? methodCall.getMethodName() : null;
-		this.methodCall = new SpliceMethod<Object>(methodName,activation);
+		this.methodCall =new SpliceMethod<>(methodName,activation);
 		recordConstructorTime();
 	}
 
