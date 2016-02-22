@@ -55,9 +55,11 @@ public class ConstraintConstantOperationIT {
     protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher(EMP_NAME_TABLE_NAME, SCHEMA, EMP_NAME_TABLE_DEF);
 
     // table-level check constraint
-    private static final String TASK_TABLE_NAME = "Tasks";
+    private static final String TASK_TABLE_NAME = "TASKS";
+    private static final String TASK_TABLE_CONSTRAINT_NAME = "CHK_STARTEDAT_BEFORE_FINISHEDAT";
     private static final String TASK_TABLE_DEF =
-        "(TaskId INT UNIQUE not null, empId int not null, StartedAt INT not null, FinishedAt INT not null, CONSTRAINT CHK_StartedAt_Before_FinishedAt CHECK (StartedAt < FinishedAt))";
+        "(TaskId INT UNIQUE not null, empId int not null, StartedAt INT not null, FinishedAt INT not null, CONSTRAINT" +
+            " " + TASK_TABLE_CONSTRAINT_NAME + " CHECK (StartedAt < FinishedAt))";
     protected static SpliceTableWatcher taskTable = new SpliceTableWatcher(TASK_TABLE_NAME, SCHEMA, TASK_TABLE_DEF);
 
     @Before
@@ -258,6 +260,7 @@ public class ConstraintConstantOperationIT {
      * @throws Exception
      */
     @Test
+    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void testInsertRowCheckConstraintViolation() throws Exception {
         Connection connection = methodWatcher.createConnection();
         connection.setAutoCommit(false);
@@ -271,8 +274,10 @@ public class ConstraintConstantOperationIT {
             Assert.fail("Expected exception inserting check constraint violation.");
         } catch (SQLException e) {
         	String exMsg = e.getLocalizedMessage();
-        	String expectedMsgStart = "The check constraint \'CHK_STARTEDAT_BEFORE_FINISHEDAT\' was violated";
-            Assert.assertTrue(exMsg.startsWith(expectedMsgStart));
+        	String expectedMsg =
+                String.format("The check constraint '%s' was violated while performing an INSERT or UPDATE on table '%s.%s'.",
+                              TASK_TABLE_CONSTRAINT_NAME, schemaWatcher.schemaName, TASK_TABLE_NAME);
+            Assert.assertEquals(exMsg+" Expected:\n"+ expectedMsg, expectedMsg, exMsg);
         }
     }
 }
