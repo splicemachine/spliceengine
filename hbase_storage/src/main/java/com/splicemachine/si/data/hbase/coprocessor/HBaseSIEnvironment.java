@@ -90,7 +90,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier(opFactory, partitionFactory);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
-        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()));
+        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
 
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
@@ -118,7 +118,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.ignoreTxnSupplier = new IgnoreTxnCacheSupplier(opFactory, partitionFactory);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
-        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()));
+        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
 
 
         this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),

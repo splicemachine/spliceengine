@@ -1,11 +1,14 @@
 package com.splicemachine.storage;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.si.api.data.ExceptionFactory;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.hdfs.protocol.AclException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -18,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
+import java.security.AccessControlException;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,9 +31,11 @@ import java.util.Set;
  */
 public class HNIOFileSystem extends DistributedFileSystem{
     private final org.apache.hadoop.fs.FileSystem fs;
+    private final ExceptionFactory exceptionFactory;
 
-    public HNIOFileSystem(org.apache.hadoop.fs.FileSystem fs){
+    public HNIOFileSystem(org.apache.hadoop.fs.FileSystem fs,ExceptionFactory ef){
         this.fs=fs;
+        this.exceptionFactory = ef;
     }
 
     @Override
@@ -195,12 +201,29 @@ public class HNIOFileSystem extends DistributedFileSystem{
             AclStatus aclS;
             try{
                 aclS=fs.getAclStatus(path);
-            }catch(UnsupportedOperationException uoe){
-                /*
-                 * Some Filesystems don't support aclStatus. In that case,
-                 * we replace it with our own ACL status object
-                 */
-                aclS = new AclStatus.Builder().owner("unknown").group("unknown").build();
+            }catch(Exception e){
+                e = exceptionFactory.processRemoteException(e); //strip any multi-retry errors out
+                Throwable t =Throwables.getRootCause(e); //strip any wrapping IOExceptions out
+                if(t instanceof UnsupportedOperationException){
+                    /*
+                     * Some Filesystems don't support aclStatus. In that case,
+                     * we replace it with our own ACL status object
+                     */
+                    aclS=new AclStatus.Builder().owner("unknown").group("unknown").build();
+                }else if(t instanceof AclException ||
+                        t instanceof AccessControlException){
+                    /*
+                     * Some filesystems allow acls to be disabled. In that case, we also
+                     * replace it with our own acl status object
+                     */
+                    aclS=new AclStatus.Builder().owner("unknown").group("unknown").build();
+                }else{
+                    /*
+                     * the remaining errors are of the category of FileNotFound,UnresolvedPath,
+                     * etc. These are environmental, so we should throw up here.
+                     */
+                    throw new IOException(t);
+                }
             }
             this.aclStatus = aclS;
             boolean readable;
