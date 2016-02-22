@@ -598,7 +598,7 @@
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>findbugs-maven-plugin</artifactId>
                         <configuration>
-                            <excludeFilterFile>${basedir}/../../findbugs-exclude.xml</excludeFilterFile>
+                            <!--<excludeFilterFile>${basedir}/../../findbugs-exclude.xml</excludeFilterFile>-->
                             <!-- defaults for findbugs:findbugs
                             <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
                             <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
