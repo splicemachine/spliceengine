@@ -242,7 +242,7 @@ public class ExportOperationIT {
         new TableCreator(methodWatcher.getOrCreateConnection())
                 .withCreate("create table export_decimal(a smallint, b decimal(31, 25), c decimal(31, 2))")
                 .withInsert("insert into export_decimal values(?,?,?)")
-                .withRows(rows(row(1, 2.0, 3.00005), row(1, 2.0, 3.00005))).create();
+                .withRows(rows(row(1, 2000.0, 3.00005), row(1, 2000.0, 3.00005))).create();
 
         //
         // default column order
@@ -253,8 +253,8 @@ public class ExportOperationIT {
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "1,2.0000000000000000000000000,3.00\n" +
-                        "1,2.0000000000000000000000000,3.00\n",
+                        "1,2000.0000000000000000000000000,3.00\n" +
+                        "1,2000.0000000000000000000000000,3.00\n",
                 Files.toString(files[0], Charsets.UTF_8));
 
         //
@@ -267,8 +267,8 @@ public class ExportOperationIT {
         files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "3.00,2.0000000000000000000000000,1\n" +
-                        "3.00,2.0000000000000000000000000,1\n",
+                        "3.00,2000.0000000000000000000000000,1\n" +
+                        "3.00,2000.0000000000000000000000000,1\n",
                 Files.toString(files[0], Charsets.UTF_8));
 
         //
@@ -281,8 +281,8 @@ public class ExportOperationIT {
         files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
-                        "2.0000000000000000000000000\n" +
-                        "2.0000000000000000000000000\n",
+                        "2000.0000000000000000000000000\n" +
+                        "2000.0000000000000000000000000\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
