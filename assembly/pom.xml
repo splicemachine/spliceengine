@@ -17,7 +17,7 @@
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
     </repositories>
-<!--
+    <!--
     <properties>
         <splice.jar.basename>${project.artifactId}-${project.version}-${envClassifier}_complete.jar</splice.jar.basename>
         <splice.jar>${project.build.directory}/${splice.jar.basename}</splice.jar>
@@ -89,7 +89,7 @@
                     </execution>
                 </executions>
             </plugin>
-			<!--
+            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>

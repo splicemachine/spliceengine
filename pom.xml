@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
@@ -399,23 +398,6 @@
                     <doUpdate>false</doUpdate>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>fb</id>
-                        <phase>process-test-resources</phase>
-                        <goals>
-                            <goal>findbugs</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${skip.staticanalysis}</skip>
-                            <onlyAnalyze>com.splicemachine.-</onlyAnalyze>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -509,147 +491,6 @@
             </plugin>
         </plugins>
     </reporting>
-    <!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <argLine>-Xmx1024M</argLine>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    <includes>
-                        <include>**/*Test.java</include>
-                    </includes>
-                    <excludes>
--->
-    <!-- Skip ITs -->
-    <!--
-                        <exclude>**/*IT.java</exclude>
--->
-    <!-- Skip Window function UIs temporarily - DB-1765 -->
-    <!--
-                        <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**</exclude>
-                    </excludes>
-                    <runOrder>alphabetical</runOrder>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <executions>
--->
-    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
-    <!--
-                    <execution>
-                        <id>integration-tests-serial</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <skipTests>${skip.integration.tests}</skipTests>
-                            <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                            <excludes>
--->
-    <!-- Skip all unit tests -->
-    <!--
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                            <runOrder>alphabetical</runOrder>
-                        </configuration>
-                    </execution>
--->
-    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
-    <!--
-                    <execution>
-                        <id>integration-tests-parallel</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.FinalTest,
-                                com.splicemachine.test.BackupTest, ${excluded.categories}
-                            </excludedGroups>
-                            <skipTests>${skip.integration.tests}</skipTests>
-                            <parallel>classes</parallel>
-                            <threadCount>1</threadCount>
-                            <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                            <excludes>
--->
-    <!-- Skip all unit tests -->
-    <!--
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                            <runOrder>alphabetical</runOrder>
-                        </configuration>
-                    </execution>
--->
-    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: FINAL -->
-    <!--
-                    <execution>
-                        <id>integration-tests-final</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.FinalTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <skipTests>${skip.integration.tests}</skipTests>
-                            <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*FINALIT.java</include>
-                            </includes>
-                            <excludes>
--->
-    <!-- Skip all unit tests -->
-    <!--
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                            <runOrder>alphabetical</runOrder>
-                        </configuration>
-                    </execution>
--->
-    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
-    <!--
-                    <execution>
-                        <id>integration-tests-backup</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.BackupTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <skipTests>${skip.integration.tests}</skipTests>
-                            <argLine>-Xmx3g</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <includes>
-                                <include>**/*RestoreIT.java</include>
-                            </includes>
-                            <excludes>
--->
-    <!-- Skip all unit tests -->
-    <!--
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
     <profiles>
         <profile>
             <id>staticanalysis</id>
@@ -659,8 +500,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-checkstyle-plugin</artifactId>
                         <configuration>
--->
-    <!-- defaults for checkstyle:checkstyle
+                            <!-- defaults for checkstyle:checkstyle
                             <includeResources>true</includeResources>
                             <includeTestResources>true</includeTestResources>
                             <includes>**\/*.java</includes>
@@ -694,7 +534,6 @@
                             <useFile></useFile>
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             -->
-    <!--
                             <linkXRef>false</linkXRef>
                         </configuration>
                         <executions>
@@ -711,8 +550,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-pmd-plugin</artifactId>
                         <configuration>
--->
-    <!-- defaults for pmd:pmd
+                            <!-- defaults for pmd:pmd
                             <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
                             <targetDirectory>${project.build.directory}</targetDirectory>
                             <aggregate>false</aggregate>
@@ -739,7 +577,7 @@
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
                             -->
-    <!-- defaults for pmd:cpd
+                            <!-- defaults for pmd:cpd
                             <outputDirectory></outputDirectory>
                             <targetDirectory></targetDirectory>
                             <aggregate>false</aggregate>
@@ -760,7 +598,6 @@
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
                             -->
-    <!--
                             <includeTests>true</includeTests>
                             <linkXRef>false</linkXRef>
                             <excludeRoots>
@@ -783,8 +620,7 @@
                         <artifactId>findbugs-maven-plugin</artifactId>
                         <configuration>
                             <excludeFilterFile>${basedir}/../../findbugs-exclude.xml</excludeFilterFile>
--->
-    <!-- defaults for findbugs:findbugs
+                            <!-- defaults for findbugs:findbugs
                             <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
                             <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
                             <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
@@ -819,7 +655,6 @@
                             <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
                             <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
                             -->
-    <!--
                         </configuration>
                         <executions>
                             <execution>
@@ -842,8 +677,7 @@
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>cobertura-maven-plugin</artifactId>
                         <configuration>
--->
-    <!-- defaults for cobertura:check
+                            <!-- defaults for cobertura:check
                             <check>
                                 <branchRate>85</branchRate>
                                 <lineRate>85</lineRate>
@@ -870,7 +704,7 @@
                             <quiet>false</quiet>
                             <skip>false</skip>
                             -->
-    <!-- defaults for cobertura:cobertura and cobertura:cobertura-integration-test
+                            <!-- defaults for cobertura:cobertura and cobertura:cobertura-integration-test
                             <outputDirectory>${project.reporting.outputDirectory}/cobertura</outputDirectory>
                             <aggregate>false</aggregate>
                             <encoding>UTF-8</encoding>
@@ -881,7 +715,7 @@
                             <omitGplFiles>false</omitGplFiles>
                             <quiet>false</quiet>
                             -->
-    <!-- defaults for cobertura:instrument
+                            <!-- defaults for cobertura:instrument
                             <forceMojoExecution>false<forceMojoExecution>
                             <attach>false</attach>
                             <classifier>cobertura</classifier>
@@ -897,7 +731,6 @@
                             <quiet>false</quiet>
                             <skip>false</skip>
                             -->
-    <!--
                             <check>
                                 <haltOnFailure>false</haltOnFailure>
                             </check>
@@ -928,32 +761,5 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>no_obfuscate</id>
-            <activation>
-                <property>
-                    <name>obfuscate</name>
-                    <value>false</value>
-                </property>
-            </activation>
-            <properties>
-                <obfuscate.si/>
-                <obfuscate.si.tag/>
-            </properties>
-        </profile>
-        <profile>
-            <id>obfuscate</id>
-            <activation>
-                <property>
-                    <name>obfuscate</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <properties>
-                <obfuscate.si>obfuscated</obfuscate.si>
-                <obfuscate.si.tag>-obfuscated</obfuscate.si.tag>
-            </properties>
-        </profile>
     </profiles>
-        -->
 </project>
