@@ -1,5 +1,7 @@
 package com.splicemachine.utils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A ByteSlice that keeps an on-demand cached version of
  * a byte copy. This way, calling getByteCopy() will not create
@@ -14,8 +16,9 @@ package com.splicemachine.utils;
  * @author Scott Fines
  *         Date: 1/23/15
  */
+@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class CachedByteSlice extends ByteSlice {
-    private byte[] cachedCopy = null;
+    private transient byte[] cachedCopy = null;
 
     public CachedByteSlice() { }
 
@@ -32,6 +35,7 @@ public class CachedByteSlice extends ByteSlice {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getByteCopy() {
         if(cachedCopy==null)
             cachedCopy = super.getByteCopy();
@@ -77,5 +81,15 @@ public class CachedByteSlice extends ByteSlice {
     @Override
     public String toString() {
         return super.toString() + " cachedCopy.length=" + (cachedCopy == null ? 0 : cachedCopy.length);
+    }
+
+    @Override
+    @SuppressFBWarnings(value = "CN_IDIOM_NO_SUPER_CALL",justification = "Intentional")
+    @SuppressWarnings("CloneDoesntCallSuperClone") //intentionally doesn't call it
+    public ByteSlice clone(){
+        if(array()==null) return new CachedByteSlice();
+        if(cachedCopy!=null)
+            return new CachedByteSlice(cachedCopy,0,cachedCopy.length);
+        return new CachedByteSlice(getByteCopy(),0,length());
     }
 }

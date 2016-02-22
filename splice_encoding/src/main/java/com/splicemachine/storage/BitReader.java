@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Utility tool for reading Bits from a byte[] as if they were Java primitives.
  *
@@ -23,6 +25,7 @@ public class BitReader {
         this(data,offset,length,startingBitPos,true);
     }
 
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public BitReader(byte[] data, int offset, int length, int startingBitPos,boolean useContinuationBit){
         this.data = data;
         this.byteAndBitOffset = new int[]{offset,startingBitPos};
@@ -85,6 +88,7 @@ public class BitReader {
      * @param startingBitPos the starting bit position within the starting byte to read from
      * @param useContinuationBit whether or not each byte should be assumed to have a continuation bit.
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void reset(byte[] data, int offset, int length,int startingBitPos,boolean useContinuationBit){
         this.data = data;
         byteAndBitOffset[0] = offset;

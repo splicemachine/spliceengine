@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * The Decoder complement to an {@link com.splicemachine.encoding.ExpandingEncoder}
@@ -16,6 +17,7 @@ public class ExpandedDecoder {
 
     private long[] lengthHolder;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ExpandedDecoder(byte[] data, int offset,int length){
         this.buffer = data;
         this.currentOffset = this.offset = offset;

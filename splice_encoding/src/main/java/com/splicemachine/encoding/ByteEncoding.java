@@ -1,8 +1,8 @@
 package com.splicemachine.encoding;
 
 import com.google.common.primitives.UnsignedBytes;
+
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * Utility class for encoding byte arrays to a combinable format.
@@ -202,7 +202,7 @@ final class ByteEncoding {
 
             //apply the byte-1 mask and shift
             byte byteToStore = value[i];
-            byte val = (byte)((byteToStore & maskAndShift[0])>>> maskAndShift[1]);
+            byte val = (byte)((byteToStore & maskAndShift[0])>> maskAndShift[1]);
             byt |= val;
             output[outputPos] = byt;
             outputPos++;
@@ -243,7 +243,7 @@ final class ByteEncoding {
 
             inputPos++; //go to byte-2
             input = data[offset+inputPos];
-            val = (byte)((input & maskShift[2])>>>maskShift[3]);
+            val = (byte)((input & maskShift[2])>>maskShift[3]);
             outputByte |= val;
 
             //output byte is finished, store it and move to the next output byte

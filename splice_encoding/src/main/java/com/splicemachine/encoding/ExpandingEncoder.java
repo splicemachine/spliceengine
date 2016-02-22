@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Arrays;
 
@@ -85,6 +86,7 @@ public class ExpandingEncoder {
         return rawEncode(byteSlice.array(),byteSlice.offset(),byteSlice.length());
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getBuffer(){
         if(currentOffset<buffer.length){
             byte[] newBytes = new byte[currentOffset];

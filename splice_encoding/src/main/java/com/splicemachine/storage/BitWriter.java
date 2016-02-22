@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * @author Scott Fines
  * Created on: 7/9/13
@@ -12,6 +14,7 @@ public class BitWriter {
     private int length;
     private boolean useContinuationBit;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public BitWriter(byte[] buffer, int offset, int length, int initialBitPos,
                      boolean useContinuationBit){
         this.buffer = buffer;
@@ -20,6 +23,7 @@ public class BitWriter {
         this.useContinuationBit = useContinuationBit;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void set(byte[] buffer, int offset, int length, int initialBitPos){
         this.buffer = buffer;
         this.byteAndBitOffset[0] = offset;
@@ -53,7 +57,7 @@ public class BitWriter {
         int byteSize = useContinuationBit?7:8;
         while(n>byteSize){
             byteAndBitOffset[0]++;
-            if(byteAndBitOffset[9]>=buffer.length) throw new IndexOutOfBoundsException();
+            if(byteAndBitOffset[1]>=buffer.length) throw new IndexOutOfBoundsException();
             buffer[byteAndBitOffset[0]] = (byte)0xff;
             n-=byteSize;
         }

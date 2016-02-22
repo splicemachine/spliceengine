@@ -4,6 +4,8 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 
 /**
@@ -80,6 +82,8 @@ public class Predicates {
         return finalData;
     }
 
+    @SuppressFBWarnings(value = "SR_NOT_CHECKED",justification = "This is a byte[] input stream, " +
+            "which never returns less than skipped without breaking other stuff")
     private static Pair<Predicate,Integer> getCustomPredicate(byte[] bytes, int offset) throws IOException {
         try{
             ByteDataInput bdi = new ByteDataInput(bytes);

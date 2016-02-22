@@ -1,15 +1,14 @@
 package com.splicemachine.storage.index;
 
-import com.splicemachine.storage.BitReader;
-
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.storage.BitReader;
 
 
 /**
  * BitIndex which lazily decodes entries as needed, and which does not re-encode entries.
  *
  * @author Scott Fines
- * Created on: 7/8/13
+ *         Created on: 7/8/13
  */
 public abstract class LazyBitIndex implements BitIndex{
     protected BitSet decodedBits;
@@ -23,22 +22,22 @@ public abstract class LazyBitIndex implements BitIndex{
 
 
     protected LazyBitIndex(byte[] encodedBitMap,int offset,int length,int bitPos){
-        this.encodedBitMap = encodedBitMap;
-        this.offset = offset;
-        this.length = length;
-        this.decodedBits = new BitSet();
-        this.bitReader = new BitReader(encodedBitMap,offset,length,bitPos);
+        this.encodedBitMap=encodedBitMap;
+        this.offset=offset;
+        this.length=length;
+        this.decodedBits=new BitSet();
+        this.bitReader=new BitReader(encodedBitMap,offset,length,bitPos);
     }
 
     @Override
-    public int length() {
+    public int length(){
         decodeAll();
-        return (int) decodedBits.length();
+        return (int)decodedBits.length();
     }
 
-    private void decodeAll() {
+    private void decodeAll(){
         int next;
-        while((next = decodeNext()) >=0){
+        while((next=decodeNext())>=0){
             decodedBits.set(next);
         }
     }
@@ -46,40 +45,40 @@ public abstract class LazyBitIndex implements BitIndex{
     protected abstract int decodeNext();
 
     @Override
-    public boolean isSet(int pos) {
+    public boolean isSet(int pos){
         decodeUntil(pos);
         return decodedBits.get(pos);
     }
 
-    public void decodeUntil(int pos) {
+    public void decodeUntil(int pos){
         while(decodedBits.length()<pos+1){
-            int next = decodeNext();
-            if(next <0) return; //out of data to decode
+            int next=decodeNext();
+            if(next<0) return; //out of data to decode
 
             decodedBits.set(next);
         }
     }
 
     @Override
-    public String toString() {
-        return "{" +
-                decodedBits +
-                "," + decodedScalarFields +
-                "," + decodedFloatFields +
-                "," + decodedDoubleFields +
+    public String toString(){
+        return "{"+
+                decodedBits+
+                ","+decodedScalarFields+
+                ","+decodedFloatFields+
+                ","+decodedDoubleFields+
                 '}';
     }
 
     @Override
-    public int nextSetBit(int position) {
+    public int nextSetBit(int position){
         //try and get the next item out of decodedBits first
-        int val = decodedBits.nextSetBit(position);
+        int val=decodedBits.nextSetBit(position);
         if(val>=0) return val;
 
         //try decoding some more
         int i;
         do{
-            i = decodeNext();
+            i=decodeNext();
             if(i<0) break;
 
             decodedBits.set(i);
@@ -92,13 +91,13 @@ public abstract class LazyBitIndex implements BitIndex{
     }
 
     @Override
-    public int cardinality() {
+    public int cardinality(){
         decodeAll();
-        return (int) decodedBits.cardinality();
+        return (int)decodedBits.cardinality();
     }
 
     @Override
-    public int cardinality(int position) {
+    public int cardinality(int position){
         decodeUntil(position);
         int count=0;
         for(int i=decodedBits.nextSetBit(0);i>=0 && i<position;i=decodedBits.nextSetBit(i+1)){
@@ -108,141 +107,131 @@ public abstract class LazyBitIndex implements BitIndex{
     }
 
     @Override
-    public boolean intersects(BitSet bitSet) {
-        decodeUntil((int) bitSet.length());
+    public boolean intersects(BitSet bitSet){
+        decodeUntil((int)bitSet.length());
         return decodedBits.intersects(bitSet);
     }
 
     @Override
-    public boolean isEmpty() {
+    public boolean isEmpty(){
         decodeAll();
         return decodedBits.isEmpty();
     }
 
     @Override
-    public BitSet and(BitSet bitSet) {
+    public BitSet and(BitSet bitSet){
         decodeUntil((int)bitSet.length());
-        final BitSet bits = (BitSet) decodedBits.clone();
+        final BitSet bits=(BitSet)decodedBits.clone();
         bits.and(bitSet);
         return bits;
     }
 
     @Override
-    public byte[] encode() {
-        byte[] copy = new byte[length];
+    public byte[] encode(){
+        byte[] copy=new byte[length];
         System.arraycopy(encodedBitMap,offset,copy,0,copy.length);
         return copy;
     }
 
     @Override
-    public int encodedSize() {
+    public int encodedSize(){
         return length;
     }
 
 
-    public boolean isScalarType(int position, boolean decoded) {
-    	if (!decoded)
-    		decodeUntil(position);
+    public boolean isScalarType(int position,boolean decoded){
+        if(!decoded)
+            decodeUntil(position);
         return decodedScalarFields!=null && decodedScalarFields.get(position);
     }
 
-    public boolean isDoubleType(int position, boolean decoded) {
-    	if (!decoded)
-    		decodeUntil(position);
-        return decodedDoubleFields !=null && decodedDoubleFields.get(position);
+    public boolean isDoubleType(int position,boolean decoded){
+        if(!decoded)
+            decodeUntil(position);
+        return decodedDoubleFields!=null && decodedDoubleFields.get(position);
     }
 
-    public boolean isFloatType(int position, boolean decoded) {
-    	if (!decoded)
-    		decodeUntil(position);
+    public boolean isFloatType(int position,boolean decoded){
+        if(!decoded)
+            decodeUntil(position);
         return decodedFloatFields!=null && decodedFloatFields.get(position);
     }
-    
+
     @Override
-    public boolean isScalarType(int position) {
-    	return isScalarType(position,false);
+    public boolean isScalarType(int position){
+        return isScalarType(position,false);
     }
 
     @Override
-    public boolean isDoubleType(int position) {
-    	return isDoubleType(position,false);
+    public boolean isDoubleType(int position){
+        return isDoubleType(position,false);
     }
 
     @Override
-    public boolean isFloatType(int position) {
-    	return isFloatType(position,false);
+    public boolean isFloatType(int position){
+        return isFloatType(position,false);
     }
 
     @Override
-    public BitSet getScalarFields() {
+    public BitSet getScalarFields(){
         decodeAll();
         return decodedScalarFields;
     }
 
     @Override
-    public BitSet getDoubleFields() {
+    public BitSet getDoubleFields(){
         decodeAll();
         return decodedFloatFields;
     }
 
     @Override
-    public BitSet getFloatFields() {
+    public BitSet getFloatFields(){
         decodeAll();
         return decodedDoubleFields;
     }
 
 
-    protected void setScalarField(int pos) {
+    protected void setScalarField(int pos){
         if(decodedScalarFields==null)
-            decodedScalarFields = new BitSet(pos);
+            decodedScalarFields=new BitSet(pos);
         decodedScalarFields.set(pos);
     }
 
-    protected void setDoubleField(int pos) {
+    protected void setDoubleField(int pos){
         if(decodedDoubleFields==null)
-            decodedDoubleFields = new BitSet(pos);
+            decodedDoubleFields=new BitSet(pos);
         decodedDoubleFields.set(pos);
     }
 
-		protected void setFloatField(int pos) {
-				if(decodedFloatFields==null)
-						decodedFloatFields = new BitSet(pos);
-				decodedFloatFields.set(pos);
-		}
+    protected void setFloatField(int pos){
+        if(decodedFloatFields==null)
+            decodedFloatFields=new BitSet(pos);
+        decodedFloatFields.set(pos);
+    }
 
-		protected void setDoubleRange(int startPos, int stopPos) {
-				if(decodedDoubleFields==null)
-						decodedDoubleFields = new BitSet(stopPos);
-				decodedDoubleFields.set(startPos,stopPos);
-		}
-		protected void setFloatRange(int startPos, int stopPos) {
-				if(decodedFloatFields==null)
-						decodedFloatFields = new BitSet(stopPos);
-				decodedFloatFields.set(startPos,stopPos);
-		}
-		protected void setScalarRange(int startPos, int stopPos) {
-				if(decodedScalarFields==null)
-						decodedScalarFields = new BitSet(stopPos);
-				decodedScalarFields.set(startPos,stopPos);
-		}
+    protected void setDoubleRange(int startPos,int stopPos){
+        if(decodedDoubleFields==null)
+            decodedDoubleFields=new BitSet(stopPos);
+        decodedDoubleFields.set(startPos,stopPos);
+    }
 
-		public byte[] getEncodedBitMap() {
-				return encodedBitMap;
-		}
+    protected void setFloatRange(int startPos,int stopPos){
+        if(decodedFloatFields==null)
+            decodedFloatFields=new BitSet(stopPos);
+        decodedFloatFields.set(startPos,stopPos);
+    }
 
-		public int getEncodedBitMapOffset() {
-				return offset;
-		}
+    protected void setScalarRange(int startPos,int stopPos){
+        if(decodedScalarFields==null)
+            decodedScalarFields=new BitSet(stopPos);
+        decodedScalarFields.set(startPos,stopPos);
+    }
 
-		public int getEncodedBitMapLength() {
-				return length;
-		}
+    public abstract boolean isCompressed();
 
-		public abstract boolean isCompressed();
-
-		@Override
-		public int getPredicatePosition(int encodedPos) {
-				return encodedPos;
-		}
+    @Override
+    public int getPredicatePosition(int encodedPos){
+        return encodedPos;
+    }
 }
 

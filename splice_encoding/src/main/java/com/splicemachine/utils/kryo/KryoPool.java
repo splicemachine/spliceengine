@@ -3,6 +3,8 @@ package com.splicemachine.utils.kryo;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -20,7 +22,7 @@ public class KryoPool {
     private volatile KryoRegistry kryoRegistry;
 
     public KryoPool(int poolSize) {
-        this.instances = new ArrayBlockingQueue<Kryo>(poolSize);
+        this.instances =new ArrayBlockingQueue<>(poolSize);
     }
 
     public void setKryoRegistry(KryoRegistry kryoRegistry){
@@ -39,14 +41,16 @@ public class KryoPool {
         return next;
     }
 
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",justification = "Intentional")
     public void returnInstance(Kryo kryo){
         /*
          * If the pool is full, then we will allow kryo to run out of scope,
-         * which will allow the GC to collect it.
+         * which will allow the GC to collect it. Thus, we can suppress
+         * the findbugs warning
          */
         instances.offer(kryo);
     }
-    public static interface KryoRegistry{
-        public void register(Kryo instance);
+    public interface KryoRegistry{
+        void register(Kryo instance);
     }
 }

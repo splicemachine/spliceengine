@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Arrays;
 
@@ -19,6 +20,7 @@ public class ValuePredicate implements Predicate{
 
     private boolean removeNullEntries;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public ValuePredicate(CompareOp compareOp,
                           int column,
                           byte[] compareValue,

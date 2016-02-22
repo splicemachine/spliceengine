@@ -2,6 +2,7 @@ package com.splicemachine.encoding;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.math.BigDecimal;
 
@@ -47,6 +48,7 @@ public class MultiFieldDecoder {
         return set(newData,0,newData.length);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MultiFieldDecoder set(byte[] newData,int offset,int length){
         this.data = newData;
         currentOffset = offset;
@@ -315,6 +317,7 @@ public class MultiFieldDecoder {
         return currentOffset;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] array() {
         return data;
     }

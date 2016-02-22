@@ -100,7 +100,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
         }
         try {
             Matcher matcher = Pattern.compile("(\\d+)").matcher(intString.trim());
-            return matcher.find() ? Integer.valueOf(matcher.group()) : UNKNOWN_INT;
+            return matcher.find() ? Integer.parseInt(matcher.group()) : UNKNOWN_INT;
         } catch (NumberFormatException nfe) {
             return UNKNOWN_INT;
         }
