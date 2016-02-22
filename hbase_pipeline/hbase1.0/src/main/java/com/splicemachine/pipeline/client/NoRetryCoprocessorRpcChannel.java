@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.client;
 
 import com.google.protobuf.*;
 import com.splicemachine.hbase.SpliceRpcController;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
@@ -30,6 +31,7 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 
 	private SpliceRetryingCallerFactory rpcFactory;
 
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public NoRetryCoprocessorRpcChannel(Connection connection, TableName table, byte[] row) {
 		this.connection = connection;
 		this.table = table;
@@ -129,7 +131,4 @@ public class NoRetryCoprocessorRpcChannel extends CoprocessorRpcChannel {
 		return t;
 	}
 
-	public byte[] getRegionName() {
-		return lastRegion;
-	}
 }

@@ -46,6 +46,18 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <!-- Disable Findbugs because it has trouble processing the protocol buffers
+                generated code without errors-->
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>fb</id>
+                        <phase/>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

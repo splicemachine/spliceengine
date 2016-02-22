@@ -58,7 +58,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class SpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
     private static final Function<TableName,String> TABLE_INFO_PARSER= new Function<TableName, String>(){
-        @Override public String apply(TableName input){ return input.getNameAsString(); }
+        @Override public String apply(TableName input){
+            assert input!=null: "input cannot be null!";
+            return input.getNameAsString(); }
     };
 
     private long conglomId=-1l;

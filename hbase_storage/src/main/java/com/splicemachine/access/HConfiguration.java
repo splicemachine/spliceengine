@@ -5,6 +5,7 @@ import com.splicemachine.access.util.ChainedDefaults;
 import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.storage.StorageConfiguration;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
@@ -101,7 +102,7 @@ public class HConfiguration implements SConfiguration{
     public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
     public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
-//    public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
+    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
     public static final byte[] TRANSACTION_TABLE_BYTES =Bytes.toBytes(TRANSACTION_TABLE);
 
     /**

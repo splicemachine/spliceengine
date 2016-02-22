@@ -11,6 +11,7 @@ import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionInfoCache;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
@@ -32,6 +33,7 @@ public class BulkWriteChannelInvoker {
     private final PartitionInfoCache partitionInfoCache;
     private final HBaseTableInfoFactory tableInfoFactory;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public BulkWriteChannelInvoker(byte[] tableName,
                                    PipelineCompressor pipelineCompressor,
                                    RpcChannelFactory channelFactory,

@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.ExceptionUtil;
 import org.apache.hadoop.ipc.RemoteException;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -63,6 +64,7 @@ public class SpliceRetryingCallerFactory  {
         return new SpliceRetryingCallerFactory(configuration);
     }
 
+    @NotThreadSafe
     public static class SpliceRpcRetryingCaller<T>  {
         static final Log LOG = LogFactory.getLog(RpcRetryingCaller.class);
         private final int socketTimeout;

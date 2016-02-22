@@ -9,8 +9,8 @@ import org.apache.hadoop.hbase.KeyValue;
  *         Date: 1/6/16
  */
 public class ClientRegionConstants{
-    public final static byte[] FLUSH = Bytes.toBytes("F");
-    public final static byte[] HOLD = Bytes.toBytes("H");
+    final static byte[] FLUSH = Bytes.toBytes("F");
+    final static byte[] HOLD = Bytes.toBytes("H");
     public final static String SPLICE_SCAN_MEMSTORE_ONLY="MR";
     final public static KeyValue MEMSTORE_BEGIN = new KeyValue(HConstants.EMPTY_START_ROW,HOLD,HOLD);
     final public static KeyValue MEMSTORE_END = new KeyValue(HConstants.EMPTY_END_ROW,HOLD,HOLD);

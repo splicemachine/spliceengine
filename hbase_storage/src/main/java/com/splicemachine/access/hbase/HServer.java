@@ -53,4 +53,19 @@ public class HServer implements PartitionServer{
         //TODO -sf- compare only on hostnameport etc.
         return serverName.compareTo(((HServer)o).serverName);
     }
+
+    @Override
+    public boolean equals(Object o){
+        if(this==o) return true;
+        if(!(o instanceof HServer)) return false;
+
+        HServer hServer=(HServer)o;
+
+        return serverName.equals(hServer.serverName);
+    }
+
+    @Override
+    public int hashCode(){
+        return serverName.hashCode();
+    }
 }

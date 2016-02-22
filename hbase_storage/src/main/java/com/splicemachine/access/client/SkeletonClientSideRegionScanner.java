@@ -34,7 +34,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private static final Comparator<Cell> timeComparator=new Comparator<Cell>(){
         @Override
         public int compare(Cell o1,Cell o2){
-            return -Long.compare(o1.getTimestamp(),o2.getTimestamp());
+            return Long.compare(o2.getTimestamp(),o1.getTimestamp());
         }
     };
 	private HRegion region;

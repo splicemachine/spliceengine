@@ -70,5 +70,13 @@ public class WriteStatus {
                 this.independentWriteCount == ((WriteStatus) obj).independentWriteCount &&
                 this.independentWriteThreads == ((WriteStatus) obj).independentWriteThreads;
     }
-
+    @Override
+    public int hashCode(){
+        int hC = 17;
+        hC+= 31*hC+dependentWriteCount;
+        hC+= 31*hC+dependentWriteThreads;
+        hC+= 31*hC+independentWriteCount;
+        hC+= 31*hC+independentWriteThreads;
+        return hC;
+    }
 }
