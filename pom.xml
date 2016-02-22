@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
@@ -35,7 +36,8 @@
         <obfuscate.si/>
         <obfuscate.si.tag/>
         <ij.connection.port>1527</ij.connection.port>
-				<skip.staticanalysis>${skip.sa}</skip.staticanalysis>
+        <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
+        <guava.version>14.0.1</guava.version>
     </properties>
     <distributionManagement>
         <site>
@@ -142,7 +144,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>14.0</version>
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.lmax</groupId>
@@ -400,19 +402,19 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-								<executions>
-												<execution>
-																<id>fb</id>
-																<phase>process-test-resources</phase>
-																<goals>
-																				<goal>findbugs</goal>
-																</goals>
-																<configuration>
-																				<skip>${skip.staticanalysis}</skip>
-																				<onlyAnalyze>com.splicemachine.-</onlyAnalyze>
-																</configuration>
-												</execution>
-								</executions>
+                <executions>
+                    <execution>
+                        <id>fb</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>findbugs</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.staticanalysis}</skip>
+                            <onlyAnalyze>com.splicemachine.-</onlyAnalyze>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -467,6 +469,7 @@
             </activation>
             <properties>
                 <envClassifier>cdh5.4.8</envClassifier>
+                <!--<guava.version>12.0.1</guava.version>-->
             </properties>
             <modules>
                 <module>hbase_storage</module>

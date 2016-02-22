@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.function.broadcast;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -25,36 +26,36 @@ public class BroadcastJoinFlatMapFunction extends AbstractBroadcastJoinFlatMapFu
 
     @Override
     public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> call(final Iterator<LocatedRow> locatedRows, final JoinTable joinTable) {
-        Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> result = FluentIterable.from(new Iterable<LocatedRow>(){
+        Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> result = Iterables.concat(FluentIterable.from(new Iterable<LocatedRow>(){
             @Override
             public Iterator<LocatedRow> iterator(){
                 return locatedRows;
             }
-        }).transformAndConcat(
-                new Function<LocatedRow, Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>>>() {
+        }).transform(
+                new Function<LocatedRow, Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>>>(){
                     @Nullable
                     @Override
-                    public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> apply(@Nullable final LocatedRow left) {
-                        Iterable<ExecRow> inner = new Iterable<ExecRow>() {
+                    public Iterable<Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>> apply(@Nullable final LocatedRow left){
+                        Iterable<ExecRow> inner=new Iterable<ExecRow>(){
                             @Override
-                            public Iterator<ExecRow> iterator() {
-                                try {
+                            public Iterator<ExecRow> iterator(){
+                                try{
                                     return joinTable.fetchInner(left.getRow());
-                                } catch (Exception e) {
+                                }catch(Exception e){
                                     throw new RuntimeException(e);
                                 }
                             }
                         };
                         return FluentIterable.from(inner).transform(
-                                new Function<ExecRow, Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>>() {
+                                new Function<ExecRow, Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>>>(){
                                     @Nullable
                                     @Override
-                                    public Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>> apply(@Nullable ExecRow right) {
-                                        return new Tuple2(left.getRow(), new Tuple2(left, new LocatedRow(right)));
+                                    public Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>> apply(@Nullable ExecRow right){
+                                        return new Tuple2<>(left.getRow(),new Tuple2<>(left,new LocatedRow(right)));
                                     }
                                 });
                     }
-                });
+                }));
         return result;
     }
 }

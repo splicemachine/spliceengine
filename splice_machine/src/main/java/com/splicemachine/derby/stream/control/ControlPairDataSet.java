@@ -119,12 +119,18 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public PairDataSet<K, V> sortByKey(final Comparator<K> comparator) {
-        return new ControlPairDataSet<>(FluentIterable.from(source).toSortedList(new Comparator<Tuple2<K, V>>() {
+        /*
+         * -sf- this is done a bit goofily, so that we can support multiple versions of guava.
+         *
+         * This is essentially copying out FluentIterable.from(source).toSortedList(comparator) logic
+         * directly into the method, so that we can support the same code line from 12.0.1 on.
+         */
+        return new ControlPairDataSet<>(Ordering.from(new Comparator<Tuple2<K, V>>() {
             @Override
             public int compare(Tuple2<K, V> o1, Tuple2<K, V> o2) {
                 return comparator.compare(o1._1(), o2._1());
             }
-        }));
+        }).immutableSortedCopy(source));
     }
 
     @Override
@@ -155,7 +161,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
 
-        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, Optional<W>>>>>() {
+        return new ControlPairDataSet<>(Iterables.concat(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, Optional<W>>>>>() {
             @Nullable
             @Override
             public Iterable<Tuple2<K, Tuple2<V, Optional<W>>>> apply(@Nullable Tuple2<K, V> t) {
@@ -170,7 +176,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                     result.add(new Tuple2<>(key,new Tuple2<>(value,Optional.<W>absent())));
                 return result;
             }
-        }));
+        })));
     }
 
     @Override
@@ -179,7 +185,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         final Multimap<K, V> leftSide = multimapFromIterable(source);
 
 
-        return new ControlPairDataSet<>(FluentIterable.from(((ControlPairDataSet<K,W>) rightDataSet).source).transformAndConcat(new Function<Tuple2<K, W>, Iterable<Tuple2<K, Tuple2<Optional<V>, W>>>>() {
+        return new ControlPairDataSet<>(Iterables.concat(FluentIterable.from(((ControlPairDataSet<K,W>) rightDataSet).source).transform(new Function<Tuple2<K, W>, Iterable<Tuple2<K, Tuple2<Optional<V>, W>>>>() {
             @Nullable
             @Override
             public Iterable<Tuple2<K, Tuple2<Optional<V>, W>>> apply(@Nullable Tuple2<K, W> t) {
@@ -194,14 +200,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                     result.add(new Tuple2<>(key,new Tuple2<>(Optional.<V>absent(),value)));
                 return result;
             }
-        }));
+        })));
     }
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet<K,W>) rightDataSet).source);
-        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, W>>>>() {
+        return new ControlPairDataSet<>(Iterables.concat(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, Iterable<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
             public Iterable<Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
@@ -213,7 +219,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 }
                 return result;
             }
-        }));
+        })));
     }
 
     @Override

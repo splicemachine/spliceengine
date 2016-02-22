@@ -3,6 +3,7 @@ package com.splicemachine.derby.stream.control;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -129,7 +130,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function) {
-        return new ControlPairDataSet<K,V>(entryToTuple(FluentIterable.from(iterable).index(function).entries()));
+        return new ControlPairDataSet<>(entryToTuple(Multimaps.index(iterable,function).entries()));
     }
 
     @Override
@@ -196,7 +197,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
-        return new ControlDataSet(FluentIterable.from(iterable).transformAndConcat(f));
+        return new ControlDataSet(Iterables.concat(FluentIterable.from(iterable).transform(f)));
     }
 
     @Override
