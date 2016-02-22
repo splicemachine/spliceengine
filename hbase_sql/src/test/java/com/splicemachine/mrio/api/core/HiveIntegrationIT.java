@@ -18,11 +18,11 @@ import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hive.jdbc.HiveDriver;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -44,15 +44,14 @@ public class HiveIntegrationIT extends BaseMRIOTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-    // With hive2, you no longer create the driver this way
-//    private static String driverName = HiveDriver.class.getCanonicalName();
-//    static {
-//        try {
-//            Class.forName(driverName);
-//        } catch (ClassNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    private static String driverName = HiveDriver.class.getCanonicalName();
+    static {
+        try {
+            Class.forName(driverName);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
     private TriggerBuilder tb = new TriggerBuilder();
 
