@@ -17,10 +17,12 @@
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
     </repositories>
+<!--
     <properties>
-        <splice.jar.basename>${project.artifactId}-${project.version}-${envClassifier}</splice.jar.basename>
+        <splice.jar.basename>${project.artifactId}-${project.version}-${envClassifier}_complete.jar</splice.jar.basename>
         <splice.jar>${project.build.directory}/${splice.jar.basename}</splice.jar>
     </properties>
+-->
     <!--
     The Shade plugin creates an uber-jar based on the profile which is set. Each profile
     determines a different dependency chain, which is uber-included.
@@ -32,7 +34,40 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <!--<version>2.4.3</version>-->
+                <configuration>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>${envClassifier}_complete</shadedClassifierName>
+                    <artifactSet>
+                        <includes>
+                            <include>com.carrotsearch:hppc</include>
+                            <include>com.esotericsoftware.kryo:kryo</include>
+                            <include>com.google.code.gson:gson</include>
+                            <include>com.google.protobuf:protobuf-java</include>
+                            <include>com.lmax:disruptor</include>
+                            <include>de.javakaffee:kryo-serializers</include>
+                            <include>net.sf.ehcache:ehcache-core</include>
+                            <include>net.sf.opencsv:opencsv</include>
+                            <include>net.sf.supercsv:super-csv</include>
+                            <include>org.apache.lucene:lucene-core</include>
+                            <include>org.apache.spark</include>
+                            <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
+                            <include>com.splicemachine.db-project:*</include>
+                            <include>com.splicemachine:*</include>
+                            <include>org.sparkproject.guava:*</include>
+                        </includes>
+                    </artifactSet>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <!-- exclude signing keys from uber-jar -->
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                                <exclude>META-INF/*.SF</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -50,53 +85,21 @@
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <!-- exclude signing keys from uber-jar -->
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>META-INF/*.SF</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <artifactSet>
-                                <includes>
-                                    <include>com.carrotsearch:hppc</include>
-                                    <include>com.esotericsoftware.kryo:kryo</include>
-                                    <include>com.google.code.gson:gson</include>
-                                    <include>com.google.protobuf:protobuf-java</include>
-                                    <include>com.lmax:disruptor</include>
-                                    <include>de.javakaffee:kryo-serializers</include>
-                                    <include>net.sf.ehcache:ehcache-core</include>
-                                    <include>net.sf.opencsv:opencsv</include>
-                                    <include>net.sf.supercsv:super-csv</include>
-                                    <include>org.apache.lucene:lucene-core</include>
-                                    <include>org.apache.spark</include>
-                                    <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
-                                    <include>com.splicemachine.db-project:*</include>
-                                    <include>com.splicemachine:*</include>
-                                    <include>org.sparkproject.guava:*</include>
-                                </includes>
-                            </artifactSet>
-                            <finalName>${splice.jar.basename}</finalName>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>complete</shadedClassifierName>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-<!--
+			<!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
-                    <file>${splice.jar}</file>
+                    <file>${project.artifactId}-${project.version}-${envClassifier}_complete.jar</file>
                     <repositoryId>splicemachine</repositoryId>
                     <url>http://nexus.splicemachine.com/nexus/content/repositories/releases/</url>
                     <groupId>${groupId}</groupId>
-                    <artifactId>${project.artifactId}-${envClassifier}</artifactId>
+                    <artifactId>${project.artifactId}-${project.version}</artifactId>
+                    <classifier>${envClassifier}_complete</classifier>
                     <version>${project.version}</version>
                     <packaging>jar</packaging>
                     <generatePom>true</generatePom>
@@ -109,8 +112,8 @@
                         </goals>
                     </execution>
                 </executions>
-			</plugin>
--->
+            </plugin>
+			-->
         </plugins>
     </build>
     <profiles>
