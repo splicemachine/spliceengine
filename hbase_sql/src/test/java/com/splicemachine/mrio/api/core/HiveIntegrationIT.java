@@ -31,8 +31,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.fail;
 
-// Ignore until mapr brakage is fixed
-@Ignore
+@Ignore("DB-4642")
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
     public static final String CLASS_NAME = HiveIntegrationIT.class.getSimpleName().toUpperCase();
@@ -45,6 +44,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
+    // With hive2, you no longer create the driver this way
 //    private static String driverName = HiveDriver.class.getCanonicalName();
 //    static {
 //        try {
