@@ -50,7 +50,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
         conf.setBoolean("splice.spark", spark);
         String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
         String rootDir = conf.get(HConstants.HBASE_DIR);
-        if (!spark && util==null && jdbcString!=null)
+        if (util==null && jdbcString!=null)
             util = SMSQLUtil.getInstance(jdbcString);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, tableScannerAsString=%s"

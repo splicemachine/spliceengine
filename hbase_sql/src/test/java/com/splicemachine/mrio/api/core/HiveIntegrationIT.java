@@ -1,20 +1,50 @@
 package com.splicemachine.mrio.api.core;
 
-import com.splicemachine.derby.test.framework.*;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.test_dao.TriggerBuilder;
+import com.splicemachine.test_tools.TableCreator;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.*;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.fail;
 
 // Ignore until mapr brakage is fixed
 @Ignore
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
+    public static final String CLASS_NAME = HiveIntegrationIT.class.getSimpleName().toUpperCase();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+        .around(spliceSchemaWatcher);
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+
 //    private static String driverName = HiveDriver.class.getCanonicalName();
 //    static {
 //        try {
@@ -24,168 +54,169 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 //        }
 //    }
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(HiveIntegrationIT.class.getSimpleName());
-    protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",HiveIntegrationIT.class.getSimpleName(),"(col1 int, col2 int, col3 int, primary key (col3, col1))");
-    protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",HiveIntegrationIT.class.getSimpleName(),"(col1 char(20), col2 varchar(56), primary key (col1))");
-    protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",HiveIntegrationIT.class.getSimpleName(),"("
-            + "tinyint_col smallint,"
-            + "smallint_col smallInt, "
-            + "int_col int, "
-            + "bigint_col bigint, "
-            + "float_col float, "
-            + "double_col double, "
-            + "decimal_col decimal, "
-            + "timestamp_col timestamp, "
-            + "date_col date, "
-            + "varchar_col varchar(32), "
-            + "char_col char(32), "
-            + "boolean_col boolean, "
-            + "binary_col varchar(30))"
-    );
+    private TriggerBuilder tb = new TriggerBuilder();
 
+    public static void createData(Connection conn) throws Exception {
+        new TableCreator(conn)
+            .withCreate("create table A(col1 int, col2 int, col3 int, primary key (col3, col1))")
+            .create();
 
-    protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",HiveIntegrationIT.class.getSimpleName(),"(id int, name varchar(10), gender char(1))");
-    protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",HiveIntegrationIT.class.getSimpleName(),"("
-            + "tinyint_col smallint,"
-            + "smallint_col smallInt, "
-            + "int_col int, "
-            + "bigint_col bigint, "
-            + "float_col float, "
-            + "double_col double, "
-            + "decimal_col decimal, "
-            + "timestamp_col timestamp, "
-            + "date_col date, "
-            + "varchar_col varchar(32), "
-            + "char_col char(32), "
-            + "boolean_col boolean)"
-    );
-    protected static SpliceTableWatcher spliceTableWatcherF = new SpliceTableWatcher("F",HiveIntegrationIT.class.getSimpleName(),"("
-            + "tinyint_col smallint,"
-            + "smallint_col smallInt, "
-            + "int_col int, "
-            + "bigint_col bigint, "
-            + "float_col float, "
-            + "double_col double, "
-            + "decimal_col decimal, "
-            + "timestamp_col timestamp, "
-            + "date_col date, "
-            + "varchar_col varchar(32), "
-            + "char_col char(32), "
-            + "boolean_col boolean)"
-    );
+        PreparedStatement insert = spliceClassWatcher.prepareStatement("insert into A values (?,?,?)");
+        for (int i = 0; i< 100; i++) {
+            insert.setInt(1, i);
+            insert.setInt(2, i + 1);
+            insert.setInt(3, i + 2);
+            insert.executeUpdate();
+        }
 
-    protected static SpliceTableWatcher spliceTableWatcherG = new SpliceTableWatcher("G",HiveIntegrationIT.class.getSimpleName(),"(col1 int, col2 int, col3 int)");
+        new TableCreator(conn)
+            .withCreate("create table B(col1 char(20), col2 varchar(56), primary key (col1))")
+            .create();
 
-    protected static SpliceTableWatcher spliceTableWatcherH = new SpliceTableWatcher("H",HiveIntegrationIT.class.getSimpleName(),"(col1 int, col2 int, col3 int, primary key (col3, col1))");
+        insert = spliceClassWatcher.prepareStatement("insert into B values (?,?)");
+        for (int i = 0; i< 100; i++) {
+            insert.setString(1, "Char " + i);
+            insert.setString(2, "Varchar " + i);
+            insert.executeUpdate();
+        }
 
-    @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSchemaWatcher)
-            .around(spliceTableWatcherA)
-            .around(spliceTableWatcherB)
-            .around(spliceTableWatcherC)
-            .around(spliceTableWatcherE)
-            .around(new SpliceDataWatcher(){
-                @Override
-                protected void starting(Description description) {
-                    try {
-                        PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".A (col1,col2,col3) values (?,?,?)");
-                        PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".B (col1,col2) values (?,?)");
-                        PreparedStatement psC = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".C ("
-                                + "tinyint_col,"
-                                + "smallint_col, "
-                                + "int_col, "
-                                + "bigint_col, "
-                                + "float_col, "
-                                + "double_col, "
-                                + "decimal_col, "
-                                + "timestamp_col, "
-                                + "date_col, "
-                                + "varchar_col, "
-                                + "char_col, "
-                                + "boolean_col, "
-                                + "binary_col) "
-                                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        new TableCreator(conn)
+            .withCreate("create table C("
+                + "tinyint_col smallint,"
+                + "smallint_col smallInt, "
+                + "int_col int, "
+                + "bigint_col bigint, "
+                + "float_col float, "
+                + "double_col double, "
+                + "decimal_col decimal, "
+                + "timestamp_col timestamp, "
+                + "date_col date, "
+                + "varchar_col varchar(32), "
+                + "char_col char(32), "
+                + "boolean_col boolean, "
+                + "binary_col varchar(30))"
+            )
+            .create();
 
-                        PreparedStatement psE = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".E ("
-                                + "decimal_col, "
-                                + "timestamp_col, "
-                                + "date_col, "
-                                + "varchar_col, "
-                                + "char_col)"
-                                + "values (?,?,?,?,?)");
+        insert = spliceClassWatcher.prepareStatement("insert into C values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        for (int i = 0; i< 100; i++) {
+            insert.setInt(1, i);
+            insert.setInt(2, i);
+            insert.setInt(3, i);
+            insert.setInt(4, i);
+            insert.setFloat(5, (float) (i * 1.0));
+            insert.setDouble(6, i * 1.0);
+            insert.setBigDecimal(7, new BigDecimal(i * 1.0));
+            insert.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
+            insert.setDate(9, new Date(System.currentTimeMillis()));
+            insert.setString(10, "varchar " + i);
+            insert.setString(11, "char " + i);
+            insert.setBoolean(12, true);
+            insert.setString(13, "Binary " + i);
+            insert.executeUpdate();
+        }
 
-                        for (int i = 0; i< 100; i++) {
-                            psA.setInt(1,i);
-                            psA.setInt(2,i+1);
-                            psA.setInt(3,i+2);
-                            psA.executeUpdate();
+        new TableCreator(conn)
+            .withCreate("create table D (id int, name varchar(10), gender char(1))")
+            .withInsert("insert into D values(?,?,?)")
+            .withRows(rows(
+                row(1, null, "M")))
+            .create();
 
-                            psB.setString(1,"Char " + i);
-                            psB.setString(2, "Varchar " + i);
-                            psB.executeUpdate();
+        new TableCreator(conn)
+            .withCreate("create table E ("
+                + "tinyint_col smallint,"
+                + "smallint_col smallInt, "
+                + "int_col int, "
+                + "bigint_col bigint, "
+                + "float_col float, "
+                + "double_col double, "
+                + "decimal_col decimal, "
+                + "timestamp_col timestamp, "
+                + "date_col date, "
+                + "varchar_col varchar(32), "
+                + "char_col char(32), "
+                + "boolean_col boolean)")
+            .create();
 
-                            psC.setInt(1, i);
-                            psC.setInt(2, i);
-                            psC.setInt(3, i);
-                            psC.setInt(4, i);
-                            psC.setFloat(5, (float) (i * 1.0));
-                            psC.setDouble(6, i * 1.0);
-                            psC.setBigDecimal(7, new BigDecimal(i*1.0));
-                            psC.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
-                            psC.setDate(9, new Date(System.currentTimeMillis()));
-                            psC.setString(10, "varchar " + i);
-                            psC.setString(11, "char " + i);
-                            psC.setBoolean(12, true);
-                            psC.setString(13, "Binary " + i);
-                            psC.executeUpdate();
+        insert = spliceClassWatcher.prepareStatement("insert into E ("
+            + "decimal_col, "
+            + "timestamp_col, "
+            + "date_col, "
+            + "varchar_col, "
+            + "char_col)"
+            + "values (?,?,?,?,?)");
 
-                            psE.setBigDecimal(1, null);
-                            psE.setTimestamp(2, null);
-                            psE.setDate(3, null);
-                            psE.setString(4, null);
-                            psE.setString(5, null);
-                            psE.executeUpdate();
-                        }
+        for (int i = 0; i< 100; i++) {
+            insert.setBigDecimal(1, null);
+            insert.setTimestamp(2, null);
+            insert.setDate(3, null);
+            insert.setString(4, null);
+            insert.setString(5, null);
+            insert.executeUpdate();
+        }
 
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .around(spliceTableWatcherD)
-            .around(new SpliceDataWatcher(){
-                @Override
-                protected void starting(Description description) {
-                    try {
-                        PreparedStatement psD = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".D (id,name,gender) values (?,?,?)");
-                        psD.setInt(1,1);
-                        psD.setString(2, null);
-                        psD.setString(3,"M");
-                        psD.execute();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            })
-            .around(spliceTableWatcherF)
-            .around(spliceTableWatcherG)
-            .around(spliceTableWatcherH);
+        new TableCreator(conn)
+            .withCreate("create table F ("
+                + "tinyint_col smallint,"
+                + "smallint_col smallInt, "
+                + "int_col int, "
+                + "bigint_col bigint, "
+                + "float_col float, "
+                + "double_col double, "
+                + "decimal_col decimal, "
+                + "timestamp_col timestamp, "
+                + "date_col date, "
+                + "varchar_col varchar(32), "
+                + "char_col char(32), "
+                + "boolean_col boolean)")
+            .create();
 
-    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+        new TableCreator(conn)
+            .withCreate("create table G (col1 int, col2 int, col3 int)")
+            .create();
+
+        new TableCreator(conn)
+            .withCreate("create table H (col1 int, col2 int, col3 int, primary key (col3, col1))")
+            .create();
+
+        new TableCreator(conn)
+            .withCreate("create table I (message varchar(1024))")
+            .create();
+
+        new TableCreator(conn)
+            .withCreate("create table J (col1 int, col2 int, col3 int constraint col3_ck1 check (col3 > 0))")
+            .create();
+
+        new TableCreator(conn)
+            .withCreate("create table K (a int primary key, b int, CONSTRAINT fk FOREIGN KEY (B) REFERENCES K(a))")
+            .withInsert("insert into K values(?,?)")
+            .withRows(rows(row(1, null), row(2, null), row(3, 1), row(4, 1), row(5, 1), row(6, 1))).create();
+    }
+
+    @BeforeClass
+    public static void createDataSet() throws Exception {
+        createData(spliceClassWatcher.getOrCreateConnection());
+    }
+
+    @AfterClass
+    public static void cleanup() throws Exception {
+        FileSystem fs = FileSystem.get(URI.create(getHiveWarehouseDirectory()), ((HConfiguration)SIDriver.driver().getConfiguration()).unwrapDelegate());
+        fs.delete(new Path(getBaseDirectory()+"/user"), true);
+        fs.delete(new Path(getBaseDirectory() + "/../target"), true);
+    }
 
     @Test
     public void testCompositePK() throws SQLException, IOException {
         Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE A " +
-                "(COL1 INT, COL2 INT, COL3 INT) " +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.A\""+
-                ")";
+            "(COL1 INT, COL2 INT, COL3 INT) " +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.A\""+
+            ")";
         stmt.execute(createExternalExisting);
 
         ResultSet rs = stmt.executeQuery("select * from A");
@@ -199,24 +230,24 @@ public class HiveIntegrationIT extends BaseMRIOTest {
             Assert.assertNotNull("col1 did not return", v1);
             Assert.assertNotNull("col1 did not return", v2);
             Assert.assertNotNull("col1 did not return", v3);
-            Assert.assertTrue(v2==v1+1);
-            Assert.assertTrue(v3==v2+1);
+            Assert.assertTrue(v2 == v1 + 1);
+            Assert.assertTrue(v3 == v2 + 1);
 
         }
-        Assert.assertEquals("incorrect number of rows returned", 100,i);
+        Assert.assertEquals("incorrect number of rows returned", 100, i);
     }
 
     @Test
     public void testVarchar() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE B " +
-                "(col1 String, col2 VARCHAR(56)) " +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.B\""+
-                ")";
+            "(col1 String, col2 VARCHAR(56)) " +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.B\""+
+            ")";
 
         stmt.execute(createExternalExisting);
         ResultSet rs = stmt.executeQuery("select * from B");
@@ -231,15 +262,15 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @Test
     public void testNullColumnValue() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE D " +
-                "(id int, name VARCHAR(10), gender char(1)) " +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.D\""+
-                ")";
+            "(id int, name VARCHAR(10), gender char(1)) " +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.D\""+
+            ")";
 
         stmt.execute(createExternalExisting);
         ResultSet rs = stmt.executeQuery("select * from D");
@@ -258,27 +289,27 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @Test
     public void testDataTypes() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE C ("
-                + "tinyint_col tinyint,"
-                + "smallint_col smallInt, "
-                + "int_col int, "
-                + "bigint_col bigint, "
-                + "float_col float, "
-                + "double_col double, "
-                + "decimal_col decimal, "
-                + "timestamp_col timestamp, "
-                + "date_col date, "
-                + "varchar_col varchar(32), "
-                + "char_col char(32), "
-                + "boolean_col boolean, "
-                + "binary_col binary)" +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.C\""+
-                ")";
+            + "tinyint_col tinyint,"
+            + "smallint_col smallInt, "
+            + "int_col int, "
+            + "bigint_col bigint, "
+            + "float_col float, "
+            + "double_col double, "
+            + "decimal_col decimal, "
+            + "timestamp_col timestamp, "
+            + "date_col date, "
+            + "varchar_col varchar(32), "
+            + "char_col char(32), "
+            + "boolean_col boolean, "
+            + "binary_col binary)" +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.C\""+
+            ")";
 
         stmt.execute(createExternalExisting);
         ResultSet rs = stmt.executeQuery("select * from C");
@@ -304,26 +335,26 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @Test
     public void testNullColumnValues() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE E ("
-                + "tinyint_col tinyint,"
-                + "smallint_col smallInt, "
-                + "int_col int, "
-                + "bigint_col bigint, "
-                + "float_col float, "
-                + "double_col double, "
-                + "decimal_col decimal, "
-                + "timestamp_col timestamp, "
-                + "date_col date, "
-                + "varchar_col varchar(32), "
-                + "char_col char(32), "
-                + "boolean_col boolean)" +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.E\""+
-                ")";
+            + "tinyint_col tinyint,"
+            + "smallint_col smallInt, "
+            + "int_col int, "
+            + "bigint_col bigint, "
+            + "float_col float, "
+            + "double_col double, "
+            + "decimal_col decimal, "
+            + "timestamp_col timestamp, "
+            + "date_col date, "
+            + "varchar_col varchar(32), "
+            + "char_col char(32), "
+            + "boolean_col boolean)" +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.E\""+
+            ")";
 
         stmt.execute(createExternalExisting);
         ResultSet rs = stmt.executeQuery("select * from E");
@@ -349,26 +380,26 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @Test
     public void testInsert() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE F ("
-                + "tinyint_col tinyint,"
-                + "smallint_col smallInt, "
-                + "int_col int, "
-                + "bigint_col bigint, "
-                + "float_col float, "
-                + "double_col double, "
-                + "decimal_col decimal, "
-                + "timestamp_col timestamp, "
-                + "date_col date, "
-                + "varchar_col varchar(32), "
-                + "char_col char(32), "
-                + "boolean_col boolean)" +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.F\""+
-                ")";
+            + "tinyint_col tinyint,"
+            + "smallint_col smallInt, "
+            + "int_col int, "
+            + "bigint_col bigint, "
+            + "float_col float, "
+            + "double_col double, "
+            + "decimal_col decimal, "
+            + "timestamp_col timestamp, "
+            + "date_col date, "
+            + "varchar_col varchar(32), "
+            + "char_col char(32), "
+            + "boolean_col boolean)" +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.F\""+
+            ")";
 
         stmt.execute(createExternalExisting);
         PreparedStatement ps = con.prepareStatement("insert into table F values(?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -410,16 +441,19 @@ public class HiveIntegrationIT extends BaseMRIOTest {
     }
 
     @Test
-    public void testInsertValues() throws SQLException, IOException {
+    public void testInsertFireTrigger() throws Exception {
+
+        createTrigger(tb.on("HIVEINTEGRATIONIT.G").named("trig").after().insert().statement().then("INSERT INTO HIVEINTEGRATIONIT.I VALUES('inserted a row')"));
+
         Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE G " +
-                "(COL1 INT, COL2 INT, COL3 INT) " +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.G\""+
-                ")";
+            "(COL1 INT, COL2 INT, COL3 INT) " +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.G\""+
+            ")";
         stmt.execute(createExternalExisting);
         PreparedStatement ps = con.prepareStatement("insert into table G values (?,?,?)");
 
@@ -438,25 +472,29 @@ public class HiveIntegrationIT extends BaseMRIOTest {
             int col2 = rs.getInt(2);
             int col3 = rs.getInt(3);
 
-            Assert.assertTrue(col2==col1);
-            Assert.assertTrue(col3==col2);
+            Assert.assertTrue(col2 == col1);
+            Assert.assertTrue(col3 == col2);
             i++;
         }
 
-        Assert.assertTrue(i==nrows);
+        Assert.assertTrue(i == nrows);
+
+        rs = methodWatcher.executeQuery("select count(*) from hiveintegrationit.i");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(nrows == rs.getInt(1));
     }
 
     @Test
     public void testInsertTableWithPKColumns() throws SQLException, IOException {
-        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Connection con = DriverManager.getConnection("jdbc:hive2://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE H " +
-                "(COL1 INT, COL2 INT, COL3 INT) " +
-                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
-                "TBLPROPERTIES (" +
-                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.H\""+
-                ")";
+            "(COL1 INT, COL2 INT, COL3 INT) " +
+            "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+            "TBLPROPERTIES (" +
+            "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+            "\"splice.tableName\" = \"HIVEINTEGRATIONIT.H\""+
+            ")";
         stmt.execute(createExternalExisting);
         PreparedStatement ps = con.prepareStatement("insert into table H values (?,?,?)");
 
@@ -481,6 +519,58 @@ public class HiveIntegrationIT extends BaseMRIOTest {
             i++;
         }
 
-        Assert.assertTrue(i==nrows);
+        Assert.assertTrue(i == nrows);
     }
+
+    @Test
+    public void testCheckConstraint() throws Exception {
+
+        try {
+            Connection con = DriverManager.getConnection("jdbc:hive2://");
+            Statement stmt = con.createStatement();
+            String createExternalExisting = "CREATE EXTERNAL TABLE J " +
+                "(COL1 INT, COL2 INT, COL3 INT) " +
+                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+                "TBLPROPERTIES (" +
+                "\"splice.jdbc\" = \"" + SpliceNetConnection.getDefaultLocalURL() + "\"," +
+                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.J\"" +
+                ")";
+            stmt.execute(createExternalExisting);
+            PreparedStatement ps = con.prepareStatement("insert into table J values (?,?,?)");
+            ps.setInt(1, 100);
+            ps.setInt(2, 100);
+            ps.setInt(3, -100);
+            ps.execute();
+            fail("Expected constraint violation");
+        } catch (Exception e) {
+        }
+    }
+
+    @Test
+    public void testSelfReferencingForeignKey() throws Exception {
+
+        try {
+            Connection con = DriverManager.getConnection("jdbc:hive2://");
+            Statement stmt = con.createStatement();
+            String createExternalExisting = "CREATE EXTERNAL TABLE K " +
+                "(a INT, b INT) " +
+                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+                "TBLPROPERTIES (" +
+                "\"splice.jdbc\" = \"" + SpliceNetConnection.getDefaultLocalURL() + "\"," +
+                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.K\"" +
+                ")";
+            stmt.execute(createExternalExisting);
+            PreparedStatement ps = con.prepareStatement("insert into table J values (?,?)");
+            ps.setInt(1, 10);
+            ps.setInt(2, 100);
+            ps.execute();
+            fail("Expected constraint violation");
+        } catch (Exception e) {
+        }
+    }
+
+    private void createTrigger(TriggerBuilder tb) throws Exception {
+        methodWatcher.executeUpdate(tb.build());
+    }
+
 }

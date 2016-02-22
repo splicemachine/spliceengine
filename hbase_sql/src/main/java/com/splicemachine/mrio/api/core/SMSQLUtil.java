@@ -1,13 +1,17 @@
 package com.splicemachine.mrio.api.core;
 
 import com.splicemachine.SQLConfiguration;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.DataScan;
@@ -27,6 +31,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 
 public class SMSQLUtil  {
@@ -437,5 +442,22 @@ public class SMSQLUtil  {
         return scan;
     }
 
+
+    public Activation getActivation(String sql, TxnView txnView) throws SQLException, StandardException{
+
+        PreparedStatement ps = connect.prepareStatement("call syscs_util.get_activation(?)");
+        ps.setString(1, sql);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        byte[] activationHolderBytes = rs.getBytes(1);
+        try {
+            SpliceSpark.setupSpliceStaticComponents();
+        } catch (IOException ioe) {
+            StandardException.plainWrapException(ioe);
+        }
+        ActivationHolder ah = (ActivationHolder) SerializationUtils.deserialize(activationHolderBytes);
+        ah.init(txnView);
+        return ah.getActivation();
+    }
 
 }

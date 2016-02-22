@@ -31,6 +31,7 @@ import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -681,11 +682,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
         Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn=(BaseSpliceTransaction)rawStoreXact;
-        if(this instanceof DMLWriteOperation)
-            return ((SpliceTransaction)rawTxn).elevate(((DMLWriteOperation)this).getDestinationTable());
+        TxnView currentTxn = rawTxn.getActiveStateTxn();
+        if(this instanceof DMLWriteOperation) {
+            if (currentTxn instanceof ActiveWriteTxn)
+                return rawTxn.getActiveStateTxn();
+            else if (rawTxn instanceof  SpliceTransaction)
+                return ((SpliceTransaction) rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
+            else
+                throw new IllegalStateException("Programmer error: " + "cannot elevate transaction");
+        }
         else
-            throw new IllegalStateException("Programmer error: "+
-                    "attempting to elevate an operation txn without specifying a destination table");
+            throw new IllegalStateException("Programmer error: " +
+                "attempting to elevate an operation txn without specifying a destination table");
     }
 
     private TxnView getTransaction() throws StandardException{

@@ -601,6 +601,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     		.ownerClass(SpliceAdmin.class.getCanonicalName())
                     		.sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                     		.build());
+
+                    procedures.add(Procedure.newBuilder().name("GET_ACTIVATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .returnType(null).isDeterministic(false)
+                            .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build());
                 }
 
             } // End iteration through map keys (schema UUIDs)

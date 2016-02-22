@@ -1,7 +1,6 @@
 package com.splicemachine.mrio.api.hive;
 
 import java.io.IOException;
-import com.splicemachine.mrio.api.core.SMRecordWriterImpl;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -13,18 +12,18 @@ import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
 
 public class SMHiveOutputFormat implements OutputFormat<RowLocationWritable, ExecRowWritable>, Configurable {
-	protected com.splicemachine.mrio.api.core.SMOutputFormat outputFormat;
+	protected com.splicemachine.stream.output.SMOutputFormat outputFormat;
 
     public SMHiveOutputFormat() {}
 
-	public SMHiveOutputFormat(com.splicemachine.mrio.api.core.SMOutputFormat outputFormat) {
+	public SMHiveOutputFormat(com.splicemachine.stream.output.SMOutputFormat outputFormat) {
 		this.outputFormat = outputFormat;
 	}
-	
+
 	@Override
 	public void setConf(Configuration conf) {
         if (outputFormat ==null)
-            outputFormat = new com.splicemachine.mrio.api.core.SMOutputFormat();
+            outputFormat = new com.splicemachine.stream.output.SMOutputFormat();
 		outputFormat.setConf(conf);
 	}
 
@@ -37,7 +36,7 @@ public class SMHiveOutputFormat implements OutputFormat<RowLocationWritable, Exe
 	public RecordWriter<RowLocationWritable, ExecRowWritable> getRecordWriter(
 			FileSystem ignored, JobConf job, String name, Progressable progress)
 			throws IOException {
-        return new SMHiveRecordWriter(new SMRecordWriterImpl(job));
+        return new SMHiveRecordWriter(job);
 	}
 
 	@Override
