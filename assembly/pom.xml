@@ -90,6 +90,7 @@
                                     <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
                                     <include>com.splicemachine.db-project:*</include>
                                     <include>com.splicemachine:*</include>
+									<include>org.sparkproject.guava:*</include>
                                 </includes>
                             </artifactSet>
                             <finalName>${project.artifactId}-${project.version}-${envClassifier}</finalName>
