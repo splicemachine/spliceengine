@@ -11,6 +11,8 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.BitSet;
 
 /**
@@ -23,6 +25,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
     private int[] indexColToHeapColMap;
     private final OverheadManagedTableStatistics baseTableStatistics;
 
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Potential side effect variable, even though it's dead")
     public IndexStatsCostController(ConglomerateDescriptor cd,
                                     OpenSpliceConglomerate indexConglomerate,
                                     Conglomerate heapConglomerate) throws StandardException {
@@ -36,12 +39,12 @@ public class IndexStatsCostController extends StatsStoreCostController {
          */
         super(indexConglomerate);
         BaseSpliceTransaction bst = (BaseSpliceTransaction)indexConglomerate.getTransaction();
-        TxnView txn = bst.getActiveStateTxn();
+        @SuppressWarnings("unused") TxnView txn = bst.getActiveStateTxn();
         long heapConglomerateId = indexConglomerate.getIndexConglomerate();
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         System.arraycopy(baseColumnPositions,0,this.indexColToHeapColMap,0,indexColToHeapColMap.length);
-        baseTableStatistics = PartitionStatsStore.getStatistics(heapConglomerateId,(TransactionController)indexConglomerate.getTransactionManager());
+        baseTableStatistics = PartitionStatsStore.getStatistics(heapConglomerateId,indexConglomerate.getTransactionManager());
         indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics);
         this.conglomerateStatistics = indexStats;
         totalColumns = ((SpliceConglomerate)heapConglomerate).getFormat_ids().length;

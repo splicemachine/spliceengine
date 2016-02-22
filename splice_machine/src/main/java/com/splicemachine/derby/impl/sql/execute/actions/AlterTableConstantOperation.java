@@ -442,7 +442,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                        DropConstraintConstantOperation constraint) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
 
         // try to find constraint descriptor using table's schema first
@@ -478,7 +477,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         }
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
@@ -985,7 +983,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Write new conglomerate
 
         PairDataSet<LocatedRow,KVPair> ds = dataSet.map(new RowTransformFunction(ddlChange)).index(new KVPairFunction());
-        DataSet<LocatedRow> result = ds.directWriteData()
+        //side effects are what matters here
+        @SuppressWarnings("unused") DataSet<LocatedRow> result = ds.directWriteData()
                 .txn(childTxn)
                 .destConglomerate(destConglom)
                 .skipIndex(true).build().write();

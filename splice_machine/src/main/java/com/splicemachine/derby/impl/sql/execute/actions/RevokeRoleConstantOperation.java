@@ -46,7 +46,6 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
     public void executeConstantAction(Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {

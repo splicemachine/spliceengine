@@ -255,7 +255,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     /*private helper methods*/
     private InputStream newInputStream(DistributedFileSystem dfs,Path p,OpenOption... options) throws IOException{
         InputStream value = dfs.newInputStream(p,options);
-        if(p.getFileName().toString().endsWith("gz")){
+        String s=p.getFileName().toString();
+        assert s!=null;
+        if(s.endsWith("gz")){
             //need to open up a decompressing inputStream
             value = new GZIPInputStream(value);
         }

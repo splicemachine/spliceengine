@@ -65,7 +65,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
     }
 
     private void initialize() throws IOException{
-        KeyEncoder dummyKeyEncoder = createDummyKeyEncoder();
+//        KeyEncoder dummyKeyEncoder = createDummyKeyEncoder();
         //rowTransformer = ((TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc()).createRowTransformer(dummyKeyEncoder);
         // JL TODO
 //        // TODO: JC - is it more expensive to recreate rowTransformer crossing a serialization boundary or serialize it?

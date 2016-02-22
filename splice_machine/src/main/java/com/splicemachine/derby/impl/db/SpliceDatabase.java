@@ -25,6 +25,7 @@ import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -366,19 +367,17 @@ public class SpliceDatabase extends BasicDatabase{
             }
 
             @Override
+            @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
                 switch(change.getDdlChangeType()){
-//                    case CREATE_INDEX:
                     case DROP_INDEX:
                     case DROP_TABLE:
-//                    case CREATE_TABLE:
                         getDataDictionary().getDataDictionaryCache().emptyStatementCache();
                         break;
                     case CREATE_SCHEMA:
                     case DROP_SCHEMA:
                         getDataDictionary().getDataDictionaryCache().clearSchemaCache();
                         break;
-
                 }
             }
 

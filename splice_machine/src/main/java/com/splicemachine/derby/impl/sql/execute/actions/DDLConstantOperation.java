@@ -142,7 +142,6 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
-		String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
 		SettableBoolean roleDepAdded = new SettableBoolean();
         if (! currentUser.equals( dd.getAuthorizationDatabaseOwner()) ) {
@@ -312,10 +311,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 		SpliceLogUtils.trace(LOG, "findRoleUsage %s",statPerm);
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
-		RoleGrantDescriptor rootGrant = null;
 		String role = lcc.getCurrentRoleId(activation);
-		String dbo = dd.getAuthorizationDatabaseOwner();
-        String currentUser = lcc.getCurrentUserId(activation);
 		PermissionsDescriptor permDesc = null;
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(
@@ -324,14 +320,14 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 		}
 
 		// determine how we got to be able use this role
-		rootGrant = dd.getRoleGrantDescriptor(role, currentUser, dbo);
+//		rootGrant = dd.getRoleGrantDescriptor(role, currentUser, dbo);
 
-		if (rootGrant == null) {
-			rootGrant = dd.getRoleGrantDescriptor(
-				role,
-				Authorizer.PUBLIC_AUTHORIZATION_ID,
-				dbo);
-		}
+//		if (rootGrant == null) {
+//			rootGrant = dd.getRoleGrantDescriptor(
+//				role,
+//				Authorizer.PUBLIC_AUTHORIZATION_ID,
+//				dbo);
+//		}
 
 		// If not found in current role, get transitive
 		// closure of roles granted to current role and

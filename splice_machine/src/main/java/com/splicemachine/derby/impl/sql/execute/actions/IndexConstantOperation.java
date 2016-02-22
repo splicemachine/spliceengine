@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -81,6 +82,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	}
 
 	@SuppressWarnings("unchecked")
+	@SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Dead variable is a side effect of writing data")
 	protected void populateIndex(Activation activation,
                                  Txn indexTransaction,
                                  long demarcationPoint,
@@ -113,7 +115,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				.destConglomerate(tentativeIndex.getIndex().getConglomerate())
 				.txn(childTxn)
 				.build();
-            DataSet<LocatedRow> result = writer.write();
+            @SuppressWarnings("unused") DataSet<LocatedRow> result = writer.write();
             childTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

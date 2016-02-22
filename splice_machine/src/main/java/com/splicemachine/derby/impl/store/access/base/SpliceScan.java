@@ -28,6 +28,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -277,6 +278,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.estimatedRowCount=estimatedRowCount;
     }
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public void fetchSet(long max_rowcnt,int[] key_column_numbers,BackingStoreHashtable hashTable) throws StandardException{
         SpliceLogUtils.trace(LOG,"IndexScan fetchSet for number of rows %d",max_rowcnt);
         initialize();

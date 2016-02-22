@@ -32,6 +32,7 @@ public class ProtoUtil {
     private static Function TABLEDESCRIPTORTOUUID = new Function<TableDescriptor,DerbyMessage.UUID>() {
         @Override
         public DerbyMessage.UUID apply(@Nullable TableDescriptor td) {
+            assert td!=null;
             return transferDerbyUUID((BasicUUID)td.getUUID());
         }
     };

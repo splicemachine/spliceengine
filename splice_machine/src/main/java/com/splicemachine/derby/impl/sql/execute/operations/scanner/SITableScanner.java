@@ -27,6 +27,7 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
@@ -328,22 +329,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     private EntryPredicateFilter buildInitialPredicateFilter() throws IOException {
-//        scopedPredicates = new ScopedPredicates(null,dataLib);//new ScopedPredicates(Scans.findSkippingScanFilter(this.scan),dataLib);
-
-        EntryPredicateFilter entryPredicateFilter = EntryPredicateFilter.fromBytes(scan.getAttribute(SIConstants.ENTRY_PREDICATE_LABEL));
-        BitSet checkedColumns = entryPredicateFilter.getCheckedColumns();
-//        if(scopedPredicates.isScanWithScopedPredicates()){
-//                /*
-//                 * We have to be careful--EMPTY_PREDICATE could have been returned, in which case
-//                 * setting predicates can cause all kinds of calamituous behavior. To avoid that, when
-//                 * we have a skipscan filter (e.g. some kind of block scanning like a Batch NLJ) and we
-//                 * have an empty Predicate Filter to begin with, then we clone the predicate filter to a new
-//                 * one to avoid contamination.
-//                 *
-//                 */
-//            return new EntryPredicateFilter(checkedColumns,new ObjectArrayList<Predicate>(),entryPredicateFilter.indexReturned());
-//        }
-        return entryPredicateFilter;
+        return EntryPredicateFilter.fromBytes(scan.getAttribute(SIConstants.ENTRY_PREDICATE_LABEL));
     }
 
     protected void setRowLocation(DataCell sampleKv) throws StandardException {
@@ -390,6 +376,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         }
     }
 
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     private boolean filterRow(SIFilter filter,List<DataCell> keyValues) throws IOException {
         filter.nextRow();
         Iterator<DataCell> kvIter = keyValues.iterator();

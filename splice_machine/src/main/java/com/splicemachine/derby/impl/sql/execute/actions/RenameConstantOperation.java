@@ -163,15 +163,11 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 	 *
 	 * @exception StandardException Thrown on failure
 	 */
-    public void executeConstantAction(Activation activation) throws StandardException
-	{
+    public void executeConstantAction(Activation activation) throws StandardException {
 		TableDescriptor td;
-		UUID tableID;
 
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
-		DependencyManager dm = dd.getDependencyManager();
-		TransactionController tc = lcc.getTransactionExecute();
 
 
 		/*
@@ -204,7 +200,6 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 			sd = getAndCheckSchemaDescriptor(dd, schemaId, "RENAME TABLE");
 		}
 
-		long heapId = td.getHeapConglomerateId();
 
 		/* need to lock table, beetle 4271
 		 */
@@ -332,8 +327,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 		// Drop the column
 		dd.dropColumnDescriptor(td.getUUID(), oldObjectName, tc);
 		columnDescriptor.setColumnName(newObjectName);
-		dd.addDescriptor(columnDescriptor, td,
-						 DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+		dd.addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
 		//Need to do following to reload the cache so that table
 		//descriptor now has new column name
@@ -341,11 +335,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 	}
 
 	//do necessary work for rename index at execute time.
-	private void execGutsRenameIndex
-	(
-				   TableDescriptor td, Activation activation)
-		throws StandardException
-	{
+	private void execGutsRenameIndex ( TableDescriptor td, Activation activation) throws StandardException {
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();

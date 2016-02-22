@@ -135,7 +135,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     public static void COLLECT_SCHEMA_STATISTICS(String schema, boolean staleOnly, ResultSet[] outputResults) throws
         SQLException {
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        List<ExecRow> rows = Lists.newArrayList();
+//        List<ExecRow> rows = Lists.newArrayList();
         try {
             if (schema == null)
                 throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException(); //TODO -sf- change this to proper SCHEMA
@@ -163,7 +163,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             transactionExecute.elevate("statistics");
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc,tds);
-            ExecRow templateOutputRow = buildOutputTemplateRow();
+//            ExecRow templateOutputRow = buildOutputTemplateRow();
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
@@ -239,7 +239,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             authorize(tds);
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
             dd.startWriting(conn.getLanguageConnection());
-            ExecRow outputRow = buildOutputTemplateRow();
+//            ExecRow outputRow = buildOutputTemplateRow();
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc, tds);

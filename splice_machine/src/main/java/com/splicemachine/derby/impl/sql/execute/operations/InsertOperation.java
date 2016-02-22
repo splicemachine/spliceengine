@@ -31,6 +31,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -92,6 +93,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     }
 
     @Override
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         try{
             super.init(context);

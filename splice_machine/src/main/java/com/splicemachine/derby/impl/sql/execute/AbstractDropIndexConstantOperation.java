@@ -131,7 +131,6 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
          * then throw an exception
          */
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
-        DependencyManager dm = dd.getDependencyManager();
         dd.dropConglomerateDescriptor(cd,userTxnManager);
         td.removeConglomerateDescriptor(cd);
     }

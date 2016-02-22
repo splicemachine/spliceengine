@@ -69,7 +69,7 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler{
         DataScan scan = txnOperationFactory.newDataScan(ctx.getTxn());
         scan.startKey(startKey);
 
-        DataScanner scanner = ctx.getRegion().openScanner(scan);
+//        DataScanner scanner = ctx.getRegion().openScanner(scan);
         throw new UnsupportedOperationException("IMPLEMENT");
 //        scan.setFilter(new FilterList(prefixFilter, siFilter));
 //

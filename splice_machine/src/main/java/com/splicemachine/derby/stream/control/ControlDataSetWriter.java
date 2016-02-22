@@ -125,7 +125,9 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     private static Path generateFileSystemPathForWrite(String badDirectory,
                                                        DistributedFileSystem fileSystem,
                                                        SpliceOperation spliceOperation) throws StandardException{
-        String vtiFileName=fileSystem.getPath(spliceOperation.getVTIFileName()).getFileName().toString();
+        Path filePath=fileSystem.getPath(spliceOperation.getVTIFileName()).getFileName();
+        assert filePath!=null;
+        String vtiFileName=filePath.toString();
         ImportUtils.validateWritable(badDirectory,true);
         int i=0;
         while(true){

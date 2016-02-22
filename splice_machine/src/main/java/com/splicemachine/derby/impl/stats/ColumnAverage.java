@@ -60,7 +60,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
     @Override
     public float nullFraction() {
         if(mergeCount<=0) return 0l;
-        return nullCount()/(nonNullCount()+nullCount());
+        return ((float)nullCount())/(nonNullCount()+nullCount());
     }
 
     @Override

@@ -19,10 +19,12 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.Serializable;
@@ -562,6 +564,7 @@ public class SpliceTransactionManager implements XATransactionController,
      * @exception StandardException
      *                Standard exception policy.
      **/
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public int countOpens(int which_to_count) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("countOpens " + which_to_count);
@@ -1898,6 +1901,7 @@ public class SpliceTransactionManager implements XATransactionController,
         return (TransactionManager)accessmanager.getTransaction(cm);
     }
 
+    @SuppressFBWarnings(value="DLS_DEAD_LOCAL_STORE",justification="Potential side effect results in dead store")
     public TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("startIndependentInternalTransaction ");
@@ -1905,10 +1909,9 @@ public class SpliceTransactionManager implements XATransactionController,
             SpliceLogUtils.debug(LOG, "Before startIndependentInternalTransaction: parentTxn=%s, readOnly=%b", getRawTransaction(), readOnly);
         // Get the context manager.
         ContextManager cm = getContextManager();
-        String txnName;
         Transaction global = accessmanager.getRawStore().startGlobalTransaction(cm,1,new byte[0],new byte[0]);
         if(!readOnly)
-            ((SpliceTransaction)global).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
+            ((SpliceTransaction)global).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
 
         SpliceTransactionManager rt = new SpliceTransactionManager(
                 accessmanager, global, this);
@@ -1972,6 +1975,7 @@ public class SpliceTransactionManager implements XATransactionController,
      * @exception StandardException
      *                Standard exception policy.
      **/
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Potential side effect")
     public TransactionController startNestedUserTransaction(boolean readOnly,
                                                             boolean flush_log_on_xact_end) throws StandardException {
         if (LOG.isTraceEnabled())
@@ -2007,7 +2011,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
         Transaction childTxn = accessmanager.getRawStore().startNestedTransaction(getLockSpace(),cm,txnName,txn);
         if(!readOnly)
-            ((SpliceTransaction)childTxn).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
+            ((SpliceTransaction)childTxn).elevate(Bytes.toBytes("unknown")); //TODO -sf- replace this with an actual name
 
         SpliceTransactionManager rt = new SpliceTransactionManager(
                 accessmanager, childTxn, this);

@@ -340,14 +340,19 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            boolean prepared = transactionResource.marshallTransaction(txn);
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
-            if (td==null) // Table Descriptor transaction never committed
-                return;
-            flushCachesBasedOnTableDescriptor(td,dd);
-            dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td,DependencyManager.DROP_TABLE,transactionResource.getLcc());
+            }finally{
+               if(prepared)
+                   transactionResource.close();
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
@@ -358,16 +363,21 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preAlterStats with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-//            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            boolean prepared = transactionResource.marshallTransaction(txn);
-            List<DerbyMessage.UUID> tdUIDs = change.getAlterStats().getTableIdList();
-            for (DerbyMessage.UUID uuuid : tdUIDs) {
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-                if (td==null) // Table Descriptor transaction never committed
-                    return;
-                flushCachesBasedOnTableDescriptor(td,dd);
-                dm.invalidateFor(td, DependencyManager.DROP_STATISTICS, transactionResource.getLcc());
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                List<DerbyMessage.UUID> tdUIDs=change.getAlterStats().getTableIdList();
+                for(DerbyMessage.UUID uuuid : tdUIDs){
+                    TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                    if(td==null) // Table Descriptor transaction never committed
+                        return;
+                    flushCachesBasedOnTableDescriptor(td,dd);
+                    dm.invalidateFor(td,DependencyManager.DROP_STATISTICS,transactionResource.getLcc());
+                }
+            }finally{
+                if(prepared)
+                    transactionResource.close();
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -452,24 +462,28 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preRenameTable with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DerbyMessage.UUID uuuid = change.getRenameTable().getTableId();
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-            if (td==null) // Table Descriptor transaction never committed
-                return;
-            flushCachesBasedOnTableDescriptor(td, dd);
-            dm.invalidateFor(td, DependencyManager.RENAME, transactionResource.getLcc());
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                DerbyMessage.UUID uuuid=change.getRenameTable().getTableId();
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
     		/* look for foreign key dependency on the table. If found any,
 	    	use dependency manager to pass the rename action to the
 		    dependents. */
-            ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(td);
-            for(int index=0; index<constraintDescriptorList.size(); index++) {
-                ConstraintDescriptor constraintDescriptor = constraintDescriptorList.elementAt(index);
-                if (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor)
-                    dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, transactionResource.getLcc());
+                ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
+                for(int index=0;index<constraintDescriptorList.size();index++){
+                    ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);
+                    if(constraintDescriptor instanceof ReferencedKeyConstraintDescriptor)
+                        dm.invalidateFor(constraintDescriptor,DependencyManager.RENAME,transactionResource.getLcc());
+                }
+            }finally{
+                if(prepared)
+                    transactionResource.close();
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -481,39 +495,41 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preRenameColumn with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DerbyMessage.UUID uuuid = change.getRenameColumn().getTableId();
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-            if (td==null) // Table Descriptor transaction never committed
-                return;
-            ColumnDescriptor columnDescriptor = td.getColumnDescriptor(change.getRenameColumn().getColumnName());
-            if (columnDescriptor.isAutoincrement())
-                columnDescriptor.setAutoinc_create_or_modify_Start_Increment(
-                    ColumnDefinitionNode.CREATE_AUTOINCREMENT);
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                DerbyMessage.UUID uuuid=change.getRenameColumn().getTableId();
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                ColumnDescriptor columnDescriptor=td.getColumnDescriptor(change.getRenameColumn().getColumnName());
+                if(columnDescriptor.isAutoincrement())
+                    columnDescriptor.setAutoinc_create_or_modify_Start_Increment(
+                            ColumnDefinitionNode.CREATE_AUTOINCREMENT);
 
-            int columnPosition = columnDescriptor.getPosition();
-            FormatableBitSet toRename = new FormatableBitSet(td.getColumnDescriptorList().size() + 1);
-            toRename.set(columnPosition);
-            td.setReferencedColumnMap(toRename);
-            flushCachesBasedOnTableDescriptor(td, dd);
-            dm.invalidateFor(td, DependencyManager.RENAME, transactionResource.getLcc());
+                int columnPosition=columnDescriptor.getPosition();
+                FormatableBitSet toRename=new FormatableBitSet(td.getColumnDescriptorList().size()+1);
+                toRename.set(columnPosition);
+                td.setReferencedColumnMap(toRename);
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
 
-            //look for foreign key dependency on the column.
-            ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(td);
-            for(int index=0; index<constraintDescriptorList.size(); index++)
-            {
-                ConstraintDescriptor constraintDescriptor = constraintDescriptorList.elementAt(index);
-                int[] referencedColumns = constraintDescriptor.getReferencedColumns();
-                int numRefCols = referencedColumns.length;
-                for (int j = 0; j < numRefCols; j++)
-                {
-                    if ((referencedColumns[j] == columnPosition) &&
-                        (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
-                        dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, transactionResource.getLcc());
+                //look for foreign key dependency on the column.
+                ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
+                for(int index=0;index<constraintDescriptorList.size();index++){
+                    ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);
+                    int[] referencedColumns=constraintDescriptor.getReferencedColumns();
+                    int numRefCols=referencedColumns.length;
+                    for(int j=0;j<numRefCols;j++){
+                        if((referencedColumns[j]==columnPosition) &&
+                                (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
+                            dm.invalidateFor(constraintDescriptor,DependencyManager.RENAME,transactionResource.getLcc());
+                    }
                 }
+            }finally{
+                if(prepared)
+                    transactionResource.close();
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -525,16 +541,20 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preRenameIndex with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            // transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DerbyMessage.UUID uuuid = change.getRenameIndex().getTableId();
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-            if (td==null) // Table Descriptor transaction never committed
-                return;
-            flushCachesBasedOnTableDescriptor(td, dd);
-            dm.invalidateFor(td, DependencyManager.RENAME_INDEX, transactionResource.getLcc());
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                DerbyMessage.UUID uuuid=change.getRenameIndex().getTableId();
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                flushCachesBasedOnTableDescriptor(td,dd);
+                dm.invalidateFor(td,DependencyManager.RENAME_INDEX,transactionResource.getLcc());
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
@@ -545,15 +565,19 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropAlias with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DDLMessage.DropAlias dropAlias = change.getDropAlias();
-            AliasDescriptor ad = dd.getAliasDescriptor(dropAlias.getSchemaName(), dropAlias.getAliasName(), dropAlias.getNamespace().charAt(0));
-            if (ad==null) // Table Descriptor transaction never committed
-                return;
-            DropAliasConstantOperation.invalidate(ad,dm,transactionResource.getLcc());
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                DDLMessage.DropAlias dropAlias=change.getDropAlias();
+                AliasDescriptor ad=dd.getAliasDescriptor(dropAlias.getSchemaName(),dropAlias.getAliasName(),dropAlias.getNamespace().charAt(0));
+                if(ad==null) // Table Descriptor transaction never committed
+                    return;
+                DropAliasConstantOperation.invalidate(ad,dm,transactionResource.getLcc());
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
@@ -564,17 +588,21 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-//            transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DDLMessage.DropView dropView = change.getDropView();
+            boolean prepared = false;
+            try{
+                prepared = transactionResource.marshallTransaction(txn);
+                DDLMessage.DropView dropView=change.getDropView();
 
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()));
-            if (td==null) // Table Descriptor transaction never committed
-                return;
-            dm.invalidateFor(td, DependencyManager.DROP_VIEW, transactionResource.getLcc());
-            flushCachesBasedOnTableDescriptor(td, dd);
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()));
+                if(td==null) // Table Descriptor transaction never committed
+                    return;
+                dm.invalidateFor(td,DependencyManager.DROP_VIEW,transactionResource.getLcc());
+                flushCachesBasedOnTableDescriptor(td,dd);
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
@@ -586,16 +614,20 @@ public class DDLUtils {
             SpliceLogUtils.debug(LOG,"preCreateTrigger with change=%s",change);
         try {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
-            //transactionResource.prepareContextManager();
-            transactionResource.marshallTransaction(txn);
-            DerbyMessage.UUID uuuid = change.getCreateTrigger().getTableId();
-            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-            if (td==null)
-                return;
-            dm.invalidateFor(td, DependencyManager.CREATE_TRIGGER, transactionResource.getLcc());
-            flushCachesBasedOnTableDescriptor(td, dd);
+            boolean prepared = false;
+            try{
+                prepared=transactionResource.marshallTransaction(txn);
+                DerbyMessage.UUID uuuid=change.getCreateTrigger().getTableId();
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                if(td==null)
+                    return;
+                dm.invalidateFor(td,DependencyManager.CREATE_TRIGGER,transactionResource.getLcc());
+                flushCachesBasedOnTableDescriptor(td,dd);
+            }finally{
+                if(prepared)
+                    transactionResource.close();
+            }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }

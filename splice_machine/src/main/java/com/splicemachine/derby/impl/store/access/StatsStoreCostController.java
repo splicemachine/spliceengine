@@ -313,7 +313,7 @@ public class StatsStoreCostController extends GenericController implements Store
              * This should never happen, because we should guard against it. Still, we want to be careful
              * and not end up with a divide-by-0 goofiness. In this scenario, we just return an "Average"
              */
-            return pStats.avgRowWidth()/totalColumnCount;
+            return ((double)pStats.avgRowWidth())/totalColumnCount;
         } else if(avgRowWidth<0){
             /*
              * This is another weird situation that PROBABLY should never happen, where we somehow
@@ -325,7 +325,7 @@ public class StatsStoreCostController extends GenericController implements Store
              * the average row width, but in the spirit of extra safety, we include this check here. When
              * this happens, we just delegate to the average
              */
-            return pStats.avgRowWidth()/totalColumnCount;
+            return ((double)pStats.avgRowWidth())/totalColumnCount;
         }else
             return ((double)avgRowWidth)/totalColumnCount;
     }

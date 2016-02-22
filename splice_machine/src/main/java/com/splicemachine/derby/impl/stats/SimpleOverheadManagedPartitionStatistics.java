@@ -48,7 +48,7 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
     public double getOpenScannerLatency(){
 
         if(numOpenEvents<=0) return 0d;
-        return totalOpenScannerTime/numOpenEvents;
+        return ((double)totalOpenScannerTime)/numOpenEvents;
     }
 
     @Override public long numOpenEvents(){ return numOpenEvents; }
@@ -58,7 +58,7 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
     @Override
     public double getCloseScannerLatency(){
         if(numCloseEvents<=0) return 0d;
-        return totalCloseScannerTime/numCloseEvents;
+        return ((double)totalCloseScannerTime)/numCloseEvents;
     }
 
     @Override

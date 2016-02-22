@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
@@ -96,6 +98,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             out.writeUTF(source);
     }
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public LocatedRow call(List<String> values) throws Exception {
         try {
             ExecRow returnRow = execRow.getClone();

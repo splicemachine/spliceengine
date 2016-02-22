@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.pipeline.ErrorState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLException;
 
@@ -68,22 +69,16 @@ public class EngineUtils{
     }
 
 
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public static void resultValuesToNull(DataValueDescriptor[] dvds) throws StandardException{
         for(DataValueDescriptor dvd:dvds){
             if(dvd != null){
                 switch(dvd.getTypeFormatId()){
                     case StoredFormatIds.SQL_DOUBLE_ID:
-                        dvd.restoreToNull();
-                        break;
                     case StoredFormatIds.SQL_SMALLINT_ID:
                     case StoredFormatIds.SQL_INTEGER_ID:
-                        dvd.restoreToNull();
-                        break;
                     case StoredFormatIds.SQL_BOOLEAN_ID:
-                        dvd.restoreToNull();
-                        break;
                     case StoredFormatIds.SQL_LONGINT_ID:
-                        dvd.restoreToNull();
                     case StoredFormatIds.SQL_REAL_ID:
                         dvd.restoreToNull();
                     default:
@@ -104,6 +99,7 @@ public class EngineUtils{
      *
      * @throws StandardException
      */
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
         for(DataValueDescriptor dvd:dvds){
             if(dvd != null){
@@ -120,6 +116,7 @@ public class EngineUtils{
                         break;
                     case StoredFormatIds.SQL_LONGINT_ID:
                         dvd.setValue(defaultValue);
+                        break;
                     case StoredFormatIds.SQL_REAL_ID:
                         dvd.setValue(defaultValue);
                     default:

@@ -57,15 +57,14 @@ public class DeleteCascadeOperation extends DeleteOperation
 			  (ConstantAction)activation.getPreparedStatement().getSavedObject(constantActionItem)),
 			  activation,0,0,"");
 
-		ConstantAction passedInConstantAction;
-		if(constantActionItem == -1)
-			passedInConstantAction = activation.getConstantAction(); //root table
-		else
-		{
-			passedInConstantAction = 
-				(ConstantAction) activation.getPreparedStatement().getSavedObject(constantActionItem);
-			//resultDescription = constants.resultDescription;
-		}
+//		ConstantAction passedInConstantAction;
+//		if(constantActionItem == -1)
+//			passedInConstantAction = activation.getConstantAction(); //root table
+//		else {
+//			passedInConstantAction =
+//				(ConstantAction) activation.getPreparedStatement().getSavedObject(constantActionItem);
+//			//resultDescription = constants.resultDescription;
+//		}
 		cascadeDelete = true;
 		this.resultSetId = resultSetId;
 		

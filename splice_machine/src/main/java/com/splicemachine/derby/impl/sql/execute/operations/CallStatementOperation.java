@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -89,7 +90,8 @@ public class CallStatementOperation extends NoRowsOperation {
 		return false;
 	}
 
-    public void call() throws StandardException{
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Side effect of method call invocation")
+	public void call() throws StandardException{
         SpliceLogUtils.trace(LOG, "open");
         setup();
         if(timer==null)

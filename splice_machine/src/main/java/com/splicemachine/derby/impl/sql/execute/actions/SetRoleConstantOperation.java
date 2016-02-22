@@ -49,8 +49,6 @@ public class SetRoleConstantOperation implements ConstantAction {
         DataDictionary dd = lcc.getDataDictionary();
         String thisRoleName = roleName;
 
-        final String currentAuthId = lcc.getCurrentUserId(activation);
-        final String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
 
         TransactionController tc = lcc.getTransactionExecute();
 

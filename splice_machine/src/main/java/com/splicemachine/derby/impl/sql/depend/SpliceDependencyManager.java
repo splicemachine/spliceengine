@@ -48,14 +48,6 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 
 	@Override
 	public void clearDependencies(LanguageConnectionContext lcc,Dependent d,TransactionController tc) throws StandardException{
-		TransactionController tCont = tc;
-		if(tCont==null)
-			tCont = lcc.getTransactionExecute();
-//		if(tCont!=null){
-//			BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)tCont).getRawTransaction();
-//			if(!rawTransaction.getTxnInformation().allowsWrites())
-//				tCont.elevate("dictionary");
-//		}
 		super.clearDependencies(lcc,d,tc);
 	}
 

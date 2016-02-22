@@ -4,6 +4,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.window;
 import java.io.Serializable;
 
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This represent the frame definition for a given window function as a representation
@@ -58,6 +59,7 @@ public class FrameDefinition {
      * @param frameStart start of the window frame
      * @param frameEnd end of the window frame
      */
+    @SuppressFBWarnings(value = "SF_SWITCH_FALLTHROUGH",justification = "Intentional")
     public FrameDefinition(int frameMode, int frameStart, long frameStartRows, int frameEnd, long frameEndRows) {
         // default access to allow testing
         this.frameMode = FrameMode.values()[frameMode];

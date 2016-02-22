@@ -28,11 +28,16 @@ import java.util.concurrent.ExecutionException;
  */
 public class PartitionStatsStore {
     private static final Function<? super Partition,? extends String> partitionNameTransform = new Function<Partition, String>(){
-        @Override public String apply(Partition hRegionInfo){ return hRegionInfo.getName(); }
+        @Override public String apply(Partition hRegionInfo){
+            assert hRegionInfo!=null: "regionInfo cannot be null!";
+            return hRegionInfo.getName(); }
     };
 
     private static final Function<PartitionStatisticsDescriptor,String> partitionStatisticsTransform = new Function<PartitionStatisticsDescriptor, String>(){
-        @Override public String apply(PartitionStatisticsDescriptor desc){ return desc.getPartitionId(); }
+        @Override public String apply(PartitionStatisticsDescriptor desc){
+            assert desc!=null: "Descriptor cannot be null!";
+            return desc.getPartitionId();
+        }
     };
 
 

@@ -39,7 +39,6 @@ public class DropSequenceConstantOperation extends DDLConstantOperation {
     public void executeConstantAction(Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
         /*
         ** Inform the data dictionary that we are about to write to it.
         ** There are several calls to data dictionary "get" methods here

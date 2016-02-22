@@ -155,7 +155,6 @@ public class IndexConglomerate extends SpliceConglomerate{
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
         }
-        this.getContainerid();
     }
 
 	/*

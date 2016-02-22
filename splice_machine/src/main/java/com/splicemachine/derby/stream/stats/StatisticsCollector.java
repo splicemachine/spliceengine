@@ -79,7 +79,7 @@ public class StatisticsCollector {
     public SimpleOverheadManagedPartitionStatistics getStatistics() throws ExecutionException {
         List<ColumnStatistics> columnStats = getFinalColumnStats(dvdCollectors);
 
-        TimeView readTime = scanner.getTime();
+//        TimeView readTime = scanner.getTime();
         long byteCount = scanner.getBytesOutput();
         long rowCount = scanner.getRowsVisited() - scanner.getRowsFiltered();
 //        long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds

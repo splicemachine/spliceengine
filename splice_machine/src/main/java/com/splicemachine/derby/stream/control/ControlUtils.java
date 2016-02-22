@@ -19,6 +19,7 @@ public class ControlUtils {
             @Nullable
             @Override
             public Tuple2<K, V> apply(@Nullable Map.Entry<K, V> kvEntry) {
+                assert kvEntry!=null;
                 return new Tuple2<>(kvEntry.getKey(),kvEntry.getValue());
             }
         });

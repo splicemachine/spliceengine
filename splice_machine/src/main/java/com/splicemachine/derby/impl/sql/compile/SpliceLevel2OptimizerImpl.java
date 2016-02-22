@@ -13,6 +13,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempSortController;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
@@ -102,6 +103,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     private static final Logger TRACE_LOGGER=Logger.getLogger("optimizer.trace");
     private final OptimizerTrace tracer = new Level2OptimizerTrace(null,this){
         @Override
+        @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
         public void trace(TraceLevel level, String traceString){
 
             Priority prio = Level.INFO;

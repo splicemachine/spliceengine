@@ -6,12 +6,14 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 /**
 	Basic implementation of ExecIndexRow.
 
  */
+@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class IndexRow extends ValueRow implements ExecIndexRow
 {
 	///////////////////////////////////////////////////////////////////////

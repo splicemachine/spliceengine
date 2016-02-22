@@ -13,6 +13,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -110,10 +111,10 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
     }
 
 
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     public static void invalidate(AliasDescriptor ad, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException {
         int invalidationType = 0;
-        switch (ad.getAliasType())
-        {
+        switch (ad.getAliasType()) {
             case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
             case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
                 invalidationType = DependencyManager.DROP_METHOD_ALIAS;

@@ -57,6 +57,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return new ControlDataSet<>(FluentIterable.from(source).transform(new Function<Tuple2<K,V>, V>() {
             @Nullable @Override
             public V apply(@Nullable Tuple2<K,V>t) {
+                assert t!=null;
                 return t._2();
             }
         }));
@@ -83,6 +84,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             @Nullable
             @Override
             public K apply(@Nullable Tuple2<K, V> t) {
+                assert t!=null;
                 return t._1();
             }
         }));
@@ -146,6 +148,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             @Nullable
             @Override
             public Tuple2<K, Iterable<V>> apply(@Nullable Map.Entry<K, Collection<V>> e) {
+                assert e!=null: "E cannot be null";
                 return new Tuple2<K, Iterable<V>>(e.getKey(), e.getValue());
             }
         }));
@@ -165,6 +168,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             @Nullable
             @Override
             public Iterable<Tuple2<K, Tuple2<V, Optional<W>>>> apply(@Nullable Tuple2<K, V> t) {
+                assert t!=null: "T cannot be null";
                 List<Tuple2<K,Tuple2<V,Optional<W>>>> result = new ArrayList<>();
                 K key = t._1();
                 V value = t._2();
@@ -189,6 +193,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             @Nullable
             @Override
             public Iterable<Tuple2<K, Tuple2<Optional<V>, W>>> apply(@Nullable Tuple2<K, W> t) {
+                assert t!=null: "t cannot be null!";
                 List<Tuple2<K,Tuple2<Optional<V>,W>>> result = new ArrayList<>();
                 K key = t._1();
                 W value = t._2();
@@ -211,6 +216,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             @Nullable
             @Override
             public Iterable<Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
+                assert t!=null: "Tuple cannot be null";
                 List<Tuple2<K,Tuple2<V,W>>> result = new ArrayList<>();
                 K key = t._1();
                 V value = t._2();
@@ -235,6 +241,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return new ControlPairDataSet<>(FluentIterable.from(source).filter(new Predicate<Tuple2<K, V>>() {
             @Override
             public boolean apply(@Nullable Tuple2<K, V> t) {
+                assert t!=null: "T cannot be null";
                 return rightSide.get(t._1()).isEmpty();
             }
         }));

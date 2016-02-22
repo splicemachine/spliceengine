@@ -29,18 +29,17 @@ public class CogroupOuterJoinRestrictionFlatMapFunction<Op extends SpliceOperati
     @Override
     public Iterable<LocatedRow> call(Tuple2<ExecRow,Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>>> tuple) throws Exception {
         checkInit();
-        Set<LocatedRow> rightSide = Sets.newHashSet(tuple._2._2); // Memory Issue, HashSet ?
-        Iterable<LocatedRow> returnRows = new ArrayList();
-        Iterator it = tuple._2._1.iterator();
-        while (it.hasNext()) {
-            returnRows = Iterables.concat(returnRows, outerJoinRestrictionFlatMapFunction.call(new Tuple2(it.next(),tuple._2._2)));
+//        Set<LocatedRow> rightSide = Sets.newHashSet(tuple._2._2); // Memory Issue, HashSet ?
+        Iterable<LocatedRow> returnRows = new ArrayList<>();
+        for(Object a_1 : tuple._2._1){
+            returnRows=Iterables.concat(returnRows,outerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,tuple._2._2)));
         }
         return returnRows;
     }
     @Override
     protected void checkInit() {
         if (!initialized)
-            outerJoinRestrictionFlatMapFunction = new OuterJoinRestrictionFlatMapFunction(operationContext);
+            outerJoinRestrictionFlatMapFunction = new OuterJoinRestrictionFlatMapFunction<>(operationContext);
         super.checkInit();
     }
 

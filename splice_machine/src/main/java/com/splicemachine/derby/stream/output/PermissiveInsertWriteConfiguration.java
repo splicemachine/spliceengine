@@ -14,6 +14,7 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -88,6 +89,7 @@ public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfigura
 
 
 
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
     private static String errorRow(String row, WriteResult result) {
         StringBuilder sb = new StringBuilder();
         switch (result.getCode()) {

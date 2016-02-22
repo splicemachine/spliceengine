@@ -57,6 +57,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                     @Nullable
                     @Override
                     public ExecRow apply(@Nullable LocatedRow locatedRow) {
+                        assert locatedRow!=null;
                         operationContext.recordJoinedRight();
                         return locatedRow.getRow();
                     }

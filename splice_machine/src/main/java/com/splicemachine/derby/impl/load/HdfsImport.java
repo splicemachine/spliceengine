@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -310,6 +311,7 @@ public class HdfsImport {
                  results);
     }
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     private static void doImport(String schemaName,
                                  String tableName,
                                  String insertColumnList,
@@ -376,7 +378,7 @@ public class HdfsImport {
                 insertColumnList = null;
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList != null ?
-                insertColumnList.toUpperCase() : insertColumnList);
+                insertColumnList.toUpperCase() :null);
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
                 "--splice-properties insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
                 badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + "\n" +

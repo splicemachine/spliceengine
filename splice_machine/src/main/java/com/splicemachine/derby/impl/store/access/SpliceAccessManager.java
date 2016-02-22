@@ -457,8 +457,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
             stm = new SpliceTransactionManager(this, rawtran, null);
 
-            rtc =
-                    new SpliceTransactionManagerContext(cm, AccessFactoryGlobals.RAMXACT_CONTEXT_ID, stm, false /* abortAll */);
+//            rtc = new SpliceTransactionManagerContext(cm, AccessFactoryGlobals.RAMXACT_CONTEXT_ID, stm, false /* abortAll */);
 
             // RESOLVE - an XA transaction can only commit once so, if we
             // acquire readlocks.
