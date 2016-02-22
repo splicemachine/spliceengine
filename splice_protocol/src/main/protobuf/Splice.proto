@@ -77,11 +77,11 @@ message WriteResult {
 }
 
 message BulkWriteResponse {
-	optional bytes bytes = 1;
+	required bytes bytes = 1;
 }
 
 message BulkWriteRequest {
-	optional bytes bytes = 1;
+	required bytes bytes = 1;
 }
 
 message DropIndexRequest {

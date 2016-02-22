@@ -1,8 +1,10 @@
 package com.splicemachine.pipeline;
 
+import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.*;
+import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
@@ -58,6 +60,9 @@ public class PipelineWriter{
             dependent = pwp.isDependent(bulkWrites.getTxn());
         } catch (InterruptedException e1) {
             throw new IOException(e1);
+        } catch (IndexNotSetUpException e1) {
+            rejectAll(bws,result,Code.INDEX_NOT_SETUP_EXCEPTION);
+            return new BulkWritesResult(result);
         }
 
         AtomicSpliceWriteControl.Status status;
@@ -66,7 +71,7 @@ public class PipelineWriter{
 
         status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
         if (status.equals(AtomicSpliceWriteControl.Status.REJECTED)) {
-            rejectAll(bws,result);
+            rejectAll(bws,result, Code.PIPELINE_TOO_BUSY);
             rejectedCount.addAndGet(numBulkWrites);
             return new BulkWritesResult(result);
         }
@@ -143,10 +148,17 @@ public class PipelineWriter{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private void rejectAll(Collection<BulkWrite> writes,Collection<BulkWriteResult> result) {
+    private void rejectAll(Collection<BulkWrite> writes, Collection<BulkWriteResult> result, Code status) {
 //        this.meter; //TODO -sf- add this back in
         for(BulkWrite write:writes){
-            result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(write.getEncodedStringName())));
+            switch (status) {
+                case PIPELINE_TOO_BUSY:
+                    result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(write.getEncodedStringName())));
+                    break;
+                case INDEX_NOT_SETUP_EXCEPTION:
+                    result.add(new BulkWriteResult(WriteResult.indexNotSetup()));
+                    break;
+            }
         }
     }
 
