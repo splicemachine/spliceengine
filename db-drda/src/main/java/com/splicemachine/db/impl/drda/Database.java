@@ -29,7 +29,11 @@ import java.util.Properties;
 
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.impl.jdbc.Util;
 
 /**
 	Database stores information about the current database
@@ -246,8 +250,14 @@ class Database
         // take care of case of SECMEC_USRIDONL
         if (password != null) 
 		    p.put(Attribute.PASSWORD_ATTR, password);
-                
-        // Contract between network server and embedded engine
+
+        if (shortDbName.compareTo("splicedb") != 0) {
+            throw Util.generateCsSQLException(
+                    SQLState.NET_CONNECT_AUTH_FAILED,
+                    MessageService.getTextMessage(MessageId.AUTH_INVALID));
+        }
+
+		// Contract between network server and embedded engine
         // is that any connection returned implements EngineConnection.
         EngineConnection conn = (EngineConnection)
             NetworkServerControlImpl.getDriver().connect(Attribute.PROTOCOL

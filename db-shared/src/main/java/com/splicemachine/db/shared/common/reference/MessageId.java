@@ -146,7 +146,7 @@ public interface MessageId {
     String CONN_SECMECH_NOT_SUPPORTED                       = "J110";
     String CONN_PASSWORD_MISSING                            = "J111";
     String CONN_USERID_MISSING                              = "J112";
-    String CONN_USERID_OR_PASSWORD_INVALID                  = "J113";
+    String CONN_USERID_PASSWORD_OR_DBNAME_INVALID           = "J113";
     String CONN_USERID_REVOKED                              = "J114";
     String CONN_NEW_PASSWORD_INVALID                        = "J115";
     String CONN_SECSVC_NONRETRYABLE_ERR                     = "J116";

@@ -1181,7 +1181,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         case CodePoint.SECCHKCD_13:  // ERROR SVRCOD
             return new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.NET_CONNECT_AUTH_FAILED),
-                msgutil.getTextMessage(MessageId.CONN_USERID_OR_PASSWORD_INVALID));
+                msgutil.getTextMessage(MessageId.CONN_USERID_PASSWORD_OR_DBNAME_INVALID));
         case CodePoint.SECCHKCD_14:  // ERROR SVRCOD
             return new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.NET_CONNECT_AUTH_FAILED),
@@ -1205,7 +1205,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         case CodePoint.SECCHKCD_0F:  // ERROR SVRCOD
             return new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.NET_CONNECT_AUTH_FAILED),
-                msgutil.getTextMessage(MessageId.CONN_USERID_OR_PASSWORD_INVALID));
+                msgutil.getTextMessage(MessageId.CONN_USERID_PASSWORD_OR_DBNAME_INVALID));
         default:  // ERROR SVRCOD
             return new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.NET_CONNECT_AUTH_FAILED),
