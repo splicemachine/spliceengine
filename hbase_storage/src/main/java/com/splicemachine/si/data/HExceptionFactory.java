@@ -1,5 +1,6 @@
 package com.splicemachine.si.data;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.txn.Txn;
@@ -13,6 +14,8 @@ import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * @author Scott Fines
@@ -89,8 +92,28 @@ public class HExceptionFactory implements ExceptionFactory{
 
     @Override
     public IOException processRemoteException(Throwable e){
+        e =Throwables.getRootCause(e);
         if(e instanceof RemoteException){
-            e = ((RemoteException)e).unwrapRemoteException();
+            Throwable t;
+            try{
+                /*
+                 * unwrapRemoteException will set the RemoteException as the cause of this error,
+                 * even though that's insane. This means that future calls to getRootCause() will
+                 * undo what we take care of here, so we have to manually unwrap it using reflection
+                 * to avoid setting the cause directly.
+                 */
+                Class<?> errorClazz = Class.forName(((RemoteException)e).getClassName());
+                Constructor<?> cn = errorClazz.getConstructor(String.class);
+                cn.setAccessible(true);
+                t = (Throwable)cn.newInstance(e.getMessage());
+            }catch(ClassNotFoundException
+                    | NoSuchMethodException
+                    | InstantiationException
+                    | IllegalAccessException
+                    | InvocationTargetException err){
+                t = ((RemoteException)e).unwrapRemoteException();
+            }
+            e=t;
         }
         if(e instanceof WriteConflict){
             assert e instanceof IOException: "Programmer error: WriteConflict should be an IOException";

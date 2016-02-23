@@ -1,6 +1,5 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.Throwables;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -16,8 +15,6 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
-import java.nio.file.FileSystem;
-import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
@@ -203,15 +200,14 @@ public class HNIOFileSystem extends DistributedFileSystem{
                 aclS=fs.getAclStatus(path);
             }catch(Exception e){
                 e = exceptionFactory.processRemoteException(e); //strip any multi-retry errors out
-                Throwable t =Throwables.getRootCause(e); //strip any wrapping IOExceptions out
-                if(t instanceof UnsupportedOperationException){
+                if(e instanceof UnsupportedOperationException){
                     /*
                      * Some Filesystems don't support aclStatus. In that case,
                      * we replace it with our own ACL status object
                      */
                     aclS=new AclStatus.Builder().owner("unknown").group("unknown").build();
-                }else if(t instanceof AclException ||
-                        t instanceof AccessControlException){
+                }else if(e instanceof AclException ||
+                        e instanceof AccessControlException){
                     /*
                      * Some filesystems allow acls to be disabled. In that case, we also
                      * replace it with our own acl status object
@@ -222,7 +218,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
                      * the remaining errors are of the category of FileNotFound,UnresolvedPath,
                      * etc. These are environmental, so we should throw up here.
                      */
-                    throw new IOException(t);
+                    throw new IOException(e);
                 }
             }
             this.aclStatus = aclS;
