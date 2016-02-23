@@ -98,16 +98,51 @@
             <artifactId>hadoop-core</artifactId>
             <version>2.6.0-mr1-${envClassifier}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-exec</artifactId>
-            <version>1.1.0-${envClassifier}</version>
-        </dependency>
-		<dependency>
-			<groupId>org.apache.hive</groupId>
-			<artifactId>hive-jdbc</artifactId>
-			<version>${hive.version}</version>
-		</dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-beeline</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-cli</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-common</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-contrib</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-hbase-handler</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-hwi</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-jdbc</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-service</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-shims</artifactId>
+                        <version>${hive.version}</version>
+                </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-yarn-common</artifactId>
