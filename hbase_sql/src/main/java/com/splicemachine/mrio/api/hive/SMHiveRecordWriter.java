@@ -19,6 +19,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.vti.SpliceIteratorVTI;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -103,6 +104,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         rows.add(locatedRow);
         return new ControlDataSet(rows);
     }
+
     private void init() {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf conf=%s", conf);
@@ -130,6 +132,9 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
                 throw new SerDeException(String.format("table %s does not exist...", tableName));
             long parentTxnID = Long.parseLong(conf.get(MRConstants.SPLICE_TRANSACTION_ID));
             long childTxsID = util.getChildTransactionID(conn, parentTxnID, tableName);
+            // Assume default additivity and isolation levels. In the future if we want different isolation levels
+            // we would need to pass in the whole transaction chain in the conf to this writer.
+            parentTxn = new ActiveWriteTxn(parentTxnID, parentTxnID, Txn.ROOT_TRANSACTION, Txn.ROOT_TRANSACTION.isAdditive(), Txn.ROOT_TRANSACTION.getIsolationLevel());
             childTxn = new ActiveWriteTxn(childTxsID,childTxsID,parentTxn,parentTxn.isAdditive(),parentTxn.getIsolationLevel());
             activation = util.getActivation(createVTIStatement(tableName), childTxn);
         } catch (Exception e) {

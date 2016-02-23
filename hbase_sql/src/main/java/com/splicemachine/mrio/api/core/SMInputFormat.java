@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import org.apache.hadoop.conf.Configuration;
@@ -23,13 +24,6 @@ import org.apache.log4j.Logger;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
-/**
- *
- * Input Format that requires the following items passed to it.
- *
- *
- *
- */
 public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
     protected Table table;
@@ -77,6 +71,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
             }
         }
         try {
+            if (SIDriver.driver() == null) SpliceSpark.setupSpliceStaticComponents();
             PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
             setHTable(((ClientPartition)tableFactory.getTable(conglomerate)).unwrapDelegate());
         } catch (Exception e) {
@@ -101,7 +96,7 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
     public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
             InterruptedException {
         config.addResource(conf);
-            SpliceLogUtils.info(LOG, "getRecorderReader with table=%s, inputTable=%s," +
+            SpliceLogUtils.info(LOG, "getRecordReader with table=%s, inputTable=%s," +
                     "conglomerate=%s",
                     table,
                     config.get(TableInputFormat.INPUT_TABLE),

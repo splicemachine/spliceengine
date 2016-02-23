@@ -17,7 +17,7 @@ public class MRConstants {
     final public static String SPLICE_TXN_DEST_TABLE = "splice.txn.destination.table";
     final public static String HBASE_OUTPUT_TABLE_NAME = "hbase_output_tableName";
 	final public static String SPLICE_SCAN_MEMSTORE_ONLY="MR";
-    final public static String SPLICE_TBLE_CONTEXT="splice.tableContext";
+    // final public static String SPLICE_TBLE_CONTEXT="splice.tableContext";
     final public static String TABLE_WRITER = "table.writer";
     final public static String TABLE_WRITER_TYPE = "table.writer.type";
 }

@@ -31,7 +31,6 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.fail;
 
-@Ignore("DB-4642")
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
     public static final String CLASS_NAME = HiveIntegrationIT.class.getSimpleName().toUpperCase();
@@ -440,6 +439,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
     }
 
     @Test
+    @Ignore("Authentication error")
     public void testInsertFireTrigger() throws Exception {
 
         createTrigger(tb.on("HIVEINTEGRATIONIT.G").named("trig").after().insert().statement().then("INSERT INTO HIVEINTEGRATIONIT.I VALUES('inserted a row')"));
