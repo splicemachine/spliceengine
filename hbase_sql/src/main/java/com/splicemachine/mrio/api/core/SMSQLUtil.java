@@ -12,12 +12,15 @@ import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.HOperationFactory;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -55,7 +58,6 @@ public class SMSQLUtil  {
         }
         return sqlUtil;
     }
-
 
     public Connection createConn() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
         Class.forName(SQLConfiguration.SPLICE_JDBC_DRIVER).newInstance();
@@ -382,7 +384,6 @@ public class SMSQLUtil  {
         throw new RuntimeException("misssing element");
     }
 
-
     public ScanSetBuilder getTableScannerBuilder(String tableName, List<String> columnNames) throws SQLException {
         List<PKColumnNamePosition> primaryKeys = getPrimaryKeys(tableName);
         List<NameType> nameTypes = getTableStructure(tableName);
@@ -408,12 +409,33 @@ public class SMSQLUtil  {
             throw new SQLException(e);
         }
         FormatableBitSet accessedKeyColumns = getAccessedKeyColumns(keyColumnEncodingOrder,keyDecodingMap);
-        Txn txn=ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION,null,SIDriver.driver().getExceptionFactory());
+        Txn txn=ReadOnlyTxn.create(Long.parseLong(getTransactionID()),IsolationLevel.SNAPSHOT_ISOLATION,null,null);
         TableScannerBuilder tableScannerBuilder=new TableScannerBuilder(){
             @Override
             public DataSet buildDataSet() throws StandardException{
                 throw new UnsupportedOperationException("IMPLEMENT");
             }
+
+            @Override
+            protected DataScan readScan(ObjectInput in) throws IOException{
+                return HOperationFactory.INSTANCE.readScan(in);
+            }
+
+            @Override
+            public TxnView readTxn(ObjectInput oi) throws IOException {
+                return new SimpleTxnOperationFactory(null, null).readTxn(oi);
+            }
+
+            @Override
+            protected void writeScan(ObjectOutput out) throws IOException{
+                HOperationFactory.INSTANCE.writeScan(scan, out);
+            }
+
+            @Override
+            protected void writeTxn(ObjectOutput out) throws IOException{
+                new SimpleTxnOperationFactory(null, null).writeTxn(txn,out);
+            }
+
         };
         return tableScannerBuilder
                 .transaction(txn)
@@ -437,11 +459,10 @@ public class SMSQLUtil  {
     }
 
     public static DataScan createNewScan() {
-        DataScan scan = SIDriver.driver().baseOperationFactory().newScan();
+        DataScan scan = HOperationFactory.INSTANCE.newScan();
         scan.returnAllVersions();
         return scan;
     }
-
 
     public Activation getActivation(String sql, TxnView txnView) throws SQLException, StandardException{
 
