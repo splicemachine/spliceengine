@@ -20,6 +20,7 @@ import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
@@ -86,6 +87,7 @@ public class IndexTransformer {
         return indexedCols;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getIndexConglomBytes() {
         return indexConglomBytes;
     }

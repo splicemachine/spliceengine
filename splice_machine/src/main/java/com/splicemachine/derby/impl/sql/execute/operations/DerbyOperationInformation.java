@@ -13,6 +13,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -70,6 +72,7 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getBaseColumnMap() {
         return baseColumnMap;
     }
@@ -206,6 +209,7 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException {
         if(subQueryTrackingArray ==null)
             subQueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();

@@ -33,6 +33,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -338,6 +339,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getUniqueSequenceID(){
         return uniqueSequenceID;
     }
@@ -620,6 +622,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries){
         SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries %d",numSubqueries);
         if(subqueryTrackingArray==null)

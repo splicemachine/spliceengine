@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -215,10 +216,12 @@ public class BroadcastJoinOperation extends JoinOperation{
         return sb.toString();
     }
     
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getRightHashKeys() {
         return rightHashKeys;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getLeftHashKeys() {
         return leftHashKeys;
     }

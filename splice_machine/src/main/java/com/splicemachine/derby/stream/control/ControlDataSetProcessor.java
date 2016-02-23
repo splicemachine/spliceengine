@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.control;
 
+import com.google.common.base.Charsets;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -217,9 +218,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
         Scanner scanner;
 
-        @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING",justification = "-sf- I don't know why this is a problem")
         public TextFileIterator(InputStream inputStream){
-            this.scanner=new Scanner(inputStream);
+            //-sf- adding UTF-8 charset here to avoid findbugs warning. If we stop using UTF-8, we might be in trouble
+            this.scanner=new Scanner(inputStream,Charsets.UTF_8.name());
         }
 
         @Override

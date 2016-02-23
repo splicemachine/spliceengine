@@ -214,6 +214,7 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 	/**
 	 * gets the row location 
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
 	public RowLocation[] getAutoincRowLocation() {
 		return autoincRowLocation;
 	}

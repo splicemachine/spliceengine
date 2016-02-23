@@ -141,8 +141,4 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 		return StoredFormatIds.UPDATE_CONSTANT_ACTION_V01_ID; 
 	}
 
-	// CLASS METHODS
-	public int[] getChangedColumnIds() { 
-		return changedColumnIds; 
-	}
 }

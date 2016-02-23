@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -272,6 +273,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                 +indent+"tableName:"+tableName;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getKeyColumns(){
         return columnOrdering;
     }

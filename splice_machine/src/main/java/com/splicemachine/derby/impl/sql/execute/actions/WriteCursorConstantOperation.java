@@ -145,18 +145,9 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 		}
 	}
 
-	/**
-	  *	Gets the foreign key information for this constant action.
-	  *	A full list of foreign keys was compiled into this constant
-	  *	action.
-	  *
-	  *	@return	the list of foreign keys to enforce for this action
-	  */
-	public final FKInfo[] getFKInfo() {
-		return fkInfo;
-	}
 
-    public int[] getPkColumns(){
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
+	public int[] getPkColumns(){
         return pkColumns;
     }
 
@@ -338,35 +329,5 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	}
 
 	public FormatableBitSet getBaseRowReadList() { return baseRowReadList; }
-	public int[] getBaseRowReadMap() { return baseRowReadMap; }
-	public int[] getStreamStorableHeapColIds() { return streamStorableHeapColIds; }
 
-	/**
-	 * get the index name given the conglomerate id of the index.
-	 * 
-	 * @param indexCID		conglomerate ID of the index.
-	 * 
-	 * @return index name of given index.
-	 */
-	public String getIndexNameFromCID(long indexCID)
-	{
-		int size = indexCIDS.length;
-
-		if (indexNames == null) 
-		{
-			return null;
-		} 
-		
-		for (int i = 0; i < size; i++)
-		{
-			if (indexCIDS[i] == indexCID)
-				return indexNames[i];
-		}
-		return null;
-	}
-			
-	public String[] getIndexNames()
-	{
-		return indexNames;
-	}
 }
