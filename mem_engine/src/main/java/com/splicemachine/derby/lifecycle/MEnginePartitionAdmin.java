@@ -7,6 +7,7 @@ import com.splicemachine.storage.PartitionServer;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -31,7 +32,7 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
 
     @Override
     public void splitTable(String tableName,byte[]... splitPoints) throws IOException{
-        admin.splitTable(tableName,splitPoints);
+        admin.splitTable(tableName, splitPoints);
     }
 
     @Override
@@ -47,5 +48,10 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     @Override
     public Iterable<? extends Partition> allPartitions(String tableName) throws IOException{
         return admin.allPartitions(tableName);
+    }
+
+    @Override
+    public Object[] getTableDescriptors(List<String> tables) throws IOException{
+        return admin.getTableDescriptors(tables);
     }
 }

@@ -1,6 +1,6 @@
 package com.splicemachine.backup;
 
-import java.io.IOException;
+import com.splicemachine.db.iapi.error.StandardException;
 import java.util.Iterator;
 
 /**
@@ -9,15 +9,15 @@ import java.util.Iterator;
  */
 public interface BackupManager{
 
-    void fullBackup(String backupDirectory) throws IOException;
+    void fullBackup(String backupDirectory) throws StandardException;
 
-    void incrementalBackup(String directory) throws IOException;
+    void incrementalBackup(String directory) throws StandardException;
 
     String getRunningBackup();
 
-    void restoreDatabase(String directory,long backupId)throws IOException;
+    void restoreDatabase(String directory,long backupId)throws StandardException;
 
-    void removeBackup(long backupId) throws IOException;
+    void removeBackup(long backupId) throws StandardException;
 
-    Iterator<RestoreItem> listRestoreItems() throws IOException;
+    Iterator<RestoreItem> listRestoreItems() throws StandardException;
 }

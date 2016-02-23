@@ -22,7 +22,7 @@ public class HConfiguration implements SConfiguration{
     public static final HConfiguration INSTANCE = new HConfiguration(SpliceConfiguration.create());
 
     public static final String NAMESPACE = "splice.namespace";
-    private static final String DEFAULT_NAMESPACE = "splice";
+    public static final String DEFAULT_NAMESPACE = "splice";
 
     /**
      * Path in Zookeeper for storing ongoing backup

@@ -1,6 +1,5 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.splicemachine.access.api.PartitionAdmin;
@@ -9,11 +8,11 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.constants.SIConstants;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -107,12 +106,17 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         @Override
         public Iterable<? extends Partition> allPartitions(final String tableName) throws IOException{
             if(tableName==null) return partitionMap.values();
-            return Iterables.filter(partitionMap.values(),new Predicate<Partition>(){
+            return Iterables.filter(partitionMap.values(), new Predicate<Partition>() {
                 @Override
-                public boolean apply(Partition partition){
+                public boolean apply(Partition partition) {
                     return partition.getTableName().equals(tableName);
                 }
             });
+        }
+
+        @Override
+        public Object[] getTableDescriptors(List<String> tables) throws IOException{
+            throw new UnsupportedOperationException("Cannot get table descriptors in an in-memory storage engine!");
         }
     }
 }

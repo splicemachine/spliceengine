@@ -31,6 +31,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
     private PropertyManager propertyManager;
     private PartitionLoadWatcher loadWatcher;
+    private BackupManager backupManager;
     private DataSetProcessorFactory processorFactory;
     private SqlExceptionFactory exceptionFactory;
     private DatabaseAdministrator dbAdmin;
@@ -49,6 +50,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
+        backupManager = new SpliceBackupManager();
     }
 
     @Override
@@ -63,37 +65,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
     @Override
     public BackupManager getBackupManager(){
-        return new BackupManager(){
-            @Override
-            public void fullBackup(String backupDirectory) throws IOException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-
-            @Override
-            public void incrementalBackup(String directory) throws IOException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-
-            @Override
-            public String getRunningBackup(){
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-
-            @Override
-            public void restoreDatabase(String directory,long backupId) throws IOException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-
-            @Override
-            public void removeBackup(long backupId) throws IOException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-
-            @Override
-            public Iterator<RestoreItem> listRestoreItems() throws IOException{
-                throw new UnsupportedOperationException("IMPLEMENT");
-            }
-        };
+        return backupManager;
     }
 
     @Override

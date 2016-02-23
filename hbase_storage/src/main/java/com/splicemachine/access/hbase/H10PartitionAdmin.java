@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.lang.Override;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -121,5 +122,10 @@ public class H10PartitionAdmin implements PartitionAdmin{
             partitions.add(new RangedClientPartition(connection,tn,table,info,owningServer,timeKeeper,partitionInfoCache));
         }
         return partitions;
+    }
+
+    @Override
+    public Object[] getTableDescriptors(List<String> tables) throws IOException{
+        return admin.getTableDescriptors(tables);
     }
 }
