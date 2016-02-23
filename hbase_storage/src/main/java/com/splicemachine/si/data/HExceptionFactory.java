@@ -10,6 +10,7 @@ import com.splicemachine.si.impl.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
+import org.apache.hadoop.ipc.RemoteException;
 
 import java.io.IOException;
 
@@ -88,6 +89,9 @@ public class HExceptionFactory implements ExceptionFactory{
 
     @Override
     public IOException processRemoteException(Throwable e){
+        if(e instanceof RemoteException){
+            e = ((RemoteException)e).unwrapRemoteException();
+        }
         if(e instanceof WriteConflict){
             assert e instanceof IOException: "Programmer error: WriteConflict should be an IOException";
             return (IOException)e;
