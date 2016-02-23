@@ -49,6 +49,7 @@ class ExportExecRowWriter implements Closeable {
                 int scale = columnDescriptors[i].getType().getScale();
                 decimalFormat.setMaximumFractionDigits(scale);
                 decimalFormat.setMinimumFractionDigits(scale);
+                decimalFormat.setGroupingUsed(false);
                 BigDecimal valueObject = (BigDecimal) value.getObject();
                 stringRowArray[i] = decimalFormat.format(valueObject);
             }
