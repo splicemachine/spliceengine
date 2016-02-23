@@ -16,13 +16,12 @@ import java.sql.Types;
 public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
 
     private static final String TABLENAME_STRING = "SYSBACKUPITEMS";
-    private static final int BACKUPITEMS_COLUMN_COUNT = 5;
+    private static final int BACKUPITEMS_COLUMN_COUNT = 4;
 
     private static final int BACKUP_ID = 1;
     private static final int ITEM = 2;
     private static final int BEGIN_TIMESTAMP = 3;
     private static final int END_TIMESTAMP = 4;
-    private static final int SNAPSHOT_NAME = 5;
 
     protected static final int SYSBACKUPITEMS_INDEX1_ID = 0;
 
@@ -53,7 +52,6 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
         String item = null;
         DateTime beginTimestamp = null;
         DateTime endTimestamp = null;
-        String snapshotName = null;
 
         if (td != null) {
             BackupItemsDescriptor d = (BackupItemsDescriptor)td;
@@ -61,7 +59,6 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
             item = d.getItem();
             beginTimestamp = d.getBeginTimestamp();
             endTimestamp = d.getEndTimestamp();
-            snapshotName = d.getSnapshotName();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(BACKUPITEMS_COLUMN_COUNT);
@@ -70,7 +67,6 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
         row.setColumn(ITEM, new SQLVarchar(item));
         row.setColumn(BEGIN_TIMESTAMP, new SQLTimestamp(beginTimestamp));
         row.setColumn(END_TIMESTAMP, new SQLTimestamp(endTimestamp));
-        row.setColumn(SNAPSHOT_NAME, new SQLVarchar(snapshotName));
 
         return row;
     }
@@ -97,10 +93,7 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
         col = row.getColumn(END_TIMESTAMP);
         DateTime endTimestamp = col.getDateTime();
 
-        col = row.getColumn(SNAPSHOT_NAME);
-        String snapshotName = col.getString();
-
-        return new BackupItemsDescriptor(backupId, item, beginTimestamp, endTimestamp, snapshotName);
+        return new BackupItemsDescriptor(backupId, item, beginTimestamp, endTimestamp);
     }
 
     @Override
@@ -110,7 +103,6 @@ public class SYSBACKUPITEMSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("ITEM",Types.VARCHAR,false,32642),
                 SystemColumnImpl.getColumn("BEGIN_TIMESTAMP",Types.TIMESTAMP,false),
                 SystemColumnImpl.getColumn("END_TIMESTAMP",Types.TIMESTAMP,true),
-                SystemColumnImpl.getColumn("SNAPSHOT_NAME",Types.VARCHAR,false,32642),
         };
     }
 }

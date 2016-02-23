@@ -10,18 +10,15 @@ public class BackupItemsDescriptor extends TupleDescriptor {
     private String item;
     private DateTime beginTimestamp;
     private DateTime endTimestamp;
-    private String snapshotName;
 
     public BackupItemsDescriptor(long backupId,
                                  String item,
                                  DateTime beginTimestamp,
-                                 DateTime endTimestamp,
-                                 String snapshotName) {
+                                 DateTime endTimestamp) {
         this.backupId = backupId;
         this.item = item;
         this.beginTimestamp = beginTimestamp;
         this.endTimestamp = endTimestamp;
-        this.snapshotName = snapshotName;
     }
 
     public long getBackupId() {
@@ -38,10 +35,6 @@ public class BackupItemsDescriptor extends TupleDescriptor {
 
     public DateTime getEndTimestamp() {
         return endTimestamp;
-    }
-
-    public String getSnapshotName() {
-        return snapshotName;
     }
 }
 
