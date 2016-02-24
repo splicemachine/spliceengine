@@ -625,6 +625,7 @@ public class DDLUtils {
                 TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
                 TriggerDescriptor triggerDescriptor=dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
                 if(td!=null)
+                    dm.invalidateFor(td,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
                 if(triggerDescriptor!=null){
                     dm.invalidateFor(triggerDescriptor,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
 //                dm.clearDependencies(transactionResource.getLcc(), triggerDescriptor);
