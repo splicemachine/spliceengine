@@ -77,7 +77,12 @@ message WriteResult {
 }
 
 message BulkWriteResponse {
-	required bytes bytes = 1;
+    /*
+     * We have to make this optional because HBase will attempt to
+     * build a Response regardless of whether or not an error is thrown, which
+     * causes the original BulkWrite error to be lost in the Protobuf messaging error.
+     */
+	optional bytes bytes = 1;
 }
 
 message BulkWriteRequest {

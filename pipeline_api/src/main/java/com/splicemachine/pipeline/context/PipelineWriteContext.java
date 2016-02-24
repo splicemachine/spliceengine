@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.access.util.CachedPartitionFactory;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
@@ -39,6 +40,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private final boolean skipIndexWrites;
     private final ServerControl env;
     private final WriteNode head;
+    private final PipelineExceptionFactory pef;
 
     private WriteNode tail;
 
@@ -47,7 +49,8 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
                                  TxnView txn,
                                  TransactionalRegion rce,
                                  boolean skipIndexWrites,
-                                 ServerControl env) {
+                                 ServerControl env,
+                                PipelineExceptionFactory pef) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
         this.env = env;
         this.rce = rce;
@@ -56,6 +59,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         this.skipIndexWrites = skipIndexWrites;
         this.head = this.tail = new WriteNode(null, this);
         this.partitionFactory = partitionFactory;
+        this.pef = pef;
     }
 
     public void addLast(WriteHandler handler) {
@@ -212,5 +216,10 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public TransactionalRegion txnRegion(){
         return rce;
+    }
+
+    @Override
+    public PipelineExceptionFactory exceptionFactory(){
+        return pef;
     }
 }

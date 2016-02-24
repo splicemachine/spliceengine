@@ -22,7 +22,7 @@ public class ForbidPastWritersHandler implements WriteHandler {
         try {
             if (!ddlFilter.isVisibleBy(ctx.getTxn())) {
                 ctx.failed(mutation, WriteResult.failed("Writes forbidden by transaction " + ddlFilter.getTransaction()));
-            }
+            }else ctx.sendUpstream(mutation);
         } catch (IOException e) {
             LOG.error("Couldn't asses the visibility of the DDL operation", e);
             ctx.failed(mutation, WriteResult.failed(e.getMessage()));

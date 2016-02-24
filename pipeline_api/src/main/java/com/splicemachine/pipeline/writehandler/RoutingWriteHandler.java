@@ -2,11 +2,12 @@ package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import org.apache.log4j.Logger;
 import com.splicemachine.pipeline.context.WriteContext;
-import com.splicemachine.pipeline.client.WriteFailedException;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -60,14 +61,11 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             doFlush(ctx);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            if (e instanceof WriteFailedException) {
-                WriteFailedException wfe = (WriteFailedException) e;
-                Object[] buffer = routedToBaseMutationMap.values;
-                int size = routedToBaseMutationMap.size();
-                for (int i = 0; i < size; i++) {
-                    ctx.failed((KVPair) buffer[i], WriteResult.failed(wfe.getMessage()));
-                }
-            } else throw new IOException(e); //something unexpected went bad, need to propagate
+            Object[] buffer = routedToBaseMutationMap.values;
+            int size = routedToBaseMutationMap.size();
+            for (int i = 0; i < size; i++) {
+                fail((KVPair)buffer[i],ctx,e);
+            }
         }
     }
 
@@ -79,14 +77,11 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             doClose(ctx);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            if (e instanceof WriteFailedException) {
-                WriteFailedException wfe = (WriteFailedException) e;
-                Object[] buffer = routedToBaseMutationMap.values;
-                int size = routedToBaseMutationMap.size();
-                for (int i = 0; i < size; i++) {
-                    ctx.failed((KVPair) buffer[i], WriteResult.failed(wfe.getMessage()));
-                }
-            } else throw new IOException(e); //something unexpected went bad, need to propagate
+            Object[] buffer = routedToBaseMutationMap.values;
+            int size = routedToBaseMutationMap.size();
+            for (int i = 0; i < size; i++) {
+                fail((KVPair)buffer[i],ctx,e);
+            }
         }
     }
 
@@ -100,5 +95,15 @@ public abstract class RoutingWriteHandler implements WriteHandler {
 
     protected final CallBuffer<KVPair> getRoutedWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
         return ctx.getSharedWriteBuffer(destination,routedToBaseMutationMap, expectedSize * 2 + 10, true, ctx.getTxn()); //make sure we don't flush before we can
+    }
+
+    protected final void fail(KVPair mutation,WriteContext ctx,Exception e){
+        @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = ctx.exceptionFactory().processPipelineException(e);
+        if(t instanceof NotServingPartitionException)
+            ctx.failed(mutation,WriteResult.notServingRegion());
+        else if(t instanceof WrongPartitionException)
+            ctx.failed(mutation,WriteResult.wrongRegion());
+        else
+            ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName()+":"+t.getMessage()));
     }
 }

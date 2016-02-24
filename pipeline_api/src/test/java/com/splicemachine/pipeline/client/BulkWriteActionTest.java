@@ -1,37 +1,205 @@
 package com.splicemachine.pipeline.client;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
-
-import com.splicemachine.pipeline.api.PipelineExceptionFactory;
-import com.splicemachine.pipeline.api.WriteResponse;
+import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.PipelineWriter;
+import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.config.DefaultWriteConfiguration;
-import com.splicemachine.si.testenv.ArchitectureIndependent;
+import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.pipeline.testsetup.PipelineTestDataEnv;
+import com.splicemachine.pipeline.testsetup.PipelineTestEnvironment;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.testenv.ArchitectureSpecific;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionServer;
+import com.splicemachine.utils.Sleeper;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 /**
  * @author Scott Fines
- * Date: 1/31/14
+ *         Date: 1/31/14
  */
-@Category(ArchitectureIndependent.class)
-public class BulkWriteActionTest {
-	public static final String FOO_SERVERNAME="example.org,1234,1212121212";
+@Category(ArchitectureSpecific.class)
+public class BulkWriteActionTest{
+    private static final KryoPool kp=new KryoPool(1);
 
-	
-	@Test
-	public void testCallerDisconnectedException() throws ExecutionException {
-		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null,mock(PipelineExceptionFactory.class));
-		Assert.assertEquals(WriteResponse.THROW_ERROR,configuration.globalError(new IOException("Disconnected")));
+    private PipelineExceptionFactory pef;
+
+    @Before
+    public void setUp() throws Exception{
+        PipelineTestDataEnv pipelineTestDataEnv =PipelineTestEnvironment.loadTestDataEnvironment();
+
+        this.pef = pipelineTestDataEnv.pipelineExceptionFactory();
+    }
+
+    @Test
+    public void testCallerDisconnectedException() throws ExecutionException{
+        DefaultWriteConfiguration configuration=new DefaultWriteConfiguration(null,mock(PipelineExceptionFactory.class));
+        Assert.assertEquals(WriteResponse.THROW_ERROR,configuration.globalError(new IOException("Disconnected")));
+    }
+
+    @Test
+    public void testCorrectlyRetriesWhenOneRegionStops() throws Exception{
+        byte[] table=Bytes.toBytes("1424");
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        Collection<BulkWrite> bwList=new ArrayList<>(2);
+        bwList.add(new BulkWrite(addData(0,10),"region1"));
+        bwList.add(new BulkWrite(addData(100,10),"region2"));
+
+        BulkWrites bw=new BulkWrites(bwList,txn);
+        ActionStatusReporter asr=new ActionStatusReporter();
+        final TestBulkWriter writer = new TestBulkWriter();
+        BulkWriterFactory bwf=new BulkWriterFactory(){
+            @Override
+            public BulkWriter newWriter(byte[] tableName){
+                return writer;
+            }
+
+            @Override
+            public void invalidateCache(byte[] tableName) throws IOException{
+                //no-op
+            }
+
+            @Override
+            public void setPipeline(WritePipelineFactory writePipelineFactory){
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void setWriter(PipelineWriter pipelineWriter){
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        PartitionServer ts = mock(PartitionServer.class);
+
+		Partition p = mock(Partition.class);
+        when(p.subPartitions()).thenReturn(Collections.singletonList(p));
+        when(p.owningServer()).thenReturn(ts);
+        when(p.getName()).thenReturn("region2");
+        when(p.getStartKey()).thenReturn(new byte[]{});
+
+		PartitionFactory pf = mock(PartitionFactory.class);
+		when(pf.getTable(any(String.class))).thenReturn(p);
+
+
+		WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,0l,0),pef);
+		BulkWriteAction bwa = new BulkWriteAction(table,
+				bw,
+				config,
+				asr,
+				bwf,
+				pef,
+				pf,
+				mock(Sleeper.class));
+
+		bwa.call();
+
+		Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
+		Collection<KVPair> allData = writer.data;
+		Set<KVPair> deduped = new HashSet<>(allData);
+		Assert.assertEquals("Duplicate rows were inserted!",allData.size(),deduped.size());
+
+		for(BulkWrite write:bwList){
+			Collection<KVPair> toWrite = write.getMutations();
+			for(KVPair mutation:toWrite){
+				Assert.assertTrue("Missing write!",allData.contains(mutation));
+			}
+		}
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private Collection<KVPair> addData(int startPoint,int size) throws IOException{
+        Collection<KVPair> data=new ArrayList<>(size);
+        for(int i=startPoint;i<startPoint+size;i++){
+            KVPair kvP=encode("ryan"+i,null,i);
+            data.add(kvP);
+        }
+        return data;
+    }
+
+    private KVPair encode(String name,String job,int age) throws IOException{
+        BitSet setCols=new BitSet(3);
+        BitSet scalarCols=new BitSet(3);
+        BitSet empty=new BitSet();
+        if(job!=null)
+            setCols.set(1);
+        if(age>=0){
+            setCols.set(2);
+            scalarCols.set(2);
+        }
+
+        EntryEncoder ee=EntryEncoder.create(kp,2,setCols,scalarCols,empty,empty);
+        MultiFieldEncoder entryEncoder=ee.getEntryEncoder();
+        if(job!=null)
+            entryEncoder.encodeNext(job);
+        if(age>=0)
+            entryEncoder.encodeNext(age);
+
+        byte[] value=ee.encode();
+        return new KVPair(Encoding.encode(name),value);
+    }
+
+	private static class TestBulkWriter implements BulkWriter{
+		int callCount=0;
+		List<KVPair> data=new ArrayList<>(20);
+
+		@Override
+		public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
+			Collection<BulkWrite> bulkWrites=write.getBulkWrites();
+			Collection<BulkWriteResult> results=new ArrayList<>(bulkWrites.size());
+			if(callCount==0){
+				Assert.assertTrue("Not enough data was written!",bulkWrites.size()>=2);
+				boolean foundR1=false;
+				for(BulkWrite bw : bulkWrites){
+					if(bw.getEncodedStringName().equals("region1")){
+						foundR1=true;
+						data.addAll(bw.getMutations());
+						results.add(new BulkWriteResult(WriteResult.success()));
+					}else{
+						results.add(new BulkWriteResult(WriteResult.notServingRegion()));
+					}
+				}
+				Assert.assertTrue("Did not find the first region!",foundR1);
+				callCount++;
+			}else if(callCount==1){
+				Assert.assertEquals("Incorrect number of BulkWrites attempted retry!",1,bulkWrites.size());
+				for(BulkWrite bw : bulkWrites){
+					Assert.assertEquals("Data sent to incorrect region!","region2",bw.getEncodedStringName());
+					data.addAll(bw.getMutations());
+					results.add(new BulkWriteResult(WriteResult.success()));
+				}
+				callCount++;
+			}else{
+				Assert.fail("Retried too many times!");
+			}
+			return new BulkWritesResult(results);
+		}
 	}
-	
-	
+
 	/*
-		@Test
+        @Test
 		public void testCorrectWithSequence() throws Exception {
 				/*
 				 * The Sequence is

@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.context;
 
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.access.api.ServerControl;
@@ -95,4 +96,7 @@ public interface WriteContext {
     boolean skipIndexWrites();
 
     TransactionalRegion txnRegion();
+
+    PipelineExceptionFactory exceptionFactory();
+
 }

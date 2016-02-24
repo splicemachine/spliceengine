@@ -102,6 +102,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public LocatedRow call(List<String> values) throws Exception {
+        operationContext.recordRead();
         try {
             ExecRow returnRow = execRow.getClone();
             for (int i = 1; i <= returnRow.nColumns(); i++) {

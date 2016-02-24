@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.*;
@@ -98,17 +99,24 @@ public class PartitionWriteHandler implements WriteHandler {
                 SpliceLogUtils.trace(LOG, "Flush Writing rows=%d, table=%s", filteredMutations.size(), region.getTableName());
             doWrite(ctx, filteredMutations);
         } catch (IOException wce) {
-            if(wce instanceof WriteConflict){
+            Throwable t = ctx.exceptionFactory().processPipelineException(wce);
+            if(t instanceof WriteConflict){
                 WriteResult result=new WriteResult(Code.WRITE_CONFLICT,wce.getMessage());
                 for(KVPair mutation : filteredMutations){
                     ctx.result(mutation,result);
                 }
-            }else if(wce instanceof NotServingPartitionException){
+            }else if(t instanceof NotServingPartitionException){
                 WriteResult result = WriteResult.notServingRegion();
                 for (KVPair mutation : filteredMutations) {
                     ctx.result(mutation, result);
                 }
-            }else{
+            }else if(t instanceof WrongPartitionException){
+                //this shouldn't happen, but just in case
+                WriteResult result = WriteResult.wrongRegion();
+                for (KVPair mutation : filteredMutations) {
+                    ctx.result(mutation, result);
+                }
+            } else{
                 /*
                  * Paritition.put(Put[]) will throw an IOException
                  * if the WALEdit doesn't succeed, but only a single WALEdit write occurs,

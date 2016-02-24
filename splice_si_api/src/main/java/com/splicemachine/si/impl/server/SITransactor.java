@@ -326,15 +326,25 @@ public class SITransactor implements Transactor{
          * out and must be retried by the writer. mutationsAndLocks at the same location will be null
          */
         int position=0;
-        for(KVPair mutation : mutations){
-            ByteSlice byteSlice=mutation.rowKeySlice();
-            Lock lock=table.getRowLock(byteSlice.array(),byteSlice.offset(),byteSlice.length());//tableWriter.getRowLock(table, mutation.rowKeySlice());
-            if(lock.tryLock())
-                mutationsAndLocks[position]=Pair.newPair(mutation,lock);
-            else
-                finalStatus[position]=operationStatusLib.notRun();
+        try{
+            for(KVPair mutation : mutations){
+                ByteSlice byteSlice=mutation.rowKeySlice();
+                Lock lock=table.getRowLock(byteSlice.array(),byteSlice.offset(),byteSlice.length());//tableWriter.getRowLock(table, mutation.rowKeySlice());
+                if(lock.tryLock())
+                    mutationsAndLocks[position]=Pair.newPair(mutation,lock);
+                else
+                    finalStatus[position]=operationStatusLib.notRun();
 
-            position++;
+                position++;
+            }
+        }catch(RuntimeException re){
+            /*
+             * trying the lock can result in us throwing a NotServingRegionException etc, which is wrapped
+             * by the RuntimeException. Thus, we want to convert all RuntimeErrors to IOExceptions (if possible)
+             *
+             * todo -sf- I'm not sure if this is correct around OutOfMemoryError and other stuff like that
+             */
+            throw exceptionLib.processRemoteException(re);
         }
     }
 

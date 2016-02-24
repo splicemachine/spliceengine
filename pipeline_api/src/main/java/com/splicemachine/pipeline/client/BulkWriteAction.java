@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
@@ -98,7 +99,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                         globalErrorCounter.getTotal(),
                         partialFailureCounter.getTotal(),
                         rejectedCounter.getTotal(),
-                        sleeper.getSleepStats(),
+                        Metrics.noOpTimeView(),
                         writeTimer.getTime(),
                         totalTimer.getTime());
             else

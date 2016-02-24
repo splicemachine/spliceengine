@@ -6,6 +6,7 @@ import java.util.Map;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.kvpair.KVPair;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.pipeline.client.WriteResult;
@@ -137,5 +138,10 @@ public class WriteNode implements WriteContext {
     @Override
     public TransactionalRegion txnRegion(){
         return pipelineWriteContext.txnRegion();
+    }
+
+    @Override
+    public PipelineExceptionFactory exceptionFactory(){
+        return pipelineWriteContext.exceptionFactory();
     }
 }

@@ -29,7 +29,7 @@ public class SnapshotIsolatedWriteHandler implements WriteHandler {
                 ctx.sendUpstream(mutation);
         } catch (IOException e) {
             LOG.error("Couldn't asses the visibility of the DDL operation", e);
-            ctx.failed(mutation, WriteResult.failed(e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getCanonicalName()+":"+e.getMessage()));
         }
     }
 

@@ -3,6 +3,8 @@ package com.splicemachine.pipeline;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
@@ -111,11 +113,12 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             }
             indexBuffer.add(newIndex);
         } catch (Exception e) {
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
+            fail(mutation,ctx,e);
             return false;
         }
         return true;
     }
+
 
     private boolean deleteIndexRecord(KVPair mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
@@ -143,7 +146,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             ensureBufferReader(indexDelete, ctx);
             indexBuffer.add(indexDelete);
         } catch (Exception e) {
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
+            fail(mutation,ctx,e);
             return false;
         }
         return true;
@@ -154,10 +157,11 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             try {
                 indexBuffer = getRoutedWriteBuffer(ctx,expectedWrites);
             } catch (Exception e) {
-                ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+                fail(mutation,ctx,e);
                 return false;
             }
         }
         return true;
     }
+
 }

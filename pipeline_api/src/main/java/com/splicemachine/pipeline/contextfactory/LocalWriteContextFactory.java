@@ -97,7 +97,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, rce, false, env);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, rce, false, env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn);
         context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
         addWriteHandlerFactories(1000, context);
@@ -111,7 +111,8 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, region, skipIndexWrites, env);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,
+                pf,txn, region, skipIndexWrites, env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn);
         context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
         addWriteHandlerFactories(expectedWrites, context);
@@ -142,7 +143,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, region, false, env);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, region, false, env,pipelineExceptionFactory);
         addWriteHandlerFactories(expectedWrites, context);
         return context;
     }

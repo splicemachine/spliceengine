@@ -5,8 +5,11 @@ import com.google.common.collect.Iterators;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.HNotServingRegion;import com.splicemachine.si.impl.HWrongRegion;import com.splicemachine.storage.util.MeasuredListScanner;
-import org.apache.hadoop.hbase.NotServingRegionException;import org.apache.hadoop.hbase.client.*;
+import com.splicemachine.si.impl.HNotServingRegion;
+import com.splicemachine.si.impl.HWrongRegion;
+import com.splicemachine.storage.util.MeasuredListScanner;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -17,13 +20,13 @@ import java.util.concurrent.locks.Lock;
 
 /**
  * Representation of a single HBase Region as a Partition.
- *
+ * <p/>
  * A lot of these methods shouldn't (and generally won't) be called directly, because they will
  * result in an excessive number of objects being created. For example, instead of relying on
  * {@link #get(DataGet,DataResult)} to get the latest version of all the columns, instead call
- * {@link #getLatest(byte[], DataResult)}, which will save on the creation of a DataGet object, while still
+ * {@link #getLatest(byte[],DataResult)}, which will save on the creation of a DataGet object, while still
  * allowing re-use of the DataResult object.
- *
+ * <p/>
  * Nonetheless, all methods are properly implemented in a Thread-safe manner (they must, in order to pass SI
  * acceptance tests).
  *
@@ -51,17 +54,23 @@ public class RegionPartition implements Partition{
 
     @Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
-        List<Result> results = new ArrayList<>(rowKeys.size());
-        for(byte[] rk:rowKeys){
-            Get g = new Get(rk);
-            if(attributes!=null){
-                for(Map.Entry<String, byte[]> attrEntry : attributes.allAttributes().entrySet()){
-                    g.setAttribute(attrEntry.getKey(),attrEntry.getValue());
+        List<Result> results=new ArrayList<>(rowKeys.size());
+        try{
+            for(byte[] rk : rowKeys){
+                Get g=new Get(rk);
+                if(attributes!=null){
+                    for(Map.Entry<String, byte[]> attrEntry : attributes.allAttributes().entrySet()){
+                        g.setAttribute(attrEntry.getKey(),attrEntry.getValue());
+                    }
                 }
+                results.add(region.get(g));
             }
-            results.add(region.get(g));
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
         }
-        final HResult result = new HResult();
+        final HResult result=new HResult();
         return Iterators.transform(results.iterator(),new Function<Result, DataResult>(){
             @Override
             public DataResult apply(Result input){
@@ -77,10 +86,26 @@ public class RegionPartition implements Partition{
     }
 
     /*Lifecycle management*/
-    @Override public void startOperation() throws IOException{ region.startRegionOperation(); }
-    @Override public void closeOperation() throws IOException{ region.closeRegionOperation(); }
-    @Override public boolean isClosed(){ return region.isClosed(); }
-    @Override public boolean isClosing(){ return region.isClosing(); }
+    @Override
+    public void startOperation() throws IOException{
+        region.startRegionOperation();
+    }
+
+    @Override
+    public void closeOperation() throws IOException{
+        region.closeRegionOperation();
+    }
+
+    @Override
+    public boolean isClosed(){
+        return region.isClosed();
+    }
+
+    @Override
+    public boolean isClosing(){
+        return region.isClosing();
+    }
+
     @Override
     public void close() throws IOException{
         //no-op for regions
@@ -89,56 +114,80 @@ public class RegionPartition implements Partition{
     /*Single row access*/
     @Override
     public DataResult get(DataGet get,DataResult previous) throws IOException{
-        assert get instanceof HGet: "Programmer error: improper type!";
+        assert get instanceof HGet:"Programmer error: improper type!";
 
-        Result result=region.get(((HGet)get).unwrapDelegate());
-        if(previous==null)
-            previous = new HResult();
-        ((HResult)previous).set(result);
-        return previous;
+        try{
+            Result result=region.get(((HGet)get).unwrapDelegate());
+            if(previous==null)
+                previous=new HResult();
+            ((HResult)previous).set(result);
+            return previous;
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override
     public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
-        Get g = new Get(key);
+        Get g=new Get(key);
         g.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
 
-        Result r = region.get(g);
-        if(previous==null)
-            previous = new HResult(r);
-        else{
-            ((HResult)previous).set(r);
+        try{
+            Result r=region.get(g);
+            if(previous==null)
+                previous=new HResult(r);
+            else{
+                ((HResult)previous).set(r);
+            }
+            return previous;
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
         }
-        return previous;
     }
 
     @Override
     public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
-        Get g = new Get(key);
+        Get g=new Get(key);
         g.setMaxVersions(1);
 
-        Result result=region.get(g);
-        if(previous==null)
-            previous = new HResult(result);
-        else{
-            ((HResult)previous).set(result);
+        try{
+            Result result=region.get(g);
+            if(previous==null)
+                previous=new HResult(result);
+            else{
+                ((HResult)previous).set(result);
+            }
+            return previous;
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
         }
-        return previous;
     }
 
     @Override
     public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
-        Get g = new Get(rowKey);
+        Get g=new Get(rowKey);
         g.setMaxVersions(1);
         g.addFamily(family);
 
-        Result result=region.get(g);
-        if(previous==null)
-            previous = new HResult(result);
-        else{
-            ((HResult)previous).set(result);
+        try{
+            Result result=region.get(g);
+            if(previous==null)
+                previous=new HResult(result);
+            else{
+                ((HResult)previous).set(result);
+            }
+            return previous;
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
         }
-        return previous;
     }
 
     /*Multi-row access*/
@@ -149,12 +198,18 @@ public class RegionPartition implements Partition{
 
     @Override
     public DataScanner openScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        assert scan instanceof HScan: "Programmer error: improper type!";
+        assert scan instanceof HScan:"Programmer error: improper type!";
 
         Scan s=((HScan)scan).unwrapDelegate();
-        RegionScanner scanner=region.getScanner(s);
+        try{
+            RegionScanner scanner=region.getScanner(s);
 
-        return new RegionDataScanner(this,scanner,metricFactory);
+            return new RegionDataScanner(this,scanner,metricFactory);
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override
@@ -164,36 +219,48 @@ public class RegionPartition implements Partition{
 
     @Override
     public DataResultScanner openResultScanner(DataScan scan,MetricFactory metricFactory) throws IOException{
-        assert scan instanceof HScan: "Programmer error: improper type!";
+        assert scan instanceof HScan:"Programmer error: improper type!";
 
         Scan s=((HScan)scan).unwrapDelegate();
-        RegionScanner scanner=region.getScanner(s);
+        try{
+            RegionScanner scanner=region.getScanner(s);
 
-        //TODO -sf- massage the batch size properly
-        return new RegionResultScanner(s.getBatch(),new MeasuredListScanner(scanner,metricFactory));
+            //TODO -sf- massage the batch size properly
+            return new RegionResultScanner(s.getBatch(),new MeasuredListScanner(scanner,metricFactory));
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     /*Data mutation methods*/
     @Override
     public void put(DataPut put) throws IOException{
-        assert put instanceof HPut: "Programmer error: incorrect put type!";
+        assert put instanceof HPut:"Programmer error: incorrect put type!";
 
-        Put p = ((HPut)put).unwrapDelegate();
+        Put p=((HPut)put).unwrapDelegate();
 
-        region.put(p);
+        try{
+            region.put(p);
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException{
-        if(toWrite==null||toWrite.length<=0) return Collections.emptyIterator();
-        Mutation[] mutations = new Mutation[toWrite.length];
+        if(toWrite==null || toWrite.length<=0) return Collections.emptyIterator();
+        Mutation[] mutations=new Mutation[toWrite.length];
 
         for(int i=0;i<toWrite.length;i++){
-            mutations[i] = ((HMutation)toWrite[i]).unwrapHbaseMutation();
+            mutations[i]=((HMutation)toWrite[i]).unwrapHbaseMutation();
         }
         try{
             OperationStatus[] operationStatuses=region.batchMutate(mutations);
-            final HMutationStatus resultStatus = new HMutationStatus();
+            final HMutationStatus resultStatus=new HMutationStatus();
             return Iterators.transform(Iterators.forArray(operationStatuses),new Function<OperationStatus, MutationStatus>(){
                 @Override
                 public MutationStatus apply(OperationStatus input){
@@ -211,25 +278,43 @@ public class RegionPartition implements Partition{
 
     @Override
     public long increment(byte[] rowKey,byte[] family,byte[] qualifier,long amount) throws IOException{
-        Increment incr = new Increment(rowKey);
+        Increment incr=new Increment(rowKey);
         incr.addColumn(family,qualifier,amount);
-        Result increment=region.increment(incr);
-        return Bytes.toLong(increment.value()); //TODO -sf- is this correct?
+        try{
+            Result increment=region.increment(incr);
+            return Bytes.toLong(increment.value()); //TODO -sf- is this correct?
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override
     public void delete(DataDelete delete) throws IOException{
-        Delete d = ((HDelete)delete).unwrapDelegate();
+        Delete d=((HDelete)delete).unwrapDelegate();
 
-        region.delete(d);
+        try{
+            region.delete(d);
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override
     public void mutate(DataMutation put) throws IOException{
-        if(put instanceof HPut)
-            region.put(((HPut)put).unwrapDelegate());
-        else
-            region.delete(((HDelete)put).unwrapDelegate());
+        try{
+            if(put instanceof HPut)
+                region.put(((HPut)put).unwrapDelegate());
+            else
+                region.delete(((HDelete)put).unwrapDelegate());
+        }catch(NotServingRegionException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override
@@ -240,10 +325,20 @@ public class RegionPartition implements Partition{
     }
 
     /*Data range ownership methods*/
-    @Override public byte[] getStartKey(){ return region.getStartKey(); }
-    @Override public byte[] getEndKey(){ return region.getEndKey(); }
+    @Override
+    public byte[] getStartKey(){
+        return region.getStartKey();
+    }
 
-    @Override public boolean containsRow(byte[] row){ return region.getRegionInfo().containsRow(row); }
+    @Override
+    public byte[] getEndKey(){
+        return region.getEndKey();
+    }
+
+    @Override
+    public boolean containsRow(byte[] row){
+        return region.getRegionInfo().containsRow(row);
+    }
 
     @Override
     public boolean containsRow(byte[] row,int offset,int length){
@@ -263,12 +358,12 @@ public class RegionPartition implements Partition{
         byte[] s;
         byte[] e;
         if(startOff==0 && startLen==start.length)
-            s = start;
-        else s = Bytes.copy(start,startOff,startLen);
+            s=start;
+        else s=Bytes.copy(start,startOff,startLen);
 
         if(stopOff==0 && stopLen==stop.length)
-            e = stop;
-        else e = Bytes.copy(stop,stopOff,stopLen);
+            e=stop;
+        else e=Bytes.copy(stop,stopOff,stopLen);
 
         return region.getRegionInfo().containsRange(s,e);
     }
@@ -304,7 +399,7 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow, boolean refresh){
+    public List<Partition> subPartitions(byte[] startRow,byte[] stopRow,boolean refresh){
         if(!region.getRegionInfo().containsRange(startRow,stopRow))
             throw new IllegalArgumentException("A RegionPartition cannot be broken into a range that it does not contain!");
         //TODO -sf- convert to a list of subranges?
