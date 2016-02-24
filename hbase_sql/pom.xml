@@ -247,7 +247,7 @@
                         <configuration>
                             <!--<groups>com.splicemachine.test.SerialTest</groups>-->
                             <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g</argLine>
+                            <argLine>-Xmx3g -XX:MaxPermSize=128m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
