@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
-@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
+@Ignore("DB-4004: Adding/dropping keyed columns not working")
 public class ForeignKey_AlterDropTable_IT {
 
     private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();

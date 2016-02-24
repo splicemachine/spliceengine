@@ -22,7 +22,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
 public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String SCHEMA = AlterTableConstantOperationIT.class.getSimpleName().toUpperCase();
 
@@ -179,7 +178,6 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-4442 Add column, default value")
     public void testAddColumnDefaultIsReadable() throws Exception {
         Connection conn = methodWatcher.createConnection();
         try(Statement statement=conn.createStatement()){
