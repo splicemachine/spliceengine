@@ -1,14 +1,28 @@
 package com.splicemachine.derby.test;
 
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 public class DatabaseMetaDataTestIT {
+    private static final String CLASS_NAME = DatabaseMetaDataTestIT.class.getSimpleName().toUpperCase();
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("t1test", spliceSchemaWatcher.schemaName, "(t1n numeric(10,2) default null, t1c char(10))");
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher1);
+
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -45,4 +59,11 @@ public class DatabaseMetaDataTestIT {
             conn.rollback();
         }
     }
+
+    @Test
+    public void testNullDecimalInUserTypeInDictionaryMeta() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from sys.syscolumns where columnname = 'T1N'");
+        Assert.assertTrue("Query Did not return, decimal serde issue",rs.next());
+    }
+
 }
