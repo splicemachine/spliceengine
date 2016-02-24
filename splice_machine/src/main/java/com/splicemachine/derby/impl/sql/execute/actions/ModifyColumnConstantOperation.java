@@ -249,7 +249,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         tableDescriptor.getColumnDescriptorList().add(columnDescriptor);
 
         if (columnDescriptor.isAutoincrement()) {
-            // TODO: JC - is there a better way to do autoinc?
             updateNewAutoincrementColumn(lcc,tableDescriptor,colInfo);
         }
 
@@ -278,7 +277,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         activation.setDDLTableDescriptor(tableDescriptor);
     }
 
-    // TODO: JC - figure out how to make this work without executing update on old table first
     private void updateNewAutoincrementColumn(LanguageConnectionContext lcc, TableDescriptor td,ColumnInfo colInfo) throws StandardException {
         String columnName = colInfo.name;
         long initial = colInfo.autoincStart;
@@ -429,9 +427,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         } else if (colInfo.action == ColumnInfo.MODIFY_COLUMN_DEFAULT_RESTART) {
             dd.setAutoincrementValue(tc, td.getUUID(), colInfo.name, colInfo.autoincStart, false);
         }
-
-       LOG.warn("Still need to send notice to DDL Listener");
-
     }
 
     private void modifyColumnType(DataDictionary dd, TransactionController tc,TableDescriptor td,int ix) throws StandardException {
@@ -459,9 +454,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Update the ColumnDescriptor with new default info
         dd.dropColumnDescriptor(td.getUUID(), columnInfo[ix].name, tc);
         dd.addDescriptor(newColumnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
-
-        // Notify DDL
-
     }
 
     private boolean validateNotNullConstraint (

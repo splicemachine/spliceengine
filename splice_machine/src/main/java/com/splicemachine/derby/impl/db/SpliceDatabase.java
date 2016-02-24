@@ -371,14 +371,7 @@ public class SpliceDatabase extends BasicDatabase{
             @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
             public void changeSuccessful(String changeId,DDLChange change) throws StandardException{
                 switch(change.getDdlChangeType()){
-                    case DROP_INDEX:
-                    case DROP_TABLE:
-                        getDataDictionary().getDataDictionaryCache().emptyStatementCache();
-                        break;
-                    case CREATE_SCHEMA:
-                    case DROP_SCHEMA:
-                        getDataDictionary().getDataDictionaryCache().clearSchemaCache();
-                        break;
+                    // nuttin.  Cache invalidation is done in DependencyManager thru DDLUtils calls
                 }
             }
 
