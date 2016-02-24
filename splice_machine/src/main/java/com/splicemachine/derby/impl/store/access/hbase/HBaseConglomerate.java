@@ -44,7 +44,7 @@ import java.util.Properties;
 
 public class HBaseConglomerate extends SpliceConglomerate{
     public static final long serialVersionUID=5l;
-    protected static Logger LOG=Logger.getLogger(HBaseConglomerate.class);
+    private static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
 
     public HBaseConglomerate(){
         super();
@@ -439,5 +439,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
     public int getContainerKeyMemoryUsage(){
         return ClassSize.estimateBaseFromCatalog(ContainerKey.class);
     }
+
 
 }

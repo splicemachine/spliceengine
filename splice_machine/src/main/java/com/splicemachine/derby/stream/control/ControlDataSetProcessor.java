@@ -25,7 +25,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
-import java.io.IOException;
+import javax.annotation.Nonnull;import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.file.*;
@@ -56,6 +56,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of this is a mistake for control-side operations")
     public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(final Op spliceOperation,final String tableName) throws StandardException{
         return new TableScannerBuilder<V>(){
             @Override
@@ -81,6 +83,8 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of this is a mistake for control-side operations")
     public <Op extends SpliceOperation,V> IndexScanSetBuilder<V> newIndexScanSet(final Op spliceOperation,final String tableName) throws StandardException{
        return new IndexTableScannerBuilder<V>(){
            @Override
@@ -252,7 +256,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private InputStream newInputStream(DistributedFileSystem dfs,Path p,OpenOption... options) throws IOException{
+    private InputStream newInputStream(DistributedFileSystem dfs,@Nonnull Path p,OpenOption... options) throws IOException{
         InputStream value = dfs.newInputStream(p,options);
         String s=p.getFileName().toString();
         assert s!=null;

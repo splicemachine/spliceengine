@@ -10,6 +10,7 @@ import java.io.*;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Created by jleach on 10/8/15.
@@ -94,6 +95,7 @@ import java.util.Iterator;
 
                     @Override
                     public LocatedRow next() {
+                        if(!hasNext()) throw new NoSuchElementException();
                         stale = false;
                         return nextRow;
                     }

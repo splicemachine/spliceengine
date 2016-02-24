@@ -184,10 +184,11 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
 
     @Override
     public SortCostController newSortCostController(OrderByList orderByList){
-        return new TempSortController(orderByList);
+        return new TempSortController();
     }
 
     @Override
+    @SuppressFBWarnings(value = "UR_UNINIT_READ_CALLED_FROM_SUPER_CONSTRUCTOR",justification = "Tracer actually is already initialized")
     public OptimizerTrace tracer(){
         if (TRACE_LOGGER.isTraceEnabled()) {
             optimizerTrace = true;

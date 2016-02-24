@@ -25,6 +25,8 @@ import java.util.Set;
 public class TinyintStats extends BaseDvdStatistics {
     private ByteColumnStatistics stats;
 
+    public TinyintStats(){ }
+
     public TinyintStats(ByteColumnStatistics build) {
         super(build);
         this.stats = build;

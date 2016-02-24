@@ -41,9 +41,7 @@ import com.splicemachine.db.impl.sql.compile.OrderedColumn;
  *         Date: 3/26/15
  */
 public class TempSortController implements SortCostController{
-    private OrderByList orderByList;
-    public TempSortController(OrderByList orderByList) {
-        this.orderByList = orderByList;
+    public TempSortController() {
     }
 
     @Override public void close(){  }

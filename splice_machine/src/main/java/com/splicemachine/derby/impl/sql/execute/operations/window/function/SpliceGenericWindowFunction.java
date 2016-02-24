@@ -160,6 +160,7 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
             first = last = 0;
         }
 
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
         public DataValueDescriptor[] getPrevious() {
             return previous;
         }

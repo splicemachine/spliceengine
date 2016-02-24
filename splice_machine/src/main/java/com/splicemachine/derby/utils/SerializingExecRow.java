@@ -128,14 +128,15 @@ public class SerializingExecRow implements ExecRow, Externalizable {
             }
         }
         out.writeInt(nonNullEntries.size());
-        for (DataValueDescriptor dvd : nonNullEntries.keySet()) {
-            out.writeInt(nonNullEntries.get(dvd));
+        for(Map.Entry<DataValueDescriptor,Integer> entry:nonNullEntries.entrySet()){
+            DataValueDescriptor dvd = entry.getKey();
+            out.writeInt(entry.getValue());
             out.writeObject(dvd);
         }
         out.writeInt(nullEntries.size());
-        for (Integer nullPos : nullEntries.keySet()) {
-            out.writeInt(nullPos);
-            DataValueDescriptor dvd = nullEntries.get(nullPos);
+        for(Map.Entry<Integer,DataValueDescriptor> entry:nullEntries.entrySet()){
+            out.writeInt(entry.getKey());
+            DataValueDescriptor dvd = entry.getValue();
             out.writeInt(dvd.getTypeFormatId());
         }
 

@@ -133,10 +133,7 @@ public class TableSplit{
     }
 
     private static long getConglomerateId(Connection conn, String schemaName, String tableName) throws SQLException {
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try{
-            ps = conn.prepareStatement("select " +
+        try(PreparedStatement ps = conn.prepareStatement("select " +
                     "conglomeratenumber " +
                     "from " +
                     "sys.sysconglomerates c," +
@@ -146,17 +143,15 @@ public class TableSplit{
                     "t.tableid = c.tableid " +
                     "and t.schemaid = s.schemaid " +
                     "and s.schemaname = ?" +
-                    "and t.tablename = ?");
+                    "and t.tablename = ?")){
             ps.setString(1,schemaName.toUpperCase());
             ps.setString(2,tableName);
-            rs = ps.executeQuery();
-            if(rs.next()){
-                return rs.getLong(1);
-            }else
-                throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
-        }finally{
-            if(rs!=null) rs.close();
-            if(ps!=null)ps.close();
+            try(ResultSet rs = ps.executeQuery()){
+                if(rs.next()){
+                    return rs.getLong(1);
+                }else
+                    throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
+            }
         }
     }
 

@@ -101,19 +101,13 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 			nodeCi[nodeType] = ci;
 		}
 
-		QueryTreeNode retval = null;
+		QueryTreeNode retval;
 
-		try
-		{
+		try {
 			retval = (QueryTreeNode) ci.getNewInstance();
 			//retval = (QueryTreeNode) nodeClass.newInstance();
-		}
-		catch (Exception iae)
-		{
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.THROWASSERT("Unexpected Exception", iae);
-			}
+		} catch (Exception iae) {
+			throw new RuntimeException(iae);
 		}
 
 		retval.setContextManager(cm);

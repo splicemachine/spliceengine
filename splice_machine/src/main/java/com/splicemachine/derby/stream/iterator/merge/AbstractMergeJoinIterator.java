@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>, Iterable<LocatedRow> {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
@@ -28,6 +29,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     protected MergeJoinOperation mergeJoinOperation;
     private boolean closed = false;
     private List<Closeable> closeables = new ArrayList<>();
+    private transient boolean populated =false;
+    private transient boolean hasNext = false;
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -96,7 +99,9 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
 
     @Override
     public final boolean hasNext() {
-        boolean result = internalHasNext();
+        if(populated) return hasNext;
+        populated=true;
+        boolean result =hasNext= internalHasNext();
         if (result) operationContext.recordProduced();
         if (!result && !closed) {
             close();
@@ -124,6 +129,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
 
     @Override
     public LocatedRow next() {
+        if(!hasNext()) throw new NoSuchElementException();
+        populated=false;
         return currentLocatedRow;
     }
 

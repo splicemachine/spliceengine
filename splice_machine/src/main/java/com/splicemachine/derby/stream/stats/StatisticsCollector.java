@@ -90,7 +90,7 @@ public class StatisticsCollector {
 //            remoteReadTimeMicros /= 1000;
 //        }
         return SimpleOverheadManagedPartitionStatistics.create(
-                (new Long(tableConglomerateId)).toString(),
+                Long.toString(tableConglomerateId),
                 regionId,
                 rowCount,
                 byteCount,

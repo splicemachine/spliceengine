@@ -3,13 +3,16 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -27,93 +30,96 @@ import org.apache.log4j.Logger;
  * @author jessiezhang
  */
 
-public class MiscOperation extends NoRowsOperation {
-		private static Logger LOG = Logger.getLogger(MiscOperation.class);
-	    protected static final String NAME = MiscOperation.class.getSimpleName().replaceAll("Operation","");
-
-		@Override
-		public String getName() {
-				return NAME;
-		}
-
-		/**
-		 * Construct a MiscResultSet
-		 *
-		 *  @param activation		Describes run-time environment.
-		 */
-		public MiscOperation(Activation activation) throws StandardException {
-				super(activation);
-				recordConstructorTime();
-		}
+@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification="Serializing this is a mistake,"+
+        "but we inherit externalizability from the SpliceBaseOperation")
+public class MiscOperation extends NoRowsOperation{
+    private static final Logger LOG=Logger.getLogger(MiscOperation.class);
+    protected static final String NAME=MiscOperation.class.getSimpleName().replaceAll("Operation","");
 
     @Override
-    public void close() throws StandardException {
-        super.close();
-        SpliceLogUtils.trace(LOG, "close for miscRowProvider, isOpen=%s", isOpen);
-        if (!isOpen)
-            return;
-        try {
-            int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
+    public String getName(){
+        return NAME;
+    }
 
-            for (int index = 0; index < staLength; index++) {
-                if (subqueryTrackingArray[index] == null || subqueryTrackingArray[index].isClosed())
+
+    /**
+     * Construct a MiscResultSet
+     *
+     * @param activation Describes run-time environment.
+     */
+    public MiscOperation(Activation activation) throws StandardException{
+        super(activation);
+        recordConstructorTime();
+    }
+
+    @Override
+    public void close() throws StandardException{
+        super.close();
+        SpliceLogUtils.trace(LOG,"close for miscRowProvider, isOpen=%s",isOpen);
+        if(!isOpen)
+            return;
+        try{
+            int staLength=(subqueryTrackingArray==null)?0:subqueryTrackingArray.length;
+
+            for(int index=0;index<staLength;index++){
+                if(subqueryTrackingArray[index]==null || subqueryTrackingArray[index].isClosed())
                     continue;
 
                 subqueryTrackingArray[index].close();
             }
 
-            isOpen = false;
-            if (activation.isSingleExecution())
+            isOpen=false;
+            if(activation.isSingleExecution())
                 activation.close();
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG, e);
+        }catch(Exception e){
+            SpliceLogUtils.error(LOG,e);
             throw Exceptions.parseException(e);
         }
     }
 
-		@Override
-		public String toString() {
-				return "ConstantActionOperation";
-		}
+    @Override
+    public String toString(){
+        return "ConstantActionOperation";
+    }
 
-		@Override
-		public String prettyPrint(int indentLevel) {
-				return "ConstantAction" + super.prettyPrint(indentLevel);
-		}
+    @Override
+    public String prettyPrint(int indentLevel){
+        return "ConstantAction"+super.prettyPrint(indentLevel);
+    }
 
-		@Override
-		public int[] getRootAccessedCols(long tableNumber) {
-				return null;
-		}
+    @Override
+    public int[] getRootAccessedCols(long tableNumber){
+        return null;
+    }
 
-		@Override
-		public boolean isReferencingTable(long tableNumber) {
-				return false;
-		}
+    @Override
+    public boolean isReferencingTable(long tableNumber){
+        return false;
+    }
 
-        @Override
-        public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-            setup();
+    @Override
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException{
+        setup();
 
-            activation.getConstantAction().executeConstantAction(activation);
+        activation.getConstantAction().executeConstantAction(activation);
 
-            ValueRow valueRow = new ValueRow(1);
-            valueRow.setColumn(1, new SQLInteger((int) activation.getRowsSeen()));
+        ValueRow valueRow=new ValueRow(1);
+        valueRow.setColumn(1,new SQLInteger((int)activation.getRowsSeen()));
 
-            // TODO (wjk): consider using ControlDataSetProcessor explicitly
-            // for actions which, like CreateIndexConstantOperation, do their own scope
-            // push and which therefore don't really need to have MiscOperation do it.
-            //
-            // dsp = EngineDriver.driver().processorFactory().localProcessor(activation, null);
-            String name = null;
-            if (activation.getConstantAction() instanceof ScopeNamed) {
-                name = (((ScopeNamed)activation.getConstantAction()).getScopeName());
-            } else {
-                name = StringUtils.join(
+        // TODO (wjk): consider using ControlDataSetProcessor explicitly
+        // for actions which, like CreateIndexConstantOperation, do their own scope
+        // push and which therefore don't really need to have MiscOperation do it.
+        //
+        // dsp = EngineDriver.driver().processorFactory().localProcessor(activation, null);
+        String name=null;
+        if(activation.getConstantAction() instanceof ScopeNamed){
+            name=(((ScopeNamed)activation.getConstantAction()).getScopeName());
+        }else{
+            name=StringUtils.join(
                     StringUtils.splitByCharacterTypeCamelCase(
-                        activation.getConstantAction().getClass().getSimpleName().
-                            replace("Operation", "").replace("Constant", "")), ' ');
-            }
-            return dsp.singleRowDataSet(new LocatedRow(valueRow), name);
+                            activation.getConstantAction().getClass().getSimpleName().
+                                    replace("Operation","").replace("Constant","")),' ');
         }
+        return dsp.singleRowDataSet(new LocatedRow(valueRow),name);
+    }
 }

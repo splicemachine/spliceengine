@@ -28,6 +28,7 @@ import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -319,6 +320,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
     public DataSetWriterBuilder deleteData(OperationContext operationContext) throws StandardException{
         return new DeleteTableWriterBuilder(){
             @Override
@@ -331,6 +334,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
     public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
         return new InsertTableWriterBuilder(){
             @Override
@@ -351,6 +356,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
     public UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException{
         return new UpdateTableWriterBuilder(){
             @Override
@@ -366,6 +373,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
+            "of Control-side operations does not happen and would be a mistake")
     public DataSetWriterBuilder directWriteData() throws StandardException{
         return new DirectTableWriterBuilder(){
             @Override

@@ -26,7 +26,7 @@ import java.io.ObjectOutput;
  */
 public class ScalarAggregateOperation extends GenericAggregateOperation {
 
-    public static long serialVersionUID = 1l;
+    public static final long serialVersionUID = 1l;
     private static Logger LOG = Logger.getLogger(ScalarAggregateOperation.class);
     protected boolean isInSortedOrder;
     protected boolean singleInputRow;

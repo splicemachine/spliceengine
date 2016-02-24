@@ -6,9 +6,6 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.Random;
 
 /**

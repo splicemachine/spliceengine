@@ -356,7 +356,7 @@ public class SpliceTransaction extends BaseSpliceTransaction{
     private String getSavePointStackString(){
         StringBuilder sb=new StringBuilder();
         for(Pair<String, Txn> savePoint : txnStack){
-            sb.append(String.format("name=%s, txn=%s\n",savePoint.getFirst(),savePoint.getSecond()));
+            sb.append(String.format("name=%s, txn=%s%n",savePoint.getFirst(),savePoint.getSecond()));
         }
         return sb.toString();
     }

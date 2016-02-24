@@ -10,13 +10,13 @@ public class ColumnOrdering {
 	int	myDirection;
 
 	/* A vector of column numbers (Integers) */
-	Vector columns = new Vector();
+	Vector<Integer> columns = new Vector<>();
 
 	/*
 	** A vector of table numbers (Integers), corresponding to the column
 	** vector by position.
 	*/
-	Vector tables = new Vector();
+	Vector<Integer> tables = new Vector<>();
 
 	/**
 	 * @param direction	See RowOrdering for possible values
@@ -88,8 +88,8 @@ public class ColumnOrdering {
 	 */
 	void addColumn(int tableNumber, int columnNumber)
 	{
-		tables.add(new Integer(tableNumber));
-		columns.add(new Integer(columnNumber));
+		tables.add(tableNumber);
+		columns.add(columnNumber);
 	}
 
 	/**
@@ -104,7 +104,7 @@ public class ColumnOrdering {
 		for (int i = tables.size() - 1; i >= 0; i--)
 		{
 			Integer tab = (Integer) tables.get(i);
-			if (tab.intValue() == tableNumber)
+			if (tab==tableNumber)
 			{
 				tables.remove(i);
 				columns.remove(i);
@@ -167,11 +167,11 @@ public class ColumnOrdering {
 		String retval = "";
 
 		if (SanityManager.DEBUG) {
-			retval += myDirection + ":";
-
+			StringBuilder sb = new StringBuilder().append(myDirection).append(":");
 			for (int i = 0; i < columns.size(); i++) {
-				retval += tables.get(i) +":" +columns.get(i);
+				sb = sb.append(tables.get(i)).append(":").append(columns.get(i));
 			}
+			retval = sb.toString();
 		}
 
 		return retval;
@@ -182,8 +182,8 @@ public class ColumnOrdering {
 	
 	public int[] get(int i) {
 		int[] tabCol = new int[2];
-		tabCol[0] = (Integer) tables.get(i); // autobox: fix
-		tabCol[1] = (Integer) columns.get(i); // autobox
+		tabCol[0] =tables.get(i); // autobox: fix
+		tabCol[1] =columns.get(i); // autobox
 		return tabCol;
 	}
 

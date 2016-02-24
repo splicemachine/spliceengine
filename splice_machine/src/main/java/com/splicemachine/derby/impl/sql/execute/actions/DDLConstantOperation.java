@@ -829,7 +829,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 	/**
 	 * Mutable Boolean wrapper, initially false
 	 */
-	private class SettableBoolean {
+	private static class SettableBoolean {
 		boolean value;
 
 		SettableBoolean() {

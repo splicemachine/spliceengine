@@ -8,6 +8,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Created by jyuan on 10/16/15.
@@ -16,6 +17,7 @@ import java.util.Iterator;
 public class DirectScannerIterator implements Iterable<KVPair>, Iterator<KVPair>, Closeable {
     private DirectScanner directScanner;
     private KVPair value;
+    private boolean populated=false;
 
     public DirectScannerIterator(DirectScanner hTableBuilder) throws IOException, StandardException{
         this.directScanner= hTableBuilder;
@@ -29,21 +31,24 @@ public class DirectScannerIterator implements Iterable<KVPair>, Iterator<KVPair>
 
     @Override
     public boolean hasNext() {
-        boolean hasNext = true;
+        if(populated) return value!=null;
+        populated=true;
         try {
             value = directScanner.next();
             if (value == null) {
                 close();
-                hasNext = false;
-            }
+                return false;
+            }else
+                return true;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return hasNext;
     }
 
     @Override
     public KVPair next() {
+        if(!hasNext()) throw new NoSuchElementException();
+        populated=false;
         return value;
     }
 

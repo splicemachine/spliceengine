@@ -243,7 +243,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
         if (conglomId < 0) {
             if (tempCongloms != null)
-                conglom = tempCongloms.get(new Long(conglomId));
+                conglom = tempCongloms.get(conglomId);
         } else {
             conglom = accessmanager.conglomCacheFind(this, conglomId);
         }
@@ -266,7 +266,7 @@ public class SpliceTransactionManager implements XATransactionController,
             conglom = accessmanager.conglomCacheFind(this, conglomId);
         } else {
             if (tempCongloms != null)
-                conglom = tempCongloms.get(new Long(conglomId));
+                conglom = tempCongloms.get(conglomId);
         }
 
         return (conglom);
@@ -448,7 +448,7 @@ public class SpliceTransactionManager implements XATransactionController,
         if (is_temporary) {
             // remove old entry in the Conglomerate directory, and add new one
             if (tempCongloms != null){
-                tempCongloms.remove(new Long(conglomId));
+                tempCongloms.remove(conglomId);
                 tempCongloms.put(conglomId, conglom);
             }
         } else {
@@ -722,39 +722,37 @@ public class SpliceTransactionManager implements XATransactionController,
 
 
         if (SanityManager.DEBUG) {
-
-            String str = "";
-
+            StringBuilder sb = new StringBuilder();
             for (ScanController sc : scanControllers) {
-                str += "open scan controller: " + sc + "\n";
+                sb = sb.append("open scan controller: ").append(sc).append("\n");
             }
 
             for (ConglomerateController cc : conglomerateControllers) {
-                str += "open conglomerate controller: " + cc + "\n";
+                sb = sb.append("open conglomerate controller: ").append(cc).append("\n");
             }
 
             if (sortControllers != null) {
                 for (SortController sc : sortControllers) {
-                    str += "open sort controller: " + sc + "\n";
+                    sb = sb.append("open sort controller: ").append(sc).append("\n");
                 }
             }
 
             if (sorts != null) {
                 for (Sort sort : sorts) {
                     if (sort != null) {
-                        str += "sorts created by createSort() in current xact:"
-                                + sort + "\n";
+                        sb = sb.append("sorts created by createSort() in current xact:").append(sort).append("\n");
                     }
                 }
             }
 
             if (tempCongloms != null) {
-                for (Long conglomId : tempCongloms.keySet()) {
-                    Conglomerate c = tempCongloms.get(conglomId);
-                    str += "temp conglomerate id = " + conglomId + ": " + c;
+                for(Map.Entry<Long,Conglomerate> entry:tempCongloms.entrySet()){
+                    long conglomId = entry.getKey();
+                    Conglomerate c = entry.getValue();
+                    sb = sb.append("temp conglomerate id = ").append(conglomId).append(":").append(c);
                 }
             }
-            return str;
+            return sb.toString();
 
         }else return "";
     }
@@ -2143,11 +2141,7 @@ public class SpliceTransactionManager implements XATransactionController,
 
     @Override
     public String toString() {
-        String str = null;
-        if (SanityManager.DEBUG) {
-            str = "rawtran = " + rawtran;
-        }
-        return str;
+        return "rawtran = " + rawtran;
     }
 
     /**
@@ -2248,7 +2242,7 @@ public class SpliceTransactionManager implements XATransactionController,
         if (is_temporary) {
             // remove old entry in the Conglomerate directory, and add new one
             if (tempCongloms != null){
-                tempCongloms.remove(new Long(conglomId));
+                tempCongloms.remove(conglomId);
                 tempCongloms.put(conglomId, conglom);
             }
         } else {

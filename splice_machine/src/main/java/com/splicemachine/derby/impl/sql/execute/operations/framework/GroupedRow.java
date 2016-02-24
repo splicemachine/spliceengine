@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -49,12 +50,12 @@ public class GroupedRow {
         this.row = row;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getGroupingKey() {
         return groupingKey;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public void setGroupingKey(byte[] groupingKey) {
         this.groupingKey = groupingKey;
     }
@@ -69,7 +70,7 @@ public class GroupedRow {
 
 	@Override
 	public String toString() {
-		return "grouping key={" + groupingKey + "}, row={" + row + "}, isDistinct="+isDistinct;
+		return "grouping key={" +Bytes.toHex(groupingKey) + "}, row={" + row + "}, isDistinct="+isDistinct;
 	}
     
 }

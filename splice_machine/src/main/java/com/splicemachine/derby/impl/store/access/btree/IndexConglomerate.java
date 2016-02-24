@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Properties;
 
 /**
@@ -46,10 +47,10 @@ import java.util.Properties;
 
 
 public class IndexConglomerate extends SpliceConglomerate{
+    private static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
     public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V5_ID;
     public static final String PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS="uniqueWithDuplicateNulls";
     private static final long serialVersionUID=4l;
-    protected static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
     protected static final String PROPERTY_BASECONGLOMID="baseConglomerateId";
     protected static final String PROPERTY_ROWLOCCOLUMN="rowLocationColumn";
     protected static final String PROPERTY_ALLOWDUPLICATES="allowDuplicates";
@@ -466,6 +467,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         ascDescBits.writeExternal(out);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public boolean[] getAscDescInfo(){
         return ascDescInfo;
     }
@@ -665,5 +667,4 @@ public class IndexConglomerate extends SpliceConglomerate{
         format_ids=ConglomerateUtil.readFormatIdArray(this.nKeyFields,in);
         id=new ContainerKey(segmentid,containerid);
     }
-
 }

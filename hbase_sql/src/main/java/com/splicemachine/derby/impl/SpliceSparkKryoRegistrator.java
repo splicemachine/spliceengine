@@ -542,7 +542,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(CogroupInnerJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CogroupOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ColumnComparator.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(FetchWithOffsetFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(GroupedAggregateRollupFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(InnerJoinFunction.class,EXTERNALIZABLE_SERIALIZER);

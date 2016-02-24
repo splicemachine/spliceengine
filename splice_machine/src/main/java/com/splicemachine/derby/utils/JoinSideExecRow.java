@@ -31,6 +31,7 @@ public class JoinSideExecRow {
         this.rowKey = rowKey;
     }
 
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getRowKey(){
         return rowKey;
     }
@@ -38,25 +39,19 @@ public class JoinSideExecRow {
 	public ExecRow getRow() {
 		return row;
 	}
-	public JoinSide getJoinSide() {
-		return joinSide;
-	}
 
-    public boolean isRightSide(){
-        return joinSide.ordinal() == JoinSide.RIGHT.ordinal();
-    }
-
-	@SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
+	@SuppressFBWarnings(value="EI_EXPOSE_REP", justification="Intentional")
 	public byte[] getHash() {
 		return hash;
 	}
 
-	@SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
+	@SuppressFBWarnings(value="EI_EXPOSE_REP", justification="Intentional")
     public void setHash(byte[] hash) {
         this.hash = hash;
     }
 
-    public void setRowKey(byte[] rowKey) {
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
+	public void setRowKey(byte[] rowKey) {
         this.rowKey = rowKey;
     }
 
@@ -68,14 +63,8 @@ public class JoinSideExecRow {
 		sb.append(" row = ");
 		sb.append(row);
 		sb.append(" hash = ");
-		sb.append(hash);
+		sb.append(Bytes.toHex(hash));
 		return sb.toString();
-	}
-	
-	public boolean sameHash(byte[] hash) {
-		if (hash == null)
-			return false;
-		return Bytes.basicByteComparator().compare(this.hash,hash) == 0;
 	}
 
 }

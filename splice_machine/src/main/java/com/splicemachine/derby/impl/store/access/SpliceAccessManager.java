@@ -133,7 +133,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         }
         catch (java.lang.ArrayIndexOutOfBoundsException e) {
             // just in case language passes in a bad factory id.
-            throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST, new Long(conglom_id));
+            throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,conglom_id);
         }
     }
 

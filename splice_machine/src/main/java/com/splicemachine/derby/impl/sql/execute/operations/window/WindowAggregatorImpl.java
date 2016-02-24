@@ -164,21 +164,25 @@ public class WindowAggregatorImpl implements WindowAggregator {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getPartitionColumns() {
         return partitionColumns;
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getKeyColumns() {
         return keyColumns;
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getSortColumns() {
         return sortColumns;
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public boolean[] getKeyOrders() {
         return keyOrders;
     }

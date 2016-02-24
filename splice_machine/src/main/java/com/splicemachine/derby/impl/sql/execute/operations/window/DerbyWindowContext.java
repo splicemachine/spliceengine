@@ -15,6 +15,7 @@ import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class records the window definition (partition, orderby and frame)
@@ -63,6 +64,7 @@ public class DerbyWindowContext implements WindowContext {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public WindowAggregator[] getWindowFunctions() {
         return windowAggregators;
     }

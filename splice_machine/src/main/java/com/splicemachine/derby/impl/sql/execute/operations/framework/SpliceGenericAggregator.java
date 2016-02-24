@@ -11,6 +11,8 @@ import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.UserDefinedAggregator;
 import org.apache.log4j.Logger;
 
+import java.io.Serializable;
+
 /**
  * GenericAggregator wrapper. This is a near identical copy of
  * {@link com.splicemachine.db.impl.sql.execute.GenericAggregator}; That class
@@ -19,14 +21,14 @@ import org.apache.log4j.Logger;
  *  
  * @author Scott Fines
  */
-public class SpliceGenericAggregator {
-	private static Logger LOG = Logger.getLogger(SpliceGenericAggregator.class);
+public class SpliceGenericAggregator implements Serializable{
+	private static final long serialVersionUID = 1l;
 	private AggregatorInfo aggInfo;
 	final int aggregatorColumnId;
 	private final int inputColumnId;
 	private final int resultColumnId;
 	
-	private final ClassFactory cf;
+	private transient final ClassFactory cf;
 	
 	protected ExecAggregator cachedAggregator;
 

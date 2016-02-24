@@ -53,14 +53,11 @@ public class IndexController extends SpliceController{
         return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0",false);
     }
 
-    public int nKeyFields(){
-        return nKeyFields;
-    }
-
     @Override
     public int insert(DataValueDescriptor[] row) throws StandardException{
+        assert row!=null: "Cannot insert a null row";
         if(LOG.isTraceEnabled())
-            LOG.trace(String.format("insert row into conglomerate: %s, row: %s",this.getConglomerate(),(row==null?null:Arrays.toString(row))));
+            LOG.trace(String.format("insert row into conglomerate: %s, row: %s",this.getConglomerate(),(Arrays.toString(row))));
         Partition htable = getTable();
         try{
             boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
@@ -90,8 +87,9 @@ public class IndexController extends SpliceController{
 
     @Override
     public void insertAndFetchLocation(DataValueDescriptor[] row,RowLocation destRowLocation) throws StandardException{
+        assert row!=null: "Cannot insert a null row!";
         if(LOG.isTraceEnabled())
-            LOG.trace(String.format("insertAndFetchLocation into conglomerate: %s, row: %s, rowLocation: %s",this.getConglomerate(),(row==null?null:Arrays.toString(row)),destRowLocation));
+            LOG.trace(String.format("insertAndFetchLocation into conglomerate: %s, row: %s, rowLocation: %s",this.getConglomerate(),(Arrays.toString(row)),destRowLocation));
         try(Partition htable = getTable()){
             boolean[] order=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
             byte[] rowKey=generateIndexKey(row,order);
@@ -108,9 +106,11 @@ public class IndexController extends SpliceController{
     @Override
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public boolean replace(RowLocation loc,DataValueDescriptor[] row,FormatableBitSet validColumns) throws StandardException{
+        assert row!=null:"Cannot replace using a null row!";
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("replace conglomerate: %s, rowlocation: %s, destRow: %s, validColumns: %s",this.getConglomerate(),loc,(row==null?null:Arrays.toString(row)),validColumns));
-        try(Partition htable = getTable()){
+        Partition htable = getTable();
+        try{
             boolean[] sortOrder=((IndexConglomerate)this.openSpliceConglomerate.getConglomerate()).getAscDescInfo();
             DataPut put;
             int[] validCols;

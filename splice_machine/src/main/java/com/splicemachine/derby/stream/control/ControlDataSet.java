@@ -20,6 +20,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 
 import com.google.common.io.Closeables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -281,6 +282,8 @@ public class ControlDataSet<V> implements DataSet<V> {
 
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization does" +
+            "not happen with control-side execution")
     public ExportDataSetWriterBuilder saveAsTextFile(OperationContext operationContext) {
         return writeToDisk()
                 .exportFunction(new SpliceFunction2<SpliceOperation,OutputStream,Iterator<String>,Integer>(operationContext){

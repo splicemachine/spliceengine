@@ -124,6 +124,7 @@ public class ExportOperation extends SpliceBaseOperation {
         return exportParams;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public ResultColumnDescriptor[] getSourceResultColumnDescriptors() {
         return this.sourceColumnDescriptors;
     }

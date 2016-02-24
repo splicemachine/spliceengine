@@ -36,12 +36,11 @@ public class NormalizeFunction extends SpliceFunction<NormalizeOperation, Locate
 
         NormalizeOperation normalize = operationContext.getOperation();
         normalize.source.setCurrentLocatedRow(sourceRow);
-        ExecRow normalized = null;
         if (sourceRow != null) {
-            normalized = normalize.normalizeRow(sourceRow.getRow(), true);
-        }
-        getActivation().setCurrentRow(normalized, normalize.getResultSetNumber());
-        return new LocatedRow(sourceRow.getRowLocation(), normalized.getClone());
+            ExecRow normalized = normalize.normalizeRow(sourceRow.getRow(), true);
+            getActivation().setCurrentRow(normalized, normalize.getResultSetNumber());
+            return new LocatedRow(sourceRow.getRowLocation(), normalized.getClone());
+        }else return null;
     }
 
 

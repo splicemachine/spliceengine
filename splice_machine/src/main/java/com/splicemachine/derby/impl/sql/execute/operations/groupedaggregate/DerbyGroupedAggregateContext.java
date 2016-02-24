@@ -11,6 +11,7 @@ import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -95,16 +96,19 @@ public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getGroupingKeys() {
         return groupingKeys;
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public boolean[] getGroupingKeyOrder() {
         return groupingKeyOrder;
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getNonGroupedUniqueColumns() {
         return nonGroupedUniqueColumns;
     }

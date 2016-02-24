@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * @author Scott Fines
@@ -10,6 +11,7 @@ import com.splicemachine.primitives.Bytes;
 public class OperationConfiguration{
 
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
+    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
     public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
 
     private OperationConfiguration(){}
@@ -34,7 +36,7 @@ public class OperationConfiguration{
     public static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
 
-    public static SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
+    public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
 
         @Override
         public boolean hasLongDefault(String key){
@@ -70,10 +72,7 @@ public class OperationConfiguration{
 
         @Override
         public String defaultStringFor(String key){
-            switch(key){
-                default:
-                    throw new IllegalArgumentException("No String default for key '"+key+"'");
-            }
+            throw new IllegalArgumentException("No String default for key '"+key+"'");
         }
 
         @Override

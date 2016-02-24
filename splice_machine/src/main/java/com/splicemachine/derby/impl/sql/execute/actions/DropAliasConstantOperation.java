@@ -18,6 +18,8 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
+import javax.annotation.Nonnull;
+
 /**
  *	This class performs actions that are ALWAYS performed for a
  *	DROP FUNCTION/PROCEDURE/SYNONYM statement at execution time.
@@ -38,7 +40,9 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
 	 *	@param	nameSpace			Alias name space.
 	 *
 	 */
-	public DropAliasConstantOperation(SchemaDescriptor sd, String aliasName, char nameSpace) {
+	public DropAliasConstantOperation(@Nonnull SchemaDescriptor sd,
+                                      String aliasName,
+                                      char nameSpace) {
 		SpliceLogUtils.trace(LOG, "DropAliasConstantOperation for %s.%s", sd.getSchemaName(),aliasName);
 		this.sd = sd;
 		this.aliasName = aliasName;

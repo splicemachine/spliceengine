@@ -543,6 +543,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 accessedKeys,indexName,tableVersion);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getExecRowTypeFormatIds(){
         return execRowTypeFormatIds;
     }

@@ -17,6 +17,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 
+import java.util.Arrays;
+
 /**
 *
 * This class maintains the key session items for a conglomerate.  This is usually passed into the Controllor (inserts/updates/deletes)
@@ -142,7 +144,7 @@ public class OpenSpliceConglomerate  {
 	@Override
 	public String toString() {
 		try {
-			return String.format("OpenSpliceConglomerate {conglomerate=%s, rowTemplate=%s}",conglomerate,cloneRowTemplate());
+			return String.format("OpenSpliceConglomerate {conglomerate=%s, rowTemplate=%s}",conglomerate,Arrays.toString(cloneRowTemplate()));
 		} catch (StandardException e) {
 			e.printStackTrace();
 			return String.format("OpenSpliceConglomerate {conglomerate=%s}",conglomerate);

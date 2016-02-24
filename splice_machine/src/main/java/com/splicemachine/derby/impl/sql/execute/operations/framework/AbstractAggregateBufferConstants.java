@@ -12,7 +12,7 @@ public class AbstractAggregateBufferConstants {
 	 * Default Hash strategies: we only use HashFunctions.murmur3(0)
 	 * 
 	 */
-	protected static final Hash32[] DEFAULT_HASHES = new Hash32[]{
+	static final Hash32[] DEFAULT_HASHES = new Hash32[]{
 		HashFunctions.murmur3(0),
 		HashFunctions.murmur3(5),
 		HashFunctions.murmur3(7)

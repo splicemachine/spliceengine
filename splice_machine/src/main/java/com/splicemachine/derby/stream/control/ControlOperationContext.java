@@ -11,6 +11,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.List;
  */
 public class ControlOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
     private static final String LINE_SEP = System.lineSeparator();
+    private static Logger LOG = Logger.getLogger(ControlOperationContext.class);
 
     long rowsRead;
         long rowsFiltered;
@@ -39,7 +41,6 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         public SpliceOperationContext context;
         public Op op;
         public TxnView txn;
-        protected static Logger LOG = Logger.getLogger(ControlOperationContext.class);
         private int failBadRecordCount = -1;
         private boolean permissive;
         private boolean failed;
@@ -218,6 +219,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public byte[] getOperationUUID() {
         return operationUUID;
     }

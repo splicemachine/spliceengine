@@ -50,7 +50,7 @@ public class WindowFinisherFunction extends SpliceFunction<SpliceOperation, Loca
     @Override
     public LocatedRow call(LocatedRow locatedRow) throws Exception{
         if(!initialized){
-            op=(SpliceOperation)getOperation();
+            op=getOperation();
             initialized=true;
         }
         for(WindowAggregator aggregator : aggregates){

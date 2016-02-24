@@ -138,6 +138,7 @@ public abstract class AbstractAggregateBuffer extends AbstractAggregateBufferCon
         return aggregates!=null && aggregates.length>0;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public SpliceGenericAggregator[] getAggregates(){
         return aggregates;
     }

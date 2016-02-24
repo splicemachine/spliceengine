@@ -4,9 +4,8 @@ import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import com.splicemachine.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.db.catalog.UUID;
@@ -18,7 +17,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
-import java.util.ArrayList;
 
 /**
  * System procedure generator implementation class that extends
@@ -67,8 +65,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         	 * Our import process is different than Vanilla Derby's, so find that Procedure in
         	 * the map and replace it with our own Procedure
         	 */
-            for(Object key : sysProcedures.keySet()){
-                @SuppressWarnings("unchecked") List<Procedure> procedures = (List<Procedure>)sysProcedures.get(key);
+            for(Object entry : sysProcedures.entrySet()){
+                Object key = ((Map.Entry)entry).getKey();
+                @SuppressWarnings("unchecked") List<Procedure> procedures = (List<Procedure>)((Map.Entry)entry).getValue();
                 // Iterate through existing procedures to perform modifications
                 for(int i=0;i<procedures.size();i++){
                     Procedure sysProc = procedures.get(i);

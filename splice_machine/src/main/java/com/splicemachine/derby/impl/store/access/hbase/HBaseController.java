@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 
 public class HBaseController extends SpliceController{
-    protected static Logger LOG=Logger.getLogger(HBaseController.class);
+    protected static final Logger LOG=Logger.getLogger(HBaseController.class);
 
     public HBaseController(OpenSpliceConglomerate openSpliceConglomerate,
                            Transaction trans,
@@ -31,10 +31,12 @@ public class HBaseController extends SpliceController{
 
     @Override
     public int insert(DataValueDescriptor[] row) throws StandardException{
+        assert row!=null: "Cannot insert a null row!";
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("insert into conglom %d row %s with txnId %s",
-                    openSpliceConglomerate.getConglomerate().getContainerid(),(row==null?null:Arrays.toString(row)),trans.getTxnInformation()));
-        try(Partition htable=getTable()){
+                    openSpliceConglomerate.getConglomerate().getContainerid(),(Arrays.toString(row)),trans.getTxnInformation()));
+        Partition htable=getTable();
+        try{
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
 
             encodeRow(row,put,null,null);
@@ -48,11 +50,13 @@ public class HBaseController extends SpliceController{
     @Override
     public void insertAndFetchLocation(DataValueDescriptor[] row,
                                        RowLocation destRowLocation) throws StandardException{
+        assert row!=null: "Cannot insert into a null row!";
         if(LOG.isTraceEnabled())
             LOG.trace(String.format("insertAndFetchLocation into conglom %d row %s",
-                    openSpliceConglomerate.getConglomerate().getContainerid(),row==null?null:Arrays.toString(row)));
+                    openSpliceConglomerate.getConglomerate().getContainerid(),Arrays.toString(row)));
 
-        try(Partition htable=getTable()){
+        Partition htable=getTable(); //-sf- don't want to close the htable here, it might break stuff
+        try{
             DataPut put=opFactory.newDataPut(trans.getTxnInformation(),SpliceUtils.getUniqueKey());//SpliceUtils.createPut(SpliceUtils.getUniqueKey(), ((SpliceTransaction)trans).getTxn());
             encodeRow(row,put,null,null);
             destRowLocation.setValue(put.key());
@@ -64,8 +68,9 @@ public class HBaseController extends SpliceController{
 
     @Override
     public boolean replace(RowLocation loc,DataValueDescriptor[] row,FormatableBitSet validColumns) throws StandardException{
+        assert row!=null: "Cannot replace with a null row";
         if(LOG.isTraceEnabled())
-            LOG.trace(String.format("replace rowLocation %s, destRow %s, validColumns %s",loc,(row==null?null:Arrays.toString(row)),validColumns));
+            LOG.trace(String.format("replace rowLocation %s, destRow %s, validColumns %s",loc,Arrays.toString(row),validColumns));
         Partition htable=getTable();
         try{
 

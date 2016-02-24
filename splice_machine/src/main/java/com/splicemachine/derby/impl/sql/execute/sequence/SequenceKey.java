@@ -34,10 +34,6 @@ public class SequenceKey implements ResourcePool.Key{
         this.autoIncrement=autoIncrement;
     }
 
-    public byte[] getSysColumnsRow(){
-        return sysColumnsRow;
-    }
-
     @Override
     public boolean equals(Object o){
         if(this==o) return true;
@@ -52,10 +48,6 @@ public class SequenceKey implements ResourcePool.Key{
     @Override
     public int hashCode(){
         return Arrays.hashCode(sysColumnsRow);
-    }
-
-    public long getStartingValue() throws StandardException{
-        return autoIncStart;
     }
 
     public long getIncrementSize() throws StandardException{

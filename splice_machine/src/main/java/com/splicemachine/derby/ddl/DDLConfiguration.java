@@ -51,13 +51,14 @@ public class DDLConfiguration{
                     throw new IllegalArgumentException("No long default for key '"+key+"'");
             }
         }
+        @Override
+        public boolean hasIntDefault(String key){
+            return false;
+        }
 
         @Override
         public int defaultIntFor(String key){
-            switch(key){
-                default:
-                    throw new IllegalArgumentException("No SI default for key '"+key+"'");
-            }
+            throw new IllegalArgumentException("No SI default for key '"+key+"'");
         }
 
         @Override
@@ -73,13 +74,6 @@ public class DDLConfiguration{
             }
         }
 
-        @Override
-        public boolean hasIntDefault(String key){
-            switch(key){
-                default:
-                    return false;
-            }
-        }
 
         @Override
         public boolean hasStringDefault(String key){

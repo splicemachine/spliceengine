@@ -20,18 +20,16 @@ public class ResultSetIterator implements Iterable<LocatedRow>, Iterator<Located
     private ResultSet resultSet;
     private boolean[] isNullable;
     private Connection connection;
-    private PreparedStatement ps;
 
 
     public ResultSetIterator(Connection connection, PreparedStatement ps, ExecRow execRow) {
         this.connection = connection;
-        this.ps = ps;
         try {
             this.resultSet = ps.executeQuery();
             ResultSetMetaData rsm = resultSet.getMetaData();
             isNullable = new boolean[rsm.getColumnCount()];
             for (int i =0;i<rsm.getColumnCount();i++) {
-                isNullable[i] = rsm.isNullable(i+1) ==0?false:true;
+                isNullable[i] =rsm.isNullable(i+1)!=0;
             }
         }  catch (Exception e) {
             try {

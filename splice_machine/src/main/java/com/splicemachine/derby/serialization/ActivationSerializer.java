@@ -145,15 +145,17 @@ public class ActivationSerializer {
 
         private void write(ObjectOutput out) throws IOException {
             out.writeInt(fields.size());
-            for(String fieldName:fields.keySet()){
-                FieldStorage storage = fields.get(fieldName);
+            for(Map.Entry<String,FieldStorage> entry:fields.entrySet()){
+                String fieldName = entry.getKey();
+                FieldStorage storage = entry.getValue();
                 out.writeUTF(fieldName);
                 out.writeObject(storage);
             }
 
             out.writeInt(baseFields.size());
-            for(String fieldName:baseFields.keySet()){
-                FieldStorage storage = baseFields.get(fieldName);
+            for(Map.Entry<String,FieldStorage> entry:baseFields.entrySet()){
+                String fieldName = entry.getKey();
+                FieldStorage storage = entry.getValue();
                 out.writeUTF(fieldName);
                 out.writeObject(storage);
             }

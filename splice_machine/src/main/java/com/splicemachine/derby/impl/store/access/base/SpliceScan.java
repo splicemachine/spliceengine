@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class SpliceScan implements ScanManager, LazyScan{
-    protected static Logger LOG=Logger.getLogger(SpliceScan.class);
+    private static final Logger LOG=Logger.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;
     protected DataScan scan;

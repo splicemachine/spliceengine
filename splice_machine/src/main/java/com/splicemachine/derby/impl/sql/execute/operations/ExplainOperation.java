@@ -17,7 +17,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -29,18 +28,17 @@ import java.util.*;
  * Date: 6/9/14
  */
 public class ExplainOperation extends SpliceBaseOperation {
-
-    private static Logger LOG = Logger.getLogger(ExplainOperation.class);
+    protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation", "");
     protected SpliceOperation source;
     protected ExecRow currentTemplate;
-    private int pos = 0;
-    protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation", "");
     private Iterator<String> explainStringIter;
 
     @Override
     public String getName() {
         return NAME;
     }
+
+    public ExplainOperation(){ }
 
     public ExplainOperation(SpliceOperation source, Activation activation, int resultSetNumber) throws StandardException {
         super(activation, resultSetNumber, 0, 0);

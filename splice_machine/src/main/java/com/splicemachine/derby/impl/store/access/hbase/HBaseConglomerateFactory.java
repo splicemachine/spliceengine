@@ -23,7 +23,7 @@ import java.util.Properties;
  **/
 
 public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
-    protected static Logger LOG=Logger.getLogger(HBaseConglomerate.class);
+    protected static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
 
     public HBaseConglomerateFactory(){
         super();

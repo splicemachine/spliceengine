@@ -957,6 +957,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
     }
 
 
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE",justification = "Local Store is a side effect of writing")
     protected void transformAndWriteToNewConglomerate(Activation activation,
                                                       TxnView parentTxn,
                                                       DDLChange ddlChange,

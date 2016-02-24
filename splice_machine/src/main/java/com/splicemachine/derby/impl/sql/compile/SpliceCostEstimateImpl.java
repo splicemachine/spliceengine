@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.google.common.primitives.Doubles;
 import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -261,4 +262,15 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
         );
     }
 
+    @Override
+    public int hashCode(){
+        int rC = 17;
+        rC= 31*rC+Doubles.hashCode(cost);
+        rC=31*rC+Doubles.hashCode(rowCount);
+        rC=31*rC+numberOfRegions;
+        rC=31*rC+Doubles.hashCode(singleScanRowCount);
+        if(baseCost!=null && baseCost!=this)
+            rC=31*rC+baseCost.hashCode();
+        return rC;
+    }
 }

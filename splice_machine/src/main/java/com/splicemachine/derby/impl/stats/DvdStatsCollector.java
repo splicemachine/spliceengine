@@ -117,7 +117,7 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
                 throw new UnsupportedOperationException("Programmer error: Cannot collect statistics for format id "+ typeFormatId);
         }
     }
-    public static DistributionFactory<BigDecimal> decimalDistributionFactory = new DistributionFactory<BigDecimal>() {
+    public static final DistributionFactory<BigDecimal> decimalDistributionFactory = new DistributionFactory<BigDecimal>() {
         @Override
         public Distribution<BigDecimal> newDistribution(ColumnStatistics<BigDecimal> statistics) {
             return new UniformDecimalDistribution(statistics);

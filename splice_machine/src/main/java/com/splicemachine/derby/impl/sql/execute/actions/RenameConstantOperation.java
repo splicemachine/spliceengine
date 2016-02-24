@@ -331,7 +331,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 
 		//Need to do following to reload the cache so that table
 		//descriptor now has new column name
-		td = dd.getTableDescriptor(td.getObjectID());
+		dd.getTableDescriptor(td.getObjectID());
 	}
 
 	//do necessary work for rename index at execute time.

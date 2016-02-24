@@ -27,7 +27,7 @@ import java.util.Properties;
 
 public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo{
     private static final long serialVersionUID=7583841286945209190l;
-    protected static Logger LOG=Logger.getLogger(SpliceConglomerate.class);
+    private static final Logger LOG=Logger.getLogger(SpliceConglomerate.class);
     protected int conglom_format_id;
     protected int tmpFlag;
     protected ContainerKey id;
@@ -130,10 +130,12 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         return (id.getContainerId());
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getFormat_ids(){
         return format_ids;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getCollation_ids(){
         return collation_ids;
     }
@@ -162,6 +164,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         return (id==null)?"null":id.toString();
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public int[] getColumnOrdering(){
         return columnOrdering;
     }
@@ -181,5 +184,20 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 
     public abstract int getTypeFormatId();
 
+    @Override
+    public boolean equals(Object o){
+        if(this==o) return true;
+        if(!(o instanceof SpliceConglomerate)) return false;
+        if(!super.equals(o)) return false;
 
+        SpliceConglomerate that=(SpliceConglomerate)o;
+
+        return containerId==that.containerId;
+
+    }
+
+    @Override
+    public int hashCode(){
+        return (int)(containerId^(containerId>>>32));
+    }
 }

@@ -24,8 +24,8 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 
 public abstract class ScanOperation extends SpliceBaseOperation{
-    private static Logger LOG=Logger.getLogger(ScanOperation.class);
-    private static long serialVersionUID=7l;
+    private static final Logger LOG=Logger.getLogger(ScanOperation.class);
+    private static final long serialVersionUID=7l;
     public int lockMode;
     public int isolationLevel;
     protected boolean oneRowScan;

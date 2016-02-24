@@ -163,7 +163,7 @@ public class PartitionStatsStore {
          * If there are no existing statistics to work from, then we have to fall back still further, but that
          * exercise is left to the caller.
          */
-        if(statistics.size()<0) return null;
+        if(statistics.size()<=0) return null;
         PartitionAverage average = new PartitionAverage(tableId,null);
         for(PartitionStatistics partitionStatistics:statistics){
             average.merge(partitionStatistics);

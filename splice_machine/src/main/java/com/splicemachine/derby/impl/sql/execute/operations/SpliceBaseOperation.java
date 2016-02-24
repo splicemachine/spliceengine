@@ -86,6 +86,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         super();
     }
 
+    @SuppressFBWarnings(value = "UR_UNINIT_READ",justification = "Intentionally creates a Null BitDataField")
     public SpliceBaseOperation(OperationInformation information) throws StandardException{
         this.operationInformation=information;
         this.resultSetNumber=operationInformation.getResultSetNumber();
@@ -93,6 +94,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         sequence[0]=information.getSequenceField(uniqueSequenceID);
     }
 
+    @SuppressFBWarnings(value = "UR_UNINIT_READ",justification = "Intentionally creates a Null BitDataField")
     public SpliceBaseOperation(Activation activation,
                                int resultSetNumber,
                                double optimizerEstimatedRowCount,

@@ -250,6 +250,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     public ConstantAction getDropAliasConstantAction(SchemaDescriptor sd,
                                                      String aliasName,char aliasType){
         SpliceLogUtils.trace(LOG,"getDropAliasConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()),aliasName);
+        //-sf- I checked with derby, and sd will never be null, it is ensured. This assertion protects against regression on that
+        assert sd!=null: "Cannot drop an alias with a null schema descriptor";
         return new DropAliasConstantOperation(sd,aliasName,aliasType);
     }
 
@@ -281,7 +283,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
     @Override
     public ConstantAction getDropViewConstantAction(String fullTableName,String tableName,SchemaDescriptor sd){
-        SpliceLogUtils.trace(LOG,"getDropViewConstantAction for {%s.%s}",(sd==null?"none":sd.getSchemaName()),tableName);
+        assert sd!=null: "SchemaDescriptor cannot be null!";
+        SpliceLogUtils.trace(LOG,"getDropViewConstantAction for {%s.%s}",sd.getSchemaName(),tableName);
         return new DropViewConstantOperation(fullTableName,tableName,sd);
     }
 

@@ -39,7 +39,7 @@ import java.util.Properties;
  *         Date: 1/6/16
  */
 public class EngineLifecycleService implements DatabaseLifecycleService{
-    public static ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
+    public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
 
     private static final Logger LOG=Logger.getLogger(EngineLifecycleService.class);
     private final DistributedDerbyStartup startup;

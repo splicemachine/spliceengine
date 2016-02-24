@@ -20,12 +20,12 @@ import java.sql.ResultSet;
 
 @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Not actually serialized")
 public class CallStatementOperation extends NoRowsOperation {
-    private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
+	private static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
+    private static final Logger LOG = Logger.getLogger(CallStatementOperation.class);
 	private String methodName;
 	private SpliceMethod<Object> methodCall;
 	String origClassName = null;
 	String origMethodName = null;
-	protected static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
 	public String getName() {
@@ -61,7 +61,14 @@ public class CallStatementOperation extends NoRowsOperation {
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException, IOException {
 		super.init(context);
-		methodCall = new SpliceMethod<Object>(methodName,activation);
+		/*
+		 * init() is called by the super class, which means that methodName will be null the first
+		 * time we call this. Then, immediately upon finishing the super constructor, we recreate
+		 * the methodCall anyway, so this is a waste of an object creation. We avoid this with a null
+		 * check
+		 */
+		if(methodName!=null)
+			methodCall =new SpliceMethod<>(methodName,activation);
 	}
 
 	@Override

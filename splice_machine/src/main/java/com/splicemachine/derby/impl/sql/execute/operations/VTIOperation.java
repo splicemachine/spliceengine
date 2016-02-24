@@ -4,12 +4,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.vti.Restriction;
@@ -182,7 +180,7 @@ public class VTIOperation extends SpliceBaseOperation {
         this.activation = context.getActivation();
         this.row = (rowMethodName==null)? null: new SpliceMethod<ExecRow>(rowMethodName,activation);
         this.constructor = (constructorMethodName==null)? null: new SpliceMethod<DatasetProvider>(constructorMethodName,activation);
-        this.userVTI = constructor.invoke();
+        this.userVTI = constructor==null?null:constructor.invoke();
     }
 
     @Override
@@ -201,98 +199,8 @@ public class VTIOperation extends SpliceBaseOperation {
         out.writeUTF(constructorMethodName);
     }
 
+
     /**
-     * Clone the restriction for a Restricted VTI, filling in parameter values
-     * as necessary.
-     */
-    private Restriction cloneRestriction( Activation activation ) throws StandardException
-    {
-        if ( vtiRestriction == null ) { return null; }
-        else { return cloneRestriction( activation, vtiRestriction ); }
-    }
-    private Restriction cloneRestriction( Activation activation, Restriction original )
-        throws StandardException
-    {
-        if ( original instanceof Restriction.AND)
-        {
-            Restriction.AND and = (Restriction.AND) original;
-            
-            return new Restriction.AND
-                (
-                 cloneRestriction( activation, and.getLeftChild() ),
-                 cloneRestriction( activation, and.getRightChild() )
-                 );
-        }
-        else if ( original instanceof Restriction.OR)
-        {
-            Restriction.OR or = (Restriction.OR) original;
-            
-            return new Restriction.OR
-                (
-                 cloneRestriction( activation, or.getLeftChild() ),
-                 cloneRestriction( activation, or.getRightChild() )
-                 );
-        }
-        else if ( original instanceof Restriction.ColumnQualifier)
-        {
-            Restriction.ColumnQualifier cq = (Restriction.ColumnQualifier) original;
-            Object originalConstant = cq.getConstantOperand();
-            Object newConstant;
-
-            if ( originalConstant ==  null ) { newConstant = null; }
-            else if ( originalConstant instanceof int[] )
-            {
-                int parameterNumber = ((int[]) originalConstant)[ 0 ];
-                ParameterValueSet pvs = activation.getParameterValueSet();
-
-                newConstant = pvs.getParameter( parameterNumber ).getObject();
-            }
-            else { newConstant = originalConstant; }
-           
-            return new Restriction.ColumnQualifier
-                (
-                 cq.getColumnName(),
-                 cq.getComparisonOperator(),
-                 newConstant
-                 );
-        }
-        else
-        {
-            throw StandardException.newException( SQLState.NOT_IMPLEMENTED, original.getClass().getName() );
-        }
-    }
-
-	private boolean[] setNullableColumnList() throws SQLException, StandardException {
-
-		if (runtimeNullableColumn != null)
-			return runtimeNullableColumn;
-
-		// Derby-style table functions return SQL rows which don't have not-null
-		// constraints bound to them
-		if ( isDerbyStyleTableFunction )
-		{
-		    int         count = getAllocatedRow().nColumns() + 1;
-            
-		    runtimeNullableColumn = new boolean[ count ];
-		    for ( int i = 0; i < count; i++ )   { runtimeNullableColumn[ i ] = true; }
-            
-		    return runtimeNullableColumn;
-		}
-
-		if (userVTI == null)
-			return null;
-/*
-		ResultSetMetaData rsmd = userVTI.getMetaData();
-		boolean[] nullableColumn = new boolean[rsmd.getColumnCount() + 1];
-		for (int i = 1; i <  nullableColumn.length; i++) {
-			nullableColumn[i] = rsmd.isNullable(i) != ResultSetMetaData.columnNoNulls;
-		}
-*/
-		return new boolean[0];
-	}
-
-
-	/**
 	 * Cache the ExecRow for this result set.
 	 *
 	 * @return The cached ExecRow for this ResultSet
@@ -317,69 +225,11 @@ public class VTIOperation extends SpliceBaseOperation {
     }
 
 
-    private int[] getProjectedColList() {
-
-		FormatableBitSet refs = referencedColumns;
-		int size = refs.size();
-		int arrayLen = 0;
-		for (int i = 0; i < size; i++) {
-			if (refs.isSet(i))
-				arrayLen++;
-		}
-
-		int[] colList = new int[arrayLen];
-		int offset = 0;
-		for (int i = 0; i < size; i++) {
-			if (refs.isSet(i))
-				colList[offset++] = i + 1;
-		}
-
-		return colList;
-	}
-
-	public final int getScanIsolationLevel() {
+    public final int getScanIsolationLevel() {
 		return scanIsolationLevel;
 	}
 
-	/*
-	** VTIEnvironment
-	*/
-	public final boolean isCompileTime() {
-		return false;
-	}
-
-	public final String getOriginalSQL() {
-		return activation.getPreparedStatement().getSource();
-	}
-
-	public final int getStatementIsolationLevel() {
-		return ExecutionContext.CS_TO_JDBC_ISOLATION_LEVEL_MAP[getScanIsolationLevel()];
-	}
-
-    /**
-     * <p>
-     * Get the types of the columns returned by a Derby-style table function.
-     * </p>
-     */
-    private DataTypeDescriptor[]    getReturnColumnTypes()
-        throws StandardException
-    {
-        if ( returnColumnTypes == null )
-        {
-            TypeDescriptor[] columnTypes = returnType.getRowTypes();
-            int                         count = columnTypes.length;
-
-            returnColumnTypes = new DataTypeDescriptor[ count ];
-            for ( int i = 0; i < count; i++ )
-            {
-                returnColumnTypes[ i ] = DataTypeDescriptor.getType( columnTypes[ i ] );
-            }
-        }
-
-        return returnColumnTypes;
-    }
-
-	@Override
+    @Override
     public int[] getRootAccessedCols(long tableNumber) {
         return null;
     }
@@ -407,7 +257,7 @@ public class VTIOperation extends SpliceBaseOperation {
 
     @Override
     public List<SpliceOperation> getSubOperations() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override

@@ -570,7 +570,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
     public static ExecRow generateRowFromStats(long conglomId, String regionId, int columnId, ColumnStatistics columnStatistics) throws StandardException {
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT);
-        row.setColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID,new SQLLongint(new Long(conglomId)));
+        row.setColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.PARTITIONID,new SQLVarchar(regionId));
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID,new SQLInteger(columnId));
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.DATA, new UserType(columnStatistics));

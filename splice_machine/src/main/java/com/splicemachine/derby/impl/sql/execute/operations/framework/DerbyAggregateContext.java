@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -55,6 +56,7 @@ public class DerbyAggregateContext implements AggregateContext {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public SpliceGenericAggregator[] getAggregators() throws StandardException {
         return aggregates;
     }
@@ -76,6 +78,7 @@ public class DerbyAggregateContext implements AggregateContext {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public SpliceGenericAggregator[] getDistinctAggregators() {
         if(distinctAggs==null){
             List<SpliceGenericAggregator> distinctAggList = Lists.newArrayListWithExpectedSize(0);
@@ -91,6 +94,7 @@ public class DerbyAggregateContext implements AggregateContext {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
     public SpliceGenericAggregator[] getNonDistinctAggregators() {
         if(nonDistinctAggs==null){
             List<SpliceGenericAggregator> nonDistinctAggList = Lists.newArrayListWithExpectedSize(0);
