@@ -127,4 +127,10 @@ public class DirectPipelineExceptionFactory extends MExceptionFactory implements
         }
         return doNotRetry(result.getErrorMessage());
     }
+
+    @Override
+    public IOException fromErrorString(String s){
+        //should never happen in memory
+        return new IOException(s);
+    }
 }

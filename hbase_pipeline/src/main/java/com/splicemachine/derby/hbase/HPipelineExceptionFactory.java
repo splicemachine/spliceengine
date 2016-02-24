@@ -18,6 +18,8 @@ import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.HWrongRegion;
+import org.apache.hadoop.ipc.RemoteException;
+import org.apache.hadoop.util.StringUtils;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -131,5 +133,15 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
             }
         }
         return doNotRetry(result.getErrorMessage());
+    }
+
+    @Override
+    public IOException fromErrorString(String s){
+        //everything up to the first : is the className
+        int colIndeex = s.indexOf(":");
+        if(colIndeex<0) return new IOException(s);
+        String clazzName = s.substring(0,colIndeex).trim();
+        String message = s.substring(colIndeex+1).trim();
+        return processRemoteException(new RemoteException(clazzName,message));
     }
 }

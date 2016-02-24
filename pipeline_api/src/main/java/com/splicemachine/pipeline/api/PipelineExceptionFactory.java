@@ -28,4 +28,6 @@ public interface PipelineExceptionFactory extends ExceptionFactory{
     boolean canInfinitelyRetry(Throwable t);
 
     Throwable processErrorResult(WriteResult value);
+
+    IOException fromErrorString(String s);
 }

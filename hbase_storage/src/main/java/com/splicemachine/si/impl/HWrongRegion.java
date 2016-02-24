@@ -8,4 +8,9 @@ import org.apache.hadoop.hbase.regionserver.WrongRegionException;
  *         Date: 12/23/15
  */
 public class HWrongRegion extends WrongRegionException implements WrongPartitionException{
+    public HWrongRegion(){ }
+
+    public HWrongRegion(String s){
+        super(s);
+    }
 }

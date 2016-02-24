@@ -5,12 +5,9 @@ import com.google.common.collect.Iterators;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.util.MeasuredListScanner;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import com.splicemachine.si.impl.HNotServingRegion;import com.splicemachine.si.impl.HWrongRegion;import com.splicemachine.storage.util.MeasuredListScanner;
+import org.apache.hadoop.hbase.NotServingRegionException;import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -194,15 +191,22 @@ public class RegionPartition implements Partition{
         for(int i=0;i<toWrite.length;i++){
             mutations[i] = ((HMutation)toWrite[i]).unwrapHbaseMutation();
         }
-        OperationStatus[] operationStatuses=region.batchMutate(mutations);
-        final HMutationStatus resultStatus = new HMutationStatus();
-        return Iterators.transform(Iterators.forArray(operationStatuses),new Function<OperationStatus, MutationStatus>(){
-            @Override
-            public MutationStatus apply(OperationStatus input){
-                resultStatus.set(input);
-                return resultStatus;
-            }
-        });
+        try{
+            OperationStatus[] operationStatuses=region.batchMutate(mutations);
+            final HMutationStatus resultStatus = new HMutationStatus();
+            return Iterators.transform(Iterators.forArray(operationStatuses),new Function<OperationStatus, MutationStatus>(){
+                @Override
+                public MutationStatus apply(OperationStatus input){
+                    resultStatus.set(input);
+                    return resultStatus;
+                }
+            });
+        }catch(NotServingRegionException nsre){
+            //convert HBase NSRE to Partition-level
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
     }
 
     @Override

@@ -21,13 +21,16 @@ import com.splicemachine.pipeline.client.BulkWritesResult;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
+import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -47,14 +50,6 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     private PipelineWriter pipelineWriter;
     private PipelineCompressor compressor;
     private PipelineLoadService<TableName> service;
-
-
-//    private static MetricName receptionName = new MetricName("com.splicemachine", "receiverStats", "time");
-//    private static MetricName rejectedMeterName = new MetricName("com.splicemachine", "receiverStats", "rejected");
-
-
-    //private Timer timer = SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
-//    private Meter rejectedMeter = SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName, "rejectedRows", TimeUnit.SECONDS);
 
 
 
@@ -128,11 +123,15 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
                           RpcCallback<SpliceMessage.BulkWriteResponse> done){
         try{
             byte[] bytes=bulkWrites(request.getBytes().toByteArray());
+            if(bytes==null||bytes.length<=0)
+                LOG.error("No bytes constructed for the result!");
+
             SpliceMessage.BulkWriteResponse response =SpliceMessage.BulkWriteResponse.newBuilder()
                     .setBytes(ZeroCopyLiteralByteString.wrap(bytes)).build();
             done.run(response);
         }catch(IOException e){
-            controller.setFailed(e.getMessage());
+            LOG.error("Unexpected exception performing bulk write: ",e);
+            controller.setFailed(StringUtils.stringifyException(e));
         }
     }
 

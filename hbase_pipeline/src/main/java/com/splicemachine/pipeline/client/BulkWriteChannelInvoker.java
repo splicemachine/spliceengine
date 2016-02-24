@@ -1,15 +1,12 @@
 package com.splicemachine.pipeline.client;
 
 import com.google.protobuf.ZeroCopyLiteralByteString;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.SpliceRpcController;
-import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionInfoCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -17,6 +14,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -57,21 +55,28 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.SpliceIndexService service = ProtobufUtil.newServiceStub(SpliceMessage.SpliceIndexService.class, channel);
             SpliceMessage.BulkWriteRequest.Builder builder = SpliceMessage.BulkWriteRequest.newBuilder();
             byte[] requestBytes = compressor.compress(write);
-            builder.setBytes(ZeroCopyLiteralByteString.copyFrom(requestBytes));
+            builder.setBytes(ZeroCopyLiteralByteString.wrap(requestBytes));
             SpliceMessage.BulkWriteRequest bwr = builder.build();
 
             BlockingRpcCallback<SpliceMessage.BulkWriteResponse> doneCallback =new BlockingRpcCallback<>();
             SpliceRpcController controller = new SpliceRpcController();
 
             service.bulkWrite(controller, bwr, doneCallback);
-            Throwable error = controller.getThrowable();
-            if (error != null) {
-            	clearCacheIfNeeded(error);
-            	cacheCheck = true;
-                throw pef.processRemoteException(error);
+            if (controller.failed()){
+                Throwable error=controller.getThrowable();
+                clearCacheIfNeeded(error);
+                cacheCheck=true;
+                if(error!=null)
+                    throw pef.processRemoteException(error);
+                else
+                    throw pef.fromErrorString(controller.errorText());
             }
             SpliceMessage.BulkWriteResponse bulkWriteResponse = doneCallback.get();
             byte[] bytes = bulkWriteResponse.getBytes().toByteArray();
+            if(bytes==null || bytes.length<=0){
+                Logger logger=Logger.getLogger(BulkWriteChannelInvoker.class);
+                logger.error("zero-length bytes returned with a null error for encodedString: "+write.getBulkWrites().iterator().next().getEncodedStringName());
+            }
 
             return compressor.decompress(bytes,BulkWritesResult.class);
         } catch (Exception e) {
@@ -81,9 +86,10 @@ public class BulkWriteChannelInvoker {
     }
 
     private boolean clearCacheIfNeeded(Throwable e) throws IOException{
-        if (e instanceof WrongPartitionException ||
-            e instanceof NotServingRegionException ||
-            e instanceof ConnectException ||
+        if (e==null ||
+                e instanceof WrongPartitionException ||
+                e instanceof NotServingRegionException ||
+                e instanceof ConnectException ||
             isFailedServerException(e)) {
             /*
              * We sent it to the wrong place, so we need to resubmit it. But since we
@@ -102,7 +108,7 @@ public class BulkWriteChannelInvoker {
     	// but SpliceHTabe is already in splice_si_adapter_98 so we can not use
     	// the generic DerbyFactory capability without a bunch of refactoring.
     	// We'll come back to this later.
-    	return t.getClass().getName().contains("FailedServerException");
+    	return t!=null && t.getClass().getName().contains("FailedServerException");
     }
 
 }
