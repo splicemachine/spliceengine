@@ -183,6 +183,11 @@ public class HNIOFileSystem extends DistributedFileSystem{
         return new org.apache.hadoop.fs.Path(path.toUri());
     }
 
+
+    private AclStatus processUnsupportedOperation() {
+        return new AclStatus.Builder().owner("unknown").group("unknown").build();
+    }
+
     private class HFileInfo implements FileInfo{
         private final boolean isDir;
         private final AclStatus aclStatus;
@@ -198,19 +203,16 @@ public class HNIOFileSystem extends DistributedFileSystem{
             AclStatus aclS;
             try{
                 aclS=fs.getAclStatus(path);
-            }catch(Exception e){
+            }
+            catch (UnsupportedOperationException unsupportedException) { // Runtime Exception for RawFS
+                aclS = processUnsupportedOperation();
+            }
+            catch(Exception e){
                 e = exceptionFactory.processRemoteException(e); //strip any multi-retry errors out
-                if(e instanceof UnsupportedOperationException){
+                if(e instanceof UnsupportedOperationException|| e instanceof AclException){
                     /*
                      * Some Filesystems don't support aclStatus. In that case,
                      * we replace it with our own ACL status object
-                     */
-                    aclS=new AclStatus.Builder().owner("unknown").group("unknown").build();
-                }else if(e instanceof AclException ||
-                        e instanceof AccessControlException){
-                    /*
-                     * Some filesystems allow acls to be disabled. In that case, we also
-                     * replace it with our own acl status object
                      */
                     aclS=new AclStatus.Builder().owner("unknown").group("unknown").build();
                 }else{
