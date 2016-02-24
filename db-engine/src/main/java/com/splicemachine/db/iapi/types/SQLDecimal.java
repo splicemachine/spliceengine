@@ -367,11 +367,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 *	<LI> the byte array </LI> </UL>
 	 *
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException 
-	{
-		// never called when value is null
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(! isNull());
+	public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+        if (isNull)
+            return;
 
 		int scale;
 		byte[] byteArray;
@@ -428,8 +427,13 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * 
 	 * @see java.io.Externalizable#readExternal 
 	 */
-	public void readExternal(ObjectInput in) throws IOException 
-	{
+	public void readExternal(ObjectInput in) throws IOException {
+
+        if (in.readBoolean()) {
+            setCoreValue(null);
+            return;
+        }
+
 		// clear the previous value to ensure that the
 		// rawData value will be used
 		value = null;
