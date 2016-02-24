@@ -186,10 +186,6 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
 
-    private AclStatus processUnsupportedOperation() {
-        return new AclStatus.Builder().owner("unknown").group("unknown").build();
-    }
-
     private class HFileInfo implements FileInfo{
         private final boolean isDir;
         private final AclStatus aclStatus;
@@ -205,12 +201,11 @@ public class HNIOFileSystem extends DistributedFileSystem{
             AclStatus aclS;
             try{
                 aclS=fs.getAclStatus(path);
-            }
-            catch (UnsupportedOperationException unsupportedException) { // Runtime Exception for RawFS
-                aclS = processUnsupportedOperation();
-            }
-            catch(Exception e){
+            } catch (UnsupportedOperationException | AclException e) { // Runtime Exception for RawFS
+                aclS = new AclStatus.Builder().owner("unknown").group("unknown").build();
+            } catch(Exception e){
                 e = exceptionFactory.processRemoteException(e); //strip any multi-retry errors out
+                //noinspection ConstantConditions
                 if(e instanceof UnsupportedOperationException|| e instanceof AclException){
                     /*
                      * Some Filesystems don't support aclStatus. In that case,
