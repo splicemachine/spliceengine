@@ -1150,7 +1150,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @throws StandardException thrown if lookup goes wrong.
      */
     public void removeStatement(GenericStatement statement) throws StandardException{
-        getDataDictionary().getDataDictionaryCache().removeStatement(statement);
+        getDataDictionary().getDataDictionaryCache().statementCacheRemove(statement);
     }
 
     /**
