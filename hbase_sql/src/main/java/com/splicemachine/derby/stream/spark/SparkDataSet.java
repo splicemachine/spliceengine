@@ -56,8 +56,13 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Future<List<V>> collectAsync() {
-        return rdd.collectAsync();
+    public Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
+        if (pushScope) SpliceSpark.pushScope(scopeDetail);
+        try {
+            return rdd.collectAsync();
+        } finally {
+            if (pushScope) SpliceSpark.popScope();
+        }
     }
 
     @Override

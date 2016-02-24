@@ -45,7 +45,8 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
         FINALIZE("Finalize"),
         DISTINCT("Find Distinct Values"),
         SHUFFLE("Shuffle/Sort Data"),
-        LOCATE("Locate Rows");
+        LOCATE("Locate Rows"),
+        COLLECT_STATS("Collect Statistics (Table %s)");
 
         private final String stringValue;
 

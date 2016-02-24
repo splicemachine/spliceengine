@@ -59,7 +59,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Future<List<V>> collectAsync() {
+    public Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         List<V> rows =new ArrayList<>();
         for(V anIterable : iterable) rows.add(anIterable);
         return Futures.immediateFuture(rows);

@@ -32,6 +32,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
@@ -171,7 +172,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             List<Future<List<LocatedRow>>> futures = new ArrayList(tds.size());
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                    futures.add(collectTableStatistics(td, txn, conn).collectAsync());
+                futures.add(collectTableStatistics(td, txn, conn).collectAsync(true, null, true, getScopeName(td)));
             }
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
             displayTableStatistics(futures,dd,transactionExecute,display));
@@ -219,7 +220,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    @SuppressWarnings("UnusedDeclaration")
+    @SuppressWarnings({"unchecked"})
     public static void COLLECT_TABLE_STATISTICS(String schema,
                                                 String table,
                                                 boolean staleOnly,
@@ -233,15 +234,18 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             authorize(tds);
             DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
             dd.startWriting(conn.getLanguageConnection());
-//            ExecRow outputRow = buildOutputTemplateRow();
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
             display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
-            IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-                    displayTableStatistics(Lists.newArrayList(collectTableStatistics(tableDesc, txn, conn).collectAsync()),dd,tc,display));
+            IteratorNoPutResultSet resultsToWrap = wrapResults(
+                conn,
+                displayTableStatistics(Lists.newArrayList(
+                    collectTableStatistics(tableDesc, txn, conn).collectAsync(true, null, true, getScopeName(tableDesc))
+                ),
+                dd, tc, display));
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -313,9 +317,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        dsp.setup(activation, "Collect Table Statistics", "admin");
+        dsp.setup(activation, getScopeName(table), "admin");
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId)).activation(activation);
         return createTableScanner(ssb,conn,table,txn);
+    }
+
+    private static final String getScopeName(TableDescriptor td) {
+        return String.format(OperationContext.Scope.COLLECT_STATS.displayName(), td.getName());
     }
 
     private static DataScan createScan (TxnView txn) {
@@ -408,7 +416,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
                 .oneSplitPerRegion(true)
-                .buildDataSet("Collect Table Statistics");
+                .buildDataSet(getScopeName(table));
     }
 
     private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows) throws

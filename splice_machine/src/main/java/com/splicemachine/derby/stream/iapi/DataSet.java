@@ -15,7 +15,7 @@ public interface DataSet<V> extends Iterable<V>, Serializable {
 
     List<V> collect();
 
-    Future<List<V>> collectAsync();
+    Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
