@@ -189,10 +189,6 @@ public class GenericStatement implements Statement{
 
     public int hashCode(){ return statementText.hashCode(); }
 
-    public String toString() {
-        return statementText.trim().toUpperCase();
-    }
-
     private static long getCurrentTimeMillis(LanguageConnectionContext lcc){
         return 0;
     }

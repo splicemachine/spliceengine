@@ -6,6 +6,9 @@ import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.cache.Cacheable;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -25,7 +28,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecCursorTableReference;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 
@@ -707,31 +709,21 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
             ** If we are invalidating an EXECUTE STATEMENT because of a stale
             ** plan, we also need to invalidate the stored prepared statement.
             */
-            switch (action) {
-                case DependencyManager.INTERNAL_RECOMPILE_REQUEST:
-                case DependencyManager.DROP_TABLE:
-                case DependencyManager.ALTER_TABLE:
-                case DependencyManager.CHANGED_CURSOR: {
-                /*
-                ** Get the DataDictionary, so we can get the descriptor for
-                ** the SPP to invalidate it.
-                */
-                    DataDictionary dd = lcc.getDataDictionary();
-                    SPSDescriptor spsd = null;
-                    if (execStmtName != null) {
+            if (execStmtName != null) {
+                switch (action) {
+                    case DependencyManager.INTERNAL_RECOMPILE_REQUEST:
+                    case DependencyManager.CHANGED_CURSOR: {
+                    /*
+                    ** Get the DataDictionary, so we can get the descriptor for
+                    ** the SPP to invalidate it.
+                    */
+                        DataDictionary dd = lcc.getDataDictionary();
+
                         SchemaDescriptor sd = dd.getSchemaDescriptor(execSchemaName, lcc.getTransactionCompile(), true);
-                        spsd = dd.getSPSDescriptor(execStmtName, sd);
+                        SPSDescriptor spsd = dd.getSPSDescriptor(execStmtName, sd);
                         spsd.makeInvalid(action, lcc);
+                        break;
                     }
-                    // Remove from cache
-                    DataDictionaryCache ddCache = dd.getDataDictionaryCache();
-                    if (spsd != null) {
-                        ddCache.storedPreparedStatementCacheRemove(spsd);
-                    }
-                    if (this.statement instanceof GenericStatement) {
-                        ddCache.statementCacheRemove(((GenericStatement)this.statement));
-                    }
-                    break;
                 }
             }
         } finally {

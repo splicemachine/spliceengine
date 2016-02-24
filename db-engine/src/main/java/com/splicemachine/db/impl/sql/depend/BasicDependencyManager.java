@@ -46,15 +46,12 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
-import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.db.impl.sql.compile.CreateViewNode;
 
 /**
@@ -302,10 +299,6 @@ public class BasicDependencyManager implements DependencyManager {
 				coreInvalidateFor(p, action, lcc);
 			}
 		}
-
-        if (p instanceof TableDescriptor) {
-            flushCachesBasedOnTableDescriptor(((TableDescriptor)p), dd);
-        }
 	}
 
     /**
@@ -461,22 +454,6 @@ public class BasicDependencyManager implements DependencyManager {
 				throw noInvalidate;
 		}
 	}
-
-    private static void flushCachesBasedOnTableDescriptor(TableDescriptor td,DataDictionary dd) throws StandardException {
-        // cache flushing for table dependencies happen in each dependent type's impl via dep.makeInvalid(action, lcc)
-        // See GenericPreparedStatement#makeInvalid()
-        DataDictionaryCache cache = dd.getDataDictionaryCache();
-        TableKey tableKey = new TableKey(td.getSchemaDescriptor().getUUID(), td.getName());
-        cache.nameTdCacheRemove(tableKey);
-        cache.oidTdCacheRemove(td.getUUID());
-
-        // Remove Conglomerate Level and Statistics Caching..
-        for (ConglomerateDescriptor cd: td.getConglomerateDescriptorList()) {
-            cache.partitionStatisticsCacheRemove(cd.getConglomerateNumber());
-            cache.conglomerateCacheRemove(cd.getConglomerateNumber());
-        }
-
-    }
 
 	/**
 		Erases all of the dependencies the dependent has, be they

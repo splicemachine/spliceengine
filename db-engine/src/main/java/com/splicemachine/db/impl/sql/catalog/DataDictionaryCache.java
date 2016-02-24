@@ -75,70 +75,70 @@ public class DataDictionaryCache {
     }
 
     public TableDescriptor nameTdCacheFind(TableKey tableKey) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheFind " + tableKey);
+        if (!dd.canUseCache(null))
+            return null;
         return nameTdCache.getIfPresent(tableKey);
     }
 
     public void nameTdCacheAdd(TableKey tableKey, TableDescriptor td) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("nameTdCacheAdd " + tableKey + " : " + td);
+        if (!dd.canUseCache(null))
+            return;
         nameTdCache.put(tableKey,td);
     }
 
     public TableDescriptor nameTdCacheRemove(TableKey tableKey) throws StandardException {
-        TableDescriptor td = nameTdCache.getIfPresent(tableKey);
         if (LOG.isDebugEnabled())
-            LOG.debug("nameTdCacheInvalidate " + tableKey + (td != null ? " found" : " null"));
+            LOG.debug("nameTdCacheInvalidate " + tableKey);
+        TableDescriptor td = nameTdCache.getIfPresent(tableKey);
         nameTdCache.invalidate(tableKey);
         return td;
     }
 
     public TableDescriptor oidTdCacheFind(UUID tableID) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("oidTdCacheFind " + tableID);
         if (!dd.canUseCache(null))
             return null;
         TableDescriptor td =  oidTdCache.getIfPresent(tableID);
-        if (LOG.isDebugEnabled())
-            LOG.debug("oidTdCacheFind " + tableID + (td != null ? " found" : " null"));
         if (td!=null) // bind in previous command might have set
             td.setReferencedColumnMap(null);
         return td;
     }
 
     public void oidTdCacheAdd(UUID tableID, TableDescriptor td) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("oidTdCacheAdd " + tableID + " : " + td);
+        if (!dd.canUseCache(null))
+            return;
         oidTdCache.put(tableID,td);
     }
 
     public TableDescriptor oidTdCacheRemove(UUID tableID) throws StandardException {
-        TableDescriptor td = oidTdCache.getIfPresent(tableID);
         if (LOG.isDebugEnabled())
-            LOG.debug("oidTdCacheRemove " + tableID + (td != null ? " found" : " null"));
+            LOG.debug("oidTdCacheRemove " + tableID);
+        TableDescriptor td = oidTdCache.getIfPresent(tableID);
         oidTdCache.invalidate(tableID);
         return td;
     }
 
 
     public List<PartitionStatisticsDescriptor> partitionStatisticsCacheFind(Long conglomID) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("partitionStatisticsCacheFind " + conglomID);
+        if (!dd.canUseCache(null))
+            return null;
         return partitionStatisticsCache.getIfPresent(conglomID);
     }
 
     public void partitionStatisticsCacheAdd(Long conglomID, List<PartitionStatisticsDescriptor> list) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("partitionStatisticsCacheAdd " + conglomID);
+        if (!dd.canUseCache(null))
+            return;
         partitionStatisticsCache.put(conglomID, list);
     }
 
@@ -149,10 +149,10 @@ public class DataDictionaryCache {
     }
 
     public void permissionCacheAdd(PermissionsDescriptor key, PermissionsDescriptor permissions) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheAdd " + key);
+        if (!dd.canUseCache(null))
+            return;
         permissionsCache.put(key, permissions);
     }
 
@@ -163,52 +163,51 @@ public class DataDictionaryCache {
     }
 
     public PermissionsDescriptor permissionCacheFind(PermissionsDescriptor desc) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("permissionCacheFind " + desc);
+        if (!dd.canUseCache(null))
+            return null;
         return permissionsCache.getIfPresent(desc);
     }
 
     public SPSDescriptor spsNameCacheFind(TableKey tableKey) throws StandardException {
-        if (!dd.canUseSPSCache())
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("spsNameCacheFind " + tableKey);
+        if (!dd.canUseSPSCache())
+            return null;
         return spsNameCache.getIfPresent(tableKey);
     }
 
     public void spsNameCacheAdd(TableKey tableKey, SPSDescriptor sps) throws StandardException {
-        if (!dd.canUseSPSCache())
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("spsNameCacheAdd tableKey=" + tableKey + " descriptor="+sps);
+        if (!dd.canUseSPSCache())
+            return;
         spsNameCache.put(tableKey, sps);
     }
 
     public void storedPreparedStatementCacheAdd(SPSDescriptor desc) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheAdd " + desc);
+        if (!dd.canUseCache(null))
+            return;
         storedPreparedStatementCache.put(desc.getUUID(), desc);
     }
 
     public SPSDescriptor storedPreparedStatementCacheFind(UUID uuid) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("storedPreparedStatementCacheFind " + uuid);
+        if (!dd.canUseCache(null))
+            return null;
         return storedPreparedStatementCache.getIfPresent(uuid);
     }
 
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
-        if (!dd.canUseCache(xactMgr) && conglomId>1408)
-            // Use cache even if dd says we can't if conglomID is <= 1408
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
+        if (!dd.canUseCache(xactMgr) && conglomId>1408)
+            return null;
         return conglomerateCache.getIfPresent(conglomId);
     }
 
@@ -217,10 +216,10 @@ public class DataDictionaryCache {
     }
 
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
-        if (!dd.canUseCache(xactMgr))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheAdd " + conglomId + " : " + conglomerate);
+        if (!dd.canUseCache(xactMgr))
+            return;
         conglomerateCache.put(conglomId,conglomerate);
     }
 
@@ -236,18 +235,18 @@ public class DataDictionaryCache {
 
 
     public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheFind " + schemaName);
+        if (!dd.canUseCache(null))
+            return null;
         return schemaCache.getIfPresent(schemaName);
     }
 
     public void schemaCacheAdd(String schemaName, SchemaDescriptor descriptor) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("schemaCacheAdd " + schemaName + " : " + descriptor);
+        if (!dd.canUseCache(null))
+            return;
         schemaCache.put(schemaName,descriptor);
     }
 
@@ -270,10 +269,10 @@ public class DataDictionaryCache {
     }
 
     public SequenceUpdater sequenceGeneratorCacheFind(String uuid) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("sequenceGeneratorCacheFind " + uuid);
+        if (!dd.canUseCache(null))
+            return null;
         return sequenceGeneratorCache.getIfPresent(uuid);
     }
 
@@ -307,50 +306,43 @@ public class DataDictionaryCache {
         schemaCache.invalidateAll();
     }
 
-    public void statementCacheRemove(GenericStatement gs) throws StandardException {
-        if (LOG.isDebugEnabled()) {
-            GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
-            LOG.debug("statementCacheRemove " + gs.toString() +(gsps != null ? " found" : " null"));
-        }
+    public void removeStatement(GenericStatement gs) throws StandardException {
         statementCache.invalidate(gs);
     }
 
-    public void clearStatementCache() {
-        if (LOG.isDebugEnabled())
-            LOG.debug("clearStatementCache ");
+    public void emptyStatementCache() {
         statementCache.invalidateAll();
     }
 
     public void statementCacheAdd(GenericStatement gs, GenericStorablePreparedStatement gsp) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("statementCacheAdd " + gs);
         if (!dd.canUseCache(null))
             return;
-        if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheAdd " + gs.toString());
         statementCache.put(gs,gsp);
     }
 
     public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("statementCacheFind " + gs);
         if (!dd.canUseCache(null))
             return null;
-        GenericStorablePreparedStatement gsps = statementCache.getIfPresent(gs);
-        if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheFind " + gs.toString() +(gsps != null ? " found" : " null"));
-        return gsps;
+        return statementCache.getIfPresent(gs);
     }
 
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {
-        if (!dd.canUseCache(null))
-            return;
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheAdd " + roleName);
+        if (!dd.canUseCache(null))
+            return;
         roleCache.put(roleName,optional);
     }
 
     public Optional<RoleGrantDescriptor> roleCacheFind(String roleName) throws StandardException {
-        if (!dd.canUseCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("roleCacheFind " + roleName);
+        if (!dd.canUseCache(null))
+            return null;
         return roleCache.getIfPresent(roleName);
     }
 

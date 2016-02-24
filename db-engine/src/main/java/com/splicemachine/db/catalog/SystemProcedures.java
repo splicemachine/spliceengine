@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.cache.CacheManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
@@ -2091,7 +2092,7 @@ public class SystemProcedures  {
     public static void SYSCS_EMPTY_STATEMENT_CACHE()
        throws SQLException {
        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-       lcc.getDataDictionary().getDataDictionaryCache().clearStatementCache();
+       lcc.getDataDictionary().getDataDictionaryCache().emptyStatementCache();
     }
   
     private static boolean hasSchema(Connection conn, String schemaName)
