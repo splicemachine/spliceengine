@@ -323,6 +323,7 @@ public class DropColumnTransactionIT {
     }
 
     @Test
+    @Ignore("DB-4596 possible bug")
     public void testDropMiddleColumn() throws Exception {
         int aInt = 1;
         int bInt = 2;
