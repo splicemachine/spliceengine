@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Scott Fines
@@ -52,8 +53,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final HOperationFactory opFactory;
     private final Clock clock;
     private final DistributedFileSystem fileSystem;
-
     private SIDriver siDriver;
+
 
     public static HBaseSIEnvironment loadEnvironment(Clock clock,RecoverableZooKeeper rzk) throws IOException{
         HBaseSIEnvironment env = INSTANCE;
@@ -62,7 +63,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
                 env = INSTANCE;
                 if(env==null){
                     env = INSTANCE = new HBaseSIEnvironment(rzk,clock);
-                    env.siDriver=SIDriver.loadDriver(INSTANCE);
                 }
             }
         }
@@ -91,12 +91,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
         this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
-
-
         this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
                 config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
                 config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),
                 txnStore);
+        siDriver = SIDriver.loadDriver(this);
     }
 
     @SuppressWarnings("unchecked")
@@ -125,6 +124,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
                 config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
                 config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),
                 txnStore);
+        siDriver = SIDriver.loadDriver(this);
     }
 
 
