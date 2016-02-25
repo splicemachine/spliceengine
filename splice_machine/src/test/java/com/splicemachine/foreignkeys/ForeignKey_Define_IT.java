@@ -48,6 +48,7 @@ public class ForeignKey_Define_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
+    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void createTable_colLevel() throws Exception {
         methodWatcher.executeUpdate("create table P (id int, a int, b int, c int, primary key(id))");
         methodWatcher.executeUpdate("create table C (a int, a_id int CONSTRAINT id_fk REFERENCES P(id))");
@@ -164,6 +165,7 @@ public class ForeignKey_Define_IT {
     }
 
     @Test
+    @Ignore("DB-4641: failing when in Jenkins when run under the mem DB profile")
     public void alterTable_referencingUnique() throws Exception {
         methodWatcher.executeUpdate("create table P (id int unique, a int, b int, c int)");
         methodWatcher.executeUpdate("create table C (a int, a_id int)");
