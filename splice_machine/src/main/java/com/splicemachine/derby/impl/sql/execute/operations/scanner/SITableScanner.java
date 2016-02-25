@@ -45,14 +45,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private DataScanner regionScanner;
     private final TransactionalRegion region;
     private final DataScan scan;
-//    private ScopedPredicates<Data> scopedPredicates;
     protected final ExecRow template;
     private final boolean reuseRowLocation;
     private final String tableVersion;
     protected final int[] rowDecodingMap;
     private SIFilter siFilter;
     private EntryPredicateFilter predicateFilter;
-//    private List<DataCell> keyValues;
     protected RowLocation currentRowLocation;
     private final boolean[] keyColumnSortOrder;
     private String indexName;
@@ -141,10 +139,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     @Override
     public ExecRow next() throws StandardException, IOException {
         SIFilter filter = getSIFilter();
-//        if(keyValues==null)
-//            keyValues = Lists.newArrayListWithExpectedSize(2);
         do{
-//            keyValues.clear();
             template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
             List<DataCell> keyValues=regionScanner.next(-1);
 
@@ -153,7 +148,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 return null;
             }else{
                 DataCell currentKeyValue = keyValues.get(0);
-                updatePredicateFilterIfNecessary(currentKeyValue);
                 if(template.nColumns()>0){
                     if(!filterRowKey(currentKeyValue)||!filterRow(filter,keyValues)){
                         //filter the row first, then filter the row key
@@ -315,13 +309,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             siFilter = filterFactory.newFilter(predicateFilter,getRowEntryDecoder(),accumulator,isCountStar);
         }
         return siFilter;
-    }
-
-    /* SkippingScanFilter can have different predicates for every range */
-    private void updatePredicateFilterIfNecessary(DataCell kv) throws IOException {
-//        if(scopedPredicates.isScanWithScopedPredicates()) {
-//            predicateFilter.setValuePredicates(scopedPredicates.getNextPredicates(kv));
-//        }
     }
 
     protected EntryDecoder getRowEntryDecoder() {
