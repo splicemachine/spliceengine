@@ -283,5 +283,14 @@ public class MemFileSystem extends DistributedFileSystem{
         public boolean isWritable(){
             return Files.isWritable(p);
         }
+
+        @Override
+        public String toSummary() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
+            sb.append("\nFile Count = ").append(this.fileCount());
+            sb.append("\nSize = ").append(spaceConsumed());
+            return sb.toString();
+        }
     }
 }

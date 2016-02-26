@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.AclStatus;
@@ -285,6 +286,21 @@ public class HNIOFileSystem extends DistributedFileSystem{
         @Override
         public boolean isWritable(){
             return isWritable;
+        }
+
+        @Override
+        public String toSummary() { // FileUtils.byteCountToDisplaySize
+            StringBuilder sb = new StringBuilder();
+            sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
+            sb.append("\nFile Count = ").append(contentSummary.getFileCount());
+            sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()));
+            if (contentSummary.getLength() != contentSummary.getSpaceConsumed())
+                sb.append("\nLength = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getLength()));
+            if (contentSummary.getSpaceQuota() > 0)
+                sb.append("\nSpace Quota = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getSpaceQuota()));
+            if (contentSummary.getQuota() > 0)
+                sb.append("\nQuota = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getQuota()));
+            return sb.toString();
         }
     }
 }

@@ -148,14 +148,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
-            FileInfo contentSummary = ImportUtils.getImportDataSize(path);
-            SpliceSpark.pushScope((op != null ? op.getScopeName() + ": " : "") +
-                SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
-                "{file=" + String.format(path) + ", " +
-                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.spaceConsumed()) + ", " +
-                "files=" + contentSummary.fileCount());
+            FileInfo fileInfo = ImportUtils.getImportDataSize(path);
+            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
+            JavaRDD rdd = SpliceSpark.getContext().textFile(path);
+            RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
-                path, WholeTextInputFormat.class, String.class, InputStream.class,HConfiguration.INSTANCE.unwrapDelegate()));
+                path, WholeTextInputFormat.class, String.class, InputStream.class, HConfiguration.INSTANCE.unwrapDelegate()));
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {
@@ -172,13 +170,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
-            FileInfo contentSummary = ImportUtils.getImportDataSize(path);
-            SpliceSpark.pushScope((op != null ? op.getScopeName() + ": " : "") +
-                SparkConstants.SCOPE_NAME_READ_TEXT_FILE + "\n" +
-                "{file=" +path+ ", " +
-                    "size=" + FileUtils.byteCountToDisplaySize(contentSummary.spaceConsumed()) + ", " +
-                "files=" + contentSummary.fileCount() + "}");
+            FileInfo fileInfo = ImportUtils.getImportDataSize(path);
+            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
+            RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);

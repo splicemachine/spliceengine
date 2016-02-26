@@ -26,4 +26,6 @@ public interface FileInfo{
     String getGroup();
 
     boolean isWritable();
+
+    String toSummary();
 }
