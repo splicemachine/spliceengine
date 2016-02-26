@@ -42,9 +42,10 @@ public interface JoinStrategy {
 
     public enum JoinStrategyType {
         NESTED_LOOP ("NESTED_LOOP",0,"NestedLoop",true),
-        MERGE_SORT ("MERGE_SORT",1,"MergeSort",false),
+		MERGE_SORT ("MERGE_SORT",1,"MergeSort",false),
         BROADCAST ("BROADCAST",2,"Broadcast",false),
-        MERGE ("MERGE",3, "Merge",false);
+        MERGE ("MERGE",3, "Merge",false),
+		HALF_MERGE_SORT ("HALF_MERGE_SORT", 4, "HalfMergeSort", false);
         private final String name;
         private final int strategyId;
         private final String niceName;

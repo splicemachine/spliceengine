@@ -238,6 +238,22 @@ public class SelectivityUtil {
 
     /**
      *
+     * Half Merge Sort Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost + Right Side Cost + Right Side Remote Cost)/Left Side Partition Count) + Open Cost + Close Cost
+     *
+     * Replication Factor Based
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+    public static double halfMergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double replicationFactor) {
+        return (outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
+    }
+
+    /**
+     *
      * Nested Loop Join Local Cost Computation
      *
      * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Row Count/Left Side Partition Count)*(Right Side Cost + Right Side Transfer Cost + Open Cost + Close Cost)

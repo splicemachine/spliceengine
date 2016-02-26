@@ -218,7 +218,8 @@ public class RSUtils {
     }
 
     public static boolean isMSJ(AccessPath ap) {
-        return (ap != null && ap.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.MERGE_SORT));
+        return (ap != null && (ap.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.MERGE_SORT) ||
+                (ap.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.HALF_MERGE_SORT))));
     }
 
     public static boolean isNLJ(AccessPath ap) {
