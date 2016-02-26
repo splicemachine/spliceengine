@@ -34,6 +34,7 @@ import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
 import com.splicemachine.si.testenv.SITestDataEnv;
 import com.splicemachine.si.testenv.SITestEnvironment;
+import com.splicemachine.si.testenv.TestServerControl;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.MutationStatus;
@@ -79,14 +80,14 @@ public class PartitionWriteHandlerTest{
 
     @Test
     public void testDoesNotWriteDataWhenRegionCloses() throws Exception{
-        ServerControl sc = mock(ServerControl.class);
-        doNothing().when(sc).ensureNetworkOpen();
+        ServerControl sc = new TestServerControl();
 
         Partition p = mock(Partition.class);
         when(p.getName()).thenReturn("testRegion");
         when(p.containsRow(any(byte[].class),anyInt(),anyInt())).thenReturn(Boolean.TRUE);
         when(p.getRowLock(any(byte[].class),anyInt(),anyInt())).thenReturn(new ReentrantLock());
         doNothing().when(p).startOperation();
+
         DataAnswer dataAnswer=new DataAnswer(opStatusFactory);
         NotServingRegionAnswer<Iterator<MutationStatus>> iteratorNotServingRegionAnswer=new NotServingRegionAnswer<>(p.getName(),ef);
         when(p.writeBatch(any(DataPut[].class))).then(new LatchAnswer<>(Arrays.asList(iteratorNotServingRegionAnswer,dataAnswer)));

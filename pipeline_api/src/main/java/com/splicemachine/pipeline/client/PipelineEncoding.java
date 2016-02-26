@@ -1,5 +1,6 @@
 package com.splicemachine.pipeline.client;
 
+import com.google.common.collect.Iterators;
 import com.splicemachine.encoding.ExpandedDecoder;
 import com.splicemachine.encoding.ExpandingEncoder;
 import com.splicemachine.kvpair.KVPair;
@@ -8,10 +9,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 
 import javax.annotation.Nonnull;
-import java.util.AbstractCollection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * Utilities around encoding and decoding BulkWriteRequests and responses.
@@ -75,7 +73,7 @@ public class PipelineEncoding {
         byte[] txnBytes = decoder.rawBytes();
         TxnView txn = operationFactory.decode(txnBytes,0,txnBytes.length);
         int bwSize = decoder.decodeInt();
-        Collection<String> stringNames = new ArrayList<>(bwSize);
+        List<String> stringNames = new ArrayList<>(bwSize);
         for(int i=0;i<bwSize;i++) {
             stringNames.add(decoder.decodeString());
         }
@@ -92,7 +90,7 @@ public class PipelineEncoding {
     /*private helper classes*/
     private static class BulkWriteCol extends AbstractCollection<BulkWrite>{
         private final int kvOffset;
-        private final Collection<String> encodedStringNames;
+        private final List<String> encodedStringNames;
         private final byte[] skipIndexWrites;
         private final byte[] buffer;
         /*
@@ -101,8 +99,10 @@ public class PipelineEncoding {
          * creating new with each iteration);
          */
         private transient Collection<BulkWrite> cache;
+        private transient ExpandedDecoder decoder;
+        private transient int lastIndex = 0;
 
-        public BulkWriteCol(byte[] skipIndexWrites, byte[] buffer,int kvOffset, Collection<String> encodedStringNames) {
+        public BulkWriteCol(byte[] skipIndexWrites, byte[] buffer,int kvOffset, List<String> encodedStringNames) {
             this.kvOffset = kvOffset;
             this.encodedStringNames = encodedStringNames;
             this.buffer = buffer;
@@ -112,21 +112,34 @@ public class PipelineEncoding {
         @Override
         @Nonnull
         public Iterator<BulkWrite> iterator() {
-            if(cache!=null) return cache.iterator();
+            if(cache!=null){
+                if(cache.size()==encodedStringNames.size())
+                    return cache.iterator();
+                else{
+                    /*
+                     * We haven't read the entire data off yet, so we need to concatenate the
+                     * cache with the remainder of the stuff
+                     */
+                    return Iterators.concat(cache.iterator(),new BulkIter(lastIndex));
+                }
+            }
             cache = new ArrayList<>(encodedStringNames.size());
-            return new BulkIter(kvOffset);
+            decoder = new ExpandedDecoder(buffer,kvOffset);
+            return new BulkIter(0);
         }
 
         @Override public int size() { return encodedStringNames.size(); }
 
         private class BulkIter implements Iterator<BulkWrite> {
-            final Iterator<String> encodedStrings = encodedStringNames.iterator();
+            final Iterator<String> encodedStrings;
             int index;
-            final ExpandedDecoder decoder;
 
-            public BulkIter(int iterOffset) {
-                this.index = 0;
-                this.decoder = new ExpandedDecoder(buffer,iterOffset);
+            public BulkIter(int startIndex) {
+                this.index = startIndex;
+                if(index!=0)
+                    this.encodedStrings = encodedStringNames.subList(index,encodedStringNames.size()).iterator();
+                else
+                    this.encodedStrings = encodedStringNames.iterator();
             }
 
             @Override public boolean hasNext() { return encodedStrings.hasNext(); }
@@ -151,6 +164,7 @@ public class PipelineEncoding {
 
                 BulkWrite bulkWrite = new BulkWrite(kvPairs, esN, skipIndexWrite);
                 cache.add(bulkWrite);
+                lastIndex=index;
                 return bulkWrite;
             }
         }

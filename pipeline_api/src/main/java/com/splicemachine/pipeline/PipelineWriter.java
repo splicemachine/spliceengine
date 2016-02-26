@@ -9,6 +9,7 @@ import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.utils.Pair;
+import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @ThreadSafe
 public class PipelineWriter{
+    private static final Logger LOG =Logger.getLogger(PipelineWriter.class);
     private final SpliceWriteControl writeControl;
     private final AtomicLong rejectedCount = new AtomicLong(0l);
 
@@ -67,6 +69,8 @@ public class PipelineWriter{
                 }
             }
             if(pwp==null){
+                if(LOG.isTraceEnabled())
+                    LOG.trace("Rejecting "+bulkWrites.numEntries()+" rows in "+ bws.size()+"writes because we aren't serving any of those regions");
                 rejectAll(bws,result,Code.NOT_SERVING_REGION);
                 return new BulkWritesResult(result);
             }
@@ -84,6 +88,8 @@ public class PipelineWriter{
 
         status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
         if (status.equals(AtomicSpliceWriteControl.Status.REJECTED)) {
+            if(LOG.isTraceEnabled())
+                LOG.trace("Rejecting "+numBulkWrites+" rows in "+ bws.size()+"writes because the pipeline is too busy");
             rejectAll(bws,result, Code.PIPELINE_TOO_BUSY);
             rejectedCount.addAndGet(numBulkWrites);
             return new BulkWritesResult(result);
@@ -117,6 +123,15 @@ public class PipelineWriter{
             if (writePipeline != null) {
                 BulkWrite bulkWrite = entry.getKey();
                 BulkWriteResult submitResult = writePipeline.submitBulkWrite(bulkWrites.getTxn(), bulkWrite,indexWriteBufferFactory, writePipeline.getRegionCoprocessorEnvironment());
+                if(LOG.isTraceEnabled()){
+                    LOG.trace("Submission of "+bulkWrite.getSize()+" rows to region "+ bulkWrite.getEncodedStringName()+" has submission result "+ submitResult.getGlobalResult());
+                    if(submitResult.getFailedRows().size()>0){
+                        LOG.trace("Detected "+ submitResult.getFailedRows().size()+" failed rows");
+                    }
+                    if(submitResult.getNotRunRows().size()>0){
+                        LOG.trace("Detected "+ submitResult.getNotRunRows().size()+" not run rows");
+                    }
+                }
                 pair.setFirst(submitResult);
             }
         }
@@ -131,6 +146,15 @@ public class PipelineWriter{
                 BulkWrite bulkWrite = entry.getKey();
                 BulkWriteResult writeResult = pair.getFirst();
                 BulkWriteResult finishResult = writePipeline.finishWrite(writeResult, bulkWrite);
+                if(LOG.isTraceEnabled()){
+                    LOG.trace("Finish of "+bulkWrite.getSize()+" rows to region "+ bulkWrite.getEncodedStringName()+" has finish result "+ finishResult.getGlobalResult());
+                    if(finishResult.getFailedRows().size()>0){
+                        LOG.trace("Detected "+ finishResult.getFailedRows().size()+" failed rows");
+                    }
+                    if(finishResult.getNotRunRows().size()>0){
+                        LOG.trace("Detected "+ finishResult.getNotRunRows().size()+" not run rows");
+                    }
+                }
                 pair.setFirst(finishResult);
             }
         }
@@ -165,10 +189,15 @@ public class PipelineWriter{
 //        this.meter; //TODO -sf- add this back in
         for(BulkWrite write:writes){
             switch (status) {
+                case NOT_SERVING_REGION:
+                    result.add(new BulkWriteResult(WriteResult.notServingRegion()));
+                    break;
                 case PIPELINE_TOO_BUSY:
                     result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(write.getEncodedStringName())));
                     break;
                 case INDEX_NOT_SETUP_EXCEPTION:
+                    if(LOG.isTraceEnabled())
+                        LOG.trace("Rejecting "+write.getSize()+" rows because region "+ write.getEncodedStringName()+" has not setup its write pipeline");
                     result.add(new BulkWriteResult(WriteResult.indexNotSetup()));
                     break;
             }
@@ -188,6 +217,8 @@ public class PipelineWriter{
                 //we might be able to write this one
                 writeResult = new BulkWriteResult();
             } else {
+                if(LOG.isTraceEnabled())
+                    LOG.trace("Rejecting "+bw.getSize()+" rows because region "+ bw.getEncodedStringName()+" is not being served");
                 writeResult = new BulkWriteResult(WriteResult.notServingRegion());
             }
             writePairMap.put(bw, Pair.newPair(writeResult, writePipeline));

@@ -16,9 +16,11 @@ import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -42,18 +44,18 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
 
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
-        /*
-         * -sf- we shouldn't need to do transactional management here, because Derby manages internal
-         * savepoints around insertion.
-         */
+        SpliceOperation operation=operationContext.getOperation();
+        Txn txn = null;
         try{
-            operationContext.getOperation().fireBeforeStatementTriggers();
-            pipelineWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
+            txn = SIDriver.driver().lifecycleManager().beginChildTransaction(getTxn(),pipelineWriter.getDestinationTable());
+            pipelineWriter.setTxn(txn);
+            operation.fireBeforeStatementTriggers();
+            pipelineWriter.open(operation.getTriggerHandler(),operation);
             pipelineWriter.write(dataSet.values().toLocalIterator());
             ValueRow valueRow=new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int)operationContext.getRecordsWritten()));
-            if(operationContext.getOperation() instanceof InsertOperation){
-                InsertOperation insertOperation = (InsertOperation)operationContext.getOperation();
+            if(operation instanceof InsertOperation){
+                InsertOperation insertOperation = (InsertOperation)operation;
                 List<String> badRecords=operationContext.getBadRecords();
                 /*
                  * In Control-side execution, we have different operation contexts for each operation,
@@ -85,14 +87,22 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                     }
                 }
             }
+            txn.commit();
             return new ControlDataSet<>(Collections.singletonList(new LocatedRow(valueRow)));
         }catch(Exception e){
+            if(txn!=null){
+                try{
+                    txn.rollback();
+                }catch(IOException e1){
+                    e.addSuppressed(e1);
+                }
+            }
             throw Exceptions.parseException(e);
         }finally{
             try{
                 if(pipelineWriter!=null)
                     pipelineWriter.close();
-                operationContext.getOperation().fireAfterStatementTriggers();
+                operation.fireAfterStatementTriggers();
             }catch(Exception e){
                 throw Exceptions.parseException(e);
             }

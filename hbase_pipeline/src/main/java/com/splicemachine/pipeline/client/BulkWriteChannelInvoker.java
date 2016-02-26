@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.client;
 
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
@@ -89,14 +90,14 @@ public class BulkWriteChannelInvoker {
         if (e==null ||
                 e instanceof WrongPartitionException ||
                 e instanceof NotServingRegionException ||
+                e instanceof NotServingPartitionException ||
                 e instanceof ConnectException ||
             isFailedServerException(e)) {
             /*
              * We sent it to the wrong place, so we need to resubmit it. But since we
              * pulled it from the cache, we first invalidate that cache
              */
-            TableName tableNameObj=tableInfoFactory.getTableInfo(this.tableName);
-            partitionInfoCache.invalidate(tableNameObj);
+            partitionInfoCache.invalidate(this.tableName);
             return true;
 	    }
         return false;
