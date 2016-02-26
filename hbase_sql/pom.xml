@@ -200,6 +200,12 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
+        <dependency>
+	    <groupId>org.apache.hadoop</groupId>
+	    <artifactId>hadoop-tools</artifactId>
+	    <version>1.2.1</version>
+        </dependency>
+
     </dependencies>
     <build>
         <plugins>

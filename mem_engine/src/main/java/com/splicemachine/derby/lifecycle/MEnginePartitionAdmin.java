@@ -2,6 +2,7 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.access.api.TableDescriptor;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 
@@ -51,7 +52,7 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
-    public Object[] getTableDescriptors(List<String> tables) throws IOException{
+    public TableDescriptor[] getTableDescriptors(List<String> tables) throws IOException{
         return admin.getTableDescriptors(tables);
     }
 }

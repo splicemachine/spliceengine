@@ -29,8 +29,8 @@ public class HConfiguration implements SConfiguration{
      */
     public static final String BACKUP_PATH = "splice.backup_node";
     public static final String DEFAULT_BACKUP_PATH = "/backup";
-    public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(0);
-    public static final byte[] BACKUP_DONE = Bytes.toBytes(1);
+    public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
+    public static final byte[] BACKUP_DONE = Bytes.toBytes(true);
 
     /**
      * The Path in zookeeper for manipulating transactional information.
@@ -258,6 +258,7 @@ public class HConfiguration implements SConfiguration{
                 case SPLICE_ROOT_PATH:
                 case NAMESPACE:
                 case COMPRESSION_ALGORITHM:
+                case BACKUP_PATH:
                     return true;
             }
             return false;
@@ -269,6 +270,7 @@ public class HConfiguration implements SConfiguration{
                 case SPLICE_ROOT_PATH: return DEFAULT_ROOT_PATH;
                 case NAMESPACE: return DEFAULT_NAMESPACE;
                 case COMPRESSION_ALGORITHM: return DEFAULT_COMPRESSION;
+                case BACKUP_PATH: return DEFAULT_BACKUP_PATH;
                 default:
                     throw new IllegalArgumentException("No Hbase default for key '"+key+"'");
             }

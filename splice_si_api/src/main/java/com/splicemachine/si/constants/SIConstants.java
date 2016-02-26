@@ -62,6 +62,8 @@ public class SIConstants {
     // The column in which splice stores encoded/packed user data.
     public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes("7");
 
+    public static final String DEFAULT_FAMILY_NAME = "V";
+
     public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes("V");
 
     public static final String SI_PERMISSION_FAMILY = "P";

@@ -4,7 +4,6 @@ import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.backup.BackupManager;
-import com.splicemachine.backup.RestoreItem;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
@@ -19,9 +18,7 @@ import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 
-import java.io.IOException;
 import java.sql.Connection;
-import java.util.Iterator;
 
 /**
  * @author Scott Fines
@@ -50,7 +47,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         this.processorFactory = new CostChoosingDataSetProcessorFactory(new SparkDataSetProcessor(), cdsp);
         this.exceptionFactory = new HSqlExceptionFactory(SIDriver.driver().getExceptionFactory());
         this.dbAdmin = new JmxDatabaseAdminstrator();
-        backupManager = new SpliceBackupManager();
+        backupManager = new HBaseBackupManager();
     }
 
     @Override

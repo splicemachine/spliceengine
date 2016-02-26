@@ -4,13 +4,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.access.api.TableDescriptor;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
@@ -125,7 +123,12 @@ public class H10PartitionAdmin implements PartitionAdmin{
     }
 
     @Override
-    public Object[] getTableDescriptors(List<String> tables) throws IOException{
-        return admin.getTableDescriptors(tables);
+    public TableDescriptor[] getTableDescriptors(List<String> tables) throws IOException{
+        HTableDescriptor[] hTableDescriptors = admin.getTableDescriptors(tables);
+        TableDescriptor[] tableDescriptors = new TableDescriptor[hTableDescriptors.length];
+        for (int i = 0; i < hTableDescriptors.length; ++i) {
+            tableDescriptors[i] = new HBaseTableDescriptor(hTableDescriptors[i]);
+        }
+        return tableDescriptors;
     }
 }

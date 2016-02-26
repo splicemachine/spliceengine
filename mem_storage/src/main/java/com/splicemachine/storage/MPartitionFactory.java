@@ -2,10 +2,7 @@ package com.splicemachine.storage;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.PartitionCreator;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 
@@ -115,7 +112,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
-        public Object[] getTableDescriptors(List<String> tables) throws IOException{
+        public TableDescriptor [] getTableDescriptors(List<String> tables) throws IOException{
             throw new UnsupportedOperationException("Cannot get table descriptors in an in-memory storage engine!");
         }
     }

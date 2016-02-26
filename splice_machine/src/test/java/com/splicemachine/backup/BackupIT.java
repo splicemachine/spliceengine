@@ -15,7 +15,6 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 @Category(value = {SerialTest.class, SlowTest.class})
-@Ignore
 public class BackupIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static String TABLE_NAME1 = "A";
@@ -67,6 +66,7 @@ public class BackupIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void negativeTests() throws Exception {
 
         PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_CANCEL_DAILY_BACKUP(333)");
@@ -84,51 +84,30 @@ public class BackupIT extends SpliceUnitTest {
                 format("call SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP('%s', 'full', -10)", backupDir.getAbsolutePath()));
         rs = ps.executeQuery();
         Assert.assertNotNull(rs.next());
-        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 23].")==0);
+        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 23].") == 0);
 
     }
 
     @Test
-    public void testBackup() throws Exception{
-
+    public void testFullBackup() throws Exception{
         backup("full");
-        long backupId1 = getBackupId();
-        int backupItems1 = getBackupItems(backupId1);
+        verifyFullBackup();
+    }
 
-        insertData(TABLE_NAME1);
-        backup("incremental");
+    private void backup(String type) throws Exception {
+        System.out.println("Start " + type + " backup ...");
+        PreparedStatement ps = connection.prepareStatement(
+                format("call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('%s', '%s')", backupDir.getAbsolutePath(), type));
+        ps.execute();
+        System.out.println("Backup completed.");
 
-        // verify incremental backup did not backup all tables
-        long backupId2 = getBackupId();
-        int backupItems2 = getBackupItems(backupId2);
-        Assert.assertTrue(backupItems1 > backupItems2);
+    }
 
-        // Verify incremental backup include changes for table 'A'
-        long conglomerateNumber1 = getConglomerateNumber(spliceSchemaWatcher.schemaName, TABLE_NAME1);
-        long conglomerateNumber2 = getConglomerateNumber(spliceSchemaWatcher.schemaName, TABLE_NAME2);
-        verifyIncrementalBackup(backupId2, conglomerateNumber1, true);
-
-        insertData(TABLE_NAME2);
-
-        // Compact table 'A', and verify it's not in next incremental backup
-        Assert.fail("IMPLEMENT USING JDBC ONLY");
-//        HBaseAdmin admin = SpliceUtilities.getAdmin();
-//        admin.flush((new Long(conglomerateNumber1)).toString());
-//        admin.majorCompact((new Long(conglomerateNumber1)).toString());
-//        Thread.sleep(10000);
-
-        //Split table 'A', and verify it is not in next incremental backup
-        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 250);
-//        spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 500);
-        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
-//        Thread.sleep(10000);
-//        backup("incremental");
-//        long backupId = getBackupId();
-//        verifyIncrementalBackup(backupId, conglomerateNumber1, false);
-//        verifyIncrementalBackup(backupId, conglomerateNumber2, true);
-//
-//        delete_backup(backupId);
-//        Assert.assertTrue(backupId > getBackupId());
+    private void verifyFullBackup() throws Exception {
+        String query = "select count(*) from sys.sysbackup where scope='D' and status='S' and incremental_backup=false";
+        ResultSet rs = methodWatcher.executeQuery(query);
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.getInt(1) >= 1);
     }
 
     private void insertData(String tableName) throws Exception {
@@ -147,15 +126,7 @@ public class BackupIT extends SpliceUnitTest {
         }
     }
 
-    private void backup(String type) throws Exception
-    {
-        System.out.println("Start " + type + " backup ...");
-        PreparedStatement ps = connection.prepareStatement(
-                format("call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('%s', '%s')", backupDir.getAbsolutePath(), type));
-        ps.execute();
-        System.out.println("Backup completed.");
 
-    }
 
     private int count() throws Exception{
         PreparedStatement ps = connection.prepareStatement(
