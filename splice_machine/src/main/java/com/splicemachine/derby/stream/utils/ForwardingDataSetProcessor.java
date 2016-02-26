@@ -127,5 +127,10 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     public void stopJobGroup(String jobName) {
         delegate.stopJobGroup(jobName);
     }
+
+    @Override
+    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+        return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder);
+    }
 }
 

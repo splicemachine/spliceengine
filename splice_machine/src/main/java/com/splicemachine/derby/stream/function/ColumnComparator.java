@@ -32,9 +32,12 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
         out.writeInt(columns.length);
         for (int c : columns)
             out.writeInt(c);
-        out.writeInt(descColumns.length);
-        for (int i =0; i<descColumns.length; i++)
-            out.writeBoolean(descColumns[i]);
+        out.writeBoolean(descColumns != null);
+        if (descColumns != null) {
+            out.writeInt(descColumns.length);
+            for (int i = 0; i < descColumns.length; i++)
+                out.writeBoolean(descColumns[i]);
+        }
         out.writeBoolean(nullsOrderedLow);
 
     }
@@ -44,10 +47,12 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
         columns = new int[in.readInt()];
         for (int i = 0; i < columns.length; i++)
             columns[i] = in.readInt();
-        descColumns = new boolean[in.readInt()];
-        for (int i = 0; i < descColumns.length; i++)
-            descColumns[i] = in.readBoolean();
-         nullsOrderedLow = in.readBoolean();
+        if (in.readBoolean()) {
+            descColumns = new boolean[in.readInt()];
+            for (int i = 0; i < descColumns.length; i++)
+                descColumns[i] = in.readBoolean();
+        }
+        nullsOrderedLow = in.readBoolean();
     }
 
     @Override

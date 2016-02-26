@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-public class KeyerFunction<T extends KeyableRow> extends SpliceFunction<SpliceOperation,T, ExecRow> {
+public class KeyerFunction<T extends KeyableRow, Op extends SpliceOperation> extends SpliceFunction<Op,T, ExecRow> {
 
     private static final long serialVersionUID = 3988079974858059941L;
     private int[] keyColumns;
@@ -19,7 +19,7 @@ public class KeyerFunction<T extends KeyableRow> extends SpliceFunction<SpliceOp
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    public KeyerFunction(OperationContext<SpliceOperation> operationContext, int[] keyColumns) {
+    public KeyerFunction(OperationContext<Op> operationContext, int[] keyColumns) {
         super(operationContext);
         this.keyColumns = keyColumns;
     }

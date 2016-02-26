@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.iterator.merge;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -23,7 +24,7 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
     public MergeInnerJoinIterator(Iterator<LocatedRow> leftRS,
                                   PeekingIterator<LocatedRow> rightRS,
                                   int[] leftKeys, int[] rightKeys,
-                                  MergeJoinOperation mergeJoinOperation, OperationContext<MergeJoinOperation> operationContext) {
+                                  JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
         super(leftRS,rightRS,leftKeys,rightKeys,mergeJoinOperation, operationContext);
     }
 

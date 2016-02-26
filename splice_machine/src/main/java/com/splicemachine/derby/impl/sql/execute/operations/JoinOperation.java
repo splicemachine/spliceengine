@@ -331,4 +331,20 @@ public abstract class JoinOperation extends SpliceBaseOperation {
     public ExecRow getEmptyRow() throws StandardException {
         return rightTemplate;
     }
+
+	public ExecRow getKeyRow(ExecRow row) throws StandardException {
+		ExecRow keyRow = activation.getExecutionFactory().getValueRow(getLeftHashKeys().length);
+		for (int i = 0; i < getLeftHashKeys().length; i++) {
+			keyRow.setColumn(i + 1, row.getColumn(getLeftHashKeys()[i] + 1));
+		}
+		return keyRow;
+	}
+
+	public int[] getLeftHashKeys() {
+		throw new UnsupportedOperationException();
+	}
+
+	public int[] getRightHashKeys() {
+		throw new UnsupportedOperationException();
+	}
 }

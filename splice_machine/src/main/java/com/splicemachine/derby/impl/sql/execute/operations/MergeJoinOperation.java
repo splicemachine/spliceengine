@@ -34,7 +34,6 @@ public class MergeJoinOperation extends JoinOperation {
     public int[] rightHashKeys;
     // for overriding
     public boolean wasRightOuterJoin = false;
-    private IOStandardIterator<ExecRow> rightRows;
 
     protected static final String NAME = MergeJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -138,10 +137,9 @@ public class MergeJoinOperation extends JoinOperation {
         return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(dsp.createOperationContext(this,spliceRuntimeContext), true));
     }
 */
-    @SuppressWarnings("unchecked")
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext<MergeJoinOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
         DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
         
         operationContext.pushScope();
@@ -170,5 +168,15 @@ public class MergeJoinOperation extends JoinOperation {
             }
         }
         return 0;
+    }
+
+    @Override
+    public int[] getLeftHashKeys() {
+        return leftHashKeys;
+    }
+
+    @Override
+    public int[] getRightHashKeys() {
+        return rightHashKeys;
     }
 }
