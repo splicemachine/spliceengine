@@ -72,7 +72,6 @@ public class SqlStatisticsIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
     public void testCreateSingleColumnIndex() throws Exception {
     	SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
     	indexWatcher.starting(null);
@@ -84,7 +83,6 @@ public class SqlStatisticsIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
     public void testCreateMultiColumnIndex() throws Exception {
     	SpliceIndexWatcher indexWatcher1 = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
     	SpliceIndexWatcher indexWatcher2 = new SpliceIndexWatcher(TABLE_NAME_2, CLASS_NAME, INDEX_NAME_2, CLASS_NAME, "(C1, C2, C3)", false);
