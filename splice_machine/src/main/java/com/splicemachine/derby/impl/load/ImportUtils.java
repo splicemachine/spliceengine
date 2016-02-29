@@ -25,7 +25,7 @@ public class ImportUtils{
      * @return total space consumed by the import data files
      * @throws IOException
      */
-    public static FileInfo getImportDataSize(String filePath) throws IOException{
+    public static FileInfo getImportFileInfo(String filePath) throws IOException{
         DistributedFileSystem fsLayer=SIDriver.driver().fileSystem();
         return fsLayer.getInfo(filePath);
     }

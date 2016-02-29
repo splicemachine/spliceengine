@@ -388,7 +388,7 @@ public class HdfsImport {
             //prepare the import statement to hit any errors before locking the table
             //execute the import operation.
             try (PreparedStatement ips = conn.prepareStatement(insertSql)) {
-                FileInfo contentSummary = ImportUtils.getImportDataSize(fileName);
+                FileInfo contentSummary = ImportUtils.getImportFileInfo(fileName);
                 int count = ips.executeUpdate();
                 String badFileName = ((EmbedConnection) conn).getLanguageConnection().getBadFile();
                 ExecRow result = new ValueRow(5);

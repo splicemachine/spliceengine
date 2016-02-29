@@ -148,7 +148,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
-            FileInfo fileInfo = ImportUtils.getImportDataSize(path);
+            FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
@@ -170,7 +170,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
-            FileInfo fileInfo = ImportUtils.getImportDataSize(path);
+            FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);

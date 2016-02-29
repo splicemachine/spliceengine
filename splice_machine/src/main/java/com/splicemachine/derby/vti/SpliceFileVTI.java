@@ -1,5 +1,6 @@
 package com.splicemachine.derby.vti;
 
+import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
@@ -16,6 +17,7 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSetMetaData;
@@ -113,14 +115,31 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         }
     }
 
+    private final static int BYTES_PER_ROW = 100;
+    private int getBytesPerRow() {
+        // Crude approximation to assume a specific number of bytes per row. Alternatives:
+        // 1) count the rows in the file (too slow but exact)
+        // 2) fetch the first few rows of the file and compjute the avg bytes per row.
+        return BYTES_PER_ROW;
+    }
+
     @Override
     public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
-        return 10000000;
+        if (fileName != null) {
+            try {
+                FileInfo fileInfo = ImportUtils.getImportFileInfo(fileName);
+                return fileInfo.spaceConsumed() / getBytesPerRow();
+            } catch (IOException e){
+                throw new SQLException(e);
+            }
+        }
+
+        return VTICosting.defaultEstimatedRowCount;
     }
 
     @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment) throws SQLException {
-        return 0;
+        return VTICosting.defaultEstimatedCost;
     }
 
     @Override

@@ -55,6 +55,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
     public FileInfo getInfo(String filePath) throws IOException{
         org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(filePath);
         ContentSummary contentSummary=fs.getContentSummary(f);
+
         return new HFileInfo(f,contentSummary);
     }
 
