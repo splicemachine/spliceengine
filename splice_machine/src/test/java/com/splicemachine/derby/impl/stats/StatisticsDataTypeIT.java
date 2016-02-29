@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.SlowTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -16,7 +18,7 @@ import java.sql.*;
  * @author Scott Fines
  *         Date: 3/3/15
  */
-@Ignore
+@Category(SlowTest.class)
 public class StatisticsDataTypeIT {
     private static final int size=128;
     private static final SpliceWatcher classWatcher = new SpliceWatcher();

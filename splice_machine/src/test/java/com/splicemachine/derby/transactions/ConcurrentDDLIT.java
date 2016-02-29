@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.test.Transactions;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -26,8 +27,8 @@ import java.util.concurrent.Future;
  * @author Scott Fines
  * Date: 8/28/14
  */
-@Ignore("Creates hundreds of conglomerates")
-@Category({Transactions.class})
+// Warning: creates hundreds of conglomerates
+@Category({Transactions.class, SlowTest.class})
 public class ConcurrentDDLIT {
     private static final Logger LOG = Logger.getLogger(ConcurrentDDLIT.class);
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConcurrentDDLIT.class.getSimpleName().toUpperCase());
@@ -248,7 +249,7 @@ public class ConcurrentDDLIT {
                 long txnId;
                 try{
                     txnId = conn.getCurrentTransactionId();
-                    LOG.debug("Performing setup with txnId "+txnId);
+                    //LOG.debug("Performing setup with txnId "+txnId);
                     conn.clearWarnings();
                     setupAction(i);
                     printWarnings();
@@ -261,7 +262,7 @@ public class ConcurrentDDLIT {
 
                 try{
                     txnId = conn.getCurrentTransactionId();
-                    LOG.debug("Performing teardown with txnId "+txnId);
+                    //LOG.debug("Performing teardown with txnId "+txnId);
                     teardownAction(i);
                     printWarnings();
                     conn.commit();

@@ -181,7 +181,7 @@ public class SpliceDateFunctionsIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-    @Test @Ignore("DB-2937: database metadata not consistent")
+    @Test
     public void testDBMetadataGetFunctions() throws Exception {
         DatabaseMetaData dmd =  methodWatcher.getOrCreateConnection().getMetaData();
         TestUtils.printResult("getProcedures", dmd.getProcedures(null, "%", "%"), System.out);

@@ -1,25 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SlowTest;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 /**
  * Tests designed to exercise some particular aspect of Primary Keys over a large(ish) data set--in this case,
@@ -29,11 +20,12 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author Scott Fines
  * Created on: 7/29/13
  */
+// @Ignore("Ignored because it takes forever and doesn't usually help much, but is nifty in some cases")
 @Category(SlowTest.class)
-public class IndividualPrimaryKeyScanTest {
+public class IndividualPrimaryKeyScanIT {
     private static Logger LOG = Logger.getLogger(PrimaryKeyScanIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = IndividualPrimaryKeyScanTest.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = IndividualPrimaryKeyScanIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME = "item";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,
