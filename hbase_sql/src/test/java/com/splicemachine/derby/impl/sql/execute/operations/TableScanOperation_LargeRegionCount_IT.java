@@ -34,7 +34,7 @@ import static org.junit.Assert.assertTrue;
  * starting server.  See below for details.
  */
 @Category(SlowTest.class)
-@Ignore
+@Ignore("Needs to be tested manually - see javadoc")
 public class TableScanOperation_LargeRegionCount_IT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = TableScanOperation_LargeRegionCount_IT.class.getSimpleName().toUpperCase();

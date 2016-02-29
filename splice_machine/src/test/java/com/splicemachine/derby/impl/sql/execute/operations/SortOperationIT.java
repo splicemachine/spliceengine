@@ -260,7 +260,6 @@ public class SortOperationIT extends SpliceUnitTest {
 	}
 
     @Test
-//    @Ignore("Bugzilla 560")
     public void testOrderByFloatDesc() throws Exception {
         Map<String,Double> expected = Maps.newHashMapWithExpectedSize(3);
         expected.put("tom",13.4667);

@@ -19,9 +19,8 @@ import java.util.Arrays;
  * @author Scott Fines
  * Date: 3/19/14
  */
-//@Ignore("-sf- This can take forever, and it doesn't really test anything. Until it does, leave it ignored")
 @Category(SerialTest.class)
-@Ignore("DB-4272")
+@Ignore("Vacuum feature is not implemented on K2")
 public class VacuumIT {
 		private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		@ClassRule

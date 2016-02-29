@@ -219,8 +219,8 @@ public class SelectivityIT extends SpliceUnitTest {
         rowContainsQuery(3,"explain select * from tns_multiplepk where c1 is not null","outputRows=18,",methodWatcher);
     }
 
-        @Test
-    @Ignore("DB-3629")
+    @Test
+    @Ignore("reason unknown - DB-3629 is the supposed cause but that has been resolved")
     public void testInSelectivity() throws Exception {
         // with stats
         secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
@@ -348,7 +348,7 @@ public class SelectivityIT extends SpliceUnitTest {
 
 
     @Test
-    @Ignore
+    @Ignore("reason unknown")
     public void testOutOfBoundsPredicates() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("explain select * from ts_nulls where date(c3)='0000-01-01'");
         rs.next();
@@ -365,7 +365,7 @@ public class SelectivityIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
+    @Ignore("reason unknown")
     public void testExtractOperatorNodeSelectivity() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("explain select * from ts_low_cardinality where month(c3) = 1");
         rs.next();

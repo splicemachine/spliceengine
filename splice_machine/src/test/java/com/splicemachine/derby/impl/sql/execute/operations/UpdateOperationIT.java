@@ -383,7 +383,7 @@ public class UpdateOperationIT {
      * the NULL,NULL row isn't modified, so the number of rows modified = 0
      */
     @Test
-    @Ignore
+    @Ignore("issue with unique index behavior")
     public void testUpdateOverNullIndexWorks() throws Exception {
         new TableCreator(methodWatcher.createConnection())
                 .withCreate("create table nt (id int primary key, a int, b int)")

@@ -439,7 +439,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
     }
 
     @Test
-    @Ignore("Authentication error")
+    @Ignore("Fails due to general trigger issues not specific to hive integration")
     public void testInsertFireTrigger() throws Exception {
 
         createTrigger(tb.on("HIVEINTEGRATIONIT.G").named("trig").after().insert().statement().then("INSERT INTO HIVEINTEGRATIONIT.I VALUES('inserted a row')"));
