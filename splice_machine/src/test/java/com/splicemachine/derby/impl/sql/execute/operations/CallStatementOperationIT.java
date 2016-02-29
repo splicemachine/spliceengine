@@ -5,7 +5,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Set;
+import java.util.*;
 
 import com.splicemachine.test.SlowTest;
 import org.apache.commons.dbutils.DbUtils;
@@ -99,13 +99,26 @@ public class CallStatementOperationIT extends SpliceUnitTest {
             DbUtils.closeQuietly(rs);
 	}
 
-    @Ignore
+    @Test
     public void testCallGetTypeInfo() throws Exception{
-            CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLGETTYPEINFO(0,null)");
-            ResultSet rs = cs.executeQuery();
-            while(rs.next()){ // TODO No test
+        String[] expectedTypes = {"BIGINT", "LONG VARCHAR FOR BIT DATA", "VARCHAR () FOR BIT DATA", "CHAR () FOR BIT DATA",
+            "LONG VARCHAR", "CHAR", "NUMERIC", "DECIMAL", "INTEGER", "SMALLINT", "FLOAT", "REAL", "DOUBLE", "VARCHAR",
+            "BOOLEAN", "DATE", "TIME", "TIMESTAMP", "OBJECT", "BLOB", "CLOB", "XML"};
+        Arrays.sort(expectedTypes);
+
+        CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLGETTYPEINFO(0,null)");
+        ResultSet rs = cs.executeQuery();
+        try {
+            List<String> actual = new ArrayList<>(expectedTypes.length);
+            while (rs.next()) {
+                actual.add(rs.getString(1));
             }
+            String[] actualArray = actual.toArray(new String[actual.size()]);
+            Arrays.sort(actualArray);
+            Assert.assertArrayEquals(expectedTypes, actualArray);
+        } finally {
             DbUtils.closeQuietly(rs);
+        }
     }
 
     @Test

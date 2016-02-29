@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -80,13 +79,6 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 		Assert.assertTrue("incorrect number of rows returned", count > 0);
 	}
 	
-	@Ignore 
-	@Test
-	public void testExportTable() throws Exception{
-		Statement s = methodWatcher.getStatement();
-		s.execute("CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE (null,'T','myfile.del',null,null,null)");
-	}
-
 	@Test
 	public void testScanWithNullQualifier() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaname from sys.sysschemas s where schemaname is null");
@@ -132,7 +124,6 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
     public void testQualifiedIndexScan() throws Exception{
         PreparedStatement stmt = methodWatcher.prepareStatement("select " +
                 "s.schemaname,s.schemaid " +

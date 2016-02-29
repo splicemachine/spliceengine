@@ -100,13 +100,9 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 = 1","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
     }
 
-    @Ignore("Obsoleted by testRangeIndexLookup1 and testRangeIndexLookup2")
-    // Consider re-enabling this later, otherwise permanently remove it.
+    @Test
+    // Partially obsoleted by testRangeIndexLookup1 and testRangeIndexLookup2.
     public void testRangeIndexLookup() throws Exception {
-        // 10/10000
-        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 10","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
-        // 100/10000
-        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 100","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
         // 200/10000
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 200","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 1000/10000
