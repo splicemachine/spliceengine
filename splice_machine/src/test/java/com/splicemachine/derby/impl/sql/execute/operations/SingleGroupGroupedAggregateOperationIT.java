@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.test.SlowTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -121,6 +123,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(SlowTest.class)
     public void testRepeatedGroupedCount() throws Exception {
         /* Regression test for Bug 306 */
         for(int i=0;i<1000;i++){
@@ -186,7 +189,6 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test(timeout=20000)
-//    @Ignore("DB-2622 - ignoring to try and get clean builds on Jenkins")
     public void testGroupBySubselects() throws Exception {
         /*Regression test for DB-2014*/
         String query = String.format(
