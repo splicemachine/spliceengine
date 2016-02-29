@@ -4,8 +4,10 @@ import com.google.common.collect.Lists;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -19,7 +21,7 @@ import static org.junit.Assert.*;
  * @author Scott Fines
  *         Created on: 3/7/13
  */
-//@Category(SerialTest.class) //left serial until DB-1777 is resolved
+@Category(SerialTest.class) //left serial until DB-1777 is resolved
 public class UniqueIndexIT extends SpliceUnitTest{
 
     private static final String CLASS_NAME=UniqueIndexIT.class.getSimpleName().toUpperCase();
@@ -271,15 +273,13 @@ public class UniqueIndexIT extends SpliceUnitTest{
         }
     }
 
-
     @Test
-    @Ignore("Takes forever, but is useful for tracking down race condition errors")
+    @Ignore("still failing as of Feb 29 2016")
     public void testRepeatedCanDeleteEntry() throws Exception{
         for(int i=0;i<100;i++){
             testCanDeleteEntry();
         }
     }
-
 
     /**
      * DB-1020

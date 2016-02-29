@@ -3,11 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
 
+import com.splicemachine.test.SlowTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -324,6 +326,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     
     /* Regression test for DB-3614 */
     @Test
+    @Category(SlowTest.class)
     @Ignore("-sf- takes way too long to fail and interferes rest of build")
     public void testTenTableJoinExplainDuration() throws Exception {
     	int size = 10;

@@ -203,7 +203,7 @@ public class BulkWriteActionTest {
 						action.call();
 						Assert.fail("No error thrown!");
 				}catch(ExecutionException e){
-						@SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable rootCause = Throwables.getRootCause(e);
+							@SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable rootCause = Throwables.getRootCause(e);
 						Assert.assertTrue(rootCause instanceof RetriesExhaustedWithDetailsException);
 						throw Exceptions.parseException((RetriesExhaustedWithDetailsException)rootCause);
 				}

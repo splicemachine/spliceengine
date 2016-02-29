@@ -4,9 +4,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.Rows;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -22,6 +24,7 @@ import java.sql.ResultSet;
  * @author Scott Fines
  *         Date: 8/18/15
  */
+@Category(SlowTest.class)
 public class UpdateMultiOperationIT{
 
     private static final String SCHEMA = UpdateMultiOperationIT.class.getSimpleName().toUpperCase();

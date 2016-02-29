@@ -1,6 +1,7 @@
 
 package com.splicemachine.backup;
 
+import com.splicemachine.test.SlowTest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -18,6 +19,7 @@ import org.apache.hadoop.hbase.snapshot.SnapshotTestingUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,11 +29,10 @@ import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
 
-
 /**
  * Test clone snapshots from the client
  */
-@Ignore
+@Category(SlowTest.class)
 public class SnapshotUtilsTestIT{
     final Log LOG=LogFactory.getLog(getClass());
 

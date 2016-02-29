@@ -100,36 +100,6 @@ public class DecoderIT {
             .around(headerTableWatcher)
             .around(headerTableWatcher2);
 
-    /**
-     *
-     * @throws Exception
-     */
-    @Test
-    @Ignore("For manual checking")
-    public void testRowsManually() throws Exception {
-        for (String row : readRows(csvLocation)) {
-            int i = 1;
-            for (String col : row.split(",", -1)) {
-                if (col == null) {
-                    System.out.println(String.format("%2d is null",i));
-                    continue;
-                }
-                if (col.isEmpty()) {
-                    System.out.println(String.format("%2d is empty",i));
-                    continue;
-                }
-                try {
-                    Double d = Double.parseDouble(col);
-                    System.out.println(String.format("%2d is a double: %s",i,d.toString()));
-                } catch (NumberFormatException e) {
-                    System.out.println(String.format("%2d is NOT a double: %s",i,col));
-                }
-                    System.out.println("-----------------");
-                ++i;
-            }
-        }
-    }
-
     @Test
     public void testQueryRow20RowTable() throws Exception {
         String query = String.format("select * from %s.%s where %s.%s.transaction_header_key = 18",

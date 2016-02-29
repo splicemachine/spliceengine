@@ -214,23 +214,27 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testNonCoveringIndexScan() throws Exception {
-
+        // TBD
     }
 
     @Test
+    @Ignore
     public void testMostSelectiveIndexChosen() throws Exception {
-
+        // TBD
     }
 
     @Test
+    @Ignore
     public void test1PercentRangeScan() throws Exception {
-
+        // TBD
     }
 
     @Test
+    @Ignore
     public void test20PercentRangeScan() throws Exception {
-
+        // TBD
     }
 
 
