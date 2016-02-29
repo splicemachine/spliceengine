@@ -73,24 +73,34 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 tmpFlag,
                 opFactory,
                 partitionFactory);
+        String partitionSizeStr=properties.getProperty("partitionSize");
+        long pSize = -1l;
+        if(partitionSizeStr!=null){
+            try{
+                pSize=Long.parseLong(partitionSizeStr);
+            }catch(NumberFormatException nfe){
+               //TODO -sf- add a warning to the activation that we weren't able to
+            }
+        }
         ConglomerateUtils.createConglomerate(
-            containerId,
-            this,
-            ((SpliceTransaction)rawtran).getTxn(),
-            properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
-            properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR));
+                containerId,
+                this,
+                ((SpliceTransaction)rawtran).getTxn(),
+                properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
+                properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
+                pSize);
     }
 
     @Override
-    public void dropColumn(TransactionManager xact_manager, int column_id) throws StandardException {
-        SpliceLogUtils.trace(LOG, "dropColumn column_id=%s, table_nam=%s", column_id, getContainerid());
-        try {
-            format_ids = ConglomerateUtils.dropValueFromArray(format_ids,column_id-1);
-            collation_ids = ConglomerateUtils.dropValueFromArray(collation_ids,column_id-1);
-            ConglomerateUtils.updateConglomerate(this, (Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
-        } catch (StandardException e) {
+    public void dropColumn(TransactionManager xact_manager,int column_id) throws StandardException{
+        SpliceLogUtils.trace(LOG,"dropColumn column_id=%s, table_nam=%s",column_id,getContainerid());
+        try{
+            format_ids=ConglomerateUtils.dropValueFromArray(format_ids,column_id-1);
+            collation_ids=ConglomerateUtils.dropValueFromArray(collation_ids,column_id-1);
+            ConglomerateUtils.updateConglomerate(this,(Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
+        }catch(StandardException e){
             SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
-        } finally {
+        }finally{
         }
     }
 
@@ -220,8 +230,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @see Conglomerate#load
      **/
     public long load(TransactionManager xact_manager,
-            boolean createConglom,
-            RowLocationRetRowSource rowSource) throws StandardException{
+                     boolean createConglom,
+                     RowLocationRetRowSource rowSource) throws StandardException{
         SpliceLogUtils.trace(LOG,"load rowSourc %s",rowSource);
         return 0l;
     }
@@ -234,13 +244,13 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @see Conglomerate#open
      **/
     public ConglomerateController open(TransactionManager xact_manager,
-            Transaction rawtran,
-            boolean hold,
-            int open_mode,
-            int lock_level,
-            LockingPolicy locking_policy,
-            StaticCompiledOpenConglomInfo static_info,
-            DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
+                                       Transaction rawtran,
+                                       boolean hold,
+                                       int open_mode,
+                                       int lock_level,
+                                       LockingPolicy locking_policy,
+                                       StaticCompiledOpenConglomInfo static_info,
+                                       DynamicCompiledOpenConglomInfo dynamic_info) throws StandardException{
         SpliceLogUtils.trace(LOG,"open conglomerate id: %d",id.getContainerId());
         OpenSpliceConglomerate open_conglom=new OpenSpliceConglomerate(xact_manager,rawtran,hold,open_mode,lock_level,locking_policy,static_info,dynamic_info,this);
         return new HBaseController(open_conglom,rawtran,partitionFactory,opFactory);
@@ -415,8 +425,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
 
-        partitionFactory =SIDriver.driver().getTableFactory();
-        opFactory = SIDriver.driver().getOperationFactory();
+        partitionFactory=SIDriver.driver().getTableFactory();
+        opFactory=SIDriver.driver().getOperationFactory();
     }
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{

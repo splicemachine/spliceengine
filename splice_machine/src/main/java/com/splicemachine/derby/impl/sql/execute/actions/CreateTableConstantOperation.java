@@ -197,7 +197,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         // Put displayable table name into properties, which will ultimately be persisted
         // in the HTableDescriptor for convenient fetching where DataDictionary not available.
-        properties = new Properties();
+        if(properties==null)
+            properties = new Properties();
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
 
         /* create the conglomerate to hold the table's rows

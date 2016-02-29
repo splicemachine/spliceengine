@@ -1,23 +1,25 @@
 package com.splicemachine.derby.utils;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Preconditions;
-import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.log4j.Logger;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InvalidClassException;
@@ -28,48 +30,45 @@ import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
-import com.carrotsearch.hppc.BitSet;
-import scala.collection.Seq;
-
 /**
  * Utilities related to managing DerbyConglomerates
  *
  * @author Scott Fines
- * Created: 2/2/13 10:11 AM
+ *         Created: 2/2/13 10:11 AM
  */
-public class ConglomerateUtils  {
-//    public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
-    private static Logger LOG = Logger.getLogger(ConglomerateUtils.class);
+public class ConglomerateUtils{
+    //    public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
+    private static Logger LOG=Logger.getLogger(ConglomerateUtils.class);
 
     /**
      * Reads stored Conglomerate information and returns it as an instance of {@code instanceClass}.
      *
-     * @param conglomId the id of the conglomerate
+     * @param conglomId     the id of the conglomerate
      * @param instanceClass the type to return
-     * @param <T> the type to return
+     * @param <T>           the type to return
      * @return an instance of {@code T} which contains the conglomerate information.
      */
-    public static <T> T readConglomerate(long conglomId, Class<T> instanceClass, TxnView txn) throws StandardException {
+    public static <T> T readConglomerate(long conglomId,Class<T> instanceClass,TxnView txn) throws StandardException{
         SpliceLogUtils.trace(LOG,"readConglomerate {%d}, for instanceClass {%s}",conglomId,instanceClass);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomId);
         SIDriver driver=SIDriver.driver();
-        try (Partition partition =driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataGet get = driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
+        try(Partition partition=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+            DataGet get=driver.getOperationFactory().newDataGet(txn,Bytes.toBytes(conglomId),null);
             get.returnAllVersions();
-            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
-            EntryPredicateFilter predicateFilter  = EntryPredicateFilter.emptyPredicate();
+            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
+            EntryPredicateFilter predicateFilter=EntryPredicateFilter.emptyPredicate();
             get.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
-            DataResult result = partition.get(get,null);
-            byte[] data = result.userData().value();
+            DataResult result=partition.get(get,null);
+            byte[] data=result.userData().value();
 
-            EntryDecoder entryDecoder = new EntryDecoder();
+            EntryDecoder entryDecoder=new EntryDecoder();
             try{
-                if(data!=null) {
+                if(data!=null){
                     entryDecoder.set(data);
-                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                    byte[] nextRaw = decoder.decodeNextBytesUnsorted();
+                    MultiFieldDecoder decoder=entryDecoder.getEntryDecoder();
+                    byte[] nextRaw=decoder.decodeNextBytesUnsorted();
 
                     try{
                         return DerbyBytesUtil.fromBytesUnsafe(nextRaw);
@@ -82,14 +81,14 @@ public class ConglomerateUtils  {
             }finally{
                 entryDecoder.close();
             }
-        } catch (Exception e) {
+        }catch(Exception e){
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
         }
         return null;
     }
 
-    private static <T> T readVersioned(byte[] nextRaw,Class<T> instanceClass) throws IOException, StandardException {
-				/*
+    private static <T> T readVersioned(byte[] nextRaw,Class<T> instanceClass) throws IOException, StandardException{
+                /*
 				 * Unfortunately, back in the day we decided to encode Conglomerates using straight Java serialization.
 				 * Even more unfortunately, we then forgot to set the serialVersionUID on the Conglomerates that we would
 				 * be writing. Even MORE unfortunately than that, we didn't detect the issue until after our first beta
@@ -131,19 +130,19 @@ public class ConglomerateUtils  {
 				 * Or you can just hope that this works and never change anything about Conglomerates. Ever. For any reason.
 				 * Then you'll be fine.
 			 	*/
-        ByteArrayInputStream in = new ByteArrayInputStream(nextRaw);
-        ObjectInputStream ois = new ObjectInputStream(in);
-        Field binField = null;
-        Method setMethod = null;
+        ByteArrayInputStream in=new ByteArrayInputStream(nextRaw);
+        ObjectInputStream ois=new ObjectInputStream(in);
+        Field binField=null;
+        Method setMethod=null;
         try{
-            binField = ObjectInputStream.class.getDeclaredField("bin");
+            binField=ObjectInputStream.class.getDeclaredField("bin");
             binField.setAccessible(true);
-            Object bin = binField.get(ois);
+            Object bin=binField.get(ois);
             bin.getClass().getDeclaredMethods();
-            setMethod = bin.getClass().getDeclaredMethod("setBlockDataMode",boolean.class);
+            setMethod=bin.getClass().getDeclaredMethod("setBlockDataMode",boolean.class);
             setMethod.setAccessible(true);
             setMethod.invoke(bin,false);
-        } catch (InvocationTargetException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException e) {
+        }catch(InvocationTargetException|NoSuchFieldException|IllegalAccessException|NoSuchMethodException e){
             throw new IOException(e); //shouldn't happen, because nothing goofy is going on
         }finally{
             if(binField!=null)
@@ -154,32 +153,32 @@ public class ConglomerateUtils  {
         ois.readByte();
         ois.readByte();
         ois.readUTF();
-        int off = nextRaw.length-in.available();
+        int off=nextRaw.length-in.available();
 
         //overwrite the serialVersionUID
 
-        Field svuidField = null;
+        Field svuidField=null;
         long val;
-        try {
-            svuidField = instanceClass.getDeclaredField("serialVersionUID");
+        try{
+            svuidField=instanceClass.getDeclaredField("serialVersionUID");
             svuidField.setAccessible(true);
-            val = (Long) svuidField.get(null);
-        } catch (NoSuchFieldException e) {
-            throw new IOException("Programmer forgot to state the serialVersionUID on class "+ instanceClass,e); //this can happen, but it's a programmer error
-        } catch (IllegalAccessException e) {
+            val=(Long)svuidField.get(null);
+        }catch(NoSuchFieldException e){
+            throw new IOException("Programmer forgot to state the serialVersionUID on class "+instanceClass,e); //this can happen, but it's a programmer error
+        }catch(IllegalAccessException e){
             throw new IOException(e); //should never happen, since we dealt with accessibility
-        } finally{
+        }finally{
             if(svuidField!=null)
                 svuidField.setAccessible(false);
         }
-        nextRaw[off + 7] = (byte) (val       );
-        nextRaw[off + 6] = (byte) (val >>>  8);
-        nextRaw[off + 5] = (byte) (val >>> 16);
-        nextRaw[off + 4] = (byte) (val >>> 24);
-        nextRaw[off + 3] = (byte) (val >>> 32);
-        nextRaw[off + 2] = (byte) (val >>> 40);
-        nextRaw[off + 1] = (byte) (val >>> 48);
-        nextRaw[off    ] = (byte) (val >>> 56);
+        nextRaw[off+7]=(byte)(val);
+        nextRaw[off+6]=(byte)(val>>>8);
+        nextRaw[off+5]=(byte)(val>>>16);
+        nextRaw[off+4]=(byte)(val>>>24);
+        nextRaw[off+3]=(byte)(val>>>32);
+        nextRaw[off+2]=(byte)(val>>>40);
+        nextRaw[off+1]=(byte)(val>>>48);
+        nextRaw[off]=(byte)(val>>>56);
 
         return DerbyBytesUtil.fromBytes(nextRaw);
     }
@@ -187,16 +186,29 @@ public class ConglomerateUtils  {
     /**
      * Stores information about a new conglomerate, specified by {@code conglomId}.
      *
-     * @param conglomId the conglom id to store information under
+     * @param conglomId    the conglom id to store information under
      * @param conglomerate the conglomerate to store
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(long conglomId, Conglomerate conglomerate, Txn txn) throws StandardException {
-        createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate), txn, null, null);
+    public static void createConglomerate(long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
+        createConglomerate(Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,-1);
     }
 
-    public static void createConglomerate(long conglomId, Conglomerate conglomerate, Txn txn, String tableDisplayName, String indexDisplayName) throws StandardException {
-        createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate), txn, tableDisplayName, indexDisplayName);
+    public static void createConglomerate(long conglomId,
+                                          Conglomerate conglomerate,
+                                          Txn txn,
+                                          String tableDisplayName,
+                                          String indexDisplayName) throws StandardException{
+        createConglomerate(Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,tableDisplayName,indexDisplayName,-1);
+    }
+
+    public static void createConglomerate(long conglomId,
+                                          Conglomerate conglomerate,
+                                          Txn txn,
+                                          String tableDisplayName,
+                                          String indexDisplayName,
+                                          long partitionSize) throws StandardException{
+        createConglomerate(Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,tableDisplayName,indexDisplayName,partitionSize);
     }
 
     /**
@@ -206,17 +218,26 @@ public class ConglomerateUtils  {
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(
-        String tableName, long conglomId, byte[] conglomData, Txn txn, String tableDisplayName, String indexDisplayName) throws StandardException {
-        SpliceLogUtils.debug(LOG, "creating Hbase table for conglom {%s} with data {%s}", tableName, conglomData);
+            String tableName,
+            long conglomId,
+            byte[] conglomData,
+            Txn txn,
+            String tableDisplayName,
+            String indexDisplayName,
+            long partitionSize) throws StandardException{
+        SpliceLogUtils.debug(LOG,"creating Hbase table for conglom {%s} with data {%s}",tableName,conglomData);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
         Preconditions.checkNotNull(tableName);
-        EntryEncoder entryEncoder = null;
+        EntryEncoder entryEncoder=null;
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
-        try(PartitionAdmin admin = tableFactory.getAdmin()){
-            admin.newPartition().withName(tableName).withDisplayNames(new String[] {tableDisplayName, indexDisplayName}).create();
-            try(Partition table = tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+        try(PartitionAdmin admin=tableFactory.getAdmin()){
+            PartitionCreator partitionCreator=admin.newPartition().withName(tableName).withDisplayNames(new String[]{tableDisplayName,indexDisplayName});
+            if(partitionSize >0)
+                partitionCreator = partitionCreator.withPartitionSize(partitionSize);
+            partitionCreator.create();
+            try(Partition table=tableFactory.getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
                 DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomId));
                 BitSet fields=new BitSet();
                 fields.set(0);
@@ -225,8 +246,8 @@ public class ConglomerateUtils  {
                 put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
                 table.put(put);
             }
-        } catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
+        }catch(Exception e){
+            SpliceLogUtils.logAndThrow(LOG,"Error Creating Conglomerate",Exceptions.parseException(e));
         }finally{
             if(entryEncoder!=null)
                 entryEncoder.close();
@@ -239,21 +260,21 @@ public class ConglomerateUtils  {
      * @param conglomerate the new conglomerate information to update
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void updateConglomerate(Conglomerate conglomerate, Txn txn) throws StandardException {
-        String tableName = Long.toString(conglomerate.getContainerid());
-        SpliceLogUtils.debug(LOG, "updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
-        EntryEncoder entryEncoder = null;
+    public static void updateConglomerate(Conglomerate conglomerate,Txn txn) throws StandardException{
+        String tableName=Long.toString(conglomerate.getContainerid());
+        SpliceLogUtils.debug(LOG,"updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
+        EntryEncoder entryEncoder=null;
         SIDriver driver=SIDriver.driver();
-        try(Partition table =driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
-            DataPut put = driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomerate.getContainerid()));
-            BitSet setFields = new BitSet();
+        try(Partition table=driver.getTableFactory().getTable(SQLConfiguration.CONGLOMERATE_TABLE_NAME_BYTES)){
+            DataPut put=driver.getOperationFactory().newDataPut(txn,Bytes.toBytes(conglomerate.getContainerid()));
+            BitSet setFields=new BitSet();
             setFields.set(0);
-            entryEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
+            entryEncoder=EntryEncoder.create(SpliceKryoRegistry.getInstance(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,entryEncoder.encode());
             table.put(put);
-        }catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));
+        }catch(Exception e){
+            SpliceLogUtils.logAndThrow(LOG,"update Conglomerate Failed",Exceptions.parseException(e));
         }finally{
             if(entryEncoder!=null)
                 entryEncoder.close();
@@ -271,7 +292,7 @@ public class ConglomerateUtils  {
         return conglomSequencer().next();
     }
 
-    public static void setNextConglomerateId(long conglomerateId) throws IOException {
+    public static void setNextConglomerateId(long conglomerateId) throws IOException{
         LOG.trace("setting next conglomerate id");
         conglomSequencer().setPosition(conglomerateId);
     }
@@ -279,30 +300,30 @@ public class ConglomerateUtils  {
     private static volatile Sequencer CONGLOM_SEQUENCE;
 
     private static Sequencer conglomSequencer(){
-        Sequencer s = CONGLOM_SEQUENCE;
+        Sequencer s=CONGLOM_SEQUENCE;
         if(s==null){
-            s = loadConglomSequencer();
+            s=loadConglomSequencer();
         }
         return s;
     }
 
     private static synchronized Sequencer loadConglomSequencer(){
-        Sequencer s= CONGLOM_SEQUENCE;
+        Sequencer s=CONGLOM_SEQUENCE;
         if(s==null){
-            ServiceLoader<Sequencer> loader = ServiceLoader.load(Sequencer.class);
-            Iterator<Sequencer> iter = loader.iterator();
+            ServiceLoader<Sequencer> loader=ServiceLoader.load(Sequencer.class);
+            Iterator<Sequencer> iter=loader.iterator();
             if(!iter.hasNext())
                 throw new IllegalStateException("No Sequencers found!");
-            s = CONGLOM_SEQUENCE = iter.next();
+            s=CONGLOM_SEQUENCE=iter.next();
         }
         return s;
     }
 
-    public static int[] dropValueFromArray(int[] initialArray, int position) {
-        int[] droppedArray = new int[initialArray.length-1];
-        System.arraycopy(initialArray, 0, droppedArray, 0, position);
-        if (position != initialArray.length)
-            System.arraycopy(initialArray, position+1, droppedArray, position, initialArray.length-1-position);
+    public static int[] dropValueFromArray(int[] initialArray,int position){
+        int[] droppedArray=new int[initialArray.length-1];
+        System.arraycopy(initialArray,0,droppedArray,0,position);
+        if(position!=initialArray.length)
+            System.arraycopy(initialArray,position+1,droppedArray,position,initialArray.length-1-position);
         return droppedArray;
     }
 

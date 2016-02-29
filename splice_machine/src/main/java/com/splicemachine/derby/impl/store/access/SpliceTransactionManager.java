@@ -637,7 +637,7 @@ public class SpliceTransactionManager implements XATransactionController,
         long conglomId = conglom.getContainerid();
         if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
             if (tempCongloms == null)
-                tempCongloms = new HashMap<Long, Conglomerate>();
+                tempCongloms =new HashMap<>();
             tempCongloms.put(conglomId, conglom);
         } else {
             accessmanager.conglomCacheAddEntry(conglomId, conglom);

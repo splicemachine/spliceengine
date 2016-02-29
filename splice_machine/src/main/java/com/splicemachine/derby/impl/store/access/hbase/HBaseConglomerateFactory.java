@@ -62,13 +62,18 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
             throws StandardException{
         HBaseConglomerate hbase=new HBaseConglomerate();
 
+        SIDriver driver=SIDriver.driver();
         hbase.create(
-                xact_mgr.getRawStoreXact(),segment,input_containerid,
-                template,columnOrder,collationIds,properties,
+                xact_mgr.getRawStoreXact(),
+                segment,input_containerid,
+                template,
+                columnOrder,
+                collationIds,
+                properties,
                 hbase.getTypeFormatId(),
                 temporaryFlag,
-                SIDriver.driver().getOperationFactory(),
-                SIDriver.driver().getTableFactory());
+                driver.getOperationFactory(),
+                driver.getTableFactory());
 
         return hbase;
     }

@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *         Date: 12/23/15
  */
 public class MPartitionFactory implements PartitionFactory<Object>{
-    private final Map<String,Partition> partitionMap = new ConcurrentHashMap<>();
+    private final Map<String, Partition> partitionMap=new ConcurrentHashMap<>();
 
     @Override
     public void initialize(Clock clock,SConfiguration configuration,PartitionInfoCache partitionInfoCache) throws IOException{
@@ -33,7 +33,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
     @Override
     public Partition getTable(String name) throws IOException{
         Partition partition=partitionMap.get(name);
-        if(partition==null) throw new IOException("Table "+ name+" not found!");
+        if(partition==null) throw new IOException("Table "+name+" not found!");
         return partition;
     }
 
@@ -52,7 +52,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withName(String name){
-            this.name = name;
+            this.name=name;
             return this;
         }
 
@@ -69,8 +69,14 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
+        public PartitionCreator withPartitionSize(long partitionSize){
+            //no-op
+            return this;
+        }
+
+        @Override
         public Partition create() throws IOException{
-            assert name!=null: "No name specified!";
+            assert name!=null:"No name specified!";
             final MPartition p=new MPartition(name,name);
             partitionMap.put(name,p);
             return p;
@@ -93,7 +99,9 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             throw new UnsupportedOperationException("Cannot split partitions in an in-memory storage engine!");
         }
 
-        @Override public void close() throws IOException{ } //no-op
+        @Override
+        public void close() throws IOException{
+        } //no-op
 
         @Override
         public Collection<PartitionServer> allServers() throws IOException{

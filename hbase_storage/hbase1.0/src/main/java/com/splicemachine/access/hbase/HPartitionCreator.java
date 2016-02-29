@@ -47,6 +47,12 @@ public class HPartitionCreator implements PartitionCreator{
     }
 
     @Override
+    public PartitionCreator withPartitionSize(long partitionSize){
+        descriptor.setMaxFileSize(partitionSize*1024*1024);
+        return this;
+    }
+
+    @Override
     public PartitionCreator withCoprocessor(String coprocessor) throws IOException{
         assert descriptor!=null: "Programmer error: must specify name first!";
         descriptor.addCoprocessor(coprocessor);
