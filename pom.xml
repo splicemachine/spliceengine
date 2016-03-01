@@ -75,6 +75,11 @@
                 <artifactId>db-tools-ij</artifactId>
                 <version>${derby.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.splicetest.sqlj</groupId>
+                <artifactId>sqlj-it-procs</artifactId>
+                <version>1.0.3-SNAPSHOT</version>
+            </dependency>
             <!-- third party dependencies -->
             <dependency>
                 <groupId>ant-contrib</groupId>
