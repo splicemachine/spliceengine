@@ -213,29 +213,10 @@ public class IndexSelectivityIT extends SpliceUnitTest {
             "ProjectRestrict", "outputRows=4998");
     }
 
-    @Test
-    @Ignore
-    public void testNonCoveringIndexScan() throws Exception {
-        // TBD
-    }
-
-    @Test
-    @Ignore
-    public void testMostSelectiveIndexChosen() throws Exception {
-        // TBD
-    }
-
-    @Test
-    @Ignore
-    public void test1PercentRangeScan() throws Exception {
-        // TBD
-    }
-
-    @Test
-    @Ignore
-    public void test20PercentRangeScan() throws Exception {
-        // TBD
-    }
-
+    // Possible future tests:
+    // testNonCoveringIndexScan
+    // testMostSelectiveIndexChosen
+    // test1PercentRangeScan
+    // test20PercentRangeScan
 
 }

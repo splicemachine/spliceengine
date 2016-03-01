@@ -58,7 +58,7 @@ public class IndividualPrimaryKeyScanIT {
     public void testCanSeeEveryPrimaryKey() throws Exception {
         /*
          * We know that the file contains every primary key from 1 to 5000, so check them all.
-         * Note: This test takes a long time to run (50 seconds on my machine), so @Ignore it out if you need
+         * Note: This test takes a long time to run (50 seconds on my machine), so skip it if you need
          * tests to run faster and you aren't worried about this.
          */
         PreparedStatement ps = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher+" where i_id = ?");
@@ -83,7 +83,7 @@ public class IndividualPrimaryKeyScanIT {
     public void testCanSeeEveryPrimaryKeyWhenUsingCompoundQualifiers() throws Exception {
         /*
          * We know that the file contains every primary key from 1 to 5000, so check them all.
-         * Note: This test takes a long time to run (50 seconds on my machine), so @Ignore it out if you need
+         * Note: This test takes a long time to run (50 seconds on my machine), so skip it if you need
          * tests to run faster and you aren't worried about this.
          */
         PreparedStatement ps = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher+" where i_id < ? and i_id > ?");

@@ -103,7 +103,6 @@ public class TimeTableScanIT extends SpliceUnitTest {
 	}
 
 	@Test
-//	@Ignore
 	public void testGetBetweenTimestamps() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("select id,ts,value from %s where ts between ? and ?",this.getTableReference(TABLE_NAME_1)));
 		Timestamp finish = new Timestamp(startTime.getTime()+2*INTERVAL);

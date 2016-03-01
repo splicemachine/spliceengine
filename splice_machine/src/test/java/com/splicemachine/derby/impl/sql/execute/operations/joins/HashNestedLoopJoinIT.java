@@ -24,7 +24,6 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 
 @Category(SerialTest.class) //made sequential because of joinWithStatistics() test
-@Ignore
 public class HashNestedLoopJoinIT {
 
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();
@@ -50,7 +49,7 @@ public class HashNestedLoopJoinIT {
         tableCreator.withTableName("t2").create();
 
         String JOIN_SQL = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-                "t1 inner join t2 --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "t1 inner join t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on t1.c1 = t2.c1";
 
         ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
@@ -81,7 +80,7 @@ public class HashNestedLoopJoinIT {
         tableCreator.withTableName("B").create();
 
         String JOIN_SQL = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-                "A inner join B --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "A inner join B --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on A.c1 = B.c1" +
                 " where A.c2 > 1 AND" +
                 " (" +
@@ -121,7 +120,7 @@ public class HashNestedLoopJoinIT {
                 .create();
 
         String JOIN_SQL = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-                "ta inner join tb --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "ta inner join tb --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on ta.c1 = tb.c1 where beta=30";
 
         ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
@@ -166,7 +165,7 @@ public class HashNestedLoopJoinIT {
                 .create();
 
         String JOIN_SQL = "select schemaname,tablename,version from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-                "schemas s join tables t --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "schemas s join tables t --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on s.schemaid = t.schemaid where t.tablename='table_07' and s.schemaname='schema_02'";
 
         ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
@@ -212,7 +211,7 @@ public class HashNestedLoopJoinIT {
                 " sales \n" +
                 " join items " +
                 "on sales.item_id = items.item_id \n" +
-                " join dates --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                " join dates --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on sales.date_id = dates.date_id \n" +
                 "";
 
@@ -229,6 +228,7 @@ public class HashNestedLoopJoinIT {
 
 
     @Test
+    @Ignore("probably obsolete test - uses derby stats and task history")
     public void joinWithStatistics() throws Exception {
 
         Connection conn = watcher.getOrCreateConnection();
@@ -237,8 +237,8 @@ public class HashNestedLoopJoinIT {
 
         final String RANDOM_LONG = RandomStringUtils.randomNumeric(9);
 
-        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)").execute();
-        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)").execute();
+//        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)").execute();
+//        watcher.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)").execute();
 
         // primary keys are 0,1,2...99
         new TableCreator(conn).withCreate("create table tableA (c1 int, primary key(c1))")
@@ -251,7 +251,7 @@ public class HashNestedLoopJoinIT {
                 .withRows(new IntegerRows(300, 1, 75)).create();
 
         String JOIN_SQL = "select count(*) as \"Row Count\" from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-                "tableA a inner join tableB b --SPLICE-PROPERTIES joinStrategy=HASH\n" +
+                "tableA a inner join tableB b --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "on a.c1 = b.c1 and " + RANDOM_LONG + "=" + RANDOM_LONG;
 
         ResultSet rs = conn.createStatement().executeQuery(JOIN_SQL);
@@ -265,9 +265,11 @@ public class HashNestedLoopJoinIT {
 
         // Assert that there are task history rows with stats: REMOTE_SCAN_ROWS=26, LOCAL_SCAN_ROWS=100, OUTPUT_ROWS=26
         // Stats are inserted into SYS.SYSTASKHISTORY asynchronously.
-        StatementHistory statement = statementHistoryDAO.findStatement(RANDOM_LONG, 20, TimeUnit.SECONDS);
-        List<TaskHistory> taskHistoryList = taskHistoryDAO.getByStatementId(statement.getStatementId(), 20, TimeUnit.SECONDS);
-        Assert.fail("IMPLEMENT USING JDBC");
+
+        // The rest of this test is commented out because we no longer have task
+//        StatementHistory statement = statementHistoryDAO.findStatement(RANDOM_LONG, 20, TimeUnit.SECONDS);
+//        List<TaskHistory> taskHistoryList = taskHistoryDAO.getByStatementId(statement.getStatementId(), 20, TimeUnit.SECONDS);
+//        Assert.fail("IMPLEMENT USING JDBC");
 //        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(REMOTE_SCAN_ROWS, 25L))));
 //        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(LOCAL_SCAN_ROWS, 100L))));
 //        assertFalse(isEmpty(filter(taskHistoryList, new TaskHistoryOperationMetricPredicate(OUTPUT_ROWS, 25L))));

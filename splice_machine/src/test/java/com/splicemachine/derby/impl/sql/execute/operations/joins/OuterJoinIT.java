@@ -19,7 +19,6 @@ import java.util.Map;
 
 import static com.splicemachine.homeless.TestUtils.o;
 
-
 public class OuterJoinIT extends SpliceUnitTest { 
 
     private static Logger LOG = Logger.getLogger(OuterJoinIT.class);
@@ -54,11 +53,6 @@ public class OuterJoinIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_NAME_11, CLASS_NAME, "(id int, parentId int)");
     protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher(TABLE_NAME_12, CLASS_NAME, "(id int, parentId int)");
 
-    /*
-
-     
-     */
-    
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -166,7 +160,6 @@ public class OuterJoinIT extends SpliceUnitTest {
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(11, results.size());
-
     }
 
     @Test
@@ -193,18 +186,17 @@ public class OuterJoinIT extends SpliceUnitTest {
         while (rs.next()) {
             j++;
             LOG.info(String.format("cc.sa=%s,count=%dd", rs.getString(1), rs.getInt(2)));
-//			Assert.assertNotNull(rs.getString(1));
-//			if (!rs.getString(1).equals("9")) {
-//				Assert.assertEquals(1l,rs.getLong(2));
-//			}
+			Assert.assertNotNull(rs.getString(1));
+			if (!rs.getString(1).equals("9")) {
+				Assert.assertEquals(1l,rs.getLong(2));
+			}
         }
         Assert.assertEquals(10, j);
     }
 
     @Test
-    @Ignore("DB-216")
     public void testScrollableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n on cc.si = dd.si");
         int j = 0;
         while (rs.next()) {
             j++;
@@ -221,9 +213,8 @@ public class OuterJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("DB-216")
     public void testSinkableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n on cc.si = dd.si group by cc.si");
         int j = 0;
         while (rs.next()) {
             j++;
