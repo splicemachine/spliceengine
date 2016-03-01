@@ -25,8 +25,7 @@
     </repositories>
     <properties>
         <derby.version>2.0.1.0-SNAPSHOT</derby.version>
-        <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest,
-            com.splicemachine.test.BackupTest
+        <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
         <failTasksRandomly>true</failTasksRandomly>
         <!-- run chaos monkey -->
