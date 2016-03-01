@@ -24,12 +24,16 @@ import com.splicemachine.pipeline.contextfactory.ReferenceCountingFactoryDriver;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.version.ManifestReader;
+import com.splicemachine.utils.logging.LogManager;
+import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.SnowflakeLoader;
 import com.splicemachine.uuid.UUIDService;
 import org.apache.log4j.Logger;
 
+import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.Properties;
@@ -51,6 +55,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private Connection internalConnection;
     private DatabaseVersion spliceVersion;
     private ManifestReader manifestReader;
+    private Logging logging;
 
     public EngineLifecycleService(DistributedDerbyStartup startup,SConfiguration configuration){
         this.startup=startup;
@@ -106,11 +111,24 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         SpliceDatabase db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getDatabase();
         configuration.addDefaults(OperationConfiguration.defaults);
         db.registerDDL();
+        logging = new LogManager();
     }
 
     @Override
     public void registerJMX(MBeanServer mbs) throws Exception{
         manifestReader.registerJMX(mbs);
+
+        try{
+            ObjectName on=new ObjectName("com.splicemachine.utils.logging:type=LogManager");
+            mbs.registerMBean(logging,on);
+        }catch(InstanceAlreadyExistsException ignored){
+            /*
+             * For most purposes, this should never happen. However, it's possible to happen
+             * when you are booting a regionserver and master in the same JVM (e.g. for testing purposes); Since
+             * we can only really have one version of the software on a single node at one time, we just ignore
+             * this exception and don't worry about it too much.
+             */
+        }
     }
 
     @Override
