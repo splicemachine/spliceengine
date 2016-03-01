@@ -22,6 +22,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
 
@@ -144,16 +145,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public PairDataSet<String, InputStream> readWholeTextFile(String path) {
         return readWholeTextFile(path,null);
     }
-    
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
-            JavaRDD rdd = SpliceSpark.getContext().textFile(path);
+            JavaPairRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(
+                path, WholeTextInputFormat.class, String.class, InputStream.class, HConfiguration.INSTANCE.unwrapDelegate());
             RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
-            return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
-                path, WholeTextInputFormat.class, String.class, InputStream.class, HConfiguration.INSTANCE.unwrapDelegate()));
+            return new SparkPairDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {
