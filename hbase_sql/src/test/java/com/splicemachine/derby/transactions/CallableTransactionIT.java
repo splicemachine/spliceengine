@@ -23,7 +23,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  *		 Created on: 2/27/15
  */
 @Category({Transactions.class})
-@Ignore("DB-4272")
 public class CallableTransactionIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = CallableTransactionIT.class.getSimpleName().toUpperCase();
@@ -33,7 +32,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
-	private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/txn-it-procs/txn-it-procs-1.0.1.jar";
+	private static final String STORED_PROCS_JAR_FILE = getResourceDirectory() + "/txn-it-procs/txn-it-procs-1.0.2.jar";
 	private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + ".TXN_IT_PROCS_JAR";
 	private static final String EMPLOYEE_TABLE_NAME_BASE = SCHEMA_NAME + ".EMPLOYEE";
 
