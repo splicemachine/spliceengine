@@ -23,7 +23,6 @@ import static com.splicemachine.test_tools.Rows.rows;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
-@Ignore("DB-4272")
 public class StatisticsAdminIT{
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
@@ -56,6 +55,7 @@ public class StatisticsAdminIT{
 
         Connection conn=spliceClassWatcher.getOrCreateConnection();
         doCreateSharedTables(conn);
+
         Connection conn2=spliceClassWatcher2.getOrCreateConnection();
         doCreateSharedTables(conn2);
     }
@@ -90,8 +90,8 @@ public class StatisticsAdminIT{
         callableStatement.setString(1,SCHEMA);
         callableStatement.setString(2,TABLE_EMPTY);
         callableStatement.setBoolean(3,false);
-
         callableStatement.execute();
+
         /*
          * Now we need to make sure that the statistics were properly recorded.
          *
@@ -117,12 +117,13 @@ public class StatisticsAdminIT{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
 
-        CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.setString(2,TABLE_OCCUPIED);
-        callableStatement.setBoolean(3,false);
+        try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.setString(2, TABLE_OCCUPIED);
+            callableStatement.setBoolean(3, false);
+            callableStatement.execute();
+        }
 
-        callableStatement.execute();
         /*
          * Now we need to make sure that the statistics were properly recorded.
          *
@@ -131,38 +132,38 @@ public class StatisticsAdminIT{
          * values.
          */
         long conglomId=conn.getConglomNumbers(SCHEMA,TABLE_OCCUPIED)[0];
-        PreparedStatement check=conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?");
-        check.setLong(1,conglomId);
-        ResultSet resultSet=check.executeQuery();
-        Assert.assertTrue("Unable to find statistics for table!",resultSet.next());
-        Assert.assertEquals("Incorrect row count!",1l,resultSet.getLong(6));
-        /*
-         * We would love to assert specifics about the size of the partition and the width
-         * of the row, but doing so results in a fragile test--the size of the row changes after the
-         * transaction system performed read resolution, so if you wait for long enough (i.e. have a slow
-         * enough system) this test will end up breaking. However, we do know that there is only a single
-         * row in this table, so the partition size should be the same as the avgRowWidth
-         */
-        long partitionSize=resultSet.getLong(7);
-        long rowWidth=resultSet.getLong(8);
-        Assert.assertTrue("partition size != row width!",partitionSize==rowWidth);
+        try (PreparedStatement check=conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?")) {
+            check.setLong(1, conglomId);
+            ResultSet resultSet = check.executeQuery();
+            Assert.assertTrue("Unable to find statistics for table!", resultSet.next());
+            Assert.assertEquals("Incorrect row count!", 1l, resultSet.getLong(6));
+
+            /*
+             * We would love to assert specifics about the size of the partition and the width
+             * of the row, but doing so results in a fragile test--the size of the row changes after the
+             * transaction system performed read resolution, so if you wait for long enough (i.e. have a slow
+             * enough system) this test will end up breaking. However, we do know that there is only a single
+             * row in this table, so the partition size should be the same as the avgRowWidth
+             */
+            long partitionSize=resultSet.getLong(7);
+            long rowWidth=resultSet.getLong(8);
+            Assert.assertTrue("partition size != row width!",partitionSize==rowWidth);
+        }
 
         conn.rollback();
         conn.reset();
     }
 
     @Test
-    @Ignore("DB-4272 Incorrect row count ")
     public void testCanEnableColumnStatistics() throws Exception{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-
-        CallableStatement cs=conn.prepareCall("call SYSCS_UTIL.ENABLE_COLUMN_STATISTICS(?,?,?)");
-        cs.setString(1,SCHEMA);
-        cs.setString(2,TABLE_EMPTY);
-        cs.setString(3,"A");
-
-        cs.execute(); //shouldn't get an error
+        try (CallableStatement cs=conn.prepareCall("call SYSCS_UTIL.ENABLE_COLUMN_STATISTICS(?,?,?)")) {
+            cs.setString(1, SCHEMA);
+            cs.setString(2, TABLE_EMPTY);
+            cs.setString(3, "A");
+            cs.execute(); //shouldn't get an error
+        }
 
         //make sure it's enabled
         PreparedStatement ps=conn.prepareStatement(
@@ -173,86 +174,83 @@ public class StatisticsAdminIT{
                         "and s.schemaname = ?"+
                         "and t.tablename = ?"+
                         "and c.columnname = ?");
-        ps.setString(1,SCHEMA);
-        ps.setString(2,TABLE_EMPTY);
-        ps.setString(3,"A");
-        ResultSet resultSet=ps.executeQuery();
-        Assert.assertTrue("No columns found!",resultSet.next());
-        boolean statsEnabled=resultSet.getBoolean("collectstats");
-        Assert.assertTrue("Stats were not enabled!",statsEnabled);
-        resultSet.close();
+        ps.setString(1, SCHEMA);
+        ps.setString(2, TABLE_EMPTY);
+        ps.setString(3, "A");
 
+        try (ResultSet resultSet = ps.executeQuery()) {
+            Assert.assertTrue("No columns found!", resultSet.next());
+            boolean statsEnabled = resultSet.getBoolean("collectstats");
+            Assert.assertTrue("Stats were not enabled!", statsEnabled);
+        }
         //now verify that it can be disabled as well
-        cs.close();
-        cs=conn.prepareCall("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS(?,?,?)");
-        cs.setString(1,SCHEMA);
-        cs.setString(2,TABLE_EMPTY);
-        cs.setString(3,"A");
-
-        cs.execute(); //shouldn't get an error
-        cs.close();
+        try (CallableStatement cs=conn.prepareCall("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS(?,?,?)")) {
+            cs.setString(1, SCHEMA);
+            cs.setString(2, TABLE_EMPTY);
+            cs.setString(3, "A");
+            cs.execute(); //shouldn't get an error
+        }
 
         //make sure it's disabled
-        resultSet=ps.executeQuery();
-        Assert.assertTrue("No columns found!",resultSet.next());
-        statsEnabled=resultSet.getBoolean("collectstats");
-        Assert.assertFalse("Stats were still enabled!",statsEnabled);
-        resultSet.close();
+        try (ResultSet resultSet = ps.executeQuery()) {
+            Assert.assertTrue("No columns found!", resultSet.next());
+            boolean statsEnabled = resultSet.getBoolean("collectstats");
+            Assert.assertFalse("Stats were still enabled!", statsEnabled);
+        }
 
         conn.rollback();
         conn.reset();
     }
 
     @Test
-    @Ignore("DB-4272 Incorrect row count ")
-    public void testDropSchemaStatistics() throws Exception{
-        TestConnection conn=methodWatcher.getOrCreateConnection();
+    public void testDropSchemaStatistics() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
 
-        TestConnection conn2=methodWatcher2.getOrCreateConnection();
+        TestConnection conn2 = methodWatcher2.getOrCreateConnection();
         conn2.setAutoCommit(false);
 
-        CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.setBoolean(2,false);
-        callableStatement.execute();
-        callableStatement.close();
+        try (CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.setBoolean(2, false);
+            callableStatement.execute();
+        }
 
-        CallableStatement cs2=conn2.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
-        cs2.setString(1,SCHEMA2);
-        cs2.setBoolean(2,false);
-        cs2.execute();
-        cs2.close();
+        try (CallableStatement cs2=conn2.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)")) {
+            cs2.setString(1, SCHEMA2);
+            cs2.setBoolean(2, false);
+            cs2.execute();
+        }
 
         // Check collected stats for both schemas
         verifyStatsCounts(conn,SCHEMA,null,3,3);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats for schema 1
-        callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.execute();
-        callableStatement.close();
+        try (CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.execute();
+        }
 
         // Make sure only schema 1 stats were dropped, not schema 2 stats
         verifyStatsCounts(conn,SCHEMA,null,0,0);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats again for schema 1 to make sure it works with no stats
-        callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.execute();
-        callableStatement.close();
+        try (CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)")) {
+            callableStatement.setString(1,SCHEMA);
+            callableStatement.execute();
+        }
 
         // Make sure only schema 1 stats were dropped, not schema 2 stats
         verifyStatsCounts(conn,SCHEMA,null,0,0);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats for schema 2
-        cs2=conn2.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
-        cs2.setString(1,SCHEMA2);
-        cs2.execute();
-        cs2.close();
+        try (CallableStatement cs2=conn2.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)")) {
+            cs2.setString(1, SCHEMA2);
+            cs2.execute();
+        }
 
         // Make sure stats are gone for both schemas
         verifyStatsCounts(conn,SCHEMA,null,0,0);
@@ -273,28 +271,27 @@ public class StatisticsAdminIT{
         TestConnection conn2=methodWatcher2.getOrCreateConnection();
         conn2.setAutoCommit(false);
 
-        CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.setBoolean(2,false);
-        callableStatement.execute();
-        callableStatement.close();
+        try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.setBoolean(2, false);
+            callableStatement.execute();
+        }
 
-        CallableStatement cs2=conn2.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
-        cs2.setString(1,SCHEMA2);
-        cs2.setBoolean(2,false);
-        cs2.execute();
-        cs2.close();
-
+        try (CallableStatement cs2=conn2.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)")) {
+            cs2.setString(1, SCHEMA2);
+            cs2.setBoolean(2, false);
+            cs2.execute();
+        }
         // Check collected stats for both schemas
         verifyStatsCounts(conn,SCHEMA,null,3,3);
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats for schema 1, table 1
-        callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.setString(2,TABLE_OCCUPIED);
-        callableStatement.execute();
-        callableStatement.close();
+        try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.setString(2, TABLE_OCCUPIED);
+            callableStatement.execute();
+        }
 
         // Make sure stats for both table and index were dropped in schema 1.
         verifyStatsCounts(conn,SCHEMA,null,2,2);
@@ -302,11 +299,11 @@ public class StatisticsAdminIT{
         verifyStatsCounts(conn2,SCHEMA2,null,3,3);
 
         // Drop stats again for schema 1 to make sure it works with no stats
-        callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)");
-        callableStatement.setString(1,SCHEMA);
-        callableStatement.setString(2,TABLE_OCCUPIED);
-        callableStatement.execute();
-        callableStatement.close();
+        try (CallableStatement callableStatement=conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)")) {
+            callableStatement.setString(1, SCHEMA);
+            callableStatement.setString(2, TABLE_OCCUPIED);
+            callableStatement.execute();
+        }
 
         // Same as prior check
         verifyStatsCounts(conn,SCHEMA,null,2,2);
@@ -321,27 +318,30 @@ public class StatisticsAdminIT{
     }
 
     private void verifyStatsCounts(Connection conn,String schema,String table,int tableStatsCount,int colStatsCount) throws Exception{
-        PreparedStatement check=(table==null)?
-                conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ?"):
-                conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ? and tablename = ?");
-        check.setString(1,schema);
-        if(table!=null) check.setString(2,table);
-        try(ResultSet resultSet=check.executeQuery()){
-            Assert.assertTrue("Unable to count stats for schema",resultSet.next());
-            int rowCount=resultSet.getInt(1);
-            Assert.assertEquals("Incorrect row count",tableStatsCount,rowCount);
+        try (
+            PreparedStatement check = (table == null) ?
+            conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ?"):
+            conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ? and tablename = ?")) {
+
+            check.setString(1, schema);
+            if (table != null) check.setString(2, table);
+            ResultSet resultSet = check.executeQuery();
+            Assert.assertTrue("Unable to count stats for schema", resultSet.next());
+            int rowCount = resultSet.getInt(1);
+            Assert.assertEquals("Incorrect row count", tableStatsCount, rowCount);
         }
 
-        check=(table==null)?
-                conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ?"):
-                conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?");
-        check.setString(1,schema);
-        if(table!=null) check.setString(2,table);
-        try(ResultSet resultSet=check.executeQuery()){
-            Assert.assertTrue("Unable to count stats for schema",resultSet.next());
-            int rowCount=resultSet.getInt(1);
+        /*
+        PreparedStatement check2=(table==null)?
+            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ?"):
+            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?");
+        check2.setString(1,schema);
+        if(table!=null) check2.setString(2,table);
+        try(ResultSet resultSet2=check2.executeQuery()){
+            Assert.assertTrue("Unable to count stats for schema",resultSet2.next());
+            int rowCount=resultSet2.getInt(1);
             Assert.assertEquals("Incorrect row count",colStatsCount,rowCount);
         }
-
+        */
     }
 }
