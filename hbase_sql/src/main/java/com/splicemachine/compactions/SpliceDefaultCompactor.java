@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class SpliceDefaultCompactor extends DefaultCompactor {
+    private static final boolean allowSpark = true;
     private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
     private String conglomId = null;
@@ -62,6 +63,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     @Override
     public List<Path> compact(CompactionRequest request) throws IOException {
+        if(!allowSpark)
+            return super.compact(request);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
