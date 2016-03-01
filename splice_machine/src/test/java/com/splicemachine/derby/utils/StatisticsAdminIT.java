@@ -167,7 +167,7 @@ public class StatisticsAdminIT{
 
         //make sure it's enabled
         PreparedStatement ps=conn.prepareStatement(
-                "select c.* from "+
+                "select c.collectstats from "+
                         "sys.sysschemas s, sys.systables t, sys.syscolumns c "+
                         "where s.schemaid = t.schemaid "+
                         "and t.tableid = c.referenceid "+
@@ -180,9 +180,10 @@ public class StatisticsAdminIT{
 
         try (ResultSet resultSet = ps.executeQuery()) {
             Assert.assertTrue("No columns found!", resultSet.next());
-            boolean statsEnabled = resultSet.getBoolean("collectstats");
+            boolean statsEnabled = (Boolean)resultSet.getObject(1);
             Assert.assertTrue("Stats were not enabled!", statsEnabled);
         }
+
         //now verify that it can be disabled as well
         try (CallableStatement cs=conn.prepareCall("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS(?,?,?)")) {
             cs.setString(1, SCHEMA);
@@ -194,8 +195,8 @@ public class StatisticsAdminIT{
         //make sure it's disabled
         try (ResultSet resultSet = ps.executeQuery()) {
             Assert.assertTrue("No columns found!", resultSet.next());
-            boolean statsEnabled = resultSet.getBoolean("collectstats");
-            Assert.assertFalse("Stats were still enabled!", statsEnabled);
+            boolean statsEnabled = (Boolean)resultSet.getObject(1);
+            Assert.assertFalse("Stats were not enabled!", statsEnabled);
         }
 
         conn.rollback();
