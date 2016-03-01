@@ -120,7 +120,6 @@ public class WorkdayTinyIT extends SpliceUnitTest {
     }
 
     @Test
-//    @Ignore("Bug 809")
     public void testBug712query8AllIndexes() throws Exception {
         Connection connection = methodWatcher.createConnection();
         try {
@@ -148,8 +147,8 @@ public class WorkdayTinyIT extends SpliceUnitTest {
         }
     }
 
-		private void dropIndex(String schemaName, String tableName){
-            SpliceIndexWatcher.executeDrop(methodWatcher.getOrCreateConnection(),schemaName,tableName);
-		}
+    private void dropIndex(String schemaName, String tableName){
+        SpliceIndexWatcher.executeDrop(methodWatcher.getOrCreateConnection(),schemaName,tableName);
+    }
 
 }

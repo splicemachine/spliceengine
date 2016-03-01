@@ -38,9 +38,7 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
         BADDIR = SpliceUnitTest.createBadLogDirectory(schema.schemaName);
     }
 
-
     @Test
-    @Ignore("DB-3275")
     public void testCannotInsertValueOutOfConstraint() throws Exception{
 
         String table = blobTale.tableName;
