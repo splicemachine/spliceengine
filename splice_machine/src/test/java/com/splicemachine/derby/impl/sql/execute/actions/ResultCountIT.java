@@ -38,7 +38,7 @@ public class ResultCountIT {
             "(130, 'mstuart', 'Martha', 'Stuart')",
             "(140, 'fkruger', 'Freddy', 'Kruger')");
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String TASK_TABLE_NAME = "Tasks";
@@ -58,6 +58,8 @@ public class ResultCountIT {
                 @Override
                 protected void starting(Description description) {
                     try {
+                        Connection conn = spliceClassWatcher.getOrCreateConnection();
+
                         //  load tasks table
                         for (String rowVal : tasksVals) {
                             spliceClassWatcher.getStatement().executeUpdate("insert into " + taskTable.toString() + " values " + rowVal);
@@ -76,7 +78,7 @@ public class ResultCountIT {
             });
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     /**
      * Test prepared statement insert returns correct number of inserted rows.
@@ -84,8 +86,8 @@ public class ResultCountIT {
      */
     @Test
     public void testInsert() throws Exception {
-        Connection connection = methodWatcher.createConnection();
-        connection.setAutoCommit(false);
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
 
         // insert good data
         PreparedStatement ps = methodWatcher.prepareStatement(
@@ -98,8 +100,6 @@ public class ResultCountIT {
         int rows = ps.executeUpdate();
 
         Assert.assertEquals(1, rows);
-
-        connection.commit();
     }
 
     /**
@@ -112,7 +112,7 @@ public class ResultCountIT {
         String query = String.format("select empId from %s.%s where taskId = '%s'",
                 tableSchema.schemaName, TASK_TABLE_NAME, theTaskId);
 
-        Connection connection = methodWatcher.createConnection();
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
 
         // insert good data
@@ -125,13 +125,11 @@ public class ResultCountIT {
         ps.setInt(4, 0700);
         int rows = ps.executeUpdate();
         Assert.assertEquals(1, rows);
-        connection.commit();
 
         ResultSet rs = connection.createStatement().executeQuery(query);
         rs.next();
         Assert.assertEquals(101, rs.getInt(1));
         Assert.assertFalse("Only one row expected.", rs.next());
-        connection.commit();
 
         ps = methodWatcher.prepareStatement(
                 String.format("update %s.%s set empId = ? where taskId = ?", tableSchema.schemaName, TASK_TABLE_NAME));
@@ -139,13 +137,11 @@ public class ResultCountIT {
         ps.setString(2, theTaskId);
         rows = ps.executeUpdate();
         Assert.assertEquals(1, rows);
-        connection.commit();
 
         rs = connection.createStatement().executeQuery(query);
         rs.next();
         Assert.assertEquals(102, rs.getInt(1));
         Assert.assertFalse("Only one row expected.", rs.next());
-        connection.commit();
     }
 
     /**
@@ -158,7 +154,7 @@ public class ResultCountIT {
         String query = String.format("select empId from %s.%s where taskId = '%s'",
                 tableSchema.schemaName, TASK_TABLE_NAME, theTaskId);
 
-        Connection connection = methodWatcher.createConnection();
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
 
         // insert good data
@@ -201,11 +197,11 @@ public class ResultCountIT {
         String query = String.format("select * from %s.%s where taskId like '%s'",
                 tableSchema.schemaName, TASK_TABLE_NAME, "4%");
 
-        Connection connection = methodWatcher.createConnection();
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
+
         PreparedStatement ps;
         int rows;
-
         int total = 10;
         for (int i=0; i<total; i++) {
             // insert good data
@@ -238,12 +234,11 @@ public class ResultCountIT {
     }
 
     @Test
-    @Ignore("Bug 559")
     public void testDeleteInSubselect() throws Exception {
-        String query = String.format("select * from %s.%s where empId = 140",
+        String query = String.format("select * from %s.%s where empId = 130",
                 tableSchema.schemaName, TASK_TABLE_NAME);
 
-        Connection connection = methodWatcher.createConnection();
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
 
         int rows;
@@ -251,39 +246,34 @@ public class ResultCountIT {
                 // delete from tasks where tasks.empId in (select emp.empId from emp, tasks where emp.empId=tasks.empId and emp.userId='fkruger');
                 String.format("delete from %1$s.%2$s where %1$s.%2$s.empId in (select %1$s.%3$s.empId from %1$s.%3$s, %1$s.%2$s where %1$s.%3$s.empId=%1$s.%2$s.empId and %1$s.%3$s.userId=?)",
                         tableSchema.schemaName, TASK_TABLE_NAME, EMP_TABLE_NAME));
-        ps.setString(1, "fkruger");
+        ps.setString(1, "mstuart");
         rows = ps.executeUpdate();
         Assert.assertEquals(1, rows);
-        connection.commit();
 
         ResultSet rs = connection.createStatement().executeQuery(query);
         Assert.assertFalse("No rows expected.", rs.next());
-        connection.commit();
     }
 
     @Test
-    @Ignore("Bug 559")
     public void testDeleteInSimplifiedSubselect() throws Exception {
         TestUtils.tableLookupByNumber(spliceClassWatcher);
-        String query = String.format("select * from %s.%s where empId = 140",
+        String query = String.format("select * from %s.%s where empId = 130",
                 tableSchema.schemaName, TASK_TABLE_NAME);
 
-        Connection connection = methodWatcher.createConnection();
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
 
         int rows;
         PreparedStatement ps = methodWatcher.prepareStatement(
-                // delete from tasks where tasks.empId in (select emp.empId from emp where emp.userId='fkruger');
-                String.format("delete from %1$s.%2$s where %1$s.%2$s.empId in (select %1$s.%3$s.empId from %1$s.%3$s where %1$s.%3$s.userId=?)",
-                        tableSchema.schemaName, TASK_TABLE_NAME, EMP_TABLE_NAME));
-        ps.setString(1, "fkruger");
+            // delete from tasks where tasks.empId in (select emp.empId from emp where emp.userId='fkruger');
+            String.format("delete from %1$s.%2$s where %1$s.%2$s.empId in (select %1$s.%3$s.empId from %1$s.%3$s where %1$s.%3$s.userId=?)",
+                tableSchema.schemaName, TASK_TABLE_NAME, EMP_TABLE_NAME));
+        ps.setString(1, "mstuart");
         rows = ps.executeUpdate();
         Assert.assertEquals(1, rows);
-        connection.commit();
 
         ResultSet rs = connection.createStatement().executeQuery(query);
         Assert.assertFalse("No rows expected.", rs.next());
-        connection.commit();
     }
 
     @Test
@@ -291,7 +281,7 @@ public class ResultCountIT {
         String query = String.format("select * from %s.%s where empId = 140",
                 tableSchema.schemaName, TASK_TABLE_NAME);
 
-        Connection connection = methodWatcher.createConnection();
+        TestConnection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);
 
         // do select
@@ -320,10 +310,10 @@ public class ResultCountIT {
 
     private void printMap(List<Map> mapRs) {
         for(Map map : mapRs) {
-            System.out.println();
+            // System.out.println();
             for (Object entryObj : map.entrySet()) {
                 Map.Entry entry = (Map.Entry) entryObj;
-                System.out.println(entry.getKey() + ": " + entry.getValue());
+                // System.out.println(entry.getKey() + ": " + entry.getValue());
             }
         }
     }
