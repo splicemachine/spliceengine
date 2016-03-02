@@ -19,7 +19,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 
-@Ignore("DB-4541: Ignored until fixes are pulled from master_dataset")
 public class UniqueConstraintIT {
 
     private static final String SCHEMA = UniqueConstraintIT.class.getSimpleName().toUpperCase();
@@ -48,7 +47,7 @@ public class UniqueConstraintIT {
         // Prints the index (unique constraint) info
         ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, "ZONING0", false, false);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         // No exception. We couldn't create the unique constraint so this insert works
         methodWatcher.getStatement().execute("insert into ZONING0 values (1,'220 BOLYSTON','COND','M-1','M-8','2000-04-12')");
@@ -71,7 +70,7 @@ public class UniqueConstraintIT {
         String query = format("select * from %s", tableName);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         // expect exception because there are non-unique rows
         try {
@@ -79,7 +78,7 @@ public class UniqueConstraintIT {
             // Prints the index (unique constraint) info
             rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
             fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-            System.out.println(fr.toString());
+            //System.out.println(fr.toString());
             fail("Expected exception - attempt to create a unique constraint on a table with duplicates.");
         } catch (SQLException e) {
             assertTrue(e.getLocalizedMessage().contains("would have caused a duplicate key value in a unique or primary key constraint or unique index identified"));
@@ -89,7 +88,7 @@ public class UniqueConstraintIT {
         // Prints the index (unique constraint) info
         rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
         fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         // No exception. We couldn't create the unique constraint so this insert works
         methodWatcher.getStatement().execute(format("insert into %s values (1,'220 BOLYSTON','COND','M-1','M-8','2000-04-12')", tableName));
@@ -110,7 +109,7 @@ public class UniqueConstraintIT {
         String query = format("select * from %s", tableName);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         // expect exception because there are non-unique rows
         try {
@@ -122,7 +121,7 @@ public class UniqueConstraintIT {
         // Prints the index (unique constraint) info
         rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
         fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(format("insert into %s values (NULL,'551 BOLYSTON','COND','M-1','M-8','2000-04-12')", tableName));
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','2000-04-12')", tableName));
@@ -131,7 +130,7 @@ public class UniqueConstraintIT {
         // Now query result should be 5 rows
         rs = methodWatcher.getStatement().executeQuery(query);
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
         assertEquals("Wrong number of rows after insert.", 5, fr.size());
 
         assertSqlFails("insert into ZONING7 values (1,'552 BOLYSTON','COND','M-1','M-8','2000-04-13')",
@@ -145,7 +144,7 @@ public class UniqueConstraintIT {
         // Now query result should be 4 rows
         rs = methodWatcher.getStatement().executeQuery(query);
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
         assertEquals("Wrong number of rows after delete.", 4, fr.size());
     }
 
@@ -162,14 +161,14 @@ public class UniqueConstraintIT {
         String query = format("select * from %s", tableName);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(format("alter table %s add constraint %s unique(PARCELID)", tableName, tableName + "_UC"));
 
         // Prints the index (unique constraint) info
         rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
         fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         assertSqlFails("insert into ZONING2 values (1,'220 BOLYSTON','COND','M-1','M-8','1989-04-12')",
                 "would have caused a duplicate key value in a unique or primary key constraint or unique index identified",
@@ -193,7 +192,7 @@ public class UniqueConstraintIT {
         String query = format("select * from %s", tableName);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         assertSqlFails("alter table ZONING5 add constraint ZONING5_UC unique(PARCELID)",
                 "would have caused a duplicate key value in a unique or primary key constraint or unique index identified",
@@ -215,7 +214,7 @@ public class UniqueConstraintIT {
         // Prints the index (unique constraint) info
         ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')", tableName));
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')", tableName));
@@ -223,7 +222,7 @@ public class UniqueConstraintIT {
         String query = format("select * from %s", tableName);
         rs = methodWatcher.getStatement().executeQuery(query);
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         assertSqlFails("alter table ZONING6 add constraint ZONING6_UC unique(PARCELID)",
                 "would have caused a duplicate key value in a unique or primary key constraint or unique index identified",
@@ -242,7 +241,7 @@ public class UniqueConstraintIT {
         // Prints the index (unique constraint) info
         ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         assertSqlFails("alter table ZONING3 add constraint ZONING3_UC unique(PARCELID)",
                 "have the same set of columns, which is not allowed.",
@@ -261,7 +260,7 @@ public class UniqueConstraintIT {
         // Prints the index (unique constraint) info
         ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, SCHEMA, tableName, false, false);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
-        System.out.println(fr.toString());
+        //System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')", tableName));
 
