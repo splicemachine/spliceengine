@@ -20,7 +20,6 @@ import java.sql.ResultSet;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
-@Ignore("DB-4272")
 public class SpliceUDTIT extends SpliceUnitTest {
 
     private static Logger LOG = Logger.getLogger(SpliceUDTIT.class);
@@ -71,7 +70,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
                         row(5)))
                 .create();
 
-        methodWatcher.execute("CREATE TYPE price EXTERNAL NAME 'Price' language Java");
+        methodWatcher.execute("CREATE TYPE price EXTERNAL NAME 'com.customer.Price' language Java");
         methodWatcher.execute("CREATE FUNCTION makePrice(varchar(30), double)\n" +
                 "RETURNS Price\n" +
                 "LANGUAGE JAVA\n" +
