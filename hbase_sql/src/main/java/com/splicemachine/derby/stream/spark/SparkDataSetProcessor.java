@@ -154,7 +154,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
             JavaPairRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, HConfiguration.INSTANCE.unwrapDelegate());
-            RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
+            // RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkPairDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
