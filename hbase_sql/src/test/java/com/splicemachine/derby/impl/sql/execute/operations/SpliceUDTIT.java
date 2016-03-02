@@ -70,12 +70,12 @@ public class SpliceUDTIT extends SpliceUnitTest {
                         row(5)))
                 .create();
 
-        methodWatcher.execute("CREATE TYPE price EXTERNAL NAME 'com.customer.Price' language Java");
+        methodWatcher.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
         methodWatcher.execute("CREATE FUNCTION makePrice(varchar(30), double)\n" +
                 "RETURNS Price\n" +
                 "LANGUAGE JAVA\n" +
                 "PARAMETER STYLE JAVA\n" +
-                "NO SQL EXTERNAL NAME 'CreatePrice.createPriceObject'");
+                "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
 
         methodWatcher.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
         methodWatcher.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
