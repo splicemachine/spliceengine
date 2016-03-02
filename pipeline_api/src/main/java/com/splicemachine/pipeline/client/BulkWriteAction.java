@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -44,7 +45,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private final long id=idGen.incrementAndGet();
     private final BulkWriterFactory writerFactory;
     private final PipelineExceptionFactory pipelineExceptionFactory;
-    private final Sleeper sleeper;
+    private final Clock clock;
     private final MetricFactory metricFactory;
     private final Timer writeTimer;
     private final Counter retryCounter;
@@ -63,7 +64,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                            BulkWriterFactory writerFactory,
                            PipelineExceptionFactory pipelineExceptionFactory,
                            PartitionFactory partitionFactory,
-                           Sleeper sleeper){
+                           Clock clock){
         this.tableName=tableName;
         this.bulkWrites=writes;
         this.writeConfiguration=writeConfiguration;
@@ -71,7 +72,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         this.writerFactory=writerFactory;
         MetricFactory possibleMetricFactory=writeConfiguration.getMetricFactory();
         this.metricFactory=possibleMetricFactory==null?Metrics.noOpMetricFactory():possibleMetricFactory;
-        this.sleeper=metricFactory.isActive()?new Sleeper.TimedSleeper(sleeper,metricFactory):sleeper;
+        this.clock=clock;
         this.rejectedCounter=metricFactory.newCounter();
         this.globalErrorCounter=metricFactory.newCounter();
         this.partialFailureCounter=metricFactory.newCounter();
@@ -221,8 +222,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                                     // only sleep and redo cache if you have a failure not a lock contention issue
                                     boolean isFailure=bulkWriteResult.getFailedRows()!=null && bulkWriteResult.getFailedRows().size()>0;
                                     addToRetryCallBuffer(toRetry,nextWrite.getTxn(),isFailure);
-//                                    if (isFailure) // Retry immediately if you do not have failed rows!
-//                                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()));
+                                    clock.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
                                     break;
                                 default:
                                     SpliceLogUtils.error(RETRY_LOG,
@@ -249,7 +249,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                 if(pipelineExceptionFactory.processPipelineException(e) instanceof PipelineTooBusy){
                     if(RETRY_LOG.isDebugEnabled())
                         SpliceLogUtils.debug(RETRY_LOG,"Retrying write after receiving RegionTooBusyException: id=%d",id);
-//                    sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
+                    clock.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
                     writesToPerform.add(nextWrite);
                     continue;
                 }
@@ -276,7 +276,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                             addToRetryCallBuffer(bw.getMutations(),nextTxn,first);
                             first=false;
                         }
-//                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
+                        clock.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
                         break;
                     default:
                         if(LOG.isInfoEnabled())

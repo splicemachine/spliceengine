@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.writer;
 
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.WriteStats;
@@ -11,7 +12,6 @@ import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.config.CountingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.writerstatus.ActionStatusMonitor;
-import com.splicemachine.utils.Sleeper;
 
 import javax.annotation.Nonnull;
 import javax.management.*;
@@ -30,15 +30,18 @@ public class SynchronousBucketingWriter implements Writer{
     private final BulkWriterFactory writerFactory;
     private final PipelineExceptionFactory exceptionFactory;
     private final PartitionFactory partitionFactory;
+    private final Clock clock;
 
     public SynchronousBucketingWriter(BulkWriterFactory writerFactory,
                                       PipelineExceptionFactory exceptionFactory,
-                                      PartitionFactory partitionFactory){
+                                      PartitionFactory partitionFactory,
+                                      Clock clock){
         this.writerFactory=writerFactory;
         this.exceptionFactory=exceptionFactory;
         this.partitionFactory=partitionFactory;
         this.statusMonitor=new ActionStatusReporter();
         this.monitor=new ActionStatusMonitor(statusMonitor);
+        this.clock = clock;
 
     }
 
@@ -54,7 +57,7 @@ public class SynchronousBucketingWriter implements Writer{
                 writerFactory,
                 exceptionFactory,
                 partitionFactory,
-                Sleeper.THREAD_SLEEPER);
+                clock);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();
         Exception e=null;
         WriteStats stats=null;

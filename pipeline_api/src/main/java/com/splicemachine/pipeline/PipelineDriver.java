@@ -2,6 +2,7 @@ package com.splicemachine.pipeline;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
@@ -44,7 +45,7 @@ public class PipelineDriver{
         BulkWriterFactory writerFactory = env.writerFactory();
         PipelineMeter meter = env.pipelineMeter();
 
-        INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,writerFactory,meter);
+        INSTANCE = new PipelineDriver(config,ctxFactoryDriver,pef,partitionFactory,compressor,writerFactory,meter,env.systemClock());
         writerFactory.setWriter(INSTANCE.pipelineWriter);
     }
 
@@ -56,7 +57,8 @@ public class PipelineDriver{
                            PartitionFactory partitionFactory,
                            PipelineCompressor compressor,
                            BulkWriterFactory channelFactory,
-                           PipelineMeter meter){
+                           PipelineMeter meter,
+                           Clock clock){
         this.ctxFactoryDriver = ctxFactoryDriver;
         this.pef = pef;
         this.compressor = compressor;
@@ -71,7 +73,7 @@ public class PipelineDriver{
         channelFactory.setWriter(pipelineWriter);
         channelFactory.setPipeline(writePipelineFactory);
         try{
-            this.writeCoordinator=WriteCoordinator.create(config,channelFactory,pef,partitionFactory);
+            this.writeCoordinator=WriteCoordinator.create(config,channelFactory,pef,partitionFactory,clock);
             pipelineWriter.setWriteCoordinator(writeCoordinator);
         }catch(IOException e){
             throw new RuntimeException(e);

@@ -61,4 +61,12 @@ public class PipelineUtils{
 
         return toRetry;
     }
+
+    public static long getWaitTime(int retryCount,long pauseInterval){
+        /*
+         * Exponential backoff here to avoid over-forcing the retry
+         */
+        if(retryCount>10) return 10l*pauseInterval;
+        else return retryCount*pauseInterval;
+    }
 }

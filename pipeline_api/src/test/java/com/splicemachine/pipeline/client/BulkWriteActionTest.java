@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.client;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
@@ -111,7 +112,7 @@ public class BulkWriteActionTest{
 				bwf,
 				pef,
 				pf,
-				mock(Sleeper.class));
+				new IncrementingClock());
 
 		bwa.call();
 

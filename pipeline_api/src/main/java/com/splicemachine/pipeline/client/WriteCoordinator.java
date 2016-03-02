@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.client;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
@@ -43,15 +44,16 @@ public class WriteCoordinator {
     public static WriteCoordinator create(SConfiguration config,
                                           BulkWriterFactory writerFactory,
                                           PipelineExceptionFactory exceptionFactory,
-                                          PartitionFactory partitionFactory) throws IOException {
+                                          PartitionFactory partitionFactory,
+                                          Clock clock) throws IOException {
         assert config != null;
         MonitoredThreadPool writerPool = MonitoredThreadPool.create(config);
         int maxEntries = config.getInt(PipelineConfiguration.MAX_BUFFER_ENTRIES);//SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,
                 writerFactory,
                 exceptionFactory,
-                partitionFactory);
-        Writer syncWriter = new SynchronousBucketingWriter(writerFactory,exceptionFactory,partitionFactory);
+                partitionFactory,clock);
+        Writer syncWriter = new SynchronousBucketingWriter(writerFactory,exceptionFactory,partitionFactory,clock);
         long maxBufferHeapSize = config.getLong(PipelineConfiguration.MAX_BUFFER_HEAP_SIZE);
         int numRetries = config.getInt(PipelineConfiguration.MAX_RETRIES);
         long pause = config.getLong(PipelineConfiguration.CLIENT_PAUSE);

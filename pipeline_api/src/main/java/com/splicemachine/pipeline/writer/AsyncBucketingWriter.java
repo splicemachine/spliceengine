@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.writer;
 
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.PipelineConfiguration;
 import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.ActionStatusReporter;
@@ -28,17 +29,20 @@ public class AsyncBucketingWriter implements Writer {
     private final PipelineExceptionFactory exceptionFactory;
     private final BulkWriterFactory writerFactory;
     private final PartitionFactory partitionFactory;
+    private final Clock clock;
 
     public AsyncBucketingWriter(MonitoredThreadPool writerPool,
                                 BulkWriterFactory writerFactory,
                                 PipelineExceptionFactory exceptionFactory,
-                                PartitionFactory partitionFactory) {
+                                PartitionFactory partitionFactory,
+                                Clock clock) {
         this.writerPool = writerPool;
         this.statusMonitor = new ActionStatusReporter();
         this.monitor = new ActionStatusMonitor(statusMonitor);
         this.exceptionFactory = exceptionFactory;
         this.writerFactory = writerFactory;
         this.partitionFactory = partitionFactory;
+        this.clock = clock;
     }
 
     @Override
@@ -51,7 +55,7 @@ public class AsyncBucketingWriter implements Writer {
                 writerFactory,
                 exceptionFactory,
                 partitionFactory,
-                Sleeper.THREAD_SLEEPER);
+                clock);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();
         return writerPool.submit(action);
     }

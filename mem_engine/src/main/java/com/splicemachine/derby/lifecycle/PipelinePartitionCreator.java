@@ -49,6 +49,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
         return this;
     }
 
+    @Override
+    public PartitionCreator withPartitionSize(long partitionSize){
+        baseCreator =baseCreator.withPartitionSize(partitionSize);
+        return this;
+    }
+
     public Partition create() throws IOException{
         Partition p =baseCreator.create(); //create the base table
         long cId;
