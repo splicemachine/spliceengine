@@ -1238,7 +1238,6 @@ public class SITransactorTest {
      * is undefined--thus, no tests to assert behavior in those cases.
      */
 //    @Test
-//    @Ignore("It is not possible to create a child of a rolled back parent")
 //    public void multipleChildCommitParentRollback() throws IOException {
 //        Txn t1 = control.beginTransaction(DESTINATION_TABLE);
 //        testUtility.insertAge(t1, "joe46", 20);

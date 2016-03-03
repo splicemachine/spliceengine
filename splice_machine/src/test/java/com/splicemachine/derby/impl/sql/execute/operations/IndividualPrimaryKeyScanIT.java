@@ -20,7 +20,7 @@ import java.sql.ResultSet;
  * @author Scott Fines
  * Created on: 7/29/13
  */
-// @Ignore("Ignored because it takes forever and doesn't usually help much, but is nifty in some cases")
+// Skip this if you want because it takes forever and doesn't usually help much, but is nifty in some cases
 @Category(SlowTest.class)
 public class IndividualPrimaryKeyScanIT {
     private static Logger LOG = Logger.getLogger(PrimaryKeyScanIT.class);
