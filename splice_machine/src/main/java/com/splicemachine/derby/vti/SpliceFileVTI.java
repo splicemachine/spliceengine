@@ -37,9 +37,9 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     private OperationContext operationContext;
     private boolean oneLineRecords;
     private String charset;
-    public SpliceFileVTI() {
 
-    }
+    public SpliceFileVTI() {}
+
     public SpliceFileVTI(String fileName) {
         this.fileName = fileName;
         oneLineRecords = true;
@@ -58,7 +58,6 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         this.columnDelimiter = columnDelimiter;
         this.oneLineRecords = oneLineRecords;
     }
-
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex) {
@@ -115,12 +114,16 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         }
     }
 
-    private final static int BYTES_PER_ROW = 100;
-    private int getBytesPerRow() {
-        // Crude approximation to assume a specific number of bytes per row. Alternatives:
-        // 1) count the rows in the file (too slow but exact)
-        // 2) fetch the first few rows of the file and compjute the avg bytes per row.
-        return BYTES_PER_ROW;
+    private static final int defaultBytesPerRow = 100;
+    protected int getBytesPerRow() {
+        // Imprecise assumption of a fixed number of bytes per row,
+        // but better than assuming fixed default row count.
+        // Future improvements might include:
+        // 1) fetch first few rows and compute real bytes per row and extrapolate
+        // 2) count number of columns and assume bytes per column
+        // In the end, though, this will *always* be just an approximation,
+        // because we can't actually count the rows before importing.
+        return defaultBytesPerRow;
     }
 
     @Override
