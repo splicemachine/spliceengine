@@ -153,6 +153,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                 lcc);
         //ensure that table statistics are properly running
         StatisticsStorage.ensureRunning(dDictionary);
+        tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
     }
 
     @Override
