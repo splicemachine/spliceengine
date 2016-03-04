@@ -103,11 +103,11 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext));
+                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext));
+                return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext), true);
             }
         } finally {
             operationContext.popScope();
@@ -126,22 +126,63 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return defaultBytesPerRow;
     }
 
-    @Override
-    public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
-        if (fileName != null) {
-            try {
-                FileInfo fileInfo = ImportUtils.getImportFileInfo(fileName);
-                return fileInfo.spaceConsumed() / getBytesPerRow();
-            } catch (IOException e){
-                throw new SQLException(e);
-            }
+    private FileInfo fileInfo = null;
+    protected FileInfo getFileInfo() throws IOException {
+        if (fileInfo == null) {
+            if (fileName != null) fileInfo = ImportUtils.getImportFileInfo(fileName);
         }
-
-        return VTICosting.defaultEstimatedRowCount;
+        return fileInfo;
     }
 
     @Override
+    public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
+        FileInfo fileInfo;
+        try {
+            fileInfo = getFileInfo();
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
+        if (fileInfo != null) {
+            return fileInfo.spaceConsumed() / getBytesPerRow();
+        }
+        return VTICosting.defaultEstimatedRowCount;
+    }
+
+    // Like the above row count estimate, our cost estimate is an approximation
+    // using fixed assumptions, but much better than just returning same
+    // default value all the time. We assume a disk throughput and
+    // network throughput and derive an approximate latency.
+    //
+    // Disk throughput = 20 MB/S
+    // Network throughput = 144MB/S (1GE card)
+    // Disk latency for 1 MB = 1/throughput = 1/20 = 0.05
+    // Network latency = 1/144 = 0.007
+    // Total latency = 0.05 + 0.007 = 0.057 S/MB = 57000 micros/MB
+    // File size (MB) = 724 MB (size of tpch1g lineitem file)
+    // Total time (cost) = total latency * file size (MB) = 57000 micros/MB * 724 = 41268000 micros
+
+    private static final double defaultDiskThroughputMBPerSecond = 20d;
+    private static final double defaultNetworkThroughputMBPerSecond = 144d;
+    private static final double defaultTotalLatencyMicrosPerMB =
+        1000000d * /* seconds to microseconds */
+        ((1 / defaultDiskThroughputMBPerSecond) /* disk latency for 1 MB */ +
+         (1 / defaultNetworkThroughputMBPerSecond)) /* network latency for 1 MB */;
+
+
+    @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment) throws SQLException {
+        FileInfo fileInfo;
+        try {
+            fileInfo = getFileInfo();
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
+        if (fileInfo != null) {
+            // IMPORTANT: this method needs to return MICROSECONDS, the internal unit
+            // for costs in splice machine (displayed as milliseconds in explain plan output).
+            // Note that spaceConsumed() is in bytes.
+            return defaultTotalLatencyMicrosPerMB * fileInfo.spaceConsumed() /* bytes */ / 1000000d;
+        }
         return VTICosting.defaultEstimatedCost;
     }
 
