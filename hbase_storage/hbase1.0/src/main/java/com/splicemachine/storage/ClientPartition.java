@@ -126,7 +126,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     public List<Partition> subPartitions(boolean refresh) {
         try {
-            List<Partition> partitions = null;
+            List<Partition> partitions;
             if (!refresh) {
                 partitions = partitionInfoCache.getIfPresent(tableName);
                 if (partitions == null) {
@@ -149,7 +149,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     private List<Partition> formatPartitions(List<HRegionLocation> tableLocations) {
         List<Partition> partitions=new ArrayList<>(tableLocations.size());
         for(HRegionLocation location : tableLocations){
-            partitions.add(new RangedClientPartition(connection,tableName,table,location.getRegionInfo(),new LazyPartitionServer(connection,location.getRegionInfo(),tableName),clock,partitionInfoCache));
+            HRegionInfo regionInfo=location.getRegionInfo();
+            partitions.add(new RangedClientPartition(connection,tableName,table,regionInfo,new RLServer(location),clock,partitionInfoCache));
         }
         return partitions;
     }

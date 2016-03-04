@@ -21,19 +21,15 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.server.SITransactor;
-import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.testenv.ArchitectureSpecific;
-import com.splicemachine.si.testenv.SITestDataEnv;
-import com.splicemachine.si.testenv.SITestEnvironment;
 import com.splicemachine.si.testenv.TestServerControl;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.EntryEncoder;
@@ -44,7 +40,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.mockito.internal.stubbing.answers.DoesNothing;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -92,11 +87,9 @@ public class PartitionWriteHandlerTest{
         NotServingRegionAnswer<Iterator<MutationStatus>> iteratorNotServingRegionAnswer=new NotServingRegionAnswer<>(p.getName(),ef);
         when(p.writeBatch(any(DataPut[].class))).then(new LatchAnswer<>(Arrays.asList(iteratorNotServingRegionAnswer,dataAnswer)));
         PartitionFactory pf = mock(PartitionFactory.class);
-        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier=new IgnoreTxnCacheSupplier(opFactory,pf);
         TxnOperationFactory txnOpFactory = new SimpleTxnOperationFactory(ef,opFactory);
         TransactionalRegion testRegion = new TxnRegion(p,NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE,testStore,
-                ignoreTxnCacheSupplier,
-                new SITransactor(testStore,ignoreTxnCacheSupplier,txnOpFactory,opFactory,opStatusFactory,ef),
+                new SITransactor(testStore,txnOpFactory,opFactory,opStatusFactory,ef),
                 txnOpFactory);
 
 

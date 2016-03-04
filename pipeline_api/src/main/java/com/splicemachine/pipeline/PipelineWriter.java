@@ -2,10 +2,10 @@ package com.splicemachine.pipeline;
 
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.*;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.utils.Pair;
@@ -30,14 +30,16 @@ public class PipelineWriter{
     private volatile WriteCoordinator writeCoordinator;
     private final PipelineExceptionFactory exceptionFactory;
     private final WritePipelineFactory writePipelineFactory;
+    private final PipelineMeter pipelineMeter;
 
     public PipelineWriter(PipelineExceptionFactory pipelineExceptionFactory,
                           WritePipelineFactory writePipelineFactory,
-                          SpliceWriteControl writeControl){
+                          SpliceWriteControl writeControl,
+                          PipelineMeter pipelineMeter){
         this.writeControl = writeControl;
         this.exceptionFactory = pipelineExceptionFactory;
         this.writePipelineFactory = writePipelineFactory;
-
+        this.pipelineMeter = pipelineMeter;
     }
 
     public BulkWritesResult bulkWrite(@Nonnull BulkWrites bulkWrites) throws IOException{
@@ -82,12 +84,12 @@ public class PipelineWriter{
             return new BulkWritesResult(result);
         }
 
-        AtomicSpliceWriteControl.Status status;
+        SpliceWriteControl.Status status;
         int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
         // Get the "permit" to write.  WriteControl does not perform the writes.  It just controls whether or not the write is allowed to proceed.
 
         status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
-        if (status.equals(AtomicSpliceWriteControl.Status.REJECTED)) {
+        if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             if(LOG.isTraceEnabled())
                 LOG.trace("Rejecting "+numBulkWrites+" rows in "+ bws.size()+"writes because the pipeline is too busy");
             rejectAll(bws,result, Code.PIPELINE_TOO_BUSY);
@@ -156,6 +158,7 @@ public class PipelineWriter{
                     }
                 }
                 pair.setFirst(finishResult);
+                pipelineMeter.mark(bulkWrite.getSize()-finishResult.getFailedRows().size(),finishResult.getFailedRows().size());
             }
         }
 
@@ -186,8 +189,8 @@ public class PipelineWriter{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private void rejectAll(Collection<BulkWrite> writes, Collection<BulkWriteResult> result, Code status) {
-//        this.meter; //TODO -sf- add this back in
         for(BulkWrite write:writes){
+            pipelineMeter.mark(0,write.getSize());
             switch (status) {
                 case NOT_SERVING_REGION:
                     result.add(new BulkWriteResult(WriteResult.notServingRegion()));
@@ -200,6 +203,9 @@ public class PipelineWriter{
                         LOG.trace("Rejecting "+write.getSize()+" rows because region "+ write.getEncodedStringName()+" has not setup its write pipeline");
                     result.add(new BulkWriteResult(WriteResult.indexNotSetup()));
                     break;
+                default:
+                    //add in a default pattern here so that we don't accidentally ignore things
+                    result.add(new BulkWriteResult(new WriteResult(status)));
             }
         }
     }
@@ -220,6 +226,7 @@ public class PipelineWriter{
                 if(LOG.isTraceEnabled())
                     LOG.trace("Rejecting "+bw.getSize()+" rows because region "+ bw.getEncodedStringName()+" is not being served");
                 writeResult = new BulkWriteResult(WriteResult.notServingRegion());
+                pipelineMeter.rejected(bw.getSize());
             }
             writePairMap.put(bw, Pair.newPair(writeResult, writePipeline));
         }

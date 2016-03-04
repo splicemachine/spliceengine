@@ -13,6 +13,9 @@ public class NoOpPipelineMeter implements PipelineMeter{
     private NoOpPipelineMeter(){}
 
     @Override public void mark(int numSuccess,int numFailed){ }
+
+    @Override public void rejected(int numRows){ }
+
     @Override public double throughput(){ return 0; }
     @Override public double fifteenMThroughput(){ return 0; }
     @Override public double fiveMThroughput(){ return 0; }

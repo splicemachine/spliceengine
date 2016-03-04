@@ -69,7 +69,7 @@ public class PipelineDriver{
         int maxDependentWrites = config.getInt(PipelineConfiguration.MAX_DEPENDENT_WRITES);
 
         this.writeControl= new SynchronousWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
-        this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl);
+        this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl,pipelineMeter);
         channelFactory.setWriter(pipelineWriter);
         channelFactory.setPipeline(writePipelineFactory);
         try{

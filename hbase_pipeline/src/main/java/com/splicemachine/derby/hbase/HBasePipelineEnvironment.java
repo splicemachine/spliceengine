@@ -48,7 +48,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
     private final SConfiguration pipelineConfiguration;
     private final PipelineCompressor compressor;
     private final BulkWriterFactory writerFactory;
-    private final PipelineMeter meter = new YammerPipelineMeter();
+    private final PipelineMeter meter = new CountingPipelineMeter();
 
     public static HBasePipelineEnvironment loadEnvironment(Clock systemClock,ContextFactoryDriver ctxFactoryLoader) throws IOException{
         HBasePipelineEnvironment env = INSTANCE;

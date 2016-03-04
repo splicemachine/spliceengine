@@ -44,7 +44,7 @@ public class MPipelineEnv  implements PipelineEnvironment{
         this.siEnv=siEnv;
         this.writerFactory = new DirectBulkWriterFactory(new MappedPipelineFactory(),
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
-                pipelineExceptionFactory());
+                pipelineExceptionFactory(),pipelineMeter());
         this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
     }
 

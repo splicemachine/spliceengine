@@ -8,6 +8,8 @@ public interface PipelineMeter{
 
     void mark(int numSuccess, int numFailed);
 
+    void rejected(int numRows);
+
     double throughput();
 
     double fifteenMThroughput();

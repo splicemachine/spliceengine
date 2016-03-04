@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.client;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -58,6 +59,124 @@ public class BulkWriteActionTest{
         DefaultWriteConfiguration configuration=new DefaultWriteConfiguration(null,mock(PipelineExceptionFactory.class));
         Assert.assertEquals(WriteResponse.THROW_ERROR,configuration.globalError(new IOException("Disconnected")));
     }
+    @Test
+    public void testDoesNotWriteDataWhenGivenAnEmptyBulkWrite() throws Exception{
+        byte[] table=Bytes.toBytes("1424");
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        Collection<BulkWrite> bwList=new ArrayList<>();
+
+        BulkWrites bw=new BulkWrites(bwList,txn);
+        ActionStatusReporter asr=new ActionStatusReporter();
+        final BulkWriter writer = new FailWriter();
+        BulkWriterFactory bwf=new BulkWriterFactory(){
+            @Override
+            public BulkWriter newWriter(byte[] tableName){
+                return writer;
+            }
+
+            @Override
+            public void invalidateCache(byte[] tableName) throws IOException{
+                //no-op
+            }
+
+            @Override
+            public void setPipeline(WritePipelineFactory writePipelineFactory){
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void setWriter(PipelineWriter pipelineWriter){
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        PartitionServer ts = mock(PartitionServer.class);
+
+        Partition p = mock(Partition.class);
+        when(p.subPartitions()).thenReturn(Collections.singletonList(p));
+        when(p.owningServer()).thenReturn(ts);
+        when(p.getName()).thenReturn("region2");
+        when(p.getStartKey()).thenReturn(new byte[]{});
+
+        PartitionFactory pf = mock(PartitionFactory.class);
+        when(pf.getTable(any(String.class))).thenReturn(p);
+
+
+        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,10l,0),pef);
+        IncrementingClock clock = new IncrementingClock();
+        BulkWriteAction bwa = new BulkWriteAction(table,
+                bw,
+                config,
+                asr,
+                bwf,
+                pef,
+                pf,
+                clock);
+
+        bwa.call();
+
+        Assert.assertEquals("Should not have waited!",0,clock.currentTimeMillis());
+    }
+
+    @Test
+    public void testDoesNotWriteDataWhenGivenBulkWriteWithNoRecords() throws Exception{
+        byte[] table=Bytes.toBytes("1424");
+        TxnView txn=new ActiveWriteTxn(1l,1l,Txn.ROOT_TRANSACTION,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION);
+        Collection<BulkWrite> bwList=new ArrayList<>();
+        bwList.add(new BulkWrite(Collections.<KVPair>emptyList(),"region1"));
+
+        BulkWrites bw=new BulkWrites(bwList,txn);
+        ActionStatusReporter asr=new ActionStatusReporter();
+        final BulkWriter writer = new FailWriter();
+        BulkWriterFactory bwf=new BulkWriterFactory(){
+            @Override
+            public BulkWriter newWriter(byte[] tableName){
+                return writer;
+            }
+
+            @Override
+            public void invalidateCache(byte[] tableName) throws IOException{
+                //no-op
+            }
+
+            @Override
+            public void setPipeline(WritePipelineFactory writePipelineFactory){
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void setWriter(PipelineWriter pipelineWriter){
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        PartitionServer ts = mock(PartitionServer.class);
+
+        Partition p = mock(Partition.class);
+        when(p.subPartitions()).thenReturn(Collections.singletonList(p));
+        when(p.owningServer()).thenReturn(ts);
+        when(p.getName()).thenReturn("region2");
+        when(p.getStartKey()).thenReturn(new byte[]{});
+
+        PartitionFactory pf = mock(PartitionFactory.class);
+        when(pf.getTable(any(String.class))).thenReturn(p);
+
+
+        WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,10l,0),pef);
+        IncrementingClock clock = new IncrementingClock();
+        BulkWriteAction bwa = new BulkWriteAction(table,
+                bw,
+                config,
+                asr,
+                bwf,
+                pef,
+                pf,
+                clock);
+
+        bwa.call();
+
+        Assert.assertEquals("Should not have waited!",0,clock.currentTimeMillis());
+    }
 
     @Test
     public void testCorrectlyRetriesWhenOneRegionStops() throws Exception{
@@ -104,7 +223,8 @@ public class BulkWriteActionTest{
 		when(pf.getTable(any(String.class))).thenReturn(p);
 
 
-		WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,0l,0),pef);
+		WriteConfiguration config = new DefaultWriteConfiguration(new Monitor(0,0,0,10l,0),pef);
+		IncrementingClock clock = new IncrementingClock();
 		BulkWriteAction bwa = new BulkWriteAction(table,
 				bw,
 				config,
@@ -112,10 +232,11 @@ public class BulkWriteActionTest{
 				bwf,
 				pef,
 				pf,
-				new IncrementingClock());
+				clock);
 
 		bwa.call();
 
+        Assert.assertTrue("Waited for the incorrect amount of time!",clock.currentTimeMillis()<10);
 		Assert.assertEquals("Incorrect number of calls!",2,writer.callCount);
 		Collection<KVPair> allData = writer.data;
 		Set<KVPair> deduped = new HashSet<>(allData);
@@ -160,6 +281,14 @@ public class BulkWriteActionTest{
 
         byte[] value=ee.encode();
         return new KVPair(Encoding.encode(name),value);
+    }
+
+    private static class FailWriter implements BulkWriter{
+        @Override
+        public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
+            Assert.fail("Should not be called!");
+            return null;
+        }
     }
 
 	private static class TestBulkWriter implements BulkWriter{

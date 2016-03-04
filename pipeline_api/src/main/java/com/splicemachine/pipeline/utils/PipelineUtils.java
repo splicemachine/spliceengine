@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Scott Fines
@@ -64,9 +65,15 @@ public class PipelineUtils{
 
     public static long getWaitTime(int retryCount,long pauseInterval){
         /*
-         * Exponential backoff here to avoid over-forcing the retry
+         * Exponential backoff here to avoid over-forcing the retry. Use a random
+         * interval to avoid having a bunch retry at identical times. The randomness is limited
+         * to the maximum wait for the last interval and the minimum wait for the current attempt count;
          */
         if(retryCount>10) return 10l*pauseInterval;
-        else return retryCount*pauseInterval;
+        else{
+            long minWait = retryCount>0?(retryCount-1)*pauseInterval:0;
+            long maxWait = retryCount>0?retryCount*pauseInterval:pauseInterval;
+            return ThreadLocalRandom.current().nextLong(minWait,maxWait);
+        }
     }
 }

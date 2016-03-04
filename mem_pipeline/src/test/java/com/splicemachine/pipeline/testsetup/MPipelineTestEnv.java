@@ -66,7 +66,7 @@ public class MPipelineTestEnv extends MemSITestEnv implements PipelineTestEnv{
         pipelineFactory = new MappedPipelineFactory();
         DirectBulkWriterFactory bwf = new DirectBulkWriterFactory(pipelineFactory,
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
-                DirectPipelineExceptionFactory.INSTANCE);
+                DirectPipelineExceptionFactory.INSTANCE,NoOpPipelineMeter.INSTANCE);
         Writer writer = new SynchronousBucketingWriter(bwf,DirectPipelineExceptionFactory.INSTANCE,
                 getTableFactory(),getClock());
         Monitor monitor = new Monitor(Long.MAX_VALUE,Integer.MAX_VALUE,0,10l,Integer.MAX_VALUE);

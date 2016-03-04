@@ -1,10 +1,7 @@
 package com.splicemachine.pipeline.mem;
 
 import com.splicemachine.pipeline.PipelineWriter;
-import com.splicemachine.pipeline.api.BulkWriter;
-import com.splicemachine.pipeline.api.BulkWriterFactory;
-import com.splicemachine.pipeline.api.PipelineExceptionFactory;
-import com.splicemachine.pipeline.api.WritePipelineFactory;
+import com.splicemachine.pipeline.api.*;
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 
@@ -21,8 +18,9 @@ public class DirectBulkWriterFactory implements BulkWriterFactory{
 
     public DirectBulkWriterFactory(WritePipelineFactory wpf,
                                    SpliceWriteControl writeControl,
-                                   PipelineExceptionFactory exceptionFactory) throws IOException{
-        this.pipelineWriter = new PipelineWriter(exceptionFactory,wpf,writeControl);
+                                   PipelineExceptionFactory exceptionFactory,
+                                   PipelineMeter meter) throws IOException{
+        this.pipelineWriter = new PipelineWriter(exceptionFactory,wpf,writeControl,meter);
     }
 
     public void setWriteCoordinator(WriteCoordinator writeCoordinator){
