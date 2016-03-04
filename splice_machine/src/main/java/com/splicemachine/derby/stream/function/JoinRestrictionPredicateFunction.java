@@ -10,23 +10,18 @@ import javax.annotation.Nullable;
 /**
  * Created by jleach on 4/22/15.
  */
-public class JoinRestrictionPredicateFunction<Op extends SpliceOperation> extends SplicePredicateFunction<Op,LocatedRow> {
-    protected JoinOperation joinOp;
-    protected boolean initialized = false;
+public class JoinRestrictionPredicateFunction extends SplicePredicateFunction<JoinOperation,LocatedRow> {
     public JoinRestrictionPredicateFunction() {
         super();
     }
 
-    public JoinRestrictionPredicateFunction(OperationContext<Op> operationContext) {
+    public JoinRestrictionPredicateFunction(OperationContext<JoinOperation> operationContext) {
         super(operationContext);
     }
 
     @Override
     public boolean apply(@Nullable LocatedRow locatedRow) {
-        if (!initialized) {
-            joinOp = (JoinOperation) operationContext.getOperation();
-            initialized = true;
-        }
+        JoinOperation joinOp = operationContext.getOperation();
         try {
             if (!joinOp.getRestriction().apply(locatedRow.getRow())) {
                 operationContext.recordFilter();

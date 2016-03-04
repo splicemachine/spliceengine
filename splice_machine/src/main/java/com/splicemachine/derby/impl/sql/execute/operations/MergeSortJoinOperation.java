@@ -13,10 +13,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -29,6 +25,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
 /**
  *
@@ -193,17 +190,22 @@ public class MergeSortJoinOperation extends JoinOperation {
             leftDataSet2.keyBy(new KeyerFunction<LocatedRow,JoinOperation>(operationContext, leftHashKeys));
         operationContext.popScope();
 
-        if (isRightSideSorted()) {
+        if (isHalfMergeSort()) {
             operationContext.pushScope();
             try {
-                DataSet<LocatedRow> sorted = leftDataSet.sortByKey(new RowComparator()).values();
+                DataSet<LocatedRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder(), true)).values();
                 if (isOuterJoin)
                     return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
                 else {
                     if (notExistsRightSide)
                         return sorted.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
-                    else
-                        return sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
+                    else {
+                        DataSet<LocatedRow> result = sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
+                        if (restriction != null) {
+                            return result.filter(new JoinRestrictionPredicateFunction(operationContext));
+                        }
+                        return result;
+                    }
                 }
             } finally {
                 operationContext.popScope();
@@ -234,6 +236,25 @@ public class MergeSortJoinOperation extends JoinOperation {
         }
     }
 
+
+    private Partitioner getPartitioner(DataSetProcessor dsp) throws StandardException {
+        ExecRow right = rightResultSet.getExecRowDefinition();
+        ScanOperation scanOperation = getScanOperation(rightResultSet);
+        DataValueDescriptor[] rightArray = right.getNewNullRow().getRowArray();
+        DataValueDescriptor[] dvds;
+        if (rightArray.length == rightHashKeys.length) {
+            dvds = rightArray;
+        } else {
+            dvds = new DataValueDescriptor[rightHashKeys.length];
+            for (int i = 0; i < dvds.length; ++i) {
+                dvds[i] = rightArray[i];
+            }
+        }
+        ValueRow template = new ValueRow(dvds.length);
+        template.setRowArray(dvds);
+        return dsp.getPartitioner(rightResultSet.getDataSet(dsp), template, scanOperation.getKeyDecodingMap(), getRightOrder());
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private DataSet<LocatedRow> getJoinedDataset(
         OperationContext operationContext,
@@ -262,7 +283,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 if (restriction !=null) { // with restriction
                     return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext))
-                            .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
+                            .filter(new JoinRestrictionPredicateFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
@@ -294,10 +315,31 @@ public class MergeSortJoinOperation extends JoinOperation {
         return scanOperation;
     }
 
-    private boolean isRightSideSorted() throws StandardException {
+    private boolean[] getRightOrder() throws StandardException {
         ScanOperation scanOperation = getScanOperation(rightResultSet);
 
+        boolean[] ascDescInfo = scanOperation.getAscDescInfo();
+        boolean[] result = new boolean[rightHashKeys.length];
+        if (ascDescInfo == null) {
+            // primary-key, all ascending
+            Arrays.fill(result, true);
+            return result;
+        }
+        for (int i = 0; i < rightHashKeys.length; i++) {
+            result[i] = ascDescInfo[i];
+        }
+        return result;
+    }
+
+    private boolean isRightSideSorted() throws StandardException {
+        ScanOperation scanOperation = getScanOperation(rightResultSet);
+        if (scanOperation == null)
+            return false;
+
         int[] columnOrdering = scanOperation.getKeyDecodingMap();
+        if (columnOrdering == null)
+            return false;
+
         if (rightHashKeys.length > columnOrdering.length) {
             return false;
         }
@@ -307,5 +349,13 @@ public class MergeSortJoinOperation extends JoinOperation {
             }
         }
         return true;
+    }
+
+    public boolean isHalfMergeSort() throws StandardException {
+        if ((isOuterJoin || notExistsRightSide) && restriction != null) {
+            // restriction not implemented on MergeJoin on these cases
+            return false;
+        }
+        return isRightSideSorted();
     }
 }

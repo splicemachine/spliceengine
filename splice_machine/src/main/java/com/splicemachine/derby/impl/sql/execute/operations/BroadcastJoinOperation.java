@@ -195,7 +195,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                              .map(new InnerJoinFunction<SpliceOperation>(operationContext));
 
                     if (restriction !=null) { // with restriction
-                        result = result.filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
+                        result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                     }
                 }
             }

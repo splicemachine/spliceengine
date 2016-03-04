@@ -138,62 +138,31 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
         int[] keyColumnPositionMap = innerRowGenerator.baseColumnPositions();
 
         BitSet innerColumns = new BitSet(keyColumnPositionMap.length);
-        for(int p = 0;p<predList.size();p++){
-            Predicate pred = (Predicate)predList.getOptPredicate(p);
-            if(pred.isJoinPredicate()) continue; //we'll deal with these later
-            RelationalOperator relop=pred.getRelop();
-            if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
-            if(relop.getOperator()==RelationalOperator.EQUALS_RELOP) {
+        for(int p=0;p<predList.size();p++) {
+            Predicate pred = (Predicate) predList.getOptPredicate(p);
+            RelationalOperator relop = pred.getRelop();
+            if (pred.isJoinPredicate()) {
+                assert relop instanceof BinaryRelationalOperatorNode :
+                        "Programmer error: RelationalOperator of type " + relop.getClass() + " detected";
+                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relop;
+                ColumnReference innerColumn = relop.getColumnOperand(innerTable);
+                if (innerColumn == null) continue;
+                int innerColumnNumber = innerColumn.getColumnNumber();
+                for (int i = 0; i < keyColumnPositionMap.length; ++i) {
+                    if (innerColumnNumber == keyColumnPositionMap[i]) {
+                        innerColumns.set(i);
+                    }
+                }
+            } else {
+                if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
+                if(relop.getOperator()!=RelationalOperator.EQUALS_RELOP) continue;
+
                 int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
                 if (innerEquals >= 0) innerColumns.set(innerEquals);
             }
         }
-        int[] innerToOuterJoinColumnMap = new int[keyColumnPositionMap.length];
-        Arrays.fill(innerToOuterJoinColumnMap,-1);
-        for(int i=0;i<keyColumnPositionMap.length;i++){
-            /*
-             * If we have equals predicates on the inner and outer columns already, then we don't
-             * care about this position
-             */
-            int innerColumnPosition = keyColumnPositionMap[i];
-
-            for(int p=0;p<predList.size();p++){
-                Predicate pred = (Predicate)predList.getOptPredicate(p);
-                if(!pred.isJoinPredicate()) continue; //we've already dealt with those
-                RelationalOperator relop=pred.getRelop();
-                assert relop instanceof BinaryRelationalOperatorNode:
-                        "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
-                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
-                ColumnReference innerColumn=relop.getColumnOperand(innerTable);
-                if (innerColumn == null ) continue;
-                int innerColumnNumber = innerColumn.getColumnNumber();
-                if(innerColumnNumber==innerColumnPosition){
-                    innerColumns.set(i);
-                    innerToOuterJoinColumnMap[i] = i;
-                }
-            }
-        }
-        if(innerColumns.cardinality()<=0) return false; //we have no matching join predicates, so we can't work
-
-        /*
-         * Find the first inner join column, make sure all columns before it appear in innerColumns and outerColumns.
-         * These columnsare referenced in equal predicates
-         */
-        if (innerToOuterJoinColumnMap.length > 0) {
-            int first = 0;
-            while (first < innerToOuterJoinColumnMap.length && innerToOuterJoinColumnMap[first] == -1) {
-                first++;
-            }
-            // No inner join columns, merge join is not feasible
-            if (first >= innerToOuterJoinColumnMap.length)
-                return false;
-
-            for (int i = 0; i < first; ++i) {
-                if (!innerColumns.get(i)) {
-                    return false;
-                }
-            }
-        }
+        if(innerColumns.cardinality()<=0) return false; // we have no matching join predicates, so we can't work
+        if(innerColumns.nextClearBit(0)<innerColumns.cardinality()) return false; // there's a gap, an unsorted column
         return true;
     }
 }

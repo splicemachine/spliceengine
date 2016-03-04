@@ -5,6 +5,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -12,7 +13,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
@@ -23,9 +26,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -233,4 +234,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             broadcastedActivation.set(new BroadcastedActivation(activation));
         }
     }
+
+    @Override
+    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+        return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder);
+    }
+
+
 }

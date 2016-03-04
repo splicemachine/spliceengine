@@ -1,8 +1,13 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.function.Partitioner;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 
 import java.io.InputStream;
 
@@ -94,4 +99,6 @@ public interface DataSetProcessor {
      * Stops the given job
      */
     void stopJobGroup(String jobName);
+
+    Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder);
 }
