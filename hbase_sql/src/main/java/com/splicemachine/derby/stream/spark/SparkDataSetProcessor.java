@@ -12,15 +12,12 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
-import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
-import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -84,7 +81,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty() {
-        return getEmpty(SparkConstants.RDD_NAME_EMPTY_DATA_SET);
+        return getEmpty(RDDName.EMPTY_DATA_SET.displayName());
     }
 
     @Override
@@ -104,7 +101,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         SpliceSpark.pushScope(scope);
         try {
             JavaRDD rdd1 = SpliceSpark.getContext().parallelize(Collections.singletonList(value), 1);
-            rdd1.setName(SparkConstants.RDD_NAME_SINGLE_ROW_DATA_SET);
+            rdd1.setName(RDDName.SINGLE_ROW_DATA_SET.displayName());
             return new SparkDataSet<>(rdd1);
         } finally {
             SpliceSpark.popScope();
@@ -151,11 +148,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public PairDataSet<String, InputStream> readWholeTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
-            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
+            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
             JavaPairRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(
                 path, WholeTextInputFormat.class, String.class, InputStream.class, HConfiguration.INSTANCE.unwrapDelegate());
             // RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
-            return new SparkPairDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
+            return new SparkPairDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {
@@ -173,10 +170,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public DataSet<String> readTextFile(String path, SpliceOperation op) {
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
-            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + SparkConstants.SCOPE_NAME_READ_TEXT_FILE : "");
+            SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
             JavaRDD rdd = SpliceSpark.getContext().textFile(path);
             RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
-            return new SparkDataSet<>(rdd,SparkConstants.RDD_NAME_READ_TEXT_FILE);
+            return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         } finally {

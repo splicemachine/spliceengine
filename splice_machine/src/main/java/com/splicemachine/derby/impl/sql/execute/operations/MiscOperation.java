@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.actions.DDLConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
+import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.Exceptions;

@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.actions;
+package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;

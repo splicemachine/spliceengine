@@ -180,7 +180,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet<V> union(DataSet< V> dataSet) {
-        return union(dataSet, SparkConstants.RDD_NAME_UNION, false, null);
+        return union(dataSet, RDDName.UNION.displayName(), false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -189,7 +189,7 @@ public class SparkDataSet<V> implements DataSet<V> {
         pushScopeIfNeeded((SpliceFunction)null, pushScope, scopeDetail);
         try {
             JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
-            rdd1.setName(name != null ? name : SparkConstants.RDD_NAME_UNION);
+            rdd1.setName(name != null ? name : RDDName.UNION.displayName());
             return new SparkDataSet<>(rdd1);
         } finally {
             if (pushScope) SpliceSpark.popScope();

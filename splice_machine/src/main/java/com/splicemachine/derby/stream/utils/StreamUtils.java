@@ -4,7 +4,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.derby.impl.sql.execute.actions.ScopeNamed;
+import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 

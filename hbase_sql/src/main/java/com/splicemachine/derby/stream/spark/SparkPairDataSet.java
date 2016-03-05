@@ -42,7 +42,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public DataSet<V> values(){
-        return values(SparkConstants.RDD_NAME_GET_VALUES);
+        return values(RDDName.GET_VALUES.displayName());
     }
 
     @Override
@@ -59,7 +59,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         if (pushScope) context.pushScopeForOp(scopeDetail);
         try {
-            return new SparkDataSet<V>(rdd.values(), name != null ? name : SparkConstants.RDD_NAME_GET_VALUES);
+            return new SparkDataSet<V>(rdd.values(), name != null ? name : RDDName.GET_VALUES.displayName());
         } finally {
             if (pushScope) context.popScope();
         }
@@ -157,7 +157,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <W> PairDataSet<K, V> subtractByKey(PairDataSet<K, W> rightDataSet){
-        return subtractByKey(rightDataSet,SparkConstants.RDD_NAME_SUBTRACTBYKEY);
+        return subtractByKey(rightDataSet,RDDName.SUBTRACT_BY_KEY.displayName());
     }
 
     @Override

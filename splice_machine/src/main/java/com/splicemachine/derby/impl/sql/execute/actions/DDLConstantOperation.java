@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.ddl.DDLConfiguration;
+import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -42,7 +42,7 @@ import java.util.*;
  * all DDL actions.
  *
  */
-public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed  {
+public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed {
 	private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
     /**
