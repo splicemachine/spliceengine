@@ -435,6 +435,16 @@ public class CostEstimateImpl implements CostEstimate {
         return toString();
     }
 
+    @Override
+    public String prettyDmlStmtString(String rowsLabel) {
+        return toString();
+    }
+
+    @Override
+    public String prettyDmlStmtString(double cost, long rows, String attrDelim, String rowsLabel) {
+        return toString();
+    }
+
     @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
 
     /**

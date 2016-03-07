@@ -1514,14 +1514,12 @@ public final class UpdateNode extends DMLModStatementNode
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
-                .append("Update").append("(")
-                .append("n=").append(order);
-                if (this.resultSet!=null) {
-                    sb.append(attrDelim).append("totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
-                    sb.append(attrDelim).append("updatedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
-                }
-                sb.append(attrDelim).append("targetTable=").append(targetTableName)
-                .append(")");
+			.append("Update").append("(")
+			.append("n=").append(order);
+		if (this.resultSet!=null) {
+			sb.append(this.resultSet.getFinalCostEstimate().prettyDmlStmtString("updatedRows"));
+		}
+		sb.append(attrDelim).append("targetTable=").append(targetTableName).append(")");
         return sb.toString();
     }
 

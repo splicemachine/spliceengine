@@ -226,6 +226,10 @@ public interface CostEstimate extends StoreCostResult {
 
     String prettyProjectionString(String attrDelim);
 
+    String prettyDmlStmtString(String rowsLabel);
+
+    String prettyDmlStmtString(double cost, long rows, String attrDelim, String rowsLabel);
+
     public double getProjectionRows();
 
     public void setProjectionRows(double projectionRows);
