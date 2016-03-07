@@ -121,7 +121,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public String prettyDmlStmtString(String rowsLabel) {
-        return prettyDmlStmtString(getEstimatedCost(), getEstimatedRowCount(), ",", "outputRows");
+        return prettyDmlStmtString(getEstimatedCost(), getEstimatedRowCount(), ",", rowsLabel);
     }
 
     @Override
