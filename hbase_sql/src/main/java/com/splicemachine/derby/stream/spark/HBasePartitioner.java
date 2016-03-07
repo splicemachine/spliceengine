@@ -1,8 +1,13 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
@@ -10,16 +15,18 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.example.ExecRowUtils;
 import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.spark.Partition;
 import org.apache.spark.rdd.NewHadoopPartition;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -84,18 +91,40 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(template);
         out.writeObject(keyDecodingMap);
         out.writeObject(keyOrder);
         out.writeObject(rowPartitions);
+        KryoPool kryoPool=SpliceKryoRegistry.getInstance();
+        Kryo kryo=kryoPool.get();
+        Output output=new Output(4096,-1);
+        try{
+            kryo.writeClassAndObject(output, template);
+        }finally{
+            output.flush();
+            kryoPool.returnInstance(kryo);
+        }
+        byte[] data = output.toBytes();
+        out.writeInt(data.length);
+        out.write(data);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        template = (ExecRow) in.readObject();
         keyDecodingMap = (int[]) in.readObject();
         keyOrder = (boolean[]) in.readObject();
         rowPartitions = (List<RowPartition>) in.readObject();
+        int size = in.readInt();
+        byte[] data = new byte[size];
+        in.readFully(data);
+        KryoPool kryoPool= SpliceKryoRegistry.getInstance();
+        Kryo kryo=kryoPool.get();
+        Input input = new Input(data);
+        try{
+            template = (ExecRow) kryo.readClassAndObject(input);
+        } finally {
+            kryoPool.returnInstance(kryo);
+            input.close();
+        }
         initDecoder();
     }
 
