@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
+
 import java.text.DecimalFormat;
 
 /**
@@ -118,6 +119,22 @@ public class SimpleCostEstimate implements CostEstimate{
         return prettyStringOutput(getIndexLookupCost(), Math.round(getIndexLookupRows()), attrDelim);
     }
 
+    @Override
+    public String prettyDmlStmtString(String rowsLabel) {
+        return prettyDmlStmtString(getEstimatedCost(), getEstimatedRowCount(), ",", "outputRows");
+    }
+
+    @Override
+    public String prettyDmlStmtString(double cost, long rows, String attrDelim, String rowsLabel) {
+        DecimalFormat df = new DecimalFormat();
+        df.setMaximumFractionDigits(3);
+        df.setGroupingUsed(false);
+        StringBuilder sb = new StringBuilder();
+        sb.append("totalCost=").append(df.format(cost/1000));
+        sb.append(attrDelim).append(rowsLabel == null ? "outputRows" : rowsLabel).append("=").append(rows);
+        return sb.toString();
+    }
+
     private String prettyStringOutput(double cost, long rows) {
         return prettyStringOutput(cost, rows, ",");
     }
@@ -141,7 +158,7 @@ public class SimpleCostEstimate implements CostEstimate{
         sb.append(attrDelim).append("outputRows=").append(rows);
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
         sb.append(attrDelim).append("partitions=").append(partitionCount());
-        
+
         return sb.toString();
     }
 
