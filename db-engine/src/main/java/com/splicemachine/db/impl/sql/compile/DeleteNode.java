@@ -1034,7 +1034,7 @@ public class DeleteNode extends DMLModStatementNode
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
 			.append("Delete").append("(")
-			.append("n=").append(order);
+			.append("n=").append(order).append(attrDelim);
 		if (this.resultSet!=null) {
 			sb.append(this.resultSet.getFinalCostEstimate().prettyDmlStmtString("deletedRows"));
 		}

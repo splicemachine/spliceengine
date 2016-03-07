@@ -1515,7 +1515,7 @@ public final class UpdateNode extends DMLModStatementNode
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
 			.append("Update").append("(")
-			.append("n=").append(order);
+			.append("n=").append(order).append(attrDelim);
 		if (this.resultSet!=null) {
 			sb.append(this.resultSet.getFinalCostEstimate().prettyDmlStmtString("updatedRows"));
 		}
