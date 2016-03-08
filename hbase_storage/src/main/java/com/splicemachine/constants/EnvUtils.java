@@ -11,7 +11,9 @@ import org.apache.log4j.Logger;
 
 public class EnvUtils {
 	private static Logger LOG = Logger.getLogger(EnvUtils.class);
-	private static final long FIRST_USER_TABLE_NUMBER = 1328;
+    // NOTE: JC - this constant is also defined in DataDictionary. When adding a new sys table, this
+    // number will need to be increased in BOTH places.
+	private static final long FIRST_USER_TABLE_NUMBER = 1440;
 
     public static TableType getTableType(SConfiguration config,RegionCoprocessorEnvironment e) {
         return EnvUtils.getTableType(config,e.getRegion().getTableDesc().getTableName());
