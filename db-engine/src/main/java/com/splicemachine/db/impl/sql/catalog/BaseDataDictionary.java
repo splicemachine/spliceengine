@@ -124,8 +124,9 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
                                     "SYSBACKUPJOBS",
                                     "SYSCOLUMNSTATS",
                                     "SYSPHYSICALSTATS",
-                                    "SYSTABLESTATS"
-};
+                                    "SYSTABLESTATS",
+                                    "SYSDUMMY1"
+    };
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
 	

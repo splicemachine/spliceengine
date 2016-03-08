@@ -204,8 +204,8 @@ public class DataDictionaryCache {
 
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
-        if (!dd.canUseCache(xactMgr) && conglomId>1408)
-            // Use cache even if dd says we can't if conglomID is <= 1408
+        if (!dd.canUseCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
+            // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
             return null;
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);

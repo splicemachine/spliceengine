@@ -6045,8 +6045,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 cm.pushContext(ec);
                 ContextService.getFactory().setCurrentContextManager(cm);
                 int catalogNumber=noncoreCtr+NUM_CORE;
+                boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
-                makeCatalog(ti,systemSchemaDesc,tc);
+                makeCatalog(ti,isDummy?sysIBMSchemaDesc:systemSchemaDesc,tc);
+                if(isDummy)
+                    populateSYSDUMMY1(tc);
+                // Clear the table entry for this non-core table,
+                // to allow it to be garbage-collected. The idea
+                // is that a running database might never need to
+                // reference a non-core table after it was created.
                 clearNoncoreTable(noncoreCtr);
             }catch(Exception e){
                 e.printStackTrace();
@@ -6251,7 +6258,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else
             ti=coreInfo[catalogNumber];
 
-        makeCatalog(ti,getSystemSchemaDescriptor(),tc);
+        makeCatalog(ti,(catalogNumber==SYSDUMMY1_CATALOG_NUM)?getSysIBMSchemaDescriptor():getSystemSchemaDescriptor(),tc);
     }
 
 
@@ -7277,7 +7284,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSTABLESTATS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
                     break;
-
+                case SYSDUMMY1_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
+                    break;
             }
             initSystemIndexVariables(retval);
             noncoreInfo[nonCoreNum]=retval;
@@ -7295,6 +7304,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 initSystemIndexVariables(ti,indexCtr);
             }
         }
+    }
+
+    /**
+     * Populate SYSDUMMY1 table with a single row.
+     *
+     * @throws StandardException Standard Derby error policy
+     */
+    protected void populateSYSDUMMY1(TransactionController tc) throws StandardException{
+        TabInfoImpl	ti = getNonCoreTI(SYSDUMMY1_CATALOG_NUM);
+        ExecRow row = ti.getCatalogRowFactory().makeRow(null, null);
+
+        ti.insertRow(row, tc);
     }
 
     // Expected to be called only during boot time, so no synchronization.

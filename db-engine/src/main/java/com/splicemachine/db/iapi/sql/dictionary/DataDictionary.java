@@ -55,6 +55,11 @@ import java.util.Map;
 public interface DataDictionary{
     String MODULE="com.splicemachine.db.iapi.sql.dictionary.DataDictionary";
 
+    /** The conglomerate id of the first user table */
+    // NOTE: JC - this constant is also defined in (splice) EnvUtils. When adding a new sys table, this
+    // number will need to be increased in BOTH places.
+    long FIRST_USER_TABLE_NUMBER = 1440;
+
     /**
      * Special version indicating the database must be upgraded to or created at the current engine level
      * <p/>
@@ -220,6 +225,7 @@ public interface DataDictionary{
     int SYSCOLUMNSTATS_CATALOG_NUM=25;
     int SYSPHYSICALSTATS_CATALOG_NUM=26;
     int SYSTABLESTATS_CATALOG_NUM=27;
+    int SYSDUMMY1_CATALOG_NUM=28;
 
 
     /* static finals for constraints
