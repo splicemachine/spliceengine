@@ -12,8 +12,7 @@ import java.util.List;
  * Created by jleach on 2/19/16.
  */
 public class MPartitionCache implements PartitionInfoCache<String> {
-        private SConfiguration configuration;
-        private Cache<String, List<Partition>> partitionCache = CacheBuilder.newBuilder().maximumSize(100).build();
+    private Cache<String, List<Partition>> partitionCache = CacheBuilder.newBuilder().maximumSize(100).build();
 
         //must be a no-args to support the PartitionCacheService--use configure() instead
         public MPartitionCache(){ }
@@ -30,7 +29,6 @@ public class MPartitionCache implements PartitionInfoCache<String> {
 
         @Override
         public void configure(SConfiguration configuration){
-            this.configuration=configuration;
         }
 
         @Override

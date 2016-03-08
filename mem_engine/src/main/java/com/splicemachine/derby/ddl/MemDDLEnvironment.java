@@ -118,7 +118,7 @@ public class MemDDLEnvironment implements DDLEnvironment{
         }
     }
 
-    private class DirectWatcher implements DDLWatchChecker{
+    private static class DirectWatcher implements DDLWatchChecker{
         private final DDLChangeStore changeStore;
 
         public DirectWatcher(DDLChangeStore changeStore){
@@ -152,9 +152,9 @@ public class MemDDLEnvironment implements DDLEnvironment{
         }
     }
 
-    private class DirectCommunicator implements DDLCommunicator{
+    private static class DirectCommunicator implements DDLCommunicator{
         private final DDLChangeStore changeStore;
-        private final Collection<String> fauxServers=Collections.singletonList("in-mem");
+        private static final Collection<String> fauxServers=Collections.singletonList("in-mem");
 
         public DirectCommunicator(DDLChangeStore changeStore){
             this.changeStore=changeStore;

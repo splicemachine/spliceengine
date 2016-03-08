@@ -82,7 +82,7 @@ public class MPartition implements Partition{
         long curSeq = sequenceGen.get();
         try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
             List<DataCell> toReturn=ss.next(-1);
-            if(toReturn==null) return null;
+            if(toReturn.size()<=0) return null;
 
             filterByFamilies(toReturn,get.familyQualifierMap());
             if(toReturn.size()<=0) return null;

@@ -5,18 +5,13 @@ import com.splicemachine.db.io.StorageFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * @author Scott Fines
  *         Date: 1/11/16
  */
 public class MemStorageFactory implements StorageFactory{
-    String home;
-    protected String dataDirectory;
-    protected String separatedDataDirectory; // dataDirectory + separator
-    protected String uniqueName;
-    protected String canonicalName;
+    private String canonicalName;
 
     /**
      * Most of the initialization is done in the init method.
@@ -28,12 +23,6 @@ public class MemStorageFactory implements StorageFactory{
     @Override
     public void init(String home,String databaseName,String tempDirName,
                      String uniqueName) throws IOException{
-        if(databaseName!=null){
-            dataDirectory=databaseName;
-            separatedDataDirectory=databaseName+getSeparator();
-        }
-        this.home=home;
-        this.uniqueName=uniqueName;
         doInit();
     }
 
@@ -105,14 +94,5 @@ public class MemStorageFactory implements StorageFactory{
         canonicalName=name;
     }
 
-//    @Override
-    public void sync(OutputStream stream,boolean metaData) throws IOException{
-        stream.flush();
-    }
-
-//    @Override
-    public boolean supportsWriteSync(){
-        return false;
-    }
 }
 

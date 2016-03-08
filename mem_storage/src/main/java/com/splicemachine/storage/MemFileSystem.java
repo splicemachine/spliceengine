@@ -258,12 +258,15 @@ public class MemFileSystem extends DistributedFileSystem{
         private final Path p;
 
         public PathInfo(Path p){
+            assert p!=null: "Cannot create info with a null path!";
             this.p=p;
         }
 
         @Override
         public String fileName(){
-            return p.getFileName().toString();
+            Path fileName=p.getFileName();
+            assert fileName!=null: "Programmer error: no file name present!";
+            return fileName.toString();
         }
 
         @Override

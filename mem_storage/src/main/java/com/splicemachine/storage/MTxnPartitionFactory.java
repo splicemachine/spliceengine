@@ -23,11 +23,11 @@ import java.io.IOException;
 public class MTxnPartitionFactory implements PartitionFactory<Object>{
     private final PartitionFactory baseFactory;
     private volatile boolean initialized = false;
-    private Transactor transactor;
-    private RollForward rollForward;
-    private TxnOperationFactory txnOpFactory;
-    private TransactionReadController txnReadController;
-    private ReadResolver readResolver;
+    private volatile Transactor transactor;
+    private volatile RollForward rollForward;
+    private volatile TxnOperationFactory txnOpFactory;
+    private volatile TransactionReadController txnReadController;
+    private volatile ReadResolver readResolver;
 
     public MTxnPartitionFactory(PartitionFactory baseFactory){
         this.baseFactory=baseFactory;

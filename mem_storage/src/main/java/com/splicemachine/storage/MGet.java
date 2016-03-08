@@ -23,11 +23,12 @@ public class MGet implements DataGet{
 
     public MGet(){ }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public void setKey(byte[] key){
         this.key = key;
     }
 
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MGet(byte[] key){
         this.key=key;
     }

@@ -61,7 +61,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         return dist;
     }
 
-    private class DistributedWrapper extends ForwardingDataSetProcessor implements DistributedDataSetProcessor{
+    private static class DistributedWrapper extends ForwardingDataSetProcessor implements DistributedDataSetProcessor{
         public DistributedWrapper(ControlDataSetProcessor cdsp){
             super(cdsp);
         }

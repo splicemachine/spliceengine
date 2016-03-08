@@ -13,7 +13,6 @@ public class MScan implements DataScan{
     private byte[] startKey;
     private byte[] stopKey;
     private DataFilter filter;
-    private int batchSize;
 
     private Map<String,byte[]> attrs = new HashMap<>();
     private long highTs = Long.MAX_VALUE;
@@ -69,7 +68,7 @@ public class MScan implements DataScan{
 
     @Override
     public DataScan batchCells(int cellsToBatch){
-        this.batchSize = cellsToBatch;
+        //there is no batching for in-memory (yet)
         return this;
     }
 

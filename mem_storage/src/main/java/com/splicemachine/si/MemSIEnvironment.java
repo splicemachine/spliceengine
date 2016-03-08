@@ -37,12 +37,14 @@ import com.splicemachine.storage.MTxnPartitionFactory;
 import com.splicemachine.storage.MemFileSystem;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * @author Scott Fines
  *         Date: 1/11/16
  */
 public class MemSIEnvironment implements SIEnvironment{
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",justification = "Referenced outside of the module")
     public static volatile MemSIEnvironment INSTANCE;
     private final ExceptionFactory exceptionFactory = MExceptionFactory.INSTANCE;
     private final Clock clock = new ConcurrentTicker(0l);
