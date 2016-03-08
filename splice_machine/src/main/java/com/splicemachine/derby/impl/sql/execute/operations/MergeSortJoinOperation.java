@@ -200,11 +200,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                     if (notExistsRightSide)
                         return sorted.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
                     else {
-                        DataSet<LocatedRow> result = sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
-                        if (restriction != null) {
-                            return result.filter(new JoinRestrictionPredicateFunction(operationContext));
-                        }
-                        return result;
+                        return sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
                     }
                 }
             } finally {
@@ -336,6 +332,11 @@ public class MergeSortJoinOperation extends JoinOperation {
         if (scanOperation == null)
             return false;
 
+        if (scanOperation instanceof DistinctScanOperation) {
+            // DistinctScanOperation doesn't guarantee sorted order
+            return false;
+        }
+
         int[] columnOrdering = scanOperation.getKeyDecodingMap();
         if (columnOrdering == null)
             return false;
@@ -352,10 +353,6 @@ public class MergeSortJoinOperation extends JoinOperation {
     }
 
     public boolean isHalfMergeSort() throws StandardException {
-        if ((isOuterJoin || notExistsRightSide) && restriction != null) {
-            // restriction not implemented on MergeJoin on these cases
-            return false;
-        }
         return isRightSideSorted();
     }
 }
