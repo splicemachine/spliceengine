@@ -59,6 +59,22 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         this.txnOperationFactory=txnOperationFactory;
     }
 
+    public static final Partitioner NOOP_PARTITIONER = new Partitioner() {
+        @Override
+        public void initialize() {
+        }
+
+        @Override
+        public int numPartitions() {
+            return 0;
+        }
+
+        @Override
+        public int getPartition(Object o) {
+            return 0;
+        }
+    };
+
     @Override
     @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION",justification = "Serialization" +
             "of this is a mistake for control-side operations")
@@ -265,21 +281,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
-        return new Partitioner() {
-            @Override
-            public void initialize() {
-            }
-
-            @Override
-            public int numPartitions() {
-                return 0;
-            }
-
-            @Override
-            public int getPartition(Object o) {
-                return 0;
-            }
-        };
+        return NOOP_PARTITIONER;
     }
 
     /* ****************************************************************************************************************/
