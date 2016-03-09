@@ -81,6 +81,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected List<AutoCloseable> closeables;
     protected NoPutResultSet[] subqueryTrackingArray;
     protected List<SpliceOperation> leftOperationStack;
+    protected String jobName;
+    protected DataSetProcessor dsp;
 
     public SpliceBaseOperation(){
         super();
@@ -220,6 +222,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         try{
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
+            if (dsp != null) {
+                dsp.stopJobGroup(jobName);
+            }
             if(closeables!=null){
                 for(AutoCloseable closeable : closeables){
                     closeable.close();
@@ -443,13 +448,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s",this));
             isOpen=true;
+            this.dsp = dsp;
             String sql=activation.getPreparedStatement().getSource();
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
-            String jobName=userId+" <"+txnId+">";
+            this.jobName=userId+" <"+txnId+">";
             dsp.setJobGroup(jobName,sql);
             dsp.clearBroadcastedOperation();
             this.locatedRowIterator=getDataSet(dsp).toLocalIterator();

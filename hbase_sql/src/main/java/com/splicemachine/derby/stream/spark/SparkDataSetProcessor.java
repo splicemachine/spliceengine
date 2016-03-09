@@ -221,6 +221,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         broadcastedActivation.remove();
     }
 
+    @Override
+    public void stopJobGroup(String jobName) {
+        SpliceSpark.getContext().cancelJobGroup(jobName);
+    }
+
     private transient ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
 
     private void setupBroadcastedActivation(Activation activation){

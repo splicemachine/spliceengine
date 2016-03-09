@@ -254,6 +254,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
         // do nothing
     }
 
+    @Override
+    public void stopJobGroup(String jobName) {
+        // do nothing
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private InputStream newInputStream(DistributedFileSystem dfs,@Nonnull Path p,OpenOption... options) throws IOException{

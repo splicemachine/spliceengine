@@ -90,4 +90,8 @@ public interface DataSetProcessor {
 
     void clearBroadcastedOperation();
 
+    /*
+     * Stops the given job
+     */
+    void stopJobGroup(String jobName);
 }
