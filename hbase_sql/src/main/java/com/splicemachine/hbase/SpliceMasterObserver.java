@@ -99,8 +99,10 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         }
     }
 
-    private void boot() throws IOException{
+    private synchronized void boot() throws IOException{
         //make sure the SIDriver is booted
+        if (! manager.getState().equals(DatabaseLifecycleManager.State.NOT_STARTED))
+            return; // Race Condition, only load one...
 
         //ensure that the SI environment is booted properly
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),ZkUtils.getRecoverableZooKeeper());
