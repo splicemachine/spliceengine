@@ -152,6 +152,8 @@ if [[ "${BUILD}" == "1" ]]; then
 fi
 
 pushd "${RUN_DIR}" > /dev/null
+## delete old logs before we start fresh
+/bin/rm -f *.log*
 
 # Run IN MEMORY
 if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then

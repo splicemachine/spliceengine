@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -10,9 +11,12 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Created by jyuan on 10/12/15.
@@ -111,6 +115,42 @@ public class VTIOperationIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals(5, count);
+    }
+
+    @Test
+    public void testFileVTIExpectError() throws Exception {
+        String location = getResourceDirectory()+"importTest.in";
+        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                                       " (name varchar(10), title varchar(30), age int, something varchar(12), " +
+                                       "date_hired timestamp, clock time)\n" +
+                                       " where age < 40 and date_hired > TIMESTAMP('2015-08-21', '08:09:08') order" +
+                                       " by name", location);
+        try {
+            ResultSet rs = spliceClassWatcher.executeQuery(sql);
+            fail("Expected: java.sql.SQLException: Number of columns in column definition, 6, differ from those found in import file 3.");
+        } catch (SQLException e) {
+           // expected: "Number of columns in column definition, 6, differ from those found in import file 3. "
+            assertEquals("XIE0A", e.getSQLState());
+            return;
+        }
+        fail("Expected: java.sql.SQLException: Number of columns in column definition, 6, differ from those found in import file 3.");
+    }
+
+    @Test
+    public void testFileVTITypes() throws Exception {
+        String location = getResourceDirectory()+"vtiConversion.in";
+        String sql = String.format("select * from new com.splicemachine.derby.vti.SpliceFileVTI('%s','',',') as b" +
+                                       " (name varchar(10), title varchar(30), age int, something varchar(12), " +
+                                       "date_hired timestamp, clock time)\n" +
+                                       " where age < 40 and date_hired > TIMESTAMP('2015-08-21', '08:09:08') order" +
+                                       " by name", location);
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        String expected =
+            "NAME  |          TITLE          | AGE | SOMETHING  |     DATE_HIRED       |  CLOCK  |\n" +
+                "--------------------------------------------------------------------------------------\n" +
+                "jzhang | How The West Won Texas  | 34  |08-23X-2015 |2015-08-22 08:12:08.0 |11:08:08 |\n" +
+                "sfines |Senior Software Engineer | 27  |08X-27-2015 |2015-08-27 08:08:08.0 |06:08:08 |";
+        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
     }
 
     @Test
