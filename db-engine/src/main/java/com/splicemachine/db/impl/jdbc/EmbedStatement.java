@@ -298,22 +298,24 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
             return;
         }
 
-        synchronized (getConnectionSynchronization()) {
+        /*
+         * The following block used to be synchronized on getConnectionSynchronization(),
+         * but that prevented an out-of-band close of the statement if the server
+         * failed, for instance.
+         */
+         closeActions();
 
-            closeActions();
+         //we first set the status
+         active = false;
 
-            //we first set the status
-            active = false;
+         // first, clear the result sets.
+         clearResultSets();
 
-            // first, clear the result sets.
-            clearResultSets();
-
-            //next, release other resource
-            cursorName = null;
-            warnings = null;
-            SQLText = null;
-            batchStatements = null;
-        }
+         //next, release other resource
+         cursorName = null;
+         warnings = null;
+         SQLText = null;
+         batchStatements = null;
     }
 
     /**
