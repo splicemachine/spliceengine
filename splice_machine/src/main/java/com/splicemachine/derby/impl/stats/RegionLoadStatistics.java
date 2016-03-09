@@ -41,24 +41,24 @@ public class RegionLoadStatistics{
             if(regionLoad==null){
                 heapSize =partitionMaxFileSize;
             }else {
-                heapSize = regionLoad.getStorefileSizeMB()+regionLoad.getMemStoreSizeMB();
+                heapSize = (regionLoad.getStorefileSizeMB()+regionLoad.getMemStoreSizeMB())*1024*1024;
                 rowSizeRatio = ((double)heapSize)/partitionMaxFileSize;
             }
-            long heapBytes = heapSize*1024*1024;
             long fbRegionRowCount = config.getLong(StatsConfiguration.FALLBACK_REGION_ROW_COUNT);
             long fbMinRowCount = config.getLong(StatsConfiguration.FALLBACK_MINIMUM_ROW_COUNT);
             long numRows = (long)(fbRegionRowCount*rowSizeRatio);
             if(numRows<fbMinRowCount)
                 numRows = fbMinRowCount;
-            if(heapBytes==0){
-                heapBytes = numRows*config.getInt(StatsConfiguration.FALLBACK_ROW_WIDTH);
+            if(heapSize==0){
+                heapSize = numRows*config.getInt(StatsConfiguration.FALLBACK_ROW_WIDTH);
             }
 
             partitionStats.add(FakedPartitionStatistics.create(table,partition.getName(),
                     numRows,
-                    heapBytes,
+                    heapSize,
                     Collections.<ColumnStatistics>emptyList()));
         }
         return new GlobalStatistics(table,partitionStats);
     }
+
 }
