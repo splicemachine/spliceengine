@@ -38,11 +38,11 @@ public class TimestampV2DescriptorSerializerTest {
         TimeZone timeZone = TimeZone.getDefault();
         long currentOffsetMilli = timeZone.getRawOffset(); // do not change this here because of int arithmetic overflow!
         long currentOffsetNano = currentOffsetMilli * 1000 * 1000;
-        System.out.println("     curent offset = " + (currentOffsetMilli / 1000 / 3600) + " h");
+//        System.out.println("     curent offset = " + (currentOffsetMilli / 1000 / 3600) + " h");
 
         long deltaOffset = currentOffsetNano - CDT_OFFSET_NANO;
-        System.out.println("   offset over CDT = " + deltaOffset + " = " + (deltaOffset / NANOS_IN_HOUR) + " h");
-        System.out.println();
+//        System.out.println("   offset over CDT = " + deltaOffset + " = " + (deltaOffset / NANOS_IN_HOUR) + " h");
+//        System.out.println();
 
         testTimestamps(2000,   950162400000000000L,  deltaOffset);
         testTimestamps(1678, -9211082400000000000L,  deltaOffset);
@@ -87,19 +87,19 @@ public class TimestampV2DescriptorSerializerTest {
 
 
     private void testTimestamps(int year, long expectedTimestamp, long deltaOffset) throws StandardException {
-        System.out.println("expected timestamp = " + expectedTimestamp);
-        System.out.println("              year = " + year);
+        //System.out.println("expected timestamp = " + expectedTimestamp);
+        //System.out.println("              year = " + year);
 
         long ts = TimestampV2DescriptorSerializer.formatLong(getTimestamp(year));
-        System.out.println("            result = " + ts);
+        //System.out.println("            result = " + ts);
         ts = ts + deltaOffset;
-        System.out.println("    shifted result = " + ts);
+        //System.out.println("    shifted result = " + ts);
 
         long d = expectedTimestamp - ts;
-        System.out.println("             delta = " + d + "   h = " + (d / NANOS_IN_HOUR));
+        //System.out.println("             delta = " + d + "   h = " + (d / NANOS_IN_HOUR));
 
         assertEquals(expectedTimestamp, ts);
 
-        System.out.println();
+        //System.out.println();
     }
 }
