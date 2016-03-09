@@ -129,7 +129,6 @@ public class CompilerContextImpl extends ContextImpl
 		initRequiredPriv();
 		defaultSchemaStack = null;
         referencedSequences = null;
-        dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 	}
 
 	//
