@@ -17,7 +17,17 @@ public interface FileInfo{
      */
     long fileCount();
 
+    /**
+     * Returns the overall space consumed for the file.
+     * Depends on the file system. For HDFS, this would return
+     * not the current size of the file but rather
+     * current size * replication factor. For a local system,
+     * it would return the same value as {@link #size()},
+     * the actual current size of the file.
+     */
     long spaceConsumed();
+
+    long size();
 
     boolean isReadable();
 

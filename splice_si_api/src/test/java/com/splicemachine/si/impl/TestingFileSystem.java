@@ -279,6 +279,15 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
+        public long size(){
+            try{
+                return Files.size(p);
+            }catch(IOException e){
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
         public boolean isReadable(){
             return Files.isReadable(p);
         }
@@ -307,7 +316,7 @@ public class TestingFileSystem extends DistributedFileSystem{
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
             sb.append("\nFile Count = ").append(this.fileCount());
-            sb.append("\nSize = ").append(spaceConsumed());
+            sb.append("\nSize = ").append(size());
             return sb.toString();
         }
 

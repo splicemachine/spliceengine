@@ -396,7 +396,7 @@ public class HdfsImport {
                     new SQLLongint(count),
                     new SQLLongint(((EmbedConnection) conn).getLanguageConnection().getFailedRecords()),
                     new SQLLongint(contentSummary.fileCount()),
-                    new SQLLongint(contentSummary.spaceConsumed()),
+                    new SQLLongint(contentSummary.size()),
                     new SQLVarchar((badFileName == null || badFileName.isEmpty() ? "NONE" : badFileName))
                 });
                 Activation act = ((EmbedConnection) conn).getLanguageConnection().getLastActivation();

@@ -265,6 +265,11 @@ public class HNIOFileSystem extends DistributedFileSystem{
         }
 
         @Override
+        public long size(){
+            return contentSummary.getLength();
+        }
+
+        @Override
         public boolean isReadable(){
             return isReadable;
         }
@@ -289,13 +294,11 @@ public class HNIOFileSystem extends DistributedFileSystem{
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
             sb.append("\nFile Count = ").append(contentSummary.getFileCount());
-            sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getSpaceConsumed()));
-            if (contentSummary.getLength() != contentSummary.getSpaceConsumed())
-                sb.append("\nLength = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getLength()));
-            if (contentSummary.getSpaceQuota() > 0)
-                sb.append("\nSpace Quota = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getSpaceQuota()));
-            if (contentSummary.getQuota() > 0)
-                sb.append("\nQuota = ").append(FileUtils.byteCountToDisplaySize(contentSummary.getQuota()));
+            sb.append("\nSize = ").append(FileUtils.byteCountToDisplaySize(this.size()));
+            // Not important to display here, but keep it around in case.
+            // For import we only care about the actual file size, not space consumed.
+            // if (this.spaceConsumed() != this.size())
+            //     sb.append("\nSpace Consumed = ").append(FileUtils.byteCountToDisplaySize(this.spaceConsumed()));
             return sb.toString();
         }
     }

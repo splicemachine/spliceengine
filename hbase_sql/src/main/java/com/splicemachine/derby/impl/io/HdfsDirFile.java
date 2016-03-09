@@ -231,7 +231,7 @@ class HdfsDirFile implements StorageFile {
 		if (!exists() || isDirectory()) { return 0; }  // As specified in the Javadoc.
 		try {
 			FileSystem fs = getFileSystem();
-			return fs.getContentSummary(new Path(path)).getSpaceConsumed();
+			return fs.getContentSummary(new Path(path)).getLength();
 		} catch (IOException e) {
 			LOG.error(String.format("An exception occurred while getting the size of the file '%s'.", path), e);
 			return 0;
