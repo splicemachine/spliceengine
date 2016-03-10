@@ -219,6 +219,17 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    public void mergeOverHalfSortMergeFeasible() throws Exception {
+        String sql = "select * \n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "t1 --splice-properties index=ti , joinStrategy=HALFSORTMERGE\n" +
+                ",t2 \n" +
+                ",t2 t3 --splice-properties joinStrategy=MERGE\n" +
+                "where t1.a = t2.b and t3.a = t1.a";
+        TestUtils.resultSetToArrays(methodWatcher.executeQuery(sql));
+    }
+
+    @Test
     public void testRightTableScanStartKey() throws Exception {
         String sql ="select *\n" +
                 "from --splice-properties joinOrder=fixed\n" +

@@ -4,6 +4,7 @@ import org.sparkproject.guava.base.Strings;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -438,5 +439,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
     public String getScopeName() {
         return "Index Base Row Lookup";
+    }
+
+    @Override
+    public ExecIndexRow getStartPosition() throws StandardException {
+        return source.getStartPosition();
     }
 }

@@ -190,24 +190,6 @@ public class MergeSortJoinOperation extends JoinOperation {
             leftDataSet2.keyBy(new KeyerFunction<LocatedRow,JoinOperation>(operationContext, leftHashKeys));
         operationContext.popScope();
 
-        if (isHalfMergeSort()) {
-            operationContext.pushScope();
-            try {
-                DataSet<LocatedRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder(), true)).values();
-                if (isOuterJoin)
-                    return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
-                else {
-                    if (notExistsRightSide)
-                        return sorted.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
-                    else {
-                        return sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
-                    }
-                }
-            } finally {
-                operationContext.popScope();
-            }
-        }
-
         // Prepare Right
 
         DataSet<LocatedRow> rightDataSet1 = rightResultSet.getDataSet(dsp);
@@ -230,25 +212,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         } finally {
             operationContext.popScope();
         }
-    }
-
-
-    private Partitioner getPartitioner(DataSetProcessor dsp) throws StandardException {
-        ExecRow right = rightResultSet.getExecRowDefinition();
-        ScanOperation scanOperation = getScanOperation(rightResultSet);
-        DataValueDescriptor[] rightArray = right.getNewNullRow().getRowArray();
-        DataValueDescriptor[] dvds;
-        if (rightArray.length == rightHashKeys.length) {
-            dvds = rightArray;
-        } else {
-            dvds = new DataValueDescriptor[rightHashKeys.length];
-            for (int i = 0; i < dvds.length; ++i) {
-                dvds[i] = rightArray[i];
-            }
-        }
-        ValueRow template = new ValueRow(dvds.length);
-        template.setRowArray(dvds);
-        return dsp.getPartitioner(rightResultSet.getDataSet(dsp), template, scanOperation.getKeyDecodingMap(), getRightOrder());
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -296,63 +259,5 @@ public class MergeSortJoinOperation extends JoinOperation {
     @Override
     public int[] getRightHashKeys() {
         return rightHashKeys;
-    }
-
-    private ScanOperation getScanOperation(ResultSet resultSet) {
-        ScanOperation scanOperation = null;
-        if (resultSet instanceof ScanOperation) {
-            scanOperation = (ScanOperation) resultSet;
-        } else if (resultSet instanceof ProjectRestrictOperation) {
-            SpliceOperation op = ((ProjectRestrictOperation)resultSet).getSource();
-            if (op instanceof ScanOperation) {
-                scanOperation = (ScanOperation) op;
-            }
-        }
-        return scanOperation;
-    }
-
-    private boolean[] getRightOrder() throws StandardException {
-        ScanOperation scanOperation = getScanOperation(rightResultSet);
-
-        boolean[] ascDescInfo = scanOperation.getAscDescInfo();
-        boolean[] result = new boolean[rightHashKeys.length];
-        if (ascDescInfo == null) {
-            // primary-key, all ascending
-            Arrays.fill(result, true);
-            return result;
-        }
-        for (int i = 0; i < rightHashKeys.length; i++) {
-            result[i] = ascDescInfo[i];
-        }
-        return result;
-    }
-
-    private boolean isRightSideSorted() throws StandardException {
-        ScanOperation scanOperation = getScanOperation(rightResultSet);
-        if (scanOperation == null)
-            return false;
-
-        if (scanOperation instanceof DistinctScanOperation) {
-            // DistinctScanOperation doesn't guarantee sorted order
-            return false;
-        }
-
-        int[] columnOrdering = scanOperation.getKeyDecodingMap();
-        if (columnOrdering == null)
-            return false;
-
-        if (rightHashKeys.length > columnOrdering.length) {
-            return false;
-        }
-        for (int i = 0; i < rightHashKeys.length; i++) {
-            if (rightHashKeys[i] != columnOrdering[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public boolean isHalfMergeSort() throws StandardException {
-        return isRightSideSorted();
     }
 }

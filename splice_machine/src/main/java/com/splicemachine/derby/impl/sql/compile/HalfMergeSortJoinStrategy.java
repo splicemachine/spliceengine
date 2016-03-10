@@ -77,14 +77,14 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
      * @see JoinStrategy#joinResultSetMethodName
      */
     public String joinResultSetMethodName() {
-        return "getMergeSortJoinResultSet";
+        return "getHalfMergeSortJoinResultSet";
     }
 
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
     public String halfOuterJoinResultSetMethodName() {
-        return "getMergeSortLeftOuterJoinResultSet";
+        return "getHalfMergeSortLeftOuterJoinResultSet";
     }
 
     /**
@@ -110,11 +110,8 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setLocalCost(SelectivityUtil.halfMergeSortJoinStrategyLocalCost(innerCost, outerCost, 3));
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
-        innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
-        innerCost.setRowOrdering(null);
-        innerCost.setNumPartitions(16);
     }
 
     @Override
