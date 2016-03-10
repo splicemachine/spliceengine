@@ -29,6 +29,8 @@ public abstract class DistributedFileSystem extends FileSystemProvider{
      */
     public abstract boolean createDirectory(Path path,boolean errorIfExists) throws IOException;
 
+    public abstract boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException;
+
     /**
      * Create a new, empty file at the specified location.
      *

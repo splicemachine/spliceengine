@@ -3,12 +3,14 @@ package com.splicemachine.storage;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hdfs.protocol.AclException;
+import org.apache.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -30,6 +32,7 @@ import java.util.Set;
 public class HNIOFileSystem extends DistributedFileSystem{
     private final org.apache.hadoop.fs.FileSystem fs;
     private final ExceptionFactory exceptionFactory;
+    private static Logger LOG=Logger.getLogger(HNIOFileSystem.class);
 
     public HNIOFileSystem(org.apache.hadoop.fs.FileSystem fs,ExceptionFactory ef){
         this.fs=fs;
@@ -55,10 +58,8 @@ public class HNIOFileSystem extends DistributedFileSystem{
     public FileInfo getInfo(String filePath) throws IOException{
         org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(filePath);
         ContentSummary contentSummary=fs.getContentSummary(f);
-
         return new HFileInfo(f,contentSummary);
     }
-
 
     @Override
     public String getScheme(){
@@ -98,6 +99,8 @@ public class HNIOFileSystem extends DistributedFileSystem{
     @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
         org.apache.hadoop.fs.Path f=toHPath(dir);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path=%s", f);
         try{
             FileStatus fileStatus=fs.getFileStatus(f);
             throw new FileAlreadyExistsException(dir.toString());
@@ -109,6 +112,21 @@ public class HNIOFileSystem extends DistributedFileSystem{
     @Override
     public boolean createDirectory(Path path,boolean errorIfExists) throws IOException{
         org.apache.hadoop.fs.Path f=toHPath(path);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path=%s", f);
+        try{
+            FileStatus fileStatus=fs.getFileStatus(f);
+            return !errorIfExists && fileStatus.isDirectory();
+        }catch(FileNotFoundException fnfe){
+            return fs.mkdirs(f);
+        }
+    }
+
+    @Override
+    public boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException{
+        org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(fullPath);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path=%s", f);
         try{
             FileStatus fileStatus=fs.getFileStatus(f);
             return !errorIfExists && fileStatus.isDirectory();

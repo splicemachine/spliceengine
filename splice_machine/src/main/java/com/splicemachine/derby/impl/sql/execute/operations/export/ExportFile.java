@@ -4,6 +4,8 @@ import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -22,6 +24,7 @@ class ExportFile {
     private final DistributedFileSystem fileSystem;
     private final ExportParams exportParams;
     private final byte[] taskId;
+    private static Logger LOG=Logger.getLogger(ExportFile.class);
 
     ExportFile(ExportParams exportParams, byte[] taskId) throws IOException {
         this(exportParams, taskId, SIDriver.driver().fileSystem());
@@ -46,9 +49,10 @@ class ExportFile {
 
     // Create the directory if it doesn't exist.
     public boolean createDirectory() {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): export directory=%s", exportParams.getDirectory());
         try {
-            Path directoryPath = fileSystem.getPath(exportParams.getDirectory());
-            return fileSystem.createDirectory(directoryPath,false);
+            return fileSystem.createDirectory(exportParams.getDirectory(),false);
         } catch (IOException e) {
             return false;
         }

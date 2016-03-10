@@ -154,6 +154,11 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException {
+        return createDirectory(getPath(fullPath), errorIfExists);
+    }
+
+    @Override
     public void createSymbolicLink(Path link,Path target,FileAttribute<?>... attrs) throws IOException{
         localDelegate.createSymbolicLink(link,target,attrs);
     }

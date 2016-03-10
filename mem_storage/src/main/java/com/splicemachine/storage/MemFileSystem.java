@@ -2,6 +2,8 @@ package com.splicemachine.storage;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +27,7 @@ import java.util.concurrent.ExecutorService;
  */
 public class MemFileSystem extends DistributedFileSystem{
     private final FileSystemProvider localDelegate;
+    private static Logger LOG=Logger.getLogger(MemFileSystem.class);
 
     public MemFileSystem(FileSystemProvider localDelegate){
         this.localDelegate=localDelegate;
@@ -109,9 +112,10 @@ public class MemFileSystem extends DistributedFileSystem{
         return localDelegate.newDirectoryStream(dir,filter);
     }
 
-
     @Override
     public boolean createDirectory(Path dir,boolean errorIfExists) throws IOException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path = %s", dir);
         try{
             localDelegate.createDirectory(dir);
             return true;
@@ -123,12 +127,9 @@ public class MemFileSystem extends DistributedFileSystem{
     }
 
     @Override
-    public void touchFile(Path path) throws IOException{
-        Files.createFile(path);
-    }
-
-    @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path = %s", dir);
         try{
             localDelegate.createDirectory(dir,attrs);
         }catch(FileAlreadyExistsException fafe){
@@ -138,6 +139,20 @@ public class MemFileSystem extends DistributedFileSystem{
                 throw fafe;
             }
         }
+    }
+
+    @Override
+    public boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException {
+        Path path = getPath(fullPath);
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path = %s", path);
+
+        return createDirectory(path, errorIfExists);
+    }
+
+    @Override
+    public void touchFile(Path path) throws IOException{
+        Files.createFile(path);
     }
 
     @Override
