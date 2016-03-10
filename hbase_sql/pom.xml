@@ -367,28 +367,10 @@
                     </dependency>
                 </dependencies>
             </plugin>
-            <!--<plugin>-->
-            <!--<groupId>org.codehaus.mojo</groupId>-->
-            <!--<artifactId>exec-maven-plugin</artifactId>-->
-            <!--<executions>-->
-            <!--<execution>-->
-            <!--<phase>pre-integration-test</phase>-->
-            <!--<goals>-->
-            <!--<goal>java</goal>-->
-            <!--</goals>-->
-            <!--</execution>-->
-            <!--</executions>-->
-            <!--<configuration>-->
-            <!--<mainClass>com.splicemachine.test.SpliceTestPlatformWait</mainClass>-->
-            <!--<arguments>-->
-            <!--<argument>localhost</argument>-->
-            <!--<argument>1527</argument>-->
-            <!--</arguments>-->
-            <!--</configuration>-->
-            <!--</plugin>-->
         </plugins>
     </build>
     <profiles>
+        <!-- paltform definition profiles-->
         <profile>
             <id>cdh5.4.8</id>
             <activation>
@@ -528,16 +510,6 @@
                 </plugins>
             </build>
         </profile>
-        <!--<profile>-->
-        <!--<id>spark-prepare</id>-->
-        <!--<activation>-->
-        <!--<property>-->
-        <!--<name>spark-prepare</name>-->
-        <!--</property>-->
-        <!--</activation>-->
-        <!--<build>-->
-        <!--</build>-->
-        <!--</profile>-->
         <profile>
             <id>spliceYarn</id>
             <activation>
@@ -750,126 +722,83 @@
                 </plugins>
             </build>
         </profile>
-        <!--<profile>-->
-        <!--<id>cdh5.5.1</id>-->
-        <!--<activation>-->
-        <!--<property>-->
-        <!--<name>env</name>-->
-        <!--<value>cdh5.5.1</value>-->
-        <!--</property>-->
-        <!--</activation>-->
-        <!--<properties>-->
-        <!--<envClassifier>cdh5.5.1</envClassifier>-->
-        <!--&lt;!&ndash; platform component versions &ndash;&gt;-->
-        <!--<hadoop.version>2.6.0-cdh5.5.1</hadoop.version>-->
-        <!--<hbase.version>1.0.0-cdh5.5.1-splice1.5.1-SNAPSHOT</hbase.version>-->
-        <!--<hive.version>1.1.0-cdh5.5.1</hive.version>-->
-        <!--<zookeeper.version>3.4.5-cdh5.5.1</zookeeper.version>-->
-        <!--<spark.version>1.5.0</spark.version>-->
-        <!--<spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.1</spark-assembly-id>-->
-        <!--</properties>-->
-        <!--<build>-->
-        <!--<plugins>-->
-        <!--<plugin>-->
-        <!--<groupId>org.codehaus.mojo</groupId>-->
-        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
-        <!--<version>1.9.1</version>-->
-        <!--<executions>-->
-        <!--<execution>-->
-        <!--<id>add-platform-source</id>-->
-        <!--<phase>generate-sources</phase>-->
-        <!--<goals>-->
-        <!--<goal>add-source</goal>-->
-        <!--</goals>-->
-        <!--<configuration>-->
-        <!--<sources>-->
-        <!--<source>cdh5.5.1/src/main/java</source>-->
-        <!--<source>hbase1.0/src/main/java</source>-->
-        <!--</sources>-->
-        <!--</configuration>-->
-        <!--</execution>-->
-        <!--<execution>-->
-        <!--<id>add-platform-test-source</id>-->
-        <!--<phase>generate-sources</phase>-->
-        <!--<goals>-->
-        <!--<goal>add-test-source</goal>-->
-        <!--</goals>-->
-        <!--<configuration>-->
-        <!--<sources>-->
-        <!--<source>cdh5.5.1/src/test/java</source>-->
-        <!--<source>hbase1.0/src/test/java</source>-->
-        <!--</sources>-->
-        <!--</configuration>-->
-        <!--</execution>-->
-        <!--</executions>-->
-        <!--</plugin>-->
-        <!--</plugins>-->
-        <!--<resources>-->
-        <!--<resource>-->
-        <!--<directory>hbase1.0/src/main/resources</directory>-->
-        <!--</resource>-->
-        <!--</resources>-->
-        <!--</build>-->
-        <!--</profile>-->
-        <!--<profile>-->
-        <!--<id>mapr5.0.0</id>-->
-        <!--<activation>-->
-        <!--<property>-->
-        <!--<name>env</name>-->
-        <!--<value>mapr5.0.0</value>-->
-        <!--</property>-->
-        <!--</activation>-->
-        <!--<properties>-->
-        <!--<envClassifier>mapr5.0.0</envClassifier>-->
-        <!--&lt;!&ndash; platform component versions &ndash;&gt;-->
-        <!--<hadoop.version>2.7.0-mapr-1506</hadoop.version>-->
-        <!--<hbase.version>0.98.12-mapr-1506-splice1.5.0</hbase.version>-->
-        <!--<hive.version>0.13.0-mapr-1504-protobuf250</hive.version>-->
-        <!--<zookeeper.version>3.4.5-mapr-1503</zookeeper.version>-->
-        <!--<maprfs.version>5.0.0-mapr</maprfs.version>-->
-        <!--<spark.version>1.5.0</spark.version>-->
-        <!--<spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>-->
-        <!--</properties>-->
-        <!--<build>-->
-        <!--<plugins>-->
-        <!--<plugin>-->
-        <!--<groupId>org.codehaus.mojo</groupId>-->
-        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
-        <!--<version>1.9.1</version>-->
-        <!--<executions>-->
-        <!--<execution>-->
-        <!--<id>add-platform-source</id>-->
-        <!--<phase>generate-sources</phase>-->
-        <!--<goals>-->
-        <!--<goal>add-source</goal>-->
-        <!--</goals>-->
-        <!--<configuration>-->
-        <!--<sources>-->
-        <!--<source>hbase0.98/src/main/java</source>-->
-        <!--</sources>-->
-        <!--</configuration>-->
-        <!--</execution>-->
-        <!--<execution>-->
-        <!--<id>add-platform-test-source</id>-->
-        <!--<phase>generate-sources</phase>-->
-        <!--<goals>-->
-        <!--<goal>add-test-source</goal>-->
-        <!--</goals>-->
-        <!--<configuration>-->
-        <!--<sources>-->
-        <!--<source>hbase0.98/src/test/java</source>-->
-        <!--</sources>-->
-        <!--</configuration>-->
-        <!--</execution>-->
-        <!--</executions>-->
-        <!--</plugin>-->
-        <!--</plugins>-->
-        <!--<resources>-->
-        <!--<resource>-->
-        <!--<directory>hbase0.98/src/main/resources</directory>-->
-        <!--</resource>-->
-        <!--</resources>-->
-        <!--</build>-->
-        <!--</profile>-->
+        <profile>
+            <id>jmeter</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.lazerycode.jmeter</groupId>
+                        <artifactId>jmeter-maven-plugin</artifactId>
+                        <version>1.10.1</version>
+                        <executions>
+                            <execution>
+                                <id>jmeter-tests</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jmeter</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <testResultsTimestamp>false</testResultsTimestamp>
+                            <overrideRootLogLevel>DEBUG</overrideRootLogLevel>
+                            <suppressJMeterOutput>false</suppressJMeterOutput>
+                            <ignoreResultFailures>true</ignoreResultFailures>
+                            <testFilesIncluded>
+								<!-- jMeterTestFile>tpch-micro-suite.jmx</jMeterTestFile -->
+                                <jMeterTestFile>tpch1.jmx</jMeterTestFile>
+                            </testFilesIncluded>
+                            <propertiesUser>
+                                <clusterRegionserver>localhost</clusterRegionserver>
+                            </propertiesUser>
+                            <jMeterProcessJVMSettings>
+                                <xms>1024</xms>
+                                <xmx>4096</xmx>
+                                <!--
+                                <arguments>
+                                    <argument>-Xprof</argument>
+                                    <argument>-Xfuture</argument>
+                                </arguments>
+                                -->
+                            </jMeterProcessJVMSettings>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.splicemachine.db-project</groupId>
+                                <artifactId>db-client</artifactId>
+                                <version>${derby.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>kg.apc</groupId>
+                                <artifactId>jmeter-plugins</artifactId>
+                                <version>1.0.0</version>
+                                <exclusions>
+                                    <exclusion>
+                                        <groupId>kg.apc</groupId>
+                                        <artifactId>perfmon</artifactId>
+                                    </exclusion>
+                                    <exclusion>
+                                        <groupId>org.apache.jmeter</groupId>
+                                        <artifactId>jorphan</artifactId>
+                                    </exclusion>
+                                    <exclusion>
+                                        <groupId>org.apache.hbase</groupId>
+                                        <artifactId>hbase</artifactId>
+                                    </exclusion>
+                                </exclusions>
+                            </dependency>
+                            <dependency>
+                                <groupId>net.sourceforge.saxon</groupId>
+                                <artifactId>saxon</artifactId>
+                                <version>9.1.0.8</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
