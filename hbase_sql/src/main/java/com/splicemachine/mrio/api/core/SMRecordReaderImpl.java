@@ -146,6 +146,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 			HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(driver.getConfiguration());
 			Clock clock = driver.getClock();
+            // Hack added to fix statistics run... DB-4752
+            if (statisticsRun)
+                driver.getPartitionInfoCache().invalidate(htable.getName());
             Partition clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
 			SplitRegionScanner srs = new SplitRegionScanner(scan,
 					htable,
