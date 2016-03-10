@@ -40,6 +40,25 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public void delete(Path path) throws IOException{
+        localDelegate.delete(path);
+    }
+
+    @Override
+    public boolean deleteIfExists(Path path) throws IOException{
+        return localDelegate.deleteIfExists(path);
+    }
+
+    @Override
+    public void delete(String dir,boolean recursive) throws IOException{
+        localDelegate.delete(getPath(dir));
+    }
+    @Override
+    public void delete(String dir,String fileName,boolean recursive) throws IOException{
+        localDelegate.delete(getPath(dir,fileName));
+    }
+
+    @Override
     public Path getPath(String directory,String fileName){
         return Paths.get(directory,fileName);
     }
@@ -106,6 +125,11 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public OutputStream newOutputStream(String dir,String fileName,OpenOption... options) throws IOException{
+        return localDelegate.newOutputStream(Paths.get(dir, fileName),options);
+    }
+
+    @Override
     public FileChannel newFileChannel(Path path,Set<? extends OpenOption> options,FileAttribute<?>... attrs) throws IOException{
         return localDelegate.newFileChannel(path,options,attrs);
     }
@@ -169,16 +193,6 @@ public class TestingFileSystem extends DistributedFileSystem{
     }
 
     @Override
-    public void delete(Path path) throws IOException{
-        localDelegate.delete(path);
-    }
-
-    @Override
-    public boolean deleteIfExists(Path path) throws IOException{
-        return localDelegate.deleteIfExists(path);
-    }
-
-    @Override
     public Path readSymbolicLink(Path link) throws IOException{
         return localDelegate.readSymbolicLink(link);
     }
@@ -236,6 +250,11 @@ public class TestingFileSystem extends DistributedFileSystem{
     @Override
     public void touchFile(Path path) throws IOException{
         Files.createFile(path);
+    }
+
+    @Override
+    public void touchFile(String dir, String fileName) throws IOException{
+        Files.createFile(Paths.get(dir, fileName));
     }
 
     private static class PathInfo implements FileInfo{

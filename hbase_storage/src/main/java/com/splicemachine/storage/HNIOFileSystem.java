@@ -21,7 +21,6 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
-import java.security.AccessControlException;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,8 +39,25 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public void delete(Path path) throws IOException{
+        delete(path,false);
+    }
+
+    @Override
     public void delete(Path path,boolean recursive) throws IOException{
         fs.delete(toHPath(path),recursive);
+    }
+
+    @Override
+    public void delete(String dir,boolean recursive) throws IOException{
+        org.apache.hadoop.fs.Path p=new org.apache.hadoop.fs.Path(dir);
+        fs.delete(p,recursive);
+    }
+
+    @Override
+    public void delete(String dir,String fileName,boolean recursive) throws IOException{
+        org.apache.hadoop.fs.Path p=new org.apache.hadoop.fs.Path(dir,fileName);
+        fs.delete(p,recursive);
     }
 
     @Override
@@ -97,6 +113,12 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public OutputStream newOutputStream(String dir,String fileName,OpenOption... options) throws IOException{
+        org.apache.hadoop.fs.Path path=new org.apache.hadoop.fs.Path(dir,fileName);
+        return fs.create(path);
+    }
+
+    @Override
     public void createDirectory(Path dir,FileAttribute<?>... attrs) throws IOException{
         org.apache.hadoop.fs.Path f=toHPath(dir);
         if (LOG.isDebugEnabled())
@@ -124,14 +146,23 @@ public class HNIOFileSystem extends DistributedFileSystem{
 
     @Override
     public boolean createDirectory(String fullPath,boolean errorIfExists) throws IOException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "createDirectory(): path string=%s", fullPath);
         org.apache.hadoop.fs.Path f=new org.apache.hadoop.fs.Path(fullPath);
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "createDirectory(): path=%s", f);
+            SpliceLogUtils.debug(LOG, "createDirectory(): hdfs path=%s", f);
         try{
             FileStatus fileStatus=fs.getFileStatus(f);
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "createDirectory(): file status=%s", fileStatus);
             return !errorIfExists && fileStatus.isDirectory();
         }catch(FileNotFoundException fnfe){
-            return fs.mkdirs(f);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.trace(LOG, "createDirectory(): directory not found so we will create it: %s", f);
+            boolean created = fs.mkdirs(f);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.trace(LOG, "createDirectory(): created=%s", created);
+            return created;
         }
     }
 
@@ -143,8 +174,11 @@ public class HNIOFileSystem extends DistributedFileSystem{
     }
 
     @Override
-    public void delete(Path path) throws IOException{
-        delete(path,false);
+    public void touchFile(String dir, String fileName) throws IOException{
+        org.apache.hadoop.fs.Path path=new org.apache.hadoop.fs.Path(dir,fileName);
+        if(!fs.createNewFile(path)){
+            throw new FileAlreadyExistsException(path.toString());
+        }
     }
 
     @Override

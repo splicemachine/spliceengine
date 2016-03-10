@@ -40,6 +40,26 @@ public class MemFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public void delete(Path path) throws IOException{
+        localDelegate.delete(path);
+    }
+
+    @Override
+    public boolean deleteIfExists(Path path) throws IOException{
+        return localDelegate.deleteIfExists(path);
+    }
+
+    @Override
+    public void delete(String dir,boolean recursive) throws IOException{
+        localDelegate.delete(getPath(dir));
+    }
+
+    @Override
+    public void delete(String dir,String fileName,boolean recursive) throws IOException{
+        localDelegate.delete(getPath(dir,fileName));
+    }
+
+    @Override
     public Path getPath(String directory,String fileName){
         return Paths.get(directory,fileName);
     }
@@ -54,7 +74,6 @@ public class MemFileSystem extends DistributedFileSystem{
         Path p = getPath(filePath);
         return new PathInfo(p);
     }
-
 
     /*delegate methods*/
     @Override
@@ -90,6 +109,11 @@ public class MemFileSystem extends DistributedFileSystem{
     @Override
     public OutputStream newOutputStream(Path path,OpenOption... options) throws IOException{
         return localDelegate.newOutputStream(path,options);
+    }
+
+    @Override
+    public OutputStream newOutputStream(String dir,String fileName,OpenOption... options) throws IOException{
+        return localDelegate.newOutputStream(Paths.get(dir, fileName),options);
     }
 
     @Override
@@ -156,6 +180,11 @@ public class MemFileSystem extends DistributedFileSystem{
     }
 
     @Override
+    public void touchFile(String dir, String fileName) throws IOException{
+        Files.createFile(Paths.get(dir, fileName));
+    }
+
+    @Override
     public void createSymbolicLink(Path link,Path target,FileAttribute<?>... attrs) throws IOException{
         localDelegate.createSymbolicLink(link,target,attrs);
     }
@@ -163,16 +192,6 @@ public class MemFileSystem extends DistributedFileSystem{
     @Override
     public void createLink(Path link,Path existing) throws IOException{
         localDelegate.createLink(link,existing);
-    }
-
-    @Override
-    public void delete(Path path) throws IOException{
-        localDelegate.delete(path);
-    }
-
-    @Override
-    public boolean deleteIfExists(Path path) throws IOException{
-        return localDelegate.deleteIfExists(path);
     }
 
     @Override

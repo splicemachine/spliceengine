@@ -1,9 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
-
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.impl.sql.compile.ExportNode;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -11,12 +15,10 @@ import com.splicemachine.derby.stream.function.ExportFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.*;
@@ -37,6 +39,7 @@ public class ExportOperation extends SpliceBaseOperation {
     private ExecRow currentTemplate;
 
     protected static final String NAME = ExportOperation.class.getSimpleName().replaceAll("Operation","");
+    private static final Logger LOG = Logger.getLogger(ExportOperation.class);
 
 	@Override
 	public String getName() {
@@ -67,6 +70,7 @@ public class ExportOperation extends SpliceBaseOperation {
         this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
+
         try {
             ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
             checker.verify();
@@ -159,15 +163,22 @@ public class ExportOperation extends SpliceBaseOperation {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getDataSet(): begin");
         DataSet<LocatedRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
-        return dataset.writeToDisk()
-                .directory(exportParams.getDirectory())
-                .exportFunction(new ExportFunction(operationContext))
-                .build().write();
-
+        DataSetWriter writer = dataset.writeToDisk()
+            .directory(exportParams.getDirectory())
+            .exportFunction(new ExportFunction(operationContext))
+            .build();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getDataSet(): writing");
+        DataSet<LocatedRow> resultDs = writer.write();
+            SpliceLogUtils.trace(LOG, "getDataSet(): done");
+        return resultDs;
     }
 
 }

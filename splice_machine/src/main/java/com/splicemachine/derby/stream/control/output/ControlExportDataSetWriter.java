@@ -16,6 +16,8 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -35,6 +37,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     private final String path;
     private final SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction;
     private final DataSet<V> dataSet;
+    private static final Logger LOG = Logger.getLogger(ControlExportDataSetWriter.class);
 
     public ControlExportDataSetWriter(String path,
                                       SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction,
@@ -60,19 +63,15 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         }
         try{
             final DistributedFileSystem dfs=SIDriver.driver().fileSystem();
-            Path dir = dfs.getPath(path);
-            dfs.createDirectory(dir,false);
-            Path outputPath = dir.resolve("part-r-00000"+extension);
-
-            try(OutputStream fileOut =dfs.newOutputStream(outputPath, StandardOpenOption.CREATE)){
+            dfs.createDirectory(path,false);
+            try(OutputStream fileOut =dfs.newOutputStream(path /*directory*/,"part-r-00000"+extension/*file*/,StandardOpenOption.CREATE)){
                 OutputStream toWrite=fileOut;
                 if(isCompressed){
                     toWrite=new GZIPOutputStream(fileOut);
                 }
                 count=exportFunction.call(toWrite,dataSet.toLocalIterator());
             }
-            Path success = dir.resolve("_SUCCESS");
-            dfs.touchFile(success);
+            dfs.touchFile(path, "_SUCCESS");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -4,6 +4,8 @@ import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Random;
@@ -13,7 +15,7 @@ import java.util.Random;
  * can be created and written to.  If not throws StandardException with error message suitable for display to user.
  */
 class ExportPermissionCheck {
-
+    private static final Logger LOG = Logger.getLogger(ExportPermissionCheck.class);
     private ExportParams exportParams;
     private ExportFile testFile;
 
@@ -34,7 +36,10 @@ class ExportPermissionCheck {
     }
 
     private void verifyExportDirExistsOrCanBeCreated() throws StandardException {
-        if (!testFile.createDirectory()) {
+        boolean created = testFile.createDirectory();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "verifyExportDirExistsOrCanBeCreated(): created=%s", created);
+        if (!created) {
             throw StandardException.newException(SQLState.UU_INVALID_PARAMETER,
                     "cannot create export directory", exportParams.getDirectory());
         }
@@ -54,26 +59,12 @@ class ExportPermissionCheck {
         StandardException userVisibleErrorMessage = StandardException.newException(SQLState.UU_INVALID_PARAMETER,
                 "cannot write to export directory", exportParams.getDirectory()); // TODO: i18n
 
-        if(!testFile.isWritable()){
+        boolean writable = testFile.isWritable();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "verifyExportDirWritable(): writable=%s", writable);
+        if(!writable){
             throw userVisibleErrorMessage;
         }
-//        try(OutputStream os = testFile.getOutputStream()){
-//            try(Writer writer = new OutputStreamWriter(os, exportParams.getCharacterEncoding())){
-//                writer.write(" ");
-//            }
-//        } catch (IOException e) {
-//            throw userVisibleErrorMessage;
-//        } finally {
-//            // no-op if file does not exist.  File will be empty (single space) in the event that
-//            // we can, for some reason, create it but not delete it. However documentation of HDFS permission model
-//            // seems to indicate that this should not be possible.
-//            try {
-//                testFile.delete();
-//            } catch (IOException io) {
-//                //noinspection ThrowFromFinallyBlock
-//                throw userVisibleErrorMessage;
-//            }
-//        }
     }
 
     public void cleanup() throws IOException {
