@@ -26,7 +26,7 @@ public class SIConfigurations{
     public static final long DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=15000l;
 
     public static final String TRANSACTION_TIMEOUT="splice.txn.timeout";
-    public static final long DEFAULT_TRANSACTION_TIMEOUT=10*DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; //100 minutes
+    public static final long DEFAULT_TRANSACTION_TIMEOUT=10*DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; // 2.5 Minutes
 
     public static final String TRANSACTION_KEEP_ALIVE_THREADS="splice.txn.keepAliveThreads";
     public static final int DEFAULT_KEEP_ALIVE_THREADS=4;

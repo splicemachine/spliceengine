@@ -65,11 +65,11 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
             assert driver!=null:"SIDriver Cannot be null";
-            long txnKeepAliveInterval = configuration.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL);
+            long txnKeepAliveTimeout = configuration.getLong(SIConfigurations.TRANSACTION_TIMEOUT);
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),
                     resolver,
-                    txnKeepAliveInterval,
+                    txnKeepAliveTimeout,
                     new SystemClock());
             TimestampSource timestampSource=driver.getTimestampSource();
             int txnLockStrips = configuration.getInt(SIConfigurations.TRANSACTION_LOCK_STRIPES);
