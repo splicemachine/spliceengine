@@ -260,7 +260,7 @@
                 <hbase.version>1.0.0-cdh5.5.1-splice1.5.1-SNAPSHOT</hbase.version>
                 <hive.version>1.1.0-cdh5.5.1</hive.version>
                 <zookeeper.version>3.4.5-cdh5.5.1</zookeeper.version>
-                <spark.version>1.5.0</spark.version>
+                <spark.version>1.6.0</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.5.1</spark-assembly-id>
             </properties>
             <build>
@@ -322,7 +322,7 @@
                 <hive.version>0.13.0-mapr-1504-protobuf250</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.0.0-mapr</maprfs.version>
-                <spark.version>1.5.0</spark.version>
+                <spark.version>1.6.1</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.7.0-mapr-1506</spark-assembly-id>
             </properties>
             <build>
