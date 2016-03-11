@@ -198,6 +198,7 @@ echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
 (${MVN} exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 sleep 30
+while ! echo exit | nc localhost 1527; do echo waiting... ; sleep 5; done
 
 if [[ ${MEMBERS} -gt 0 ]]; then
   for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
@@ -205,6 +206,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo waiting... ; sleep 5; done
   done
 fi
 popd > /dev/null
