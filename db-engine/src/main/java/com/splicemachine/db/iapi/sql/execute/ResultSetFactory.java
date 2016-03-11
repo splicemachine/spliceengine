@@ -1274,21 +1274,37 @@ public interface ResultSetFactory {
 					               String explainPlan)
 			throws StandardException;
 
-    public NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
-			   int rightNumCols,
-			   int leftHashKeyItem,
-			   int rightHashKeyItem,
-			   GeneratedMethod joinClause,
-			   int resultSetNumber,
-			   boolean oneRowRightSide,
-			   boolean notExistsRightSide,
-			   double optimizerEstimatedRowCount,
-			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides,
-	           String explainPlan)
-					   throws StandardException;
+	public NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
+													int leftNumCols,
+													NoPutResultSet rightResultSet,
+													int rightNumCols,
+													int leftHashKeyItem,
+													int rightHashKeyItem,
+													GeneratedMethod joinClause,
+													int resultSetNumber,
+													boolean oneRowRightSide,
+													boolean notExistsRightSide,
+													double optimizerEstimatedRowCount,
+													double optimizerEstimatedCost,
+													String userSuppliedOptimizerOverrides,
+													String explainPlan)
+			throws StandardException;
+
+	public NoPutResultSet getHalfMergeSortJoinResultSet(NoPutResultSet leftResultSet,
+													int leftNumCols,
+													NoPutResultSet rightResultSet,
+													int rightNumCols,
+													int leftHashKeyItem,
+													int rightHashKeyItem,
+													GeneratedMethod joinClause,
+													int resultSetNumber,
+													boolean oneRowRightSide,
+													boolean notExistsRightSide,
+													double optimizerEstimatedRowCount,
+													double optimizerEstimatedCost,
+													String userSuppliedOptimizerOverrides,
+													String explainPlan)
+			throws StandardException;
 
     public NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
 			   int leftNumCols,
@@ -1544,22 +1560,40 @@ public interface ResultSetFactory {
 		result set
 	*/
 	public NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-				int leftNumCols,
-				NoPutResultSet rightResultSet,
-				int rightNumCols,
-				int leftHashKeyItem,
-				int rightHashKeyItem,
-				GeneratedMethod joinClause,
-				int resultSetNUmber,
-				GeneratedMethod emptyRowFun,
-				boolean wasRightOuterJoin,
-				boolean oneRowRightSide,
-				boolean noExistsRightSide,
-				double optimizerEstimatedRowCount,
-				double optimizerEstimatedCost,
-				String userSuppliedOptimizerOverrides,
-				String explainPlan)
-	throws StandardException;
+															 int leftNumCols,
+															 NoPutResultSet rightResultSet,
+															 int rightNumCols,
+															 int leftHashKeyItem,
+															 int rightHashKeyItem,
+															 GeneratedMethod joinClause,
+															 int resultSetNUmber,
+															 GeneratedMethod emptyRowFun,
+															 boolean wasRightOuterJoin,
+															 boolean oneRowRightSide,
+															 boolean noExistsRightSide,
+															 double optimizerEstimatedRowCount,
+															 double optimizerEstimatedCost,
+															 String userSuppliedOptimizerOverrides,
+															 String explainPlan)
+			throws StandardException;
+
+	public NoPutResultSet getHalfMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+															 int leftNumCols,
+															 NoPutResultSet rightResultSet,
+															 int rightNumCols,
+															 int leftHashKeyItem,
+															 int rightHashKeyItem,
+															 GeneratedMethod joinClause,
+															 int resultSetNUmber,
+															 GeneratedMethod emptyRowFun,
+															 boolean wasRightOuterJoin,
+															 boolean oneRowRightSide,
+															 boolean noExistsRightSide,
+															 double optimizerEstimatedRowCount,
+															 double optimizerEstimatedCost,
+															 String userSuppliedOptimizerOverrides,
+															 String explainPlan)
+			throws StandardException;
 
 	public NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 				int leftNumCols,
