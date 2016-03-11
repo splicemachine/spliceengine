@@ -3,9 +3,11 @@ package com.splicemachine.si.impl;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.splicemachine.hbase.SpliceRpcController;
 import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -17,6 +19,7 @@ import java.util.Map;
  *         Date: 12/22/15
  */
 public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
+    private static Logger LOG=Logger.getLogger(SkeletonTxnNetworkLayer.class);
     @Override
     public void beginTransaction(byte[] rowKey,TxnMessage.TxnInfo txnInfo) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
@@ -112,6 +115,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     /*private helper methods*/
     private void dealWithError(SpliceRpcController controller) throws IOException{
         if(!controller.failed()) return; //nothing to worry about
+        SpliceLogUtils.error(LOG,controller.getThrowable());
         Throwable t=controller.getThrowable();
         if(t instanceof IOException)
             throw (IOException)t;
