@@ -1,14 +1,14 @@
 package com.splicemachine.pipeline.contextfactory;
 
-import com.google.common.base.Function;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.pipeline.PipelineConfiguration;
-import com.splicemachine.pipeline.api.PipelineExceptionFactory;
-import com.splicemachine.si.api.server.TransactionalRegion;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import com.google.common.base.Function;
+
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.si.api.server.TransactionalRegion;
 
 /**
  * Creates and caches a WriteContextFactory for each conglomerateId.
@@ -31,13 +31,13 @@ public class WriteContextFactoryManager {
 
         if (ctxFactory == null) {
             LocalWriteContextFactory<TableInfo> localWriteContextFactory;
-            if(conglomerateId==-1l){
+            if(conglomerateId==-1L){
                 localWriteContextFactory = LocalWriteContextFactory.unmanagedContextFactory(basePartitionFactory,pipelineExceptionFactory,tableParser);
                 ctxFactory =new DiscardingWriteContextFactory<>(conglomerateId,localWriteContextFactory);
                 ctxMap.put(conglomerateId,ctxFactory);
             }else{
                 localWriteContextFactory=new LocalWriteContextFactory<>(conglomerateId,
-                        config.getLong(PipelineConfiguration.STARTUP_LOCK_WAIT_PERIOD),
+                        config.getStartupLockWaitPeriod(),
                         basePartitionFactory,
                         pipelineExceptionFactory,
                         tableParser,

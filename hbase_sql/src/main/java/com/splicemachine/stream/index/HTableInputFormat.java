@@ -1,17 +1,9 @@
 package com.splicemachine.stream.index;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.hbase.HBaseTableInfoFactory;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.HBaseSubregionSplitter;
-import com.splicemachine.mrio.api.core.SMSQLUtil;
-import com.splicemachine.mrio.api.core.SubregionSplitter;
-import com.splicemachine.storage.HScan;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -21,13 +13,25 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
-import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.hbase.HBaseTableInfoFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.HBaseSubregionSplitter;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.mrio.api.core.SubregionSplitter;
+import com.splicemachine.storage.HScan;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *
@@ -83,7 +87,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
 //            if (spark)
 //                setHTable(SpliceAccessManager.getHTable(conglomerate));
 //            else
-            TableName tableInfo=HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(conglomerate);
+            TableName tableInfo=HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(conglomerate);
             setHTable(new HTable(conf,tableInfo));
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
@@ -118,7 +122,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
             SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
         TableInputFormat tableInputFormat = new TableInputFormat();
         String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
-        TableName hTableName = HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(conglomerate);
+        TableName hTableName = HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(conglomerate);
         conf.set(TableInputFormat.INPUT_TABLE, hTableName.getNameAsString());
         tableInputFormat.setConf(conf);
         try {
@@ -142,7 +146,7 @@ public class HTableInputFormat extends InputFormat<byte[], KVPair> implements Co
 
     public HTableRecordReader getRecordReader(InputSplit split, Configuration config) throws IOException,
             InterruptedException {
-        TableName tableName=HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
+        TableName tableName=HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(config.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate=%s",table,tableName);
         rr = new HTableRecordReader(config);

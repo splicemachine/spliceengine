@@ -21,7 +21,6 @@ public class DDLDriver{
         this.ddlController  =ddlEnv.getController();
         this.ddlWatcher = ddlEnv.getWatcher();
         this.ddlConfiguration = ddlEnv.getConfiguration();
-        ddlConfiguration.addDefaults(DDLConfiguration.defaults);
     }
 
     public DDLController ddlController(){ return ddlController;}

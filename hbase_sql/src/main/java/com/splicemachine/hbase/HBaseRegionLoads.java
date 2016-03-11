@@ -1,8 +1,27 @@
 package com.splicemachine.hbase;
 
-import org.sparkproject.guava.base.Throwables;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+import org.sparkproject.guava.base.Throwables;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
@@ -11,22 +30,13 @@ import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.storage.HPartitionLoad;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionLoad;
+import com.splicemachine.storage.PartitionServer;
+import com.splicemachine.storage.PartitionServerLoad;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author P Trolard
@@ -79,7 +89,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                 SpliceLogUtils.debug(LOG,"update service scheduled");
 
             SConfiguration configuration=SIDriver.driver().getConfiguration();
-            long updateInterval = configuration.getLong(HConfiguration.REGION_LOAD_UPDATE_INTERVAL);
+            long updateInterval = configuration.getRegionLoadUpdateInterval();
             updateService.scheduleAtFixedRate(updater,0l,updateInterval,TimeUnit.SECONDS);
         }
     }
@@ -208,7 +218,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
         if (refresh) {
             Map<String, Map<String, PartitionLoad>> loads = cache.get();
             Map<String, PartitionLoad> regions = getCostWhenNoCachedRegionLoadsFound(tableName);
-            loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
+            loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
                     regions
             );
             return regions.values();
@@ -223,10 +233,10 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                 SpliceLogUtils.debug(LOG, "This should not happen");
             return Collections.emptyList();
         }
-        Map<String, PartitionLoad> regions = loads.get(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString());
+        Map<String, PartitionLoad> regions = loads.get(HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(tableName).getNameWithNamespaceInclAsString());
         if(regions==null || regions.isEmpty()){
             regions = getCostWhenNoCachedRegionLoadsFound(tableName);
-            loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.INSTANCE).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
+            loads.put(HBaseTableInfoFactory.getInstance(HConfiguration.getConfiguration()).getTableInfo(tableName).getNameWithNamespaceInclAsString(),
                     regions
             );
         }

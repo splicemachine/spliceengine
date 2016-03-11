@@ -1,27 +1,32 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.test.SlowTest;
-import com.splicemachine.test_tools.IntegerRows;
-import com.splicemachine.test_tools.TableCreator;
-import org.apache.commons.lang.math.RandomUtils;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.junit.*;
-import org.junit.experimental.categories.Category;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang.math.RandomUtils;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+
+import com.splicemachine.access.HBaseConfigurationSource;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.test.SlowTest;
+import com.splicemachine.test_tools.IntegerRows;
+import com.splicemachine.test_tools.TableCreator;
 
 /**
  * TableScanOperationIT does parallel scans for tables having more than (currently) 1 region.  Most ITs will not
@@ -120,7 +125,7 @@ public class TableScanOperation_LargeRegionCount_IT extends SpliceUnitTest {
 
     private List<byte[]> getRowKeys(String hbaseTableName) throws IOException {
         List<byte[]> rowKeys = Lists.newArrayList();
-        HTable hTable = new HTable(HConfiguration.INSTANCE.unwrapDelegate(), hbaseTableName);
+        HTable hTable = new HTable(HConfiguration.unwrapDelegate(), hbaseTableName);
         ResultScanner resultScanner = hTable.getScanner(Bytes.toBytes("V"));
         Result result;
         while ((result = resultScanner.next()) != null) {

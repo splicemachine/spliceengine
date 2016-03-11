@@ -1,25 +1,24 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.SQLConfiguration;
+
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
+import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.SystemClock;
-import com.splicemachine.db.database.Database;
 import com.splicemachine.derby.lifecycle.MonitoredLifecycleService;
 import com.splicemachine.derby.lifecycle.NetworkLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.RegionServerLifecycle;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-
-import java.io.IOException;
 
 /**
  * This class implements both CoprocessorService and RegionServerObserver.  One instance will be created for each
@@ -64,7 +63,6 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
 
         //make sure the configuration is correct
         SConfiguration config=driver.getConfiguration();
-        config.addDefaults(SQLConfiguration.defaults);
 
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         HBaseRegionLoads.INSTANCE.startWatching();

@@ -1,30 +1,28 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.test.SlowTest;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SlowTest;
 
 /**
  * A Collection of ITs oriented around scanning and inserting into our own table.
@@ -83,7 +81,7 @@ public class SelfInsertSparkIT {
         LOG.trace("Flushing table");
         String conglomerateNumber = TestUtils.lookupConglomerateNumber(CLASS_NAME, "foo", methodWatcher);
         TableName tableName = TableName.valueOf("splice", conglomerateNumber);
-        HBaseAdmin hBaseAdmin = new HBaseAdmin(HConfiguration.INSTANCE.unwrapDelegate());
+        HBaseAdmin hBaseAdmin = new HBaseAdmin(HConfiguration.unwrapDelegate());
         hBaseAdmin.flush(tableName);
 
 

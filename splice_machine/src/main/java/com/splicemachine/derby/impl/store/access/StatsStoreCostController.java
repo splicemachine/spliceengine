@@ -1,5 +1,10 @@
 package com.splicemachine.derby.impl.store.access;
 
+import java.util.BitSet;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -10,16 +15,12 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
 import com.splicemachine.derby.impl.stats.PartitionStatsStore;
-import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * A Cost Controller which uses underlying Statistics information to estimate the cost of a scan.
@@ -47,10 +48,10 @@ public class StatsStoreCostController extends GenericController implements Store
             SpliceLogUtils.trace(LOG,"init conglomerateStatistics=%s",conglomerateStatistics);
 
         SConfiguration config =EngineDriver.driver().getConfiguration();
-        openLatency = config.getLong(StatsConfiguration.FALLBACK_OPENCLOSE_LATENCY);
-        closeLatency = config.getLong(StatsConfiguration.FALLBACK_OPENCLOSE_LATENCY);
-        fallbackNullFraction = config.getDouble(StatsConfiguration.FALLBACK_NULL_FRACTION);
-        extraQualifierMultiplier = config.getDouble(StatsConfiguration.OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
+        openLatency = config.getFallbackOpencloseLatency();
+        closeLatency = config.getFallbackOpencloseLatency();
+        fallbackNullFraction = config.getFallbackNullFraction();
+        extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
     }
 
     /**

@@ -21,7 +21,7 @@ public class EnvUtils {
 
     public static TableType getTableType(SConfiguration config,TableName tableName) {
         SpliceLogUtils.trace(LOG,"Checking table environment for %s",tableName);
-        if (!tableName.getNamespaceAsString().equals(config.getString(HConfiguration.NAMESPACE))){
+        if (!tableName.getNamespaceAsString().equals(config.getNamespace())) {
             if(tableName.getQualifierAsString().equals("-ROOT-"))
                 return TableType.ROOT_TABLE;
             else if(isMetaOrNamespaceTable(tableName))

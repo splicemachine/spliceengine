@@ -1,9 +1,10 @@
 package com.splicemachine.test;
 
-import com.splicemachine.SQLConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.access.configuration.SQLConfiguration;
 
 /**
  * Add an additional member to the cluster started with SpliceTestPlatform.

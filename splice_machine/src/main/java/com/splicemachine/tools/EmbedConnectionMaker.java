@@ -1,14 +1,13 @@
 package com.splicemachine.tools;
 
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.jdbc.EmbeddedDriver;
-import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
+
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.jdbc.EmbeddedDriver;
 
 
 /**
@@ -34,7 +33,7 @@ public final class EmbedConnectionMaker {
      */
     public Connection createFirstNew(SConfiguration configuration,Properties dbProperties) throws SQLException {
         Properties properties = (Properties)dbProperties.clone();
-        String auth = configuration.getString(AuthenticationConfiguration.AUTHENTICATION);
+        String auth = configuration.getAuthentication();
         if (!"LDAP".equalsIgnoreCase(auth)){
             properties.remove(EmbedConnection.INTERNAL_CONNECTION);
         }

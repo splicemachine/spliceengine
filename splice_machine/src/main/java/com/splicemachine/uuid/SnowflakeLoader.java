@@ -1,19 +1,26 @@
 package com.splicemachine.uuid;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.Arrays;
+import java.util.List;
+
+import org.sparkproject.guava.collect.Lists;
+
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
+import com.splicemachine.access.configuration.OperationConfiguration;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.*;
-import org.sparkproject.guava.collect.Lists;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataFilterFactory;
+import com.splicemachine.storage.DataPut;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.DataResultScanner;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.Partition;
 
 /**
  * @author Scott Fines
@@ -87,7 +94,7 @@ public class SnowflakeLoader{
                     }
                 }
                 //someone got to all the already allocated ones, so get a new counter value, and insert it
-                long next = sequenceTable.increment(counterNameRow,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COUNTER_COL,1l);
+                long next = sequenceTable.increment(counterNameRow,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COUNTER_COL,1L);
                 if(next>MAX_MACHINE_ID){
                     throw new IOException("Unable to allocate a machine id--too many taken already");
                 }else{

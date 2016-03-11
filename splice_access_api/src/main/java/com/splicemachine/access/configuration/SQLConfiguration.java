@@ -1,15 +1,12 @@
-package com.splicemachine;
+package com.splicemachine.access.configuration;
 
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.SIConfigurations;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * @author Scott Fines
  *         Date: 12/31/15
  */
-public class SQLConfiguration{
+public class SQLConfiguration implements ConfigurationDefault {
     public static final String SPLICE_DB = "splicedb";
     public static final String SPLICE_USER = "SPLICE";
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
@@ -180,137 +177,35 @@ public class SQLConfiguration{
     public static final String PARTITIONSERVER_JMX_PORT = "hbase.regionserver.jmx.port";
     private static final int DEFAULT_PARTITIONSERVER_JMX_PORT = 10102;
 
-    public static final SConfiguration.Defaults defaults=new SConfiguration.Defaults(){
-        @Override
-        public long defaultLongFor(String key){
-            switch(key){
-                case OPTIMIZER_PLAN_MAXIMUM_TIMEOUT: return DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT;
-                case OPTIMIZER_PLAN_MINIMUM_TIMEOUT: return DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT;
-                case BROADCAST_REGION_MB_THRESHOLD: return DEFAULT_BROADCAST_REGION_MB_THRESHOLD;
-                case BROADCAST_REGION_ROW_THRESHOLD: return DEFAULT_BROADCAST_REGION_ROW_THRESHOLD;
-                default:
-                    throw new IllegalArgumentException("No long default for key '"+key+"'");
-            }
-        }
+    @Override
+    public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+        // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
 
-        @Override
-        public boolean hasLongDefault(String key){
-            switch(key){
-                case OPTIMIZER_PLAN_MAXIMUM_TIMEOUT:
-                case OPTIMIZER_PLAN_MINIMUM_TIMEOUT:
-                case BROADCAST_REGION_MB_THRESHOLD:
-                case BROADCAST_REGION_ROW_THRESHOLD:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+        builder.networkBindPort = configurationSource.getInt(NETWORK_BIND_PORT, DEFAULT_NETWORK_BIND_PORT);
+        builder.kryoPoolSize = configurationSource.getInt(KRYO_POOL_SIZE, DEFAULT_KRYO_POOL_SIZE);
+        builder.indexBatchSize = configurationSource.getInt(INDEX_BATCH_SIZE, DEFAULT_INDEX_BATCH_SIZE);
+        builder.indexLookupBlocks = configurationSource.getInt(INDEX_LOOKUP_BLOCKS, DEFAULT_INDEX_LOOKUP_BLOCKS);
+        builder.importMaxQuotedColumnLines = configurationSource.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES, DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
+        builder.batchOnceBatchSize = configurationSource.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
+        builder.partitionserverJmxPort = configurationSource.getInt(PARTITIONSERVER_JMX_PORT, DEFAULT_PARTITIONSERVER_JMX_PORT);
+        builder.partitionserverPort = configurationSource.getInt(PARTITIONSERVER_PORT, DEFAULT_PARTITIONSERVER_PORT);
 
-        @Override
-        public int defaultIntFor(String key){
-            switch(key){
-                case NETWORK_BIND_PORT: return DEFAULT_NETWORK_BIND_PORT;
-                case KRYO_POOL_SIZE: return DEFAULT_KRYO_POOL_SIZE;
-                case INDEX_BATCH_SIZE: return DEFAULT_INDEX_BATCH_SIZE;
-                case INDEX_LOOKUP_BLOCKS: return DEFAULT_INDEX_LOOKUP_BLOCKS;
-                case IMPORT_MAX_QUOTED_COLUMN_LINES: return DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES;
-                case BATCH_ONCE_BATCH_SIZE: return DEFAULT_BATCH_ONCE_BATCH_SIZE;
-                case PARTITIONSERVER_JMX_PORT: return DEFAULT_PARTITIONSERVER_JMX_PORT;
-                case PARTITIONSERVER_PORT: return DEFAULT_PARTITIONSERVER_PORT;
-                default:
-                    throw new IllegalArgumentException("No SQL default for key '"+key+"'");
-            }
-        }
+        builder.optimizerPlanMaximumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
+        builder.optimizerPlanMinimumTimeout = configurationSource.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
+        builder.broadcastRegionMbThreshold = configurationSource.getLong(BROADCAST_REGION_MB_THRESHOLD, DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
+        builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
 
-        @Override
-        public boolean hasIntDefault(String key){
-            switch(key){
-                case NETWORK_BIND_PORT:
-                case KRYO_POOL_SIZE:
-                case INDEX_BATCH_SIZE:
-                case INDEX_LOOKUP_BLOCKS:
-                case IMPORT_MAX_QUOTED_COLUMN_LINES:
-                case BATCH_ONCE_BATCH_SIZE:
-                case PARTITIONSERVER_JMX_PORT:
-                case PARTITIONSERVER_PORT:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+        //always disable debug statements by default
+        builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, false);
+        builder.debugDumpBindTree = configurationSource.getBoolean(DEBUG_DUMP_BIND_TREE, false);
+        builder.debugDumpOptimizedTree = configurationSource.getBoolean(DEBUG_DUMP_OPTIMIZED_TREE, false);
+        builder.debugDumpClassFile = configurationSource.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
+        builder.ignoreSavePoints = configurationSource.getBoolean(IGNORE_SAVE_POINTS, DEFAULT_IGNORE_SAVEPTS);
+        builder.upgradeForced = configurationSource.getBoolean(UPGRADE_FORCED, DEFAULT_UPGRADE_FORCED);
 
-        @Override
-        public boolean hasStringDefault(String key){
-            switch(key){
-                case DEBUG_LOG_STATEMENT_CONTEXT:
-                case NETWORK_BIND_ADDRESS:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+//        builder.controlSideCostThreshold = configurationSource.getDouble(CONTROL_SIDE_COST_THRESHOLD, DEFAULT_CONTROL_SIDE_COST_THRESHOLD);
+//        builder.controlSideRowcountThreshold = configurationSource.getDouble(CONTROL_SIDE_ROWCOUNT_THRESHOLD, DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD);
 
-        @Override
-        public String defaultStringFor(String key){
-            switch(key){
-                case NETWORK_BIND_ADDRESS: return DEFAULT_NETWORK_BIND_ADDRESS;
-                default:
-                    throw new IllegalArgumentException("No SQL default for key '"+key+"'");
-            }
-        }
-
-        @Override
-        public boolean defaultBooleanFor(String key){
-            switch(key){
-                case DEBUG_LOG_STATEMENT_CONTEXT:
-                case DEBUG_DUMP_BIND_TREE:
-                case DEBUG_DUMP_OPTIMIZED_TREE:
-                    return false; //always disable debug statements by default
-                case DEBUG_DUMP_CLASS_FILE:
-                    return DEFAULT_DUMP_CLASS_FILE;
-                case IGNORE_SAVE_POINTS: return DEFAULT_IGNORE_SAVEPTS;
-                case UPGRADE_FORCED: return DEFAULT_UPGRADE_FORCED;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public boolean hasBooleanDefault(String key){
-            switch(key){
-                case DEBUG_LOG_STATEMENT_CONTEXT:
-                case DEBUG_DUMP_BIND_TREE:
-                case DEBUG_DUMP_CLASS_FILE:
-                case DEBUG_DUMP_OPTIMIZED_TREE:
-                case IGNORE_SAVE_POINTS:
-                case UPGRADE_FORCED:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public double defaultDoubleFor(String key){
-            switch(key){
-                case CONTROL_SIDE_COST_THRESHOLD:
-                    return DEFAULT_CONTROL_SIDE_COST_THRESHOLD;
-                case CONTROL_SIDE_ROWCOUNT_THRESHOLD:
-                    return DEFAULT_CONTROL_SIDE_ROWCOUNT_THRESHOLD;
-                default:
-                    throw new IllegalArgumentException("No SQL default for key '"+key+"'");
-            }
-        }
-
-        @Override
-        public boolean hasDoubleDefault(String key){
-            switch(key){
-                case CONTROL_SIDE_COST_THRESHOLD:
-                case CONTROL_SIDE_ROWCOUNT_THRESHOLD:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-    };
+        builder.networkBindAddress = configurationSource.getString(NETWORK_BIND_ADDRESS, DEFAULT_NETWORK_BIND_ADDRESS);
+    }
 }

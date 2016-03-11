@@ -1,6 +1,21 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
+
 import com.google.common.collect.Lists;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
+import scala.Tuple2;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -16,24 +31,17 @@ import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.IndexScanSetBuilder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-import scala.Tuple2;
-
-import java.io.*;
-import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * Spark-based DataSetProcessor.
@@ -161,7 +169,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
             JavaPairRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(
-                path, WholeTextInputFormat.class, String.class, InputStream.class, HConfiguration.INSTANCE.unwrapDelegate());
+                path, WholeTextInputFormat.class, String.class, InputStream.class,
+                HConfiguration.unwrapDelegate());
             // RDDUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
             return new SparkPairDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException ioe) {
@@ -182,7 +191,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             FileInfo fileInfo = ImportUtils.getImportFileInfo(path);
             SpliceSpark.pushScope(op != null ? op.getScopeName() + ": " + OperationContext.Scope.READ_TEXT_FILE.displayName() : "");
-            JavaRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(path, SMTextInputFormat.class, LongWritable.class,Text.class, new Configuration(HConfiguration.INSTANCE.unwrapDelegate())).values().map(new Function<Text,String>() {
+            JavaRDD rdd = SpliceSpark.getContext().newAPIHadoopFile(path, SMTextInputFormat.class, LongWritable.class,Text.class,
+                                                                    new Configuration(HConfiguration.unwrapDelegate())).values().map(new Function<Text,String>() {
                 @Override
                 public String call(Text o) throws Exception {
                     return o.toString();

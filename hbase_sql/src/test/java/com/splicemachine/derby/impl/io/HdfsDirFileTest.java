@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 
+import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.fs.FileUtil;
 import org.junit.AfterClass;
@@ -28,7 +29,7 @@ public class HdfsDirFileTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
         // necessary for mapr
-        HConfiguration.INSTANCE.unwrapDelegate().set("fs.default.name","file:///");
+        HConfiguration.unwrapDelegate().set("fs.default.name", "file:///");
 
         FileUtil.fullyDelete(new File(localBaseDir).getAbsoluteFile());
 	}

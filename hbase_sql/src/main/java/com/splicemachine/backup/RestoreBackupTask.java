@@ -1,7 +1,10 @@
 package com.splicemachine.backup;
 
+import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -62,12 +65,13 @@ public class RestoreBackupTask {
     private List<Pair<byte[], String>> copyStoreFiles(List<Pair<byte[], String>> famPaths) throws IOException {
         List<Pair<byte[], String>> copy = new ArrayList<Pair<byte[], String>>(famPaths.size());
         FileSystem fs = region.getFilesystem();
+        Configuration hadoopConfig = HConfiguration.unwrapDelegate();
         for (Pair<byte[], String> pair : famPaths) {
             Path srcPath = new Path(pair.getSecond());
-            FileSystem srcFs = srcPath.getFileSystem(HConfiguration.INSTANCE.unwrapDelegate());
+            FileSystem srcFs = srcPath.getFileSystem(hadoopConfig);
             Path localDir = region.getRegionFileSystem().getRegionDir();
             Path tmpPath = getRandomFilename(fs, localDir);
-            FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, HConfiguration.INSTANCE.unwrapDelegate());
+            FileUtil.copy(srcFs, srcPath, fs, tmpPath, false, hadoopConfig);
             copy.add(new Pair<>(pair.getFirst(),tmpPath.toString()));
         }
         return copy;

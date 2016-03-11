@@ -1,5 +1,18 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.io.OutputStream;
+import java.util.Collections;
+import java.util.Iterator;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.SQLInteger;
@@ -14,15 +27,6 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteDataOutput;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-
-import java.io.*;
-import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * @author Scott Fines
@@ -60,7 +64,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
 
     @Override
     public DataSet<LocatedRow> write() throws StandardException{
-        Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
+        Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         ByteDataOutput bdo=new ByteDataOutput();
         Job job;
         String encoded;

@@ -1,6 +1,5 @@
-package com.splicemachine.si.api;
+package com.splicemachine.access.configuration;
 
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.primitives.Bytes;
 
 /**
@@ -12,7 +11,7 @@ import com.splicemachine.primitives.Bytes;
  * @author Scott Fines
  *         Date: 12/15/15
  */
-public class SIConfigurations{
+public class SIConfigurations implements ConfigurationDefault {
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 
@@ -23,7 +22,7 @@ public class SIConfigurations{
     private static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY=64;
 
     public static final String TRANSACTION_KEEP_ALIVE_INTERVAL="splice.txn.keepAliveIntervalMs";
-    public static final long DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=15000l;
+    public static final long DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=15000L;
 
     public static final String TRANSACTION_TIMEOUT="splice.txn.timeout";
     public static final long DEFAULT_TRANSACTION_TIMEOUT=10*DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; // 2.5 Minutes
@@ -116,95 +115,22 @@ public class SIConfigurations{
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
 
-    public static final SConfiguration.Defaults defaults=new SConfiguration.Defaults(){
-        @Override
-        public long defaultLongFor(String key){
-            switch(key){
-                case TRANSACTION_TIMEOUT: return DEFAULT_TRANSACTION_TIMEOUT;
-                case TRANSACTION_KEEP_ALIVE_INTERVAL: return DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL;
-                default:
-                    throw new IllegalArgumentException("No long default for key '"+key+"'");
-            }
-        }
+    @Override
+    public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+        builder.completedTxnConcurrency  = configurationSource.getInt(completedTxnConcurrency, DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
+        builder.completedTxnCacheSize  = configurationSource.getInt(completedTxnCacheSize, DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE);
+        builder.transactionKeepAliveThreads  = configurationSource.getInt(TRANSACTION_KEEP_ALIVE_THREADS, DEFAULT_KEEP_ALIVE_THREADS);
+        builder.readResolverThreads  = configurationSource.getInt(READ_RESOLVER_THREADS, DEFAULT_READ_RESOLVER_THREADS);
+        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, -1); //TODO -sf- reset to DEFAULT once ReadResolution works
+//        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, DEFAULT_READ_RESOLVER_QUEUE_SIZE);
+        builder.timestampClientWaitTime  = configurationSource.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
+        builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
+        builder.activeTransactionCacheSize  = configurationSource.getInt(ACTIVE_TRANSACTION_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE);
+        builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
+        builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
 
-        @Override
-        public int defaultIntFor(String key){
-            switch(key){
-                case completedTxnConcurrency: return DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY;
-                case completedTxnCacheSize: return DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE;
-                case TRANSACTION_KEEP_ALIVE_THREADS: return DEFAULT_KEEP_ALIVE_THREADS;
-                case READ_RESOLVER_THREADS: return DEFAULT_READ_RESOLVER_THREADS;
-                case READ_RESOLVER_QUEUE_SIZE: return -1; //TODO -sf- reset to DEFAULT once ReadResolution works
-//                case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
-                case TIMESTAMP_CLIENT_WAIT_TIME: return DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME;
-                case TIMESTAMP_SERVER_BIND_PORT: return DEFAULT_TIMESTAMP_SERVER_BIND_PORT;
-                case OLAP_CLIENT_WAIT_TIME: return DEFAULT_OLAP_CLIENT_WAIT_TIME;
-                case OLAP_SERVER_BIND_PORT: return DEFAULT_OLAP_SERVER_BIND_PORT;
-                case ACTIVE_TRANSACTION_CACHE_SIZE: return DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE;
-                default:
-                    throw new IllegalArgumentException("No SI default for key '"+key+"'");
-            }
-        }
+        builder.transactionTimeout = configurationSource.getLong(TRANSACTION_TIMEOUT, DEFAULT_TRANSACTION_TIMEOUT);
+        builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 
-        @Override
-        public boolean hasLongDefault(String key){
-            switch(key){
-                case TRANSACTION_TIMEOUT:
-                case TRANSACTION_KEEP_ALIVE_INTERVAL:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public boolean hasIntDefault(String key){
-            switch(key){
-                case completedTxnConcurrency:
-                case completedTxnCacheSize:
-                case TRANSACTION_KEEP_ALIVE_THREADS:
-                case READ_RESOLVER_THREADS:
-                case READ_RESOLVER_QUEUE_SIZE:
-                case TRANSACTION_LOCK_STRIPES:
-                case TIMESTAMP_CLIENT_WAIT_TIME:
-                case TIMESTAMP_SERVER_BIND_PORT:
-                case OLAP_CLIENT_WAIT_TIME:
-                case OLAP_SERVER_BIND_PORT:
-                case ACTIVE_TRANSACTION_CACHE_SIZE:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public boolean hasStringDefault(String key){
-            return false;
-        }
-
-        @Override
-        public String defaultStringFor(String key){
-            throw new IllegalArgumentException("No SI default for key '"+key+"'");
-        }
-
-        @Override
-        public boolean defaultBooleanFor(String key){
-            throw new IllegalArgumentException("No SI default for key '"+key+"'");
-        }
-
-        @Override
-        public boolean hasBooleanDefault(String key){
-            return false;
-        }
-
-        @Override
-        public double defaultDoubleFor(String key){
-            throw new IllegalArgumentException("No SI default for key '"+key+"'");
-        }
-
-        @Override
-        public boolean hasDoubleDefault(String key){
-            return false;
-        }
-    };
+    }
 }

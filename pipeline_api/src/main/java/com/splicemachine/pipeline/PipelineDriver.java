@@ -1,7 +1,18 @@
 package com.splicemachine.pipeline;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MXBean;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.PipelineConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -12,10 +23,6 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SynchronousWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
-
-import javax.management.*;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Scott Fines
@@ -64,9 +71,9 @@ public class PipelineDriver{
         this.compressor = compressor;
         this.pipelineMeter= meter;
 
-        int ipcThreads = config.getInt(PipelineConfiguration.IPC_THREADS);
-        int maxIndependentWrites = config.getInt(PipelineConfiguration.MAX_INDEPENDENT_WRITES);
-        int maxDependentWrites = config.getInt(PipelineConfiguration.MAX_DEPENDENT_WRITES);
+        int ipcThreads = config.getIpcThreads();
+        int maxIndependentWrites = config.getMaxIndependentWrites();
+        int maxDependentWrites = config.getMaxDependentWrites();
 
         this.writeControl= new SynchronousWriteControl(ipcThreads/2,ipcThreads/2,maxDependentWrites,maxIndependentWrites);
         this.pipelineWriter = new PipelineWriter(pef, writePipelineFactory,writeControl,pipelineMeter);

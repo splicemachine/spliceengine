@@ -1,25 +1,20 @@
 package com.splicemachine.derby.lifecycle;
 
-import com.splicemachine.SQLConfiguration;
+import java.io.IOException;
+
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
-import com.splicemachine.derby.impl.stats.StatsConfiguration;
+import com.splicemachine.access.configuration.ConfigurationBuilder;
+import com.splicemachine.access.configuration.ConfigurationDefault;
+import com.splicemachine.access.configuration.ConfigurationSource;
+import com.splicemachine.access.configuration.HConfigurationDefaultsList;
+import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.pipeline.MPipelineEnv;
-import com.splicemachine.pipeline.PipelineConfiguration;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.MPartitionFactory;
 import com.splicemachine.storage.MTxnPartitionFactory;
-import com.splicemachine.storage.StorageConfiguration;
-
-import javax.management.MBeanServerFactory;
-import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -31,14 +26,8 @@ public class MemDatabase{
         //load SI
         MemSIEnvironment env=new MemSIEnvironment(new MPipelinePartitionFactory(new MTxnPartitionFactory(new MPartitionFactory())));
         MemSIEnvironment.INSTANCE = env;
-        SConfiguration config = env.configuration();
-        config.addDefaults(StorageConfiguration.defaults);
-        config.addDefaults(PipelineConfiguration.defaults);
-        config.addDefaults(SQLConfiguration.defaults);
-        config.addDefaults(AuthenticationConfiguration.defaults);
-        config.addDefaults(StatsConfiguration.defaults);
-        config.addDefaults(OperationConfiguration.defaults);
-        config.addDefaults(NATURAL_DEFAULTS);
+        SConfiguration config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MemDatabaseTestConfig()),
+                                                                 new ReflectingConfigurationSource());
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
@@ -81,77 +70,18 @@ public class MemDatabase{
         }
     }
 
-    private static final SConfiguration.Defaults NATURAL_DEFAULTS = new SConfiguration.Defaults(){
-            @Override
-            public boolean hasLongDefault(String key){
-                switch(key){
-                    case StorageConfiguration.REGION_MAX_FILE_SIZE:
-                        return true;
-                    default:
-                        return false;
-                }
-            }
 
-            @Override
-            public long defaultLongFor(String key){
-                switch(key){
-                    case StorageConfiguration.REGION_MAX_FILE_SIZE:
-                        return Long.MAX_VALUE;
-                    default:
-                        throw new IllegalStateException("No long default for key '"+key+"'");
-                }
-            }
-
-            @Override
-            public boolean hasIntDefault(String key){
-                switch(key){
-                    case PipelineConfiguration.IPC_THREADS:
-                    case SQLConfiguration.PARTITIONSERVER_PORT:
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-
-            @Override
-            public int defaultIntFor(String key){
-                switch(key){
-                    case PipelineConfiguration.IPC_THREADS: return 100;
-                    case SQLConfiguration.PARTITIONSERVER_PORT: return 16020;
-                    default:
-                        throw new IllegalStateException("No int default found for key '"+key+"'");
-                }
-            }
-
-            @Override
-            public boolean hasStringDefault(String key){
-                return false;
-            }
-
-            @Override
-            public String defaultStringFor(String key){
-                throw new IllegalStateException("No String default found for key '"+key+"'");
-            }
-
-            @Override
-            public boolean defaultBooleanFor(String key){
-                return false;
-            }
-
-            @Override
-            public boolean hasBooleanDefault(String key){
-                return false;
-            }
+    //==============================================================================================================
+    // private helper classes
+    //==============================================================================================================
+    private static class MemDatabaseTestConfig implements ConfigurationDefault {
 
         @Override
-        public double defaultDoubleFor(String key){
-            throw new IllegalStateException("No Double default found for key '"+key+"'");
+        public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+            // Overwritten for test
+            builder.regionMaxFileSize = Long.MAX_VALUE;
+            builder.ipcThreads = 100;
+            builder.partitionserverPort = 16020;
         }
-
-        @Override
-        public boolean hasDoubleDefault(String key){
-            return false;
-        }
-    };
-
+    }
 }

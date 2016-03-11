@@ -1,14 +1,5 @@
 package com.splicemachine.derby.ddl;
 
-import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.SqlExceptionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.si.api.filter.TransactionReadController;
-import com.splicemachine.si.api.txn.TxnSupplier;
-import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
@@ -20,6 +11,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.log4j.Logger;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
+
+import com.splicemachine.SqlExceptionFactory;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.si.api.filter.TransactionReadController;
+import com.splicemachine.si.api.txn.TxnSupplier;
 
 /**
  * An instance of this class in each region server listens for DDL notifications.
@@ -47,8 +49,8 @@ public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
                                   DDLWatchChecker ddlWatchChecker,
                                   SqlExceptionFactory exceptionFactory,
                                   TxnSupplier txnSupplier){
-        long maxDdlWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT)<<1;
-        this.refreshWaitMs = config.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL);
+        long maxDdlWait = config.getMaxDdlWait() << 1;
+        this.refreshWaitMs = config.getDdlRefreshInterval();
         this.checker = ddlWatchChecker;
         this.refresher = new DDLWatchRefresher(checker,
                 txnController,

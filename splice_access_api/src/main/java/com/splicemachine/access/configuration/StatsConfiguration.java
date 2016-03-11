@@ -1,12 +1,10 @@
-package com.splicemachine.derby.impl.stats;
-
-import com.splicemachine.access.api.SConfiguration;
+package com.splicemachine.access.configuration;
 
 /**
  * @author Scott Fines
  *         Date: 1/7/16
  */
-public class StatsConfiguration{
+public class StatsConfiguration implements ConfigurationDefault {
 
     /*
      * The default precision to use when estimating the cardinality of a given column in a partition.
@@ -112,109 +110,27 @@ public class StatsConfiguration{
     public static final String FALLBACK_ROW_WIDTH="splice.statistics.fallbackMinimumRowWidth";
     public static final int DEFAULT_FALLBACK_ROW_WIDTH=170;
 
-    public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
+    @Override
+    public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+        // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
 
-        @Override
-        public boolean hasLongDefault(String key){
-            switch(key){
-                case FALLBACK_MINIMUM_ROW_COUNT:
-                case FALLBACK_OPENCLOSE_LATENCY:
-                case FALLBACK_LOCAL_LATENCY:
-                case FALLBACK_REMOTE_LATENCY_RATIO:
-                case PARTITION_CACHE_EXPIRATION:
-                case PARTITION_CACHE_SIZE:
-                case FALLBACK_REGION_ROW_COUNT:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+        builder.fallbackRowWidth = configurationSource.getInt(FALLBACK_ROW_WIDTH, DEFAULT_FALLBACK_ROW_WIDTH);
+//        builder.indexFetchRepititionCount = configurationSource.getInt(INDEX_FETCH_REPETITION_COUNT, DEFAULT_INDEX_FETCH_REPETITION_COUNT);
+        builder.indexFetchSampleSize = configurationSource.getInt(INDEX_FETCH_SAMPLE_SIZE, DEFAULT_INDEX_FETCH_SAMPLE_SIZE);
+        builder.topkSize = configurationSource.getInt(TOPK_SIZE, DEFAULT_TOPK_PRECISION);
+        builder.cardinalityPrecision = configurationSource.getInt(CARDINALITY_PRECISION, DEFAULT_CARDINALITY_PRECISION);
 
-        @Override
-        public long defaultLongFor(String key){
-            switch(key){
-                case FALLBACK_MINIMUM_ROW_COUNT: return DEFAULT_FALLBACK_MINIMUM_ROW_COUNT;
-                case FALLBACK_OPENCLOSE_LATENCY: return DEFAULT_FALLBACK_OPENCLOSE_LATENCY;
-                case FALLBACK_LOCAL_LATENCY: return DEFAULT_FALLBACK_LOCAL_LATENCY;
-                case FALLBACK_REMOTE_LATENCY_RATIO: return DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO;
-                case PARTITION_CACHE_EXPIRATION: return DEFAULT_PARTITION_CACHE_EXPIRATION;
-                case PARTITION_CACHE_SIZE: return DEFAULT_PARTITION_CACHE_SIZE;
-                case FALLBACK_REGION_ROW_COUNT: return DEFAULT_FALLBACK_REGION_COUNT;
-                default:
-                    throw new IllegalStateException("No Stats default found for key '"+key+"'");
-            }
-        }
+        builder.fallbackMinimumRowCount = configurationSource.getLong(FALLBACK_MINIMUM_ROW_COUNT, DEFAULT_FALLBACK_MINIMUM_ROW_COUNT);
+        builder.fallbackOpencloseLatency = configurationSource.getLong(FALLBACK_OPENCLOSE_LATENCY, DEFAULT_FALLBACK_OPENCLOSE_LATENCY);
+        builder.fallbackLocalLatency = configurationSource.getLong(FALLBACK_LOCAL_LATENCY, DEFAULT_FALLBACK_LOCAL_LATENCY);
+        builder.fallbackRemoteLatencyRatio = configurationSource.getLong(FALLBACK_REMOTE_LATENCY_RATIO, DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO);
+        builder.partitionCacheExpiration = configurationSource.getLong(PARTITION_CACHE_EXPIRATION, DEFAULT_PARTITION_CACHE_EXPIRATION);
+//        builder.partitionCacheSize = configurationSource.getLong(PARTITION_CACHE_SIZE, DEFAULT_PARTITION_CACHE_SIZE);
+        builder.fallbackRegionRowCount = configurationSource.getLong(FALLBACK_REGION_ROW_COUNT, DEFAULT_FALLBACK_REGION_COUNT);
 
-        @Override
-        public boolean hasIntDefault(String key){
-            switch(key){
-                case FALLBACK_ROW_WIDTH:
-                case INDEX_FETCH_REPETITION_COUNT:
-                case INDEX_FETCH_SAMPLE_SIZE:
-                case TOPK_SIZE:
-                case CARDINALITY_PRECISION:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public int defaultIntFor(String key){
-            switch(key){
-                case FALLBACK_ROW_WIDTH: return DEFAULT_FALLBACK_ROW_WIDTH;
-                case INDEX_FETCH_REPETITION_COUNT: return DEFAULT_INDEX_FETCH_REPETITION_COUNT;
-                case INDEX_FETCH_SAMPLE_SIZE: return DEFAULT_INDEX_FETCH_SAMPLE_SIZE;
-                case TOPK_SIZE: return DEFAULT_TOPK_PRECISION;
-                case CARDINALITY_PRECISION: return DEFAULT_CARDINALITY_PRECISION;
-                default:
-                    throw new IllegalStateException("No Stats default found for key '"+key+"'");
-            }
-        }
-
-        @Override
-        public boolean hasStringDefault(String key){
-            return false;
-        }
-
-        @Override
-        public String defaultStringFor(String key){
-            return null;
-        }
-
-        @Override
-        public boolean defaultBooleanFor(String key){
-            throw new IllegalStateException("No Stats default found for key '"+key+"'");
-        }
-
-        @Override
-        public boolean hasBooleanDefault(String key){
-            return false;
-        }
-
-        @Override
-        public double defaultDoubleFor(String key){
-            switch(key){
-                case FALLBACK_NULL_FRACTION: return DEFAULT_FALLBACK_NULL_FRACTION;
-                case FALLBACK_CARDINALITY_FRACTION: return DEFAULT_FALLBACK_CARDINALITY_FRACTION;
-                case FALLBACK_INDEX_SELECTIVITY_FRACTION: return DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION;
-                case OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER: return DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER;
-                default:
-                    throw new IllegalStateException("No Stats default found for key '"+key+"'");
-            }
-        }
-
-        @Override
-        public boolean hasDoubleDefault(String key){
-            switch(key){
-                case FALLBACK_NULL_FRACTION:
-                case FALLBACK_CARDINALITY_FRACTION:
-                case FALLBACK_INDEX_SELECTIVITY_FRACTION:
-                case OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER:
-                    return true;
-                default:
-                    throw new IllegalStateException("No Stats default found for key '"+key+"'");
-            }
-        }
-    };
+        builder.fallbackNullFraction = configurationSource.getDouble(FALLBACK_NULL_FRACTION, DEFAULT_FALLBACK_NULL_FRACTION);
+//        builder.fallbackCardinalityFraction = configurationSource.getDouble(FALLBACK_CARDINALITY_FRACTION, DEFAULT_FALLBACK_CARDINALITY_FRACTION);
+//        builder.fallbackIndexSelectivityFraction = configurationSource.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION, DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
+        builder.optimizerExtraQualifierMultiplier = configurationSource.getDouble(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
+    }
 }

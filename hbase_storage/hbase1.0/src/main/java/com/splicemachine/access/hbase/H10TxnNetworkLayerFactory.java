@@ -25,7 +25,7 @@ public class H10TxnNetworkLayerFactory implements TxnNetworkLayerFactory{
     @Override
     public void configure(SConfiguration config) throws IOException{
         this.connection=HBaseConnectionFactory.getInstance(config).getConnection();
-        String namespace = config.getString(HConfiguration.NAMESPACE);
+        String namespace = config.getNamespace();
         String txnTable = HConfiguration.TRANSACTION_TABLE;
         this.txnTable= TableName.valueOf(namespace,txnTable);
 

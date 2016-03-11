@@ -1,10 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.log4j.Logger;
 import org.sparkproject.guava.base.Strings;
+
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -18,27 +38,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
-
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Maps between an Index Table and a data Table.
@@ -276,8 +275,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if(readerBuilder==null){
             SConfiguration configuration=EngineDriver.driver().getConfiguration();
-            int indexBatchSize = configuration.getInt(SQLConfiguration.INDEX_BATCH_SIZE);
-            int lookupBlocks = configuration.getInt(SQLConfiguration.INDEX_LOOKUP_BLOCKS);
+            int indexBatchSize = configuration.getIndexBatchSize();
+            int lookupBlocks = configuration.getIndexLookupBlocks();
             readerBuilder = new IndexRowReaderBuilder()
                     .mainTableConglomId(conglomId)
                     .outputTemplate(compactRow)

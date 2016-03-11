@@ -1,30 +1,37 @@
 package com.splicemachine.pipeline.client;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.io.IOException;
+
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.PipelineConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.PipelineConfiguration;
-import com.splicemachine.pipeline.api.*;
+import com.splicemachine.pipeline.api.BulkWriterFactory;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.Writer;
 import com.splicemachine.pipeline.callbuffer.BufferConfiguration;
 import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
-import com.splicemachine.pipeline.threadpool.MonitoredThreadPool;
-import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.config.DefaultWriteConfiguration;
 import com.splicemachine.pipeline.config.ForwardingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.pipeline.threadpool.MonitoredThreadPool;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writer.AsyncBucketingWriter;
 import com.splicemachine.pipeline.writer.SynchronousBucketingWriter;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
-
-import javax.management.*;
-import java.io.IOException;
 
 /**
  * Entry point for classes that want to write. Use this class to get CallBuffer<KVPair> for a given table.
@@ -48,16 +55,16 @@ public class WriteCoordinator {
                                           Clock clock) throws IOException {
         assert config != null;
         MonitoredThreadPool writerPool = MonitoredThreadPool.create(config);
-        int maxEntries = config.getInt(PipelineConfiguration.MAX_BUFFER_ENTRIES);//SpliceConstants.maxBufferEntries;
+        int maxEntries = config.getMaxBufferEntries();//SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,
                 writerFactory,
                 exceptionFactory,
                 partitionFactory,clock);
         Writer syncWriter = new SynchronousBucketingWriter(writerFactory,exceptionFactory,partitionFactory,clock);
-        long maxBufferHeapSize = config.getLong(PipelineConfiguration.MAX_BUFFER_HEAP_SIZE);
-        int numRetries = config.getInt(PipelineConfiguration.MAX_RETRIES);
-        long pause = config.getLong(PipelineConfiguration.CLIENT_PAUSE);
-        int maxFlushesPerRegion = config.getInt(PipelineConfiguration.WRITE_MAX_FLUSHES_PER_REGION);
+        long maxBufferHeapSize = config.getMaxBufferHeapSize();
+        int numRetries = config.getMaxRetries();
+        long pause = config.getClientPause();
+        int maxFlushesPerRegion = config.getWriteMaxFlushesPerRegion();
         Monitor monitor = new Monitor(maxBufferHeapSize, maxEntries, numRetries, pause, maxFlushesPerRegion);
 
         return new WriteCoordinator(writer, syncWriter, monitor,partitionFactory,exceptionFactory,writerPool);

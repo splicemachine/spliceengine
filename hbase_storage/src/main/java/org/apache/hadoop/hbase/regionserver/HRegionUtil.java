@@ -1,13 +1,22 @@
 package org.apache.hadoop.hbase.regionserver;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.storage.StorageConfiguration;
-import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.*;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.NoSuchElementException;
+import java.util.concurrent.locks.Lock;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileBlock;
@@ -15,13 +24,13 @@ import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.util.BloomFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.parquet.bytes.BytesUtils;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.BitSet;
-import java.util.concurrent.locks.Lock;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Class for accessing protected methods in HBase.
@@ -30,7 +39,7 @@ import java.util.concurrent.locks.Lock;
  */
 public class HRegionUtil extends BaseHRegionUtil{
     private static final Logger LOG=Logger.getLogger(HRegionUtil.class);
-    private static int splitBlockSize = HConfiguration.INSTANCE.getInt(StorageConfiguration.SPLIT_BLOCK_SIZE);
+    private static int splitBlockSize = HConfiguration.getConfiguration().getSplitBlockSize();
     public static void lockStore(Store store){
         ((HStore)store).lock.readLock().lock();
     }
@@ -273,10 +282,10 @@ public class HRegionUtil extends BaseHRegionUtil{
                     if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
                         if (!bitSet.get(i)) {
                             Cell kv = new KeyValue(key,
-                                    SIConstants.DEFAULT_FAMILY_BYTES,
-                                    SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
-                                    HConstants.LATEST_TIMESTAMP,
-                                    HConstants.EMPTY_BYTE_ARRAY);
+                                                   SIConstants.DEFAULT_FAMILY_BYTES,
+                                                   SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
+                                                   HConstants.LATEST_TIMESTAMP,
+                                                   HConstants.EMPTY_BYTE_ARRAY);
                             bitSet.set(i, checkMemstore(memstore, key, kv) || checkMemstore(snapshot, key, kv));
                         }
                     }

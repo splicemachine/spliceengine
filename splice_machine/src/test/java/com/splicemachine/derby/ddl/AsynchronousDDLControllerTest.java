@@ -1,26 +1,32 @@
 package com.splicemachine.derby.ddl;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.locks.Condition;
+
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.ConfigurationBuilder;
+import com.splicemachine.access.configuration.ConfigurationDefault;
+import com.splicemachine.access.configuration.ConfigurationSource;
+import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.concurrent.LockFactory;
 import com.splicemachine.concurrent.SingleInstanceLockFactory;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
-import com.splicemachine.util.TestConfiguration;
+import com.splicemachine.util.EmptyConfigurationDefaultsList;
 import com.splicemachine.util.concurrent.TestCondition;
 import com.splicemachine.util.concurrent.TestLock;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
-import java.util.*;
-import java.util.concurrent.locks.Condition;
 
 /**
  * @author Scott Fines
@@ -28,7 +34,8 @@ import java.util.concurrent.locks.Condition;
  */
 @Category(ArchitectureIndependent.class)
 public class AsynchronousDDLControllerTest{
-    private static final SConfiguration config = new TestConfiguration();
+    private static final SConfiguration config = new ConfigurationBuilder().build(new EmptyConfigurationDefaultsList().addConfig(new TestConfig()),
+                                                                                  new ReflectingConfigurationSource());
 
     @Test(expected=StandardException.class)
     public void timesOutIfServerRespondsAfterTimeout() throws Exception{
@@ -372,6 +379,19 @@ public class AsynchronousDDLControllerTest{
         String retChangeId=controller.notifyMetadataChange(change);
         Assert.assertEquals("Change id does not match!",changeId,retChangeId);
         Assert.assertTrue("Some servers are missing!",ddlCommunicator.completedServers.containsAll(ddlCommunicator.allServers));
+    }
+
+    //==============================================================================================================
+    // private helper classes
+    //==============================================================================================================
+    private static class TestConfig implements ConfigurationDefault {
+
+        @Override
+        public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+            // Overwritten for test
+            builder.ddlRefreshInterval = 5L;
+            builder.maxDdlWait = 10L;
+        }
     }
 
 }

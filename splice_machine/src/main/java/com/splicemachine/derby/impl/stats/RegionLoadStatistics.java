@@ -1,13 +1,20 @@
 package com.splicemachine.derby.impl.stats;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.StatsConfiguration;
+import com.splicemachine.access.configuration.StorageConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
-import com.splicemachine.storage.StorageConfiguration;
-import java.util.*;
 
 /**
  * @author Scott Fines
@@ -37,20 +44,20 @@ public class RegionLoadStatistics{
             long heapSize;
             String partitionName = partition.getName();
             PartitionLoad regionLoad=regionIdToLoadMap.get(partitionName);
-            long partitionMaxFileSize=config.getLong(StorageConfiguration.REGION_MAX_FILE_SIZE);
+            long partitionMaxFileSize=config.getRegionMaxFileSize();
             if(regionLoad==null){
                 heapSize =partitionMaxFileSize;
             }else {
                 heapSize = (regionLoad.getStorefileSizeMB()+regionLoad.getMemStoreSizeMB())*1024*1024;
                 rowSizeRatio = ((double)heapSize)/partitionMaxFileSize;
             }
-            long fbRegionRowCount = config.getLong(StatsConfiguration.FALLBACK_REGION_ROW_COUNT);
-            long fbMinRowCount = config.getLong(StatsConfiguration.FALLBACK_MINIMUM_ROW_COUNT);
+            long fbRegionRowCount = config.getFallbackRegionRowCount();
+            long fbMinRowCount = config.getFallbackMinimumRowCount();
             long numRows = (long)(fbRegionRowCount*rowSizeRatio);
             if(numRows<fbMinRowCount)
                 numRows = fbMinRowCount;
             if(heapSize==0){
-                heapSize = numRows*config.getInt(StatsConfiguration.FALLBACK_ROW_WIDTH);
+                heapSize = numRows*config.getFallbackRowWidth();
             }
 
             partitionStats.add(FakedPartitionStatistics.create(table,partition.getName(),

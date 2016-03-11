@@ -1,8 +1,10 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.access.HConfiguration;import com.splicemachine.access.api.SConfiguration;import com.splicemachine.access.api.STableInfoFactory;
-import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.TableName;
+
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.STableInfoFactory;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * Created by jleach on 11/18/15.
@@ -14,7 +16,7 @@ public class HBaseTableInfoFactory implements STableInfoFactory<TableName> {
 
     //use the getInstance() method instead
     private HBaseTableInfoFactory(SConfiguration config) {
-        this.namespace = config.getString(HConfiguration.NAMESPACE);
+        this.namespace = config.getNamespace();
         this.namespaceBytes = Bytes.toBytes(namespace);
 
     }

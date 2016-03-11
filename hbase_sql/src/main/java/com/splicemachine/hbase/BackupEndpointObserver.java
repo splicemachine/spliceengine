@@ -45,7 +45,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         }
         regionName = region.getRegionInfo().getEncodedName();
 
-        path = HConfiguration.INSTANCE.getString(HConfiguration.BACKUP_PATH) + "/" + tableName + "/" + regionName;
+        path = HConfiguration.getConfiguration().getBackupPath() + "/" + tableName + "/" + regionName;
     }
 
     @Override

@@ -1,5 +1,13 @@
 package com.splicemachine.derby.impl.sql;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.ZooDefs;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
@@ -7,14 +15,6 @@ import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooDefs;
-
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -24,7 +24,7 @@ public class ZkPropertyManager implements PropertyManager{
     private String zkSpliceDerbyPropertyPath;
 
     public ZkPropertyManager(){
-        zkSpliceDerbyPropertyPath =SIDriver.driver().getConfiguration().getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.DERBY_PROPERTY_PATH;
+        zkSpliceDerbyPropertyPath =SIDriver.driver().getConfiguration().getSpliceRootPath()+HConfiguration.DERBY_PROPERTY_PATH;
     }
 
     @Override

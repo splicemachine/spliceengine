@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
+import java.math.BigDecimal;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -11,8 +13,6 @@ import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.DistributionFactory;
 import com.splicemachine.stats.estimate.UniformDecimalDistribution;
 import com.splicemachine.stats.estimate.UniformStringDistribution;
-
-import java.math.BigDecimal;
 
 /**
  * @author Scott Fines
@@ -79,10 +79,10 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
                  */
                 short cP = (short)cardPrecision;
                 if(cP<0)
-                    cP = (short)EngineDriver.driver().getConfiguration().getInt(StatsConfiguration.CARDINALITY_PRECISION);
+                    cP = (short)EngineDriver.driver().getConfiguration().getCardinalityPrecision();
                 short topKS = (short)topKSize;
                 if(topKS<0)
-                    topKS =(short)EngineDriver.driver().getConfiguration().getInt(StatsConfiguration.TOPK_SIZE);
+                    topKS =(short)EngineDriver.driver().getConfiguration().getTopkSize();
                 return new SmallintStatsCollector(ColumnStatsCollectors.shortCollector(columnId,cP,topKS));
             case StoredFormatIds.SQL_INTEGER_ID:
                 return new IntDvdStatsCollector(ColumnStatsCollectors.intCollector(columnId,cardPrecision,topKSize));

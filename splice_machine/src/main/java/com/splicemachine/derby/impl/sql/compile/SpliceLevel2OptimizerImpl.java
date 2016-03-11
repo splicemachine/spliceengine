@@ -1,23 +1,34 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.store.access.AggregateCostController;
-import com.splicemachine.db.iapi.store.access.SortCostController;
-import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
-import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
-import com.splicemachine.derby.impl.store.access.TempSortController;
+import java.util.List;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
-import java.util.List;
+
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.OptimizableList;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.OptimizerFlag;
+import com.splicemachine.db.iapi.sql.compile.OptimizerTrace;
+import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.AggregateCostController;
+import com.splicemachine.db.iapi.store.access.SortCostController;
+import com.splicemachine.db.impl.sql.compile.AggregateNode;
+import com.splicemachine.db.impl.sql.compile.GroupByList;
+import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
+import com.splicemachine.db.impl.sql.compile.Level2OptimizerTrace;
+import com.splicemachine.db.impl.sql.compile.OrderByList;
+import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
+import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
+import com.splicemachine.derby.impl.store.access.TempSortController;
 
 /**
  * This is the Level 2 Optimizer.
@@ -155,8 +166,8 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                 numTablesInQuery,
                 lcc);
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
-        this.minTimeout=configuration.getLong(SQLConfiguration.OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
-        this.maxTimeout=configuration.getLong(SQLConfiguration.OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
+        this.minTimeout=configuration.getOptimizerPlanMinimumTimeout();
+        this.maxTimeout=configuration.getOptimizerPlanMaximumTimeout();
         tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
     }
 

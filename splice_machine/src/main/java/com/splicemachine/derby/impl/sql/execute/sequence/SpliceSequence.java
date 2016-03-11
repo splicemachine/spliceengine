@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
+import com.splicemachine.access.configuration.OperationConfiguration;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;

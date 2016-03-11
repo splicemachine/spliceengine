@@ -1,16 +1,25 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
+import java.io.IOException;
+
 import com.google.common.base.Supplier;
-import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.hadoop.hbase.Coprocessor;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.CountedReference;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.txn.lifecycle.TxnLifecycleStore;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -22,16 +31,6 @@ import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.hadoop.hbase.Coprocessor;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.protobuf.ResponseConverter;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -65,14 +64,14 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             TransactionResolver resolver=resolverRef.get();
             SIDriver driver=siEnv.getSIDriver();
             assert driver!=null:"SIDriver Cannot be null";
-            long txnKeepAliveTimeout = configuration.getLong(SIConfigurations.TRANSACTION_TIMEOUT);
+            long txnKeepAliveTimeout = configuration.getTransactionTimeout();
             @SuppressWarnings("unchecked") TxnPartition regionStore=new RegionTxnStore(region,
                     driver.getTxnSupplier(),
                     resolver,
                     txnKeepAliveTimeout,
                     new SystemClock());
             TimestampSource timestampSource=driver.getTimestampSource();
-            int txnLockStrips = configuration.getInt(SIConfigurations.TRANSACTION_LOCK_STRIPES);
+            int txnLockStrips = configuration.getTransactionLockStripes();
             lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
                     new RegionServerControl(region),timestampSource);
             isTxnTable=true;

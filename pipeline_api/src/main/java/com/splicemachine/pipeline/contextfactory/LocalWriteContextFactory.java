@@ -1,32 +1,33 @@
 package com.splicemachine.pipeline.contextfactory;
 
-import com.google.common.base.Function;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.ServerControl;
-import com.splicemachine.access.util.CachedPartitionFactory;
-import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.ddl.DDLMessage.DDLChange;
-import com.splicemachine.pipeline.PipelineConfiguration;
-import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
-import com.splicemachine.pipeline.api.PipelineExceptionFactory;
-import com.splicemachine.pipeline.context.WriteContext;
-import com.splicemachine.pipeline.constraint.ChainConstraintChecker;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.pipeline.context.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.PartitionWriteHandler;
-import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
-import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-import org.sparkproject.guava.collect.Lists;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.google.common.base.Function;
+import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Lists;
+
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.ServerControl;
+import com.splicemachine.access.configuration.PipelineConfiguration;
+import com.splicemachine.access.util.CachedPartitionFactory;
+import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
+import com.splicemachine.pipeline.constraint.ChainConstraintChecker;
+import com.splicemachine.pipeline.context.PipelineWriteContext;
+import com.splicemachine.pipeline.context.WriteContext;
+import com.splicemachine.pipeline.exception.IndexNotSetUpException;
+import com.splicemachine.pipeline.writehandler.PartitionWriteHandler;
+import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
+import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 /**
@@ -167,7 +168,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     public static <TableInfo> LocalWriteContextFactory<TableInfo> unmanagedContextFactory(PartitionFactory<TableInfo> partitionFactory,
                                                                    PipelineExceptionFactory pef,
                                                                    Function<TableInfo,String>tableInfoParser) {
-        return new LocalWriteContextFactory<TableInfo>(-1,PipelineConfiguration.DEFAULT_STARTUP_LOCK_PERIOD,partitionFactory,pef,tableInfoParser,UnmanagedFactoryLoader.INSTANCE){
+        return new LocalWriteContextFactory<TableInfo>(-1, PipelineConfiguration.DEFAULT_STARTUP_LOCK_PERIOD, partitionFactory, pef, tableInfoParser, UnmanagedFactoryLoader.INSTANCE){
             @Override
             public void prepare() {
                 state.set(State.NOT_MANAGED);

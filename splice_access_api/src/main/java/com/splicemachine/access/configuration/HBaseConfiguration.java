@@ -1,0 +1,142 @@
+package com.splicemachine.access.configuration;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import com.splicemachine.primitives.Bytes;
+
+/**
+ * The common (non-hbase-specific) properties that are used by Splice hbase subsystems.
+ * <p/>
+ * Note that this class is subclassed to provide hbase subsystem-specific properties for
+ * which we don't want a compile-time dependency at this level.<br/>
+ * Also note that the subclass must be added to the {@link ConfigurationDefaultsList}
+ * manually before creating the configuration (see HConfiguration subclass).
+ */
+public class HBaseConfiguration implements ConfigurationDefault {
+    public static final String NAMESPACE = "splice.namespace";
+    public static final String DEFAULT_NAMESPACE = "splice";
+
+    /**
+     * Path in Zookeeper for storing ongoing backup
+     */
+    public static final String BACKUP_PATH = "splice.backup_node";
+    public static final String DEFAULT_BACKUP_PATH = "/backup";
+    public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
+    public static final byte[] BACKUP_DONE = Bytes.toBytes(true);
+
+    /**
+     * The Path in zookeeper for manipulating transactional information.
+     * Set to [SpliceRootPath]/transactions
+     */
+    public static final String TRANSACTION_PATH = "/transactions";
+
+    /**
+     * The Path in zookeeper for storing the minimum active transaction.
+     * Defaults to [TRANSACTION_PATH]/minimum
+     */
+    public static final String MINIMUM_ACTIVE_PATH = TRANSACTION_PATH+"/minimum";
+
+    /**
+     * Path in ZooKeeper for manipulating Conglomerate information.
+     * Defaults to /conglomerates
+     */
+    public static final String CONGLOMERATE_SCHEMA_PATH = "/conglomerates";
+
+    /**
+     * Path in ZooKeeper for storing Derby properties information.
+     * Defaults to /derbyPropertyPath
+     */
+    public static final String DERBY_PROPERTY_PATH = "/derbyPropertyPath";
+
+    public static final String DDL_PATH="/ddl";
+    public static final String DDL_CHANGE_PATH="/ddlChange";
+
+    /**
+     * Location of Startup node in ZooKeeper. The presence of this node
+     * indicates whether or not Splice needs to attempt to recreate
+     * System tables (i.e. whether or not Splice has been installed and
+     * set up correctly).
+     * Defaults to /startupPath
+     */
+    public static final String STARTUP_PATH = "/startupPath";
+
+    /**
+     * Location of Leader Election path in ZooKeeper.
+     * Defaults to /leaderElection
+     */
+    public static final String LEADER_ELECTION = "/leaderElection";
+
+    public static final String SPLICE_ROOT_PATH = "splice.root.path";
+    protected static final String DEFAULT_ROOT_PATH="/splice";
+
+    /**
+     * The number of timestamps to 'reserve' at a time in the Timestamp Server.
+     * Defaults to 8192
+     */
+    public static final String TIMESTAMP_BLOCK_SIZE = "splice.timestamp_server.blocksize";
+    protected static final int DEFAULT_TIMESTAMP_BLOCK_SIZE = 8192;
+
+    public static final int DEFAULT_JMX_BIND_PORT = 10102;
+
+
+    public static final String REGION_LOAD_UPDATE_INTERVAL = "splice.statistics.regionLoadUpdateInterval";
+    public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 5;
+
+    protected static final String REGION_MAX_FILE_SIZE = StorageConfiguration.REGION_MAX_FILE_SIZE;
+    protected static final String TRANSACTION_LOCK_STRIPES = SIConfigurations.TRANSACTION_LOCK_STRIPES;
+
+    /**
+     * The Path in zookeeper for storing the maximum reserved timestamp
+     * from the ZkTimestampSource implementation.
+     * Defaults to /transactions/maxReservedTimestamp
+     */
+    public static final String MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
+    public static final List<String> zookeeperPaths = Collections.unmodifiableList(Arrays.asList(
+        CONGLOMERATE_SCHEMA_PATH,
+        CONGLOMERATE_SCHEMA_PATH+"/__CONGLOM_SEQUENCE",
+        DERBY_PROPERTY_PATH,
+        CONGLOMERATE_SCHEMA_PATH,
+        CONGLOMERATE_SCHEMA_PATH,
+        MINIMUM_ACTIVE_PATH,
+        TRANSACTION_PATH,
+        MAX_RESERVED_TIMESTAMP_PATH,
+        DDL_CHANGE_PATH,
+        DDL_PATH
+    ));
+
+    // Splice Internal Tables
+    public static final String TEST_TABLE = "SPLICE_TEST";
+    public static final String TRANSACTION_TABLE = "SPLICE_TXN";
+    public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
+    public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
+    public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
+    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
+    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
+    public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
+
+    /**
+     * The type of compression to use when compressing Splice Tables. This is set the same way
+     * HBase sets table compression, and has the same codecs available to it (GZIP,Snappy, or
+     * LZO depending on what is installed).
+     *
+     * Defaults to none
+     */
+    public static final String COMPRESSION_ALGORITHM = "splice.compression";
+
+
+    @Override
+    public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+        // override in HConfiguration
+        builder.timestampBlockSize = configurationSource.getInt(TIMESTAMP_BLOCK_SIZE, DEFAULT_TIMESTAMP_BLOCK_SIZE);
+
+        builder.regionLoadUpdateInterval = configurationSource.getLong(REGION_LOAD_UPDATE_INTERVAL, DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
+
+        builder.spliceRootPath = configurationSource.getString(SPLICE_ROOT_PATH, DEFAULT_ROOT_PATH);
+        builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
+        builder.backupPath = configurationSource.getString(BACKUP_PATH, DEFAULT_BACKUP_PATH);
+    }
+}

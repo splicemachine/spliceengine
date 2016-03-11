@@ -1,19 +1,20 @@
 package com.splicemachine.derby.hbase;
 
+import java.io.IOException;
+
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.pipeline.PipelineConfiguration;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.client.RpcChannelFactory;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.pipeline.utils.SimplePipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -32,8 +33,6 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.kryo.KryoPool;
-
-import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -72,9 +71,8 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
         this.pipelineExceptionFactory = pef;
         this.contextFactoryLoader = ctxFactoryLoader;
         this.pipelineConfiguration = env.configuration();
-        pipelineConfiguration.addDefaults(PipelineConfiguration.defaults);
 
-        KryoPool kryoPool=new KryoPool(pipelineConfiguration.getInt(PipelineConfiguration.PIPELINE_KRYO_POOL_SIZE));
+        KryoPool kryoPool=new KryoPool(pipelineConfiguration.getPipelineKryoPoolSize());
         kryoPool.setKryoRegistry(new PipelineKryoRegistry());
         //TODO -sf- enable snappy compression here
         this.compressor = new SimplePipelineCompressor(kryoPool,env.getSIDriver().getOperationFactory());

@@ -1,12 +1,10 @@
-package com.splicemachine.pipeline;
-
-import com.splicemachine.access.api.SConfiguration;
+package com.splicemachine.access.configuration;
 
 /**
  * @author Scott Fines
  *         Date: 12/22/15
  */
-public class PipelineConfiguration{
+public class PipelineConfiguration implements ConfigurationDefault {
     public static final String WRITE_COORDINATOR_OBJECT_LOCATION = "com.splicemachine.writer:type=WriteCoordinatorStatus";
     public static final String WRITER_STATUS_OBJECT_LOCATION = "com.splicemachine.writer.async:type=WriterStatus";
     public static final String THREAD_POOL_STATUS_LOCATION = "com.splicemachine.writer.async:type=ThreadPoolStatus";
@@ -16,6 +14,9 @@ public class PipelineConfiguration{
 
     public static final String MAX_BUFFER_HEAP_SIZE = "splice.client.write.buffer";
     public static final long DEFAULT_WRITE_BUFFER_SIZE = 3*1024*1024;
+
+    public static final String SPARK_IO_COMPRESSION_CODEC = "spark.io.compression.codec";
+    public static final String DEFAULT_SPARK_IO_COMPRESSION_CODEC = "lz4";
 
     /**
      * The number of times to retry a network operation before failing.  Turning this up will reduce the number of spurious
@@ -119,101 +120,28 @@ public class PipelineConfiguration{
     public static final int DEFAULT_MAX_DEPENDENT_WRITES = 40000;
 
     public static final String IPC_THREADS="hbase.regionserver.handler.count";
+    public static final int DEFAULT_IPC_THREADS = 200;
 
     public static final String PIPELINE_KRYO_POOL_SIZE= "splice.writer.kryoPoolSize";
     private static final int DEFAULT_PIPELINE_KRYO_POOL_SIZE=1024;
 
-    public static final SConfiguration.Defaults defaults = new SConfiguration.Defaults(){
-        @Override
-        public boolean hasStringDefault(String key){
-            return false;
-        }
+    @Override
+    public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+        builder.ipcThreads = configurationSource.getInt(IPC_THREADS, DEFAULT_IPC_THREADS);
+        builder.maxIndependentWrites = configurationSource.getInt(MAX_INDEPENDENT_WRITES, DEFAULT_MAX_INDEPENDENT_WRITES);
+        builder.maxDependentWrites = configurationSource.getInt(MAX_DEPENDENT_WRITES, DEFAULT_MAX_DEPENDENT_WRITES);
+        builder.coreWriterThreads = configurationSource.getInt(CORE_WRITER_THREADS, DEFAULT_WRITE_THREADS_CORE);
+        builder.maxWriterThreads = configurationSource.getInt(MAX_WRITER_THREADS, DEFAULT_MAX_WRITER_THREADS);
+        builder.writeMaxFlushesPerRegion = configurationSource.getInt(WRITE_MAX_FLUSHES_PER_REGION, WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
+        builder.maxRetries = configurationSource.getInt(MAX_RETRIES, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+        builder.maxBufferEntries = configurationSource.getInt(MAX_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
+        builder.pipelineKryoPoolSize = configurationSource.getInt(PIPELINE_KRYO_POOL_SIZE, DEFAULT_PIPELINE_KRYO_POOL_SIZE);
 
-        @Override
-        public String defaultStringFor(String key){
-            throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
-        }
+        builder.threadKeepaliveTime = configurationSource.getLong(THREAD_KEEPALIVE_TIME, DEFAULT_THREAD_KEEPALIVE_TIME);
+        builder.clientPause = configurationSource.getLong(CLIENT_PAUSE, DEFAULT_CLIENT_PAUSE);
+        builder.maxBufferHeapSize = configurationSource.getLong(MAX_BUFFER_HEAP_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
+        builder.startupLockWaitPeriod = configurationSource.getLong(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
 
-        @Override
-        public boolean defaultBooleanFor(String key){
-            throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
-        }
-
-        @Override
-        public boolean hasBooleanDefault(String key){
-            return false;
-        }
-
-        @Override
-        public double defaultDoubleFor(String key){
-            throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
-        }
-
-        @Override
-        public boolean hasDoubleDefault(String key){
-            return false;
-        }
-
-        @Override
-        public boolean hasLongDefault(String key){
-            switch(key){
-                case THREAD_KEEPALIVE_TIME:
-                case CLIENT_PAUSE:
-                case MAX_BUFFER_HEAP_SIZE:
-                case STARTUP_LOCK_WAIT_PERIOD:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public long defaultLongFor(String key){
-            assert hasLongDefault(key): "No pipeline default for key '"+key+"'";
-            switch(key){
-                case THREAD_KEEPALIVE_TIME: return DEFAULT_THREAD_KEEPALIVE_TIME;
-                case CLIENT_PAUSE: return DEFAULT_CLIENT_PAUSE;
-                case MAX_BUFFER_HEAP_SIZE: return DEFAULT_WRITE_BUFFER_SIZE;
-                case STARTUP_LOCK_WAIT_PERIOD: return DEFAULT_STARTUP_LOCK_PERIOD;
-                default:
-                    throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
-            }
-        }
-
-        @Override
-        public boolean hasIntDefault(String key){
-            switch(key){
-                case MAX_INDEPENDENT_WRITES:
-                case MAX_DEPENDENT_WRITES:
-                case CORE_WRITER_THREADS:
-                case MAX_WRITER_THREADS:
-                case STARTUP_LOCK_WAIT_PERIOD:
-                case WRITE_MAX_FLUSHES_PER_REGION:
-                case MAX_RETRIES:
-                case MAX_BUFFER_ENTRIES:
-                case PIPELINE_KRYO_POOL_SIZE:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public int defaultIntFor(String key){
-            assert hasIntDefault(key): "No pipeline default for key '"+key+"'";
-
-            switch(key){
-                case MAX_INDEPENDENT_WRITES: return DEFAULT_MAX_INDEPENDENT_WRITES;
-                case MAX_DEPENDENT_WRITES: return DEFAULT_MAX_DEPENDENT_WRITES;
-                case CORE_WRITER_THREADS: return DEFAULT_WRITE_THREADS_CORE;
-                case MAX_WRITER_THREADS: return DEFAULT_MAX_WRITER_THREADS;
-                case WRITE_MAX_FLUSHES_PER_REGION: return WRITE_DEFAULT_MAX_FLUSHES_PER_REGION;
-                case MAX_RETRIES: return DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
-                case MAX_BUFFER_ENTRIES: return DEFAULT_MAX_BUFFER_ENTRIES;
-                case PIPELINE_KRYO_POOL_SIZE: return DEFAULT_PIPELINE_KRYO_POOL_SIZE;
-                default:
-                    throw new IllegalArgumentException("No pipeline default for key '"+key+"'");
-            }
-        }
-    };
+        builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
+    }
 }

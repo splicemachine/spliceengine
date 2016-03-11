@@ -1,8 +1,5 @@
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.access.api.SConfiguration;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -10,6 +7,9 @@ import java.util.List;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
+
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -146,7 +146,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     protected void checkPreference() {
         if (preference==null){
             SConfiguration config =EngineDriver.driver().getConfiguration();
-            int maxQuotedLines = config.getInt(SQLConfiguration.IMPORT_MAX_QUOTED_COLUMN_LINES);
+            int maxQuotedLines = config.getImportMaxQuotedColumnLines();
             preference=new CsvPreference.Builder(
                     characterDelimiter!=null && characterDelimiter.length()>0?characterDelimiter.charAt(0):DEFAULT_STRIP_STRING,
                     columnDelimiter!=null && columnDelimiter.length()>0?columnDelimiter.charAt(0):DEFAULT_COLUMN_DELIMITTER,

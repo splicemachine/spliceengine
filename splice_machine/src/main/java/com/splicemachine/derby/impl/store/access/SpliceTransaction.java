@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.store.raw.log.LogInstant;
@@ -39,7 +39,7 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         this.dataValueFactory=dataValueFactory;
         this.transName=transName;
         this.state=IDLE;
-        this.ignoreSavePoints=SIDriver.driver().getConfiguration().getBoolean(SQLConfiguration.IGNORE_SAVE_POINTS);
+        this.ignoreSavePoints=SIDriver.driver().getConfiguration().ignoreSavePoints();
     }
 
     public SpliceTransaction(CompatibilitySpace compatibilitySpace,
@@ -53,7 +53,7 @@ public class SpliceTransaction extends BaseSpliceTransaction{
         this.transName=transName;
         this.state=ACTIVE;
         txnStack.push(Pair.newPair(transName,txn));
-        this.ignoreSavePoints=EngineDriver.driver().getConfiguration().getBoolean(SQLConfiguration.IGNORE_SAVE_POINTS);
+        this.ignoreSavePoints=EngineDriver.driver().getConfiguration().ignoreSavePoints();
     }
 
     @Override

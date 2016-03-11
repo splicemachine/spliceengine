@@ -70,7 +70,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)e);
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
-        TableType table=EnvUtils.getTableType(HConfiguration.INSTANCE,rce);
+        TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),rce);
         switch(table){
             case TRANSACTION_TABLE:
             case ROOT_TABLE:

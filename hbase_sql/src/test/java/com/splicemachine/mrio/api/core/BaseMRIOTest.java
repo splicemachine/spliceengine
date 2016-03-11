@@ -3,16 +3,16 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-
-import com.splicemachine.mrio.MRConstants;
-import org.apache.hadoop.fs.Path;
 import org.junit.Ignore;
+
+import com.splicemachine.access.HBaseConfigurationSource;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.mrio.MRConstants;
 
 @Ignore("Breaks stuff")
 public class BaseMRIOTest extends SpliceUnitTest{
@@ -20,7 +20,7 @@ public class BaseMRIOTest extends SpliceUnitTest{
 	protected static SMSQLUtil sqlUtil;
 	
 	static {
-		config = HConfiguration.INSTANCE.unwrapDelegate();
+		config = HConfiguration.unwrapDelegate();
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		config.set(HConstants.HBASE_DIR,getHBaseDirectory());
 //        SpliceConstants.HBASE_ROOT_DIR = new Path(getHBaseDirectory());

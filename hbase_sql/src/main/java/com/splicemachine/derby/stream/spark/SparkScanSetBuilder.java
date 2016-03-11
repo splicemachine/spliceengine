@@ -1,5 +1,13 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -13,13 +21,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -48,7 +49,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
     @Override
     public DataSet<V> buildDataSet(Object caller) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
-        Configuration conf = new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
+        Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
         if (oneSplitPerRegion) {
             conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");

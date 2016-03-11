@@ -1,5 +1,26 @@
 package com.splicemachine.si.testsetup;
 
+import java.io.IOException;
+import java.util.Random;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.NamespaceDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.regionserver.BloomType;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
+
+import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -29,20 +50,6 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.HFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.regionserver.BloomType;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-
-import java.io.IOException;
-import java.util.Random;
 
 /**
  * @author Scott Fines
@@ -63,7 +70,7 @@ public class HBaseSITestEnv implements SITestEnv{
 
     public HBaseSITestEnv(Level baseLoggingLevel){
         configureLogging(baseLoggingLevel);
-        Configuration conf = HConfiguration.INSTANCE.unwrapDelegate();
+        Configuration conf = HConfiguration.unwrapDelegate();
         try{
             startCluster(conf);
             SIEnvironment hEnv=loadSIEnvironment();
@@ -163,7 +170,8 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     private HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(HConfiguration.INSTANCE.getString(HConfiguration.NAMESPACE),tableName));
+        HTableDescriptor desc =
+            new HTableDescriptor(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(),tableName));
         desc.addFamily(createDataFamily());
         desc.addCoprocessor(SIObserver.class.getName());
         return desc;
@@ -198,7 +206,7 @@ public class HBaseSITestEnv implements SITestEnv{
         configuration.setInt("hbase.regionserver.info.port", basePort + 3);
 
         testUtility.startMiniCluster(1);
-        ZkUtils.getZkManager().initialize(HConfiguration.INSTANCE);
+        ZkUtils.getZkManager().initialize(HConfiguration.getConfiguration());
         ZkUtils.initializeZookeeper();
     }
 

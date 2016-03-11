@@ -1,0 +1,40 @@
+package com.splicemachine.access.configuration;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import com.splicemachine.primitives.Bytes;
+
+/**
+ * @author Scott Fines
+ *         Date: 12/30/15
+ */
+public class OperationConfiguration implements ConfigurationDefault {
+
+    public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
+    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
+    public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
+
+    /**
+     * The number of sequential entries to reserve in a single sequential block.
+     *
+     * Splice uses weakly-ordered sequential generation, in that each RegionServer will perform
+     * one network operation to "reserve" a block of adjacent numbers, then it will sequentially
+     * use those numbers until the block is exhausted, before fetching another block. The result
+     * of which is that two different RegionServers operating concurrently with the same sequence
+     * will see blocks out of order, but numbers ordered within those blocks.
+     *
+     * This setting configures how large those blocks may be. Turning it up will result in fewer
+     * network operations during large-scale sequential id generation, and also less block-reordering
+     * due to the weak-ordering. However, it will also result in a greater number of "missing" ids, since
+     * a block, once allocated, can never be allocated again.
+     *
+     * Defaults to 1000
+     */
+    public static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
+    private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
+
+    @Override
+    public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+        builder.sequenceBlockSize = configurationSource.getInt(SEQUENCE_BLOCK_SIZE, DEFAULT_SEQUENCE_BLOCK_SIZE);
+    }
+}

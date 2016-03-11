@@ -1,10 +1,11 @@
 package com.splicemachine.derby.impl.stats;
 
+import java.util.List;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.SimplePartitionStatistics;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -20,8 +21,8 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
     public static SimpleOverheadManagedPartitionStatistics create(String tableId, String partitionId,
                                                                   long rowCount, long totalBytes,
                                                                   List<ColumnStatistics> columnStatistics){
-        long fallbackLocalLatency =EngineDriver.driver().getConfiguration().getLong(StatsConfiguration.FALLBACK_LOCAL_LATENCY);
-        long fallbackRemoteLatencyRatio =EngineDriver.driver().getConfiguration().getLong(StatsConfiguration.FALLBACK_REMOTE_LATENCY_RATIO);
+        long fallbackLocalLatency =EngineDriver.driver().getConfiguration().getFallbackLocalLatency();
+        long fallbackRemoteLatencyRatio =EngineDriver.driver().getConfiguration().getFallbackRemoteLatencyRatio();
 
         return new SimpleOverheadManagedPartitionStatistics(tableId,partitionId,
                 rowCount,totalBytes,
@@ -40,8 +41,8 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
                 fallbackLocalLatency*rowCount,fallbackRemoteLatencyRatio*fallbackLocalLatency*rowCount,columnStatistics);
         this.totalOpenScannerTime = fallbackRemoteLatencyRatio*fallbackLocalLatency;
         this.totalCloseScannerTime = fallbackRemoteLatencyRatio*fallbackLocalLatency;
-        this.numOpenEvents = 1l;
-        this.numCloseEvents = 1l;
+        this.numOpenEvents = 1L;
+        this.numCloseEvents = 1L;
     }
 
     @Override

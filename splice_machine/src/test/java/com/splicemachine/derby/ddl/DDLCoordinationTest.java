@@ -1,13 +1,30 @@
 package com.splicemachine.derby.ddl;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.locks.Condition;
+
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.ConfigurationBuilder;
+import com.splicemachine.access.configuration.ConfigurationDefault;
+import com.splicemachine.access.configuration.ConfigurationSource;
+import com.splicemachine.access.configuration.HConfigurationDefaultsList;
+import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SingleInstanceLockFactory;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.ddl.DDLMessage.*;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -16,22 +33,9 @@ import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.SITransactionReadController;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
-import com.splicemachine.util.TestConfiguration;
+import com.splicemachine.util.EmptyConfigurationDefaultsList;
 import com.splicemachine.util.concurrent.TestCondition;
 import com.splicemachine.util.concurrent.TestLock;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.locks.Condition;
-
-import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests covering the entire DDL coordination system. In these tests, we simulate the actual communication
@@ -42,8 +46,9 @@ import static org.mockito.Mockito.mock;
  */
 @Category(ArchitectureIndependent.class)
 public class DDLCoordinationTest{
-    private static final WritableTxn txn=new WritableTxn(1l,1l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
-    private static final SConfiguration config = new TestConfiguration();
+    private static final WritableTxn txn=new WritableTxn(1L,1L,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.ROOT_TRANSACTION,null,true,null);
+    private static final SConfiguration config = new ConfigurationBuilder().build(new EmptyConfigurationDefaultsList().addConfig(new TestConfig()),
+                                                                                  new ReflectingConfigurationSource());
 
     private static final SqlExceptionFactory ef = new SqlExceptionFactory(){
         @Override
@@ -322,5 +327,18 @@ public class DDLCoordinationTest{
         Assert.assertEquals("Refresher did not see change correctly!",eChangeCount,listener.getCount(change));
 //        Assert.assertEquals("Refresher's global start count is incorrect!",eGlobalStartCount,listener.getStartGlobalCount());
 //        Assert.assertEquals("Refresher's global stop count is incorrect!",eGlobalStopCount,listener.getEndGlobalCount());
+    }
+
+    //==============================================================================================================
+    // private helper classes
+    //==============================================================================================================
+    private static class TestConfig implements ConfigurationDefault {
+
+        @Override
+        public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
+            // Overwritten for test
+            builder.ddlRefreshInterval = 5L;
+            builder.maxDdlWait = 10L;
+        }
     }
 }

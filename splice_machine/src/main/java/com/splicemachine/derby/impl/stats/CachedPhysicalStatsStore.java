@@ -1,14 +1,16 @@
 package com.splicemachine.derby.impl.stats;
 
-import org.sparkproject.guava.cache.Cache;
-import org.sparkproject.guava.cache.CacheBuilder;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;
-import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.log4j.Logger;
+import org.sparkproject.guava.cache.Cache;
+import org.sparkproject.guava.cache.CacheBuilder;
+
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;
 
 /**
  * @author Scott Fines
@@ -21,7 +23,7 @@ public class CachedPhysicalStatsStore implements PhysicalStatisticsStore {
     public CachedPhysicalStatsStore() {
         SConfiguration config =EngineDriver.driver().getConfiguration();
         this.physicalStatisticsCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(config.getLong(StatsConfiguration.PARTITION_CACHE_EXPIRATION), TimeUnit.MILLISECONDS)
+                .expireAfterWrite(config.getPartitionCacheExpiration(), TimeUnit.MILLISECONDS)
                 .build();
     }
 

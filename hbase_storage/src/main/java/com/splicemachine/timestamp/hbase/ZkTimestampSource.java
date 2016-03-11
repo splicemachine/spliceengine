@@ -1,16 +1,16 @@
 package com.splicemachine.timestamp.hbase;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.timestamp.api.TimestampSource;
-import com.splicemachine.timestamp.impl.TimestampClient;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.timestamp.api.TimestampSource;
+import com.splicemachine.timestamp.impl.TimestampClient;
 import com.splicemachine.timestamp.impl.TimestampServer;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Timestamp source implementation that utilizes a special purpose service
@@ -40,9 +40,9 @@ public class ZkTimestampSource implements TimestampSource {
     	// Should be fine since synchronization occurs on the server.
     	synchronized(this) {
     		if (_tc == null) {
-                rootZkPath = config.getString(HConfiguration.SPLICE_ROOT_PATH);
-                int timeout = config.getInt(SIConfigurations.TIMESTAMP_CLIENT_WAIT_TIME);
-                int timestampPort = config.getInt(SIConfigurations.TIMESTAMP_SERVER_BIND_PORT);
+                rootZkPath = config.getSpliceRootPath();
+                int timeout = config.getTimestampClientWaitTime();
+                int timestampPort = config.getTimestampServerBindPort();
 		    	LOG.info("Creating the TimestampClient...");
                 HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
                 _tc = new TimestampClient(timeout,

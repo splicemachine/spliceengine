@@ -14,7 +14,8 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
+
 
 /**
  * A partial DataSource implementation that allows pooling Connections by Database URL.

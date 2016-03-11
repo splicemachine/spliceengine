@@ -1,10 +1,21 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.*;
+import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
+import static com.splicemachine.si.constants.SIConstants.SI_PERMISSION_FAMILY;
+import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKET_COUNT;
+
+import javax.annotation.concurrent.ThreadSafe;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.NamespaceDescriptor;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -14,13 +25,10 @@ import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import javax.annotation.concurrent.ThreadSafe;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.splicemachine.si.constants.SIConstants.*;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
+import com.splicemachine.utils.SpliceLogUtils;
 
 
 /**
@@ -39,10 +47,10 @@ public class HBaseConnectionFactory{
 
     private HBaseConnectionFactory(SConfiguration configuration){
         this.config=configuration;
-        this.namespace=configuration.getString(HConfiguration.NAMESPACE);
+        this.namespace=configuration.getNamespace();
         this.namespaceBytes=Bytes.toBytes(namespace);
         try{
-            this.connection=ConnectionFactory.createConnection(((HConfiguration)configuration).unwrapDelegate());
+            this.connection=ConnectionFactory.createConnection((Configuration) configuration.getConfigSource().unwrapDelegate());
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
@@ -141,7 +149,7 @@ public class HBaseConnectionFactory{
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespaceBytes,HConfiguration.TRANSACTION_TABLE_BYTES));
         HColumnDescriptor columnDescriptor=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
         columnDescriptor.setMaxVersions(5);
-        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getString(HConfiguration.COMPRESSION_ALGORITHM));
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         columnDescriptor.setCompressionType(compress);
         columnDescriptor.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
         columnDescriptor.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
@@ -163,7 +171,7 @@ public class HBaseConnectionFactory{
     public HColumnDescriptor createDataFamily(){
         HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
         snapshot.setMaxVersions(Integer.MAX_VALUE);
-        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getString(HConfiguration.COMPRESSION_ALGORITHM));
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         snapshot.setCompressionType(compress);
         snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
         snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);

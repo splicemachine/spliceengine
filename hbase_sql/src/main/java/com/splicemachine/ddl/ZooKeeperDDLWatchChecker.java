@@ -1,19 +1,25 @@
 package com.splicemachine.ddl;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.ddl.CommunicationListener;
-import com.splicemachine.derby.ddl.DDLConfiguration;
-import com.splicemachine.derby.ddl.DDLWatchChecker;
-import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.*;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+
+import com.google.common.collect.Lists;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.OpResult;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
+
+import com.splicemachine.access.configuration.DDLConfiguration;
+import com.splicemachine.derby.ddl.CommunicationListener;
+import com.splicemachine.derby.ddl.DDLWatchChecker;
+import com.splicemachine.hbase.ZkUtils;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.utils.Pair;
 
 /**
  * @author Scott Fines
@@ -85,7 +91,7 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
             DDLMessage.DDLChange change = pair.getFirst();
             String errorMessage = pair.getSecond();
             // Tag Errors for handling on the client, will allow us to understand what node failed and why...
-            String path=zkClient.changePath+"/"+change.getChangeId()+"/"+(errorMessage==null?"":DDLConfiguration.ERROR_TAG)+id;
+            String path=zkClient.changePath+"/"+change.getChangeId()+"/"+(errorMessage==null?"": DDLConfiguration.ERROR_TAG)+id;
             Op op = Op.create(path, (errorMessage==null?new byte[]{}:(String.format("server [%s] failed with error [%s]",id,errorMessage).getBytes())),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.EPHEMERAL);
             ops.add(op);
             changeList.add(change);

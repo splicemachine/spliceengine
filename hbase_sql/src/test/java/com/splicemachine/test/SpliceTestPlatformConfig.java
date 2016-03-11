@@ -1,31 +1,35 @@
 package com.splicemachine.test;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import static com.google.common.collect.Lists.transform;
+
+import java.util.List;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.backup.BackupHFileCleaner;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.hbase.*;
-import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
-import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
-//import org.apache.hadoop.hbase.regionserver.ConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
-//import org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 
-import java.util.List;
-
-import static com.google.common.collect.Lists.transform;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.backup.BackupHFileCleaner;
+import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import com.splicemachine.hbase.BackupEndpointObserver;
+import com.splicemachine.hbase.MemstoreAwareObserver;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.hbase.RegionSizeEndpoint;
+import com.splicemachine.hbase.SpliceMasterObserver;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
@@ -63,7 +67,7 @@ class SpliceTestPlatformConfig {
                                        Integer derbyPort,
                                        boolean failTasksRandomly) {
 
-        Configuration config =HConfiguration.INSTANCE.unwrapDelegate();
+        Configuration config = HConfiguration.unwrapDelegate();
 
         //
         // Coprocessors
@@ -170,8 +174,8 @@ class SpliceTestPlatformConfig {
 //        config.setDouble(HConfiguration.DEBUG_TASK_FAILURE_RATE, 0.05d);
 //        config.setBoolean(HConfiguration.DEBUG_FAIL_TASKS_RANDOMLY, failTasksRandomly);
 
-        config.reloadConfiguration();
-        return config;
+        HConfiguration.reloadConfiguration(config);
+        return HConfiguration.unwrapDelegate();
     }
 
 

@@ -1,15 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.derby.ddl.DDLConfiguration;
-import com.splicemachine.derby.stream.iapi.ScopeNamed;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.stream.Stream;
-import com.splicemachine.stream.StreamException;
-import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -25,17 +27,38 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.StatementColumnPermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementGenericPermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementRolePermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementRoutinePermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementSchemaPermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-import java.io.IOException;
-import java.util.*;
+import com.splicemachine.derby.stream.iapi.ScopeNamed;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.stream.Stream;
+import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Abstract class that has actions that are across
@@ -879,8 +902,8 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
 		SConfiguration config =EngineDriver.driver().getConfiguration();
-        long waitTime = config.getLong(DDLConfiguration.DDL_DRAINING_INITIAL_WAIT);
-        long maxWait = config.getLong(DDLConfiguration.DDL_DRAINING_MAXIMUM_WAIT);
+        long waitTime = config.getDdlDrainingInitialWait();
+        long maxWait = config.getDdlDrainingMaximumWait();
         long scale = 2; //the scale factor for the exponential backoff
         long timeAvailable = maxWait;
         long activeTxnId = -1l;

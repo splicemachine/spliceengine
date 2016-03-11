@@ -1,30 +1,38 @@
 package com.splicemachine.olap;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.concurrent.CountDownLatches;
-import com.splicemachine.derby.iapi.sql.olap.OlapCallable;
-import com.splicemachine.derby.iapi.sql.olap.OlapClient;
-import com.splicemachine.derby.iapi.sql.olap.OlapResult;
-import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.*;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.serialization.ClassResolvers;
 import org.jboss.netty.handler.codec.serialization.ObjectDecoder;
 import org.jboss.netty.handler.codec.serialization.ObjectEncoder;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.sql.SQLException;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.CountDownLatches;
+import com.splicemachine.derby.iapi.sql.olap.OlapCallable;
+import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.iapi.sql.olap.OlapResult;
+import com.splicemachine.utils.SpliceLogUtils;
 
 public class OlapClientImpl extends SimpleChannelHandler implements OlapClient {
 

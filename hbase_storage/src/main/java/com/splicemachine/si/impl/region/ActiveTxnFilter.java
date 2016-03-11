@@ -1,21 +1,21 @@
 package com.splicemachine.si.impl.region;
 
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.impl.TxnUtils;
-import com.splicemachine.si.impl.driver.SIDriver;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 
 /**
  * @author Scott Fines
@@ -59,7 +59,7 @@ public class ActiveTxnFilter extends FilterBase implements Writable{
     public static ActiveTxnFilter newFilter(long beforeTs, long afterTs, byte[] destinationTable) {
         SIDriver driver=SIDriver.driver();
         Clock clock =driver.getClock();
-        long keepAliveTimeoutMs = driver.getConfiguration().getLong(SIConfigurations.TRANSACTION_TIMEOUT);
+        long keepAliveTimeoutMs = driver.getConfiguration().getTransactionTimeout();
         return new ActiveTxnFilter(beforeTs,afterTs,destinationTable,clock,keepAliveTimeoutMs);
     }
 

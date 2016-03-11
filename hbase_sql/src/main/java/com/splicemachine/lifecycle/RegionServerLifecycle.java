@@ -1,21 +1,26 @@
 package com.splicemachine.lifecycle;
 
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.hbase.SpliceMasterObserver;
-import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
-import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.ZkUtils;
-import org.apache.hadoop.hbase.*;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.zookeeper.KeeperException;
 
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.util.concurrent.TimeUnit;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
+import com.splicemachine.hbase.SpliceMasterObserver;
+import com.splicemachine.hbase.SpliceMetrics;
+import com.splicemachine.hbase.ZkUtils;
 
 /**
  * @author Scott Fines

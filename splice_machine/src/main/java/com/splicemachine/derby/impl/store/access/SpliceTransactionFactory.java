@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -223,7 +223,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
         lockFactory.boot(create,properties);
         storageFactory = StorageFactoryService.newStorageFactory();
         try{
-            storageFactory.init(null,SQLConfiguration.SPLICE_DB,null,null);
+            storageFactory.init(null, SQLConfiguration.SPLICE_DB, null, null);
         }catch(IOException ioe){
             throw StandardException.newException(SQLState.FILE_UNEXPECTED_EXCEPTION,ioe);
         }

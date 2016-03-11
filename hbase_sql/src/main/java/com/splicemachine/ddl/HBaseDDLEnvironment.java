@@ -1,15 +1,19 @@
 package com.splicemachine.ddl;
 
+import java.io.IOException;
+
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LockFactory;
 import com.splicemachine.concurrent.ReentrantLockFactory;
-import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.ddl.AsynchronousDDLController;
+import com.splicemachine.derby.ddl.AsynchronousDDLWatcher;
+import com.splicemachine.derby.ddl.DDLController;
+import com.splicemachine.derby.ddl.DDLEnvironment;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.impl.driver.SIDriver;
-
-import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -41,7 +45,6 @@ public class HBaseDDLEnvironment implements DDLEnvironment{
 
     @Override
     public void configure(SqlExceptionFactory exceptionFactory,SConfiguration config) throws IOException{
-        config.addDefaults(DDLConfiguration.defaults); //make sure that we have the defaults in place
         DDLZookeeperClient zkClient = new DDLZookeeperClient(config);
         ZooKeeperDDLCommunicator communicator=new ZooKeeperDDLCommunicator(zkClient);
         LockFactory lf = new ReentrantLockFactory(false);

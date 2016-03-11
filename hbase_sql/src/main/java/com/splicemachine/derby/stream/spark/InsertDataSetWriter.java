@@ -1,5 +1,14 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.spark.api.java.JavaPairRDD;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -17,18 +26,10 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.spark.api.java.JavaPairRDD;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -89,7 +90,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     DataSet dataSet = new ControlDataSet<>(badRecords);
                     Path path = null;
                     if (insertOperation.statusDirectory != null && !insertOperation.statusDirectory.equals("NULL")) {
-                        FileSystem fileSystem = FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
+                        FileSystem fileSystem = FileSystem.get(HConfiguration.unwrapDelegate());
                         path = generateFileSystemPathForWrite(insertOperation.statusDirectory, fileSystem, insertOperation);
                         dataSet.saveAsTextFile(path.toString());
                         opContext.getActivation().getLanguageConnectionContext().setBadFile(path.toString());

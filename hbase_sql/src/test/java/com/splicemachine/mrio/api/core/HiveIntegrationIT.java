@@ -1,5 +1,9 @@
 package com.splicemachine.mrio.api.core;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -12,24 +16,27 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.test_dao.TriggerBuilder;
-import com.splicemachine.test_tools.TableCreator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hive.jdbc.HiveDriver;
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.fail;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.test_dao.TriggerBuilder;
+import com.splicemachine.test_tools.TableCreator;
 
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
@@ -199,7 +206,8 @@ public class HiveIntegrationIT extends BaseMRIOTest {
 
     @AfterClass
     public static void cleanup() throws Exception {
-        FileSystem fs = FileSystem.get(URI.create(getHiveWarehouseDirectory()), ((HConfiguration)SIDriver.driver().getConfiguration()).unwrapDelegate());
+        FileSystem fs = FileSystem.get(URI.create(getHiveWarehouseDirectory()),
+                                       (Configuration) SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate());
         fs.delete(new Path(getBaseDirectory()+"/user"), true);
         fs.delete(new Path(getBaseDirectory() + "/../target"), true);
     }

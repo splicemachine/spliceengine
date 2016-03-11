@@ -1,6 +1,8 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.access.HConfiguration;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -13,8 +15,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-import java.io.IOException;
-import java.util.List;
+import com.splicemachine.access.HConfiguration;
 
 /**
  * Utilities related to ZooKeeper.
@@ -330,7 +331,7 @@ public class ZkUtils{
      */
     public static void cleanZookeeper() throws InterruptedException, KeeperException{
         RecoverableZooKeeper rzk=getRecoverableZooKeeper();
-        String rootPath=HConfiguration.INSTANCE.getString(HConfiguration.SPLICE_ROOT_PATH);
+        String rootPath=HConfiguration.getConfiguration().getSpliceRootPath();
         for(String path : HConfiguration.zookeeperPaths){
             path=rootPath+path;
             if(rzk.exists(path,false)!=null){
@@ -357,9 +358,9 @@ public class ZkUtils{
     }
 
     public static void safeInitializeZooKeeper() throws InterruptedException, KeeperException{
-        String rootPath=HConfiguration.INSTANCE.getString(HConfiguration.SPLICE_ROOT_PATH);
+        String rootPath=HConfiguration.getConfiguration().getSpliceRootPath();
         for(String path : HConfiguration.zookeeperPaths){
-            recursiveSafeCreate(rootPath+path,Bytes.toBytes(0l),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+            recursiveSafeCreate(rootPath+path,Bytes.toBytes(0L),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
         }
     }
 
@@ -371,7 +372,7 @@ public class ZkUtils{
     public static boolean validZookeeper() throws InterruptedException, KeeperException{
         RecoverableZooKeeper rzk=getRecoverableZooKeeper();
 
-        String rootPath=HConfiguration.INSTANCE.getString(HConfiguration.SPLICE_ROOT_PATH);
+        String rootPath=HConfiguration.getConfiguration().getSpliceRootPath();
         for(String path : HConfiguration.zookeeperPaths){
             if(rzk.exists(rootPath+path,false)==null)
                 return false;
@@ -381,14 +382,14 @@ public class ZkUtils{
 
     public static boolean isSpliceLoaded() throws InterruptedException, KeeperException{
         RecoverableZooKeeper rzk=getRecoverableZooKeeper();
-        String path=HConfiguration.INSTANCE.getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.STARTUP_PATH;
+        String path=HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.STARTUP_PATH;
         return rzk.exists(path,false)!=null;
     }
 
     public static void spliceFinishedLoading() throws InterruptedException, KeeperException{
         RecoverableZooKeeper rzk=getRecoverableZooKeeper();
-        String path=HConfiguration.INSTANCE.getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.STARTUP_PATH;
-        rzk.create(path,Bytes.toBytes(0l),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+        String path=HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.STARTUP_PATH;
+        rzk.create(path,Bytes.toBytes(0L),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
     }
 
     public static SpliceZooKeeperManager getZkManager(){
@@ -397,7 +398,7 @@ public class ZkUtils{
 
     private static void initializeTransactions() throws KeeperException, InterruptedException{
         //add the transaction node setup
-        String txnPath=HConfiguration.INSTANCE.getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.TRANSACTION_PATH;
+        String txnPath=HConfiguration.getConfiguration().getSpliceRootPath()+HConfiguration.TRANSACTION_PATH;
         recursiveSafeCreate(txnPath,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
 
         String counterPath=create(txnPath+"/counter-",new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT_SEQUENTIAL);

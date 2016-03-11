@@ -1,27 +1,42 @@
 package com.splicemachine.si;
 
-import com.splicemachine.MapConfiguration;
+import java.nio.file.FileSystems;
+
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.ConfigurationBuilder;
+import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
-import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.si.api.data.*;
+import com.splicemachine.si.api.data.ExceptionFactory;
+import com.splicemachine.si.api.data.OperationFactory;
+import com.splicemachine.si.api.data.OperationStatusFactory;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.MOpStatusFactory;
+import com.splicemachine.si.impl.MOperationFactory;
+import com.splicemachine.si.impl.MSynchronousReadResolver;
+import com.splicemachine.si.impl.ManualKeepAliveScheduler;
+import com.splicemachine.si.impl.MemTimestampSource;
+import com.splicemachine.si.impl.MemTxnStore;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
 import com.splicemachine.si.impl.data.MExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.DataFilterFactory;
+import com.splicemachine.storage.MFilterFactory;
+import com.splicemachine.storage.MPartitionCache;
+import com.splicemachine.storage.MPartitionFactory;
+import com.splicemachine.storage.MTxnPartitionFactory;
+import com.splicemachine.storage.MemFileSystem;
+import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
-
-import java.nio.file.FileSystems;
 
 /**
  * @author Scott Fines
@@ -51,8 +66,7 @@ public class MemSIEnvironment implements SIEnvironment{
 
     public MemSIEnvironment(PartitionFactory tableFactory){
         this.tableFactory = tableFactory;
-        this.config=new MapConfiguration();
-        config.addDefaults(SIConfigurations.defaults);
+        this.config=new ConfigurationBuilder().build(new HConfigurationDefaultsList(), new ReflectingConfigurationSource());
     }
 
     @Override

@@ -1,10 +1,9 @@
 package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -191,8 +190,8 @@ public class SIDriver {
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private AsyncReadResolver initializedReadResolver(SConfiguration config,KeyedReadResolver keyedResolver){
-        int maxThreads = config.getInt(SIConfigurations.READ_RESOLVER_THREADS);
-        int bufferSize = config.getInt(SIConfigurations.READ_RESOLVER_QUEUE_SIZE);
+        int maxThreads = config.getReadResolverThreads();
+        int bufferSize = config.getReadResolverQueueSize();
         if(bufferSize<=0) return null;
         final AsyncReadResolver asyncReadResolver=new AsyncReadResolver(maxThreads,
                 bufferSize,

@@ -4,22 +4,23 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
-//import org.apache.hadoop.mapred.SplitLocationInfo;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+
+import com.splicemachine.access.HConfiguration;
+
+//import org.apache.hadoop.mapred.SplitLocationInfo;
 
 public class SMSplit extends FileSplit {
 	protected TableSplit split;
 	  public SMSplit() throws IOException{
-		    super(FSUtils.getRootDir(HConfiguration.INSTANCE.unwrapDelegate()), 0, 0,null);
+		    super(FSUtils.getRootDir(HConfiguration.unwrapDelegate()), 0, 0,null);
 		    split = new TableSplit();
 		  }
 	  
 		  public SMSplit(TableSplit split) throws IOException{
-		    super(FSUtils.getRootDir(HConfiguration.INSTANCE.unwrapDelegate()), 0, 0, (String[]) null);
+		    super(FSUtils.getRootDir(HConfiguration.unwrapDelegate()), 0, 0, null);
 		    this.split = split;
 		  }
 

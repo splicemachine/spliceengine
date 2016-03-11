@@ -1,7 +1,15 @@
 package com.splicemachine.derby.lifecycle;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.sql.Connection;
+import java.util.Properties;
+
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
 import com.splicemachine.SqlEnvironment;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
@@ -9,10 +17,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLEnvironmentLoader;
-import com.splicemachine.derby.impl.db.AuthenticationConfiguration;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
-import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
@@ -29,14 +34,6 @@ import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.SnowflakeLoader;
 import com.splicemachine.uuid.UUIDService;
-import org.apache.log4j.Logger;
-
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import java.io.IOException;
-import java.sql.Connection;
-import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -74,10 +71,8 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         new SpliceAccessManager();
         // Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
         // can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
-        loadUUIDGenerator(configuration.getInt(SQLConfiguration.PARTITIONSERVER_PORT));
+        loadUUIDGenerator(configuration.getPartitionserverPort());
 
-        configuration.addDefaults(AuthenticationConfiguration.defaults); //add auth defaults
-        configuration.addDefaults(StatsConfiguration.defaults);
         // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
@@ -109,7 +104,6 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         //initialize the DDLDriver
         DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration,EngineDriver.driver().getExceptionFactory()));
         SpliceDatabase db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getDatabase();
-        configuration.addDefaults(OperationConfiguration.defaults);
         db.registerDDL();
         logging = new LogManager();
     }

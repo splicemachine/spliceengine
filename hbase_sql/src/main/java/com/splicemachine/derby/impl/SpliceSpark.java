@@ -3,8 +3,14 @@ package com.splicemachine.derby.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.rdd.RDDOperationScope;
+import scala.Tuple2;
+
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
@@ -22,11 +28,6 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
-import org.apache.log4j.Logger;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.rdd.RDDOperationScope;
-import scala.Tuple2;
 
 public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
@@ -79,7 +80,6 @@ public class SpliceSpark {
 
                 //make sure the configuration is correct
                 SConfiguration config=driver.getConfiguration();
-                config.addDefaults(SQLConfiguration.defaults);
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
@@ -143,7 +143,7 @@ public class SpliceSpark {
         //
 
         // TODO can this be set/overridden fwith system property, why do we use SpliceConstants?
-        conf.set("spark.io.compression.codec",HConfiguration.INSTANCE.unwrapDelegate().get("spark.io.compression.codec","lz4"));
+        conf.set("spark.io.compression.codec",HConfiguration.getConfiguration().getSparkIoCompressionCodec());
 
          /*
             Application Properties

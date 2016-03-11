@@ -1,5 +1,33 @@
 package com.splicemachine.derby.stream.compaction;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.ScanType;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.StoreFile;
+import org.apache.hadoop.hbase.regionserver.StoreFileScanner;
+import org.apache.hadoop.hbase.regionserver.StoreScanner;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -11,24 +39,6 @@ import com.splicemachine.hbase.ReadOnlyHTableDescriptor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
-import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.log4j.Logger;
-
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.*;
 
 public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<String>,String> implements Externalizable {
     private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
@@ -92,7 +102,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
         ArrayList<StoreFile> readersToClose = new ArrayList<StoreFile>();
         SConfiguration siConf = SIDriver.driver().getConfiguration();
-        Configuration conf = ((HConfiguration)siConf).unwrapDelegate();
+        Configuration conf = HConfiguration.unwrapDelegate();
         TableName tn = TableName.valueOf(namespace, tableName);
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
         Table table = (((ClientPartition)tableFactory.getTable(tn)).unwrapDelegate());

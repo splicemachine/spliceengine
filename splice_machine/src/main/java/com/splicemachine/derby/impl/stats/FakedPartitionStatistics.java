@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.stats;
 
+import java.util.List;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.stats.ColumnStatistics;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -13,8 +14,8 @@ public class FakedPartitionStatistics extends SimpleOverheadManagedPartitionStat
     public static FakedPartitionStatistics create(String tableId, String partitionId,
                                                                   long rowCount, long totalBytes,
                                                                   List<ColumnStatistics> columnStatistics){
-        long fallbackLocalLatency =EngineDriver.driver().getConfiguration().getLong(StatsConfiguration.FALLBACK_LOCAL_LATENCY);
-        long fallbackRemoteLatencyRatio =EngineDriver.driver().getConfiguration().getLong(StatsConfiguration.FALLBACK_REMOTE_LATENCY_RATIO);
+        long fallbackLocalLatency =EngineDriver.driver().getConfiguration().getFallbackLocalLatency();
+        long fallbackRemoteLatencyRatio =EngineDriver.driver().getConfiguration().getFallbackRemoteLatencyRatio();
 
         return new FakedPartitionStatistics(tableId,partitionId,
                 rowCount,totalBytes,

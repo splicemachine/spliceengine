@@ -1,18 +1,17 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
+import java.util.Comparator;
+import java.util.NavigableSet;
+import java.util.TreeMap;
+
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
-import org.apache.log4j.Logger;
-
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.NavigableSet;
-import java.util.TreeMap;
 
 /**
  * Created by jyuan on 10/14/14.
@@ -61,9 +60,9 @@ public class SpliceCatalogUpgradeScripts{
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
-        if(configuration.getBoolean(SQLConfiguration.UPGRADE_FORCED)){
+        if(configuration.upgradeForced()) {
 //        if (SpliceConstants.upgradeForced) {
-            currentVersion=new Splice_DD_Version(null,configuration.getString(SQLConfiguration.UPGRADE_FORCED_FROM));
+            currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());
         }
 
         NavigableSet<Splice_DD_Version> keys=scripts.navigableKeySet();

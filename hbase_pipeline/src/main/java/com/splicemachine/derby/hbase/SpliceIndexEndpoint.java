@@ -60,7 +60,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         final ServerControl serverControl=new RegionServerControl(rce.getRegion());
 
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
-        TableType table=EnvUtils.getTableType(HConfiguration.INSTANCE,(RegionCoprocessorEnvironment)env);
+        TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
         if(table.equals(TableType.USER_TABLE) || table.equals(TableType.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
             long conglomId;
             try{

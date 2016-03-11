@@ -1,5 +1,14 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -9,14 +18,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.stream.index.HTableInputFormat;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -41,7 +42,7 @@ public class SparkIndexScanBuilder<V> extends IndexTableScannerBuilder<V>{
     @Override
     public DataSet<V> buildDataSet(Object caller) throws StandardException{
         JavaSparkContext ctx = SpliceSpark.getContext();
-        Configuration conf = new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
+        Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
         try {
             conf.set(com.splicemachine.mrio.MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());

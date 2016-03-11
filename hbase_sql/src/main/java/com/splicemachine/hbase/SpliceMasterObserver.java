@@ -1,21 +1,12 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.SystemClock;
-import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.lifecycle.MasterLifecycle;
-import com.splicemachine.olap.OlapServer;
-import com.splicemachine.si.api.SIConfigurations;
-import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.timestamp.api.TimestampBlockManager;
-import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
-import com.splicemachine.timestamp.impl.TimestampServer;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.*;
+import java.io.IOException;
+
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -23,7 +14,20 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
-import java.io.IOException;
+
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.lifecycle.DatabaseLifecycleManager;
+import com.splicemachine.lifecycle.MasterLifecycle;
+import com.splicemachine.olap.OlapServer;
+import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.timestamp.api.TimestampBlockManager;
+import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
+import com.splicemachine.timestamp.impl.TimestampServer;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -50,16 +54,16 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(),rzk);
         SConfiguration configuration=env.configuration();
 
-        String timestampReservedPath=configuration.getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-        int timestampPort=configuration.getInt(SIConfigurations.TIMESTAMP_SERVER_BIND_PORT);
-        int timestampBlockSize = configuration.getInt(HConfiguration.TIMESTAMP_BLOCK_SIZE);
+        String timestampReservedPath=configuration.getSpliceRootPath()+HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
+        int timestampPort=configuration.getTimestampServerBindPort();
+        int timestampBlockSize = configuration.getTimestampBlockSize();
 
         TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
         this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
 
         this.timestampServer.startServer();
 
-        int olapPort=configuration.getInt(SIConfigurations.OLAP_SERVER_BIND_PORT);
+        int olapPort=configuration.getOlapServerBindPort();
         this.olapServer = new OlapServer(olapPort);
         this.olapServer.startServer();
 
@@ -115,7 +119,6 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
         //make sure the configuration is correct
         SConfiguration config=driver.getConfiguration();
-        config.addDefaults(SQLConfiguration.defaults);
 
         //register the engine boot service
         try{

@@ -1,16 +1,22 @@
 package com.splicemachine.pipeline.threadpool;
 
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.ServerStoppedException;
-import com.splicemachine.pipeline.PipelineConfiguration;
+import java.util.concurrent.Callable;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.util.concurrent.ListenableFuture;
 import org.sparkproject.guava.util.concurrent.ListeningExecutorService;
 import org.sparkproject.guava.util.concurrent.MoreExecutors;
 import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.ServerStoppedException;
 
 /**
  * @author Scott Fines
@@ -45,9 +51,9 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
                 })
                 .setPriority(Thread.NORM_PRIORITY).build();
 
-        int maxThreads = config.getInt(PipelineConfiguration.MAX_WRITER_THREADS);
-        int coreThreads = config.getInt(PipelineConfiguration.CORE_WRITER_THREADS);
-        long keepAliveSeconds = config.getLong(PipelineConfiguration.THREAD_KEEPALIVE_TIME);
+        int maxThreads = config.getMaxWriterThreads();
+        int coreThreads = config.getCoreWriterThreads();
+        long keepAliveSeconds = config.getThreadKeepaliveTime();
         CountingRejectionHandler countingRejectionHandler = new CountingRejectionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         ThreadPoolExecutor writerPool = new ThreadPoolExecutor(coreThreads,
                 maxThreads,keepAliveSeconds,

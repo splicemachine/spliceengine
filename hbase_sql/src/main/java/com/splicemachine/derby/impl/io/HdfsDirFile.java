@@ -8,13 +8,13 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import com.splicemachine.access.HConfiguration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.io.StorageFile;
 import com.splicemachine.db.io.StorageRandomAccessFile;
@@ -53,7 +53,8 @@ class HdfsDirFile implements StorageFile {
 			throw new IllegalArgumentException("The argument 'path' cannot be null.");
 		}
 		if (directoryName == null || directoryName.equals("")) {
-			path = FileSystem.getDefaultUri(HConfiguration.INSTANCE.unwrapDelegate()).getPath() + File.separatorChar + fileName;
+			path = FileSystem.getDefaultUri(HConfiguration.unwrapDelegate()).getPath() +
+                File.separatorChar + fileName;
 		} else {
 			path = directoryName + File.separatorChar + fileName;
 		}
@@ -77,7 +78,7 @@ class HdfsDirFile implements StorageFile {
 	 */
 	public FileSystem getFileSystem() throws IOException {
 		if (fileSystem == null) {
-			fileSystem = FileSystem.get(HConfiguration.INSTANCE.unwrapDelegate());
+			fileSystem = FileSystem.get(HConfiguration.unwrapDelegate());
 		}
 		return fileSystem;
 	}

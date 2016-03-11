@@ -14,7 +14,7 @@ public class ZkSequencer implements Sequencer{
     private final String path;
 
     public ZkSequencer(){
-        path =SIDriver.driver().getConfiguration().getString(HConfiguration.SPLICE_ROOT_PATH)+HConfiguration.CONGLOMERATE_SCHEMA_PATH+"/__CONGLOM_SEQUENCE";
+        path =SIDriver.driver().getConfiguration().getSpliceRootPath()+HConfiguration.CONGLOMERATE_SCHEMA_PATH+"/__CONGLOM_SEQUENCE";
     }
 
     @Override

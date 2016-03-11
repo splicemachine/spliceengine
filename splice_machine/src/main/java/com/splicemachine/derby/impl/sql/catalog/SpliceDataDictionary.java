@@ -1,8 +1,14 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
+import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -12,15 +18,45 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.KeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SubKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.sql.catalog.*;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.NumberDataValue;
+import com.splicemachine.db.iapi.types.Orderable;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.SYSBACKUPFILESETRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSBACKUPITEMSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSBACKUPJOBSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSBACKUPRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSCONSTRAINTSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSFOREIGNKEYSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSKEYSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSPHYSICALSTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSPRIMARYKEYSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
+import com.splicemachine.db.impl.sql.catalog.SystemAggregateGenerator;
+import com.splicemachine.db.impl.sql.catalog.SystemProcedureGenerator;
+import com.splicemachine.db.impl.sql.catalog.TabInfoImpl;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLWatcher;
@@ -28,18 +64,17 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScri
 import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.*;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -485,9 +520,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // This flag should only be true for the master server.  If the upgrade runs on the region server,
         // it would probably be bad (at least if it ran concurrently with another upgrade).
         SConfiguration configuration=SIDriver.driver().getConfiguration();
-        if(configuration.getBoolean(SQLConfiguration.UPGRADE_FORCED)){
+        if(configuration.upgradeForced()) {
             LOG.info(String.format("Upgrade has been manually forced from version %s",
-                    configuration.getString(SQLConfiguration.UPGRADE_FORCED_FROM)));
+                    configuration.getUpgradeForcedFrom()));
         }
 
         // Not sure about the current version, do not upgrade

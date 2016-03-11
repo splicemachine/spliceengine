@@ -1,15 +1,15 @@
 package com.splicemachine.derby.lifecycle;
 
-import com.splicemachine.SQLConfiguration;
+import javax.management.MBeanServer;
+import java.net.InetAddress;
+
+import org.apache.log4j.Logger;
+
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-
-import javax.management.MBeanServer;
-import java.net.InetAddress;
 
 /**
  * @author Scott Fines
@@ -28,8 +28,8 @@ public class NetworkLifecycleService implements DatabaseLifecycleService{
     public void start() throws Exception{
         try {
 
-            String bindAddress = config.getString(SQLConfiguration.NETWORK_BIND_ADDRESS);
-            int bindPort = config.getInt(SQLConfiguration.NETWORK_BIND_PORT);
+            String bindAddress = config.getNetworkBindAddress();
+            int bindPort = config.getNetworkBindPort();
             server = new NetworkServerControl(InetAddress.getByName(bindAddress),bindPort);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());

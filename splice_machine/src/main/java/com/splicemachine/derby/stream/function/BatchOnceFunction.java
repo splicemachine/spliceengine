@@ -1,26 +1,30 @@
 package com.splicemachine.derby.stream.function;
 
-import org.sparkproject.guava.collect.Lists;
-import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.db.iapi.types.SQLRef;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.shared.common.reference.SQLState;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
-import org.sparkproject.guava.collect.*;
-import java.util.*;
+import java.util.Set;
+
+import org.sparkproject.guava.collect.ArrayListMultimap;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Multimap;
+import org.sparkproject.guava.collect.Sets;
+
+import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLRef;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 
 /**
  *
@@ -47,12 +51,12 @@ public class BatchOnceFunction<Op extends SpliceOperation>
     private static final int ROW_LOC_COL = 3;
 
     public BatchOnceFunction() {
-        batchSize = EngineDriver.driver().getConfiguration().getInt(SQLConfiguration.BATCH_ONCE_BATCH_SIZE);
+        batchSize = EngineDriver.driver().getConfiguration().getBatchOnceBatchSize();
     }
 
     public BatchOnceFunction (OperationContext<Op> operationContext) {
         super(operationContext);
-        batchSize = EngineDriver.driver().getConfiguration().getInt(SQLConfiguration.BATCH_ONCE_BATCH_SIZE);
+        batchSize = EngineDriver.driver().getConfiguration().getBatchOnceBatchSize();
     }
 
     @Override

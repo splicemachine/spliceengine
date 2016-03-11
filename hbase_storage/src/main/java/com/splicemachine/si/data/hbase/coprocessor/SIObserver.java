@@ -1,14 +1,48 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
+import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
+import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.ScanType;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.StoreFile;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.sparkproject.guava.collect.Iterables;
 import org.sparkproject.guava.collect.Maps;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.hbase.SICompactionScanner;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionalFilter;
@@ -16,33 +50,19 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.HOperationFactory;
+import com.splicemachine.si.impl.SIFilterPacked;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.HMutationStatus;
+import com.splicemachine.storage.MutationStatus;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.RegionPartition;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
-import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
@@ -90,7 +110,7 @@ public class SIObserver extends BaseRegionObserver{
         SpliceLogUtils.trace(LOG,"preGet %s",get);
         if(tableEnvMatch && shouldUseSI(get)){
             get.setMaxVersions();
-            get.setTimeRange(0l,Long.MAX_VALUE);
+            get.setTimeRange(0L,Long.MAX_VALUE);
             assert (get.getMaxVersions()==Integer.MAX_VALUE);
             addSIFilterToGet(get);
         }
@@ -103,7 +123,7 @@ public class SIObserver extends BaseRegionObserver{
         SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
         if(tableEnvMatch && shouldUseSI(scan)){
             scan.setMaxVersions();
-            scan.setTimeRange(0l,Long.MAX_VALUE);
+            scan.setTimeRange(0L,Long.MAX_VALUE);
 //            txnReadController.preProcessScan(scan);
             assert (scan.getMaxVersions()==Integer.MAX_VALUE);
             addSIFilterToScan(scan);
@@ -139,7 +159,7 @@ public class SIObserver extends BaseRegionObserver{
             SIDriver driver=SIDriver.driver();
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getRollForward(),
-                    driver.getConfiguration().getInt(SIConfigurations.ACTIVE_TRANSACTION_CACHE_SIZE));
+                    driver.getConfiguration().getActiveTransactionCacheSize());
             return new SICompactionScanner(state,scanner);
         }else{
             return super.preCompact(e,store,scanner,scanType,compactionRequest);
@@ -256,7 +276,7 @@ public class SIObserver extends BaseRegionObserver{
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
     private static boolean doesTableNeedSI(TableName tableName){
-        TableType tableType=EnvUtils.getTableType(HConfiguration.INSTANCE,tableName);
+        TableType tableType=EnvUtils.getTableType(HConfiguration.getConfiguration(),tableName);
         SpliceLogUtils.trace(LOG,"table %s has Env %s",tableName,tableType);
         switch(tableType){
             case TRANSACTION_TABLE:

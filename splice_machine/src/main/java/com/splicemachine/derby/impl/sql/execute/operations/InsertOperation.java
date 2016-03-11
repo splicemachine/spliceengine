@@ -1,5 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -31,12 +38,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 
 /**
@@ -119,7 +120,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     SConfiguration config=context.getSystemConfiguration();
                     SequenceKey key=new SequenceKey(
                             rlBytes,
-                            (isSingleRowResultSet())?1l:config.getInt(OperationConfiguration.SEQUENCE_BLOCK_SIZE),
+                            (isSingleRowResultSet())?1l:config.getSequenceBlockSize(),
                             defaultAutoIncrementValues[i].getFirst(),
                             defaultAutoIncrementValues[i].getSecond(),
                             SIDriver.driver().getTableFactory(),

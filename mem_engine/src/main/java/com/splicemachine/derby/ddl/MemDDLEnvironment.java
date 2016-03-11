@@ -1,5 +1,12 @@
 package com.splicemachine.derby.ddl;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -8,13 +15,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -43,7 +43,6 @@ public class MemDDLEnvironment implements DDLEnvironment{
 
     @Override
     public void configure(SqlExceptionFactory exceptionFactory,SConfiguration config) throws IOException{
-        config.addDefaults(DDLConfiguration.defaults);
         DDLChangeStore changeStore = new DDLChangeStore();
         DDLWatchChecker ddlWatchChecker=new DirectWatcher(changeStore);
 

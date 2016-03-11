@@ -1,13 +1,21 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class BroadcastJoinStrategy extends HashableJoinStrategy {
     public BroadcastJoinStrategy() { }
@@ -97,8 +105,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
         double estimatedRowCount = baseEstimate.getEstimatedRowCount();
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
-        long regionThreshold = configuration.getLong(SQLConfiguration.BROADCAST_REGION_MB_THRESHOLD);
-        long rowCountThreshold = configuration.getLong(SQLConfiguration.BROADCAST_REGION_ROW_THRESHOLD);
+        long regionThreshold = configuration.getBroadcastRegionMbThreshold();
+        long rowCountThreshold = configuration.getBroadcastRegionRowThreshold();
         return wasHinted || (estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold) ;
 	}
 

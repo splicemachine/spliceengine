@@ -1,17 +1,20 @@
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.storage.*;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.storage.ClientPartition;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionInfoCache;
 
 /**
  *
@@ -37,13 +40,13 @@ public class HBase10TableFactory implements PartitionFactory<TableName>{
         this.partitionInfoCache = partitionInfoCache;
         this.tableInfoFactory = HBaseTableInfoFactory.getInstance(configuration);
         this.timeKeeper = timeKeeper;
-        this.splitSleepIntervalMs = configuration.getLong(StorageConfiguration.TABLE_SPLIT_SLEEP_INTERVAL);
+        this.splitSleepIntervalMs = configuration.getTableSplitSleepInterval();
         try{
             connection=HBaseConnectionFactory.getInstance(configuration).getConnection();
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
-        this.namespace = configuration.getString(HConfiguration.NAMESPACE);
+        this.namespace = configuration.getNamespace();
         this.namespaceBytes =Bytes.toBytes(namespace);
 
     }

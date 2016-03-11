@@ -1,11 +1,17 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
+import java.io.IOException;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -17,21 +23,22 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.data.hbase.HOperationStatusFactory;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.CoprocessorTxnStore;
+import com.splicemachine.si.impl.HOperationFactory;
+import com.splicemachine.si.impl.QueuedKeepAliveScheduler;
+import com.splicemachine.si.impl.SimpleTxnOperationFactory;
+import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.DataFilterFactory;
+import com.splicemachine.storage.HFilterFactory;
+import com.splicemachine.storage.HNIOFileSystem;
+import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.timestamp.hbase.ZkTimestampSource;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Scott Fines
@@ -72,53 +79,49 @@ public class HBaseSIEnvironment implements SIEnvironment{
     }
 
     public HBaseSIEnvironment(TimestampSource timeSource,Clock clock) throws IOException{
-        this.config=HConfiguration.INSTANCE;
-        this.config.addDefaults(StorageConfiguration.defaults);
-        this.config.addDefaults(SIConfigurations.defaults);
+        this.config=HConfiguration.getConfiguration();
         this.timestampSource =timeSource;
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory =TableFactoryService.loadTableFactory(clock,this.config,partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
-        int completedTxnCacheSize = config.getInt(SIConfigurations.completedTxnCacheSize);
-        int completedTxnConcurrency = config.getInt(SIConfigurations.completedTxnConcurrency);
+        int completedTxnCacheSize = config.getCompletedTxnCacheSize();
+        int completedTxnConcurrency = config.getCompletedTxnConcurrency();
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
         this.opFactory =HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
-        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
-        this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
-                config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
-                config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),
+        this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
+        this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
+                config.getTransactionTimeout(),
+                config.getTransactionKeepAliveThreads(),
                 txnStore);
         siDriver = SIDriver.loadDriver(this);
     }
 
     @SuppressWarnings("unchecked")
     public HBaseSIEnvironment(RecoverableZooKeeper rzk,Clock clock) throws IOException{
-        this.config=HConfiguration.INSTANCE;
-        this.config.addDefaults(StorageConfiguration.defaults);
-        this.config.addDefaults(SIConfigurations.defaults);
+        this.config=HConfiguration.getConfiguration();
 
         this.timestampSource =new ZkTimestampSource(config,rzk);
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory =TableFactoryService.loadTableFactory(clock, this.config,partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
-        int completedTxnCacheSize = config.getInt(SIConfigurations.completedTxnCacheSize);
-        int completedTxnConcurrency = config.getInt(SIConfigurations.completedTxnConcurrency);
+        int completedTxnCacheSize = config.getCompletedTxnCacheSize();
+        int completedTxnConcurrency = config.getCompletedTxnConcurrency();
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
         this.opFactory =HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
-        this.fileSystem =new HNIOFileSystem(FileSystem.get(((HConfiguration)config).unwrapDelegate()),exceptionFactory());
+        this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
 
 
-        this.keepAlive = new QueuedKeepAliveScheduler(config.getLong(SIConfigurations.TRANSACTION_KEEP_ALIVE_INTERVAL),
-                config.getLong(SIConfigurations.TRANSACTION_TIMEOUT),
-                config.getInt(SIConfigurations.TRANSACTION_KEEP_ALIVE_THREADS),
+        this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
+                config.getTransactionTimeout(),
+                config.getTransactionKeepAliveThreads(),
                 txnStore);
         siDriver = SIDriver.loadDriver(this);
     }

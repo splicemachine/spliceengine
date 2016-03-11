@@ -1,5 +1,14 @@
 package com.splicemachine.derby.stream.spark;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -8,14 +17,6 @@ import com.splicemachine.derby.stream.output.direct.DirectTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.stream.index.HTableOutputFormat;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -34,7 +35,7 @@ public class SparkDirectWriterBuilder<K,V> extends DirectTableWriterBuilder{
     @Override
     public DataSetWriter build() throws StandardException{
         try{
-            Configuration conf=new Configuration(HConfiguration.INSTANCE.unwrapDelegate());
+            Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
             TableWriterUtils.serializeHTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,HTableOutputFormat.class,HTableOutputFormat.class);
             JavaSparkContext context=SpliceSpark.getContext();

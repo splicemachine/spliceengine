@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
@@ -56,7 +57,7 @@ public class TempTableHBaseIT{
     @Test
     public void testTempHBaseTableGetsDropped() throws Exception {
         long start = System.currentTimeMillis();
-        HBaseAdmin hBaseAdmin = new HBaseAdmin(HConfiguration.INSTANCE.unwrapDelegate());
+        HBaseAdmin hBaseAdmin = new HBaseAdmin(HConfiguration.unwrapDelegate());
         String tempConglomID;
         boolean hbaseTempExists;
         final String tmpCreate = "DECLARE GLOBAL TEMPORARY TABLE %s.%s %s not logged on commit preserve rows";

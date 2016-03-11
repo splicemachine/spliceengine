@@ -16,8 +16,6 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -41,8 +39,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TablePermsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
-import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
@@ -196,8 +192,8 @@ public class DDLUtils {
         ActiveTransactionReader transactionReader = new ActiveTransactionReader(0l,maximum.getTxnId(),conglomBytes);
         SConfiguration config = SIDriver.driver().getConfiguration();
         Clock clock = SIDriver.driver().getClock();
-        long waitTime = config.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL); //the initial time to wait
-        long maxWait = config.getLong(DDLConfiguration.MAX_DDL_WAIT); // the maximum time to wait
+        long waitTime = config.getDdlRefreshInterval(); //the initial time to wait
+        long maxWait = config.getMaxDdlWait(); // the maximum time to wait
         long scale = 2; //the scale factor for the exponential backoff
         long timeAvailable = maxWait;
         long activeTxnId = -1l;

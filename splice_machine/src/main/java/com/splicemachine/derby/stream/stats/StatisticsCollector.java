@@ -1,5 +1,12 @@
 package com.splicemachine.derby.stream.stats;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -8,22 +15,18 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.stats.DvdStatsCollector;
 import com.splicemachine.derby.impl.stats.SimpleOverheadManagedPartitionStatistics;
-import com.splicemachine.derby.impl.stats.StatsConfiguration;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
-import com.splicemachine.storage.*;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.DataResultScanner;
+import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.Partition;
 
 
 public class StatisticsCollector {
@@ -136,7 +139,7 @@ public class StatisticsCollector {
          * and then use that to estimate how long it would take to read us remotely
          */
         //TODO -sf- randomize this a bit so we don't hotspot a region
-        int fetchSampleSize=EngineDriver.driver().getConfiguration().getInt(StatsConfiguration.INDEX_FETCH_SAMPLE_SIZE);
+        int fetchSampleSize=EngineDriver.driver().getConfiguration().getIndexFetchSampleSize();
         Timer remoteReadTimer = Metrics.newWallTimer();
         DataScan scan = SIDriver.driver().getOperationFactory().newDataScan(txn);
         scan.startKey(SIConstants.EMPTY_BYTE_ARRAY).stopKey(SIConstants.EMPTY_BYTE_ARRAY);
@@ -186,8 +189,8 @@ public class StatisticsCollector {
     protected void populateCollectors(DataValueDescriptor[] dvds,
                                       ColumnStatsCollector<DataValueDescriptor>[] collectors) {
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
-        int cardinalityPrecision = configuration.getInt(StatsConfiguration.CARDINALITY_PRECISION);
-        int topKSize = configuration.getInt(StatsConfiguration.TOPK_SIZE);
+        int cardinalityPrecision = configuration.getCardinalityPrecision();
+        int topKSize = configuration.getTopkSize();
         for(int i=0;i<dvds.length;i++){
             DataValueDescriptor dvd = dvds[i];
             int columnId = columnPositionMap[i];

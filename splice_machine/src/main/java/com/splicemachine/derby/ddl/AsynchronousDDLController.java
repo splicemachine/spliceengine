@@ -1,14 +1,5 @@
 package com.splicemachine.derby.ddl;
 
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.Clock;
-import com.splicemachine.concurrent.LockFactory;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.pipeline.Exceptions;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -16,6 +7,17 @@ import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import org.apache.log4j.Logger;
+
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.DDLConfiguration;
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.LockFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.pipeline.Exceptions;
 
 /**
  * Used on the node where DDL changes are initiated to communicate changes to other nodes.
@@ -56,8 +58,9 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
         this.clock = clock;
         this.notificationLock = lockFactory.newLock();
         this.notificationSignal = notificationLock.newCondition();
-        this.refreshInterval= configuration.getLong(DDLConfiguration.DDL_REFRESH_INTERVAL);
-        this.maximumWaitTime= configuration.getLong(DDLConfiguration.MAX_DDL_WAIT);
+        this.refreshInterval= configuration.getDdlRefreshInterval();
+        this.maximumWaitTime= configuration.getMaxDdlWait();
+        assert this.refreshInterval > 0 : "Must have greater than zero asynchronous refresh interval";
     }
 
     @Override

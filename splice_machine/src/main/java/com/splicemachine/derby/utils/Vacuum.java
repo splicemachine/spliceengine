@@ -1,6 +1,13 @@
 package com.splicemachine.derby.utils;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import com.carrotsearch.hppc.LongOpenHashSet;
+
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
@@ -11,7 +18,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.derby.ddl.DDLConfiguration;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
@@ -20,12 +26,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
-
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * Utility for Vacuuming Splice.
@@ -123,8 +123,8 @@ public class Vacuum{
     private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
         ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
         SConfiguration config = EngineDriver.driver().getConfiguration();
-        long timeRemaining = config.getLong(DDLConfiguration.DDL_DRAINING_MAXIMUM_WAIT);
-        long pollPeriod = config.getLong(DDLConfiguration.DDL_DRAINING_INITIAL_WAIT);
+        long timeRemaining = config.getDdlDrainingMaximumWait();
+        long pollPeriod = config.getDdlDrainingInitialWait();
         int tryNum = 1;
         long activeTxn;
 

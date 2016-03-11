@@ -1,7 +1,20 @@
 package com.splicemachine.derby.impl.db;
 
-import com.splicemachine.SQLConfiguration;
+import javax.security.auth.login.Configuration;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.AuthenticationConfiguration;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -17,27 +30,36 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.ast.*;
+import com.splicemachine.db.impl.ast.AssignRSNVisitor;
+import com.splicemachine.db.impl.ast.FindHashJoinColumns;
+import com.splicemachine.db.impl.ast.FixSubqueryColRefs;
+import com.splicemachine.db.impl.ast.JoinConditionVisitor;
+import com.splicemachine.db.impl.ast.PlanPrinter;
+import com.splicemachine.db.impl.ast.RepeatedPredicateVisitor;
+import com.splicemachine.db.impl.ast.RowLocationColumnVisitor;
+import com.splicemachine.db.impl.ast.SpliceASTWalker;
+import com.splicemachine.db.impl.ast.UnsupportedFormsDetector;
 import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
-import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.ddl.*;
+import com.splicemachine.ddl.DDLMessage.DDLChange;
+import com.splicemachine.derby.ddl.AddForeignKeyToPipeline;
+import com.splicemachine.derby.ddl.AddIndexToPipeline;
+import com.splicemachine.derby.ddl.AddUniqueConstraintToPipeline;
+import com.splicemachine.derby.ddl.DDLAction;
+import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.ddl.DDLWatcher;
+import com.splicemachine.derby.ddl.DropForeignKeyFromPipeline;
+import com.splicemachine.derby.ddl.DropIndexFromPipeline;
 import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
-import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.driver.SIDriver;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import javax.security.auth.login.Configuration;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpliceDatabase extends BasicDatabase{
 
@@ -49,17 +71,17 @@ public class SpliceDatabase extends BasicDatabase{
         Configuration.setConfiguration(null);
         SConfiguration config = SIDriver.driver().getConfiguration();
       //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        if(config.getBoolean(SQLConfiguration.DEBUG_LOG_STATEMENT_CONTEXT)){
+        if(config.debugLogStatementContext()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
         }
-        if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_CLASS_FILE)){
+        if(config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpClassFile");
-        }if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_BIND_TREE)){
+        }if(config.debugDumpBindTree()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpBindTree");
-        }if(config.getBoolean(SQLConfiguration.DEBUG_DUMP_OPTIMIZED_TREE)){
+        }if(config.debugDumpOptimizedTree()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
             SanityManager.DEBUG_SET("DumpOptimizedTree");
         }
@@ -191,11 +213,11 @@ public class SpliceDatabase extends BasicDatabase{
 
     protected void configureAuthentication(){
         SConfiguration configuration =SIDriver.driver().getConfiguration();
-        if(configuration.getBoolean(AuthenticationConfiguration.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE)){
+        if(configuration.authenticationNativeCreateCredentialsDatabase()) {
             System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
         }
 
-        String authTypeString=configuration.getString(AuthenticationConfiguration.AUTHENTICATION);
+        String authTypeString=configuration.getAuthentication();
         AuthenticationType authType= AuthenticationType.valueOf(authTypeString);
         switch(authType){
             case NONE:
@@ -220,11 +242,11 @@ public class SpliceDatabase extends BasicDatabase{
     private void configureLDAPAuth(SConfiguration config){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
-        String authenticationLDAPSearchAuthDN = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHAUTHDN);
-        String authenticationLDAPSearchAuthPW = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHAUTHPW);
-        String authenticationLDAPSearchBase = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHBASE);
-        String authenticationLDAPSearchFilter = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SEARCHFILTER);
-        String authenticationLDAPServer = config.getString(AuthenticationConfiguration.AUTHENTICATION_LDAP_SERVER);
+        String authenticationLDAPSearchAuthDN = config.getAuthenticationLdapSearchauthdn();
+        String authenticationLDAPSearchAuthPW = config.getAuthenticationLdapSearchauthpw();
+        String authenticationLDAPSearchBase = config.getAuthenticationLdapSearchbase();
+        String authenticationLDAPSearchFilter = config.getAuthenticationLdapSearchfilter();
+        String authenticationLDAPServer = config.getAuthenticationLdapServer();
         SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with "+
                         "{ldap={searchAuthDN=%s,searchAuthPW=%s,searchBase=%s, searchFilter=%s}}",
                 authenticationLDAPSearchAuthDN,
@@ -242,7 +264,7 @@ public class SpliceDatabase extends BasicDatabase{
     private void configureCustomAuth(SConfiguration configuration){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
-        String authenticationCustomProvider = configuration.getString(AuthenticationConfiguration.AUTHENTICATION_CUSTOM_PROVIDER);
+        String authenticationCustomProvider = configuration.getAuthenticationCustomProvider();
         Level logLevel = Level.INFO;
         if(authenticationCustomProvider.equals(AuthenticationConfiguration.DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER)){
             logLevel=Level.WARN;
@@ -255,7 +277,7 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
         System.setProperty("derby.authentication.provider","NATIVE:spliceDB:LOCAL");
-        String authenticationNativeAlgorithm = config.getString(AuthenticationConfiguration.AUTHENTICATION_NATIVE_ALGORITHM);
+        String authenticationNativeAlgorithm = config.getAuthenticationNativeAlgorithm();
         System.setProperty("derby.authentication.builtin.algorithm",authenticationNativeAlgorithm);
         if(warn)
             SpliceLogUtils.warn(LOG,"authentication provider could not be determined from entry {%s},  using native",AuthenticationConfiguration.AUTHENTICATION);

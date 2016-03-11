@@ -10,16 +10,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 import org.sparkproject.guava.collect.Lists;
+
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SQLConfiguration;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.timestamp.api.TimestampClientStatistics;
-import com.splicemachine.timestamp.api.TimestampOracleStatistics;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.utils.DatabasePropertyManagement;
+import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
+import com.splicemachine.timestamp.api.TimestampClientStatistics;
+import com.splicemachine.timestamp.api.TimestampOracleStatistics;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.logging.Logging;
 
@@ -37,7 +38,7 @@ public class JMXUtils {
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
-        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getInt(SQLConfiguration.PARTITIONSERVER_JMX_PORT);
+        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getPartitionserverJmxPort();
         for (Pair<String,String> serverConn: serverConnections) {
             JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s:%2$d/jndi/rmi://%1$s:%2$d/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
             JMXConnector jmxc = JMXConnectorFactory.connect(url, null);

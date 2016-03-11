@@ -1,21 +1,28 @@
 package com.splicemachine.pipeline.writer;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.configuration.PipelineConfiguration;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.pipeline.PipelineConfiguration;
-import com.splicemachine.pipeline.api.*;
+import com.splicemachine.pipeline.api.BulkWriterFactory;
+import com.splicemachine.pipeline.api.PipelineExceptionFactory;
+import com.splicemachine.pipeline.api.WriteStats;
+import com.splicemachine.pipeline.api.Writer;
 import com.splicemachine.pipeline.client.ActionStatusReporter;
 import com.splicemachine.pipeline.client.BulkWriteAction;
 import com.splicemachine.pipeline.client.BulkWrites;
-import com.splicemachine.pipeline.threadpool.MonitoredThreadPool;
 import com.splicemachine.pipeline.config.CountingWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.pipeline.threadpool.MonitoredThreadPool;
 import com.splicemachine.pipeline.writerstatus.ActionStatusMonitor;
-import com.splicemachine.utils.Sleeper;
-
-import javax.management.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 /**
  * @author Scott Fines
