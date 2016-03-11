@@ -8,6 +8,8 @@ import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.Source;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +21,9 @@ import java.util.concurrent.locks.ReadWriteLock;
  *         Date: 12/14/15
  */
 public class StripedTxnLifecycleStore implements TxnLifecycleStore{
+
+    private static final Logger LOG=Logger.getLogger(StripedTxnLifecycleStore.class);
+
     private static final TxnMessage.Txn NONEXISTENT_TXN;
 
     static{
@@ -78,11 +83,13 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
                 return -1l; //no need to acquire a new timestamp if we have a read-only transaction
             }
             if(state==Txn.State.COMMITTED){
+                SpliceLogUtils.warn(LOG,"attempting to commit already committed txn=%d",txnId);
                 return baseStore.getCommitTimestamp(txnId);
             }
-            if(state==Txn.State.ROLLEDBACK)
-                throw baseStore.cannotCommit(txnId,state);
-
+            if(state==Txn.State.ROLLEDBACK) {
+                SpliceLogUtils.error(LOG,"attempting to commit rolled back txn=%d",txnId);
+                throw baseStore.cannotCommit(txnId, state);
+            }
             long commitTs=timestampSource.nextTimestamp();
             baseStore.recordCommit(txnId,commitTs);
             return commitTs;

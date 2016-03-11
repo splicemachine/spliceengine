@@ -35,7 +35,7 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
                 tableWriter.open();
             }
             tableWriter.write(execRow);
-        } catch (StandardException se) {
+        } catch (Exception se) {
             SpliceLogUtils.error(LOG,"Error Writing",se);
             failure = true;
             throw new IOException(se);
