@@ -64,6 +64,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                            PipelineExceptionFactory pipelineExceptionFactory,
                            PartitionFactory partitionFactory,
                            Clock clock){
+        assert writes!=null:"writes passed into BWA are null";
         this.tableName=tableName;
         this.bulkWrites=writes;
         this.writeConfiguration=writeConfiguration;
@@ -155,6 +156,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     }
 
     private void execute(BulkWrites bulkWrites) throws Exception{
+        assert bulkWrites!=null:"bulk writes passed in are null";
         if(LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Executing BulkWriteAction: id=%d, bulkWrites=%s",id,bulkWrites);
         retryCounter.increment();
@@ -163,6 +165,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         WriteAttemptContext ctx = new WriteAttemptContext();
         do{
             BulkWrites nextWrite=writesToPerform.removeFirst();
+            assert nextWrite!=null:"next write is null";
             ctx.reset();
             ctx.attemptCount++;
             if(ctx.attemptCount>100 && ctx.attemptCount%50==0){

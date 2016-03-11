@@ -47,6 +47,7 @@ public class AsyncBucketingWriter implements Writer {
 
     @Override
     public Future<WriteStats> write(byte[] tableName, BulkWrites bulkWrites, WriteConfiguration writeConfiguration) throws ExecutionException {
+        assert bulkWrites!=null:"Bulk Writes Passed in are null";
         WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration, statusMonitor,exceptionFactory);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrites,

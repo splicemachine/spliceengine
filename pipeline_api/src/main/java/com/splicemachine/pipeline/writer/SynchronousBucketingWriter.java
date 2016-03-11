@@ -50,6 +50,7 @@ public class SynchronousBucketingWriter implements Writer{
                                     BulkWrites bulkWrites,
                                     WriteConfiguration writeConfiguration) throws ExecutionException{
         WriteConfiguration countingWriteConfiguration=new CountingWriteConfiguration(writeConfiguration,statusMonitor,exceptionFactory);
+        assert bulkWrites!=null:"bulk writes passed in are null";
         BulkWriteAction action=new BulkWriteAction(tableName,
                 bulkWrites,
                 countingWriteConfiguration,
