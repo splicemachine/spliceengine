@@ -168,6 +168,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             assert nextWrite!=null:"next write is null";
             ctx.reset();
             ctx.attemptCount++;
+            assert nextWrite!=null:"next write is null afer reset";
             if(ctx.attemptCount>100 && ctx.attemptCount%50==0){
                 int numRows= nextWrite.numEntries();
                 SpliceLogUtils.warn(LOG,"BulkWriteAction[%d rows] is taking a long time with %d attempts: id=%d",numRows,ctx.attemptCount,id);
@@ -180,8 +181,8 @@ public class BulkWriteAction implements Callable<WriteStats>{
              */
             if(ctx.shouldSleep())
                 clock.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
-            if(ctx.directRetrySet!=null)
-                writesToPerform.add(ctx.directRetrySet);
+            if(ctx.directRetry)
+                writesToPerform.add(nextWrite);
             else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
                 //rebuild a new buffer to retry from any records that need retrying
                 addToRetryCallBuffer(ctx.nextWriteSet,bulkWrites.getTxn(),ctx.refreshCache);
@@ -205,7 +206,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         try{
             BulkWriter writer=writerFactory.newWriter(tableName);
             writeTimer.startTiming();
-            BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.attemptCount>0);
+            BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.refreshCache);
             writeTimer.stopTiming();
             Iterator<BulkWrite> bws=nextWrite.getBulkWrites().iterator();
             Collection<BulkWriteResult> results=bulkWritesResult.getBulkWriteResults();
@@ -303,7 +304,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
                     SpliceLogUtils.debug(RETRY_LOG,"Retrying write after receiving RegionTooBusyException: id=%d",id);
 
                 ctx.sleep = true;
-                ctx.directRetry(nextWrite);
+                ctx.directRetry();
                 return;
             }
 
@@ -419,7 +420,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
          *
          */
         Collection<KVPair> nextWriteSet;
-        BulkWrites directRetrySet;
+        boolean directRetry;
         int attemptCount = 0;
 
         public boolean shouldSleep(){
@@ -430,19 +431,19 @@ public class BulkWriteAction implements Callable<WriteStats>{
             refreshCache = false;
             sleep = false;
             nextWriteSet = null;
-            directRetrySet = null;
+            directRetry = false;
         }
 
         void addBulkWrites(Collection<KVPair> writes){
-            assert directRetrySet==null: "Cannot add a partial failure and a global retry at the same time";
+            assert !directRetry: "Cannot add a partial failure and a global retry at the same time";
             if(nextWriteSet==null)
                 nextWriteSet = writes;
             else nextWriteSet.addAll(writes);
         }
 
-        void directRetry(BulkWrites bws){
+        void directRetry(){
             assert nextWriteSet==null: "Cannot add a global retry when we already have a partial failure sure";
-            directRetrySet = bws;
+            directRetry = true;
         }
 
         void rejected(){
