@@ -313,8 +313,11 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     public List<BulkWrites> getBulkWrites() throws Exception {
         rebuildIfNecessary();
         List<BulkWrites> writes = new ArrayList<>(serverNameToRegionServerCBMap.size());
-        for(ServerCallBuffer buffer:serverNameToRegionServerCBMap.values())
-            writes.add(buffer.getBulkWrites());
+        for(ServerCallBuffer buffer:serverNameToRegionServerCBMap.values()) {
+            BulkWrites addedWrite = buffer.getBulkWrites();
+            if (addedWrite!=null)
+                writes.add(addedWrite);
+        }
         return writes;
     }
 
