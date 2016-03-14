@@ -157,6 +157,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
         this.minTimeout=configuration.getLong(SQLConfiguration.OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
         this.maxTimeout=configuration.getLong(SQLConfiguration.OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
+        tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
     }
 
     @Override
