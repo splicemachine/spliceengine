@@ -13,6 +13,7 @@ import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import com.splicemachine.pipeline.contextfactory.WriteFactoryGroup;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.Map;
 public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
     private final PipelineExceptionFactory exceptionFactory;
+    private final TxnOperationFactory txnOperationFactory;
     /*
      * Foreign key WriteHandlers intercept writes to parent/child tables and send them to the corresponding parent/child
      * table for existence checks. Generally one WriteHandler handles all intercepts/checks for the conglomerate
@@ -37,8 +39,9 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
     private ForeignKeyParentInterceptWriteFactory parentInterceptWriteFactory;
     private ForeignKeyParentCheckWriteFactory parentCheckWriteFactory;
 
-    public FKWriteFactoryHolder(PipelineExceptionFactory exceptionFactory){
+    public FKWriteFactoryHolder(PipelineExceptionFactory exceptionFactory,TxnOperationFactory txnOperationFactory){
         this.exceptionFactory=exceptionFactory;
+        this.txnOperationFactory = txnOperationFactory;
     }
 
     @Override
@@ -100,7 +103,7 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
     }
 
     public void addChildCheck(FKConstraintInfo fkConstraintInfo) {
-        childCheckWriteFactory = new ForeignKeyChildCheckWriteFactory(fkConstraintInfo);
+        childCheckWriteFactory = new ForeignKeyChildCheckWriteFactory(fkConstraintInfo,txnOperationFactory);
     }
 
     /**

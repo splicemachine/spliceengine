@@ -10,6 +10,7 @@ import com.splicemachine.pipeline.writehandler.WriteHandler;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
 
@@ -27,10 +28,11 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler{
     private final FKConstraintInfo fkConstraintInfo;
 
     public ForeignKeyChildCheckWriteHandler(TransactionalRegion transactionalRegion,
-                                            FKConstraintInfo fkConstraintInfo) {
+                                            FKConstraintInfo fkConstraintInfo,
+                                            TxnOperationFactory txnOperationFactory) {
         this.transactionalRegion = transactionalRegion;
         this.fkConstraintInfo = fkConstraintInfo;
-        this.txnOperationFactory = null;
+        this.txnOperationFactory = txnOperationFactory;
     }
 
     @Override
@@ -42,8 +44,7 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler{
                 ctx.failed(kvPair, WriteResult.wrongRegion());
             } else {
                 try {
-                    List rowsReferencingParent = scanForReferences(kvPair, ctx);
-                    if (!rowsReferencingParent.isEmpty()) {
+                    if(hasReferences(kvPair,ctx)){
                         String failedKvAsHex = Bytes.toHex(kvPair.getRowKey());
                         ConstraintContext context = ConstraintContext.foreignKey(fkConstraintInfo).withInsertedMessage(0, failedKvAsHex);
                         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
@@ -59,28 +60,36 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler{
         ctx.sendUpstream(kvPair);
     }
 
-    private List scanForReferences(KVPair kvPair, WriteContext ctx) throws IOException {
+    private boolean hasReferences(KVPair kvPair,WriteContext ctx) throws IOException {
         byte[] startKey = kvPair.getRowKey();
 
-//        TxnFilter txnFilter = transactionalRegion.unpackedFilter(ctx.getTxn());
-//        SIFilter siFilter = new SIFilter(txnFilter);
-//        PrefixFilter prefixFilter = new PrefixFilter(startKey);
-
+        //make sure this is a transactional scan
         DataScan scan = txnOperationFactory.newDataScan(ctx.getTxn());
-        scan.startKey(startKey);
+        scan =scan.startKey(startKey);
+        /*
+         * The way prefix keys work is that longer keys sort after shorter keys. We
+         * are already starting exactly where we want to be, and we want to end as soon
+         * as we hit a record which is not this key.
+         *
+         * Historically, we did this by using an HBase PrefixFilter. We can do that again,
+         * but it's a bit of a pain to make that work in an architecture-independent
+         * way (we would need to implement a version of that for other architectures,
+         * for example. It's much easier for us to just make use of row key sorting
+         * to do the job for us.
+         *
+         * We start where we want, and we need to end as soon as we run off that. The
+         * first key which is higher than the start key is the start key as a prefix followed
+         * by 0x00 (in unsigned sort order). Therefore, we make the end key
+         * [startKey | 0x00].
+         */
+        byte[] endKey = new byte[startKey.length+1];
+        System.arraycopy(startKey,0,endKey,0,startKey.length);
+        scan = scan.stopKey(endKey);
 
-//        DataScanner scanner = ctx.getRegion().openScanner(scan);
-        throw new UnsupportedOperationException("IMPLEMENT");
-//        scan.setFilter(new FilterList(prefixFilter, siFilter));
-//
-//        List result = Lists.newArrayList();
-//        RegionScanner regionScanner = env.getRegion().getScanner(scan);
-//        try {
-//            dataLib.regionScannerNext(regionScanner, result);
-//        } finally {
-//            regionScanner.close();
-//        }
-//        return result;
+        try(DataScanner scanner = ctx.getRegion().openScanner(scan)){
+            List<DataCell> next=scanner.next(1); //all we need is one row to be good
+            return next.size()>0;
+        }
     }
 
     @Override

@@ -92,7 +92,8 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
             protected ContextFactoryLoader newDelegate(long conglomerateId){
                 SIDriver siDriver=SIDriver.driver();
                 return new DerbyContextFactoryLoader(conglomerateId,siDriver.getOperationStatusLib(),
-                        PipelineDriver.driver().exceptionFactory(),siDriver.readController());
+                        PipelineDriver.driver().exceptionFactory(),siDriver.readController(),
+                        siDriver.getOperationFactory());
             }
         };
         ContextFactoryDriverService.setDriver(cfDriver); //set the Context service for the pipeline

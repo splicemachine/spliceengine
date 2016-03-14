@@ -25,6 +25,7 @@ import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 import com.splicemachine.pipeline.foreignkey.FKWriteFactoryHolder;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.OperationStatusFactory;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -61,12 +62,13 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
     public DerbyContextFactoryLoader(long conglomId,
                                      OperationStatusFactory osf,
                                      PipelineExceptionFactory pef,
-                                     TransactionReadController trc){
+                                     TransactionReadController trc,
+                                     TxnOperationFactory txnOperationFactory){
         this.conglomId=conglomId;
         this.osf=osf;
         this.pef=pef;
         this.trc=trc;
-        this.fkGroup=new FKWriteFactoryHolder(pef);
+        this.fkGroup=new FKWriteFactoryHolder(pef,txnOperationFactory);
         //TODO -sf- memory leak
         this.ddlListener=new DDLWatcher.DDLListener(){
             @Override
