@@ -162,7 +162,7 @@ public class RegionPartition implements Partition{
                 ((HResult)previous).set(result);
             }
             return previous;
-        }catch(NotServingRegionException nsre){
+        }catch(NotServingRegionException | AssertionError | NullPointerException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){
             throw new HWrongRegion(wre.getMessage());
