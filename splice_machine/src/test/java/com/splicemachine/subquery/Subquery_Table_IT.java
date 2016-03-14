@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
  * Test table subqueries -- subqueries that can return multiple rows and columns.  These can appear only in FROM,
  * IN, ALL, ANY, or EXISTS parts of the enclosing query.
  */
-@Ignore("DB-4628")
 public class Subquery_Table_IT {
 
     private static final String SCHEMA = Subquery_Table_IT.class.getSimpleName();
@@ -53,9 +52,9 @@ public class Subquery_Table_IT {
             s.executeUpdate("create table T4 (i int)");
             s.executeUpdate("insert into T4 values (30),(40)");
 
-            TestUtils.executeSqlFile(conn,"test_data/employee.sql",SCHEMA);
-            TestUtils.executeSqlFile(conn,"null_int_data.sql",SCHEMA);
-            TestUtils.executeSqlFile(conn,"test_data/content.sql",SCHEMA);
+            TestUtils.executeSqlFile(conn, "test_data/employee.sql", SCHEMA);
+            TestUtils.executeSqlFile(conn, "null_int_data.sql", SCHEMA);
+            TestUtils.executeSqlFile(conn, "test_data/content.sql", SCHEMA);
 
             s.executeUpdate("create table s (a int, b int, c int, d int, e int, f int)");
             s.executeUpdate("insert into s values (0,1,2,3,4,5)");
@@ -72,7 +71,18 @@ public class Subquery_Table_IT {
             s.executeUpdate("insert into parentT select i+256, j+256, k+256 from parentT");
             s.executeUpdate("insert into parentT select i+512, j+512, k+512 from parentT");
             s.executeUpdate("insert into parentT select i+1024, j+1024, k+1024 from parentT");
-            s.executeUpdate("insert into childT select * from parentT");
+            //s.executeUpdate("insert into childT select * from parentT");
+
+            s.executeUpdate("insert into childT values (1,1,1), (2,2,2), (3,3,3), (4,4,4)");
+            s.executeUpdate("insert into childT select i+4, j+4, k+4 from parentT");
+            s.executeUpdate("insert into childT select i+8, j+8, k+8 from parentT");
+            s.executeUpdate("insert into childT select i+16, j+16, k+16 from parentT");
+            s.executeUpdate("insert into childT select i+32, j+32, k+32 from parentT");
+            s.executeUpdate("insert into childT select i+64, j+64, k+64 from parentT");
+            s.executeUpdate("insert into childT select i+128, j+128, k+128 from parentT");
+            s.executeUpdate("insert into childT select i+256, j+256, k+256 from parentT");
+            s.executeUpdate("insert into childT select i+512, j+512, k+512 from parentT");
+            s.executeUpdate("insert into childT select i+1024, j+1024, k+1024 from parentT");
         }
     }
 

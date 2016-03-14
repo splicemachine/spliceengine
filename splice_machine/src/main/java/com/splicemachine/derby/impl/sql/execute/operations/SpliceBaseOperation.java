@@ -16,6 +16,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -444,6 +445,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 LOG.trace(String.format("openCore %s",this));
             isOpen=true;
             String sql=activation.getPreparedStatement().getSource();
+            if (!(this instanceof ExplainOperation || activation.isMaterialized()))
+                activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);

@@ -39,22 +39,19 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
                 SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor for op %s", op==null?"null":op.getName());
             return localProcessor;
         }
-        if(activation==null|| activation.getResultSet()==null){ // Materialize ResultSet if Possible Execution Path!!
-            // JL_TODO Fix Materialize ResultSet if Possible: Should go away!!!
-            return localProcessor;
-        }else{
-            switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
-                case FORCED_CONTROL:
-                    return localProcessor;
-                case FORCED_SPARK:
-                    return distributedDataSetProcessor;
-                default:
-                    break;
-            }
-            if (((BaseActivation)activation).useSpark())
+
+        switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
+            case FORCED_CONTROL:
+                return localProcessor;
+            case FORCED_SPARK:
                 return distributedDataSetProcessor;
-            return localProcessor;
+            default:
+                break;
         }
+        if (((BaseActivation)activation).useSpark())
+            return distributedDataSetProcessor;
+        return localProcessor;
+
     }
 
     @Override

@@ -575,9 +575,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
-    public NoPutResultSet getCachedResultSet(Activation activation, List rows, int resultSetNumber) throws StandardException {
+    public NoPutResultSet getCachedResultSet(Activation activation, NoPutResultSet source, int resultSetNumber) throws StandardException {
         try {
-            return new CachedOperation(activation, (List<ExecRow>)rows, resultSetNumber);
+            ConvertedResultSet opSet = (ConvertedResultSet)source;
+            return new CachedOperation(activation, opSet.getOperation(), resultSetNumber);
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot get Cached Result Set", e);
             return null;
