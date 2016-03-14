@@ -36,6 +36,7 @@ import	com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.HasIncrement;
 import com.splicemachine.db.iapi.sql.Row;
@@ -93,7 +94,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	protected ContextManager			cm;
 	protected DataValueFactory dvf;
     public boolean ignoreSequence = false;
-
+	protected boolean materialized = false;
 
 	protected ExecPreparedStatement preStmt;
 	protected ResultSet resultSet;
@@ -1600,37 +1601,12 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		int maxMemoryPerTable = getLanguageConnectionContext().getOptimizerFactory().getMaxMemoryPerTable();
 		if(maxMemoryPerTable<=0)
 			return rs;
-		rs.openCore();
-		List<ExecRow> rowCache = new LinkedList<>();
-		ExecRow aRow;
-		int cacheSize = 0;
-		FormatableBitSet toClone = null;
+		int rsNum = ((CompilerContext)cm.getContext(CompilerContext.CONTEXT_ID)).getNextResultSetNumber();
 
-
-		aRow = rs.getNextRowCore();
-		if (aRow != null)
-		{
-			toClone = new FormatableBitSet(aRow.nColumns() + 1);
-			toClone.set(1);
-		}
-		while (aRow != null)
-		{
-			cacheSize += aRow.getColumn(1).getLength();
-			if (cacheSize > maxMemoryPerTable ||
-					rowCache.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS)
-				break;
-			rowCache.add(aRow.getClone(toClone));
-			aRow = rs.getNextRowCore();
-		}
-		rs.close();
-
-		if (aRow == null)
-		{
-			int rsNum = rs.resultSetNumber();
-         rs.finish();
-         return getResultSetFactory().getCachedResultSet(this, rowCache, rsNum);
-  		}
-		return rs;
+        // since we create a new result set after row was created, resize row to make sure it can
+        // accommodate CacheResultSet
+        row = new ExecRow[rsNum + 1];
+		return getResultSetFactory().getCachedResultSet(this, rs, rsNum);
 	}
 
 
@@ -1922,5 +1898,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return scanStopOverride;
     }
 
-
+	public boolean isMaterialized() {
+		return materialized;
+	}
 }

@@ -636,4 +636,7 @@ public interface Activation extends Dependent
 	 */
 	public Activation getParentActivation();
 
+	public void materialize() throws StandardException;
+
+    public boolean isMaterialized();
 }

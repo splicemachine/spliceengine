@@ -62,4 +62,6 @@ public final class ConstantActionActivation extends BaseActivation
 		return resultSet;
 	}
 	public void postConstructor(){}
+
+    public void materialize() throws StandardException {}
 }

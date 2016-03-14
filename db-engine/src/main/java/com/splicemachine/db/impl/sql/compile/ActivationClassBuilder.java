@@ -100,6 +100,7 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 	{
 		super( superClass, (String) null, cc );
 		executeMethod = beginExecuteMethod();
+        materializationMethod = beginMaterializationMethod();
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -256,6 +257,20 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 		return	mb;
 	}
 
+    private	MethodBuilder	beginMaterializationMethod()
+            throws StandardException
+    {
+        MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
+                "void", "materialize");
+        mb.addThrownException(ClassName.StandardException);
+
+        // put a 'throwIfClosed("execute");' statement into the execute method.
+        mb.pushThis(); // instance
+        mb.push("materialize");
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
+        return mb;
+    }
+
 	MethodBuilder startResetMethod() {
 		MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
 			"void", "reset");
@@ -295,13 +310,13 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 		executeMethod.complete();
 
 		getClassBuilder().newFieldWithAccessors("getExecutionCount", "setExecutionCount",
-			Modifier.PROTECTED, true, "int");
+                Modifier.PROTECTED, true, "int");
 
 		getClassBuilder().newFieldWithAccessors("getRowCountCheckVector", "setRowCountCheckVector",
-			Modifier.PROTECTED, true, "java.util.Vector");
+                Modifier.PROTECTED, true, "java.util.Vector");
 
 		getClassBuilder().newFieldWithAccessors("getStalePlanCheckInterval", "setStalePlanCheckInterval",
-			Modifier.PROTECTED, true, "int");
+                Modifier.PROTECTED, true, "int");
 
 		if (closeActivationMethod != null) {
 			closeActivationMethod.methodReturn();
@@ -309,6 +324,10 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 		}
 	}
 
+    void finishMaterializationMethod() {
+        materializationMethod.methodReturn();
+        materializationMethod.complete();
+    }
 	///////////////////////////////////////////////////////////////////////
 	//
 	// CURSOR SUPPORT

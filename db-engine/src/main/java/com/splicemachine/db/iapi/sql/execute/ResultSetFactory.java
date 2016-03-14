@@ -669,11 +669,11 @@ public interface ResultSetFactory {
         It is used to cache rows from a result set that's been materialized.
 
         @param activation The activation for this result set
-        @param rows The collection of known ExecRows
+        @param source Source result set
         @param resultSetNumber The resultSetNumber for the result set being materialized
      */
 
-    NoPutResultSet getCachedResultSet(Activation activation, List rows, int resultSetNumber)
+    NoPutResultSet getCachedResultSet(Activation activation, NoPutResultSet source, int resultSetNumber)
         throws StandardException;
 
 	/**

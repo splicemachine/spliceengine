@@ -872,6 +872,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         @Override
         public void postConstructor() throws StandardException{
         }
+
+        @Override
+        public void materialize() throws StandardException {
+
+        }
     }
 
     /**
@@ -3420,4 +3425,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public CompilerContext.DataSetProcessorType getDataSetProcessorType() {
         return this.type;
     }
+
+    public void materialize() throws StandardException {}
 }

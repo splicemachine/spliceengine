@@ -297,6 +297,7 @@ public abstract class StatementNode extends QueryTreeNode{
         // wrap up the constructor by putting a return at the end of it
         generatingClass.finishConstructor();
 
+        generatingClass.finishMaterializationMethod();
         try{
             // cook the completed class into a real class
             // and stuff it into activationClass

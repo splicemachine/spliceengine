@@ -2240,18 +2240,27 @@ public class SubqueryNode extends ValueNode{
     ** @param subqueryExpression
     */
     private LocalField generateMaterialization( ActivationClassBuilder acb, MethodBuilder mbsq, String type){
-        MethodBuilder mb=acb.getExecuteMethod();
+        MethodBuilder mb=acb.getMaterializationMethod();
 
         // declare field
-        LocalField field=acb.newFieldDeclaration(Modifier.PRIVATE,type);
+        LocalField field=acb.newFieldDeclaration(Modifier.PRIVATE, type);
 
 		/* Generate the call to the new method */
         mb.pushThis();
+        mb.push(true);
+        mb.putField(ClassName.BaseActivation, "materialized", "boolean");
+        mb.endStatement();
+
+        mb.getField(field);
+        mb.conditionalIfNull();
+        mb.pushThis();
         mb.callMethod(VMOpcode.INVOKEVIRTUAL,(String)null,mbsq.getName(),type,0);
 
+        mb.startElseCode();
+        mb.getField(field);
+        mb.completeConditional();
         // generate: field = value (value is on stack)
         mb.setField(field);
-
         return field;
     }
 

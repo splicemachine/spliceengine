@@ -834,4 +834,10 @@ final public class GenericActivationHolder implements Activation
 	public int getMaxDynamicResults() {
 		return ac.getMaxDynamicResults();
 	}
+	public void materialize() throws StandardException {
+        ac.materialize();
+	}
+    public boolean isMaterialized() {
+        return ac.isMaterialized();
+    }
 }

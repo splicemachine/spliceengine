@@ -74,6 +74,7 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	protected MethodBuilder constructor;
 	CompilerContext myCompCtx;
 	MethodBuilder executeMethod; // to find it fast
+    MethodBuilder materializationMethod;
 
 	protected LocalField cdtField;
 
@@ -187,6 +188,9 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		return executeMethod;
 	}
 
+	MethodBuilder getMaterializationMethod() {
+        return materializationMethod;
+    }
 
 	///////////////////////////////////////////////////////////////////////
 	//
