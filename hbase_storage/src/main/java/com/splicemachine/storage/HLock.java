@@ -42,8 +42,8 @@ public class HLock implements Lock{
     @Override
     public boolean tryLock(){
         try{
-            delegate = region.getRowLock(key,false);
-            return true;
+            delegate = region.getRowLock(key,false); // Null Lock Delegate means not run...
+            return delegate!=null;
         }catch(IOException e){
             throw new RuntimeException(HExceptionFactory.INSTANCE.processRemoteException(e));
         }
