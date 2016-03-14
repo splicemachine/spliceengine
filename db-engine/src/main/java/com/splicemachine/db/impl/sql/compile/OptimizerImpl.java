@@ -96,7 +96,6 @@ public class OptimizerImpl implements Optimizer{
     protected CostEstimate bestCost;
 
     protected long timeOptimizationStarted;
-    protected long currentTime;
     protected boolean timeExceeded;
     protected boolean noTimeout;
     protected boolean useStatistics;
@@ -244,6 +243,8 @@ public class OptimizerImpl implements Optimizer{
 
     @Override
     public void prepForNextRound(){
+        tracer().trace(OptimizerFlag.NEXT_ROUND,0,0,0.0,null);
+
         // We initialize reloadBestPlan to false so that if we end up
         // pulling an Optimizable before we find a best join order
         // (which can happen if there is no valid join order for this
@@ -271,8 +272,12 @@ public class OptimizerImpl implements Optimizer{
 		 * information is required so that the correct query plan can be
 		 * generated after optimization is complete, even if that best
 		 * plan was not found in the most recent round.
+		 *
+		 * Since timeLimit is used in conjunction with bestCost, both
+		 * should be reset together
 		 */
         bestCost=getNewCostEstimate(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+        timeLimit = Double.MAX_VALUE;;
 
 		/* If we have predicates that were pushed down to this OptimizerImpl
 		 * from an outer query, then we reset the timeout state to prepare for
@@ -860,6 +865,7 @@ public class OptimizerImpl implements Optimizer{
         AccessPath bestAccessPath=curOpt.getBestAccessPath();
         AccessPath currentAccessPath=curOpt.getCurrentAccessPath();
         hasNextPermutation=updatePlanMaps(curOpt,bestAccessPath,currentAccessPath);
+        OptimizerTrace tracer = tracer();
 
 		/*
 		** When all the access paths have been looked at, we know what the
@@ -884,7 +890,6 @@ public class OptimizerImpl implements Optimizer{
                 addCost(bestCostEstimate,currentSortAvoidanceCost);
             }
 
-            OptimizerTrace tracer = tracer();
             if(optimizerTrace){
                 tracer.trace(OptimizerFlag.TOTAL_COST_NON_SA_PLAN,0,0,0.0,null);
                 if(curOpt.considerSortAvoidancePath()){
@@ -977,6 +982,7 @@ public class OptimizerImpl implements Optimizer{
             }
         }
 
+        tracer.trace(OptimizerFlag.HAS_REMAINING_PERMUTATIONS,(hasNextPermutation?1:0),0,0.0,null);
         return hasNextPermutation;
     }
 
@@ -2329,7 +2335,7 @@ public class OptimizerImpl implements Optimizer{
         return optimizable.estimateCost(predList, cd, outerCost,this, currentRowOrdering);
     }
 
-    protected boolean checkTimeout(){
+    private boolean checkTimeout(){
         /*
          * Check whether or not optimization time as timed out
          *
@@ -2344,44 +2350,49 @@ public class OptimizerImpl implements Optimizer{
         if(noTimeout) return false;
         if(timeExceeded || numTablesInQuery<=6) return timeExceeded;
 
-        currentTime=System.currentTimeMillis();
-
         // All of the following are assumed to be in milliseconds,
         // even if originally derived from a different unit:
         // currentTime, timeOptimizationStarted, timeLimit, getMinTimeout(), getMaxTimeout()
-        
-        long duration=currentTime-timeOptimizationStarted;
-        timeExceeded=
-        	duration > getMaxTimeout() ||
-        	(duration > timeLimit && duration > getMinTimeout());
-        if(timeExceeded)
-            tracer().trace(OptimizerFlag.TIME_EXCEEDED,0,0,0.0,null);
+
+        long searchDuration = System.currentTimeMillis() - timeOptimizationStarted;
+
+        if (searchDuration > timeLimit && searchDuration > getMinTimeout()) {
+            // We've exceeded the best time seen so far to process a permutation
+            timeExceeded = true;
+            tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration, null);
+        } else if (searchDuration > getMaxTimeout()) {
+            // We've exceeded max time allowed to process a permutation
+            timeExceeded = true;
+            tracer().trace(OptimizerFlag.MAX_TIME_EXCEEDED, 0, 0, searchDuration, null);
+        }
         return timeExceeded;
     }
-    
+
     /**
      * Returns minimum duration that should be allowed to lapse before
      * the method checkTimeout() returns true. By default, this returns
      * zero, which means there's no minimum and the determination
-     * is made by using {@link timeLimit} alone, which is derived from
-     * a cost estimate. Should only be called by checkTimeout().
-     * 
+     * is made by using {@link #timeLimit} alone, which is
+     * the best cost estimate for a permutation seen so far.<br/>
+     * Should only be called by checkTimeout().
+     *
      * @return minimum timeout regardless of cost based time limit
      */
     protected long getMinTimeout() {
-    	return 0L; // milliseconds
+        return 0L; // milliseconds
     }
 
     /**
      * Returns minimum duration that should be allowed to lapse before
      * the method checkTimeout() returns true. By default, this returns
-     * {@link Long.MAX_VALUE}, which effectively means no maximum and determination
-     * is made by using {@link timeLimit} alone, which is derived from
-     * a cost estimate. Should only be called by checkTimeout().
-     * 
+     * {@link Long#MAX_VALUE}, which effectively means no maximum and determination
+     * is made by using {@link #timeLimit} alone, which is
+     * the best cost estimate for a permutation seen so far.<br/>
+     * Should only be called by checkTimeout().
+     *
      * @return maximum timeout regardless of cost based time limit
      */
     protected long getMaxTimeout() {
-    	return Long.MAX_VALUE; // milliseconds
+        return Long.MAX_VALUE; // milliseconds
     }
 }

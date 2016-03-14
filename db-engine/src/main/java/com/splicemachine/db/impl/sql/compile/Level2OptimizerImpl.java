@@ -66,6 +66,9 @@ public class Level2OptimizerImpl extends OptimizerImpl{
 
         // Optimization started
         if(optimizerTrace){
+            // JC - lcc.getOptimizerTrace() does not recognize trace is set. This will never be called.
+            // Even if it were called, the overridden tracer() method in subclass will NPE since it's ctor
+            // has not finished and it's not fully init'd.
             tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
         }
     }

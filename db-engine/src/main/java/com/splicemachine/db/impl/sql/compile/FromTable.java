@@ -203,7 +203,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
             found=true;
 
-            optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,ap.getJoinStrategy());
+            optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,ap.getJoinStrategy(),
+                                     correlationName);
         }
 
 		/*
@@ -474,7 +475,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         assert bestPath!=null;
         setCostEstimate(bestPath.getCostEstimate());
 
-        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH, tableNumber, planType, 0.0, bestPath);
+        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH, tableNumber, planType, 0.0,
+                                               bestPath, correlationName);
     }
 
     @Override

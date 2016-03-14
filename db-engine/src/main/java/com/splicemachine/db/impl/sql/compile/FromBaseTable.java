@@ -275,7 +275,8 @@ public class FromBaseTable extends FromTable {
                     currentConglomerateDescriptor=null;
                 }
             }else{
-                tracer.trace(OptimizerFlag.LOOKING_FOR_SPECIFIED_INDEX,tableNumber,0,0.0,userSpecifiedIndexName);
+                tracer.trace(OptimizerFlag.LOOKING_FOR_SPECIFIED_INDEX,tableNumber,0,0.0,userSpecifiedIndexName,
+                             correlationName);
 
                 if(StringUtil.SQLToUpperCase(userSpecifiedIndexName).equals("NULL")){
 					/* Special case - user-specified table scan */
@@ -344,10 +345,11 @@ public class FromBaseTable extends FromTable {
         }
 
         if(currentConglomerateDescriptor==null){
-            tracer.trace(OptimizerFlag.NO_MORE_CONGLOMERATES,tableNumber,0,0.0,null);
+            tracer.trace(OptimizerFlag.NO_MORE_CONGLOMERATES,tableNumber,0,0.0,correlationName);
         }else{
             currentConglomerateDescriptor.setColumnNames(columnNames);
-            tracer.trace(OptimizerFlag.CONSIDERING_CONGLOMERATE,tableNumber,0,0.0,currentConglomerateDescriptor);
+            tracer.trace(OptimizerFlag.CONSIDERING_CONGLOMERATE,tableNumber,0,0.0,currentConglomerateDescriptor,
+                         correlationName);
         }
 
 		/*
@@ -692,7 +694,7 @@ public class FromBaseTable extends FromTable {
         AccessPath currentAccessPath=getCurrentAccessPath();
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
         OptimizerTrace tracer =optimizer.tracer();
-        tracer.trace(OptimizerFlag.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd);
+        tracer.trace(OptimizerFlag.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd,correlationName);
 		/* Get the uniqueness factory for later use (see below) */
 		/* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
@@ -774,8 +776,7 @@ public class FromBaseTable extends FromTable {
             scf.generateCost();
             singleScanRowCount=costEstimate.singleScanRowCount();
         }
-        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
-        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0d,costEstimate);
+        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd, correlationName, costEstimate);
 
         costEstimate.setSingleScanRowCount(singleScanRowCount);
 
@@ -792,7 +793,7 @@ public class FromBaseTable extends FromTable {
         outerCost.setAntiJoin(isAntiJoin);
         currentJoinStrategy.estimateCost(this,baseTableRestrictionList,cd,outerCost,optimizer,costEstimate);
         outerCost.setAntiJoin(oldIsAntiJoin);
-        tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
+        tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
 		/* Put the base predicates back in the predicate list */
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
@@ -1535,7 +1536,7 @@ public class FromBaseTable extends FromTable {
         JoinStrategy trulyTheBestJoinStrategy=ap.getJoinStrategy();
         Optimizer optimizer=ap.getOptimizer();
 
-        optimizer.tracer().trace(OptimizerFlag.CHANGING_ACCESS_PATH_FOR_TABLE, tableNumber,0,0.0,null);
+        optimizer.tracer().trace(OptimizerFlag.CHANGING_ACCESS_PATH_FOR_TABLE, tableNumber,0,0.0,correlationName);
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(trulyTheBestConglomerateDescriptor!=null,
