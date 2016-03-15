@@ -3,6 +3,7 @@ package com.splicemachine.derby.hbase;
 import com.google.common.base.Throwables;
 import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.api.Code;
@@ -18,8 +19,8 @@ import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HWriteConflict;
 import com.splicemachine.si.impl.HWrongRegion;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.ipc.RemoteException;
-import org.apache.hadoop.util.StringUtils;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -99,6 +100,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
         if(t instanceof NotServingPartitionException
                 || t instanceof WrongPartitionException
                 || t instanceof PipelineTooBusy
+                || t instanceof RegionBusyException
                 || t instanceof IndexNotSetUpException) return true;
         return false;
     }

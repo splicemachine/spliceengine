@@ -168,7 +168,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
             assert nextWrite!=null:"next write is null";
             ctx.reset();
             ctx.attemptCount++;
-            assert nextWrite!=null:"next write is null afer reset";
             if(ctx.attemptCount>100 && ctx.attemptCount%50==0){
                 int numRows= nextWrite.numEntries();
                 SpliceLogUtils.warn(LOG,"BulkWriteAction[%d rows] is taking a long time with %d attempts: id=%d",numRows,ctx.attemptCount,id);
@@ -181,7 +180,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
              */
             if(ctx.shouldSleep())
                 clock.sleep(PipelineUtils.getWaitTime(ctx.attemptCount,writeConfiguration.getPause()),TimeUnit.MILLISECONDS);
-            if(ctx.directRetry)
+            if(ctx.directRetry && nextWrite!=null)
                 writesToPerform.add(nextWrite);
             else if(ctx.nextWriteSet!=null &&ctx.nextWriteSet.size()>0){
                 //rebuild a new buffer to retry from any records that need retrying

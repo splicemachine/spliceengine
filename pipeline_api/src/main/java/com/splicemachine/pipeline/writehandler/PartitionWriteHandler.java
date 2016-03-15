@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.kvpair.KVPair;
@@ -107,6 +108,11 @@ public class PartitionWriteHandler implements WriteHandler {
                 }
             }else if(t instanceof NotServingPartitionException){
                 WriteResult result = WriteResult.notServingRegion();
+                for (KVPair mutation : filteredMutations) {
+                    ctx.result(mutation, result);
+                }
+            }else if(t instanceof RegionBusyException){
+                WriteResult result = WriteResult.regionTooBusy();
                 for (KVPair mutation : filteredMutations) {
                     ctx.result(mutation, result);
                 }

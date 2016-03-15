@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline;
 
 import com.splicemachine.access.api.NotServingPartitionException;
+import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
@@ -110,6 +111,8 @@ public class PartitionWritePipeline{
                 return new BulkWriteResult(WriteResult.notServingRegion());
             else if(throwable instanceof PipelineTooBusy)
                 return new BulkWriteResult(WriteResult.regionTooBusy());
+            else if(throwable instanceof RegionBusyException)
+                return new BulkWriteResult(WriteResult.regionTooBusy());
             else if(throwable instanceof InterruptedException)
                 return new BulkWriteResult(WriteResult.interrupted());
             else
@@ -148,6 +151,8 @@ public class PartitionWritePipeline{
             if(throwable instanceof NotServingPartitionException)
                 return new BulkWriteResult(WriteResult.notServingRegion());
             else if(throwable instanceof PipelineTooBusy)
+                return new BulkWriteResult(WriteResult.regionTooBusy());
+            else if(throwable instanceof RegionBusyException)
                 return new BulkWriteResult(WriteResult.regionTooBusy());
             else if(throwable instanceof InterruptedException)
                 return new BulkWriteResult(WriteResult.interrupted());

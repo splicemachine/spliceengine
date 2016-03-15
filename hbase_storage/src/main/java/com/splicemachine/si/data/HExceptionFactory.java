@@ -10,12 +10,11 @@ import com.splicemachine.si.api.txn.lifecycle.TransactionTimeoutException;
 import com.splicemachine.si.impl.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.exceptions.RegionMovedException;
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
-
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -118,8 +117,10 @@ public class HExceptionFactory implements ExceptionFactory{
             }
             e=t;
         }
-        if(e instanceof NotServingRegionException){
+        if(e instanceof NotServingRegionException) {
             return new HNotServingRegion(e.getMessage());
+        } else if(e instanceof RegionTooBusyException){
+                return new HRegionTooBusy(e.getMessage());
         } else if(e instanceof WrongRegionException){
             return new HWrongRegion(e.getMessage());
         } else if(e instanceof WriteConflict){
