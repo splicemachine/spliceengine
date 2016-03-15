@@ -5,12 +5,13 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.util.MappedDataResultScanner;
-
+import com.splicemachine.utils.Pair;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -537,5 +538,10 @@ public class MPartition implements Partition{
             if(!foundFamily)
                 dcIter.remove();
         }
+    }
+
+    @Override
+    public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+        return null;
     }
 }

@@ -2,12 +2,14 @@ package com.splicemachine.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.storage.util.MeasuredListScanner;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.*;
@@ -419,5 +421,10 @@ public class RegionPartition implements Partition{
 
     public HRegion unwrapDelegate(){
         return region;
+    }
+
+    @Override
+    public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+        return HRegionUtil.keyExists(hasConstraintChecker,region.getStore(SIConstants.DEFAULT_FAMILY_BYTES),dataAndLocks);
     }
 }

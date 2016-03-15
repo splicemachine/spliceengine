@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.collect.Iterators;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -12,12 +13,10 @@ import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
+import com.splicemachine.utils.Pair;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -319,5 +318,10 @@ public class TxnPartition implements Partition{
                 scan.filter(new MTxnFilterWrapper(txnFilter));
             }
         }
+    }
+
+    @Override
+    public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+        return null;
     }
 }

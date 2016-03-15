@@ -1,8 +1,10 @@
 package org.apache.hadoop.hbase.regionserver;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.StorageConfiguration;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.hfile.BlockType;
@@ -11,10 +13,11 @@ import org.apache.hadoop.hbase.io.hfile.HFileBlock;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.BitSet;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Class for accessing protected methods in HBase.
@@ -172,5 +175,99 @@ public class HRegionUtil extends BaseHRegionUtil{
             return (numEntries - previous) * incrementalSize + carriedSize;
         }
     }
+
+
+    public static BitSet keyExists(boolean hasConstraintChecker, Store store, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+        BitSet bitSet = new BitSet(dataAndLocks.length);
+            if (! (store instanceof HStore)) {
+                return null;
+            }
+
+            HStore hstore = (HStore)store;
+            hstore.lock.readLock().lock();
+            Collection<StoreFile> storeFiles;
+            try {
+                storeFiles = store.getStorefiles();
+                /*
+                 * Apparently, there's an issue where, when you first start up an HBase instance, if you
+                 * call this code directly, you can break. In essence, there are no storefiles, so it goes
+                 * to the memstore, where SOMETHING (and I don't know what) causes it to mistakenly return
+                 * false,
+                 * which tells the writing code that it's safe to write, resulting in some missing Primary Key
+                 * errors.
+                 *
+                 * And in practice, it doesn't do you much good to check the memstore if there are no store
+                 * files,
+                 * since you'll just have to turn around and check the memstore again when you go to perform
+                 * your
+                 * get/scan. So may as well save ourselves the extra effort and skip operation if there are no
+                  * store
+                 * files to check.
+                 */
+                if (storeFiles.size() <= 0) return null;
+                StoreFile.Reader fileReader;
+
+                // Check Store Files
+
+                for (StoreFile file : storeFiles) {
+                    if (file != null) {
+                        fileReader = file.createReader();
+                        for (int i =0; i<dataAndLocks.length;i++) {
+                            if(dataAndLocks[i]==null) continue;
+                            byte[] key = dataAndLocks[i].getFirst().getRowKey();
+                            if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
+                                if (!bitSet.get(i) && fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0,
+                                        key.length, null))
+                                    bitSet.set(i);
+                            }
+                        }
+                    }
+                }
+                NavigableSet<Cell> memstore = getKvset(hstore);
+                NavigableSet<Cell> snapshot = getSnapshot(hstore);
+                for (int i =0; i<dataAndLocks.length;i++) {
+                    byte[] key = dataAndLocks[i].getFirst().getRowKey();
+                    if(dataAndLocks[i]==null) continue;
+                    if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
+                        if (!bitSet.get(i)) {
+                            Cell kv = new KeyValue(key,
+                                    SIConstants.DEFAULT_FAMILY_BYTES,
+                                    SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
+                                    HConstants.LATEST_TIMESTAMP,
+                                    HConstants.EMPTY_BYTE_ARRAY);
+                            bitSet.set(i, checkMemstore(memstore, key, kv) || checkMemstore(snapshot, key, kv));
+                        }
+                    }
+                }
+                return bitSet;
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                throw ioe;
+            } finally {
+                hstore.lock.readLock().unlock();
+            }
+        }
+
+        protected static boolean checkMemstore(NavigableSet<Cell> kvSet, byte[] key, Cell kv) {
+            Cell placeHolder;
+            try {
+                kvSet = kvSet.tailSet(kv,true);
+                placeHolder = kvSet.isEmpty() ? null : (Cell)kvSet.first();
+                if (placeHolder != null && CellUtil.matchingRow(placeHolder, key))
+                    return true;
+            } catch (NoSuchElementException ignored) {
+            } // This keeps us from constantly performing key value comparisons for empty set
+            return false;
+        }
+
+    public static NavigableSet<Cell> getKvset(HStore store) {
+        return ((DefaultMemStore) store.memstore).cellSet;
+    }
+
+    public static NavigableSet<Cell> getSnapshot(HStore store) {
+        return ((DefaultMemStore) store.memstore).snapshot;
+    }
+
+
 
 }

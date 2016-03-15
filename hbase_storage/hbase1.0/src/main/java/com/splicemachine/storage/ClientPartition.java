@@ -9,8 +9,10 @@ import com.google.common.collect.Iterators;
 import com.google.protobuf.Service;
 import com.splicemachine.access.hbase.HServer;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Represents an HBase Table as a single Partition.
@@ -234,4 +237,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         }
     }
 
+    @Override
+    public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
+        return null;
+    }
 }

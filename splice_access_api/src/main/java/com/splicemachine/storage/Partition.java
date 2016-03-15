@@ -1,8 +1,10 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
-
+import com.splicemachine.utils.Pair;
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -131,4 +133,15 @@ public interface Partition extends AutoCloseable{
      * than throw an error
      */
     void compact() throws IOException;
+
+
+    /**
+     *
+     * Return BitSet representing items possibly found in Bloom Filter/In Memory Structure
+     *
+     * @return
+     * @throws IOException
+     */
+    BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException;
+
 }
