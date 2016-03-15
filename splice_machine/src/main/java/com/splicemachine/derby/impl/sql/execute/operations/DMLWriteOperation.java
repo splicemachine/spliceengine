@@ -25,6 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOpera
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -285,4 +286,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
             triggerHandler.cleanup();
         super.close();
     }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return elevateTransaction();
+    }
+
 }

@@ -51,7 +51,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
     private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
     /* Run time statistics variables */
-    public int numOpens;
     public long beginTime;
     public long constructorTime;
     public long openTime;
@@ -676,14 +675,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     }
 
+    @Override
     public TxnView getCurrentTransaction() throws StandardException{
-        if(this instanceof DMLWriteOperation){
-            return elevateTransaction();
-        }else
-            return getTransaction();
+        return getTransaction();
     }
 
-    private TxnView elevateTransaction() throws StandardException{
+    protected TxnView elevateTransaction() throws StandardException{
 		/*
 		 * Elevate the current transaction to make sure that we are writable
 		 */
