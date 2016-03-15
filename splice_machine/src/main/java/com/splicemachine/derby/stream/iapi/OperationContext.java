@@ -33,12 +33,13 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     byte[] getOperationUUID();
 
     enum Scope{
-        READ_TEXT_FILE("Read File From Disk"),
+        READ_TEXT_FILE("Read File"),
         PARSE_FILE("Parse File"),
         SORT_KEYER("Prepare Keys"),
         GROUP_AGGREGATE_KEYER(SORT_KEYER.displayName()),
         REDUCE("Reduce"),
         READ("Read Values"),
+        SORT("Sort Records"),
         READ_SORTED("Read Sorted Values"),
         ROLLUP("Rollup"),
         EXECUTE("Execute"),
