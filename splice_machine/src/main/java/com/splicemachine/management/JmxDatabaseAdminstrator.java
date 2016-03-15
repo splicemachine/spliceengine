@@ -81,6 +81,28 @@ public class JmxDatabaseAdminstrator implements DatabaseAdministrator{
     }
 
     @Override
+    public Map<String,Map<String,String>> getDatabaseVersionInfo() throws SQLException{
+        final Map<String, Map<String,String>> versionInfo = new HashMap<>();
+        operate(new JMXServerOperation(){
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException{
+                List<DatabaseVersion> databaseVersions=JMXUtils.getSpliceMachineVersion(connections);
+                int i=0;
+                for(DatabaseVersion databaseVersion : databaseVersions){
+                    Map<String,String> attrs = new HashMap<>();
+                    attrs.put("release", databaseVersion.getRelease());
+                    attrs.put("implementationVersion", databaseVersion.getImplementationVersion());
+                    attrs.put("buildTime", databaseVersion.getBuildTime());
+                    attrs.put("url", databaseVersion.getURL());
+                    versionInfo.put(connections.get(i).getFirst(),attrs);
+                    i++;
+                }
+            }
+        });
+        return versionInfo;
+    }
+
+    @Override
     public void setWritePoolMaxThreadCount(final int maxThreadCount) throws SQLException{
         operate(new JMXServerOperation(){
             @Override

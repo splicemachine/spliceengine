@@ -21,6 +21,8 @@ public interface DatabaseAdministrator{
 
     Map<String,DatabaseVersion> getClusterDatabaseVersions() throws SQLException;
 
+    Map<String,Map<String,String>> getDatabaseVersionInfo() throws SQLException;
+
     void setWritePoolMaxThreadCount(int maxThreadCount) throws SQLException;
 
     Map<String,Integer> getWritePoolMaxThreadCount() throws SQLException;
