@@ -24,22 +24,15 @@ package com.splicemachine.db.impl.sql;
 import	com.splicemachine.db.catalog.Dependable;
 import	com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
-
 import com.splicemachine.db.iapi.types.DataValueFactory;
-
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
-
 import com.splicemachine.db.iapi.sql.depend.Provider;
-
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.ResultSet;
@@ -48,24 +41,15 @@ import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.TemporaryRowHolder;
-
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
-
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.ScanController;
-
 import com.splicemachine.db.iapi.types.RowLocation;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 import com.splicemachine.db.iapi.store.access.TransactionController;
-
 import java.sql.SQLWarning;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -773,16 +757,6 @@ final public class GenericActivationHolder implements Activation
 	public void clearWarnings()
 	{
 		ac.clearWarnings();
-	}
-
-	/**
-		@see Activation#informOfRowCount
-		@exception StandardException	Thrown on error
-	 */
-	public void informOfRowCount(NoPutResultSet resultSet, long rowCount)
-					throws StandardException
-	{
-		ac.informOfRowCount(resultSet, rowCount);
 	}
 
 	/**

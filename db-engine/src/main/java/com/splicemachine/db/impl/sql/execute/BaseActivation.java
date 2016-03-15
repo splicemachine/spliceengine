@@ -25,12 +25,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Vector;
-import java.util.List;
-import java.util.LinkedList;
-
 import	com.splicemachine.db.catalog.Dependable;
 import	com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -42,21 +38,17 @@ import com.splicemachine.db.iapi.sql.execute.HasIncrement;
 import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
-import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedByteCode;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -80,7 +72,6 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.util.ReuseFactory;
 
 /**
  * BaseActivation
@@ -115,9 +106,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	private SQLWarning warnings;
 
 	private GeneratedClass gc;	// my Generated class object.
-
-	private boolean checkRowCounts;
-	private HashSet<Integer> rowCountsCheckedThisExecution = new HashSet<>(4, 0.9f);
 
 	private static final long MAX_SQRT = (long) Math.sqrt(Long.MAX_VALUE);
 
@@ -913,170 +901,14 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		}
 	}
 
-	/**
-		@see Activation#informOfRowCount
-		@exception StandardException	Thrown on error
-	 */
-	public void informOfRowCount(NoPutResultSet resultSet, long currentRowCount)
-					throws StandardException
-	{
-
-		/* Do we want to check the row counts during this execution? */
-		if (checkRowCounts)
-		{
-			boolean significantChange = false;
-
-			int resultSetNumber = resultSet.resultSetNumber();
-			Integer rsn = ReuseFactory.getInteger(resultSetNumber);
-
-			/* Check each result set only once per execution */
-			if (rowCountsCheckedThisExecution.add(rsn))
-			{
-				synchronized (getPreparedStatement())
-				{
-					Vector rowCountCheckVector = getRowCountCheckVector();
-
-					if (rowCountCheckVector == null) {
-						rowCountCheckVector = new Vector();
-						setRowCountCheckVector(rowCountCheckVector);
-					}
-
-					Long firstRowCount = null;
-
-					/*
-					** Check whether this resultSet has been seen yet.
-					*/
-					if (resultSetNumber < rowCountCheckVector.size())
-					{
-						firstRowCount =
-							(Long) rowCountCheckVector.elementAt(resultSetNumber);
-					}
-					else
-					{
-						rowCountCheckVector.setSize(resultSetNumber + 1);
-					}
-
-					if (firstRowCount != null)
-					{
-						/*
-						** This ResultSet has been seen - has the row count
-						** changed significantly?
-						*/
-						long n1 = firstRowCount;
-
-						if (currentRowCount != n1)
-						{
-							if (n1 >= TEN_PERCENT_THRESHOLD)
-							{
-								/*
-								** For tables with more than
-								** TEN_PERCENT_THRESHOLD rows, the
-								** threshold is 10% of the size of the table.
-								*/
-								long changeFactor = n1 / (currentRowCount - n1);
-								if (Math.abs(changeFactor) <= 10)
-									significantChange = true;
-							}
-							else
-							{
-								/*
-								** For tables with less than
-								** TEN_PERCENT_THRESHOLD rows, the threshold
-								** is non-linear.  This is because we want
-								** recompilation to happen sooner for small
-								** tables that change size.  This formula
-								** is for a second-order equation (a parabola).
-								** The derivation is:
-								**
-								**   c * n1 = (difference in row counts) ** 2
-								**				- or - 
-								**   c * n1 = (currentRowCount - n1) ** 2
-								**
-								** Solving this for currentRowCount, we get:
-								**
-								**   currentRowCount = n1 + sqrt(c * n1)
-								**
-								**				- or -
-								**
-								**   difference in row counts = sqrt(c * n1)
-								**
-								**				- or -
-								**
-								**   (difference in row counts) ** 2 =
-								**					c * n1
-								**
-								** Which means that we should recompile when
-								** the current row count exceeds n1 (the first
-								** row count) by sqrt(c * n1), or when the
-								** square of the difference exceeds c * n1.
-								** A good value for c seems to be 4.
-								**
-								** We don't use this formula when c is greater
-								** than TEN_PERCENT_THRESHOLD because we never
-								** want to recompile unless the number of rows
-								** changes by more than 10%, and this formula
-								** is more sensitive than that for values of
-								** n1 greater than TEN_PERCENT_THRESHOLD.
-								*/
-								long changediff = currentRowCount - n1;
-
-								/*
-								** Square changediff rather than take the square
-								** root of (4 * n1), because multiplying is
-								** faster than taking a square root.  Also,
-								** check to be sure that squaring changediff
-								** will not cause an overflow by comparing it
-								** with the square root of the maximum value
-								** for a long (this square root is taken only
-								** once, when the class is loaded, or during
-								** compilation if the compiler is smart enough).
-								*/
-								if (Math.abs(changediff) <= MAX_SQRT)
-								{
-									if ((changediff * changediff) >
-															Math.abs(4 * n1))
-									{
-										significantChange = true;
-									}
-								}
-							}
-						}
-					}
-					else
-					{
-						firstRowCount = currentRowCount;
-						rowCountCheckVector.setElementAt(
-														firstRowCount,
-														resultSetNumber
-														);
-
-					}
-				}
-			}
-
-			/* Invalidate outside of the critical section */
-			if (significantChange)
-			{
-				preStmt.makeInvalid(DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
-			}
-		}
-
-	}
 
 	/**
 	 * The subclass calls this method when it begins an execution.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void startExecution() throws StandardException
-	{
-		// determine if we should check row counts during this execution
-		shouldWeCheckRowCounts();
+	public void startExecution() throws StandardException {
 
-		// If we are to check row counts, clear the hash table of row counts
-		// we have checked.
-		if (checkRowCounts)
-			rowCountsCheckedThisExecution.clear();
 	}
 
 	/**
@@ -1201,65 +1033,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	public java.sql.ResultSet getTargetVTI()
 	{
 		return targetVTI;
-	}
-
-	private void shouldWeCheckRowCounts() throws StandardException
-	{
-		/*
-		** Check the row count only every N executions.  OK to check this
-		** without synchronization, since the value of this number is not
-		** critical.  The value of N is determined by the property
-		** db.language.stalePlanCheckInterval.
-		*/
-		int executionCount = getExecutionCount() + 1;
-
-		/*
-		** Always check row counts the first time, to establish the
-		** row counts for each result set.  After that, don't check
-		** if the execution count is below the minimum row count check
-		** interval.  This saves us from checking a database property
-		** when we don't have to (checking involves querying the store,
-		** which can be expensive).
-		*/
-
-		if (executionCount == 1)
-		{
-			checkRowCounts = true;
-		}
-		else if (executionCount <
-								Property.MIN_LANGUAGE_STALE_PLAN_CHECK_INTERVAL)
-		{
-			checkRowCounts = false;
-		}
-		else
-		{
-			int stalePlanCheckInterval = getStalePlanCheckInterval();
-
-			/*
-			** Only query the database property once.  We can tell because
-			** the minimum value of the property is greater than zero.
-			*/
-			if (stalePlanCheckInterval == 0)
-			{
-				TransactionController tc = getTransactionController();
-
-				stalePlanCheckInterval =
-						PropertyUtil.getServiceInt(
-							tc,
-							Property.LANGUAGE_STALE_PLAN_CHECK_INTERVAL,
-							Property.MIN_LANGUAGE_STALE_PLAN_CHECK_INTERVAL,
-							Integer.MAX_VALUE,
-							Property.DEFAULT_LANGUAGE_STALE_PLAN_CHECK_INTERVAL
-							);
-				setStalePlanCheckInterval(stalePlanCheckInterval);
-			}
-
-			checkRowCounts = (executionCount % stalePlanCheckInterval) == 1;
-
-
-		}
-
-		setExecutionCount(executionCount);
 	}
 
 	/*

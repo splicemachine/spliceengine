@@ -395,26 +395,6 @@ public interface Activation extends Dependent
 	public boolean isInUse();
 
 	/**
-	 * Tell this activation that the given ResultSet was found to have
-	 * the given number of rows.  This is used during execution to determine
-	 * whether a table has grown or shrunk.  If a table's size changes
-	 * significantly, the activation may invalidate its PreparedStatement
-	 * to force recompilation.
-	 *
-	 * Note that the association of row counts with ResultSets is kept
-	 * in the activation class, not in the activation itself.  This
-	 * means that this method must be synchronized.
-	 *
-	 * This method is not required to check the number of rows on each
-	 * call.  Because of synchronization, this check is likely to be
-	 * expensive, so it may only check every hundred calls or so.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void informOfRowCount(NoPutResultSet resultSet, long rowCount)
-					throws StandardException;
-
-	/**
 	 * Get the ConglomerateController, if any, that has already
 	 * been opened for the heap when scaning for an update or delete.
 	 * (Saves opening the ConglomerateController twice.)
