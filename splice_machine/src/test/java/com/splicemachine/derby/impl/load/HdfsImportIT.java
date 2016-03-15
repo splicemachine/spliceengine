@@ -66,6 +66,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_16 = "P";
     protected static String TABLE_17 = "Q";
     protected static String TABLE_18 = "R";
+    protected static String TABLE_19 = "S";
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 
@@ -159,6 +160,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(name varchar(40), title varchar(40), age int,PRIMARY KEY(name))");
     protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher(TABLE_18, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableWatcher19 = new SpliceTableWatcher(TABLE_19, spliceSchemaWatcher
+            .schemaName, "(order_date TIMESTAMP)");
 
 
     protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,
@@ -187,6 +190,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher16)
             .around(spliceTableWatcher17)
             .around(spliceTableWatcher18)
+            .around(spliceTableWatcher19)
             .around(autoIncTableWatcher);
 
     @Rule
@@ -548,6 +552,44 @@ public class HdfsImportIT extends SpliceUnitTest {
             sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
             String textualFormat = sdf.format(order_date);
             Assert.assertEquals("2013-04-21 09:21:24.980", textualFormat);
+            results.add(String.format("order_date:%s", order_date));
+        }
+        Assert.assertTrue("import failed!", results.size() == 1);
+    }
+
+    @Test
+    public void testImportCustomTimeFormatMicro() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceTableWatcher9);
+
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "null," +   // column delimiter
+                        "'%s'," +  // character delimiter
+                        "'yyyy-MM-dd HH:mm:ss.SSSSSS'," +  // timestamp format
+                        "null," +  // date format
+                        "null," +    // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_19,
+                getResourceDirectory() + "tz_micro_order_date.csv",
+                "\"",                           0,
+                temporaryFolder.newFolder().getCanonicalPath()));
+
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_19));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            Timestamp order_date = rs.getTimestamp(1);
+            assertNotNull("order_date incorrect", order_date);
+            //have to deal with differing time zones here
+            Assert.assertEquals("2013-04-21 09:21:24.980034", order_date.toString());
             results.add(String.format("order_date:%s", order_date));
         }
         Assert.assertTrue("import failed!", results.size() == 1);

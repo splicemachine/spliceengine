@@ -48,8 +48,13 @@ public class SpliceDateFunctions {
      */
     public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
         if (source == null) return null;
-        Timestamp ts = new Timestamp(parseDateTime(source, format));
-        return ts;
+        if (format != null && format.contains("SSSS")) {
+            // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
+            return Timestamp.valueOf(source);
+        }
+        else {
+            return new Timestamp(parseDateTime(source, format));
+        }
     }
     /**
      * Implements the TO_TIME(source) function.
