@@ -25,5 +25,7 @@ public interface PartitionAdmin extends AutoCloseable{
 
     Iterable<? extends Partition> allPartitions(String tableName) throws IOException;
 
+    Iterable<TableDescriptor> listTables() throws IOException;
+
     TableDescriptor[] getTableDescriptors(List<String> tables) throws IOException;
 }

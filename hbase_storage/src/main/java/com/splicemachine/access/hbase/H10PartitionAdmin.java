@@ -7,18 +7,15 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.TableDescriptor;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.regionserver.BloomType;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.lang.Override;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +53,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public void deleteTable(String tableName) throws IOException{
+        admin.disableTable(tableInfoFactory.getTableInfo(tableName));
         admin.deleteTable(tableInfoFactory.getTableInfo(tableName));
     }
 
@@ -126,5 +124,17 @@ public class H10PartitionAdmin implements PartitionAdmin{
             tableDescriptors[i] = new HBaseTableDescriptor(hTableDescriptors[i]);
         }
         return tableDescriptors;
+    }
+
+    @Override
+    public Iterable<TableDescriptor> listTables() throws IOException {
+
+        HTableDescriptor[] hTableDescriptors = admin.listTables();
+        TableDescriptor[] tableDescriptors = new TableDescriptor[hTableDescriptors.length];
+        for (int i = 0; i < hTableDescriptors.length; ++i) {
+            tableDescriptors[i] = new HBaseTableDescriptor(hTableDescriptors[i]);
+        }
+        List<TableDescriptor> tableDescriptorList = Arrays.asList(tableDescriptors);
+        return tableDescriptorList;
     }
 }

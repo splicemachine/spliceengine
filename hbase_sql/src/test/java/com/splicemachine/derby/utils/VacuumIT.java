@@ -1,52 +1,96 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.CallableStatement;
-import java.util.Arrays;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author Scott Fines
  * Date: 3/19/14
  */
 @Category(SerialTest.class)
-@Ignore("Vacuum feature is not implemented on K2")
-public class VacuumIT {
-		private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-		@ClassRule
-		public static TestRule classRule = spliceClassWatcher;
+public class VacuumIT extends SpliceUnitTest{
+    public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
+    protected static String TABLE = "T";
 
-		@Rule
-		public SpliceWatcher methodRule = new SpliceWatcher();
+	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+	@ClassRule
+	public static TestRule classRule = spliceClassWatcher;
 
-		@Test
-		public void testVacuumDoesNotBreakStuff() throws Exception {
-				/*
-				 * Simple test to make sure that Vacuum works and doesn't delete anything <1168.
-				 */
-			//TODO -sf- this probably doesn't work quite right.
-				HBaseAdmin admin = new HBaseAdmin(new Configuration());
+	@Rule
+	public SpliceWatcher methodRule = new SpliceWatcher();
 
-				try{
-						HTableDescriptor[] beforeTables = admin.listTables();
-						CallableStatement callableStatement = methodRule.prepareCall("call SYSCS_UTIL.VACUUM()");
-						callableStatement.execute();
-						HTableDescriptor[] afterTables = admin.listTables();
-						//TODO -sf- make this a real test
-						System.out.println(Arrays.toString(beforeTables));
-						System.out.println(Arrays.toString(afterTables));
-				}finally{
-						admin.close();
-				}
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher);
+
+	@Test
+	public void testVacuumDoesNotBreakStuff() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+        long[] conglomerateNumber = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, TABLE);
+        String conglomerateString = Long.toString(conglomerateNumber[0]);
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("drop table %s.%s", CLASS_NAME, TABLE));
+        ps.execute();
+
+        HBaseAdmin admin = new HBaseAdmin(new Configuration());
+
+		try{
+			Set<String> beforeTables = getConglomerateSet(admin.listTables());
+			CallableStatement callableStatement = methodRule.prepareCall("call SYSCS_UTIL.VACUUM()");
+			callableStatement.execute();
+            Set<String> afterTables = getConglomerateSet(admin.listTables());
+            Assert.assertTrue(beforeTables.contains(conglomerateString));
+            Assert.assertFalse(afterTables.contains(conglomerateString));
+            Set<String> deletedTables = getDeletedTables(beforeTables, afterTables);
+            for (String t : deletedTables) {
+                long conglom = new Long(t);
+                Assert.assertTrue(conglom >= DataDictionary.FIRST_USER_TABLE_NUMBER);
+            }
+		}finally{
+			admin.close();
 		}
+	}
+
+    private Set<String> getConglomerateSet(HTableDescriptor[] tableDescriptors) {
+        Set<String> conglomerates = new HashSet<>();
+        for (HTableDescriptor descriptor:tableDescriptors) {
+            String tableName = descriptor.getNameAsString();
+            String[] s = tableName.split(":");
+            if (s.length < 2) continue;
+            conglomerates.add(s[1]);
+        }
+
+        return conglomerates;
+    }
+
+    private Set<String> getDeletedTables(Set<String> beforeTables, Set<String> afterTables) {
+        for (String t : afterTables) {
+            beforeTables.remove(t);
+        }
+        return beforeTables;
+    }
 }

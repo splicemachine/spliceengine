@@ -55,4 +55,9 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public TableDescriptor[] getTableDescriptors(List<String> tables) throws IOException{
         return admin.getTableDescriptors(tables);
     }
+
+    @Override
+    public Iterable<TableDescriptor> listTables() throws IOException {
+        return admin.listTables();
+    }
 }
