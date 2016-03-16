@@ -278,6 +278,10 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return columnOrdering;
     }
 
+    public boolean[] getAscDescInfo() throws StandardException {
+        return scanInformation.getConglomerate().getAscDescInfo();
+    }
+
     @Override
     public ExecIndexRow getStartPosition() throws StandardException{
         return scanInformation.getStartPosition();

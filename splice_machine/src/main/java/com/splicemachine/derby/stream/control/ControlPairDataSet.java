@@ -5,9 +5,7 @@ import com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -136,6 +134,12 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public PairDataSet<K, V> sortByKey(final Comparator<K> comparator, String name) {
         // 'name' is not used on control side
+        return sortByKey(comparator);
+    }
+
+    @Override
+    public PairDataSet<K, V> partitionBy(Partitioner<K> partitioner, Comparator<K> comparator) {
+        // we don't need to partition
         return sortByKey(comparator);
     }
 

@@ -34,7 +34,6 @@ public class MergeJoinOperation extends JoinOperation {
     public int[] rightHashKeys;
     // for overriding
     public boolean wasRightOuterJoin = false;
-    private IOStandardIterator<ExecRow> rightRows;
 
     protected static final String NAME = MergeJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -101,47 +100,9 @@ public class MergeJoinOperation extends JoinOperation {
         rightHashKeyItem = in.readInt();
     }
 
-
-    public ExecRow getKeyRow(ExecRow row) throws StandardException {
-        ExecRow keyRow = activation.getExecutionFactory().getValueRow(leftHashKeys.length);
-        for (int i = 0; i < leftHashKeys.length; i++) {
-            keyRow.setColumn(i + 1, row.getColumn(leftHashKeys[i] + 1));
-        }
-        return keyRow;
-    }
-    /*
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-
-
-        JavaRDD<LocatedRow> leftRDD = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
-        JavaRDD<LocatedRow> rightRDD = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
-
-        Partition[] rightPartitions = rightRDD.rdd().partitions();
-        Partition[] leftPartitions = leftRDD.rdd().partitions();
-
-        JavaRDD<LocatedRow> partitionedLeftRDD;
-        JavaRDD<LocatedRow> partitionedRightRDD;
-        if (rightPartitions.length < leftPartitions.length) {
-            int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.leftResultSet.getExecRowDefinition(), this.leftHashKeys).getRowArray());
-            Partitioner partitioner = getPartitioner(formatIds, leftPartitions);
-            partitionedLeftRDD = leftRDD;
-            partitionedRightRDD = RDDUtils.getKeyedRDD(rightRDD, rightHashKeys).partitionBy(partitioner).values();
-        } else {
-            int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.rightResultSet.getExecRowDefinition(), this.rightHashKeys).getRowArray());
-            Partitioner partitioner = getPartitioner(formatIds, rightPartitions);
-            partitionedLeftRDD = RDDUtils.getKeyedRDD(leftRDD, leftHashKeys).partitionBy(partitioner).values();
-            partitionedRightRDD = rightRDD;
-        }
-
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(dsp.createOperationContext(this,spliceRuntimeContext), true));
-    }
-*/
-    @SuppressWarnings("unchecked")
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext<MergeJoinOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
         DataSet<LocatedRow> left = leftResultSet.getDataSet(dsp);
         
         operationContext.pushScope();
@@ -161,14 +122,13 @@ public class MergeJoinOperation extends JoinOperation {
         }
     }
 
-    public int compare(ExecRow left, ExecRow right) throws StandardException {
-        for (int i = 0; i < leftHashKeys.length; i++) {
-            int result = left.getColumn(leftHashKeys[i])
-                    .compare(right.getColumn(rightHashKeys[i + 1]));
-            if (result != 0) {
-                return result;
-            }
-        }
-        return 0;
+    @Override
+    public int[] getLeftHashKeys() {
+        return leftHashKeys;
+    }
+
+    @Override
+    public int[] getRightHashKeys() {
+        return rightHashKeys;
     }
 }

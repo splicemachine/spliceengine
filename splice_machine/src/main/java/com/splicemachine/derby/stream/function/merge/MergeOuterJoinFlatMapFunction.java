@@ -14,15 +14,15 @@ public class MergeOuterJoinFlatMapFunction extends AbstractMergeJoinFlatMapFunct
         super();
     }
 
-    public MergeOuterJoinFlatMapFunction(OperationContext<MergeJoinOperation> operationContext) {
+    public MergeOuterJoinFlatMapFunction(OperationContext<JoinOperation> operationContext) {
         super(operationContext);
     }
 
     @Override
-    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator, PeekingIterator<LocatedRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, MergeJoinOperation mergeJoinOperation, OperationContext<MergeJoinOperation> operationContext) {
+    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator, PeekingIterator<LocatedRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, JoinOperation mergeJoinOperation, OperationContext<JoinOperation> operationContext) {
         return new MergeOuterJoinIterator(leftPeekingIterator,
                 rightPeekingIterator,
-                mergeJoinOperation.leftHashKeys, mergeJoinOperation.rightHashKeys,
+                leftHashKeys, rightHashKeys,
                 mergeJoinOperation, operationContext);
     }
 }

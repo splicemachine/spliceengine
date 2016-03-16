@@ -2,8 +2,12 @@ package com.splicemachine.derby.stream.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 
 import java.io.InputStream;
 
@@ -126,6 +130,15 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override
     public void stopJobGroup(String jobName) {
         delegate.stopJobGroup(jobName);
+
+    @Override
+    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+        return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder);
+    }
+
+    @Override
+    public Partitioner getPartitioner(DataSet<LocatedRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder) {
+        return delegate.getPartitioner(dataSet, template, keyDecodingMap, keyOrder);
     }
 }
 

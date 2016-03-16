@@ -1,8 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.function.merge.MergeAntiJoinFlatMapFunction;
+import com.splicemachine.derby.stream.function.merge.MergeInnerJoinFlatMapFunction;
+import com.splicemachine.derby.stream.function.merge.MergeOuterJoinFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -19,6 +25,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
 /**
  *
@@ -170,7 +177,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext operationContext = dsp.createOperationContext(this);
+        OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
 
         // Prepare Left
 
@@ -180,7 +187,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         DataSet<LocatedRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
         PairDataSet<ExecRow,LocatedRow> leftDataSet =
-            leftDataSet2.keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+            leftDataSet2.keyBy(new KeyerFunction<LocatedRow,JoinOperation>(operationContext, leftHashKeys));
         operationContext.popScope();
 
         // Prepare Right
@@ -191,12 +198,12 @@ public class MergeSortJoinOperation extends JoinOperation {
         DataSet<LocatedRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         PairDataSet<ExecRow,LocatedRow> rightDataSet =
-            rightDataSet2.keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+            rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
         operationContext.popScope();
 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         try {
             operationContext.pushScopeForOp("Perform Join");
@@ -215,8 +222,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         if (isOuterJoin) { // Outer Join
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right")
-                .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+                        .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
@@ -225,7 +232,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                         .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
-                        .map(new AntiJoinFunction(operationContext));
+                            .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
                 if (isOneRowRightSide()) {
@@ -234,14 +241,23 @@ public class MergeSortJoinOperation extends JoinOperation {
                 }
                 if (restriction !=null) { // with restriction
                     return leftDataSet.hashJoin(rightDataSet)
-                        .map(new InnerJoinFunction<SpliceOperation>(operationContext))
-                        .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
+                            .map(new InnerJoinFunction<SpliceOperation>(operationContext))
+                            .filter(new JoinRestrictionPredicateFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.hashJoin(rightDataSet)
-                        .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+                            .map(new InnerJoinFunction<SpliceOperation>(operationContext));
                 }
             }
         }
     }
 
+    @Override
+    public int[] getLeftHashKeys() {
+        return leftHashKeys;
+    }
+
+    @Override
+    public int[] getRightHashKeys() {
+        return rightHashKeys;
+    }
 }

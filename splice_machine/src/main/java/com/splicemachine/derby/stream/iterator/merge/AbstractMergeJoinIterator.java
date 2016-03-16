@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.iterator.merge;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
@@ -25,7 +26,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     protected LocatedRow left;
     protected Iterator<ExecRow> currentRightIterator;
     protected LocatedRow currentLocatedRow;
-    protected MergeJoinOperation mergeJoinOperation;
+    protected JoinOperation mergeJoinOperation;
     private boolean closed = false;
     private List<Closeable> closeables = new ArrayList<>();
     private transient boolean populated =false;
@@ -44,7 +45,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     public AbstractMergeJoinIterator(Iterator<LocatedRow> leftRS,
                                      PeekingIterator<LocatedRow> rightRS,
                                      int[] leftKeys, int[] rightKeys,
-                                     MergeJoinOperation mergeJoinOperation, OperationContext<?> operationContext) {
+                                     JoinOperation mergeJoinOperation, OperationContext<?> operationContext) {
         this.mergeJoinOperation = mergeJoinOperation;
         this.leftRS = leftRS;
         this.rightRS = rightRS;
