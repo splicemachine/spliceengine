@@ -163,7 +163,7 @@ public class HConfiguration implements SConfiguration{
 
     @Override
     public Set<String> prefixMatch(String prefix){
-        Map<String, String> valByRegex=delegate.getValByRegex(String.format("^%s", prefix));
+        Map<String, String> valByRegex=delegate.getValByRegex(String.format("^%s", prefix == null ? "" : prefix));
         return valByRegex.keySet();
     }
 
