@@ -1,6 +1,6 @@
 package com.splicemachine.derby.hbase;
 
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
