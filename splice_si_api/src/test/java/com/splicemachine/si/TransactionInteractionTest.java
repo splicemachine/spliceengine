@@ -1,6 +1,5 @@
 package com.splicemachine.si;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -11,6 +10,7 @@ import com.splicemachine.si.testenv.*;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;

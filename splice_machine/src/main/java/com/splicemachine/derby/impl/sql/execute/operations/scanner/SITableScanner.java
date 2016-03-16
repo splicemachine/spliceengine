@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Suppliers;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;

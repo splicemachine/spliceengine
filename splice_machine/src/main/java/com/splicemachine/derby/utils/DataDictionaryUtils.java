@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.Exceptions;

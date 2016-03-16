@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import com.google.common.base.Preconditions;
+import org.sparkproject.guava.base.Preconditions;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;

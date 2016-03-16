@@ -2,7 +2,7 @@ package com.splicemachine.derby.stream.utils;
 
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
+import org.sparkproject.guava.collect.ImmutableMap;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import org.apache.commons.lang3.StringUtils;

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.store;
 
-import com.google.common.io.Closeables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -10,9 +9,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ByteEntryAccumulator;
 import com.splicemachine.storage.EntryPredicateFilter;
-
 import com.carrotsearch.hppc.BitSet;
-
 import java.io.IOException;
 
 /**

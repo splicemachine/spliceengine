@@ -1,7 +1,5 @@
 package com.splicemachine.derby.stream.window;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -9,6 +7,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinitio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.PeekingIterator;
 
 import java.io.IOException;
 import java.util.ArrayList;

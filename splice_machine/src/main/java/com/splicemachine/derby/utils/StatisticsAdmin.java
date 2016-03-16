@@ -1,8 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.FluentIterable;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;

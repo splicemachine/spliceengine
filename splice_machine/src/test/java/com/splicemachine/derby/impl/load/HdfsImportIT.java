@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
 import org.junit.BeforeClass;

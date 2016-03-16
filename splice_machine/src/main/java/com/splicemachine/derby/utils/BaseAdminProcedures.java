@@ -23,7 +23,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.jdbc.InternalDriver;
 
 
-import com.google.common.io.Closeables;
+import org.sparkproject.guava.io.Closeables;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;

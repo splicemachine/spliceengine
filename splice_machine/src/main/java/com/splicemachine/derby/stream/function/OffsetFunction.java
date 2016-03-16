@@ -1,17 +1,14 @@
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Iterators;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sparkproject.guava.base.Preconditions.checkArgument;
+import static org.sparkproject.guava.base.Preconditions.checkNotNull;
 
 /**
  * Created by jleach on 11/3/15.
@@ -56,7 +53,7 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
     /* ****************************************************************************************************************/
     /*private helper methods*/
     /**
-     * Copied here out of {@link com.google.common.collect.Iterators}, because the name
+     * Copied here out of {@link org.sparkproject.guava.collect.Iterators}, because the name
      * changed from version 12.0.1 to 13.
      *
      * Calls {@code next()} on {@code iterator}, either {@code numberToAdvance} times

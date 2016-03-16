@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
-import com.google.common.base.Strings;
+import org.sparkproject.guava.base.Strings;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.impl.sql.compile.ExportNode;
 import com.splicemachine.db.iapi.error.StandardException;

@@ -1,7 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;

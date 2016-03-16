@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import org.sparkproject.guava.cache.Cache;
+import org.sparkproject.guava.cache.CacheBuilder;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.dictionary.PhysicalStatsDescriptor;

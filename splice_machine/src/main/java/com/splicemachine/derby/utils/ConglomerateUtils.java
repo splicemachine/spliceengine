@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.BitSet;
-import com.google.common.base.Preconditions;
+import org.sparkproject.guava.base.Preconditions;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.api.PartitionAdmin;

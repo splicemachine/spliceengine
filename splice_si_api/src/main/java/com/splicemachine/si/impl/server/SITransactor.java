@@ -4,10 +4,6 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.LongOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -28,12 +24,14 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.Collections2;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
-
 import static com.splicemachine.si.constants.SIConstants.*;
 
 /**
@@ -84,7 +82,7 @@ public class SITransactor implements Transactor{
         }
 
         Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=SITransactorUtil.putToKvPairMap(mutations,txnOperationFactory);
-        final Map<byte[], MutationStatus> statusMap=Maps.newTreeMap(Bytes.BASE_COMPARATOR);
+        final Map<byte[], MutationStatus> statusMap= Maps.newTreeMap(Bytes.BASE_COMPARATOR);
         for(Map.Entry<Long, Map<byte[], Map<byte[], List<KVPair>>>> entry : kvPairMap.entrySet()){
             long txnId=entry.getKey();
             Map<byte[], Map<byte[], List<KVPair>>> familyMap=entry.getValue();
@@ -93,10 +91,10 @@ public class SITransactor implements Transactor{
                 Map<byte[], List<KVPair>> columnMap=familyEntry.getValue();
                 for(Map.Entry<byte[], List<KVPair>> columnEntry : columnMap.entrySet()){
                     byte[] qualifier=columnEntry.getKey();
-                    List<KVPair> kvPairs=Lists.newArrayList(Collections2.filter(columnEntry.getValue(),new Predicate<KVPair>(){
+                    List<KVPair> kvPairs= Lists.newArrayList(Collections2.filter(columnEntry.getValue(), new Predicate<KVPair>() {
                         @Override
-                        public boolean apply(@Nullable KVPair input){
-                            assert input!=null;
+                        public boolean apply(@Nullable KVPair input) {
+                            assert input != null;
                             return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                         }
                     }));

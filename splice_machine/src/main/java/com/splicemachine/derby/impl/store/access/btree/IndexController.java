@@ -1,7 +1,7 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
-import com.google.common.io.Closeables;
+import org.sparkproject.guava.io.Closeables;
 import com.splicemachine.access.api.PartitionFactory;import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

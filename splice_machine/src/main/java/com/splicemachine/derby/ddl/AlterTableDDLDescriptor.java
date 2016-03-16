@@ -3,7 +3,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 import java.util.Arrays;
 
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SqlExceptionFactory;

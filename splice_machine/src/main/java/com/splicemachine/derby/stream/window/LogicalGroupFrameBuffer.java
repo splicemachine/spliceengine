@@ -1,6 +1,6 @@
 package com.splicemachine.derby.stream.window;
 
-import com.google.common.collect.PeekingIterator;
+import org.sparkproject.guava.collect.PeekingIterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;

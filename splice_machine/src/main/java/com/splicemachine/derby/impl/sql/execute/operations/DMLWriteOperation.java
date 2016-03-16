@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Strings;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -28,6 +27,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -199,7 +199,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     }
 
     public String prettyPrint(int indentLevel){
-        String indent="\n"+Strings.repeat("\t",indentLevel);
+        String indent="\n"+ Strings.repeat("\t", indentLevel);
 
         return indent+"resultSetNumber:"+resultSetNumber+indent
                 +"heapConglom:"+heapConglom+indent

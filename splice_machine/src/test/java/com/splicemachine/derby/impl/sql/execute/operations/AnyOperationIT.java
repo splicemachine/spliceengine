@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;

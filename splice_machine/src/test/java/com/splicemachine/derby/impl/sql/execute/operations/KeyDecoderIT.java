@@ -5,7 +5,7 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Iterator;
 
-import com.google.common.collect.TreeMultiset;
+import org.sparkproject.guava.collect.TreeMultiset;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;

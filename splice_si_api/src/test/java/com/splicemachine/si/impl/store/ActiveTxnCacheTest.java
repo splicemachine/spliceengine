@@ -9,11 +9,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import static com.splicemachine.si.impl.TxnTestUtils.assertTxnsMatch;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;

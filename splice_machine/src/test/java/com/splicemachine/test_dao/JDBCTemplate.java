@@ -1,6 +1,6 @@
 package com.splicemachine.test_dao;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.concurrent.Threads;
 import org.apache.commons.dbutils.DbUtils;
 

@@ -5,8 +5,8 @@ import static junit.framework.Assert.assertEquals;
 import java.sql.ResultSet;
 import java.util.*;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;

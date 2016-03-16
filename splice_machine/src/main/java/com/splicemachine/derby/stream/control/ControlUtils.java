@@ -1,13 +1,13 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Multimap;
+import org.sparkproject.guava.collect.ArrayListMultimap;
+import org.sparkproject.guava.collect.FluentIterable;
+import org.sparkproject.guava.collect.Multimap;
 import scala.Tuple2;
-
 import javax.annotation.Nullable;
 import java.util.Map;
+
 
 /**
  * Created by dgomezferro on 7/31/15.

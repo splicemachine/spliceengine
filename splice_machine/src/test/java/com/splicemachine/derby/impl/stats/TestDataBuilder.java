@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 
-import com.google.common.base.Strings;
+import org.sparkproject.guava.base.Strings;
 import com.splicemachine.derby.test.framework.TestConnection;
 
 import java.math.BigDecimal;

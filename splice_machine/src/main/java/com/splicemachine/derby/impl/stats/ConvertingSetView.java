@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
+import org.sparkproject.guava.collect.Iterators;
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -22,7 +21,7 @@ public class ConvertingSetView<T,E> extends AbstractSet<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return Iterators.transform(baseValue.iterator(),conversionFunction);
+        return Iterators.transform(baseValue.iterator(), conversionFunction);
     }
 
     @Override public int size() { return baseValue.size(); }

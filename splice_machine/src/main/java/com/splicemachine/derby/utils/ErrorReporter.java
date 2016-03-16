@@ -1,8 +1,8 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.base.Throwables;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.impl.driver.SIDriver;

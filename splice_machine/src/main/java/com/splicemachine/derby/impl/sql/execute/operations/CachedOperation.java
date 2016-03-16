@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.base.Strings;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;

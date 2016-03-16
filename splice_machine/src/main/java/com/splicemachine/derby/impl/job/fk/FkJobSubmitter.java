@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.job.fk;
 
-import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -14,6 +13,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.ImmutableList;
+
 import java.util.List;
 
 /**

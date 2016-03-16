@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

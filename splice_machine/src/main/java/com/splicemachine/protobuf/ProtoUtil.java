@@ -1,9 +1,8 @@
 package com.splicemachine.protobuf;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
+import org.sparkproject.guava.base.Joiner;
+import org.sparkproject.guava.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -20,6 +19,8 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.primitives.Ints;
+
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;

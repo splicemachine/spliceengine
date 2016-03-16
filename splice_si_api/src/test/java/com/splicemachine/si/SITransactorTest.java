@@ -1,6 +1,5 @@
 package com.splicemachine.si;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
@@ -13,9 +12,8 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-
+import org.sparkproject.guava.collect.Lists;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

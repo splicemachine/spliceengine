@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -12,6 +10,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.io.ObjectInput;

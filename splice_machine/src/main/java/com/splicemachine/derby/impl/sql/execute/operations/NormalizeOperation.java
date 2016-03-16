@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -19,6 +18,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -258,7 +258,7 @@ public class NormalizeOperation extends SpliceBaseOperation{
 
     @Override
     public String prettyPrint(int indentLevel){
-        String indent="\n"+Strings.repeat("\t",indentLevel);
+        String indent="\n"+ Strings.repeat("\t", indentLevel);
 
         return new StringBuilder("Normalize:")
                 .append(indent).append("resultSetNumber:").append(resultSetNumber)

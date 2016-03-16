@@ -1,12 +1,11 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
-
-import com.google.common.util.concurrent.Futures;
+import org.sparkproject.guava.collect.FluentIterable;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Multimaps;
+import org.sparkproject.guava.collect.Sets;
+import org.sparkproject.guava.util.concurrent.Futures;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -18,19 +17,14 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
-
-import com.google.common.io.Closeables;
+import org.sparkproject.guava.io.Closeables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import scala.Tuple2;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;

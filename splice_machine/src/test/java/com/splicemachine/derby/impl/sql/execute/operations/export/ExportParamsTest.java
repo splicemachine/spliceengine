@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
-import com.google.common.base.Charsets;
+import org.sparkproject.guava.base.Charsets;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 

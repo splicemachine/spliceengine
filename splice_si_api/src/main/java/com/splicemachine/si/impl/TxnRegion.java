@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Iterators;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TxnFilter;
@@ -16,7 +15,7 @@ import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-
+import org.sparkproject.guava.collect.Iterators;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;

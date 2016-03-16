@@ -1,6 +1,6 @@
 package com.splicemachine.foreignkeys;
 
-import com.google.common.collect.Iterables;
+import org.sparkproject.guava.collect.Iterables;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;

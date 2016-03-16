@@ -1,10 +1,10 @@
 package com.splicemachine.test_dao;
 
-import com.google.common.base.Joiner;
+import org.sparkproject.guava.base.Joiner;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.sparkproject.guava.base.Preconditions.checkArgument;
+import static org.sparkproject.guava.base.Preconditions.checkNotNull;
+import static org.sparkproject.guava.base.Preconditions.checkState;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**

@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -22,6 +21,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOpera
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.tools.EmbedConnectionMaker;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides

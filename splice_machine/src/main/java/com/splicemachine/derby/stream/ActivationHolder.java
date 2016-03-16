@@ -1,6 +1,6 @@
 package com.splicemachine.derby.stream;
 
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;

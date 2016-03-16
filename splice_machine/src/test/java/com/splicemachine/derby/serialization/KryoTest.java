@@ -14,7 +14,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.BeforeClass;

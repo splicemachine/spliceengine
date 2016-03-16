@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.ImmutableMap;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
-
+import org.sparkproject.guava.collect.ImmutableMap;
 import java.util.Map;
 
 /**

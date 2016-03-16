@@ -1,8 +1,6 @@
 package com.splicemachine.si.impl.store;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
@@ -10,7 +8,8 @@ import com.splicemachine.si.impl.ForwardingTxnView;
 import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.ByteSlice;
-
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.primitives.Longs;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -224,7 +223,7 @@ public class TestingTxnStore implements TxnStore{
 
     @Override
     public List<TxnView> getActiveTransactions(long minTxnid,long maxTxnId,byte[] table) throws IOException{
-        List<TxnView> txns=Lists.newArrayListWithExpectedSize(txnMap.size());
+        List<TxnView> txns= Lists.newArrayListWithExpectedSize(txnMap.size());
         for(Map.Entry<Long, TxnHolder> txnEntry : txnMap.entrySet()){
             if(isTimedOut(txnEntry.getValue())) continue;
             Txn value=txnEntry.getValue().txn;
@@ -240,7 +239,7 @@ public class TestingTxnStore implements TxnStore{
                     if(o2==null) return 0;
                     return -1;
                 }else if(o2==null) return 1;
-                return Longs.compare(o1.getTxnId(),o2.getTxnId());
+                return Longs.compare(o1.getTxnId(), o2.getTxnId());
             }
         });
         return txns;

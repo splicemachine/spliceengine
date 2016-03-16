@@ -1,7 +1,6 @@
 package com.splicemachine.si;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.google.common.collect.Lists;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
@@ -14,7 +13,7 @@ import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.timestamp.api.TimestampSource;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
-
+import org.sparkproject.guava.collect.Lists;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +33,7 @@ public class ActiveTransactionTest{
     private static TestTransactionSetup transactorSetup;
 
     private TxnLifecycleManager control;
-    private final List<Txn> createdParentTxns=Lists.newArrayList();
+    private final List<Txn> createdParentTxns= Lists.newArrayList();
     private TxnStore txnStore;
 
     @Before

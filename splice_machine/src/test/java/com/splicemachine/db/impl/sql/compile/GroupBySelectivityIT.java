@@ -57,7 +57,7 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
             insert.setTimestamp(3,new Timestamp(time-i));
             insert.setBoolean(4,false);
             insert.addBatch();
-            if (1%100==0)
+            if (i%100==0)
                 insert.executeBatch();
         }
         insert.executeBatch();

@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import com.google.common.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 

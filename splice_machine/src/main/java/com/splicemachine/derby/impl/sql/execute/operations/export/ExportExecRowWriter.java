@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sparkproject.guava.base.Preconditions.checkNotNull;
 
 /**
  * Writes ExecRows to a CSVWriter

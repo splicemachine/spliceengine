@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.sparkproject.guava.collect.Iterators;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.estimate.Distribution;

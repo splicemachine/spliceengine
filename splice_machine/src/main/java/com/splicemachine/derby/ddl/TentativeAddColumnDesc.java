@@ -2,7 +2,7 @@ package com.splicemachine.derby.ddl;
 
 import java.io.IOException;
 
-import com.google.common.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.db.iapi.error.StandardException;

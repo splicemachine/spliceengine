@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import java.io.IOException;
-
-import com.google.common.io.Closeables;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;

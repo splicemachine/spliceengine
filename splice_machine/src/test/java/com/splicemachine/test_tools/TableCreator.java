@@ -1,6 +1,6 @@
 package com.splicemachine.test_tools;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.apache.commons.dbutils.DbUtils;
 
 import java.sql.Connection;
@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.sparkproject.guava.base.Preconditions.checkState;
 
 /**
  * Create tables and optionally insert data.

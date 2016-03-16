@@ -1,6 +1,6 @@
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -19,7 +19,7 @@ import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Queue;
-import com.google.common.collect.*;
+import org.sparkproject.guava.collect.*;
 import java.util.*;
 
 /**

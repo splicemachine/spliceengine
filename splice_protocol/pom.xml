@@ -4,7 +4,7 @@
     <groupId>com.splicemachine</groupId>
     <artifactId>splice_protocol</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
+    <name>splice_protocol</name>
     <description>Splice Protocol</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>

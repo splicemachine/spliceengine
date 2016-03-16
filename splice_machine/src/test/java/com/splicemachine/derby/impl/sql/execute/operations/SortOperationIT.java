@@ -5,14 +5,14 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.*;
 
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import static com.splicemachine.homeless.TestUtils.*;
 

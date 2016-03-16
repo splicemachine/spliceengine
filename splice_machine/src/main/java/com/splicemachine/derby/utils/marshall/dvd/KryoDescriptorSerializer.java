@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils.marshall.dvd;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;

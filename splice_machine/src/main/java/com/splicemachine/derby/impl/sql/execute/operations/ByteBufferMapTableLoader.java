@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Function;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
@@ -11,7 +10,6 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
-
 import javax.annotation.concurrent.ThreadSafe;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

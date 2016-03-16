@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import com.google.common.base.Joiner;
+import org.sparkproject.guava.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;

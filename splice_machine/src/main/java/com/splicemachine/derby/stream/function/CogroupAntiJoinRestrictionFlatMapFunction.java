@@ -1,13 +1,12 @@
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Sets;
 import scala.Tuple2;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -30,7 +29,7 @@ public class CogroupAntiJoinRestrictionFlatMapFunction<Op extends SpliceOperatio
         Set<LocatedRow> rightSide = Sets.newHashSet(tuple._2); // Memory Issue, HashSet ?
         Iterable<LocatedRow> returnRows = new ArrayList<>();
         for(LocatedRow a_1 : tuple._1){
-            returnRows=Iterables.concat(returnRows,antiJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,rightSide)));
+            returnRows= Iterables.concat(returnRows, antiJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1, rightSide)));
         }
         return returnRows;
     }

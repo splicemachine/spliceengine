@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractBufferedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;

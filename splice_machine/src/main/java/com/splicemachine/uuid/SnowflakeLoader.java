@@ -1,6 +1,5 @@
 package com.splicemachine.uuid;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationConfiguration;
 import com.splicemachine.encoding.Encoding;
@@ -9,6 +8,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
+import org.sparkproject.guava.collect.Lists;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -52,7 +52,7 @@ public class SnowflakeLoader{
             try(DataResultScanner scanner = sequenceTable.openResultScanner(scan)){
                 DataResult result;
                 short machineId;
-                List<byte[]> availableIds=Lists.newArrayList();
+                List<byte[]> availableIds= Lists.newArrayList();
                 while((result=scanner.next())!=null){
                     //we found an entry!
                     for(DataCell kv : result){

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.google.common.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;

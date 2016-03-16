@@ -35,7 +35,6 @@
         <obfuscate.si.tag/>
         <ij.connection.port>1527</ij.connection.port>
         <skip.staticanalysis>${skip.sa}</skip.staticanalysis>
-        <guava.version>14.0.1</guava.version>
     </properties>
     <distributionManagement>
         <site>
@@ -143,11 +142,6 @@
                 <artifactId>gson</artifactId>
                 <version>2.2.2</version>
                 <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.lmax</groupId>
@@ -455,7 +449,6 @@
             </activation>
             <properties>
                 <envClassifier>cdh5.4.8</envClassifier>
-                <!--<guava.version>12.0.1</guava.version>-->
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -463,6 +456,26 @@
                 <module>hbase_sql</module>
             </modules>
         </profile>
+
+        <profile>
+            <id>cdh5.5.1</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.5.1</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>cdh5.5.1</envClassifier>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+            </modules>
+        </profile>
+
+
         <profile>
             <id>assemble</id>
             <activation>

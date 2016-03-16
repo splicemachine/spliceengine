@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;

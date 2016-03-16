@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Joiner;
+import org.sparkproject.guava.base.Joiner;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import com.splicemachine.utils.Pair;

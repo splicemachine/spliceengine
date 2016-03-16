@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.google.common.collect.ImmutableMap;
+import org.sparkproject.guava.collect.ImmutableMap;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;

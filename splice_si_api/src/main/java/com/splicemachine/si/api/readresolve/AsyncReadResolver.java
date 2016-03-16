@@ -1,6 +1,5 @@
 package com.splicemachine.si.api.readresolve;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
@@ -11,7 +10,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
 import org.apache.log4j.Logger;
-
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;

@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import org.sparkproject.guava.base.Predicate;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 

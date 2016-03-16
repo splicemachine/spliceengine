@@ -1,15 +1,8 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.utils.ByteSlice;
 import org.junit.Assert;
-
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 /**
  * @author Scott Fines
  *         Date: 7/1/14

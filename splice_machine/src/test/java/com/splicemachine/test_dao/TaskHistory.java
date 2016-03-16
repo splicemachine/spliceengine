@@ -1,6 +1,6 @@
 package com.splicemachine.test_dao;
 
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Maps;
 //import com.splicemachine.derby.metrics.OperationMetric;
 
 

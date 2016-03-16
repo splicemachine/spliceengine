@@ -1,6 +1,6 @@
 package com.splicemachine.test_tools;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Iterator;

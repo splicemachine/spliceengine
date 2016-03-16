@@ -5,7 +5,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
-import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -17,6 +16,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.sparkproject.guava.base.Strings;
 
 /**
  *
@@ -289,7 +289,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 		@Override
 		public String prettyPrint(int indentLevel) {
-				String indent = "\n"+Strings.repeat("\t",indentLevel);
+				String indent = "\n"+ Strings.repeat("\t", indentLevel);
 				return new StringBuilder()
 								.append(indent).append("resultSetNumber:").append(operationInformation.getResultSetNumber())
 								.append(indent).append("optimizerEstimatedCost:").append(optimizerEstimatedCost).append(",")

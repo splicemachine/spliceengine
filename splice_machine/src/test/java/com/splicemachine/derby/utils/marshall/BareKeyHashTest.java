@@ -1,7 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.google.common.primitives.Doubles;
+import org.sparkproject.guava.primitives.Doubles;
 import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;

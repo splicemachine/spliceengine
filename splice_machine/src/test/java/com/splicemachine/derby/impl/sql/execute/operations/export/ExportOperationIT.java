@@ -1,13 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-import com.google.common.io.PatternFilenameFilter;
+import org.sparkproject.guava.base.Charsets;
+import org.sparkproject.guava.io.Files;
+import org.sparkproject.guava.io.PatternFilenameFilter;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
-import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.ClassRule;

@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;

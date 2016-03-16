@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.google.common.base.Splitter;
+import org.sparkproject.guava.base.Splitter;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.encoding.Encoding;
@@ -11,7 +11,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

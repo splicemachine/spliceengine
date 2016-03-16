@@ -1,7 +1,5 @@
 package com.splicemachine.si.impl.server;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -9,11 +7,11 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.Attributable;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataPut;
-
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Maps;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.PACKED_COLUMN_BYTES;
 
@@ -51,7 +49,7 @@ class SITransactorUtil{
          * To be frank, this is only here to support legacy code without needing to rewrite everything under
          * the sun. You should almost certainly NOT use it.
          */
-        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap=Maps.newHashMap();
+        Map<Long, Map<byte[], Map<byte[], List<KVPair>>>> kvPairMap= Maps.newHashMap();
         for(DataPut mutation : mutations){
             long txnId=txnOperationFactory.fromWrites(mutation).getTxnId();
             boolean isDelete=getDeletePutAttribute(mutation);
@@ -79,7 +77,7 @@ class SITransactorUtil{
                 }
                 List<KVPair> kvPairs=columnMap.get(column);
                 if(kvPairs==null){
-                    kvPairs=Lists.newArrayList();
+                    kvPairs= Lists.newArrayList();
                     columnMap.put(column,kvPairs);
                 }
                 kvPairs.add(new KVPair(row,value,isDelete?KVPair.Type.DELETE:KVPair.Type.INSERT));

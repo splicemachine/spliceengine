@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.collect.ImmutableMap;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
@@ -8,6 +7,7 @@ import org.joda.time.Months;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.sparkproject.guava.collect.ImmutableMap;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;

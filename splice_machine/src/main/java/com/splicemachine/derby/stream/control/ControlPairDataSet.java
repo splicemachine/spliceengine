@@ -2,8 +2,6 @@ package com.splicemachine.derby.stream.control;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -27,22 +25,21 @@ import com.splicemachine.derby.stream.output.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.output.update.UpdatePipelineWriter;
 import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.kvpair.KVPair;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.sparkproject.guava.base.Predicate;
+import org.sparkproject.guava.collect.*;
 import scala.Tuple2;
-
 import javax.annotation.Nullable;
 import java.util.*;
-
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterable;
 
 /**
  *
  *
- * @see com.google.common.collect.Multimap
- * @see com.google.common.collect.Multimaps
- * @see com.google.common.collect.Iterables
+ * @see org.sparkproject.guava.collect.Multimap
+ * @see org.sparkproject.guava.collect.Multimaps
+ * @see org.sparkproject.guava.collect.Iterables
  *
  */
 public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
@@ -94,16 +91,16 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
         Multimap<K,V> newMap = multimapFromIterable(source);
-        return new ControlPairDataSet<>(entryToTuple(Multimaps.forMap(Maps.transformValues(newMap.asMap(),new Function<Collection<V>, V>(){
+        return new ControlPairDataSet<>(entryToTuple(Multimaps.forMap(Maps.transformValues(newMap.asMap(), new Function<Collection<V>, V>() {
             @Override
-            public V apply(@Nullable Collection<V> vs){
-                try{
-                    V returnValue=null;
-                    for(V v : vs){
-                        returnValue=function2.call(returnValue,v);
+            public V apply(@Nullable Collection<V> vs) {
+                try {
+                    V returnValue = null;
+                    for (V v : vs) {
+                        returnValue = function2.call(returnValue, v);
                     }
                     return returnValue;
-                }catch(Exception e){
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }

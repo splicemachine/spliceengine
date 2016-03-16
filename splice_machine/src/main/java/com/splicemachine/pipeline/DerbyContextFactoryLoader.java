@@ -1,9 +1,9 @@
 package com.splicemachine.pipeline;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Multimap;
+import org.sparkproject.guava.collect.Multimaps;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;

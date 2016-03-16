@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.google.common.primitives.Ints;
+import org.sparkproject.guava.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -16,17 +16,15 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Arrays;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.sparkproject.guava.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.

@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.base.Joiner;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -15,12 +15,8 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.NumberDataValue;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.util.List;
 
 /**

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.base.Charsets;
+import org.sparkproject.guava.base.Charsets;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;

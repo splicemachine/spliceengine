@@ -1,6 +1,6 @@
 package com.splicemachine.pipeline.foreignkey;
 
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.PipelineDriver;
