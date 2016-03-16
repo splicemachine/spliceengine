@@ -23,7 +23,6 @@ import static com.splicemachine.test_tools.Rows.rows;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
-@Ignore("DB-4786")
 public class StatisticsAdminIT{
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
@@ -155,26 +154,29 @@ public class StatisticsAdminIT{
         conn.reset();
     }
 
+    private static String checkEnabledQuery =
+        "select c.collectstats from "+
+            "sys.sysschemas s, sys.systables t, sys.syscolumns c "+
+            "where s.schemaid = t.schemaid "+
+            "and t.tableid = c.referenceid "+
+            "and s.schemaname = ?"+
+            "and t.tablename = ?"+
+            "and c.columnname = ?";
+
     @Test
     public void testCanEnableColumnStatistics() throws Exception{
         TestConnection conn=methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
+
         try (CallableStatement cs=conn.prepareCall("call SYSCS_UTIL.ENABLE_COLUMN_STATISTICS(?,?,?)")) {
             cs.setString(1, SCHEMA);
             cs.setString(2, TABLE_EMPTY);
             cs.setString(3, "A");
-            cs.execute(); //shouldn't get an error
+            cs.execute();
         }
 
         //make sure it's enabled
-        PreparedStatement ps=conn.prepareStatement(
-                "select c.collectstats from "+
-                        "sys.sysschemas s, sys.systables t, sys.syscolumns c "+
-                        "where s.schemaid = t.schemaid "+
-                        "and t.tableid = c.referenceid "+
-                        "and s.schemaname = ?"+
-                        "and t.tablename = ?"+
-                        "and c.columnname = ?");
+        PreparedStatement ps=conn.prepareStatement(checkEnabledQuery);
         ps.setString(1, SCHEMA);
         ps.setString(2, TABLE_EMPTY);
         ps.setString(3, "A");
@@ -190,14 +192,19 @@ public class StatisticsAdminIT{
             cs.setString(1, SCHEMA);
             cs.setString(2, TABLE_EMPTY);
             cs.setString(3, "A");
-            cs.execute(); //shouldn't get an error
+            cs.execute();
         }
+
+        ps=conn.prepareStatement(checkEnabledQuery);
+        ps.setString(1, SCHEMA);
+        ps.setString(2, TABLE_EMPTY);
+        ps.setString(3, "A");
 
         //make sure it's disabled
         try (ResultSet resultSet = ps.executeQuery()) {
             Assert.assertTrue("No columns found!", resultSet.next());
             boolean statsEnabled = (Boolean)resultSet.getObject(1);
-            Assert.assertFalse("Stats were not enabled!", statsEnabled);
+            Assert.assertFalse("Stats were still enabled!", statsEnabled);
         }
 
         conn.rollback();
@@ -333,7 +340,6 @@ public class StatisticsAdminIT{
             Assert.assertEquals("Incorrect row count", tableStatsCount, rowCount);
         }
 
-        /*
         PreparedStatement check2=(table==null)?
             conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ?"):
             conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?");
@@ -344,6 +350,5 @@ public class StatisticsAdminIT{
             int rowCount=resultSet2.getInt(1);
             Assert.assertEquals("Incorrect row count",colStatsCount,rowCount);
         }
-        */
     }
 }
