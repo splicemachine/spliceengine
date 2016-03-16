@@ -11,6 +11,10 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>db-engine</artifactId>
+    <properties>
+        <spark.version>1.6.1</spark.version>
+        <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.4.8</spark-assembly-id>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -26,11 +30,18 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>${spark-assembly-id}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+<!--
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>11.0.2</version>
         </dependency>
-
+-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>

@@ -1,15 +1,12 @@
 package com.splicemachine.db.impl.ast;
 
 import com.google.common.base.*;
-
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.OperatorToString;
 import com.splicemachine.db.impl.sql.compile.Predicate;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import static java.lang.String.format;
 
 /**
@@ -18,7 +15,7 @@ import static java.lang.String.format;
  */
 public class PredicateUtils {
 
-    public static com.google.common.base.Predicate<Predicate> isEquiJoinPred = new com.google.common.base.Predicate<Predicate>() {
+    public static org.sparkproject.guava.base.Predicate<Predicate> isEquiJoinPred = new org.sparkproject.guava.base.Predicate<Predicate>() {
         @Override
         public boolean apply(Predicate p) {
             return p != null &&
@@ -27,7 +24,7 @@ public class PredicateUtils {
         }
     };
 
-    public static com.google.common.base.Predicate<Predicate> isJoinPred = new com.google.common.base.Predicate<Predicate>() {
+    public static org.sparkproject.guava.base.Predicate<Predicate> isJoinPred = new org.sparkproject.guava.base.Predicate<Predicate>() {
         @Override
         public boolean apply(Predicate p) {
             return p != null &&

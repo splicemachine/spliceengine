@@ -1,7 +1,5 @@
 package com.splicemachine.db.impl.ast;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.MessageId;
@@ -10,6 +8,8 @@ import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.cache.Cache;
+import org.sparkproject.guava.cache.CacheBuilder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;

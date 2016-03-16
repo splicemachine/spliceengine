@@ -4,13 +4,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
-
 import java.util.List;
 
 /**
  * This predicate determines if we attempt to flatten a given aggregate SubqueryNode or not.
  */
-class AggregateSubqueryPredicate implements com.google.common.base.Predicate<SubqueryNode> {
+class AggregateSubqueryPredicate implements org.sparkproject.guava.base.Predicate<SubqueryNode> {
 
     private static Logger LOG = Logger.getLogger(AggregateSubqueryPredicate.class);
 

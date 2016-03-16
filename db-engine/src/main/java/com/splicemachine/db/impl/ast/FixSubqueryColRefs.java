@@ -1,14 +1,13 @@
 package com.splicemachine.db.impl.ast;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,13 +49,13 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
     public Visitable visit(ProjectRestrictNode node) throws StandardException {
         int num = node.getResultSetNumber();
         if (correlatedSubQs.containsKey(num)){
-            final Predicate<ResultColumn> pointsToPrimaryTree = RSUtils.pointsTo(node.getChildResult());
+            final org.sparkproject.guava.base.Predicate<ResultColumn> pointsToPrimaryTree = RSUtils.pointsTo(node.getChildResult());
             ResultColumnList rcl = node.getChildResult().getResultColumns();
             Map<Pair<Integer,Integer>,ResultColumn> colMap = ColumnUtils.rsnChainMap(rcl);
             for (SubqueryNode sub: correlatedSubQs.get(num)){
                 Iterable<ColumnReference> crs =
                         Iterables.filter(RSUtils.collectNodes(sub, ColumnReference.class),
-                                new Predicate<ColumnReference>() {
+                                new org.sparkproject.guava.base.Predicate<ColumnReference>() {
                                     @Override
                                     public boolean apply(ColumnReference cr) {
                                         return cr.getSource() != null &&

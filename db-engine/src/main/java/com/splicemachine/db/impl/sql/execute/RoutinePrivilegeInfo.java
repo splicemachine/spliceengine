@@ -21,14 +21,13 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.error.StandardException;
-
+import org.sparkproject.guava.collect.Lists;
 import java.util.Iterator;
 import java.util.List;
 

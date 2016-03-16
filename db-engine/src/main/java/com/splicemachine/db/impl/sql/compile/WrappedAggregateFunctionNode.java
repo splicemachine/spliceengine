@@ -3,9 +3,6 @@ package com.splicemachine.db.impl.sql.compile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import com.google.common.collect.Lists;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -13,6 +10,7 @@ import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * @author Jeff Cunningham

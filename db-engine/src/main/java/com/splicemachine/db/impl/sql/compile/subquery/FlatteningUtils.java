@@ -1,11 +1,9 @@
 package com.splicemachine.db.impl.sql.compile.subquery;
 
-import com.google.common.base.Predicate;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.sql.compile.*;
-
 import java.util.List;
 
 /**
@@ -52,7 +50,7 @@ public class FlatteningUtils {
      */
     public static ValueNode findCorrelatedSubqueryPredicates(ValueNode root,
                                                              List<BinaryRelationalOperatorNode> predToSwitch,
-                                                             Predicate<BinaryRelationalOperatorNode> bronPredicate) {
+                                                             org.sparkproject.guava.base.Predicate<BinaryRelationalOperatorNode> bronPredicate) {
         if (root instanceof AndNode) {
             AndNode andNode = (AndNode) root;
             ValueNode left = findCorrelatedSubqueryPredicates(andNode.getLeftOperand(), predToSwitch, bronPredicate);

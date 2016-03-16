@@ -5,13 +5,12 @@ import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
 import org.apache.log4j.Logger;
-
 import java.util.List;
 
 /**
  * This predicate determines if we attempt to flatten a given exists SubqueryNode or not.
  */
-class ExistsSubqueryPredicate implements com.google.common.base.Predicate<SubqueryNode> {
+class ExistsSubqueryPredicate implements org.sparkproject.guava.base.Predicate<SubqueryNode> {
 
     private static Logger LOG = Logger.getLogger(ExistsSubqueryPredicate.class);
 

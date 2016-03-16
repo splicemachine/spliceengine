@@ -1,6 +1,5 @@
 package com.splicemachine.db.impl.sql.compile.subquery.exists;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -10,6 +9,7 @@ import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedBronPredicate;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedEqualityBronPredicate;
 import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.List;
 

@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.base.Strings;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
@@ -53,12 +52,12 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
-
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Map;
 
 import org.apache.commons.lang3.text.WordUtils;
+import org.sparkproject.guava.base.Strings;
 
 /**
  * QueryTreeNode is the root class for all query tree nodes. All

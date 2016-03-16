@@ -1,7 +1,5 @@
 package com.splicemachine.db.impl.sql.compile.subquery.exists;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -11,6 +9,8 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.*;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collections;

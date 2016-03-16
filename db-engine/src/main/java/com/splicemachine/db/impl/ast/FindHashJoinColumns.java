@@ -1,14 +1,14 @@
 package com.splicemachine.db.impl.ast;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Sets;
+import org.sparkproject.guava.primitives.Ints;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +20,7 @@ import java.util.Set;
  * Dependency: relies on join predicates having been pulled up from leaf nodes and attached
  * directly to join in the JoinConditionVisitor.
  *
- * @author P Trolard
+ * @author P trolard
  *         Date: 18/10/2013
  */
 
@@ -72,7 +72,7 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             throws StandardException {
         List<Integer> leftIndices = Lists.newArrayListWithCapacity(equiJoinPreds.size());
         List<Integer> rightIndices = Lists.newArrayListWithCapacity(equiJoinPreds.size());
-        com.google.common.base.Predicate<ResultColumn> isLeftRef = RSUtils.pointsTo(node.getLeftResultSet());
+        org.sparkproject.guava.base.Predicate<ResultColumn> isLeftRef = RSUtils.pointsTo(node.getLeftResultSet());
         ResultColumnList leftRCL = node.getLeftResultSet().getResultColumns();
         ResultColumnList rightRCL = node.getRightResultSet().getResultColumns();
 

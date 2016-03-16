@@ -1,14 +1,14 @@
 package com.splicemachine.db.impl.sql.compile.subquery;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.sql.compile.SelectNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Multimap;
+import org.sparkproject.guava.collect.Multimaps;
 
 import java.util.Collection;
 import java.util.Collections;

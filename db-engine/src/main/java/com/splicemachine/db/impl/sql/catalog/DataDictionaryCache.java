@@ -1,8 +1,6 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.google.common.base.Optional;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -13,6 +11,9 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.cache.Cache;
+import org.sparkproject.guava.cache.CacheBuilder;
+
 import javax.management.MXBean;
 import java.util.List;
 import java.util.Properties;

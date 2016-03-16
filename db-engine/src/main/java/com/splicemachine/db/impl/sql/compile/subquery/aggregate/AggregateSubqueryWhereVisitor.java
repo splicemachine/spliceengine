@@ -1,6 +1,5 @@
 package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -9,11 +8,10 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelationLevelPredicate;
 import org.apache.log4j.Logger;
-
+import org.sparkproject.guava.collect.Lists;
 import java.util.List;
-
-import static com.google.common.collect.Iterables.any;
-import static com.google.common.collect.Iterables.filter;
+import static org.sparkproject.guava.collect.Iterables.any;
+import static org.sparkproject.guava.collect.Iterables.filter;
 
 /**
  * Encapsulates/implements current restrictions on the where-clause of subqueries in aggregate subquery flattening. We

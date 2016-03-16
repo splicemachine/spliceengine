@@ -1,6 +1,5 @@
 package com.splicemachine.db.impl.ast;
 
-import com.google.common.collect.ImmutableMap;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.MessageId;
@@ -8,6 +7,7 @@ import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+import org.sparkproject.guava.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.List;

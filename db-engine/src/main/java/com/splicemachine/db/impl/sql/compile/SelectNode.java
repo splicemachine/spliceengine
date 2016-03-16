@@ -28,7 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -2299,7 +2298,7 @@ public class SelectNode extends ResultSetNode{
         return orderByList;
     }
 
-    public static class SelectNodeWithSubqueryPredicate implements com.google.common.base.Predicate<Visitable> {
+    public static class SelectNodeWithSubqueryPredicate implements org.sparkproject.guava.base.Predicate<Visitable> {
         @Override
         public boolean apply(Visitable input) {
             return (input instanceof SelectNode) && !((SelectNode) input).getWhereSubquerys().isEmpty();

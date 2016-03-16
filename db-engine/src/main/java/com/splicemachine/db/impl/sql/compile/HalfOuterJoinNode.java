@@ -21,8 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -30,6 +28,8 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import org.sparkproject.guava.base.Joiner;
+import org.sparkproject.guava.collect.Lists;
 
 import java.util.List;
 

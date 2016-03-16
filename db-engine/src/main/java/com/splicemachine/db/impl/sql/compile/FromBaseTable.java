@@ -21,8 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -52,8 +50,8 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import java.lang.reflect.Modifier;
 import java.util.*;
-
-import org.apache.commons.lang3.text.WordUtils;
+import org.sparkproject.guava.base.Joiner;
+import org.sparkproject.guava.collect.Lists;
 
 // Temporary until user override for disposable stats has been removed.
 

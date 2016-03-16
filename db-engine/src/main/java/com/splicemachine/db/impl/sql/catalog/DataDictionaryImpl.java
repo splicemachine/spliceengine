@@ -23,8 +23,6 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimaps;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -59,6 +57,8 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import org.sparkproject.guava.collect.ImmutableListMultimap;
+import org.sparkproject.guava.collect.Multimaps;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -1240,12 +1240,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 partitionStatisticsDescriptors,
                 false);
         List<ColumnStatsDescriptor> columnStats = getColumnStatistics(conglomerate, tc);
-        ImmutableListMultimap columnStatsMap = Multimaps.index(columnStats,new Function<ColumnStatsDescriptor,String>() {
-             @Override
-             public String apply(@Nullable ColumnStatsDescriptor input) {
-                 return input.getPartitionId();
-             }
-         });
+        ImmutableListMultimap columnStatsMap = Multimaps.index(columnStats, new Function<ColumnStatsDescriptor, String>() {
+            @Override
+            public String apply(@Nullable ColumnStatsDescriptor input) {
+                return input.getPartitionId();
+            }
+        });
         for (PartitionStatisticsDescriptor desc: partitionStatisticsDescriptors) {
             desc.setColumnStatsDescriptors(columnStatsMap.get(desc.getPartitionId()));
         }

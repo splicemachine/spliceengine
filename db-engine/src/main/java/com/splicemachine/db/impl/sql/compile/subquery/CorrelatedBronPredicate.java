@@ -5,6 +5,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
+import org.sparkproject.guava.base.Predicate;
 
 /**
  * A predicate that evaluates to true if a given BinaryRelationalOperatorNode has this shape:
@@ -25,7 +26,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
  *
  * In this query 'a1=10' can be moved to the outer query (for EXISTS subqueries, but not for NOT-EXISTS subqueries).
  */
-public class CorrelatedBronPredicate implements com.google.common.base.Predicate<BinaryRelationalOperatorNode> {
+public class CorrelatedBronPredicate implements Predicate<BinaryRelationalOperatorNode> {
 
     private int sourceLevel;
 

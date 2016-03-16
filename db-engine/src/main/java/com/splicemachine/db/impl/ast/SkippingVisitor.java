@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.ast;
 
-import com.google.common.base.Predicate;
+
+import org.sparkproject.guava.base.Predicate;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;

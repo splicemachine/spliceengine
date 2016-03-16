@@ -22,12 +22,10 @@ package com.splicemachine.db.impl.sql.compile;
 
 import java.util.Collections;
 import java.util.List;
-
-import com.google.common.collect.Lists;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import org.sparkproject.guava.collect.Lists;
 
 /**
  * Class that represents a call to the FIRST_VALUE() and LAST_VALUE() window functions.

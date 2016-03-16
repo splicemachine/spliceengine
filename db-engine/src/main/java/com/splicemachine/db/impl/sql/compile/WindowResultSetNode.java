@@ -5,11 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -34,6 +30,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
+import org.sparkproject.guava.base.Predicates;
 
 
 /**
@@ -1116,7 +1113,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @see #findColumnDescriptor(ResultColumn)
      */
     private static class ResultColumnFinder implements ColumnFinder {
-        private final Predicate<ColumnDescriptor> predicate;
+        private final org.sparkproject.guava.base.Predicate<ColumnDescriptor> predicate;
 
         ResultColumnFinder(ResultColumn srcRC) {
             assert srcRC != null : "ResultColumnFinder predicate cannot accept a null source ResultColumn.";

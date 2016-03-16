@@ -1,12 +1,6 @@
 package com.splicemachine.db.impl.ast;
 
 import com.google.common.base.Function;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -16,6 +10,9 @@ import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.base.Strings;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.Lists;
 import java.util.*;
 
 
@@ -104,7 +101,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         int level = (Integer)copy.get("level");
         String space;
         if(addSpaces)
-           space = Strings.repeat(spaces,level);
+           space = Strings.repeat(spaces, level);
         else
             space = "";
             return String.format("%s%s (%s) %s",
@@ -176,7 +173,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
                 }
-            }}));
+            }
+        }));
         if (rsn instanceof JoinNode){
             JoinNode j = (JoinNode) rsn;
             info.put("exe", RSUtils.ap(j).getJoinStrategy().getName());
@@ -361,8 +359,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
 
     public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes) throws StandardException {
-        return Iterators.transform(orderedNodes.iterator(),new Function<QueryTreeNode,String>() {
+        return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
             int i = 0;
+
             @Override
             public String apply(QueryTreeNode queryTreeNode) {
                 try {
