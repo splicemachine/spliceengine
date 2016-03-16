@@ -9,10 +9,7 @@ import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -39,6 +36,17 @@ public class DirectDatabaseAdministrator implements DatabaseAdministrator{
     @Override
     public Map<String, DatabaseVersion> getClusterDatabaseVersions() throws SQLException{
         return Collections.singletonMap("mem",EngineDriver.driver().getVersion());
+    }
+
+    @Override
+    public Map<String,Map<String,String>> getDatabaseVersionInfo() throws SQLException{
+        DatabaseVersion databaseVersion = EngineDriver.driver().getVersion();
+        Map<String,String> attrs = new HashMap<>();
+        attrs.put("release", databaseVersion.getRelease());
+        attrs.put("implementationVersion", databaseVersion.getImplementationVersion());
+        attrs.put("buildTime", databaseVersion.getBuildTime());
+        attrs.put("url", databaseVersion.getURL());
+        return Collections.singletonMap("mem",attrs);
     }
 
     @Override
