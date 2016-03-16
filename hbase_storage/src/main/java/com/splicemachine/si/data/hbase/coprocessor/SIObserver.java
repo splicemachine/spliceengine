@@ -1,7 +1,7 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Maps;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
@@ -36,7 +36,6 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;

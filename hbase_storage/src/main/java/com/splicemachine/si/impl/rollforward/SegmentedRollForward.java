@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl.rollforward;
 
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.si.api.readresolve.RollForward;

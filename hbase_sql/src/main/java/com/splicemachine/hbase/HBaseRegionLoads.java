@@ -1,6 +1,6 @@
 package com.splicemachine.hbase;
 
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.HConfiguration;

@@ -1,7 +1,7 @@
 package com.splicemachine.access.hbase;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
+import org.sparkproject.guava.collect.Collections2;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.access.api.TableDescriptor;

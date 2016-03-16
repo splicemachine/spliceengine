@@ -1,17 +1,13 @@
 package com.splicemachine.storage;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import org.sparkproject.guava.collect.Lists;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataScanner;
-import com.splicemachine.storage.HCell;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;

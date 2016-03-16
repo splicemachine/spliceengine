@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.sparkproject.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.concurrent.ThreadLocalRandom;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
@@ -8,7 +8,6 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

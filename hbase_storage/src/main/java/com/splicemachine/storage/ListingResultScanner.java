@@ -1,12 +1,9 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.storage.util.MeasuredResultScanner;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
-
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;

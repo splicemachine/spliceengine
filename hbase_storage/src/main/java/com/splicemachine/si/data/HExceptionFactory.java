@@ -1,6 +1,6 @@
 package com.splicemachine.si.data;
 
-import com.google.common.base.Throwables;
+import org.sparkproject.guava.base.Throwables;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.txn.Txn;

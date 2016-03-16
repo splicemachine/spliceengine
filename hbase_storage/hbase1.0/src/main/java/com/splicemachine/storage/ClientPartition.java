@@ -1,13 +1,10 @@
 package com.splicemachine.storage;
 
-import com.google.common.base.*;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import com.google.common.base.Function;
+import org.sparkproject.guava.collect.ImmutableList;
+import org.sparkproject.guava.collect.Iterables;
+import org.sparkproject.guava.collect.Iterators;
 import com.google.protobuf.Service;
-import com.splicemachine.access.hbase.HServer;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
@@ -17,8 +14,6 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
-
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;

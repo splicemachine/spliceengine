@@ -4,7 +4,7 @@
     <groupId>com.splicemachine</groupId>
     <artifactId>mem_engine</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
+    <name>mem_engine</name>
     <description>In Memory SQL Engine.</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
@@ -13,43 +13,38 @@
     </parent>
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine.db-project</groupId>
             <artifactId>db-engine</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>pipeline_api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
         </dependency>
         <!--Test jars -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>splice_si_api</artifactId>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>mem_storage</artifactId>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -58,16 +53,16 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
             <artifactId>mem_pipeline</artifactId>
-            <version>${project.version}</version>
+            <version>2.0.1-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

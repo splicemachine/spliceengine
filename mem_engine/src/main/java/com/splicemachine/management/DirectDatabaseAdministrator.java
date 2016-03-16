@@ -1,6 +1,6 @@
 package com.splicemachine.management;
 
-import com.google.common.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;

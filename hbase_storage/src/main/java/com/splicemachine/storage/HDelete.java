@@ -1,10 +1,9 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Iterables;
+import org.sparkproject.guava.collect.Iterables;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
-
 import java.io.IOException;
 import java.util.Map;
 

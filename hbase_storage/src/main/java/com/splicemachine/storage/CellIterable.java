@@ -1,9 +1,8 @@
 package com.splicemachine.storage;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.sparkproject.guava.collect.Iterators;
 import org.apache.hadoop.hbase.Cell;
-
 import java.util.Iterator;
 
 /**

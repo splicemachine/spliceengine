@@ -1,11 +1,10 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Iterables;
+import org.sparkproject.guava.collect.Iterables;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-
 import java.io.IOException;
 import java.util.Map;
 

@@ -1,8 +1,8 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
+import org.sparkproject.guava.collect.Iterators;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.primitives.Longs;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.annotations.ThreadSafe;
