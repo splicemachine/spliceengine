@@ -1,6 +1,7 @@
 package com.splicemachine.access.hbase;
 
 import com.google.common.base.Function;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.sparkproject.guava.collect.Collections2;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -48,14 +49,9 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public PartitionCreator newPartition() throws IOException{
-        //TODO -sf- configure this more carefully
-        HColumnDescriptor snapshot = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_BYTES);
-        snapshot.setMaxVersions(Integer.MAX_VALUE);
-        snapshot.setCompressionType(Compression.Algorithm.NONE);
-        snapshot.setInMemory(true);
-        snapshot.setBlockCacheEnabled(true);
-        snapshot.setBloomFilterType(BloomType.ROW);
-        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,snapshot,partitionInfoCache);
+        HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
+        HColumnDescriptor dataFamily = instance.createDataFamily();
+        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
     }
 
     @Override
