@@ -216,8 +216,8 @@ public class HRegionUtil extends BaseHRegionUtil{
                             if(dataAndLocks[i]==null) continue;
                             byte[] key = dataAndLocks[i].getFirst().getRowKey();
                             if(hasConstraintChecker || !KVPair.Type.INSERT.equals(dataAndLocks[i].getFirst().getType())) {
-                                if (!bitSet.get(i) && fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0,
-                                        key.length, null))
+                                if (!bitSet.get(i) && fileReader.passesGeneralBloomFilter(key, 0,
+                                key.length, null, 0, 0))
                                     bitSet.set(i);
                             }
                         }
