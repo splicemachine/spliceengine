@@ -98,6 +98,21 @@ public class SIConfigurations{
     public static final String TIMESTAMP_SERVER_BIND_PORT = "splice.timestamp_server.port";
     private static final int DEFAULT_TIMESTAMP_SERVER_BIND_PORT = 60012;
 
+
+    /**
+     * The number of milliseconds the timestamp client should wait for the response.
+     * Defaults to 60000 (60 seconds)
+     */
+    public static final String OLAP_CLIENT_WAIT_TIME = "splice.olap_server.clientWaitTime";
+    private static final int DEFAULT_OLAP_CLIENT_WAIT_TIME = 60000;
+
+    /**
+     * The Port to bind the OLAP Server connection to
+     * Defaults to 60014
+     */
+    public static final String OLAP_SERVER_BIND_PORT = "splice.olap_server.port";
+    private static final int DEFAULT_OLAP_SERVER_BIND_PORT = 60014;
+
     public static final String ACTIVE_TRANSACTION_CACHE_SIZE="splice.txn.activeCacheSize";
     private static final int DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE = 1<<12;
 
@@ -123,6 +138,8 @@ public class SIConfigurations{
 //                case READ_RESOLVER_QUEUE_SIZE: return DEFAULT_READ_RESOLVER_QUEUE_SIZE;
                 case TIMESTAMP_CLIENT_WAIT_TIME: return DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME;
                 case TIMESTAMP_SERVER_BIND_PORT: return DEFAULT_TIMESTAMP_SERVER_BIND_PORT;
+                case OLAP_CLIENT_WAIT_TIME: return DEFAULT_OLAP_CLIENT_WAIT_TIME;
+                case OLAP_SERVER_BIND_PORT: return DEFAULT_OLAP_SERVER_BIND_PORT;
                 case ACTIVE_TRANSACTION_CACHE_SIZE: return DEFAULT_ACTIVE_TRANSACTION_CACHE_SIZE;
                 default:
                     throw new IllegalArgumentException("No SI default for key '"+key+"'");
@@ -151,6 +168,8 @@ public class SIConfigurations{
                 case TRANSACTION_LOCK_STRIPES:
                 case TIMESTAMP_CLIENT_WAIT_TIME:
                 case TIMESTAMP_SERVER_BIND_PORT:
+                case OLAP_CLIENT_WAIT_TIME:
+                case OLAP_SERVER_BIND_PORT:
                 case ACTIVE_TRANSACTION_CACHE_SIZE:
                     return true;
                 default:

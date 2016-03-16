@@ -20,13 +20,10 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.iapi.ScopeNamed;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.Exceptions;
@@ -438,11 +435,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         return StringUtils.join(this.getClass().getSimpleName().replace("Operation","").split("(?=[A-Z])"), " ");
     }
 
-    public DataSet<LocatedRow> getDataSet() throws StandardException{
-        DataSetProcessor dsp=EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
-        return getDataSet(dsp);
-    }
-
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try{
             if(LOG.isTraceEnabled())
@@ -466,7 +458,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void openCore() throws StandardException{
-        openCore(EngineDriver.driver().processorFactory().chooseProcessor(activation,this));
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation,this);
+        openCore(dsp);
     }
 
     @Override

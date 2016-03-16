@@ -7,6 +7,7 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.MasterLifecycle;
+import com.splicemachine.olap.OlapServer;
 import com.splicemachine.si.api.SIConfigurations;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -14,7 +15,6 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.ha.HAServiceStatus;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
@@ -36,6 +36,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
     private TimestampServer timestampServer;
     private DatabaseLifecycleManager manager;
+    private OlapServer olapServer;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
@@ -57,6 +58,10 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
 
         this.timestampServer.startServer();
+
+        int olapPort=configuration.getInt(SIConfigurations.OLAP_SERVER_BIND_PORT);
+        this.olapServer = new OlapServer(olapPort);
+        this.olapServer.startServer();
 
         /*
          * We create a new instance here rather than referring to the singleton because we have
